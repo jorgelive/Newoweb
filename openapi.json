@@ -110,6 +110,33 @@
                         },
                         "style": "form",
                         "explode": false
+                    },
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "form",
+                        "explode": false
+                    },
+                    {
+                        "name": "id[]",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "style": "form",
+                        "explode": true
                     }
                 ]
             },
@@ -5282,6 +5309,231 @@
                 ]
             }
         },
+        "/platform/travel/proveedores": {
+            "get": {
+                "operationId": "api_travelproveedores_get_collection",
+                "tags": [
+                    "Proveedor"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proveedor collection",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "description": "Proveedor.jsonld-proveedor.read collection.",
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/HydraCollectionBaseSchema"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "member"
+                                            ],
+                                            "properties": {
+                                                "member": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/Proveedor.jsonld-proveedor.read"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Proveedor-proveedor.read"
+                                    }
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Proveedor.html-proveedor.read"
+                                    }
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Proveedor.multipart-proveedor.read"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "summary": "Retrieves the collection of Proveedor resources.",
+                "description": "Retrieves the collection of Proveedor resources.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "The collection page number",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        },
+                        "style": "form",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/travel/proveedores/{id}": {
+            "get": {
+                "operationId": "api_travelproveedores_id_get",
+                "tags": [
+                    "Proveedor"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proveedor resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Proveedor.jsonld-proveedor.read_proveedor.item.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Proveedor-proveedor.read_proveedor.item.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Proveedor.html-proveedor.read_proveedor.item.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Proveedor.multipart-proveedor.read_proveedor.item.read"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a Proveedor resource.",
+                "description": "Retrieves a Proveedor resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Proveedor identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/travel/proveedor_imagens/{id}": {
+            "get": {
+                "operationId": "api_travelproveedor_imagens_id_get",
+                "tags": [
+                    "ProveedorImagen"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ProveedorImagen resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorImagen.jsonld-proveedor.item.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorImagen-proveedor.item.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorImagen.html-proveedor.item.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorImagen.multipart-proveedor.item.read"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a ProveedorImagen resource.",
+                "description": "Retrieves a ProveedorImagen resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ProveedorImagen identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
         "/platform/travel/segmentos": {
             "get": {
                 "operationId": "api_travelsegmentos_get_collection",
@@ -6438,6 +6690,33 @@
                         },
                         "style": "form",
                         "explode": false
+                    },
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "form",
+                        "explode": false
+                    },
+                    {
+                        "name": "id[]",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "style": "form",
+                        "explode": true
                     }
                 ]
             }
@@ -11503,6 +11782,13 @@
                             "type": "string"
                         }
                     },
+                    "nombreParaProveedorSnapshot": {
+                        "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -11516,6 +11802,13 @@
                         "type": "string"
                     },
                     "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del proveedor del cat\u00e1logo maestro.",
                         "type": [
                             "string",
                             "null"
@@ -11584,6 +11877,13 @@
                             "type": "string"
                         }
                     },
+                    "nombreParaProveedorSnapshot": {
+                        "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -11597,6 +11897,13 @@
                         "type": "string"
                     },
                     "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del proveedor del cat\u00e1logo maestro.",
                         "type": [
                             "string",
                             "null"
@@ -11656,6 +11963,13 @@
                             "type": "string"
                         }
                     },
+                    "nombreParaProveedorSnapshot": {
+                        "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -11669,6 +11983,13 @@
                         "type": "string"
                     },
                     "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del proveedor del cat\u00e1logo maestro.",
                         "type": [
                             "string",
                             "null"
@@ -11726,6 +12047,13 @@
                             "type": "string"
                         }
                     },
+                    "nombreParaProveedorSnapshot": {
+                        "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -11739,6 +12067,13 @@
                         "type": "string"
                     },
                     "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del proveedor del cat\u00e1logo maestro.",
                         "type": [
                             "string",
                             "null"
@@ -11807,6 +12142,13 @@
                             "type": "string"
                         }
                     },
+                    "nombreParaProveedorSnapshot": {
+                        "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -11820,6 +12162,13 @@
                         "type": "string"
                     },
                     "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del proveedor del cat\u00e1logo maestro.",
                         "type": [
                             "string",
                             "null"
@@ -11889,6 +12238,13 @@
                                     "type": "string"
                                 }
                             },
+                            "nombreParaProveedorSnapshot": {
+                                "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "cantidad": {
                                 "default": 1,
                                 "type": "integer"
@@ -11902,6 +12258,13 @@
                                 "type": "string"
                             },
                             "tarifaMaestraId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorMaestroId": {
+                                "description": "SOFT-LINK: Guarda el UUID del proveedor del cat\u00e1logo maestro.",
                                 "type": [
                                     "string",
                                     "null"
@@ -11977,6 +12340,13 @@
                                     "type": "string"
                                 }
                             },
+                            "nombreParaProveedorSnapshot": {
+                                "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "cantidad": {
                                 "default": 1,
                                 "type": "integer"
@@ -11990,6 +12360,13 @@
                                 "type": "string"
                             },
                             "tarifaMaestraId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorMaestroId": {
+                                "description": "SOFT-LINK: Guarda el UUID del proveedor del cat\u00e1logo maestro.",
                                 "type": [
                                     "string",
                                     "null"
@@ -12056,6 +12433,13 @@
                             "type": "string"
                         }
                     },
+                    "nombreParaProveedorSnapshot": {
+                        "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -12069,6 +12453,13 @@
                         "type": "string"
                     },
                     "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del proveedor del cat\u00e1logo maestro.",
                         "type": [
                             "string",
                             "null"
@@ -12137,6 +12528,13 @@
                             "type": "string"
                         }
                     },
+                    "nombreParaProveedorSnapshot": {
+                        "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -12150,6 +12548,13 @@
                         "type": "string"
                     },
                     "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del proveedor del cat\u00e1logo maestro.",
                         "type": [
                             "string",
                             "null"
@@ -14811,9 +15216,7 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
                         ]
                     },
                     "tituloSnapshot": {
@@ -14964,6 +15367,13 @@
                             "type": "string"
                         }
                     },
+                    "notasSnapshot": {
+                        "description": "SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "cotcomponentes": {
                         "type": "array",
                         "items": {
@@ -15038,6 +15448,13 @@
                             "type": "string"
                         }
                     },
+                    "notasSnapshot": {
+                        "description": "SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -15095,6 +15512,13 @@
                             "type": "string"
                         }
                     },
+                    "notasSnapshot": {
+                        "description": "SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -15145,6 +15569,13 @@
                         }
                     },
                     "imagenesSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "notasSnapshot": {
+                        "description": "SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -15224,6 +15655,13 @@
                             "type": "string"
                         }
                     },
+                    "notasSnapshot": {
+                        "description": "SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -15286,6 +15724,13 @@
                                 }
                             },
                             "imagenesSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "notasSnapshot": {
+                                "description": "SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.",
                                 "type": "array",
                                 "items": {
                                     "type": "string"
@@ -15372,6 +15817,13 @@
                                     "type": "string"
                                 }
                             },
+                            "notasSnapshot": {
+                                "description": "SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
                             "id": {
                                 "allOf": [
                                     {
@@ -15431,6 +15883,13 @@
                         }
                     },
                     "imagenesSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "notasSnapshot": {
+                        "description": "SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -15505,6 +15964,13 @@
                         }
                     },
                     "imagenesSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "notasSnapshot": {
+                        "description": "SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -16464,15 +16930,6 @@
                             "$ref": "#/components/schemas/TravelItinerarioSegmentoRel"
                         }
                     },
-                    "notas": {
-                        "description": "Notas transversales. Solo enlazamos IRIs para no saturar.",
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "iri-reference",
-                            "example": "https://example.com/"
-                        }
-                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -16528,15 +16985,6 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/TravelItinerarioSegmentoRel-itinerario.item.read"
-                        }
-                    },
-                    "notas": {
-                        "description": "Notas transversales. Solo enlazamos IRIs para no saturar.",
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "iri-reference",
-                            "example": "https://example.com/"
                         }
                     },
                     "id": {
@@ -16606,15 +17054,6 @@
                         "items": {
                             "$ref": "#/components/schemas/TravelItinerarioSegmentoRel-itinerario.write"
                         }
-                    },
-                    "notas": {
-                        "description": "Notas transversales. Solo enlazamos IRIs para no saturar.",
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "iri-reference",
-                            "example": "https://example.com/"
-                        }
                     }
                 }
             },
@@ -16665,15 +17104,6 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/TravelItinerarioSegmentoRel.html"
-                        }
-                    },
-                    "notas": {
-                        "description": "Notas transversales. Solo enlazamos IRIs para no saturar.",
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "iri-reference",
-                            "example": "https://example.com/"
                         }
                     },
                     "id": {
@@ -16731,15 +17161,6 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/TravelItinerarioSegmentoRel.html-itinerario.item.read"
-                        }
-                    },
-                    "notas": {
-                        "description": "Notas transversales. Solo enlazamos IRIs para no saturar.",
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "iri-reference",
-                            "example": "https://example.com/"
                         }
                     },
                     "id": {
@@ -16837,15 +17258,6 @@
                                     "$ref": "#/components/schemas/TravelItinerarioSegmentoRel.jsonld"
                                 }
                             },
-                            "notas": {
-                                "description": "Notas transversales. Solo enlazamos IRIs para no saturar.",
-                                "type": "array",
-                                "items": {
-                                    "type": "string",
-                                    "format": "iri-reference",
-                                    "example": "https://example.com/"
-                                }
-                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -16908,15 +17320,6 @@
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/components/schemas/TravelItinerarioSegmentoRel.jsonld-itinerario.item.read"
-                                }
-                            },
-                            "notas": {
-                                "description": "Notas transversales. Solo enlazamos IRIs para no saturar.",
-                                "type": "array",
-                                "items": {
-                                    "type": "string",
-                                    "format": "iri-reference",
-                                    "example": "https://example.com/"
                                 }
                             },
                             "id": {
@@ -17025,15 +17428,6 @@
                             "$ref": "#/components/schemas/TravelItinerarioSegmentoRel.multipart"
                         }
                     },
-                    "notas": {
-                        "description": "Notas transversales. Solo enlazamos IRIs para no saturar.",
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "iri-reference",
-                            "example": "https://example.com/"
-                        }
-                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -17089,15 +17483,6 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/TravelItinerarioSegmentoRel.multipart-itinerario.item.read"
-                        }
-                    },
-                    "notas": {
-                        "description": "Notas transversales. Solo enlazamos IRIs para no saturar.",
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "iri-reference",
-                            "example": "https://example.com/"
                         }
                     },
                     "id": {
@@ -17946,7 +18331,7 @@
             },
             "Nota": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -17957,9 +18342,7 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -17974,7 +18357,7 @@
                             "type": "string"
                         }
                     },
-                    "itinerarios": {
+                    "segmentos": {
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -18014,7 +18397,7 @@
             },
             "Nota-nota.item.read": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -18025,9 +18408,7 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -18046,7 +18427,7 @@
             },
             "Nota-nota.read": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -18057,9 +18438,7 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -18078,7 +18457,7 @@
             },
             "Nota-nota.write": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -18089,9 +18468,97 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
+                        ]
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Nota-segmento.item.read": {
+                "type": "object",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "default": "introduccion",
+                        "type": "string",
+                        "enum": [
+                            "introduccion",
+                            "recomendacion",
+                            "advertencia"
+                        ]
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Nota-segmento.read": {
+                "type": "object",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "default": "introduccion",
+                        "type": "string",
+                        "enum": [
+                            "introduccion",
+                            "recomendacion",
+                            "advertencia"
+                        ]
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Nota-servicio.item.read": {
+                "type": "object",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "default": "introduccion",
+                        "type": "string",
+                        "enum": [
+                            "introduccion",
+                            "recomendacion",
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -18110,7 +18577,7 @@
             },
             "Nota.html": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -18121,9 +18588,7 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -18138,7 +18603,7 @@
                             "type": "string"
                         }
                     },
-                    "itinerarios": {
+                    "segmentos": {
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -18178,7 +18643,7 @@
             },
             "Nota.html-nota.item.read": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -18189,9 +18654,7 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -18210,7 +18673,7 @@
             },
             "Nota.html-nota.read": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -18221,9 +18684,97 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
+                        ]
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Nota.html-segmento.item.read": {
+                "type": "object",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "default": "introduccion",
+                        "type": "string",
+                        "enum": [
+                            "introduccion",
+                            "recomendacion",
+                            "advertencia"
+                        ]
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Nota.html-segmento.read": {
+                "type": "object",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "default": "introduccion",
+                        "type": "string",
+                        "enum": [
+                            "introduccion",
+                            "recomendacion",
+                            "advertencia"
+                        ]
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Nota.html-servicio.item.read": {
+                "type": "object",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "default": "introduccion",
+                        "type": "string",
+                        "enum": [
+                            "introduccion",
+                            "recomendacion",
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -18257,9 +18808,7 @@
                                 "enum": [
                                     "introduccion",
                                     "recomendacion",
-                                    "advertencia",
-                                    "politica",
-                                    "equipaje"
+                                    "advertencia"
                                 ]
                             },
                             "titulo": {
@@ -18274,7 +18823,7 @@
                                     "type": "string"
                                 }
                             },
-                            "itinerarios": {
+                            "segmentos": {
                                 "type": "array",
                                 "items": {
                                     "type": "string",
@@ -18313,7 +18862,7 @@
                         }
                     }
                 ],
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips)."
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento."
             },
             "Nota.jsonld-nota.item.read": {
                 "allOf": [
@@ -18332,9 +18881,7 @@
                                 "enum": [
                                     "introduccion",
                                     "recomendacion",
-                                    "advertencia",
-                                    "politica",
-                                    "equipaje"
+                                    "advertencia"
                                 ]
                             },
                             "titulo": {
@@ -18352,7 +18899,7 @@
                         }
                     }
                 ],
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips)."
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento."
             },
             "Nota.jsonld-nota.read": {
                 "allOf": [
@@ -18371,9 +18918,7 @@
                                 "enum": [
                                     "introduccion",
                                     "recomendacion",
-                                    "advertencia",
-                                    "politica",
-                                    "equipaje"
+                                    "advertencia"
                                 ]
                             },
                             "titulo": {
@@ -18391,11 +18936,122 @@
                         }
                     }
                 ],
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips)."
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento."
+            },
+            "Nota.jsonld-segmento.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreInterno": {
+                                "type": "string"
+                            },
+                            "tipo": {
+                                "default": "introduccion",
+                                "type": "string",
+                                "enum": [
+                                    "introduccion",
+                                    "recomendacion",
+                                    "advertencia"
+                                ]
+                            },
+                            "titulo": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "contenido": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento."
+            },
+            "Nota.jsonld-segmento.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreInterno": {
+                                "type": "string"
+                            },
+                            "tipo": {
+                                "default": "introduccion",
+                                "type": "string",
+                                "enum": [
+                                    "introduccion",
+                                    "recomendacion",
+                                    "advertencia"
+                                ]
+                            },
+                            "titulo": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "contenido": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento."
+            },
+            "Nota.jsonld-servicio.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreInterno": {
+                                "type": "string"
+                            },
+                            "tipo": {
+                                "default": "introduccion",
+                                "type": "string",
+                                "enum": [
+                                    "introduccion",
+                                    "recomendacion",
+                                    "advertencia"
+                                ]
+                            },
+                            "titulo": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "contenido": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento."
             },
             "Nota.multipart": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -18406,9 +19062,7 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -18423,7 +19077,7 @@
                             "type": "string"
                         }
                     },
-                    "itinerarios": {
+                    "segmentos": {
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -18463,7 +19117,7 @@
             },
             "Nota.multipart-nota.item.read": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -18474,9 +19128,7 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -18495,7 +19147,7 @@
             },
             "Nota.multipart-nota.read": {
                 "type": "object",
-                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -18506,9 +19158,97 @@
                         "enum": [
                             "introduccion",
                             "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                            "advertencia"
+                        ]
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Nota.multipart-segmento.item.read": {
+                "type": "object",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "default": "introduccion",
+                        "type": "string",
+                        "enum": [
+                            "introduccion",
+                            "recomendacion",
+                            "advertencia"
+                        ]
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Nota.multipart-segmento.read": {
+                "type": "object",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "default": "introduccion",
+                        "type": "string",
+                        "enum": [
+                            "introduccion",
+                            "recomendacion",
+                            "advertencia"
+                        ]
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Nota.multipart-servicio.item.read": {
+                "type": "object",
+                "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento.",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "default": "introduccion",
+                        "type": "string",
+                        "enum": [
+                            "introduccion",
+                            "recomendacion",
+                            "advertencia"
                         ]
                     },
                     "titulo": {
@@ -19676,6 +20416,583 @@
                     }
                 }
             },
+            "Proveedor-proveedor.read": {
+                "type": "object",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
+                    },
+                    "razonSocial": {
+                        "description": "Obtiene la raz\u00f3n social legal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "description": "Obtiene el n\u00famero de tel\u00e9fono principal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "Proveedor-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
+                    },
+                    "razonSocial": {
+                        "description": "Obtiene la raz\u00f3n social legal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "description": "Obtiene el n\u00famero de tel\u00e9fono principal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorImagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorImagen-proveedor.read_proveedor.item.read"
+                        }
+                    }
+                }
+            },
+            "Proveedor.html-proveedor.read": {
+                "type": "object",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
+                    },
+                    "razonSocial": {
+                        "description": "Obtiene la raz\u00f3n social legal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "description": "Obtiene el n\u00famero de tel\u00e9fono principal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "Proveedor.html-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
+                    },
+                    "razonSocial": {
+                        "description": "Obtiene la raz\u00f3n social legal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "description": "Obtiene el n\u00famero de tel\u00e9fono principal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorImagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorImagen.html-proveedor.read_proveedor.item.read"
+                        }
+                    }
+                }
+            },
+            "Proveedor.jsonld-proveedor.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreComercial": {
+                                "description": "Obtiene el nombre comercial del proveedor.",
+                                "type": "string"
+                            },
+                            "razonSocial": {
+                                "description": "Obtiene la raz\u00f3n social legal del proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "telefono": {
+                                "description": "Obtiene el n\u00famero de tel\u00e9fono principal del proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "email": {
+                                "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue."
+            },
+            "Proveedor.jsonld-proveedor.read_proveedor.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreComercial": {
+                                "description": "Obtiene el nombre comercial del proveedor.",
+                                "type": "string"
+                            },
+                            "razonSocial": {
+                                "description": "Obtiene la raz\u00f3n social legal del proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "telefono": {
+                                "description": "Obtiene el n\u00famero de tel\u00e9fono principal del proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "email": {
+                                "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorImagenes": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ProveedorImagen.jsonld-proveedor.read_proveedor.item.read"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue."
+            },
+            "Proveedor.multipart-proveedor.read": {
+                "type": "object",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
+                    },
+                    "razonSocial": {
+                        "description": "Obtiene la raz\u00f3n social legal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "description": "Obtiene el n\u00famero de tel\u00e9fono principal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "Proveedor.multipart-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
+                    },
+                    "razonSocial": {
+                        "description": "Obtiene la raz\u00f3n social legal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "description": "Obtiene el n\u00famero de tel\u00e9fono principal del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorImagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorImagen.multipart-proveedor.read_proveedor.item.read"
+                        }
+                    }
+                }
+            },
+            "ProveedorImagen-proveedor.item.read": {
+                "type": "object",
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un Proveedor.\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin.",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del proveedor.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorImagen-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del proveedor.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorImagen.html-proveedor.item.read": {
+                "type": "object",
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un Proveedor.\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin.",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del proveedor.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorImagen.html-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del proveedor.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorImagen.jsonld-proveedor.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "orden": {
+                                "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                                "type": "integer"
+                            },
+                            "isPortada": {
+                                "description": "Indica si esta imagen es la portada principal del proveedor.",
+                                "type": "boolean"
+                            },
+                            "imageName": {
+                                "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "imageSize": {
+                                "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "imageUrl": {
+                                "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un Proveedor.\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin."
+            },
+            "ProveedorImagen.jsonld-proveedor.read_proveedor.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "orden": {
+                                "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                                "type": "integer"
+                            },
+                            "isPortada": {
+                                "description": "Indica si esta imagen es la portada principal del proveedor.",
+                                "type": "boolean"
+                            },
+                            "imageName": {
+                                "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "imageSize": {
+                                "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "imageUrl": {
+                                "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un Proveedor.\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin."
+            },
+            "ProveedorImagen.multipart-proveedor.item.read": {
+                "type": "object",
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un Proveedor.\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin.",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del proveedor.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorImagen.multipart-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del proveedor.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
             "Segmento": {
                 "type": "object",
                 "properties": {
@@ -19700,6 +21017,14 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "imagenes": {
@@ -19767,6 +21092,12 @@
                             "type": "string"
                         }
                     },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Nota-segmento.item.read"
+                        }
+                    },
                     "imagenes": {
                         "type": "array",
                         "items": {
@@ -19807,6 +21138,12 @@
                             "type": "string"
                         }
                     },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Nota-segmento.read"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -19833,6 +21170,14 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "imagenes": {
@@ -19865,6 +21210,12 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Nota-servicio.item.read"
                         }
                     },
                     "segmentoComponentes": {
@@ -19907,6 +21258,14 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "imagenes": {
@@ -19974,6 +21333,12 @@
                             "type": "string"
                         }
                     },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Nota.html-segmento.item.read"
+                        }
+                    },
                     "imagenes": {
                         "type": "array",
                         "items": {
@@ -20014,6 +21379,12 @@
                             "type": "string"
                         }
                     },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Nota.html-segmento.read"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -20040,6 +21411,12 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Nota.html-servicio.item.read"
                         }
                     },
                     "segmentoComponentes": {
@@ -20087,6 +21464,14 @@
                                 "type": "array",
                                 "items": {
                                     "type": "string"
+                                }
+                            },
+                            "notas": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
                                 }
                             },
                             "imagenes": {
@@ -20161,6 +21546,12 @@
                                     "type": "string"
                                 }
                             },
+                            "notas": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Nota.jsonld-segmento.item.read"
+                                }
+                            },
                             "imagenes": {
                                 "type": "array",
                                 "items": {
@@ -20208,6 +21599,12 @@
                                     "type": "string"
                                 }
                             },
+                            "notas": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Nota.jsonld-segmento.read"
+                                }
+                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -20241,6 +21638,12 @@
                                 "type": "array",
                                 "items": {
                                     "type": "string"
+                                }
+                            },
+                            "notas": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Nota.jsonld-servicio.item.read"
                                 }
                             },
                             "segmentoComponentes": {
@@ -20285,6 +21688,14 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "imagenes": {
@@ -20352,6 +21763,12 @@
                             "type": "string"
                         }
                     },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Nota.multipart-segmento.item.read"
+                        }
+                    },
                     "imagenes": {
                         "type": "array",
                         "items": {
@@ -20392,6 +21809,12 @@
                             "type": "string"
                         }
                     },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Nota.multipart-segmento.read"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -20418,6 +21841,12 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "notas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Nota.multipart-servicio.item.read"
                         }
                     },
                     "segmentoComponentes": {
@@ -21193,6 +22622,20 @@
                     },
                     "costoPorGrupo": {
                         "type": "boolean"
+                    },
+                    "proveedor": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreParaProveedor": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -21264,6 +22707,20 @@
                     },
                     "costoPorGrupo": {
                         "type": "boolean"
+                    },
+                    "proveedor": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreParaProveedor": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -21335,6 +22792,20 @@
                     },
                     "costoPorGrupo": {
                         "type": "boolean"
+                    },
+                    "proveedor": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreParaProveedor": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -21411,6 +22882,20 @@
                             },
                             "costoPorGrupo": {
                                 "type": "boolean"
+                            },
+                            "proveedor": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
+                            },
+                            "nombreParaProveedor": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             }
                         }
                     }
@@ -21484,6 +22969,20 @@
                     },
                     "costoPorGrupo": {
                         "type": "boolean"
+                    },
+                    "proveedor": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreParaProveedor": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -23828,6 +25327,14 @@
             "description": "Resource 'UiI18n' operations."
         },
         {
+            "name": "Proveedor",
+            "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue."
+        },
+        {
+            "name": "ProveedorImagen",
+            "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un Proveedor.\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin."
+        },
+        {
             "name": "Componente",
             "description": "Entidad base para la log\u00edstica pura (El insumo financiero)."
         },
@@ -23841,7 +25348,7 @@
         },
         {
             "name": "Nota",
-            "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips)."
+            "description": "Entidad transversal que almacena informaci\u00f3n compartida (Historias, Pol\u00edticas, Tips).\nAhora vinculada din\u00e1micamente a Nivel de Segmento."
         },
         {
             "name": "Segmento",

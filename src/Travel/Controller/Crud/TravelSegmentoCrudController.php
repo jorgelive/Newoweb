@@ -146,5 +146,15 @@ class TravelSegmentoCrudController extends BaseCrudController
             ])
             ->setFormTypeOption('prototype_data', new TravelSegmentoImagen())
             ->setColumns(12);
+
+        yield FormField::addPanel('Contenido Introductorio y Notas Específicas')->setIcon('fa fa-book-open');
+
+        yield AssociationField::new('notas', 'Intros y tips')
+            ->setFormTypeOptions([
+                'by_reference' => false,
+                'multiple' => true,
+            ])
+            ->setHelp('Selecciona la Historia (Intro) notas, recomendaciones o tips para este segmento.')
+            ->setColumns(12);
     }
 }

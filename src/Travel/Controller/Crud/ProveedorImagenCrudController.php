@@ -6,8 +6,8 @@ namespace App\Travel\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
-use App\Travel\Entity\TravelSegmento;
-use App\Travel\Entity\TravelSegmentoImagen;
+use App\Travel\Entity\Proveedor;
+use App\Travel\Entity\ProveedorImagen;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Vich\UploaderBundle\Form\Type\VichImageType;
 
-class TravelSegmentoImagenCrudController extends BaseCrudController
+class ProveedorImagenCrudController extends BaseCrudController
 {
     /**
      * Constructor para inyectar la ruta de subida de imágenes para la previsualización del CRUD.
@@ -32,7 +32,7 @@ class TravelSegmentoImagenCrudController extends BaseCrudController
      * @param RequestStack $requestStack Pila de peticiones.
      */
     public function __construct(
-        #[Autowire('%travel.path.segmento_imagenes%')]
+        #[Autowire('%travel.path.proveedor_galeria%')]
         private readonly string $uploadPath,
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack
@@ -47,7 +47,7 @@ class TravelSegmentoImagenCrudController extends BaseCrudController
      */
     public static function getEntityFqcn(): string
     {
-        return TravelSegmentoImagen::class;
+        return ProveedorImagen::class;
     }
 
     /**
@@ -60,9 +60,9 @@ class TravelSegmentoImagenCrudController extends BaseCrudController
     {
         return $crud
             ->showEntityActionsInlined()
-            ->setEntityLabelInSingular('Imagen')
-            ->setEntityLabelInPlural('Imágenes de segmento')
-            ->setDefaultSort(['segmento' => 'ASC', 'orden' => 'ASC']);
+            ->setEntityLabelInSingular('Imagen de Proveedor')
+            ->setEntityLabelInPlural('Galería de Proveedores')
+            ->setDefaultSort(['proveedor' => 'ASC', 'orden' => 'ASC']);
     }
 
     /**
@@ -92,24 +92,23 @@ class TravelSegmentoImagenCrudController extends BaseCrudController
             ->setPermission(Action::NEW, Roles::MAESTROS_WRITE)
             ->setPermission(Action::EDIT, Roles::MAESTROS_WRITE)
             ->setPermission(Action::DELETE, Roles::MAESTROS_WRITE)
-            ->setPermission('massUpload', Roles::MAESTROS_WRITE); // Protegemos también la carga masiva
+            ->setPermission('massUpload', Roles::MAESTROS_WRITE);
     }
 
     /**
      * Acción personalizada para renderizar la vista de carga masiva.
-     * Obtiene los segmentos disponibles y renderiza la plantilla Twig.
+     * Obtiene los proveedores disponibles para alimentar el select de TomSelect.
      *
      * @param EntityManagerInterface $em
      * @return Response
      */
     public function renderMassUpload(EntityManagerInterface $em): Response
     {
-        // Obtenemos los segmentos ordenados para el selector de TomSelect.
-        // Asumiendo que TravelSegmento tiene un campo 'nombreInterno' o similar.
-        $segmentos = $em->getRepository(TravelSegmento::class)->findBy([], ['nombreInterno' => 'ASC']);
+        // Obtenemos los proveedores.
+        $proveedores = $em->getRepository(Proveedor::class)->findBy([], ['nombreComercial' => 'ASC']);
 
-        return $this->render('panel/travel/travel_segmento_imagen/mass_upload.html.twig', [
-            'segmentos' => $segmentos,
+        return $this->render('panel/travel/proveedor_imagen/mass_upload.html.twig', [
+            'proveedores' => $proveedores,
             'crud' => $this->configureCrud(Crud::new()),
         ]);
     }
@@ -136,7 +135,7 @@ class TravelSegmentoImagenCrudController extends BaseCrudController
             ->setColumns(6);
 
         yield BooleanField::new('isPortada', 'Es Portada')
-            ->setHelp('Marca esta imagen como la imagen principal o de cabecera del segmento.')
+            ->setHelp('Marca esta imagen como la imagen principal o de cabecera del proveedor.')
             ->setColumns(6);
     }
 }

@@ -13,6 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_guia_has_seccion')]
 #[ORM\UniqueConstraint(name: 'uniq_guia_seccion', columns: ['guia_id', 'seccion_id'])]
+#[ORM\HasLifecycleCallbacks]
 class PmsGuiaHasSeccion
 {
     use IdTrait;

@@ -57,6 +57,14 @@ class CotizacionSegmento
     #[ORM\Column(type: 'json')]
     private array $imagenesSnapshot = [];
 
+    /**
+     * SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.
+     * Estructura: [ {"nombreInterno": "...", "contenido": [...]}, ... ]
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'json')]
+    private array $notasSnapshot = [];
+
     #[ORM\OneToMany(mappedBy: 'cotsegmento', targetEntity: CotizacionCotcomponente::class)]
     private Collection $cotcomponentes;
 
@@ -110,6 +118,28 @@ class CotizacionSegmento
 
     public function getImagenesSnapshot(): array { return $this->imagenesSnapshot; }
     public function setImagenesSnapshot(array $imagenesSnapshot): self { $this->imagenesSnapshot = $imagenesSnapshot; return $this; }
+
+    /**
+     * Obtiene el snapshot inmutable de notas asociadas a este segmento cotizado.
+     *
+     * @return array Retorna la estructura JSON con las notas congeladas.
+     */
+    public function getNotasSnapshot(): array
+    {
+        return $this->notasSnapshot;
+    }
+
+    /**
+     * Establece el snapshot inmutable de notas para este segmento cotizado.
+     *
+     * @param array $notasSnapshot Array multidimensional con el historial de notas.
+     * @return self
+     */
+    public function setNotasSnapshot(array $notasSnapshot): self
+    {
+        $this->notasSnapshot = $notasSnapshot;
+        return $this;
+    }
 
     public function getCotcomponentes(): Collection { return $this->cotcomponentes; }
     public function addCotcomponente(CotizacionCotcomponente $cotcomponente): self

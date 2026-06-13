@@ -5,6 +5,11 @@ import { useCotizacionEditorStore } from '@/stores/cotizaciones/cotizacionEditor
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import WysiwygEditor from '@/components/WysiwygEditor.vue';
 
+defineProps<{
+  fileId?: string;
+  cotizacionId?: string;
+}>();
+
 const route = useRoute();
 const router = useRouter();
 const store = useCotizacionEditorStore();
@@ -37,6 +42,15 @@ const opcionesTarifas = computed(() => {
       .map(t => ({
         value: t.id || t['@id'],
         label: store.getTarifaLabel(t, store.cotizacion?.idiomaEdicion || 'es')
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+});
+
+const opcionesProveedores = computed(() => {
+  return store.catalogos.proveedores
+      .map(p => ({
+        value: p.id || p['@id'],
+        label: p.nombreComercial || 'Sin nombre'
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
@@ -161,9 +175,34 @@ const poolFiltrado = computed(() => {
 });
 
 const modalInsercion = ref({ isOpen: false, segmentoMaestro: null as any });
+const modalNota = ref({ isOpen: false, nota: null as any });
 const opcionInsercion = ref<'append'|'insert'|'replace'>('append');
 const targetSegmentoId = ref<string>('');
 const isTotalsDrawerOpen = ref(false);
+
+const abrirModalNota = (nota: any) => {
+  modalNota.value = { isOpen: true, nota };
+};
+
+const agruparNotasPorTipo = (notas: any[]) => {
+  if (!notas || !Array.isArray(notas)) return {};
+  return notas.reduce((acc, nota) => {
+    const tipo = nota.tipo || 'OTROS';
+    if (!acc[tipo]) acc[tipo] = [];
+    acc[tipo].push(nota);
+    return acc;
+  }, {} as Record<string, any[]>);
+};
+
+// Asigna iconos y colores según el tipo de nota
+const getTipoNotaUI = (tipo: string | number) => {
+  const t = String(tipo).toLowerCase();
+  if (t.includes('alerta') || t.includes('peligro')) return { icon: 'fa-exclamation-triangle', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' };
+  if (t.includes('politica') || t.includes('regla')) return { icon: 'fa-gavel', bg: 'bg-slate-200', text: 'text-slate-700', border: 'border-slate-300' };
+  if (t.includes('tip') || t.includes('operativo')) return { icon: 'fa-lightbulb', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' };
+  if (t.includes('intro')) return { icon: 'fa-book-open', bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' };
+  return { icon: 'fa-info-circle', bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200' };
+};
 
 const prepararInsercion = async (seg: any) => {
   if (!store.dataActiva?.cotsegmentos?.length) {
@@ -283,12 +322,33 @@ const dropSegmento = (e: DragEvent) => {
                       <i class="far fa-calendar-check text-[#E07845]"></i> FECHA BASE: {{ formatFecha(servicio.fechaInicioAbsoluta) }}
                     </p>
 
-                    <h3 class="font-black text-lg text-slate-900 leading-tight">
+                    <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
-                      {{ store.getI18nText(servicio.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
-                    </h3>
 
-                    <p class="text-[11px] font-bold text-slate-500 mt-1"><i class="fas fa-map-signs mr-1"></i> {{ store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
+                      <span v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) !== 'Sin plantilla'">
+                        {{ store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                      </span>
+
+                      <ul v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0" class="flex flex-col gap-0 leading-[1.15] mt-1">
+                        <li v-for="seg in [...servicio.cotsegmentos].sort((a, b) => (a.orden || 0) - (b.orden || 0))" :key="seg.id" class="text-[16px] text-slate-800 tracking-tight">
+                          <span v-if="servicio.cotsegmentos.length > 1">- </span>{{ store.getI18nText(seg.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                        </li>
+                      </ul>
+
+                      <span v-else>
+                        {{ store.getI18nText(servicio.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                      </span>
+                    </div>
+
+                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) !== 'Sin plantilla'">
+                      <i class="fas fa-map-signs mr-1"></i> Plantilla Aplicada
+                    </p>
+                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0">
+                      <i class="fas fa-layer-group mr-1"></i> Storytelling a medida ({{ servicio.cotsegmentos.length }} párrafos)
+                    </p>
+                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-else>
+                      <i class="fas fa-pen-nib mr-1"></i> Sin Storytelling
+                    </p>
 
                     <div class="flex flex-wrap items-center gap-2 mt-4">
                         <span class="text-[9px] font-black bg-indigo-600 text-white px-2 py-1.5 rounded uppercase tracking-widest shadow-sm">
@@ -739,14 +799,14 @@ const dropSegmento = (e: DragEvent) => {
 
               <div v-if="store.dataActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-700 flex flex-wrap gap-2">
                 <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t.id || t['@id']) === store.extractIdStr(store.dataActiva.tarifaMaestraId))]">
-                    <span v-if="catT" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
-                      <i class="fas fa-globe-americas text-emerald-400 mr-1"></i>
-                      {{ catT.procedencia ? catT.procedencia : 'Sin restricción origen' }}
-                    </span>
+              <span v-if="catT" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
+                <i class="fas fa-globe-americas text-emerald-400 mr-1"></i>
+                {{ catT.procedencia ? catT.procedencia : 'Sin restricción origen' }}
+              </span>
                   <span v-if="catT && (catT.edadMinima !== undefined || catT.edadMaxima !== undefined)" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
-                      <i class="fas fa-birthday-cake text-orange-400 mr-1"></i>
-                      {{ catT.edadMinima !== undefined ? catT.edadMinima : 0 }} - {{ catT.edadMaxima !== undefined ? catT.edadMaxima : 120 }} años
-                    </span>
+                <i class="fas fa-birthday-cake text-orange-400 mr-1"></i>
+                {{ catT.edadMinima !== undefined ? catT.edadMinima : 0 }} - {{ catT.edadMaxima !== undefined ? catT.edadMaxima : 120 }} años
+              </span>
                 </template>
               </div>
 
@@ -781,12 +841,12 @@ const dropSegmento = (e: DragEvent) => {
                   <button @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = !store.dataActiva.esGrupal)"
                           :disabled="!!store.dataActiva.tarifaMaestraId"
                           :class="[
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
-                store.dataActiva.esGrupal ? 'bg-orange-500' : 'bg-slate-600',
-                store.dataActiva.tarifaMaestraId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            ]">
-      <span :class="store.dataActiva.esGrupal ? 'translate-x-6' : 'translate-x-1'"
-            class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
+          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
+          store.dataActiva.esGrupal ? 'bg-orange-500' : 'bg-slate-600',
+          store.dataActiva.tarifaMaestraId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+      ]">
+<span :class="store.dataActiva.esGrupal ? 'translate-x-6' : 'translate-x-1'"
+      class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
                   </button>
                 </div>
 
@@ -799,6 +859,54 @@ const dropSegmento = (e: DragEvent) => {
                     <i class="fas fa-users text-xs mb-1"></i>
                     <p class="text-[8px] font-black uppercase">Grupal (Flat)</p>
                   </div>
+                </div>
+              </div>
+
+              <div class="col-span-2 bg-slate-800/50 border border-slate-700 p-4 rounded-2xl mb-2 relative overflow-hidden">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-sky-500"></div>
+
+                <div class="flex items-center justify-between mb-3">
+                  <label class="block text-[10px] font-black text-sky-400 uppercase tracking-widest"><i class="fas fa-truck-loading mr-1"></i> Proveedor Operativo (Opcional)</label>
+                  <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-black">
+                    Vinculado al Catálogo
+                  </span>
+                  <span v-else class="text-[8px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded border border-slate-600 uppercase font-black">
+                    Sin Proveedor
+                  </span>
+                </div>
+
+                <SearchableSelect
+                    v-model="store.dataActiva.proveedorMaestroId"
+                    :options="opcionesProveedores"
+                    placeholder="Seleccionar proveedor para operar..."
+                    :darkMode="true"
+                    @change="val => store.onProveedorChange(val)"
+                />
+
+                <div class="mt-3">
+                  <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
+                  <input v-model="store.dataActiva.proveedorNombreSnapshot"
+                         type="text"
+                         class="w-full bg-slate-900 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-sky-500 outline-none"
+                         placeholder="Nombre del proveedor o servicio libre..." />
+                  <p class="text-[9px] text-slate-500 mt-1 ml-1 flex items-center gap-1">
+                    <i class="fas fa-info-circle"></i> Este nombre quedará fijo en la cotización para proteger el historial financiero.
+                  </p>
+                </div>
+
+                <div class="mt-3 pt-3 border-t border-slate-700/50">
+                  <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
+                    <span>Nombre para la Reserva (Email)</span>
+                    <i class="fas fa-paper-plane text-slate-600"></i>
+                  </label>
+                  <input v-model="store.dataActiva.nombreParaProveedorSnapshot"
+                         type="text"
+                         class="w-full bg-slate-900 border border-slate-700 text-emerald-400 rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
+                         placeholder="Ej: Cena Buffet Tunupa..." />
+                  <p class="text-[9px] text-slate-500 mt-1 ml-1 flex items-start gap-1">
+                    <i class="fas fa-exclamation-circle mt-0.5 text-orange-400"></i>
+                    Este es el texto exacto que verá el proveedor en el requerimiento automático.
+                  </p>
                 </div>
               </div>
 
@@ -831,7 +939,6 @@ const dropSegmento = (e: DragEvent) => {
             </div>
           </div>
         </div>
-
         <div v-if="store.inspectorActivo !== 'resumen' && store.cotizacion"
              @click="isTotalsDrawerOpen = true"
              class="absolute bottom-0 w-full bg-slate-900 border-t border-slate-700/50 px-5 py-4 flex justify-between items-center flex-shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.4)] z-40 cursor-pointer hover:bg-slate-800 active:bg-slate-950 transition-colors">
@@ -972,6 +1079,37 @@ const dropSegmento = (e: DragEvent) => {
                           :model-value="store.getI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion)"
                           @update:model-value="store.setI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion, $event)"
                       />
+
+                      <div v-if="cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0">
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-clipboard-list mr-1"></i> Recomendaciones del Segmento</h4>
+                        <div class="flex flex-col gap-3">
+                          <div v-for="(notasGrupo, tipo) in agruparNotasPorTipo(cotSeg.notasSnapshot)" :key="tipo">
+                              <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1.5">
+                                <i class="fas" :class="getTipoNotaUI(tipo).icon"></i> {{ tipo }}
+                              </span>
+                            <div class="flex flex-wrap gap-2">
+                              <div v-for="nota in notasGrupo" :key="nota.id"
+                                   @click="abrirModalNota(nota)"
+                                   class="bg-white border border-slate-200 rounded-lg shadow-sm flex items-stretch overflow-hidden hover:border-indigo-400 transition-all cursor-pointer group max-w-full">
+                                <div :class="[getTipoNotaUI(tipo).bg, getTipoNotaUI(tipo).text]" class="px-2.5 py-1.5 flex items-center justify-center">
+                                  <i class="fas text-xs" :class="getTipoNotaUI(tipo).icon"></i>
+                                </div>
+                                <div class="px-2.5 py-1.5 flex-1 min-w-0 flex flex-col justify-center">
+                                      <span class="text-[10px] font-bold text-slate-700 block truncate w-full max-w-[160px]">
+                                        {{ store.getI18nText(nota.titulo, store.cotizacion.idiomaEdicion) || nota.nombreInterno }}
+                                      </span>
+                                </div>
+                                <button @click.stop="cotSeg.notasSnapshot.splice(cotSeg.notasSnapshot.indexOf(nota), 1)"
+                                        class="px-2.5 bg-slate-50 border-l border-slate-100 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                  <i class="fas fa-times text-[10px]"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+
                     </div>
                   </div>
                 </div>
@@ -1116,6 +1254,31 @@ const dropSegmento = (e: DragEvent) => {
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+  </Transition>
+
+  <Transition name="fade-scale">
+    <div v-if="modalNota.isOpen" class="fixed inset-0 z-[1300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalNota.isOpen = false">
+      <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
+        <div :class="[getTipoNotaUI(modalNota.nota?.tipo).bg, getTipoNotaUI(modalNota.nota?.text)]" class="px-5 py-4 flex justify-between items-center border-b border-black/5 flex-shrink-0">
+          <h3 class="font-black text-sm uppercase tracking-widest flex items-center gap-2">
+            <i class="fas" :class="getTipoNotaUI(modalNota.nota?.tipo).icon"></i>
+            {{ modalNota.nota?.tipo }}
+          </h3>
+          <button @click="modalNota.isOpen = false" class="hover:opacity-70 transition-opacity"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-6 overflow-y-auto flex-1">
+          <h4 class="text-lg font-black text-slate-800 mb-4 leading-tight">
+            {{ store.getI18nText(modalNota.nota?.titulo, store.cotizacion.idiomaEdicion) || modalNota.nota?.nombreInterno }}
+          </h4>
+          <div class="prose prose-sm max-w-none text-slate-600 leading-relaxed"
+               v-html="store.getI18nText(modalNota.nota?.contenido, store.cotizacion.idiomaEdicion)">
+          </div>
+        </div>
+        <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end flex-shrink-0">
+          <button @click="modalNota.isOpen = false" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">Cerrar</button>
         </div>
       </div>
     </div>

@@ -33,6 +33,10 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'json')]
     private array $nombreSnapshot = [];
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $nombreParaProveedorSnapshot = null;
+
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'integer', options: ['default' => 1])]
     private int $cantidad = 1;
@@ -48,6 +52,14 @@ class CotizacionCottarifa
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $tarifaMaestraId = null;
+
+    /**
+     * SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro.
+     * Permite al frontend consultar la galería de fotos en tiempo real si el ID aún existe.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $proveedorMaestroId = null;
 
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
@@ -100,6 +112,26 @@ class CotizacionCottarifa
     public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
     public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }
 
+    /**
+     * Obtiene el nombre exclusivo para el requerimiento al proveedor.
+     * * @return string|null
+     */
+    public function getNombreParaProveedorSnapshot(): ?string
+    {
+        return $this->nombreParaProveedorSnapshot;
+    }
+
+    /**
+     * Establece el nombre exclusivo para el requerimiento al proveedor.
+     * * @param string|null $nombreParaProveedorSnapshot
+     * @return self
+     */
+    public function setNombreParaProveedorSnapshot(?string $nombreParaProveedorSnapshot): self
+    {
+        $this->nombreParaProveedorSnapshot = $nombreParaProveedorSnapshot;
+        return $this;
+    }
+
     public function getCantidad(): int { return $this->cantidad; }
     public function setCantidad(int $cantidad): self { $this->cantidad = $cantidad; return $this; }
 
@@ -111,6 +143,9 @@ class CotizacionCottarifa
 
     public function getTarifaMaestraId(): ?string { return $this->tarifaMaestraId; }
     public function setTarifaMaestraId(?string $tarifaMaestraId): self { $this->tarifaMaestraId = $tarifaMaestraId; return $this; }
+
+    public function getProveedorMaestroId(): ?string { return $this->proveedorMaestroId; }
+    public function setProveedorMaestroId(?string $proveedorMaestroId): self { $this->proveedorMaestroId = $proveedorMaestroId; return $this; }
 
     public function getProveedorNombreSnapshot(): ?string { return $this->proveedorNombreSnapshot; }
     public function setProveedorNombreSnapshot(?string $proveedorNombreSnapshot): self { $this->proveedorNombreSnapshot = $proveedorNombreSnapshot; return $this; }

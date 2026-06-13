@@ -23,42 +23,34 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+ * Ahora vinculada dinámicamente a Nivel de Segmento.
  */
 #[ApiResource(
-    shortName: 'Nota',      // 🔥 Define el recurso base para generar '/notas'
+    shortName: 'Nota',
     operations: [
-        // Genera: GET /travel/notas
         new GetCollection(
             normalizationContext: ['groups' => ['nota:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
-
-        // Genera: GET /travel/notas/{id}
         new Get(
             normalizationContext: ['groups' => ['nota:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
-
-        // Genera: POST /travel/notas
         new Post(
             denormalizationContext: ['groups' => ['nota:write']],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear notas.'
         ),
-
-        // Genera: PUT /travel/notas/{id}
         new Put(
             denormalizationContext: ['groups' => ['nota:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar notas.'
         ),
-
-        // Genera: DELETE /travel/notas/{id}
         new Delete(
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar notas.'
         )
-    ], // 🔥 Agrupa todas las rutas bajo el módulo logístico
+    ],
     routePrefix: '/travel'
 )]
 #[ORM\Entity]
@@ -70,32 +62,35 @@ class TravelNota
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    #[Groups(['nota:read', 'nota:item:read', 'nota:write'])]
+    #[Groups(['nota:read', 'nota:item:read', 'nota:write', 'segmento:read', 'segmento:item:read', 'servicio:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
-    #[Groups(['nota:read', 'nota:item:read', 'nota:write'])]
+    #[Groups(['nota:read', 'nota:item:read', 'nota:write', 'segmento:read', 'segmento:item:read', 'servicio:item:read'])]
     #[ORM\Column(type: 'string', length: 30, enumType: NotaTipoEnum::class)]
     private NotaTipoEnum $tipo = NotaTipoEnum::INTRODUCCION;
 
-    #[Groups(['nota:read', 'nota:item:read', 'nota:write'])]
+    #[Groups(['nota:read', 'nota:item:read', 'nota:write', 'segmento:read', 'segmento:item:read', 'servicio:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
-    #[Groups(['nota:read', 'nota:item:read', 'nota:write'])]
+    #[Groups(['nota:read', 'nota:item:read', 'nota:write', 'segmento:read', 'segmento:item:read', 'servicio:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
     private array $contenido = [];
 
-    // 🚫 CORTE CIRCULAR
-    #[ORM\ManyToMany(targetEntity: TravelItinerario::class, mappedBy: 'notas')]
-    private Collection $itinerarios;
+    // 🚫 CORTE CIRCULAR: El Segmento es el propietario de la relación
+    /**
+     * @var Collection<int, TravelSegmento>
+     */
+    #[ORM\ManyToMany(targetEntity: TravelSegmento::class, mappedBy: 'notas')]
+    private Collection $segmentos;
 
     public function __construct()
     {
         $this->initializeId();
-        $this->itinerarios = new ArrayCollection();
+        $this->segmentos = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -148,26 +143,26 @@ class TravelNota
     }
 
     /**
-     * @return Collection<int, TravelItinerario>
+     * @return Collection<int, TravelSegmento>
      */
-    public function getItinerarios(): Collection
+    public function getSegmentos(): Collection
     {
-        return $this->itinerarios;
+        return $this->segmentos;
     }
 
-    public function addItinerario(TravelItinerario $itinerario): self
+    public function addSegmento(TravelSegmento $segmento): self
     {
-        if (!$this->itinerarios->contains($itinerario)) {
-            $this->itinerarios->add($itinerario);
-            $itinerario->addNota($this);
+        if (!$this->segmentos->contains($segmento)) {
+            $this->segmentos->add($segmento);
+            $segmento->addNota($this);
         }
         return $this;
     }
 
-    public function removeItinerario(TravelItinerario $itinerario): self
+    public function removeSegmento(TravelSegmento $segmento): self
     {
-        if ($this->itinerarios->removeElement($itinerario)) {
-            $itinerario->removeNota($this);
+        if ($this->segmentos->removeElement($segmento)) {
+            $segmento->removeNota($this);
         }
         return $this;
     }

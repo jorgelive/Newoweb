@@ -113,14 +113,6 @@ class TravelItinerarioCrudController extends BaseCrudController
             ->setColumns(12)
             ->setHelp('Selecciona los segmentos del pool del servicio y ordénalos por día.');
 
-        yield FormField::addPanel('Contenido Introductorio y Notas Específicas')->setIcon('fa fa-book-open');
 
-        yield AssociationField::new('notas', 'Historias / Intros Seleccionadas')
-            ->setFormTypeOptions([
-                'by_reference' => false,
-                'multiple' => true,
-            ])
-            ->setHelp('Selecciona la Historia (Intro) u otras políticas exclusivas para esta plantilla de itinerario.')
-            ->setColumns(12);
     }
 }

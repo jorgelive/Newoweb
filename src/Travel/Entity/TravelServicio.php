@@ -20,6 +20,9 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
+// 🔥 NUEVOS IMPORTS PARA LA VALIDACIÓN
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
@@ -232,5 +235,34 @@ class TravelServicio
             $segmento->removeServicio($this);
         }
         return $this;
+    }
+
+    /**
+     * 🔥 NUEVO: Valida que el arreglo JSON de Título contenga el idioma Español ('es')
+     * y que este no esté en blanco.
+     * EasyAdmin llamará a este método automáticamente al intentar guardar el formulario.
+     */
+    #[Assert\Callback]
+    public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
+    {
+        $hasValidSpanish = false;
+
+        if (is_array($this->titulo)) {
+            foreach ($this->titulo as $item) {
+                // Verificamos la estructura clásica de tus campos i18n: ['language' => 'es', 'content' => '...']
+                if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                    if (trim(strip_tags((string) $item['content'])) !== '') {
+                        $hasValidSpanish = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!$hasValidSpanish) {
+            $context->buildViolation('El título público en Español es obligatorio.')
+                ->atPath('titulo') // Marca el campo en rojo en EasyAdmin
+                ->addViolation();
+        }
     }
 }

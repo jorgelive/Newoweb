@@ -13,16 +13,42 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 
-// 🔥 Asegúrate de importar esto
-
+/**
+ * Servicio encargado de recalcular los agregados (fechas, montos, canales) de las reservas
+ * basándose en su historial de eventos de calendario. Tras el recálculo directo en SQL,
+ * sincroniza el estado fresco con el motor de reglas de mensajería.
+ */
 final class PmsReservaRecalculoService
 {
-    // 🔥 1. INYECTAMOS EL FACTORY DEL CHAT Y EL MOTOR DE REGLAS
+    /**
+     * Inyectamos las dependencias críticas para la sincronización post-recálculo.
+     *
+     * @param MessageConversationFactory $messageFactory Factory para instanciar o actualizar la conversación del chat asociada a la reserva.
+     * @param MessageRuleEngine $ruleEngine Motor de reglas que evalúa si los nuevos cálculos disparan automatizaciones (ej. mensajes programados).
+     */
     public function __construct(
         private readonly MessageConversationFactory $messageFactory,
         private readonly MessageRuleEngine $ruleEngine
     ) {}
 
+    /**
+     * Ejecuta una actualización masiva de reservas (en bloques de 400) utilizando SQL crudo
+     * para máxima velocidad, agregando los datos de sus eventos de calendario. Luego, hidrata
+     * las entidades actualizadas y fuerza la evaluación en el sistema de mensajería.
+     *
+     * @param array $reservaIds Lista de identificadores de reservas (UUIDs en formato string).
+     * @param EntityManagerInterface $entityManager Gestor de entidades para acceder a la conexión y refrescar datos.
+     * @param mixed $flush Define si se debe hacer flush al finalizar cada chunk. Nota: El motor de reglas podría forzar flushes internos.
+     *
+     * @example
+     * $this->recalculoService->recalcularDesdeEventos(
+     * ['1ed4b5...', '1ed4b6...'],
+     * $this->entityManager,
+     * true
+     * );
+     *
+     * @return void
+     */
     public function recalcularDesdeEventos(array $reservaIds, EntityManagerInterface $entityManager, $flush): void
     {
         $reservaIds = array_values(array_unique(array_filter($reservaIds, static fn ($v) => is_string($v) && $v !== '')));
@@ -41,7 +67,6 @@ final class PmsReservaRecalculoService
 
             $in = implode(',', array_fill(0, count($binaryIds), '?'));
 
-            // ... (AQUÍ VA EXACTAMENTE TU SQL COMO LO TIENES) ...
             $sql = <<<SQL
 UPDATE pms_reserva r
 LEFT JOIN (
@@ -87,20 +112,26 @@ SQL;
 
             $conn->executeStatement($sql, $params, $types);
 
-            // 🔥 2. ACTUALIZAMOS EL CHAT CON LOS DATOS FRESCOS
+            /**
+             * Sincronización de mensajería:
+             * Actualizamos el chat con los datos frescos. Se itera sobre las reservas modificadas
+             * para forzar la evaluación de reglas que dependan de montos, fechas o canales.
+             */
             foreach ($chunk as $idStr) {
                 $reserva = $entityManager->find(PmsReserva::class, $idStr);
                 if ($reserva) {
-                    // Refrescamos la reserva con los datos recién calculados por el SQL
+                    // Refrescamos la reserva en Doctrine para que reconozca los cambios aplicados vía SQL crudo
                     $entityManager->refresh($reserva);
 
-                    // Envolvemos la reserva en su adaptador
+                    // Envolvemos la reserva en su adaptador de contexto para el sistema de mensajería
                     $context = new PmsReservaMessageContext($reserva);
 
                     // Pasamos false para no hacer mini-flushes constantes y agrupar todo al final
+                    // (Nota: Revisar si MessageRuleEngine fuerza un flush internamente que anule este comportamiento)
                     $conversation = $this->messageFactory->upsertFromContext($context, false);
 
-                    // Ejecución explicita ya que no se llamara al listener de al haberse ejecutado por sql
+                    // Ejecución explícita: Al usar SQL crudo se evitan los listeners de Doctrine,
+                    // por lo que debemos empujar los datos al motor de reglas manualmente.
                     if ($conversation instanceof MessageConversation) {
                         // Forzamos el motor pasándole true para que salte protecciones y evalúe los cambios crudos
                         $this->ruleEngine->syncConversationRules($conversation, MessageRuleEngine::TRIGGER_UPDATE, true);
@@ -108,7 +139,7 @@ SQL;
                 }
             }
 
-            // 4. Si se solicitó flush, lo hacemos una sola vez por lote (Mejor rendimiento)
+            // Si se solicitó flush a nivel de lote, consolidamos la escritura en base de datos.
             if ($flush) {
                 $entityManager->flush();
             }

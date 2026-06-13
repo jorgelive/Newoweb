@@ -21,6 +21,9 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
+// 🔥 NUEVOS IMPORTS PARA LA VALIDACIÓN
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ApiResource(
     shortName: 'Itinerario', // 🔥 Define el recurso base para generar '/itinerarios'
@@ -79,7 +82,6 @@ class TravelItinerario
     private ?string $nombreInterno = null;
 
     #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write','servicio:item:read'])]
-
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
@@ -94,20 +96,10 @@ class TravelItinerario
     #[ORM\OrderBy(['dia' => 'ASC', 'orden' => 'ASC'])]
     private Collection $itinerarioSegmentos;
 
-    /**
-     * Notas transversales. Solo enlazamos IRIs para no saturar.
-     */
-    #[Groups(['itinerario:item:read', 'itinerario:write'])]
-    #[ApiProperty(readableLink: false)]
-    #[ORM\ManyToMany(targetEntity: TravelNota::class, inversedBy: 'itinerarios')]
-    #[ORM\JoinTable(name: 'travel_itinerario_notas')]
-    private Collection $notas;
-
     public function __construct()
     {
         $this->initializeId();
         $this->itinerarioSegmentos = new ArrayCollection();
-        $this->notas = new ArrayCollection();
     }
 
     #[Groups(['itinerario:read', 'itinerario:item:read', 'servicio:item:read', 'cotizacion:read', 'segmento:item:read'])]
@@ -190,24 +182,30 @@ class TravelItinerario
     }
 
     /**
-     * @return Collection<int, TravelNota>
+     * 🔥 NUEVO: Valida que el arreglo JSON de Título contenga el idioma Español ('es')
+     * y que este no esté en blanco.
+     * EasyAdmin llamará a este método automáticamente al intentar guardar el formulario.
      */
-    public function getNotas(): Collection
+    #[Assert\Callback]
+    public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
     {
-        return $this->notas;
-    }
+        $hasValidSpanish = false;
 
-    public function addNota(TravelNota $nota): self
-    {
-        if (!$this->notas->contains($nota)) {
-            $this->notas->add($nota);
+        if (is_array($this->titulo)) {
+            foreach ($this->titulo as $item) {
+                if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                    if (trim(strip_tags((string) $item['content'])) !== '') {
+                        $hasValidSpanish = true;
+                        break;
+                    }
+                }
+            }
         }
-        return $this;
-    }
 
-    public function removeNota(TravelNota $nota): self
-    {
-        $this->notas->removeElement($nota);
-        return $this;
+        if (!$hasValidSpanish) {
+            $context->buildViolation('El título público en Español es obligatorio.')
+                ->atPath('titulo') // Marca el campo en rojo en EasyAdmin
+                ->addViolation();
+        }
     }
 }

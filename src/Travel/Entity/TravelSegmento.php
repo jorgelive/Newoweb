@@ -20,6 +20,9 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
+// 🔥 NUEVOS IMPORTS PARA LA VALIDACIÓN
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ApiResource(
     shortName: 'Segmento',  // 🔥 Define el recurso base para generar '/segmentos'
@@ -86,6 +89,14 @@ class TravelSegmento
     #[ORM\Column(type: 'json')]
     private array $contenido = [];
 
+    /**
+     * @var Collection<int, TravelNota>
+     */
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
+    #[ORM\ManyToMany(targetEntity: TravelNota::class, inversedBy: 'segmentos')]
+    #[ORM\JoinTable(name: 'travel_segmento_notas_rel')]
+    private Collection $notas;
+
     // 👇 CASCADA HACIA ABAJO
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoImagen::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -101,6 +112,7 @@ class TravelSegmento
     {
         $this->initializeId();
         $this->servicios = new ArrayCollection();
+        $this->notas = new ArrayCollection();
         $this->imagenes = new ArrayCollection();
         $this->segmentoComponentes = new ArrayCollection();
     }
@@ -177,6 +189,28 @@ class TravelSegmento
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelNota>
+     */
+    public function getNotas(): Collection
+    {
+        return $this->notas;
+    }
+
+    public function addNota(TravelNota $nota): self
+    {
+        if (!$this->notas->contains($nota)) {
+            $this->notas->add($nota);
+        }
+        return $this;
+    }
+
+    public function removeNota(TravelNota $nota): self
+    {
+        $this->notas->removeElement($nota);
+        return $this;
+    }
+
     public function getImagenes(): Collection
     {
         return $this->imagenes;
@@ -227,6 +261,7 @@ class TravelSegmento
         }
         return $this;
     }
+
     /**
      * Campo virtual para EasyAdmin.
      * Retorna un string vacío para engañar al validador estricto de TextField,
@@ -235,5 +270,33 @@ class TravelSegmento
     public function getVirtualLogistica(): string
     {
         return '';
+    }
+
+    /**
+     * 🔥 NUEVO: Valida que el arreglo JSON de Título contenga el idioma Español ('es')
+     * y que este no esté en blanco.
+     * EasyAdmin llamará a este método automáticamente al intentar guardar el formulario.
+     */
+    #[Assert\Callback]
+    public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
+    {
+        $hasValidSpanish = false;
+
+        if (is_array($this->titulo)) {
+            foreach ($this->titulo as $item) {
+                if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                    if (trim(strip_tags((string) $item['content'])) !== '') {
+                        $hasValidSpanish = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!$hasValidSpanish) {
+            $context->buildViolation('El título público en Español es obligatorio.')
+                ->atPath('titulo') // Marca el campo en rojo en EasyAdmin
+                ->addViolation();
+        }
     }
 }

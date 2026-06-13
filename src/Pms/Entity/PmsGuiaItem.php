@@ -19,6 +19,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_guia_item')]
+#[ORM\HasLifecycleCallbacks]
 class PmsGuiaItem
 {
     use IdTrait;

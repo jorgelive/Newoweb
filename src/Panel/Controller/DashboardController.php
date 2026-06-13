@@ -61,13 +61,15 @@ use App\Pms\Controller\Crud\PmsUnidadBeds24MapCrudController;
 use App\Pms\Controller\Crud\PmsUnidadCrudController;
 
 // 🔥 NUEVAS IMPORTACIONES MÓDULO TRAVEL (Agencia & Tours)
+use App\Travel\Controller\Crud\ProveedorCrudController; // <-- NUEVO
+use App\Travel\Controller\Crud\ProveedorImagenCrudController; // <-- NUEVO
 use App\Travel\Controller\Crud\TravelServicioCrudController;
 use App\Travel\Controller\Crud\TravelItinerarioCrudController;
 use App\Travel\Controller\Crud\TravelSegmentoCrudController;
 use App\Travel\Controller\Crud\TravelComponenteCrudController;
 use App\Travel\Controller\Crud\TravelTarifaCrudController;
 use App\Travel\Controller\Crud\TravelItemDiccionarioCrudController;
-use App\Travel\Controller\Crud\TravelNotaCrudController; // <-- NUEVO
+use App\Travel\Controller\Crud\TravelNotaCrudController;
 
 // 🔥 IMPORTACIONES MÓDULO COTIZACIONES (Caja Fuerte)
 use App\Cotizacion\Controller\Crud\CotizacionFileCrudController;
@@ -162,13 +164,15 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(TravelSegmentoCrudController::class, 'Segmentos Narrativos', 'fa fa-paragraph'),
                 MenuItem::linkTo(TravelSegmentoImagenCrudController::class, 'Galería de Segmentos', 'fa fa-images'),
                 MenuItem::linkTo(TravelItinerarioCrudController::class, 'Plantillas de Itinerario', 'fa fa-book-open'),
-                MenuItem::linkTo(TravelNotaCrudController::class, 'Notas y Políticas', 'fa fa-file-alt'), // <-- NUEVO
+                MenuItem::linkTo(TravelNotaCrudController::class, 'Intro y tips', 'fa fa-file-alt'),
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 
         // LOGÍSTICA Y FINANZAS
         yield MenuItem::subMenu('Logística y Tarifas', 'fa fa-cogs')
             ->setSubItems([
+                MenuItem::linkTo(ProveedorCrudController::class, 'Proveedores', 'fa fa-handshake'), // <-- NUEVO
+                MenuItem::linkTo(ProveedorImagenCrudController::class, 'Galería de Proveedores', 'fa fa-images'), // <-- NUEVO
                 MenuItem::linkTo(TravelComponenteCrudController::class, 'Componentes Base', 'fa fa-cubes'),
                 MenuItem::linkTo(TravelTarifaCrudController::class, 'Tarifario Maestro', 'fa fa-hand-holding-usd'),
                 MenuItem::linkTo(TravelItemDiccionarioCrudController::class, 'Diccionario Multiidioma', 'fa fa-language'),

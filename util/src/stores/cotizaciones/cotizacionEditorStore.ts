@@ -15,7 +15,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const catalogos = ref({
         servicios: [] as any[], allComponentes: [] as any[], componentes: [] as any[],
-        tarifas: [] as any[], plantillasItinerario: [] as any[], poolSegmentos: [] as any[]
+        tarifas: [] as any[], plantillasItinerario: [] as any[], poolSegmentos: [] as any[],
+        proveedores: [] as any[]
     });
 
     const todasLasTarifasMaestras = ref<any[]>([]);
@@ -87,6 +88,23 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const getTituloSafe = (entity: any) => {
         if (entity && entity.titulo && Array.isArray(entity.titulo) && entity.titulo.length > 0) return entity.titulo;
         return [];
+    };
+
+    const extraerNotasSnapshot = (segmentoMaestro: any) => {
+        if (!segmentoMaestro.notas || !Array.isArray(segmentoMaestro.notas)) return [];
+        return segmentoMaestro.notas.map((n: any) => ({
+            id: crypto.randomUUID(),
+            nombreInterno: n.nombreInterno,
+            tipo: n.tipo || 'INFO',
+            titulo: JSON.parse(JSON.stringify(n.titulo || [])),
+            contenido: JSON.parse(JSON.stringify(n.contenido || []))
+        }));
+    };
+
+    const extraerImagenesSnapshot = (segmentoMaestro: any) => {
+        if (!segmentoMaestro.imagenes || !Array.isArray(segmentoMaestro.imagenes)) return [];
+        // Hacemos una copia profunda para romper la reactividad y referencias del catálogo
+        return JSON.parse(JSON.stringify(segmentoMaestro.imagenes));
     };
 
     const getTarifaLabel = (cat: any, lang: string) => {
@@ -180,7 +198,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     // ============================================================================
-    // 🔥 CLASIFICADOR FINANCIERO EXACTO
+    // 🔥 CLASIFICADOR FINANCIERO EXACTO CON RASTREADOR DE CONFLICTOS
     // ============================================================================
 
     const resumenFinanciero = computed(() => {
@@ -433,7 +451,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
     // ============================================================================
-    // INICIALIZACIÓN
+    // INICIALIZACIÓN Y BATCH FETCHING (ANTI-WATERFALL)
     // ============================================================================
 
     const inicializarEditor = async (fileId: string, cotizacionId: string) => {
@@ -480,16 +498,17 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const fetchCatalogos = async () => {
         try {
-            const [resServicios, resComponentes] = await Promise.all([
+            const [resServicios, resComponentes, resProveedores] = await Promise.all([
                 apiClient.get('/platform/travel/servicios?pagination=false'),
-                apiClient.get('/platform/travel/componentes?pagination=false')
+                apiClient.get('/platform/travel/componentes?pagination=false'),
+                apiClient.get('/platform/travel/proveedores?pagination=false')
             ]);
             catalogos.value.servicios = resServicios.data['hydra:member'] || resServicios.data['member'] || [];
             catalogos.value.allComponentes = resComponentes.data['hydra:member'] || resComponentes.data['member'] || [];
             catalogos.value.componentes = catalogos.value.allComponentes;
+            catalogos.value.proveedores = resProveedores.data['hydra:member'] || resProveedores.data['member'] || [];
         } catch (e) {}
     };
-
     const fetchComponenteMaestroSilencioso = async (id: string) => {
         const cleanId = extractIdStr(id);
         if (!cleanId) return;
@@ -632,30 +651,50 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
             });
 
+            // 🔥 DISPARO PARALELO BATCHEADO (Anti-Waterfall)
             const fetchPromises: Promise<any>[] = [];
 
+            // Función auxiliar para partir arrays grandes y no reventar el límite de longitud de la URL
+            const chunkArray = (arr: any[], size: number) =>
+                Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
+
             if (componentesToFetch.size > 0) {
-                Array.from(componentesToFetch).forEach(cId => {
+                const cIds = Array.from(componentesToFetch);
+                const chunks = chunkArray(cIds, 30);
+
+                chunks.forEach(chunk => {
+                    const queryParams = chunk.map(id => `id[]=${id}`).join('&');
                     fetchPromises.push(
-                        apiClient.get(`/platform/travel/componentes/${cId}`)
+                        apiClient.get(`/platform/travel/componentes?${queryParams}`)
                             .then(res => {
-                                if (!catalogos.value.allComponentes.some((exist: any) => extractIdStr(exist.id || exist['@id']) === cId)) {
-                                    catalogos.value.allComponentes.push(res.data);
-                                }
+                                const items = res.data['hydra:member'] || res.data['member'] || [];
+                                items.forEach((item: any) => {
+                                    if (!catalogos.value.allComponentes.some((exist: any) => extractIdStr(exist.id || exist['@id']) === extractIdStr(item.id || item['@id']))) {
+                                        catalogos.value.allComponentes.push(item);
+                                    }
+                                });
                             }).catch(() => null)
                     );
                 });
             }
 
             if (tarifasToFetch.size > 0) {
-                Array.from(tarifasToFetch).forEach(tId => {
+                const tIds = Array.from(tarifasToFetch);
+                const chunks = chunkArray(tIds, 30);
+
+                chunks.forEach(chunk => {
+                    const queryParams = chunk.map(id => `id[]=${id}`).join('&');
                     fetchPromises.push(
-                        apiClient.get(`/platform/travel/tarifas/${tId}`)
+                        apiClient.get(`/platform/travel/tarifas?${queryParams}`)
                             .then(res => {
-                                if (!todasLasTarifasMaestras.value.some((exist: any) => extractIdStr(exist.id || exist['@id']) === tId)) {
-                                    catalogos.value.tarifas.push(res.data);
-                                    todasLasTarifasMaestras.value.push(res.data);
-                                }
+                                const items = res.data['hydra:member'] || res.data['member'] || [];
+                                items.forEach((item: any) => {
+                                    const currentId = extractIdStr(item.id || item['@id']);
+                                    if (!todasLasTarifasMaestras.value.some((exist: any) => extractIdStr(exist.id || exist['@id']) === currentId)) {
+                                        catalogos.value.tarifas.push(item);
+                                        todasLasTarifasMaestras.value.push(item);
+                                    }
+                                });
                             }).catch(() => null)
                     );
                 });
@@ -1086,7 +1125,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     cantidad: pasajerosRestantes,
                     moneda: cotizacion.value.monedaGlobal,
                     montoCosto: 0.00, tipoModalidadSnapshot: 'Normal',
-                    proveedorNombreSnapshot: null, detallesOperativos: [],
+                    proveedorMaestroId: null,
+                    proveedorNombreSnapshot: null,
+                    nombreParaProveedorSnapshot: null,
+                    detallesOperativos: [],
                     esGrupal: false,
                     sobreescribirTraduccion: false
                 };
@@ -1246,6 +1288,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         fechaAbsoluta: fechaCalculada,
                         nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(seg))),
                         contenidoSnapshot: JSON.parse(JSON.stringify(seg.contenido || [])),
+                        notasSnapshot: extraerNotasSnapshot(seg),
+                        imagenesSnapshot: extraerImagenesSnapshot(seg),
                         sobreescribirTraduccion: false
                     });
 
@@ -1285,6 +1329,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             fechaAbsoluta: fechaCalculada,
             nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
             contenidoSnapshot: JSON.parse(JSON.stringify(segmentoMaestro.contenido || [])),
+            notasSnapshot: extraerNotasSnapshot(segmentoMaestro),
+            imagenesSnapshot: extraerImagenesSnapshot(segmentoMaestro),
             sobreescribirTraduccion: false
         });
 
@@ -1330,6 +1376,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             segAfectado.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro)));
             segAfectado.contenidoSnapshot = JSON.parse(JSON.stringify(segmentoMaestro.contenido || []));
+            segAfectado.notasSnapshot = extraerNotasSnapshot(segmentoMaestro);
+            segAfectado.imagenesSnapshot = extraerImagenesSnapshot(segmentoMaestro);
             segAfectado.sobreescribirTraduccion = false;
 
             inyectarComponentesDeSegmento(segmentoMaestro, segAfectado.dia || 1, segAfectado.id, itinerarioId);
@@ -1351,6 +1399,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 fechaAbsoluta: fechaCalculada,
                 nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
                 contenidoSnapshot: JSON.parse(JSON.stringify(segmentoMaestro.contenido || [])),
+                notasSnapshot: extraerNotasSnapshot(segmentoMaestro),
+                imagenesSnapshot: extraerImagenesSnapshot(segmentoMaestro),
                 sobreescribirTraduccion: false
             };
 
@@ -1561,6 +1611,41 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             } else {
                 dataActiva.value.esGrupal = false;
             }
+
+            // 🔥 COPIAR PROVEEDOR POR DEFECTO DE LA TARIFA MAESTRA
+            if (maestro.provider || maestro.proveedor) {
+                const provObj = maestro.provider || maestro.proveedor;
+                const provId = extractIdStr(provObj.id || provObj['@id'] || provObj);
+                dataActiva.value.proveedorMaestroId = provId;
+
+                const provCat = catalogos.value.proveedores.find((p: any) => extractIdStr(p.id || p['@id']) === provId);
+                if (provCat) {
+                    dataActiva.value.proveedorNombreSnapshot = provCat.nombreComercial;
+                }
+            } else {
+                dataActiva.value.proveedorMaestroId = null;
+                dataActiva.value.proveedorNombreSnapshot = null;
+            }
+
+            dataActiva.value.nombreParaProveedorSnapshot = maestro.nombreParaProveedor || maestro.nombreInterno || null;
+        }
+    };
+
+    const onProveedorChange = (val: string | null): void => {
+        if (!val || val === 'null') {
+            if (dataActiva.value) {
+                dataActiva.value.proveedorMaestroId = null;
+                dataActiva.value.proveedorNombreSnapshot = null;
+            }
+            return;
+        }
+
+        const targetId = extractIdStr(val);
+        const provCat = catalogos.value.proveedores.find(p => extractIdStr(p.id || p['@id']) === targetId);
+
+        if (provCat && dataActiva.value) {
+            dataActiva.value.proveedorMaestroId = targetId;
+            dataActiva.value.proveedorNombreSnapshot = provCat.nombreComercial;
         }
     };
 
@@ -1577,6 +1662,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarSegmentoIndividual, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange,
-        actualizarInicioManteniendoRango
+        actualizarInicioManteniendoRango, onProveedorChange
     };
 });

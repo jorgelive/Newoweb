@@ -4,6 +4,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { apiClient } from '@/services/apiClient';
 import { useCotizacionFileStore } from '@/stores/cotizaciones/fileStore';
 
+defineProps<{
+  id?: string;
+}>();
+
 const route = useRoute();
 const router = useRouter();
 const fileStore = useCotizacionFileStore();

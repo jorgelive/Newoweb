@@ -46,3 +46,4 @@ parameters:
     message.path.message_attachments: '/carga/message/message_attachment/file'
     travel.path.segmento_imagenes: '/carga/travel/segmentos'
     cotizacion.path.file_documentos: '/carga/cotizaciones/documentos'
+    travel.path.proveedor_galeria: '/carga/travel/proveedor/galeria'

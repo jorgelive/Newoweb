@@ -59,38 +59,62 @@ class TravelTarifaCrudController extends BaseCrudController
     public function configureFields(string $pageName): iterable
     {
         $isEmbedded = $this->isEmbedded();
+
         yield FormField::addPanel('Identificación y Costo')->setIcon('fa fa-tag');
 
         if (!$isEmbedded) {
             yield AssociationField::new('componente', 'Componente Logístico')->setColumns(6);
         }
-        yield TextField::new('nombreInterno', 'Referencia Interna')->setColumns(6);
+
+        yield TextField::new('nombreInterno', 'Referencia Interna')
+            ->setColumns(6);
 
         yield AssociationField::new('moneda', 'Moneda')
-            ->setColumns(4)
+            ->setColumns(3)
             ->setRequired(true)
             ->setFormTypeOption('attr', ['required' => true]);
+
         yield NumberField::new('monto', 'Costo Neto')
             ->setNumDecimals(2)
-            ->setColumns(4);
+            ->setColumns(3);
+
+        // 🔥 AGREGADO: Fundamental para que el motor de Vue sepa si multiplica o no
+        yield BooleanField::new('costoPorGrupo', '¿Costo Fijo (Grupal)?')
+            ->setHelp('Activa esto si el costo NO se debe multiplicar por la cantidad de pasajeros (Ej. Un bus completo).')
+            ->setColumns(6);
+
+        // 🔥 NUEVA SECCIÓN: OPERACIONES B2B
+        yield FormField::addPanel('Operaciones B2B (Requerimientos)')->setIcon('fa fa-truck-loading')
+            ->setHelp('Datos sugeridos al momento de cotizar. El operador podrá cambiarlos libremente en el motor operativo.');
+
+        yield AssociationField::new('proveedor', 'Proveedor por Defecto')
+            ->setRequired(false)
+            ->setHelp('Sugerencia operativa (Ej: PeruRail).')
+            ->setColumns(6);
+
+        yield TextField::new('nombreParaProveedor', 'Nombre en Tarifario del Proveedor')
+            ->setRequired(false)
+            ->setHelp('El texto exacto que el proveedor reconoce en sus reservas (Ej: Ticket Tren Expedition).')
+            ->setColumns(6);
 
         yield FormField::addPanel('Restricciones de Venta (Constraints)')->setIcon('fa fa-filter')
             ->setHelp('Si dejas estos campos vacíos, la tarifa funcionará como "Comodín" y aplicará para cualquier pasajero o modalidad.');
 
         yield ChoiceField::new('modalidad', 'Modalidad')
             ->setChoices(array_reduce(TarifaModalidadEnum::cases(), fn ($c, $e) => $c + [$e->name => $e], []))
-            ->setRequired(false) // <--- ESTO PERMITE QUE QUEDE VACÍO
+            ->setRequired(false)
             ->setColumns(6);
 
         yield ChoiceField::new('procedencia', 'Mercado (Procedencia)')
             ->setChoices(array_reduce(TarifaProcedenciaEnum::cases(), fn ($c, $e) => $c + [$e->name => $e], []))
-            ->setRequired(false) // <--- ESTO PERMITE QUE QUEDE VACÍO
+            ->setRequired(false)
             ->setColumns(6);
 
         yield IntegerField::new('edadMinima', 'Edad Mín.')->setRequired(false)->setColumns(3);
         yield IntegerField::new('edadMaxima', 'Edad Máx.')->setRequired(false)->setColumns(3);
         yield IntegerField::new('capacidadMinima', 'Cap. Mínima')->setRequired(false)->setColumns(3)->hideOnIndex();
         yield IntegerField::new('capacidadMaxima', 'Cap. Máxima')->setRequired(false)->setColumns(3)->hideOnIndex();
+
         yield FormField::addPanel('Traducciones del Costo (Opcional)')->setIcon('fa fa-language');
 
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);

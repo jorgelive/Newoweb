@@ -96,6 +96,15 @@ class TravelTarifa
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $costoPorGrupo = false;
 
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\ManyToOne(targetEntity: Proveedor::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Proveedor $proveedor = null;
+
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $nombreParaProveedor = null;
+
     public function __construct()
     {
         $this->initializeId();
@@ -265,4 +274,27 @@ class TravelTarifa
         $this->costoPorGrupo = $costoPorGrupo;
         return $this;
     }
+
+    public function getProveedor(): ?Proveedor
+    {
+        return $this->proveedor;
+    }
+
+    public function setProveedor(?Proveedor $proveedor): self
+    {
+        $this->proveedor = $proveedor;
+        return $this;
+    }
+
+    public function getNombreParaProveedor(): ?string
+    {
+        return $this->nombreParaProveedor;
+    }
+
+    public function setNombreParaProveedor(?string $nombreParaProveedor): self
+    {
+        $this->nombreParaProveedor = $nombreParaProveedor;
+        return $this;
+    }
+
 }

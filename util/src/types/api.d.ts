@@ -728,6 +728,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/travel/proveedores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Proveedor resources.
+         * @description Retrieves the collection of Proveedor resources.
+         */
+        get: operations["api_travelproveedores_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/travel/proveedores/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a Proveedor resource.
+         * @description Retrieves a Proveedor resource.
+         */
+        get: operations["api_travelproveedores_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/travel/proveedor_imagens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a ProveedorImagen resource.
+         * @description Retrieves a ProveedorImagen resource.
+         */
+        get: operations["api_travelproveedor_imagens_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/travel/segmentos": {
         parameters: {
             query?: never;
@@ -2427,6 +2487,8 @@ export interface components {
              */
             cotcomponente?: string;
             nombreSnapshot?: string[];
+            /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
+            nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -2434,6 +2496,8 @@ export interface components {
             /** @default USD */
             moneda: string;
             tarifaMaestraId?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
+            proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
@@ -2453,6 +2517,8 @@ export interface components {
         };
         "CotizacionCottarifa-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
+            /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
+            nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -2460,6 +2526,8 @@ export interface components {
             /** @default USD */
             moneda: string;
             tarifaMaestraId?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
+            proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
@@ -2472,6 +2540,8 @@ export interface components {
         };
         "CotizacionCottarifa-cotizacion.write": {
             nombreSnapshot?: string[];
+            /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
+            nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -2479,6 +2549,8 @@ export interface components {
             /** @default USD */
             moneda: string;
             tarifaMaestraId?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
+            proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
@@ -2494,6 +2566,8 @@ export interface components {
              */
             cotcomponente?: string;
             nombreSnapshot?: string[];
+            /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
+            nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -2501,6 +2575,8 @@ export interface components {
             /** @default USD */
             moneda: string;
             tarifaMaestraId?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
+            proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
@@ -2520,6 +2596,8 @@ export interface components {
         };
         "CotizacionCottarifa.html-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
+            /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
+            nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -2527,6 +2605,8 @@ export interface components {
             /** @default USD */
             moneda: string;
             tarifaMaestraId?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
+            proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
@@ -2544,6 +2624,8 @@ export interface components {
              */
             cotcomponente?: string;
             nombreSnapshot?: string[];
+            /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
+            nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -2551,6 +2633,8 @@ export interface components {
             /** @default USD */
             moneda: string;
             tarifaMaestraId?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
+            proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
@@ -2570,6 +2654,8 @@ export interface components {
         };
         "CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreSnapshot?: string[];
+            /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
+            nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -2577,6 +2663,8 @@ export interface components {
             /** @default USD */
             moneda: string;
             tarifaMaestraId?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
+            proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
@@ -2594,6 +2682,8 @@ export interface components {
              */
             cotcomponente?: string;
             nombreSnapshot?: string[];
+            /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
+            nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -2601,6 +2691,8 @@ export interface components {
             /** @default USD */
             moneda: string;
             tarifaMaestraId?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
+            proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
@@ -2620,6 +2712,8 @@ export interface components {
         };
         "CotizacionCottarifa.multipart-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
+            /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
+            nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -2627,6 +2721,8 @@ export interface components {
             /** @default USD */
             moneda: string;
             tarifaMaestraId?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
+            proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
@@ -3388,7 +3484,7 @@ export interface components {
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             tituloSnapshot?: string[];
             contenidoSnapshot?: string[];
             id?: string;
@@ -3431,6 +3527,8 @@ export interface components {
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
+            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
+            notasSnapshot?: string[];
             cotcomponentes?: string[];
             id?: string;
             /** Format: date-time */
@@ -3455,6 +3553,8 @@ export interface components {
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
+            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
+            notasSnapshot?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3471,6 +3571,8 @@ export interface components {
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
+            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
+            notasSnapshot?: string[];
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -3490,6 +3592,8 @@ export interface components {
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
+            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
+            notasSnapshot?: string[];
             cotcomponentes?: string[];
             id?: string;
             /** Format: date-time */
@@ -3514,6 +3618,8 @@ export interface components {
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
+            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
+            notasSnapshot?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3535,6 +3641,8 @@ export interface components {
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
+            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
+            notasSnapshot?: string[];
             cotcomponentes?: string[];
             id?: string;
             /** Format: date-time */
@@ -3559,6 +3667,8 @@ export interface components {
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
+            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
+            notasSnapshot?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3580,6 +3690,8 @@ export interface components {
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
+            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
+            notasSnapshot?: string[];
             cotcomponentes?: string[];
             id?: string;
             /** Format: date-time */
@@ -3604,6 +3716,8 @@ export interface components {
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
+            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
+            notasSnapshot?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3912,8 +4026,6 @@ export interface components {
             /** @default 1 */
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -3939,8 +4051,6 @@ export interface components {
             /** @default 1 */
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel-itinerario.item.read"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -3968,8 +4078,6 @@ export interface components {
             /** @default 1 */
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel-itinerario.write"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
         };
         "Itinerario-servicio.item.read": {
             nombreInterno?: string;
@@ -3988,8 +4096,6 @@ export interface components {
             /** @default 1 */
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.html"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4015,8 +4121,6 @@ export interface components {
             /** @default 1 */
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.html-itinerario.item.read"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -4050,8 +4154,6 @@ export interface components {
             /** @default 1 */
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.jsonld"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4077,8 +4179,6 @@ export interface components {
             /** @default 1 */
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.jsonld-itinerario.item.read"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -4112,8 +4212,6 @@ export interface components {
             /** @default 1 */
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.multipart"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4139,8 +4237,6 @@ export interface components {
             /** @default 1 */
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.multipart-itinerario.item.read"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -4439,17 +4535,20 @@ export interface components {
             id: string;
             name: string;
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         Nota: {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
-            itinerarios?: string[];
+            segmentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4464,50 +4563,104 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota-nota.item.read": {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota-nota.read": {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota-nota.write": {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota-segmento.item.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota-segmento.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota-servicio.item.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota.html": {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
-            itinerarios?: string[];
+            segmentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4522,39 +4675,90 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota.html-nota.item.read": {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota.html-nota.read": {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota.html-segmento.item.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota.html-segmento.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota.html-servicio.item.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
-            itinerarios?: string[];
+            segmentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4569,39 +4773,90 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota.jsonld-nota.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota.jsonld-nota.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota.jsonld-segmento.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota.jsonld-segmento.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota.multipart": {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
-            itinerarios?: string[];
+            segmentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4616,25 +4871,73 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota.multipart-nota.item.read": {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
         "Nota.multipart-nota.read": {
             nombreInterno?: string;
             /**
              * @default introduccion
              * @enum {string}
              */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota.multipart-segmento.item.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota.multipart-segmento.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
+         *     Ahora vinculada dinámicamente a Nivel de Segmento.
+         */
+        "Nota.multipart-servicio.item.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
         };
@@ -5002,11 +5305,244 @@ export interface components {
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
+         *     Expuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.
+         */
+        "Proveedor-proveedor.read": {
+            /** @description Obtiene el nombre comercial del proveedor. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal del proveedor. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal del proveedor. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial del proveedor. */
+            email?: string | null;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
+         *     Expuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.
+         */
+        "Proveedor-proveedor.read_proveedor.item.read": {
+            /** @description Obtiene el nombre comercial del proveedor. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal del proveedor. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal del proveedor. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial del proveedor. */
+            email?: string | null;
+            proveedorImagenes?: components["schemas"]["ProveedorImagen-proveedor.read_proveedor.item.read"][];
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
+         *     Expuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.
+         */
+        "Proveedor.html-proveedor.read": {
+            /** @description Obtiene el nombre comercial del proveedor. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal del proveedor. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal del proveedor. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial del proveedor. */
+            email?: string | null;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
+         *     Expuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.
+         */
+        "Proveedor.html-proveedor.read_proveedor.item.read": {
+            /** @description Obtiene el nombre comercial del proveedor. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal del proveedor. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal del proveedor. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial del proveedor. */
+            email?: string | null;
+            proveedorImagenes?: components["schemas"]["ProveedorImagen.html-proveedor.read_proveedor.item.read"][];
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
+         *     Expuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.
+         */
+        "Proveedor.jsonld-proveedor.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre comercial del proveedor. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal del proveedor. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal del proveedor. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial del proveedor. */
+            email?: string | null;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
+         *     Expuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.
+         */
+        "Proveedor.jsonld-proveedor.read_proveedor.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre comercial del proveedor. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal del proveedor. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal del proveedor. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial del proveedor. */
+            email?: string | null;
+            proveedorImagenes?: components["schemas"]["ProveedorImagen.jsonld-proveedor.read_proveedor.item.read"][];
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
+         *     Expuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.
+         */
+        "Proveedor.multipart-proveedor.read": {
+            /** @description Obtiene el nombre comercial del proveedor. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal del proveedor. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal del proveedor. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial del proveedor. */
+            email?: string | null;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
+         *     Expuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.
+         */
+        "Proveedor.multipart-proveedor.read_proveedor.item.read": {
+            /** @description Obtiene el nombre comercial del proveedor. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal del proveedor. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal del proveedor. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial del proveedor. */
+            email?: string | null;
+            proveedorImagenes?: components["schemas"]["ProveedorImagen.multipart-proveedor.read_proveedor.item.read"][];
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "ProveedorImagen-proveedor.item.read": {
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del proveedor. */
+            isPortada?: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        "ProveedorImagen-proveedor.read_proveedor.item.read": {
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del proveedor. */
+            isPortada?: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "ProveedorImagen.html-proveedor.item.read": {
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del proveedor. */
+            isPortada?: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        "ProveedorImagen.html-proveedor.read_proveedor.item.read": {
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del proveedor. */
+            isPortada?: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "ProveedorImagen.jsonld-proveedor.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del proveedor. */
+            isPortada?: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "ProveedorImagen.jsonld-proveedor.read_proveedor.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del proveedor. */
+            isPortada?: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "ProveedorImagen.multipart-proveedor.item.read": {
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del proveedor. */
+            isPortada?: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        "ProveedorImagen.multipart-proveedor.read_proveedor.item.read": {
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del proveedor. */
+            isPortada?: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
         Segmento: {
             servicios?: string[];
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: string[];
             imagenes?: components["schemas"]["TravelSegmentoImagen"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente"][];
             /** Format: uuid */
@@ -5029,6 +5565,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota-segmento.item.read"][];
             imagenes?: components["schemas"]["TravelSegmentoImagen-segmento.item.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente-segmento.item.read"][];
             /** Format: uuid */
@@ -5038,6 +5575,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota-segmento.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -5045,6 +5583,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: string[];
             imagenes?: components["schemas"]["TravelSegmentoImagen-segmento.write"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente-segmento.write"][];
         };
@@ -5052,6 +5591,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota-servicio.item.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente-servicio.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -5061,6 +5601,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: string[];
             imagenes?: components["schemas"]["TravelSegmentoImagen.html"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html"][];
             /** Format: uuid */
@@ -5083,6 +5624,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota.html-segmento.item.read"][];
             imagenes?: components["schemas"]["TravelSegmentoImagen.html-segmento.item.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html-segmento.item.read"][];
             /** Format: uuid */
@@ -5092,6 +5634,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota.html-segmento.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -5099,6 +5642,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota.html-servicio.item.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html-servicio.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -5108,6 +5652,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: string[];
             imagenes?: components["schemas"]["TravelSegmentoImagen.jsonld"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld"][];
             /** Format: uuid */
@@ -5130,6 +5675,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota.jsonld-segmento.item.read"][];
             imagenes?: components["schemas"]["TravelSegmentoImagen.jsonld-segmento.item.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld-segmento.item.read"][];
             /** Format: uuid */
@@ -5139,6 +5685,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota.jsonld-segmento.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -5146,6 +5693,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota.jsonld-servicio.item.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld-servicio.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -5155,6 +5703,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: string[];
             imagenes?: components["schemas"]["TravelSegmentoImagen.multipart"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart"][];
             /** Format: uuid */
@@ -5177,6 +5726,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota.multipart-segmento.item.read"][];
             imagenes?: components["schemas"]["TravelSegmentoImagen.multipart-segmento.item.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart-segmento.item.read"][];
             /** Format: uuid */
@@ -5186,6 +5736,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota.multipart-segmento.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -5193,6 +5744,7 @@ export interface components {
             nombreInterno?: string;
             titulo?: string[];
             contenido?: string[];
+            notas?: components["schemas"]["Nota.multipart-servicio.item.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart-servicio.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -5451,6 +6003,12 @@ export interface components {
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
             costoPorGrupo?: boolean;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            proveedor?: string | null;
+            nombreParaProveedor?: string | null;
         };
         "Tarifa-componente.write": {
             nombreInterno?: string;
@@ -5467,6 +6025,12 @@ export interface components {
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
             costoPorGrupo?: boolean;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            proveedor?: string | null;
+            nombreParaProveedor?: string | null;
         };
         "Tarifa.html-componente.item.read": {
             nombreInterno?: string;
@@ -5483,6 +6047,12 @@ export interface components {
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
             costoPorGrupo?: boolean;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            proveedor?: string | null;
+            nombreParaProveedor?: string | null;
         };
         "Tarifa.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
@@ -5499,6 +6069,12 @@ export interface components {
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
             costoPorGrupo?: boolean;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            proveedor?: string | null;
+            nombreParaProveedor?: string | null;
         };
         "Tarifa.multipart-componente.item.read": {
             nombreInterno?: string;
@@ -5515,6 +6091,12 @@ export interface components {
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
             costoPorGrupo?: boolean;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            proveedor?: string | null;
+            nombreParaProveedor?: string | null;
         };
         "Template-template.read": {
             code: string;
@@ -6691,6 +7273,8 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
+                id?: string;
+                "id[]"?: string[];
             };
             header?: never;
             path?: never;
@@ -9210,6 +9794,108 @@ export interface operations {
             };
         };
     };
+    api_travelproveedores_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Proveedor collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Proveedor.jsonld-proveedor.read"][];
+                    };
+                    "application/json": components["schemas"]["Proveedor-proveedor.read"][];
+                    "text/html": components["schemas"]["Proveedor.html-proveedor.read"][];
+                    "multipart/form-data": components["schemas"]["Proveedor.multipart-proveedor.read"][];
+                };
+            };
+        };
+    };
+    api_travelproveedores_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Proveedor identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Proveedor resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Proveedor.jsonld-proveedor.read_proveedor.item.read"];
+                    "application/json": components["schemas"]["Proveedor-proveedor.read_proveedor.item.read"];
+                    "text/html": components["schemas"]["Proveedor.html-proveedor.read_proveedor.item.read"];
+                    "multipart/form-data": components["schemas"]["Proveedor.multipart-proveedor.read_proveedor.item.read"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelproveedor_imagens_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ProveedorImagen identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ProveedorImagen resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ProveedorImagen.jsonld-proveedor.item.read"];
+                    "application/json": components["schemas"]["ProveedorImagen-proveedor.item.read"];
+                    "text/html": components["schemas"]["ProveedorImagen.html-proveedor.item.read"];
+                    "multipart/form-data": components["schemas"]["ProveedorImagen.multipart-proveedor.item.read"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     api_travelsegmentos_get_collection: {
         parameters: {
             query?: {
@@ -9737,6 +10423,8 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
+                id?: string;
+                "id[]"?: string[];
             };
             header?: never;
             path?: never;
