@@ -5,6 +5,11 @@ import { useCotizacionEditorStore } from '@/stores/cotizaciones/cotizacionEditor
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import WysiwygEditor from '@/components/WysiwygEditor.vue';
 
+// 🔥 IMPORTS DEL DATEPICKER Y MÁSCARAS
+import { VueDatePicker } from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
+import IMask from 'imask';
+
 defineProps<{
   fileId?: string;
   cotizacionId?: string;
@@ -13,6 +18,53 @@ defineProps<{
 const route = useRoute();
 const router = useRouter();
 const store = useCotizacionEditorStore();
+
+// 🔥 CONFIGURACIÓN DE LA MÁSCARA ESTRICTA PARA FECHAS Y HORAS
+const formatParaMascara = (isoString?: string) => {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+// 2. Convierte lo que el usuario tipeó de vuelta a ISO para enviarlo al Store
+const procesarFechaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') => {
+  if (fechaTexto.length === 16) {
+    const [fecha, hora] = fechaTexto.split(' ');
+    const [dia, mes, ano] = fecha.split('/');
+    const isoString = `${ano}-${mes}-${dia}T${hora}:00`;
+
+    if (tipo === 'inicio') {
+      store.actualizarInicioManteniendoRango(isoString);
+    } else {
+      store.dataActiva.fechaHoraFin = isoString;
+      store.onComponenteFechasChange(false);
+    }
+  }
+};
+
+// 3. La Directiva Definitiva (v-strict-mask)
+const vStrictMask = {
+  mounted(el: HTMLInputElement, binding: any) {
+    const mask = IMask(el, {
+      mask: 'd/m/Y H:M',
+      lazy: false, // Muestra "__/__/____ __:__"
+      blocks: {
+        d: { mask: IMask.MaskedRange, from: 1, to: 31, maxLength: 2 },
+        m: { mask: IMask.MaskedRange, from: 1, to: 12, maxLength: 2 },
+        Y: { mask: IMask.MaskedRange, from: 2024, to: 2035, maxLength: 4 },
+        H: { mask: IMask.MaskedRange, from: 0, to: 23, maxLength: 2 },
+        M: { mask: IMask.MaskedRange, from: 0, to: 59, maxLength: 2 }
+      }
+    });
+
+    // 🔥 EL SECRETO: Solo disparamos el cambio al Store cuando llenó todos los números
+    mask.on('complete', () => {
+      binding.value(mask.value);
+    });
+  }
+};
 
 const idiomasOrdenados = computed(() => {
   if (!store.idiomasDisponibles) return [];
@@ -109,7 +161,8 @@ const formatRangoServicio = (servicio: any) => {
   const dMin = new Date(minStr);
   const dMax = new Date(maxStr);
 
-  const fTime = (d: Date) => d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true });
+  // 🔥 AQUÍ ESTÁ EL CAMBIO: hour12: false
+  const fTime = (d: Date) => d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
   const fDate = (d: Date) => d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).replace('.', '');
 
   if (maxTime === -Infinity || maxTime <= minTime) return `${fDate(dMin)} • ${fTime(dMin)}`;
@@ -122,8 +175,10 @@ const formatDateTimeFromISO = (isoString?: string) => {
   if (!isoString) return '--';
   const date = new Date(isoString);
   if (isNaN(date.getTime())) return '--';
+
+  // 🔥 AQUÍ ESTÁ EL CAMBIO: hour12: false
   return date.toLocaleString('es-PE', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false
   }).replace(',', ' -');
 };
 
@@ -227,6 +282,8 @@ const confirmarInsercion = async () => {
   modalInsercion.value.isOpen = false;
   modalInsercion.value.segmentoMaestro = null;
 };
+
+const isProveedorOpen = ref(false);
 
 const dropSegmento = (e: DragEvent) => {
   if (e.dataTransfer) {
@@ -577,21 +634,29 @@ const dropSegmento = (e: DragEvent) => {
                 <button @click="store.agregarComponente(store.dataActiva.id)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow-sm border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Extra</button>
               </h3>
               <div class="space-y-3">
-                <div v-for="comp in store.dataActiva.cotcomponentes" :key="comp.id" @click="store.abrirNivel('componente', comp)"
-                     class="bg-white border-2 border-slate-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-sky-300 relative group overflow-hidden transition-all flex flex-col justify-between h-full"
+
+                <div v-for="comp in store.dataActiva.cotcomponentes" :key="comp.id"
+                     @click="store.abrirNivel('componente', comp)"
+                     class="bg-white border-2 border-slate-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-sky-300 relative group overflow-hidden transition-all flex flex-col min-h-[140px]"
                      :class="store.isComponenteConAlerta(comp) ? 'border-red-400 bg-red-50/20' : ''">
+
                   <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : 'bg-sky-400'"></div>
 
                   <button v-if="!comp.cotsegmentoId && !comp.cotsegmento" @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
                     <i class="fas fa-trash-alt text-sm"></i>
                   </button>
 
-                  <h4 class="font-black text-sm text-slate-800 leading-tight pr-8 mb-3">
-                    <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500 mr-1" title="Tarifas no cuadran"></i>
-                    {{ getNombreMaestroRef(comp) }}
-                  </h4>
+                  <div class="flex justify-between items-start mb-3">
+                    <h4 class="font-black text-sm text-slate-800 leading-tight pr-8">
+                      <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500 mr-1" title="Tarifas no cuadran"></i>
+                      {{ getNombreMaestroRef(comp) }}
+                    </h4>
+                    <span class="text-[10px] font-black px-2 py-1 rounded bg-slate-100 text-slate-500 border border-slate-200 shadow-sm whitespace-nowrap">
+                      {{ comp.modo ? comp.modo.toUpperCase() : 'INCLUIDO' }}
+                    </span>
+                  </div>
 
-                  <div class="flex flex-col gap-1.5">
+                  <div class="flex flex-col gap-1.5 mb-3">
                     <span class="bg-sky-50 border border-sky-100 text-sky-800 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
                       <i class="far fa-calendar-alt text-sky-500"></i> INICIO: {{ formatDateTimeFromISO(comp.fechaHoraInicio) }}
                     </span>
@@ -602,7 +667,34 @@ const dropSegmento = (e: DragEvent) => {
                       <i class="fas fa-link"></i> Componente Matriz
                     </span>
                   </div>
+
+                  <div v-if="comp.cottarifas?.length" class="mt-auto pt-3 border-t border-slate-100 grid grid-cols-1 gap-2">
+                    <div v-for="tarifa in comp.cottarifas" :key="tarifa.id"
+                         class="flex items-center justify-between bg-slate-50 hover:bg-orange-50 p-2 rounded-lg border border-slate-200 transition-colors">
+                      <div class="flex flex-col min-w-0 pr-2">
+                        <span class="text-[9px] font-black text-slate-500 uppercase truncate leading-none mb-1">
+                          {{ store.getI18nText(tarifa.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                        </span>
+                        <span class="text-[9px] font-bold text-slate-400 flex items-center gap-1 leading-none">
+                          <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
+                          {{ tarifa.esGrupal ? '1 GRUPO' : `${tarifa.cantidad} PAX` }}
+                        </span>
+                      </div>
+                      <div class="text-right flex-shrink-0">
+                        <span class="text-[11px] font-black" :class="comp.modo === 'no_incluido' ? 'text-slate-400 line-through' : 'text-orange-600'">
+                          {{ formatMoneda(tarifa.montoCosto * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="mt-auto pt-3 border-t border-slate-100 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200 p-2">
+                    <span class="text-[9px] font-black text-red-400 uppercase tracking-widest flex items-center justify-center gap-1">
+                      <i class="fas fa-exclamation-circle"></i> Sin tarifas asignadas
+                    </span>
+                  </div>
+
                 </div>
+
               </div>
             </div>
           </div>
@@ -666,20 +758,47 @@ const dropSegmento = (e: DragEvent) => {
               </div>
 
               <div class="col-span-2 grid grid-cols-2 gap-3 p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+
                 <div>
-                  <label class="block text-[9px] font-black text-slate-500 uppercase mb-1">Inicio Exacto *</label>
-                  <input :value="store.dataActiva.fechaHoraInicio"
-                         @change="e => store.actualizarInicioManteniendoRango((e.target as HTMLInputElement).value)"
-                         type="datetime-local"
-                         class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                  <label class="block text-[9px] font-black text-slate-500 uppercase mb-1 ml-1">Inicio Exacto *</label>
+                  <VueDatePicker
+                      :model-value="store.dataActiva.fechaHoraInicio"
+                      :is-24="true"
+                      auto-apply
+                  >
+                    <template #dp-input="{ onEnter, onTab }">
+                      <input
+                          type="text"
+                          class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none transition-all shadow-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:bg-white"
+                          :value="formatParaMascara(store.dataActiva.fechaHoraInicio)"
+                          v-strict-mask="(val: string) => procesarFechaMascara(val, 'inicio')"
+                          @keydown.enter="onEnter"
+                          @keydown.tab="onTab"
+                      />
+                    </template>
+                  </VueDatePicker>
                 </div>
+
                 <div>
-                  <label class="block text-[9px] font-black text-slate-500 uppercase mb-1">Fin Exacto *</label>
-                  <input v-model="store.dataActiva.fechaHoraFin"
-                         @change="store.onComponenteFechasChange(false)"
-                         type="datetime-local"
-                         class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                  <label class="block text-[9px] font-black text-slate-500 uppercase mb-1 ml-1">Fin Exacto *</label>
+                  <VueDatePicker
+                      :model-value="store.dataActiva.fechaHoraFin"
+                      :is-24="true"
+                      auto-apply
+                  >
+                    <template #dp-input="{ onEnter, onTab }">
+                      <input
+                          type="text"
+                          class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none transition-all shadow-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:bg-white"
+                          :value="formatParaMascara(store.dataActiva.fechaHoraFin)"
+                          v-strict-mask="(val: string) => procesarFechaMascara(val, 'fin')"
+                          @keydown.enter="onEnter"
+                          @keydown.tab="onTab"
+                      />
+                    </template>
+                  </VueDatePicker>
                 </div>
+
               </div>
 
               <div>
@@ -841,12 +960,12 @@ const dropSegmento = (e: DragEvent) => {
                   <button @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = !store.dataActiva.esGrupal)"
                           :disabled="!!store.dataActiva.tarifaMaestraId"
                           :class="[
-          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
-          store.dataActiva.esGrupal ? 'bg-orange-500' : 'bg-slate-600',
-          store.dataActiva.tarifaMaestraId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-      ]">
-<span :class="store.dataActiva.esGrupal ? 'translate-x-6' : 'translate-x-1'"
-      class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
+                              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
+                              store.dataActiva.esGrupal ? 'bg-orange-500' : 'bg-slate-600',
+                              store.dataActiva.tarifaMaestraId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          ]">
+                    <span :class="store.dataActiva.esGrupal ? 'translate-x-6' : 'translate-x-1'"
+                          class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
                   </button>
                 </div>
 
@@ -859,54 +978,6 @@ const dropSegmento = (e: DragEvent) => {
                     <i class="fas fa-users text-xs mb-1"></i>
                     <p class="text-[8px] font-black uppercase">Grupal (Flat)</p>
                   </div>
-                </div>
-              </div>
-
-              <div class="col-span-2 bg-slate-800/50 border border-slate-700 p-4 rounded-2xl mb-2 relative overflow-hidden">
-                <div class="absolute left-0 top-0 bottom-0 w-1 bg-sky-500"></div>
-
-                <div class="flex items-center justify-between mb-3">
-                  <label class="block text-[10px] font-black text-sky-400 uppercase tracking-widest"><i class="fas fa-truck-loading mr-1"></i> Proveedor Operativo (Opcional)</label>
-                  <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-black">
-                    Vinculado al Catálogo
-                  </span>
-                  <span v-else class="text-[8px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded border border-slate-600 uppercase font-black">
-                    Sin Proveedor
-                  </span>
-                </div>
-
-                <SearchableSelect
-                    v-model="store.dataActiva.proveedorMaestroId"
-                    :options="opcionesProveedores"
-                    placeholder="Seleccionar proveedor para operar..."
-                    :darkMode="true"
-                    @change="val => store.onProveedorChange(val)"
-                />
-
-                <div class="mt-3">
-                  <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
-                  <input v-model="store.dataActiva.proveedorNombreSnapshot"
-                         type="text"
-                         class="w-full bg-slate-900 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-sky-500 outline-none"
-                         placeholder="Nombre del proveedor o servicio libre..." />
-                  <p class="text-[9px] text-slate-500 mt-1 ml-1 flex items-center gap-1">
-                    <i class="fas fa-info-circle"></i> Este nombre quedará fijo en la cotización para proteger el historial financiero.
-                  </p>
-                </div>
-
-                <div class="mt-3 pt-3 border-t border-slate-700/50">
-                  <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
-                    <span>Nombre para la Reserva (Email)</span>
-                    <i class="fas fa-paper-plane text-slate-600"></i>
-                  </label>
-                  <input v-model="store.dataActiva.nombreParaProveedorSnapshot"
-                         type="text"
-                         class="w-full bg-slate-900 border border-slate-700 text-emerald-400 rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
-                         placeholder="Ej: Cena Buffet Tunupa..." />
-                  <p class="text-[9px] text-slate-500 mt-1 ml-1 flex items-start gap-1">
-                    <i class="fas fa-exclamation-circle mt-0.5 text-orange-400"></i>
-                    Este es el texto exacto que verá el proveedor en el requerimiento automático.
-                  </p>
                 </div>
               </div>
 
@@ -933,12 +1004,82 @@ const dropSegmento = (e: DragEvent) => {
                   <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-32 bg-slate-900 border border-slate-600 text-orange-400 rounded-xl px-3 py-2 text-xl font-black text-right focus:border-orange-500 outline-none">
                 </div>
               </div>
+
               <div class="col-span-2 text-right">
                 <p class="text-[10px] text-slate-400 font-bold uppercase">Subtotal Neto: <span class="text-orange-400 text-sm">{{ formatMoneda(store.dataActiva.montoCosto * store.dataActiva.cantidad, store.dataActiva.moneda) }}</span></p>
               </div>
+
+              <div class="col-span-2 bg-slate-800/50 border border-slate-700 rounded-2xl mt-4 relative overflow-hidden transition-all duration-300 shadow-sm">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-sky-500 z-10"></div>
+
+                <div @click="isProveedorOpen = !isProveedorOpen" class="p-4 pl-5 cursor-pointer flex items-center justify-between hover:bg-slate-700/50 transition-colors relative">
+                  <div>
+                    <label class="block text-[10px] font-black text-sky-400 uppercase tracking-widest cursor-pointer mb-0.5">
+                      <i class="fas fa-truck-loading mr-1"></i> Operador Logístico
+                    </label>
+                    <p class="text-sm font-bold" :class="store.dataActiva.proveedorNombreSnapshot ? 'text-white' : 'text-slate-500 italic'">
+                      {{ store.dataActiva.proveedorNombreSnapshot || 'Sin proveedor asignado' }}
+                    </p>
+                  </div>
+
+                  <div class="flex items-center gap-3">
+                    <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-black">
+                      Catálogo
+                    </span>
+                    <span v-else-if="store.dataActiva.proveedorNombreSnapshot" class="text-[8px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30 uppercase font-black">
+                      Libre
+                    </span>
+                    <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-slate-400">
+                      <i class="fas transition-transform" :class="isProveedorOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-show="isProveedorOpen" class="p-4 pt-2 border-t border-slate-700/50">
+                  <div class="mt-2">
+                    <SearchableSelect
+                        v-model="store.dataActiva.proveedorMaestroId"
+                        :options="opcionesProveedores"
+                        placeholder="Seleccionar proveedor para operar..."
+                        :darkMode="true"
+                        @change="val => store.onProveedorChange(val)"
+                    />
+                  </div>
+
+                  <div class="mt-4">
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
+                    <input v-model="store.dataActiva.proveedorNombreSnapshot"
+                           type="text"
+                           class="w-full bg-slate-900 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-sky-500 outline-none"
+                           placeholder="Nombre del proveedor o servicio libre..." />
+                    <p class="text-[9px] text-slate-500 mt-1 ml-1 flex items-center gap-1">
+                      <i class="fas fa-info-circle"></i> Fija la identidad para el historial financiero.
+                    </p>
+                  </div>
+
+                  <div class="mt-4 pt-4 border-t border-slate-700/50">
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
+                      <span>Nombre para la Reserva (Email)</span>
+                      <i class="fas fa-paper-plane text-slate-600"></i>
+                    </label>
+                    <input v-model="store.dataActiva.nombreParaProveedorSnapshot"
+                           type="text"
+                           class="w-full bg-slate-900 border border-slate-700 text-emerald-400 rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
+                           placeholder="Ej: Cena Buffet Tunupa..." />
+                    <p class="text-[9px] text-slate-500 mt-1 ml-1 flex items-start gap-1">
+                      <i class="fas fa-exclamation-circle mt-0.5 text-orange-400"></i>
+                      Este es el texto exacto del requerimiento automático.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+
+
             </div>
           </div>
         </div>
+
         <div v-if="store.inspectorActivo !== 'resumen' && store.cotizacion"
              @click="isTotalsDrawerOpen = true"
              class="absolute bottom-0 w-full bg-slate-900 border-t border-slate-700/50 px-5 py-4 flex justify-between items-center flex-shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.4)] z-40 cursor-pointer hover:bg-slate-800 active:bg-slate-950 transition-colors">
@@ -1080,35 +1221,48 @@ const dropSegmento = (e: DragEvent) => {
                           @update:model-value="store.setI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion, $event)"
                       />
 
-                      <div v-if="cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-clipboard-list mr-1"></i> Recomendaciones del Segmento</h4>
-                        <div class="flex flex-col gap-3">
-                          <div v-for="(notasGrupo, tipo) in agruparNotasPorTipo(cotSeg.notasSnapshot)" :key="tipo">
-                              <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1.5">
+                      <div v-if="(cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0) || (cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0)" class="mt-8 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div v-if="cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0">
+                          <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-clipboard-list mr-1"></i> Recomendaciones del Segmento</h4>
+                          <div class="flex flex-col gap-4">
+                            <div v-for="(notasGrupo, tipo) in agruparNotasPorTipo(cotSeg.notasSnapshot)" :key="tipo">
+                              <div class="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
                                 <i class="fas" :class="getTipoNotaUI(tipo).icon"></i> {{ tipo }}
-                              </span>
-                            <div class="flex flex-wrap gap-2">
-                              <div v-for="nota in notasGrupo" :key="nota.id"
-                                   @click="abrirModalNota(nota)"
-                                   class="bg-white border border-slate-200 rounded-lg shadow-sm flex items-stretch overflow-hidden hover:border-indigo-400 transition-all cursor-pointer group max-w-full">
-                                <div :class="[getTipoNotaUI(tipo).bg, getTipoNotaUI(tipo).text]" class="px-2.5 py-1.5 flex items-center justify-center">
-                                  <i class="fas text-xs" :class="getTipoNotaUI(tipo).icon"></i>
+                              </div>
+                              <div class="flex flex-wrap gap-2">
+                                <div v-for="nota in notasGrupo" :key="nota.id"
+                                     @click="abrirModalNota(nota)"
+                                     class="bg-white border border-slate-200 rounded-lg shadow-sm flex items-stretch overflow-hidden hover:border-indigo-400 transition-all cursor-pointer group max-w-full">
+                                  <div :class="[getTipoNotaUI(tipo).bg, getTipoNotaUI(tipo).text]" class="px-2.5 py-1.5 flex items-center justify-center">
+                                    <i class="fas text-xs" :class="getTipoNotaUI(tipo).icon"></i>
+                                  </div>
+                                  <div class="px-2.5 py-1.5 flex-1 min-w-0 flex flex-col justify-center">
+                                    <span class="text-[10px] font-bold text-slate-700 block truncate w-full max-w-[160px]">
+                                      {{ store.getI18nText(nota.titulo, store.cotizacion.idiomaEdicion) || nota.nombreInterno }}
+                                    </span>
+                                  </div>
+                                  <button @click.stop="cotSeg.notasSnapshot.splice(cotSeg.notasSnapshot.indexOf(nota), 1)"
+                                          class="px-2.5 bg-slate-50 border-l border-slate-100 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                    <i class="fas fa-times text-[10px]"></i>
+                                  </button>
                                 </div>
-                                <div class="px-2.5 py-1.5 flex-1 min-w-0 flex flex-col justify-center">
-                                      <span class="text-[10px] font-bold text-slate-700 block truncate w-full max-w-[160px]">
-                                        {{ store.getI18nText(nota.titulo, store.cotizacion.idiomaEdicion) || nota.nombreInterno }}
-                                      </span>
-                                </div>
-                                <button @click.stop="cotSeg.notasSnapshot.splice(cotSeg.notasSnapshot.indexOf(nota), 1)"
-                                        class="px-2.5 bg-slate-50 border-l border-slate-100 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                                  <i class="fas fa-times text-[10px]"></i>
-                                </button>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
+                        <div v-if="cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0">
+                          <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-images mr-1"></i> Galería Adjunta</h4>
+                          <div class="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                            <div v-for="(img, iIdx) in cotSeg.imagenesSnapshot" :key="iIdx" class="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 flex-shrink-0 group shadow-sm">
+                              <img :src="img.imageUrl || '/images/placeholder.jpg'" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                              <button @click="cotSeg.imagenesSnapshot.splice(iIdx, 1)" class="absolute top-1 right-1 bg-white/90 hover:bg-red-500 hover:text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-slate-600 transition-colors opacity-0 group-hover:opacity-100 shadow-sm" title="Quitar imagen">
+                                <i class="fas fa-times"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
                     </div>
                   </div>
@@ -1161,7 +1315,7 @@ const dropSegmento = (e: DragEvent) => {
                 </option>
               </select>
               <p v-if="opcionInsercion === 'replace'" class="text-[9px] font-bold text-orange-500 mt-2 flex items-center gap-1">
-                <i class="fas fa-exclamation-triangle"></i> ¡Cuidado! Los trenes y guías del Párrafo #{{ store.dataActiva?.cotsegmentos?.findIndex(s => s.id === targetSegmentoId) + 1 }} serán reemplazados.
+                <i class="fas fa-exclamation-triangle"></i> ¡Cuidado! Los trenes y guías del Párrafo #{{ store.dataActiva?.cotsegmentos?.findIndex((s: any) => s.id === targetSegmentoId) + 1 }} serán reemplazados.
               </p>
             </div>
           </Transition>
@@ -1293,8 +1447,19 @@ const dropSegmento = (e: DragEvent) => {
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 .fade-scale-enter-active, .fade-scale-leave-active { transition: all 0.3s ease; }
 .fade-scale-enter-from, .fade-scale-leave-to { opacity: 0; transform: scale(0.95); }
-
-/* Animación para el panel deslizante inferior */
 .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
+
+:deep(.dp__main) {
+  font-family: inherit;
+}
+</style>
+
+<style>
+:root {
+  --dp-border-radius: 0.5rem; /* rounded-lg */
+  --dp-primary-color: #0ea5e9; /* sky-500 */
+  --dp-font-family: inherit;
+  --dp-font-size: 0.75rem; /* text-xs */
+}
 </style>
