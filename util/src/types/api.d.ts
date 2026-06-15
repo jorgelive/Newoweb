@@ -2499,6 +2499,19 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /**
+             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+             * @default Sin Solicitar
+             * @enum {string|null}
+             */
+            estadoOperativoSnapshot: "Sin Solicitar" | "Solicitado" | "Confirmado" | "Reconfirmado" | "Pendiente Pago" | null;
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha límite exacta para reportes del sistema.
+             */
+            fechaLimitePago?: string | null;
+            /** @description Obtiene las condiciones o notas de pago del proveedor. */
+            condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
             detallesOperativos?: string[];
@@ -2529,6 +2542,19 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /**
+             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+             * @default Sin Solicitar
+             * @enum {string|null}
+             */
+            estadoOperativoSnapshot: "Sin Solicitar" | "Solicitado" | "Confirmado" | "Reconfirmado" | "Pendiente Pago" | null;
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha límite exacta para reportes del sistema.
+             */
+            fechaLimitePago?: string | null;
+            /** @description Obtiene las condiciones o notas de pago del proveedor. */
+            condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
             detallesOperativos?: string[];
@@ -2552,6 +2578,19 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /**
+             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+             * @default Sin Solicitar
+             * @enum {string|null}
+             */
+            estadoOperativoSnapshot: "Sin Solicitar" | "Solicitado" | "Confirmado" | "Reconfirmado" | "Pendiente Pago" | null;
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha límite exacta para reportes del sistema.
+             */
+            fechaLimitePago?: string | null;
+            /** @description Obtiene las condiciones o notas de pago del proveedor. */
+            condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
             detallesOperativos?: string[];
@@ -2578,6 +2617,19 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /**
+             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+             * @default Sin Solicitar
+             * @enum {string|null}
+             */
+            estadoOperativoSnapshot: "Sin Solicitar" | "Solicitado" | "Confirmado" | "Reconfirmado" | "Pendiente Pago" | null;
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha límite exacta para reportes del sistema.
+             */
+            fechaLimitePago?: string | null;
+            /** @description Obtiene las condiciones o notas de pago del proveedor. */
+            condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
             detallesOperativos?: string[];
@@ -2608,6 +2660,19 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /**
+             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+             * @default Sin Solicitar
+             * @enum {string|null}
+             */
+            estadoOperativoSnapshot: "Sin Solicitar" | "Solicitado" | "Confirmado" | "Reconfirmado" | "Pendiente Pago" | null;
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha límite exacta para reportes del sistema.
+             */
+            fechaLimitePago?: string | null;
+            /** @description Obtiene las condiciones o notas de pago del proveedor. */
+            condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
             detallesOperativos?: string[];
@@ -2636,6 +2701,19 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /**
+             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+             * @default Sin Solicitar
+             * @enum {string|null}
+             */
+            estadoOperativoSnapshot: "Sin Solicitar" | "Solicitado" | "Confirmado" | "Reconfirmado" | "Pendiente Pago" | null;
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha límite exacta para reportes del sistema.
+             */
+            fechaLimitePago?: string | null;
+            /** @description Obtiene las condiciones o notas de pago del proveedor. */
+            condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
             detallesOperativos?: string[];
@@ -2666,6 +2744,19 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /**
+             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+             * @default Sin Solicitar
+             * @enum {string|null}
+             */
+            estadoOperativoSnapshot: "Sin Solicitar" | "Solicitado" | "Confirmado" | "Reconfirmado" | "Pendiente Pago" | null;
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha límite exacta para reportes del sistema.
+             */
+            fechaLimitePago?: string | null;
+            /** @description Obtiene las condiciones o notas de pago del proveedor. */
+            condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
             detallesOperativos?: string[];
@@ -2694,6 +2785,19 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /**
+             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+             * @default Sin Solicitar
+             * @enum {string|null}
+             */
+            estadoOperativoSnapshot: "Sin Solicitar" | "Solicitado" | "Confirmado" | "Reconfirmado" | "Pendiente Pago" | null;
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha límite exacta para reportes del sistema.
+             */
+            fechaLimitePago?: string | null;
+            /** @description Obtiene las condiciones o notas de pago del proveedor. */
+            condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
             detallesOperativos?: string[];
@@ -2724,6 +2828,19 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /**
+             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+             * @default Sin Solicitar
+             * @enum {string|null}
+             */
+            estadoOperativoSnapshot: "Sin Solicitar" | "Solicitado" | "Confirmado" | "Reconfirmado" | "Pendiente Pago" | null;
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha límite exacta para reportes del sistema.
+             */
+            fechaLimitePago?: string | null;
+            /** @description Obtiene las condiciones o notas de pago del proveedor. */
+            condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
             detallesOperativos?: string[];

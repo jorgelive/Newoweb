@@ -7,6 +7,7 @@ namespace App\Cotizacion\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use App\Attribute\AutoTranslate;
+use App\Cotizacion\Enum\EstadoOperativo;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
@@ -65,6 +66,18 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $proveedorNombreSnapshot = null;
 
+    #[ORM\Column(type: 'string', length: 50, nullable: true, enumType: EstadoOperativo::class)]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    private ?EstadoOperativo $estadoOperativoSnapshot = EstadoOperativo::SIN_SOLICITAR;
+
+    #[ORM\Column(type: 'date', nullable: true)]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    private ?\DateTimeInterface $fechaLimitePago = null;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    private ?string $condicionesPagoSnapshot = null;
+
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $tipoModalidadSnapshot = null;
@@ -114,7 +127,8 @@ class CotizacionCottarifa
 
     /**
      * Obtiene el nombre exclusivo para el requerimiento al proveedor.
-     * * @return string|null
+     *
+     * @return string|null
      */
     public function getNombreParaProveedorSnapshot(): ?string
     {
@@ -123,7 +137,8 @@ class CotizacionCottarifa
 
     /**
      * Establece el nombre exclusivo para el requerimiento al proveedor.
-     * * @param string|null $nombreParaProveedorSnapshot
+     *
+     * @param string|null $nombreParaProveedorSnapshot
      * @return self
      */
     public function setNombreParaProveedorSnapshot(?string $nombreParaProveedorSnapshot): self
@@ -149,6 +164,97 @@ class CotizacionCottarifa
 
     public function getProveedorNombreSnapshot(): ?string { return $this->proveedorNombreSnapshot; }
     public function setProveedorNombreSnapshot(?string $proveedorNombreSnapshot): self { $this->proveedorNombreSnapshot = $proveedorNombreSnapshot; return $this; }
+
+    /**
+     * Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
+     *
+     * Este método existe para devolver una instancia del Enum EstadoOperativo,
+     * garantizando que el sistema y el serializador siempre manejen un estado válido y
+     * predecible.
+     *
+     * @return EstadoOperativo|null El estado de la operación.
+     */
+    public function getEstadoOperativoSnapshot(): ?EstadoOperativo
+    {
+        return $this->estadoOperativoSnapshot;
+    }
+
+    /**
+     * Establece el estado operativo estricto de la tarifa.
+     *
+     * Este método existe para asegurar que solo se puedan guardar estados
+     * definidos en el Enum EstadoOperativo. API Platform se encarga de
+     * deserializar automáticamente el string entrante (ej. 'Confirmado') hacia
+     * su instancia Enum correspondiente de forma transparente.
+     *
+     * @param EstadoOperativo|null $estadoOperativoSnapshot Instancia del Enum de estado.
+     * @return static
+     */
+    public function setEstadoOperativoSnapshot(?EstadoOperativo $estadoOperativoSnapshot): static
+    {
+        $this->estadoOperativoSnapshot = $estadoOperativoSnapshot;
+
+        return $this;
+    }
+
+    /**
+     * Obtiene la fecha límite exacta para reportes del sistema.
+     *
+     * Este método existe para permitir la filtración en base de datos y la
+     * generación de alertas automáticas (cronjobs) cuando se acerca la fecha
+     * de pago a un proveedor logístico.
+     *
+     * @return \DateTimeInterface|null
+     */
+    public function getFechaLimitePago(): ?\DateTimeInterface
+    {
+        return $this->fechaLimitePago;
+    }
+
+    /**
+     * Establece la fecha límite exacta de pago.
+     * * Este método existe para registrar el deadline estricto impuesto por el proveedor.
+     * API Platform convierte automáticamente el string 'YYYY-MM-DD' enviado por el frontend
+     * en un objeto DateTime de PHP compatible con Doctrine.
+     *
+     * @param \DateTimeInterface|null $fechaLimitePago
+     * @return static
+     */
+    public function setFechaLimitePago(?\DateTimeInterface $fechaLimitePago): static
+    {
+        $this->fechaLimitePago = $fechaLimitePago;
+
+        return $this;
+    }
+
+    /**
+     * Obtiene las condiciones o notas de pago del proveedor.
+     *
+     * Este método existe para proveer al equipo operativo contexto en texto libre
+     * sobre cómo ejecutar el pago (ej. cuentas bancarias, consideraciones especiales).
+     *
+     * @return string|null
+     */
+    public function getCondicionesPagoSnapshot(): ?string
+    {
+        return $this->condicionesPagoSnapshot;
+    }
+
+    /**
+     * Establece las condiciones o notas de pago del proveedor.
+     *
+     * Este método existe para almacenar las instrucciones humanas y directrices
+     * de pago que acompañan a la fecha límite operativa.
+     *
+     * @param string|null $condicionesPagoSnapshot
+     * @return static
+     */
+    public function setCondicionesPagoSnapshot(?string $condicionesPagoSnapshot): static
+    {
+        $this->condicionesPagoSnapshot = $condicionesPagoSnapshot;
+
+        return $this;
+    }
 
     public function getTipoModalidadSnapshot(): ?string { return $this->tipoModalidadSnapshot; }
     public function setTipoModalidadSnapshot(?string $tipoModalidadSnapshot): self { $this->tipoModalidadSnapshot = $tipoModalidadSnapshot; return $this; }

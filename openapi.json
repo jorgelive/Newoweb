@@ -11820,6 +11820,37 @@
                             "null"
                         ]
                     },
+                    "estadoOperativoSnapshot": {
+                        "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
+                        "default": "Sin Solicitar",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "Sin Solicitar",
+                            "Solicitado",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Pendiente Pago",
+                            null
+                        ]
+                    },
+                    "fechaLimitePago": {
+                        "description": "Obtiene la fecha l\u00edmite exacta para reportes del sistema.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "condicionesPagoSnapshot": {
+                        "description": "Obtiene las condiciones o notas de pago del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "tipoModalidadSnapshot": {
                         "type": [
                             "string",
@@ -11915,6 +11946,37 @@
                             "null"
                         ]
                     },
+                    "estadoOperativoSnapshot": {
+                        "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
+                        "default": "Sin Solicitar",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "Sin Solicitar",
+                            "Solicitado",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Pendiente Pago",
+                            null
+                        ]
+                    },
+                    "fechaLimitePago": {
+                        "description": "Obtiene la fecha l\u00edmite exacta para reportes del sistema.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "condicionesPagoSnapshot": {
+                        "description": "Obtiene las condiciones o notas de pago del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "tipoModalidadSnapshot": {
                         "type": [
                             "string",
@@ -12001,6 +12063,37 @@
                             "null"
                         ]
                     },
+                    "estadoOperativoSnapshot": {
+                        "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
+                        "default": "Sin Solicitar",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "Sin Solicitar",
+                            "Solicitado",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Pendiente Pago",
+                            null
+                        ]
+                    },
+                    "fechaLimitePago": {
+                        "description": "Obtiene la fecha l\u00edmite exacta para reportes del sistema.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "condicionesPagoSnapshot": {
+                        "description": "Obtiene las condiciones o notas de pago del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "tipoModalidadSnapshot": {
                         "type": [
                             "string",
@@ -12080,6 +12173,37 @@
                         ]
                     },
                     "proveedorNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "estadoOperativoSnapshot": {
+                        "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
+                        "default": "Sin Solicitar",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "Sin Solicitar",
+                            "Solicitado",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Pendiente Pago",
+                            null
+                        ]
+                    },
+                    "fechaLimitePago": {
+                        "description": "Obtiene la fecha l\u00edmite exacta para reportes del sistema.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "condicionesPagoSnapshot": {
+                        "description": "Obtiene las condiciones o notas de pago del proveedor.",
                         "type": [
                             "string",
                             "null"
@@ -12180,6 +12304,37 @@
                             "null"
                         ]
                     },
+                    "estadoOperativoSnapshot": {
+                        "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
+                        "default": "Sin Solicitar",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "Sin Solicitar",
+                            "Solicitado",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Pendiente Pago",
+                            null
+                        ]
+                    },
+                    "fechaLimitePago": {
+                        "description": "Obtiene la fecha l\u00edmite exacta para reportes del sistema.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "condicionesPagoSnapshot": {
+                        "description": "Obtiene las condiciones o notas de pago del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "tipoModalidadSnapshot": {
                         "type": [
                             "string",
@@ -12271,6 +12426,37 @@
                                 ]
                             },
                             "proveedorNombreSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "estadoOperativoSnapshot": {
+                                "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
+                                "default": "Sin Solicitar",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "enum": [
+                                    "Sin Solicitar",
+                                    "Solicitado",
+                                    "Confirmado",
+                                    "Reconfirmado",
+                                    "Pendiente Pago",
+                                    null
+                                ]
+                            },
+                            "fechaLimitePago": {
+                                "description": "Obtiene la fecha l\u00edmite exacta para reportes del sistema.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "condicionesPagoSnapshot": {
+                                "description": "Obtiene las condiciones o notas de pago del proveedor.",
                                 "type": [
                                     "string",
                                     "null"
@@ -12378,6 +12564,37 @@
                                     "null"
                                 ]
                             },
+                            "estadoOperativoSnapshot": {
+                                "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
+                                "default": "Sin Solicitar",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "enum": [
+                                    "Sin Solicitar",
+                                    "Solicitado",
+                                    "Confirmado",
+                                    "Reconfirmado",
+                                    "Pendiente Pago",
+                                    null
+                                ]
+                            },
+                            "fechaLimitePago": {
+                                "description": "Obtiene la fecha l\u00edmite exacta para reportes del sistema.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "condicionesPagoSnapshot": {
+                                "description": "Obtiene las condiciones o notas de pago del proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "tipoModalidadSnapshot": {
                                 "type": [
                                     "string",
@@ -12466,6 +12683,37 @@
                         ]
                     },
                     "proveedorNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "estadoOperativoSnapshot": {
+                        "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
+                        "default": "Sin Solicitar",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "Sin Solicitar",
+                            "Solicitado",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Pendiente Pago",
+                            null
+                        ]
+                    },
+                    "fechaLimitePago": {
+                        "description": "Obtiene la fecha l\u00edmite exacta para reportes del sistema.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "condicionesPagoSnapshot": {
+                        "description": "Obtiene las condiciones o notas de pago del proveedor.",
                         "type": [
                             "string",
                             "null"
@@ -12561,6 +12809,37 @@
                         ]
                     },
                     "proveedorNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "estadoOperativoSnapshot": {
+                        "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
+                        "default": "Sin Solicitar",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "Sin Solicitar",
+                            "Solicitado",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Pendiente Pago",
+                            null
+                        ]
+                    },
+                    "fechaLimitePago": {
+                        "description": "Obtiene la fecha l\u00edmite exacta para reportes del sistema.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "condicionesPagoSnapshot": {
+                        "description": "Obtiene las condiciones o notas de pago del proveedor.",
                         "type": [
                             "string",
                             "null"

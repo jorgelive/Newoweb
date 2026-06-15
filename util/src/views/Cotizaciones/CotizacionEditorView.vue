@@ -1014,29 +1014,41 @@ const dropSegmento = (e: DragEvent) => {
 
                 <div @click="isProveedorOpen = !isProveedorOpen" class="p-4 pl-5 cursor-pointer flex items-center justify-between hover:bg-slate-700/50 transition-colors relative">
                   <div>
-                    <label class="block text-[10px] font-black text-sky-400 uppercase tracking-widest cursor-pointer mb-0.5">
-                      <i class="fas fa-truck-loading mr-1"></i> Operador Logístico
+                    <label class="block text-[10px] font-black text-sky-400 uppercase tracking-widest cursor-pointer mb-0.5 flex items-center gap-1.5">
+                      <i class="fas fa-truck-loading"></i> Operador Logístico
+
+                      <span v-if="store.dataActiva.estadoOperativoSnapshot && store.dataActiva.estadoOperativoSnapshot !== 'Sin Solicitar'"
+                            class="text-[8px] px-1.5 py-0.5 rounded border uppercase font-black tracking-tighter"
+                            :class="{
+                                'bg-amber-500/20 text-amber-400 border-amber-500/30': store.dataActiva.estadoOperativoSnapshot === 'Solicitado',
+                                'bg-emerald-500/20 text-emerald-400 border-emerald-500/30': store.dataActiva.estadoOperativoSnapshot === 'Confirmado' || store.dataActiva.estadoOperativoSnapshot === 'Reconfirmado',
+                                'bg-red-500/20 text-red-400 border-red-500/30': store.dataActiva.estadoOperativoSnapshot === 'Pendiente Pago'
+                            }">
+                        {{ store.dataActiva.estadoOperativoSnapshot }}
+                      </span>
                     </label>
-                    <p class="text-sm font-bold" :class="store.dataActiva.proveedorNombreSnapshot ? 'text-white' : 'text-slate-500 italic'">
+                    <p class="text-sm font-bold flex items-center gap-2" :class="store.dataActiva.proveedorNombreSnapshot ? 'text-white' : 'text-slate-500 italic'">
                       {{ store.dataActiva.proveedorNombreSnapshot || 'Sin proveedor asignado' }}
+                      <i v-if="store.dataActiva.vencimientoPagoSnapshot" class="fas fa-bell text-orange-400 text-xs" title="Tiene alerta de pago"></i>
                     </p>
                   </div>
 
                   <div class="flex items-center gap-3">
-                    <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-black">
+                    <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-black hidden sm:inline-block">
                       Catálogo
                     </span>
-                    <span v-else-if="store.dataActiva.proveedorNombreSnapshot" class="text-[8px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30 uppercase font-black">
+                    <span v-else-if="store.dataActiva.proveedorNombreSnapshot" class="text-[8px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30 uppercase font-black hidden sm:inline-block">
                       Libre
                     </span>
-                    <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-slate-400">
+                    <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 flex-shrink-0">
                       <i class="fas transition-transform" :class="isProveedorOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                     </div>
                   </div>
                 </div>
 
                 <div v-show="isProveedorOpen" class="p-4 pt-2 border-t border-slate-700/50">
-                  <div class="mt-2">
+
+                  <div>
                     <SearchableSelect
                         v-model="store.dataActiva.proveedorMaestroId"
                         :options="opcionesProveedores"
@@ -1071,9 +1083,47 @@ const dropSegmento = (e: DragEvent) => {
                       Este es el texto exacto del requerimiento automático.
                     </p>
                   </div>
+
+                  <div class="mt-5 pt-5 border-t border-slate-700/50 grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    <div>
+                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
+                        <i class="fas fa-tasks text-sky-400"></i> Estado de Reserva
+                      </label>
+                      <select v-model="store.dataActiva.estadoOperativoSnapshot" class="w-full bg-slate-900 border border-slate-700 text-white font-bold rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-sky-500 outline-none appearance-none cursor-pointer">
+                        <option value="Sin Solicitar">Sin Solicitar</option>
+                        <option value="Solicitado">Solicitado</option>
+                        <option value="Confirmado">Confirmado</option>
+                        <option value="Reconfirmado">Reconfirmado</option>
+                        <option value="Pendiente Pago">Pendiente Pago</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
+                        <span>Día de Vencimiento</span>
+                        <i class="far fa-calendar-alt text-red-400"></i>
+                      </label>
+                      <input v-model="store.dataActiva.fechaLimitePago"
+                             type="date"
+                             class="w-full bg-slate-900 border border-slate-700 text-red-400 rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-red-500 outline-none [color-scheme:dark]" />
+                    </div>
+
+                    <div>
+                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
+                        <span>Nota de Pago</span>
+                        <i class="fas fa-sticky-note text-amber-400"></i>
+                      </label>
+                      <input v-model="store.dataActiva.condicionesPagoSnapshot"
+                             type="text"
+                             class="w-full bg-slate-900 border border-slate-700 text-amber-400 rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-amber-500 outline-none placeholder-slate-600"
+                             placeholder="Ej: Depósito BCP / 15 días antes..." />
+                    </div>
+
+                  </div>
+
                 </div>
               </div>
-
 
 
             </div>

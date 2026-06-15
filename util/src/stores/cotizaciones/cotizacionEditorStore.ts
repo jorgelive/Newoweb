@@ -644,6 +644,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 if (tId && tId.length === 36 && !todasLasTarifasMaestras.value.some((catT: any) => extractIdStr(catT.id || catT['@id']) === tId)) {
                                     tarifasToFetch.add(tId);
                                 }
+
+                                // 🔥 AÑADE ESTA LÍNEA PARA CORTAR LA HORA:
+                                if (t.fechaLimitePago) {
+                                    t.fechaLimitePago = getFechaLimpia(t.fechaLimitePago);
+                                }
                             });
                         }
                     });
@@ -731,6 +736,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const guardarCotizacion = async (): Promise<void> => {
+        if (isLoading.value) return;
         isLoading.value = true;
         try {
             const isUpdate = !!cotizacion.value.createdAt;
@@ -801,6 +807,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                     if (tarifa.tarifaMaestraId) {
                                         tarifa.tarifaMaestraId = extractIdStr(tarifa.tarifaMaestraId);
                                     }
+                                    if (tarifa.fechaLimitePago === '') {
+                                        tarifa.fechaLimitePago = null;
+                                    }
                                 });
                             }
                         });
@@ -826,7 +835,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 s.cotcomponentes?.forEach((c: any) => {
                     c.sobreescribirTraduccion = false;
                     c.snapshotItems?.forEach((i: any) => i.sobreescribirTraduccion = false);
-                    c.cottarifas?.forEach((t: any) => t.sobreescribirTraduccion = false);
+                    c.cottarifas?.forEach((t: any) => {
+                        t.sobreescribirTraduccion = false;
+
+                        // 🔥 AÑADE ESTA LÍNEA PARA QUE EL INPUT NO SE BLANQUEE AL GUARDAR:
+                        if (t.fechaLimitePago) {
+                            t.fechaLimitePago = getFechaLimpia(t.fechaLimitePago);
+                        }
+                    });
 
                     if (c.cotsegmento) {
                         c.cotsegmentoId = typeof c.cotsegmento === 'string'
@@ -1128,6 +1144,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     proveedorMaestroId: null,
                     proveedorNombreSnapshot: null,
                     nombreParaProveedorSnapshot: null,
+                    estadoOperativoSnapshot: 'Sin Solicitar',
+                    vencimientoPagoSnapshot: null,
                     detallesOperativos: [],
                     esGrupal: false,
                     sobreescribirTraduccion: false
@@ -1239,7 +1257,44 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     fechaHoraFin: fHoraFin,
                     cotsegmentoId: idSegmentoGenerado,
                     sobreescribirTraduccion: false,
-                    snapshotItems: [], cottarifas: []
+
+                    // 🔥 HIDRATACIÓN DE INCLUSIONES DEL CATÁLOGO CON UUIDs NUEVOS
+                    snapshotItems: (compMaestro.componenteItems || []).map((item: any) => {
+                        let diccData = item.diccionario || item;
+                        const modoBackend = item.modo || 'incluido';
+                        return {
+                            id: crypto.randomUUID(),
+                            nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(diccData))),
+                            modo: modoBackend,
+                            modoOriginal: modoBackend,
+                            incluido: modoBackend === 'incluido' || modoBackend === 'cortesia',
+                            tieneUpsell: !!item.componenteAdicionalVinculado,
+                            componenteAdicionalVinculado: item.componenteAdicionalVinculado || null,
+                            idComponenteInyectado: null,
+                            isInjecting: false,
+                            sobreescribirTraduccion: false
+                        };
+                    }),
+
+                    // 🔥 HIDRATACIÓN DE COSTOS CON UUIDs NUEVOS Y MÁQUINA DE ESTADOS OPERATIVOS
+                    cottarifas: (compMaestro.tarifas || []).map((tarifa: any) => ({
+                        id: crypto.randomUUID(),
+                        tarifaMaestraId: tarifa.id || tarifa['@id'],
+                        nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
+                        cantidad: tarifa.costoPorGrupo ? 1 : (parseInt(cotizacion.value?.numPax) || 1),
+                        moneda: tarifa.moneda?.codigo || tarifa.moneda?.id || tarifa.moneda || 'USD',
+                        montoCosto: parseFloat(tarifa.montoCosto || tarifa.monto || 0),
+                        esGrupal: tarifa.costoPorGrupo || false,
+                        proveedorMaestroId: tarifa.provider ? extractIdStr(tarifa.provider.id || tarifa.provider['@id'] || tarifa.provider) : null,
+                        proveedorNombreSnapshot: tarifa.provider?.nombreComercial || null,
+                        nombreParaProveedorSnapshot: tarifa.nombreParaProveedor || tarifa.nombreInterno || null,
+                        estadoOperativoSnapshot: 'Sin Solicitar', // Estado inicial controlado por Enum de Backend
+                        fechaLimitePago: null,
+                        condicionesPagoSnapshot: null,
+                        tipoModalidadSnapshot: tarifa.modalidad || 'Normal',
+                        detallesOperativos: [],
+                        sobreescribirTraduccion: false
+                    }))
                 };
 
                 if (!dataActiva.value.cotcomponentes) dataActiva.value.cotcomponentes = [];
@@ -1249,7 +1304,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             ordenarComponentesCronologicamente(dataActiva.value.cotcomponentes);
         }
     };
-
     const aplicarPlantilla = async (plantillaId: string): Promise<void> => {
         isLoading.value = true;
         try {
@@ -1628,6 +1682,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             dataActiva.value.nombreParaProveedorSnapshot = maestro.nombreParaProveedor || maestro.nombreInterno || null;
+            dataActiva.value.estadoOperativoSnapshot = 'Sin Solicitar';
+            
+            dataActiva.value.fechaLimitePago = null;
+            dataActiva.value.condicionesPagoSnapshot = maestro.condicionesPagoSnapshot || null;
         }
     };
 
