@@ -1683,7 +1683,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             dataActiva.value.nombreParaProveedorSnapshot = maestro.nombreParaProveedor || maestro.nombreInterno || null;
             dataActiva.value.estadoOperativoSnapshot = 'Sin Solicitar';
-            
+
             dataActiva.value.fechaLimitePago = null;
             dataActiva.value.condicionesPagoSnapshot = maestro.condicionesPagoSnapshot || null;
         }

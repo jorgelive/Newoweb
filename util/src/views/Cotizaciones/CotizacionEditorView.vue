@@ -382,7 +382,7 @@ const dropSegmento = (e: DragEvent) => {
                     <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
 
-                      <span v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) !== 'Sin plantilla'">
+                      <span v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
                         {{ store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}
                       </span>
 
@@ -397,7 +397,7 @@ const dropSegmento = (e: DragEvent) => {
                       </span>
                     </div>
 
-                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) !== 'Sin plantilla'">
+                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
                       <i class="fas fa-map-signs mr-1"></i> Plantilla Aplicada
                     </p>
                     <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0">
