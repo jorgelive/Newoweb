@@ -564,7 +564,14 @@ const dropSegmento = (e: DragEvent) => {
                     <span :class="clase.tipo.includes('anomalo') ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'" class="px-2 py-0.5 rounded text-[10px] font-black uppercase">
                       {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
                     </span>
-                    <p class="text-[11px] font-bold text-slate-500 mt-1">Rango: {{ clase.edadMin }} a {{ clase.edadMax }} años</p>
+
+                    <p v-if="clase.edadMin > 0 || clase.edadMax < 120" class="text-[11px] font-bold text-slate-500 mt-1">
+                      <span v-if="clase.edadMin > 0 && clase.edadMax < 120">Rango: {{ clase.edadMin }} a {{ clase.edadMax }} años</span>
+                      <span v-else-if="clase.edadMin > 0">A partir de {{ clase.edadMin }} años</span>
+                      <span v-else>Hasta los {{ clase.edadMax }} años</span>
+                    </p>
+                    <p v-else class="text-[11px] font-bold text-slate-400 mt-1">Sin restricción de edad</p>
+
                   </div>
                   <div class="text-right">
                     <p class="text-[9px] text-slate-400 font-bold uppercase">Venta Unit.</p>
@@ -1542,7 +1549,14 @@ const dropSegmento = (e: DragEvent) => {
                     <span :class="clase.tipo.includes('anomalo') ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'" class="px-2 py-0.5 rounded text-[10px] font-black uppercase">
                       {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
                     </span>
-                    <p class="text-[10px] font-bold text-slate-500 mt-1">Rango: {{ clase.edadMin }} a {{ clase.edadMax }} años</p>
+
+                    <p v-if="clase.edadMin > 0 || clase.edadMax < 120" class="text-[10px] font-bold text-slate-500 mt-1">
+                      <span v-if="clase.edadMin > 0 && clase.edadMax < 120">Rango: {{ clase.edadMin }} a {{ clase.edadMax }} años</span>
+                      <span v-else-if="clase.edadMin > 0">A partir de {{ clase.edadMin }} años</span>
+                      <span v-else>Hasta los {{ clase.edadMax }} años</span>
+                    </p>
+                    <p v-else class="text-[10px] font-bold text-slate-400 mt-1">Sin restricción de edad</p>
+
                   </div>
                   <div class="text-right">
                     <p class="text-[8px] text-slate-400 font-bold uppercase">Venta Unit.</p>
