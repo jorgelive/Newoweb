@@ -133,13 +133,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const monto = parseFloat(cat.monto || cat.montoCosto || 0).toFixed(2);
         const esGrupal = cat.costoPorGrupo || cat.esGrupal || false;
 
-        const min = (cat.edadMinima !== undefined && cat.edadMinima !== null && cat.edadMinima !== '') ? Number(cat.edadMinima) : null;
-        const max = (cat.edadMaxima !== undefined && cat.edadMaxima !== null && cat.edadMaxima !== '') ? Number(cat.edadMaxima) : null;
+        const min = (cat.edadMinima !== undefined && cat.edadMinima !== null && cat.edadMinima !== '') ? Number(cat.edadMinima) : 0;
+        const max = (cat.edadMaxima !== undefined && cat.edadMaxima !== null && cat.edadMaxima !== '') ? Number(cat.edadMaxima) : 120;
 
         let edadStr = '';
-        if (min !== null && max !== null) edadStr = ` [${min}-${max} años]`;
-        else if (min !== null) edadStr = ` [${min}+ años]`;
-        else if (max !== null) edadStr = ` [Hasta ${max} años]`;
+        // 🔥 CAMBIO: Solo imprime el tag de edad si de verdad es una tarifa restrictiva
+        if (min > 0 || max < 120) {
+            if (min > 0 && max < 120) edadStr = ` [${min}-${max} años]`;
+            else if (min > 0) edadStr = ` [${min}+ años]`;
+            else if (max < 120) edadStr = ` [Hasta ${max} años]`;
+        }
 
         const monedaFinal = (moneda && moneda !== '[]') ? moneda : '$';
         const indicadorMatematica = esGrupal ? ' 👥' : ' 👤';

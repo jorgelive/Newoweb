@@ -183,7 +183,7 @@ const formatMoneda = (monto?: number | string, moneda?: string) => {
   return `${moneda === 'USD' ? '$' : 'S/'} ${num.toFixed(2)}`;
 };
 
-// 🔥 FUNCIÓN REESCRITA: Ahora ignora los tiempos de componentes que no requieren hora exacta
+// 🔥 FUNCIÓN REESCRITA: Ignora tiempos "00:00" que son inicializaciones por defecto
 const formatRangoServicio = (servicio: any) => {
   if (!servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return 'Sin logística programada';
 
@@ -197,7 +197,7 @@ const formatRangoServicio = (servicio: any) => {
   let minStrFallback = '';
   let maxStrFallback = '';
 
-  let tieneHorasExactas = false;
+  let tieneHorasValidas = false;
 
   servicio.cotcomponentes.forEach((c: any) => {
     const maestroTipo = store.getTipoComponente(c.componenteMaestroId);
@@ -206,33 +206,40 @@ const formatRangoServicio = (servicio: any) => {
     if (c.fechaHoraInicio) {
       const t = new Date(c.fechaHoraInicio).getTime();
       if (t < minDateFallback) { minDateFallback = t; minStrFallback = c.fechaHoraInicio; }
-      if (reqHora && t < minTimeExact) { minTimeExact = t; minStrExact = c.fechaHoraInicio; tieneHorasExactas = true; }
+
+      // Filtramos las 00:00:00 porque son el valor default de inicialización para Alojamientos/Tickets
+      if (reqHora && !c.fechaHoraInicio.includes('T00:00:00')) {
+        if (t < minTimeExact) { minTimeExact = t; minStrExact = c.fechaHoraInicio; tieneHorasValidas = true; }
+      }
     }
     if (c.fechaHoraFin) {
       const t = new Date(c.fechaHoraFin).getTime();
       if (t > maxDateFallback) { maxDateFallback = t; maxStrFallback = c.fechaHoraFin; }
-      if (reqHora && t > maxTimeExact) { maxTimeExact = t; maxStrExact = c.fechaHoraFin; }
+
+      if (reqHora && !c.fechaHoraFin.includes('T00:00:00')) {
+        if (t > maxTimeExact) { maxTimeExact = t; maxStrExact = c.fechaHoraFin; }
+      }
     }
   });
 
   const fTime = (d: Date) => d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
   const fDate = (d: Date) => d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).replace('.', '');
 
-  // Si ningún componente del servicio requiere hora (ej. un servicio "Solo Hotel" o "Solo Tickets")
-  if (!tieneHorasExactas) {
+  // Si ningún componente aportó una hora real
+  if (!tieneHorasValidas) {
     if (minDateFallback === Infinity) return 'Horarios no definidos';
     const dMinF = new Date(minStrFallback);
     const dMaxF = new Date(maxStrFallback);
 
-    // Si inicia y termina el mismo día
+    // Si es solo de 1 día
     if (maxDateFallback === -Infinity || dMinF.toDateString() === dMaxF.toDateString()) {
       return `${fDate(dMinF)}`;
     }
-    // Si es un rango de fechas puro (ej. hotel de 3 noches)
+    // Si es rango de fechas puras (ej. Hotel 3 noches)
     return `${fDate(dMinF)}  —  ${fDate(dMaxF)}`;
   }
 
-  // Si hay componentes con hora exacta, usamos sus límites y descartamos los 00:00 de los otros
+  // Si hay al menos una hora válida
   const dMin = new Date(minStrExact);
   const dMax = new Date(maxStrExact);
 
@@ -1025,20 +1032,48 @@ const dropSegmento = (e: DragEvent) => {
 
               <div v-if="store.dataActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-700 flex flex-wrap gap-2">
                 <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t.id || t['@id']) === store.extractIdStr(store.dataActiva.tarifaMaestraId))]">
-              <span v-if="catT" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
-                <i class="fas fa-globe-americas text-emerald-400 mr-1"></i>
-                {{ catT.procedencia ? catT.procedencia : 'Sin restricción origen' }}
-              </span>
-                  <span v-if="catT && (catT.edadMinima !== undefined || catT.edadMaxima !== undefined)" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
-                <i class="fas fa-birthday-cake text-orange-400 mr-1"></i>
-                {{ catT.edadMinima !== undefined ? catT.edadMinima : 0 }} - {{ catT.edadMaxima !== undefined ? catT.edadMaxima : 120 }} años
-              </span>
+                  <span v-if="catT" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
+                    <i class="fas fa-globe-americas text-emerald-400 mr-1"></i>
+                    {{ catT.procedencia ? catT.procedencia : 'Sin restricción origen' }}
+                  </span>
+                  <span v-if="catT && (catT.edadMinima > 0 || catT.edadMaxima < 120)" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
+                    <i class="fas fa-birthday-cake text-orange-400 mr-1"></i>
+                    {{ catT.edadMinima || 0 }} - {{ catT.edadMaxima || 120 }} años
+                  </span>
                 </template>
               </div>
-
             </div>
+
             <div class="grid grid-cols-2 gap-4">
-              <div class="col-span-2">
+              <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Cant (Pax) *</label>
+                <input v-model="store.dataActiva.cantidad"
+                       type="number"
+                       :readonly="store.dataActiva.esGrupal"
+                       :class="store.dataActiva.esGrupal ? 'bg-slate-700 text-slate-500 cursor-not-allowed border-slate-700' : 'bg-slate-800 text-white border-slate-600 focus:ring-2 focus:ring-orange-500'"
+                       class="w-full rounded-xl px-4 py-3 text-sm font-bold text-center outline-none shadow-sm border">
+                <p v-if="store.dataActiva.esGrupal" class="text-[9px] text-orange-400 mt-1 ml-1">Precio por grupo fijo</p>
+              </div>
+
+              <div class="col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                <div>
+                  <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5">Moneda</label>
+                  <select v-model="store.dataActiva.moneda" class="bg-transparent text-white font-bold text-xs outline-none border-b border-slate-600 pb-1 appearance-none">
+                    <option value="USD" class="text-slate-800">USD</option>
+                    <option value="PEN" class="text-slate-800">PEN</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 text-right">Costo Unitario</label>
+                  <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-32 bg-slate-900 border border-slate-600 text-orange-400 rounded-xl px-3 py-2 text-xl font-black text-right focus:border-orange-500 outline-none">
+                </div>
+              </div>
+
+              <div class="col-span-2 text-right">
+                <p class="text-[10px] text-slate-400 font-bold uppercase">Subtotal Neto: <span class="text-orange-400 text-sm">{{ formatMoneda(store.dataActiva.montoCosto * store.dataActiva.cantidad, store.dataActiva.moneda) }}</span></p>
+              </div>
+
+              <div class="col-span-2 mt-2">
                 <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Nombre en Recibo *</label>
                 <div class="flex gap-2">
                   <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
@@ -1086,34 +1121,6 @@ const dropSegmento = (e: DragEvent) => {
                     <p class="text-[8px] font-black uppercase">Grupal (Flat)</p>
                   </div>
                 </div>
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Cant (Pax) *</label>
-                <input v-model="store.dataActiva.cantidad"
-                       type="number"
-                       :readonly="store.dataActiva.esGrupal"
-                       :class="store.dataActiva.esGrupal ? 'bg-slate-700 text-slate-500 cursor-not-allowed border-slate-700' : 'bg-slate-800 text-white border-slate-600 focus:ring-2 focus:ring-orange-500'"
-                       class="w-full rounded-xl px-4 py-3 text-sm font-bold text-center outline-none shadow-sm border">
-                <p v-if="store.dataActiva.esGrupal" class="text-[9px] text-orange-400 mt-1 ml-1">Precio por grupo fijo</p>
-              </div>
-
-              <div class="col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-4 flex justify-between items-center shadow-sm">
-                <div>
-                  <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5">Moneda</label>
-                  <select v-model="store.dataActiva.moneda" class="bg-transparent text-white font-bold text-xs outline-none border-b border-slate-600 pb-1 appearance-none">
-                    <option value="USD" class="text-slate-800">USD</option>
-                    <option value="PEN" class="text-slate-800">PEN</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 text-right">Costo Unitario</label>
-                  <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-32 bg-slate-900 border border-slate-600 text-orange-400 rounded-xl px-3 py-2 text-xl font-black text-right focus:border-orange-500 outline-none">
-                </div>
-              </div>
-
-              <div class="col-span-2 text-right">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">Subtotal Neto: <span class="text-orange-400 text-sm">{{ formatMoneda(store.dataActiva.montoCosto * store.dataActiva.cantidad, store.dataActiva.moneda) }}</span></p>
               </div>
 
               <div class="col-span-2 bg-slate-800/50 border border-slate-700 rounded-2xl mt-4 relative overflow-hidden transition-all duration-300 shadow-sm">
