@@ -183,34 +183,60 @@ const formatMoneda = (monto?: number | string, moneda?: string) => {
   return `${moneda === 'USD' ? '$' : 'S/'} ${num.toFixed(2)}`;
 };
 
+// 🔥 FUNCIÓN REESCRITA: Ahora ignora los tiempos de componentes que no requieren hora exacta
 const formatRangoServicio = (servicio: any) => {
   if (!servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return 'Sin logística programada';
 
-  let minTime = Infinity;
-  let maxTime = -Infinity;
-  let minStr = '';
-  let maxStr = '';
+  let minTimeExact = Infinity;
+  let maxTimeExact = -Infinity;
+  let minStrExact = '';
+  let maxStrExact = '';
+
+  let minDateFallback = Infinity;
+  let maxDateFallback = -Infinity;
+  let minStrFallback = '';
+  let maxStrFallback = '';
+
+  let tieneHorasExactas = false;
 
   servicio.cotcomponentes.forEach((c: any) => {
+    const maestroTipo = store.getTipoComponente(c.componenteMaestroId);
+    const reqHora = store.requiereHoraExacta(maestroTipo);
+
     if (c.fechaHoraInicio) {
       const t = new Date(c.fechaHoraInicio).getTime();
-      if (t < minTime) { minTime = t; minStr = c.fechaHoraInicio; }
+      if (t < minDateFallback) { minDateFallback = t; minStrFallback = c.fechaHoraInicio; }
+      if (reqHora && t < minTimeExact) { minTimeExact = t; minStrExact = c.fechaHoraInicio; tieneHorasExactas = true; }
     }
     if (c.fechaHoraFin) {
       const t = new Date(c.fechaHoraFin).getTime();
-      if (t > maxTime) { maxTime = t; maxStr = c.fechaHoraFin; }
+      if (t > maxDateFallback) { maxDateFallback = t; maxStrFallback = c.fechaHoraFin; }
+      if (reqHora && t > maxTimeExact) { maxTimeExact = t; maxStrExact = c.fechaHoraFin; }
     }
   });
-
-  if (minTime === Infinity) return 'Horarios no definidos';
-
-  const dMin = new Date(minStr);
-  const dMax = new Date(maxStr);
 
   const fTime = (d: Date) => d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
   const fDate = (d: Date) => d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).replace('.', '');
 
-  if (maxTime === -Infinity || maxTime <= minTime) return `${fDate(dMin)} • ${fTime(dMin)}`;
+  // Si ningún componente del servicio requiere hora (ej. un servicio "Solo Hotel" o "Solo Tickets")
+  if (!tieneHorasExactas) {
+    if (minDateFallback === Infinity) return 'Horarios no definidos';
+    const dMinF = new Date(minStrFallback);
+    const dMaxF = new Date(maxStrFallback);
+
+    // Si inicia y termina el mismo día
+    if (maxDateFallback === -Infinity || dMinF.toDateString() === dMaxF.toDateString()) {
+      return `${fDate(dMinF)}`;
+    }
+    // Si es un rango de fechas puro (ej. hotel de 3 noches)
+    return `${fDate(dMinF)}  —  ${fDate(dMaxF)}`;
+  }
+
+  // Si hay componentes con hora exacta, usamos sus límites y descartamos los 00:00 de los otros
+  const dMin = new Date(minStrExact);
+  const dMax = new Date(maxStrExact);
+
+  if (maxTimeExact === -Infinity || maxTimeExact <= minTimeExact) return `${fDate(dMin)} • ${fTime(dMin)}`;
   if (dMin.toDateString() === dMax.toDateString()) return `${fDate(dMin)} • ${fTime(dMin)} - ${fTime(dMax)}`;
 
   return `${fDate(dMin)} ${fTime(dMin)}  —  ${fDate(dMax)} ${fTime(dMax)}`;
@@ -795,7 +821,7 @@ const dropSegmento = (e: DragEvent) => {
                 <div class="flex gap-2" v-if="!isComponenteSoloItems(store.dataActiva)">
                   <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
                          @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                         type="text" class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
+                         type="text" class="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
 
                   <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
                           :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
