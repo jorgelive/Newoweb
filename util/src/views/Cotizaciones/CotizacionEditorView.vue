@@ -19,7 +19,9 @@ const route = useRoute();
 const router = useRouter();
 const store = useCotizacionEditorStore();
 
-// 🔥 CONFIGURACIÓN DE LA MÁSCARA ESTRICTA PARA FECHAS Y HORAS
+// ============================================================================
+// 🔥 1. MÁSCARA ESTRICTA PARA FECHA Y HORA (Componentes Logísticos / Vuelos)
+// ============================================================================
 const formatParaMascara = (isoString?: string) => {
   if (!isoString) return '';
   const d = new Date(isoString);
@@ -28,7 +30,6 @@ const formatParaMascara = (isoString?: string) => {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-// Convierte lo que el usuario tipeó de vuelta a ISO para enviarlo al Store
 const procesarFechaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') => {
   if (fechaTexto.length === 16) {
     const [fecha, hora] = fechaTexto.split(' ');
@@ -44,7 +45,6 @@ const procesarFechaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') => {
   }
 };
 
-// La Directiva Definitiva (v-strict-mask)
 const vStrictMask = {
   mounted(el: HTMLInputElement, binding: any) {
     const mask = IMask(el, {
@@ -64,6 +64,53 @@ const vStrictMask = {
     });
   }
 };
+
+// ============================================================================
+// 🔥 2. MÁSCARA ESTRICTA SÓLO FECHA (Alojamientos, Tickets, Alimentación)
+// ============================================================================
+const formatFechaCortaParaMascara = (isoString?: string) => {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+};
+
+const procesarFechaCortaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') => {
+  if (fechaTexto.length === 10) {
+    const [dia, mes, ano] = fechaTexto.split('/');
+    const isoString = `${ano}-${mes}-${dia}T00:00:00`;
+
+    if (tipo === 'inicio') {
+      store.actualizarInicioManteniendoRango(isoString);
+    } else {
+      store.dataActiva.fechaHoraFin = isoString;
+      store.onComponenteFechasChange(false);
+    }
+  }
+};
+
+const vDateMask = {
+  mounted(el: HTMLInputElement, binding: any) {
+    const mask = IMask(el, {
+      mask: 'd/m/Y',
+      lazy: false,
+      blocks: {
+        d: { mask: IMask.MaskedRange, from: 1, to: 31, maxLength: 2 },
+        m: { mask: IMask.MaskedRange, from: 1, to: 12, maxLength: 2 },
+        Y: { mask: IMask.MaskedRange, from: 2024, to: 2035, maxLength: 4 }
+      }
+    });
+
+    mask.on('complete', () => {
+      if(binding.value) binding.value(mask.value);
+    });
+  }
+};
+
+// ============================================================================
+// DATOS COMPUTADOS Y ONMOUNTED
+// ============================================================================
 
 const idiomasOrdenados = computed(() => {
   if (!store.idiomasDisponibles) return [];
@@ -179,12 +226,12 @@ const formatDateTimeFromISO = (isoString?: string) => {
   }).replace(',', ' -');
 };
 
-// 🔥 HELPER VISUAL: Solo fecha para componentes que no requieren hora (Alojamientos, tickets)
 const formatDateOnlyFromISO = (isoString?: string) => {
   if (!isoString) return '--';
   const date = new Date(isoString);
   if (isNaN(date.getTime())) return '--';
-  return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
 };
 
 const dragStart = (e: DragEvent, segmentoMaestro: any) => {
@@ -748,7 +795,7 @@ const dropSegmento = (e: DragEvent) => {
                 <div class="flex gap-2" v-if="!isComponenteSoloItems(store.dataActiva)">
                   <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
                          @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                         type="text" class="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
+                         type="text" class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
 
                   <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
                           :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
@@ -780,7 +827,7 @@ const dropSegmento = (e: DragEvent) => {
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
                       <input v-if="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
                              type="text"
-                             class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
                              :value="formatParaMascara(store.dataActiva.fechaHoraInicio)"
                              v-strict-mask="(val: string) => procesarFechaMascara(val, 'inicio')"
                              @keydown.enter="onEnter"
@@ -789,9 +836,9 @@ const dropSegmento = (e: DragEvent) => {
                       />
                       <input v-else
                              type="text"
-                             class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
-                             :value="formatDateOnlyFromISO(store.dataActiva.fechaHoraInicio)"
-                             readonly
+                             class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             :value="formatFechaCortaParaMascara(store.dataActiva.fechaHoraInicio)"
+                             v-date-mask="(val: string) => procesarFechaCortaMascara(val, 'inicio')"
                              @keydown.enter="onEnter"
                              @keydown.tab="onTab"
                              placeholder="DD/MM/AAAA"
@@ -814,7 +861,7 @@ const dropSegmento = (e: DragEvent) => {
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
                       <input v-if="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
                              type="text"
-                             class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
                              :value="formatParaMascara(store.dataActiva.fechaHoraFin)"
                              v-strict-mask="(val: string) => procesarFechaMascara(val, 'fin')"
                              @keydown.enter="onEnter"
@@ -823,9 +870,9 @@ const dropSegmento = (e: DragEvent) => {
                       />
                       <input v-else
                              type="text"
-                             class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
-                             :value="formatDateOnlyFromISO(store.dataActiva.fechaHoraFin)"
-                             readonly
+                             class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             :value="formatFechaCortaParaMascara(store.dataActiva.fechaHoraFin)"
+                             v-date-mask="(val: string) => procesarFechaCortaMascara(val, 'fin')"
                              @keydown.enter="onEnter"
                              @keydown.tab="onTab"
                              placeholder="DD/MM/AAAA"
