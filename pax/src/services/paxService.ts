@@ -11,7 +11,7 @@ export const paxService = {
     // --- MAESTROS ---
     async getIdiomasPrioritarios(): Promise<MaestroIdioma[]> {
         try {
-            const url = new URL(`${API_BASE}/platform/public/maestro_idioma`);
+            const url = new URL(`${API_BASE}/platform/maestro/idiomas`);
             url.searchParams.append('prioridad[gt]', '0');
             url.searchParams.append('order[prioridad]', 'desc');
             const res = await fetch(url.toString(), { headers: { 'Accept': 'application/ld+json' } });

@@ -28,7 +28,7 @@ const formatParaMascara = (isoString?: string) => {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-// 2. Convierte lo que el usuario tipeó de vuelta a ISO para enviarlo al Store
+// Convierte lo que el usuario tipeó de vuelta a ISO para enviarlo al Store
 const procesarFechaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') => {
   if (fechaTexto.length === 16) {
     const [fecha, hora] = fechaTexto.split(' ');
@@ -44,12 +44,12 @@ const procesarFechaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') => {
   }
 };
 
-// 3. La Directiva Definitiva (v-strict-mask)
+// La Directiva Definitiva (v-strict-mask)
 const vStrictMask = {
   mounted(el: HTMLInputElement, binding: any) {
     const mask = IMask(el, {
       mask: 'd/m/Y H:M',
-      lazy: false, // Muestra "__/__/____ __:__"
+      lazy: false,
       blocks: {
         d: { mask: IMask.MaskedRange, from: 1, to: 31, maxLength: 2 },
         m: { mask: IMask.MaskedRange, from: 1, to: 12, maxLength: 2 },
@@ -59,9 +59,8 @@ const vStrictMask = {
       }
     });
 
-    // 🔥 EL SECRETO: Solo disparamos el cambio al Store cuando llenó todos los números
     mask.on('complete', () => {
-      binding.value(mask.value);
+      if(binding.value) binding.value(mask.value);
     });
   }
 };
@@ -161,7 +160,6 @@ const formatRangoServicio = (servicio: any) => {
   const dMin = new Date(minStr);
   const dMax = new Date(maxStr);
 
-  // 🔥 AQUÍ ESTÁ EL CAMBIO: hour12: false
   const fTime = (d: Date) => d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
   const fDate = (d: Date) => d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).replace('.', '');
 
@@ -176,10 +174,17 @@ const formatDateTimeFromISO = (isoString?: string) => {
   const date = new Date(isoString);
   if (isNaN(date.getTime())) return '--';
 
-  // 🔥 AQUÍ ESTÁ EL CAMBIO: hour12: false
   return date.toLocaleString('es-PE', {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false
   }).replace(',', ' -');
+};
+
+// 🔥 HELPER VISUAL: Solo fecha para componentes que no requieren hora (Alojamientos, tickets)
+const formatDateOnlyFromISO = (isoString?: string) => {
+  if (!isoString) return '--';
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return '--';
+  return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
 };
 
 const dragStart = (e: DragEvent, segmentoMaestro: any) => {
@@ -249,7 +254,6 @@ const agruparNotasPorTipo = (notas: any[]) => {
   }, {} as Record<string, any[]>);
 };
 
-// Asigna iconos y colores según el tipo de nota
 const getTipoNotaUI = (tipo: string | number) => {
   const t = String(tipo).toLowerCase();
   if (t.includes('alerta') || t.includes('peligro')) return { icon: 'fa-exclamation-triangle', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' };
@@ -658,11 +662,14 @@ const dropSegmento = (e: DragEvent) => {
 
                   <div class="flex flex-col gap-1.5 mb-3">
                     <span class="bg-sky-50 border border-sky-100 text-sky-800 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
-                      <i class="far fa-calendar-alt text-sky-500"></i> INICIO: {{ formatDateTimeFromISO(comp.fechaHoraInicio) }}
+                      <i class="far fa-calendar-alt text-sky-500"></i>
+                      {{ store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'INICIO: ' + formatDateTimeFromISO(comp.fechaHoraInicio) : 'FECHA: ' + formatDateOnlyFromISO(comp.fechaHoraInicio) }}
                     </span>
-                    <span class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
-                      <i class="far fa-flag text-slate-400"></i> FIN: {{ formatDateTimeFromISO(comp.fechaHoraFin) }}
+                    <span v-if="store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) || store.calcularPernoctes(comp.fechaHoraInicio, comp.fechaHoraFin) > 1" class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
+                      <i class="far fa-flag text-slate-400"></i>
+                      {{ store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'FIN: ' + formatDateTimeFromISO(comp.fechaHoraFin) : 'HASTA: ' + formatDateOnlyFromISO(comp.fechaHoraFin) }}
                     </span>
+
                     <span v-if="comp.cotsegmentoId || comp.cotsegmento" class="mt-1 text-[9px] font-bold text-indigo-400 flex items-center gap-1">
                       <i class="fas fa-link"></i> Componente Matriz
                     </span>
@@ -765,19 +772,29 @@ const dropSegmento = (e: DragEvent) => {
                       :model-value="store.dataActiva.fechaHoraInicio"
                       @update:model-value="val => store.actualizarInicioManteniendoRango(val || '')"
                       :is-24="true"
-                      format="dd/MM/yyyy HH:mm"
+                      :enable-time-picker="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
+                      :format="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId)) ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
                       model-type="yyyy-MM-dd'T'HH:mm:ss"
                       auto-apply
                   >
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
-                      <input
-                          type="text"
-                          class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
-                          :value="formatParaMascara(store.dataActiva.fechaHoraInicio)"
-                          v-strict-mask="(val: string) => procesarFechaMascara(val, 'inicio')"
-                          @keydown.enter="onEnter"
-                          @keydown.tab="onTab"
-                          placeholder="DD/MM/AAAA HH:MM"
+                      <input v-if="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
+                             type="text"
+                             class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             :value="formatParaMascara(store.dataActiva.fechaHoraInicio)"
+                             v-strict-mask="(val: string) => procesarFechaMascara(val, 'inicio')"
+                             @keydown.enter="onEnter"
+                             @keydown.tab="onTab"
+                             placeholder="DD/MM/AAAA HH:MM"
+                      />
+                      <input v-else
+                             type="text"
+                             class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             :value="formatDateOnlyFromISO(store.dataActiva.fechaHoraInicio)"
+                             readonly
+                             @keydown.enter="onEnter"
+                             @keydown.tab="onTab"
+                             placeholder="DD/MM/AAAA"
                       />
                     </template>
                   </VueDatePicker>
@@ -789,19 +806,29 @@ const dropSegmento = (e: DragEvent) => {
                       v-model="store.dataActiva.fechaHoraFin"
                       @update:model-value="store.onComponenteFechasChange(false)"
                       :is-24="true"
-                      format="dd/MM/yyyy HH:mm"
+                      :enable-time-picker="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
+                      :format="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId)) ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
                       model-type="yyyy-MM-dd'T'HH:mm:ss"
                       auto-apply
                   >
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
-                      <input
-                          type="text"
-                          class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
-                          :value="formatParaMascara(store.dataActiva.fechaHoraFin)"
-                          v-strict-mask="(val: string) => procesarFechaMascara(val, 'fin')"
-                          @keydown.enter="onEnter"
-                          @keydown.tab="onTab"
-                          placeholder="DD/MM/AAAA HH:MM"
+                      <input v-if="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
+                             type="text"
+                             class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             :value="formatParaMascara(store.dataActiva.fechaHoraFin)"
+                             v-strict-mask="(val: string) => procesarFechaMascara(val, 'fin')"
+                             @keydown.enter="onEnter"
+                             @keydown.tab="onTab"
+                             placeholder="DD/MM/AAAA HH:MM"
+                      />
+                      <input v-else
+                             type="text"
+                             class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             :value="formatDateOnlyFromISO(store.dataActiva.fechaHoraFin)"
+                             readonly
+                             @keydown.enter="onEnter"
+                             @keydown.tab="onTab"
+                             placeholder="DD/MM/AAAA"
                       />
                     </template>
                   </VueDatePicker>
@@ -1173,329 +1200,331 @@ const dropSegmento = (e: DragEvent) => {
       </button>
     </div>
 
-  </div> <Teleport to="body">
+  </div>
 
-  <Transition name="fade-scale">
-    <div v-if="store.isSegmentEditorOpen && store.cotizacion" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
-      <div class="bg-[#F8FAFC] w-full max-w-6xl h-full max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
-        <header class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
-          <div>
-            <h2 class="font-black text-lg flex items-center gap-2"><i class="fas fa-book-open"></i> Constructor de Storytelling</h2>
-            <p class="text-[11px] font-bold text-indigo-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.dataActiva?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
-          </div>
-          <button @click="store.cerrarEditorSegmentos()" class="w-8 h-8 rounded-full bg-indigo-500 hover:bg-indigo-400 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
-        </header>
+  <Teleport to="body">
 
-        <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
-          <aside class="w-full md:w-1/3 bg-white border-b md:border-r border-slate-200 flex flex-col h-[40vh] md:h-full shadow-sm z-10 flex-shrink-0">
-
-            <div class="p-3 md:p-5 border-b border-slate-100 bg-slate-50">
-              <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">1. Cargar Plantilla</label>
-              <div class="flex gap-2">
-                <SearchableSelect
-                    v-model="plantillaSeleccionada"
-                    :options="opcionesPlantillas"
-                    placeholder="Elegir itinerario..."
-                />
-                <button @click="plantillaSeleccionada && store.aplicarPlantilla(plantillaSeleccionada)" class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors shadow-sm">Aplicar</button>
-              </div>
+    <Transition name="fade-scale">
+      <div v-if="store.isSegmentEditorOpen && store.cotizacion" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
+        <div class="bg-[#F8FAFC] w-full max-w-6xl h-full max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+          <header class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+            <div>
+              <h2 class="font-black text-lg flex items-center gap-2"><i class="fas fa-book-open"></i> Constructor de Storytelling</h2>
+              <p class="text-[11px] font-bold text-indigo-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.dataActiva?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
             </div>
+            <button @click="store.cerrarEditorSegmentos()" class="w-8 h-8 rounded-full bg-indigo-500 hover:bg-indigo-400 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+          </header>
 
-            <div class="p-3 md:p-5 flex-1 overflow-y-auto bg-white flex flex-col">
-              <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 md:mb-3">2. Pool de Segmentos Libres</label>
+          <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
+            <aside class="w-full md:w-1/3 bg-white border-b md:border-r border-slate-200 flex flex-col h-[40vh] md:h-full shadow-sm z-10 flex-shrink-0">
 
-              <div class="mb-3 md:mb-4 flex-shrink-0">
-                <input v-model="filtroSegmentos" type="text" placeholder="🔍 Buscar por ID o Título..."
-                       class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner">
-              </div>
-
-              <div class="space-y-2 md:space-y-3 overflow-y-auto flex-1 pb-2">
-                <div v-for="seg in poolFiltrado" :key="seg.id" draggable="true" @dragstart="dragStart($event, seg)"
-                     class="bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl cursor-grab hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start">
-
-                  <i class="fas fa-grip-vertical text-slate-300 mt-1 hidden md:block"></i>
-
-                  <div class="flex-1 min-w-0">
-                    <div class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
-                    <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo, store.cotizacion.idiomaEdicion) }}</h4>
-                    <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido, store.cotizacion.idiomaEdicion)"></div>
-                  </div>
-
-                  <button @click="prepararInsercion(seg)" class="text-indigo-600 hover:bg-indigo-200 bg-indigo-50 md:bg-transparent md:hover:bg-indigo-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors flex-shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-indigo-100"><i class="fas fa-plus"></i></button>
+              <div class="p-3 md:p-5 border-b border-slate-100 bg-slate-50">
+                <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">1. Cargar Plantilla</label>
+                <div class="flex gap-2">
+                  <SearchableSelect
+                      v-model="plantillaSeleccionada"
+                      :options="opcionesPlantillas"
+                      placeholder="Elegir itinerario..."
+                  />
+                  <button @click="plantillaSeleccionada && store.aplicarPlantilla(plantillaSeleccionada)" class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors shadow-sm">Aplicar</button>
                 </div>
               </div>
-            </div>
-          </aside>
-          <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-[#F8FAFC]" @dragover.prevent @dragenter.prevent @drop="dropSegmento">
-            <div class="max-w-3xl mx-auto space-y-6 pb-20">
-              <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest"><i class="fas fa-stream mr-2"></i> Párrafos en la Cotización</h3>
 
-              <div v-if="!store.dataActiva?.cotsegmentos?.length" class="border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center">
-                <i class="fas fa-align-center text-4xl mb-4 opacity-50"></i>
-                <p class="text-sm font-bold uppercase tracking-widest">El servicio no tiene textos</p>
+              <div class="p-3 md:p-5 flex-1 overflow-y-auto bg-white flex flex-col">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 md:mb-3">2. Pool de Segmentos Libres</label>
+
+                <div class="mb-3 md:mb-4 flex-shrink-0">
+                  <input v-model="filtroSegmentos" type="text" placeholder="🔍 Buscar por ID o Título..."
+                         class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner">
+                </div>
+
+                <div class="space-y-2 md:space-y-3 overflow-y-auto flex-1 pb-2">
+                  <div v-for="seg in poolFiltrado" :key="seg.id" draggable="true" @dragstart="dragStart($event, seg)"
+                       class="bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl cursor-grab hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start">
+
+                    <i class="fas fa-grip-vertical text-slate-300 mt-1 hidden md:block"></i>
+
+                    <div class="flex-1 min-w-0">
+                      <div class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
+                      <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo, store.cotizacion.idiomaEdicion) }}</h4>
+                      <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido, store.cotizacion.idiomaEdicion)"></div>
+                    </div>
+
+                    <button @click="prepararInsercion(seg)" class="text-indigo-600 hover:bg-indigo-200 bg-indigo-50 md:bg-transparent md:hover:bg-indigo-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors flex-shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-indigo-100"><i class="fas fa-plus"></i></button>
+                  </div>
+                </div>
               </div>
+            </aside>
+            <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-[#F8FAFC]" @dragover.prevent @dragenter.prevent @drop="dropSegmento">
+              <div class="max-w-3xl mx-auto space-y-6 pb-20">
+                <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest"><i class="fas fa-stream mr-2"></i> Párrafos en la Cotización</h3>
 
-              <div v-else class="space-y-4 relative">
-                <div class="absolute left-[15px] top-4 bottom-4 w-0.5 bg-slate-200 z-0"></div>
-                <div v-for="(cotSeg, idx) in store.dataActiva.cotsegmentos" :key="cotSeg.id" class="relative z-10 flex gap-4 items-start group">
-                  <div class="w-8 h-8 rounded-full bg-white border-4 border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-sm flex-shrink-0 mt-1">{{ idx + 1 }}</div>
+                <div v-if="!store.dataActiva?.cotsegmentos?.length" class="border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center">
+                  <i class="fas fa-align-center text-4xl mb-4 opacity-50"></i>
+                  <p class="text-sm font-bold uppercase tracking-widest">El servicio no tiene textos</p>
+                </div>
 
-                  <div class="flex-1 bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
+                <div v-else class="space-y-4 relative">
+                  <div class="absolute left-[15px] top-4 bottom-4 w-0.5 bg-slate-200 z-0"></div>
+                  <div v-for="(cotSeg, idx) in store.dataActiva.cotsegmentos" :key="cotSeg.id" class="relative z-10 flex gap-4 items-start group">
+                    <div class="w-8 h-8 rounded-full bg-white border-4 border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-sm flex-shrink-0 mt-1">{{ idx + 1 }}</div>
 
-                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                      <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-                        <label class="text-[10px] font-black text-indigo-600 uppercase tracking-widest whitespace-nowrap">Día Relativo</label>
-                        <input type="number" min="1"
-                               v-model="cotSeg.dia"
-                               @change="store.onSegmentoDiaChange(store.dataActiva.id, cotSeg.id, cotSeg.dia)"
-                               class="w-12 md:w-16 bg-slate-50 border border-slate-300 rounded px-1 md:px-2 py-1 text-xs md:text-sm font-black text-center outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800">
-                        <div class="flex flex-col border-l border-slate-200 pl-2">
-                          <span class="text-[9px] text-slate-400 font-bold uppercase leading-none">Fecha Real</span>
-                          <span class="text-[11px] text-indigo-500 font-black tracking-tight leading-none mt-0.5">{{ formatFecha(cotSeg.fechaAbsoluta) }}</span>
+                    <div class="flex-1 bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
+
+                      <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                        <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
+                          <label class="text-[10px] font-black text-indigo-600 uppercase tracking-widest whitespace-nowrap">Día Relativo</label>
+                          <input type="number" min="1"
+                                 v-model="cotSeg.dia"
+                                 @change="store.onSegmentoDiaChange(store.dataActiva.id, cotSeg.id, cotSeg.dia)"
+                                 class="w-12 md:w-16 bg-slate-50 border border-slate-300 rounded px-1 md:px-2 py-1 text-xs md:text-sm font-black text-center outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800">
+                          <div class="flex flex-col border-l border-slate-200 pl-2">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase leading-none">Fecha Real</span>
+                            <span class="text-[11px] text-indigo-500 font-black tracking-tight leading-none mt-0.5">{{ formatFecha(cotSeg.fechaAbsoluta) }}</span>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                          <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion)"
+                                 @input="e => store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                                 class="bg-transparent text-xs font-black text-slate-700 uppercase outline-none flex-1 min-w-[150px]" placeholder="Título..." />
+
+                          <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
+                                  class="transition-colors px-2 py-1.5 rounded text-[10px] font-bold border flex items-center gap-1 shadow-sm"
+                                  :class="cotSeg.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'" title="Forzar traducción del párrafo al guardar">
+                            <i class="fas fa-language"></i> <span class="hidden md:inline" v-if="cotSeg.sobreescribirTraduccion">Auto-Traducir</span>
+                          </button>
+
+                          <button @click="store.removerCotSegmento(cotSeg.id)" class="bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors ml-1 p-1.5 rounded shadow-sm">
+                            <i class="fas fa-trash-alt text-sm"></i>
+                          </button>
                         </div>
                       </div>
 
-                      <div class="flex items-center gap-2 w-full md:w-auto">
-                        <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                               @input="e => store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                               class="bg-transparent text-xs font-black text-slate-700 uppercase outline-none flex-1 min-w-[150px]" placeholder="Título..." />
+                      <div class="p-4 bg-white">
+                        <WysiwygEditor
+                            :model-value="store.getI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion)"
+                            @update:model-value="store.setI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion, $event)"
+                        />
 
-                        <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
-                                class="transition-colors px-2 py-1.5 rounded text-[10px] font-bold border flex items-center gap-1 shadow-sm"
-                                :class="cotSeg.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'" title="Forzar traducción del párrafo al guardar">
-                          <i class="fas fa-language"></i> <span class="hidden md:inline" v-if="cotSeg.sobreescribirTraduccion">Auto-Traducir</span>
-                        </button>
-
-                        <button @click="store.removerCotSegmento(cotSeg.id)" class="bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors ml-1 p-1.5 rounded shadow-sm">
-                          <i class="fas fa-trash-alt text-sm"></i>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div class="p-4 bg-white">
-                      <WysiwygEditor
-                          :model-value="store.getI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion)"
-                          @update:model-value="store.setI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion, $event)"
-                      />
-
-                      <div v-if="(cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0) || (cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0)" class="mt-8 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div v-if="cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0">
-                          <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-clipboard-list mr-1"></i> Recomendaciones del Segmento</h4>
-                          <div class="flex flex-col gap-4">
-                            <div v-for="(notasGrupo, tipo) in agruparNotasPorTipo(cotSeg.notasSnapshot)" :key="tipo">
-                              <div class="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                                <i class="fas" :class="getTipoNotaUI(tipo).icon"></i> {{ tipo }}
-                              </div>
-                              <div class="flex flex-wrap gap-2">
-                                <div v-for="nota in notasGrupo" :key="nota.id"
-                                     @click="abrirModalNota(nota)"
-                                     class="bg-white border border-slate-200 rounded-lg shadow-sm flex items-stretch overflow-hidden hover:border-indigo-400 transition-all cursor-pointer group max-w-full">
-                                  <div :class="[getTipoNotaUI(tipo).bg, getTipoNotaUI(tipo).text]" class="px-2.5 py-1.5 flex items-center justify-center">
-                                    <i class="fas text-xs" :class="getTipoNotaUI(tipo).icon"></i>
-                                  </div>
-                                  <div class="px-2.5 py-1.5 flex-1 min-w-0 flex flex-col justify-center">
+                        <div v-if="(cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0) || (cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0)" class="mt-8 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div v-if="cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0">
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-clipboard-list mr-1"></i> Recomendaciones del Segmento</h4>
+                            <div class="flex flex-col gap-4">
+                              <div v-for="(notasGrupo, tipo) in agruparNotasPorTipo(cotSeg.notasSnapshot)" :key="tipo">
+                                <div class="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                                  <i class="fas" :class="getTipoNotaUI(tipo).icon"></i> {{ tipo }}
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                  <div v-for="nota in notasGrupo" :key="nota.id"
+                                       @click="abrirModalNota(nota)"
+                                       class="bg-white border border-slate-200 rounded-lg shadow-sm flex items-stretch overflow-hidden hover:border-indigo-400 transition-all cursor-pointer group max-w-full">
+                                    <div :class="[getTipoNotaUI(tipo).bg, getTipoNotaUI(tipo).text]" class="px-2.5 py-1.5 flex items-center justify-center">
+                                      <i class="fas text-xs" :class="getTipoNotaUI(tipo).icon"></i>
+                                    </div>
+                                    <div class="px-2.5 py-1.5 flex-1 min-w-0 flex flex-col justify-center">
                                     <span class="text-[10px] font-bold text-slate-700 block truncate w-full max-w-[160px]">
                                       {{ store.getI18nText(nota.titulo, store.cotizacion.idiomaEdicion) || nota.nombreInterno }}
                                     </span>
+                                    </div>
+                                    <button @click.stop="cotSeg.notasSnapshot.splice(cotSeg.notasSnapshot.indexOf(nota), 1)"
+                                            class="px-2.5 bg-slate-50 border-l border-slate-100 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                      <i class="fas fa-times text-[10px]"></i>
+                                    </button>
                                   </div>
-                                  <button @click.stop="cotSeg.notasSnapshot.splice(cotSeg.notasSnapshot.indexOf(nota), 1)"
-                                          class="px-2.5 bg-slate-50 border-l border-slate-100 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                                    <i class="fas fa-times text-[10px]"></i>
-                                  </button>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div v-if="cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0">
-                          <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-images mr-1"></i> Galería Adjunta</h4>
-                          <div class="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                            <div v-for="(img, iIdx) in cotSeg.imagenesSnapshot" :key="iIdx" class="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 flex-shrink-0 group shadow-sm">
-                              <img :src="img.imageUrl || '/images/placeholder.jpg'" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                              <button @click="cotSeg.imagenesSnapshot.splice(iIdx, 1)" class="absolute top-1 right-1 bg-white/90 hover:bg-red-500 hover:text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-slate-600 transition-colors opacity-0 group-hover:opacity-100 shadow-sm" title="Quitar imagen">
-                                <i class="fas fa-times"></i>
-                              </button>
+                          <div v-if="cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0">
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-images mr-1"></i> Galería Adjunta</h4>
+                            <div class="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                              <div v-for="(img, iIdx) in cotSeg.imagenesSnapshot" :key="iIdx" class="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 flex-shrink-0 group shadow-sm">
+                                <img :src="img.imageUrl || '/images/placeholder.jpg'" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                <button @click="cotSeg.imagenesSnapshot.splice(iIdx, 1)" class="absolute top-1 right-1 bg-white/90 hover:bg-red-500 hover:text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-slate-600 transition-colors opacity-0 group-hover:opacity-100 shadow-sm" title="Quitar imagen">
+                                  <i class="fas fa-times"></i>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </main>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
 
-  <Transition name="fade-scale">
-    <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-[1100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
-        <div class="bg-indigo-600 px-5 py-4 text-white flex justify-between items-center">
-          <h3 class="font-black text-sm uppercase tracking-widest"><i class="fas fa-layer-group mr-2"></i> Inyectar Párrafo</h3>
-          <button @click="modalInsercion.isOpen = false" class="text-indigo-200 hover:text-white"><i class="fas fa-times"></i></button>
+    <Transition name="fade-scale">
+      <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-[1100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
+          <div class="bg-indigo-600 px-5 py-4 text-white flex justify-between items-center">
+            <h3 class="font-black text-sm uppercase tracking-widest"><i class="fas fa-layer-group mr-2"></i> Inyectar Párrafo</h3>
+            <button @click="modalInsercion.isOpen = false" class="text-indigo-200 hover:text-white"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="p-5 space-y-4">
+
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
+              <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest block">{{ modalInsercion.segmentoMaestro?.nombreInterno || 'SIN CÓDIGO' }}</span>
+              <span class="text-xs font-bold text-slate-700">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo, store.cotizacion.idiomaEdicion) }}</span>
+            </div>
+
+            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'append' ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-slate-200'">
+              <input type="radio" v-model="opcionInsercion" value="append" class="text-indigo-600 focus:ring-indigo-500">
+              <div class="flex-1 text-sm font-bold text-slate-700">Añadir al final del documento</div>
+            </label>
+
+            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'insert' ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-slate-200'">
+              <input type="radio" v-model="opcionInsercion" value="insert" class="text-indigo-600 focus:ring-indigo-500">
+              <div class="flex-1 text-sm font-bold text-slate-700">Insertar en una posición (Desplaza abajo)</div>
+            </label>
+
+            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'replace' ? 'border-orange-500 bg-orange-50/50 shadow-sm' : 'border-slate-200'">
+              <input type="radio" v-model="opcionInsercion" value="replace" class="text-orange-500 focus:ring-orange-500">
+              <div class="flex-1 text-sm font-bold text-slate-700">Reemplazar un párrafo (Purga la logística)</div>
+            </label>
+
+            <Transition name="fade-scale">
+              <div v-if="opcionInsercion !== 'append'" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2">
+                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                  Selecciona el segmento objetivo:
+                </label>
+                <select v-model="targetSegmentoId" class="w-full bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                  <option v-for="(seg, idx) in store.dataActiva?.cotsegmentos" :key="seg.id" :value="seg.id">
+                    Posición #{{ idx + 1 }} - {{ store.getI18nText(seg.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                  </option>
+                </select>
+                <p v-if="opcionInsercion === 'replace'" class="text-[9px] font-bold text-orange-500 mt-2 flex items-center gap-1">
+                  <i class="fas fa-exclamation-triangle"></i> ¡Cuidado! Los trenes y guías del Párrafo #{{ store.dataActiva?.cotsegmentos?.findIndex((s: any) => s.id === targetSegmentoId) + 1 }} serán reemplazados.
+                </p>
+              </div>
+            </Transition>
+
+          </div>
+          <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-3">
+            <button @click="modalInsercion.isOpen = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-300 rounded-lg shadow-sm transition-colors">Cancelar</button>
+            <button @click="confirmarInsercion" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2">
+              <i class="fas fa-check"></i> Ejecutar
+            </button>
+          </div>
         </div>
-        <div class="p-5 space-y-4">
+      </div>
+    </Transition>
 
-          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
-            <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest block">{{ modalInsercion.segmentoMaestro?.nombreInterno || 'SIN CÓDIGO' }}</span>
-            <span class="text-xs font-bold text-slate-700">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo, store.cotizacion.idiomaEdicion) }}</span>
+    <Transition name="slide-up">
+      <div v-if="isTotalsDrawerOpen" class="fixed inset-0 z-[1200] flex flex-col justify-end bg-slate-900/60 backdrop-blur-sm md:items-end md:justify-start" @click.self="isTotalsDrawerOpen = false">
+
+        <div class="bg-slate-50 w-full md:w-[420px] md:h-screen rounded-t-3xl md:rounded-none shadow-2xl flex flex-col max-h-[85vh] md:max-h-full overflow-hidden relative transition-transform">
+
+          <div class="flex justify-between items-center px-6 py-4 bg-white border-b border-slate-200 z-10 sticky top-0 shadow-sm">
+            <h3 class="font-black text-slate-800 text-sm uppercase tracking-widest flex items-center gap-2">
+              <i class="fas fa-search-dollar text-[#376875]"></i> Desglose Financiero
+            </h3>
+            <button @click="isTotalsDrawerOpen = false" class="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-100 rounded-full text-slate-500 hover:text-red-500 transition-colors">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
 
-          <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'append' ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-slate-200'">
-            <input type="radio" v-model="opcionInsercion" value="append" class="text-indigo-600 focus:ring-indigo-500">
-            <div class="flex-1 text-sm font-bold text-slate-700">Añadir al final del documento</div>
-          </label>
+          <div class="p-5 overflow-y-auto space-y-4 flex-1 pb-10">
 
-          <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'insert' ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-slate-200'">
-            <input type="radio" v-model="opcionInsercion" value="insert" class="text-indigo-600 focus:ring-indigo-500">
-            <div class="flex-1 text-sm font-bold text-slate-700">Insertar en una posición (Desplaza abajo)</div>
-          </label>
-
-          <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'replace' ? 'border-orange-500 bg-orange-50/50 shadow-sm' : 'border-slate-200'">
-            <input type="radio" v-model="opcionInsercion" value="replace" class="text-orange-500 focus:ring-orange-500">
-            <div class="flex-1 text-sm font-bold text-slate-700">Reemplazar un párrafo (Purga la logística)</div>
-          </label>
-
-          <Transition name="fade-scale">
-            <div v-if="opcionInsercion !== 'append'" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2">
-              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
-                Selecciona el segmento objetivo:
-              </label>
-              <select v-model="targetSegmentoId" class="w-full bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
-                <option v-for="(seg, idx) in store.dataActiva?.cotsegmentos" :key="seg.id" :value="seg.id">
-                  Posición #{{ idx + 1 }} - {{ store.getI18nText(seg.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
-                </option>
-              </select>
-              <p v-if="opcionInsercion === 'replace'" class="text-[9px] font-bold text-orange-500 mt-2 flex items-center gap-1">
-                <i class="fas fa-exclamation-triangle"></i> ¡Cuidado! Los trenes y guías del Párrafo #{{ store.dataActiva?.cotsegmentos?.findIndex((s: any) => s.id === targetSegmentoId) + 1 }} serán reemplazados.
-              </p>
-            </div>
-          </Transition>
-
-        </div>
-        <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-3">
-          <button @click="modalInsercion.isOpen = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-300 rounded-lg shadow-sm transition-colors">Cancelar</button>
-          <button @click="confirmarInsercion" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2">
-            <i class="fas fa-check"></i> Ejecutar
-          </button>
-        </div>
-      </div>
-    </div>
-  </Transition>
-
-  <Transition name="slide-up">
-    <div v-if="isTotalsDrawerOpen" class="fixed inset-0 z-[1200] flex flex-col justify-end bg-slate-900/60 backdrop-blur-sm md:items-end md:justify-start" @click.self="isTotalsDrawerOpen = false">
-
-      <div class="bg-slate-50 w-full md:w-[420px] md:h-screen rounded-t-3xl md:rounded-none shadow-2xl flex flex-col max-h-[85vh] md:max-h-full overflow-hidden relative transition-transform">
-
-        <div class="flex justify-between items-center px-6 py-4 bg-white border-b border-slate-200 z-10 sticky top-0 shadow-sm">
-          <h3 class="font-black text-slate-800 text-sm uppercase tracking-widest flex items-center gap-2">
-            <i class="fas fa-search-dollar text-[#376875]"></i> Desglose Financiero
-          </h3>
-          <button @click="isTotalsDrawerOpen = false" class="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-100 rounded-full text-slate-500 hover:text-red-500 transition-colors">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div class="p-5 overflow-y-auto space-y-4 flex-1 pb-10">
-
-          <div class="bg-[#376875] text-white rounded-2xl p-5 shadow-md relative overflow-hidden">
-            <i class="fas fa-chart-pie absolute -right-6 -bottom-6 text-7xl opacity-10"></i>
-            <div class="relative z-10">
-              <p class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Venta Total Sugerida</p>
-              <p class="text-3xl font-black tracking-tight">{{ formatMoneda(store.resumenFinanciero?.totalVentaBruta, store.cotizacion?.monedaGlobal) }}</p>
-              <div class="mt-3 pt-3 border-t border-slate-800/30 flex justify-between items-end">
-                <div>
-                  <p class="text-[8px] text-slate-300 uppercase font-bold">Costo Neto</p>
-                  <p class="text-base font-bold text-white">{{ formatMoneda(store.resumenFinanciero?.totalCostoNeto, store.cotizacion?.monedaGlobal) }}</p>
-                </div>
-                <div class="text-right">
-                  <p class="text-[8px] text-emerald-400 uppercase font-bold">Margen Bruto</p>
-                  <p class="text-base font-bold text-emerald-300">+{{ formatMoneda(store.resumenFinanciero?.ganancia, store.cotizacion?.monedaGlobal) }}</p>
+            <div class="bg-[#376875] text-white rounded-2xl p-5 shadow-md relative overflow-hidden">
+              <i class="fas fa-chart-pie absolute -right-6 -bottom-6 text-7xl opacity-10"></i>
+              <div class="relative z-10">
+                <p class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Venta Total Sugerida</p>
+                <p class="text-3xl font-black tracking-tight">{{ formatMoneda(store.resumenFinanciero?.totalVentaBruta, store.cotizacion?.monedaGlobal) }}</p>
+                <div class="mt-3 pt-3 border-t border-slate-800/30 flex justify-between items-end">
+                  <div>
+                    <p class="text-[8px] text-slate-300 uppercase font-bold">Costo Neto</p>
+                    <p class="text-base font-bold text-white">{{ formatMoneda(store.resumenFinanciero?.totalCostoNeto, store.cotizacion?.monedaGlobal) }}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[8px] text-emerald-400 uppercase font-bold">Margen Bruto</p>
+                    <p class="text-base font-bold text-emerald-300">+{{ formatMoneda(store.resumenFinanciero?.ganancia, store.cotizacion?.monedaGlobal) }}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="space-y-3 pt-2">
-            <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1"><i class="fas fa-users mr-1"></i> Análisis por Perfil</h3>
+            <div class="space-y-3 pt-2">
+              <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1"><i class="fas fa-users mr-1"></i> Análisis por Perfil</h3>
 
-            <div v-for="clase in store.resumenFinanciero?.clasesPasajeros" :key="clase.tipo"
-                 class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"
-                 :class="clase.tipo.includes('anomalo') ? 'border-red-300' : ''">
-              <div class="flex justify-between items-start mb-3">
-                <div>
+              <div v-for="clase in store.resumenFinanciero?.clasesPasajeros" :key="clase.tipo"
+                   class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"
+                   :class="clase.tipo.includes('anomalo') ? 'border-red-300' : ''">
+                <div class="flex justify-between items-start mb-3">
+                  <div>
                     <span :class="clase.tipo.includes('anomalo') ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'" class="px-2 py-0.5 rounded text-[10px] font-black uppercase">
                       {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
                     </span>
-                  <p class="text-[10px] font-bold text-slate-500 mt-1">Rango: {{ clase.edadMin }} a {{ clase.edadMax }} años</p>
+                    <p class="text-[10px] font-bold text-slate-500 mt-1">Rango: {{ clase.edadMin }} a {{ clase.edadMax }} años</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[8px] text-slate-400 font-bold uppercase">Venta Unit.</p>
+                    <p class="text-xs font-black text-slate-800">{{ formatMoneda(clase.resumen.ventaDolares / (clase.cantidad || 1), store.cotizacion?.monedaGlobal) }}</p>
+                  </div>
                 </div>
-                <div class="text-right">
-                  <p class="text-[8px] text-slate-400 font-bold uppercase">Venta Unit.</p>
-                  <p class="text-xs font-black text-slate-800">{{ formatMoneda(clase.resumen.ventaDolares / (clase.cantidad || 1), store.cotizacion?.monedaGlobal) }}</p>
-                </div>
-              </div>
 
-              <div class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-50">
-                <div class="bg-slate-50 p-2 rounded-lg text-center">
-                  <p class="text-[7px] text-slate-400 font-bold uppercase">Costo Total</p>
-                  <p class="text-[10px] font-black text-slate-600">{{ formatMoneda(clase.resumen.montoDolares, store.cotizacion?.monedaGlobal) }}</p>
+                <div class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-50">
+                  <div class="bg-slate-50 p-2 rounded-lg text-center">
+                    <p class="text-[7px] text-slate-400 font-bold uppercase">Costo Total</p>
+                    <p class="text-[10px] font-black text-slate-600">{{ formatMoneda(clase.resumen.montoDolares, store.cotizacion?.monedaGlobal) }}</p>
+                  </div>
+                  <div class="bg-emerald-50 p-2 rounded-lg text-center">
+                    <p class="text-[7px] text-emerald-600 font-bold uppercase">Utilidad</p>
+                    <p class="text-[10px] font-black text-emerald-700">{{ formatMoneda(clase.resumen.gananciaDolares, store.cotizacion?.monedaGlobal) }}</p>
+                  </div>
                 </div>
-                <div class="bg-emerald-50 p-2 rounded-lg text-center">
-                  <p class="text-[7px] text-emerald-600 font-bold uppercase">Utilidad</p>
-                  <p class="text-[10px] font-black text-emerald-700">{{ formatMoneda(clase.resumen.gananciaDolares, store.cotizacion?.monedaGlobal) }}</p>
+
+                <div v-if="clase.tipo.includes('anomalo') && clase.conflictos?.length > 0" class="mt-3 pt-3 border-t border-red-100">
+                  <p class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1.5"><i class="fas fa-search"></i> Origen del conflicto:</p>
+                  <ul class="space-y-1">
+                    <li v-for="(conflicto, idx) in clase.conflictos" :key="idx" class="text-[10px] font-bold text-red-700 bg-red-50 p-1.5 rounded border border-red-100 flex items-start gap-1.5 leading-tight">
+                      <i class="fas fa-exclamation-triangle mt-0.5 opacity-70 text-[9px]"></i>
+                      <span>{{ conflicto }}</span>
+                    </li>
+                  </ul>
                 </div>
-              </div>
 
-              <div v-if="clase.tipo.includes('anomalo') && clase.conflictos?.length > 0" class="mt-3 pt-3 border-t border-red-100">
-                <p class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1.5"><i class="fas fa-search"></i> Origen del conflicto:</p>
-                <ul class="space-y-1">
-                  <li v-for="(conflicto, idx) in clase.conflictos" :key="idx" class="text-[10px] font-bold text-red-700 bg-red-50 p-1.5 rounded border border-red-100 flex items-start gap-1.5 leading-tight">
-                    <i class="fas fa-exclamation-triangle mt-0.5 opacity-70 text-[9px]"></i>
-                    <span>{{ conflicto }}</span>
-                  </li>
-                </ul>
               </div>
+            </div>
 
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="fade-scale">
+      <div v-if="modalNota.isOpen" class="fixed inset-0 z-[1300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalNota.isOpen = false">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
+          <div :class="[getTipoNotaUI(modalNota.nota?.tipo).bg, getTipoNotaUI(modalNota.nota?.text)]" class="px-5 py-4 flex justify-between items-center border-b border-black/5 flex-shrink-0">
+            <h3 class="font-black text-sm uppercase tracking-widest flex items-center gap-2">
+              <i class="fas" :class="getTipoNotaUI(modalNota.nota?.tipo).icon"></i>
+              {{ modalNota.nota?.tipo }}
+            </h3>
+            <button @click="modalNota.isOpen = false" class="hover:opacity-70 transition-opacity"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="p-6 overflow-y-auto flex-1">
+            <h4 class="text-lg font-black text-slate-800 mb-4 leading-tight">
+              {{ store.getI18nText(modalNota.nota?.titulo, store.cotizacion.idiomaEdicion) || modalNota.nota?.nombreInterno }}
+            </h4>
+            <div class="prose prose-sm max-w-none text-slate-600 leading-relaxed"
+                 v-html="store.getI18nText(modalNota.nota?.contenido, store.cotizacion.idiomaEdicion)">
             </div>
           </div>
-
-        </div>
-      </div>
-    </div>
-  </Transition>
-
-  <Transition name="fade-scale">
-    <div v-if="modalNota.isOpen" class="fixed inset-0 z-[1300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalNota.isOpen = false">
-      <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
-        <div :class="[getTipoNotaUI(modalNota.nota?.tipo).bg, getTipoNotaUI(modalNota.nota?.text)]" class="px-5 py-4 flex justify-between items-center border-b border-black/5 flex-shrink-0">
-          <h3 class="font-black text-sm uppercase tracking-widest flex items-center gap-2">
-            <i class="fas" :class="getTipoNotaUI(modalNota.nota?.tipo).icon"></i>
-            {{ modalNota.nota?.tipo }}
-          </h3>
-          <button @click="modalNota.isOpen = false" class="hover:opacity-70 transition-opacity"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="p-6 overflow-y-auto flex-1">
-          <h4 class="text-lg font-black text-slate-800 mb-4 leading-tight">
-            {{ store.getI18nText(modalNota.nota?.titulo, store.cotizacion.idiomaEdicion) || modalNota.nota?.nombreInterno }}
-          </h4>
-          <div class="prose prose-sm max-w-none text-slate-600 leading-relaxed"
-               v-html="store.getI18nText(modalNota.nota?.contenido, store.cotizacion.idiomaEdicion)">
+          <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end flex-shrink-0">
+            <button @click="modalNota.isOpen = false" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">Cerrar</button>
           </div>
         </div>
-        <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end flex-shrink-0">
-          <button @click="modalNota.isOpen = false" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">Cerrar</button>
-        </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
 
-</Teleport>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -1514,9 +1543,9 @@ const dropSegmento = (e: DragEvent) => {
 
 <style>
 :root {
-  --dp-border-radius: 0.5rem; /* rounded-lg */
-  --dp-primary-color: #0ea5e9; /* sky-500 */
+  --dp-border-radius: 0.5rem;
+  --dp-primary-color: #0ea5e9;
   --dp-font-family: inherit;
-  --dp-font-size: 0.75rem; /* text-xs */
+  --dp-font-size: 0.75rem;
 }
 </style>
