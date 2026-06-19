@@ -683,52 +683,39 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
             });
 
+            // 🔥 OPCIÓN 1: HIDRATACIÓN CONCURRENTE INDIVIDUAL
+            // Garantiza que la metadata (incluyendo el enum de 'tipo') llegue antes de dibujar la UI
             const fetchPromises: Promise<any>[] = [];
-            const chunkArray = (arr: any[], size: number) =>
-                Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
 
             if (componentesToFetch.size > 0) {
-                const cIds = Array.from(componentesToFetch);
-                const chunks = chunkArray(cIds, 30);
-                chunks.forEach(chunk => {
-                    const queryParams = chunk.map(id => `id[]=${id}`).join('&');
+                Array.from(componentesToFetch).forEach(compId => {
                     fetchPromises.push(
-                        apiClient.get(`/platform/travel/componentes?${queryParams}`)
-                            .then(res => {
-                                const items = res.data['hydra:member'] || res.data['member'] || [];
-                                items.forEach((item: any) => {
-                                    if (!catalogos.value.allComponentes.some((exist: any) => extractIdStr(exist.id || exist['@id']) === extractIdStr(item.id || item['@id']))) {
-                                        catalogos.value.allComponentes.push(item);
-                                    }
-                                });
-                            }).catch(() => null)
+                        apiClient.get(`/platform/travel/componentes/${compId}`).then(res => {
+                            if (!catalogos.value.allComponentes.some((exist: any) => extractIdStr(exist.id || exist['@id']) === compId)) {
+                                catalogos.value.allComponentes.push(res.data);
+                            }
+                        }).catch(() => null)
                     );
                 });
             }
 
             if (tarifasToFetch.size > 0) {
-                const tIds = Array.from(tarifasToFetch);
-                const chunks = chunkArray(tIds, 30);
-                chunks.forEach(chunk => {
-                    const queryParams = chunk.map(id => `id[]=${id}`).join('&');
+                Array.from(tarifasToFetch).forEach(tarifaId => {
                     fetchPromises.push(
-                        apiClient.get(`/platform/travel/tarifas?${queryParams}`)
-                            .then(res => {
-                                const items = res.data['hydra:member'] || res.data['member'] || [];
-                                items.forEach((item: any) => {
-                                    const currentId = extractIdStr(item.id || item['@id']);
-                                    if (!todasLasTarifasMaestras.value.some((exist: any) => extractIdStr(exist.id || exist['@id']) === currentId)) {
-                                        catalogos.value.tarifas.push(item);
-                                        todasLasTarifasMaestras.value.push(item);
-                                    }
-                                });
-                            }).catch(() => null)
+                        apiClient.get(`/platform/travel/tarifas/${tarifaId}`).then(res => {
+                            if (!todasLasTarifasMaestras.value.some((exist: any) => extractIdStr(exist.id || exist['@id']) === tarifaId)) {
+                                catalogos.value.tarifas.push(res.data);
+                                todasLasTarifasMaestras.value.push(res.data);
+                            }
+                        }).catch(() => null)
                     );
                 });
             }
 
+            // Pausamos el renderizado de la cotización hasta que todas las consultas paralelas terminen
             await Promise.all(fetchPromises);
 
+            // RECIÉN AHORA asignamos la data. La UI evaluará los rangos de horas sin 00:00 fantasmas.
             cotizacion.value = data;
             cotizacion.value.idiomaEdicion = 'es';
 
