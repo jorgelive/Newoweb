@@ -43,35 +43,39 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
         // 2. Data de la logística ESPECÍFICA de esta plantilla (Editable)
         $logisticaEspecifica = $this->em->getRepository(TravelSegmentoComponente::class)->findBy([
-                'itinerarioContexto' => $itinerarioId,
-                'segmento'           => $segmentoId
+            'itinerarioContexto' => $itinerarioId,
+            'segmento'           => $segmentoId
         ], ['orden' => 'ASC']);
 
+        // 🔥 Se envía el modo a la vista (String extraído del Enum)
         $dataEspecifica = array_map(fn($l) => [
-                'componenteId' => $l->getComponente()->getId()->toRfc4122(),
-                'hora'         => $l->getHora() ? $l->getHora()->format('H:i') : '',
-                'horaFin'      => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '',
-                'orden'        => $l->getOrden()
+            'componenteId' => $l->getComponente()->getId()->toRfc4122(),
+            'hora'         => $l->getHora() ? $l->getHora()->format('H:i') : '',
+            'horaFin'      => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '',
+            'modo'         => $l->getModo()->value,
+            'orden'        => $l->getOrden()
         ], $logisticaEspecifica);
 
-        // 3. 🔥 NUEVO: Data de la logística GENERAL del pool (Solo lectura, itinerarioContexto = null)
+        // 3. Data de la logística GENERAL del pool (Solo lectura, itinerarioContexto = null)
         $logisticaGeneral = $this->em->getRepository(TravelSegmentoComponente::class)->findBy([
-                'itinerarioContexto' => null,
-                'segmento'           => $segmentoId
+            'itinerarioContexto' => null,
+            'segmento'           => $segmentoId
         ], ['orden' => 'ASC']);
 
+        // 🔥 Se envía el modo a la vista (String extraído del Enum)
         $dataGeneral = array_map(fn($l) => [
-                'nombre'  => $l->getComponente()->getNombre(),
-                'hora'    => $l->getHora() ? $l->getHora()->format('H:i') : '--:--',
-                'horaFin' => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '--:--',
-                'orden'   => $l->getOrden()
+            'nombre'  => $l->getComponente()->getNombre(),
+            'hora'    => $l->getHora() ? $l->getHora()->format('H:i') : '--:--',
+            'horaFin' => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '--:--',
+            'modo'    => $l->getModo()->value,
+            'orden'   => $l->getOrden()
         ], $logisticaGeneral);
 
         return $this->json([
-                'catalogo'    => $cat,
-                'data'        => $dataEspecifica,
-                'dataGeneral' => $dataGeneral, // Mandamos la base al frontend
-                'contexto'    => ['itinerario' => $itinerarioId, 'segmento' => $segmentoId]
+            'catalogo'    => $cat,
+            'data'        => $dataEspecifica,
+            'dataGeneral' => $dataGeneral,
+            'contexto'    => ['itinerario' => $itinerarioId, 'segmento' => $segmentoId]
         ]);
     }
 
@@ -94,8 +98,8 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
         // 1. Purgar logística ESPECÍFICA (NO toca los generales porque buscamos por itinerarioContexto)
         $existing = $this->em->getRepository(TravelSegmentoComponente::class)->findBy([
-                'itinerarioContexto' => $itinerario->getId(),
-                'segmento'           => $segmento->getId()
+            'itinerarioContexto' => $itinerario->getId(),
+            'segmento'           => $segmento->getId()
         ]);
 
         foreach ($existing as $e) {
@@ -117,7 +121,11 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
             $nuevaLog->setSegmento($segmento);
             $nuevaLog->setComponente($comp);
             $nuevaLog->setOrden((int)$row['orden']);
-            $nuevaLog->setModo(ComponenteItemModoEnum::INCLUIDO);
+
+            // 🔥 Recepción del Modo desde Javascript mapeado hacia el Enum estricto de PHP
+            $modoValue = $row['modo'] ?? 'incluido';
+            $modoEnum = ComponenteItemModoEnum::tryFrom($modoValue) ?? ComponenteItemModoEnum::INCLUIDO;
+            $nuevaLog->setModo($modoEnum);
 
             if (!empty($row['hora'])) {
                 $nuevaLog->setHora(new \DateTimeImmutable($row['hora']));

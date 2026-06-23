@@ -13,9 +13,7 @@ export default class extends Controller {
             time_24hr: true,
             disableMobile: true,
             allowInput: true,
-            // 🔥 AQUÍ INYECTAS TU ESTILO AL POPUP 🔥
             onReady: function(selectedDates, dateStr, instance) {
-            // instance.calendarContainer es el <div> flotante de la imagen
             instance.calendarContainer.style.width = "100px";
             instance.calendarContainer.style.minWidth = "100px"; // Por si Bootstrap intenta sobreescribirlo
         }

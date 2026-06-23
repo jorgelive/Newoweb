@@ -1,4 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
+import TomSelect from 'tom-select';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
 
 export default class extends Controller {
 
@@ -41,11 +44,11 @@ export default class extends Controller {
         btn.className = 'btn btn-warning text-dark fw-bold w-100 mt-3 shadow-sm border border-warning rounded d-flex justify-content-center align-items-center gap-1 btn-inline-logistica';
 
         // Forzamos estilos clave para vencer cualquier override de EasyAdmin y evitar desbordes
-        btn.style.padding = '0.5rem'; // Padding más compacto
+        btn.style.padding = '0.5rem';
         btn.style.transition = 'all 0.2s ease-in-out';
         btn.style.textTransform = 'uppercase';
         btn.style.letterSpacing = '0.5px';
-        btn.style.fontSize = '0.75rem'; // Fuente responsiva
+        btn.style.fontSize = '0.75rem';
         btn.style.boxSizing = 'border-box';
 
         // Efecto hover
@@ -73,7 +76,7 @@ export default class extends Controller {
         event.preventDefault();
 
         const modalEl = document.getElementById('modalTravelSegmentoComponenteAjax');
-        const modal = new bootstrap.Modal(modalEl);
+        const modal = new bootstrap.Modal(modalEl, { focus: false });
 
         document.getElementById('tscAddBtn').onclick = (e) => {
             e.preventDefault();
@@ -124,11 +127,12 @@ export default class extends Controller {
         tr.className = 'bg-light text-muted align-middle';
 
         tr.innerHTML = `
-            <td class="text-nowrap"><i class="fas fa-lock me-2 text-secondary" title="Heredado del Párrafo Base"></i> ${data.nombre}</td>
-            <td class="text-center text-nowrap">${data.hora}</td>
-            <td class="text-center text-nowrap">${data.horaFin}</td>
-            <td class="text-center">${data.orden}</td>
-            <td class="text-center"><span class="badge bg-secondary border">Base</span></td>
+            <td class="text-nowrap p-2"><i class="fas fa-lock me-2 text-secondary" title="Heredado del Párrafo Base"></i> ${data.nombre}</td>
+            <td class="text-center text-nowrap p-2">${data.hora || '--:--'}</td>
+            <td class="text-center text-nowrap p-2">${data.horaFin || '--:--'}</td>
+            <td class="text-center text-nowrap text-uppercase p-2" style="font-size: 0.85em;">${data.modo || 'INCLUIDO'}</td>
+            <td class="text-center p-2">${data.orden || 1}</td>
+            <td class="text-center p-2"><span class="badge bg-secondary border">Base</span></td>
         `;
         tbody.appendChild(tr);
     }
@@ -138,24 +142,84 @@ export default class extends Controller {
         const tr = document.createElement('tr');
         tr.className = 'tsc-row align-middle';
 
+        // Construcción del Dropdown crudo
         let options = '<option value="">-- Seleccionar Insumo --</option>';
         this.catalogo.forEach(c => {
             const sel = data.componenteId === c.id ? 'selected' : '';
             options += `<option value="${c.id}" ${sel}>${c.nombre}</option>`;
         });
 
+        const modoActual = data.modo || 'incluido';
+        const opcionesModo = `
+            <option value="incluido" ${modoActual === 'incluido' ? 'selected' : ''}>Incluido</option>
+            <option value="opcional" ${modoActual === 'opcional' ? 'selected' : ''}>Opcional</option>
+            <option value="no_incluido" ${modoActual === 'no_incluido' ? 'selected' : ''}>No Incluido</option>
+            <option value="cortesia" ${modoActual === 'cortesia' ? 'selected' : ''}>Cortesía</option>
+        `;
+
+        // Inputs usan 'w-100' para obedecer al ancho de la cabecera (TH)
         tr.innerHTML = `
-            <td><select class="form-select form-select-sm comp-id shadow-none" style="min-width: 180px;">${options}</select></td>
-            <td><input type="time" class="form-control form-control-sm comp-ini shadow-none" style="min-width: 110px;" value="${data.hora || ''}"></td>
-            <td><input type="time" class="form-control form-control-sm comp-fin shadow-none" style="min-width: 110px;" value="${data.horaFin || ''}"></td>
-            <td><input type="number" class="form-control form-control-sm comp-ord text-center shadow-none" style="min-width: 70px;" value="${data.orden || 1}"></td>
-            <td class="text-center">
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()" title="Eliminar fila">
+            <td class="p-1">
+                <select class="form-select form-select-sm comp-id shadow-none tom-select-target w-100">${options}</select>
+            </td>
+            <td class="p-1">
+                <input type="text" class="form-control form-control-sm comp-ini shadow-none text-center flatpickr-time bg-white w-100" value="${data.hora || ''}" placeholder="HH:MM">
+            </td>
+            <td class="p-1">
+                <input type="text" class="form-control form-control-sm comp-fin shadow-none text-center flatpickr-time bg-white w-100" value="${data.horaFin || ''}" placeholder="HH:MM">
+            </td>
+            <td class="p-1">
+                <select class="form-select form-select-sm comp-modo shadow-none text-center w-100">${opcionesModo}</select>
+            </td>
+            <td class="p-1">
+                <input type="number" class="form-control form-control-sm comp-ord text-center shadow-none w-100" value="${data.orden || 1}">
+            </td>
+            <td class="p-1 text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('tr').remove()" title="Eliminar fila">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
         `;
         tbody.appendChild(tr);
+
+        // 🔥 INICIALIZACIÓN DE TOM-SELECT
+        const selectElement = tr.querySelector('.tom-select-target');
+        if (selectElement) {
+            new TomSelect(selectElement, {
+                create: false,
+                plugins: ['dropdown_input'], // Añade la caja de búsqueda explícita en el dropdown
+                sortField: {
+                    field: "text",
+                    direction: "asc"
+                },
+                placeholder: "Buscar insumo logístico...",
+                dropdownParent: 'body',
+                render: {
+                    no_results: function(data, escape) {
+                        return '<div class="no-results p-2 text-muted">No se encontraron resultados</div>';
+                    }
+                },
+                onChange: function() {
+                    this.blur(); // Quita el foco del input tras seleccionar para que no quede el cursor colgado
+                }
+            });
+        }
+
+        // 🔥 INICIALIZACIÓN DE FLATPICKR
+        const timeInputs = tr.querySelectorAll('.flatpickr-time');
+        timeInputs.forEach(input => {
+            flatpickr(input, {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "H:i",
+                time_24hr: true,
+                allowInput: true,
+                onReady: function(selectedDates, dateStr, instance) {
+                    instance.calendarContainer.style.width = "100px";
+                    instance.calendarContainer.style.minWidth = "100px"; // Por si Bootstrap intenta sobreescribirlo
+                }
+            });
+        });
     }
 
     async saveData(event) {
@@ -174,6 +238,7 @@ export default class extends Controller {
                     componenteId: cId,
                     hora: tr.querySelector('.comp-ini').value,
                     horaFin: tr.querySelector('.comp-fin').value,
+                    modo: tr.querySelector('.comp-modo').value,
                     orden: tr.querySelector('.comp-ord').value || 1
                 });
             }
@@ -206,8 +271,25 @@ export default class extends Controller {
     inyectarModalHtml() {
         if (document.getElementById('modalTravelSegmentoComponenteAjax')) return;
 
+        // 🔥 PARCHE CSS DEFINITIVO PARA Z-INDEX Y OVERFLOW EN MODALES
         const html = `
-            <div class="modal fade" id="modalTravelSegmentoComponenteAjax" tabindex="-1" aria-hidden="true">
+            <style>
+                /* 1. Elevar TomSelect activo para que no se esconda detrás de la fila de abajo */
+                .ts-wrapper.focus { z-index: 9999 !important; }
+                .ts-dropdown { z-index: 9999 !important; }
+                
+                /* 2. Elevar Flatpickr sobre cualquier modal */
+                .flatpickr-calendar { z-index: 99999 !important; }
+                
+                /* 3. Evitar que la tabla corte el menú */
+                #modalTravelSegmentoComponenteAjax .table-responsive { overflow: visible !important; }
+                
+                /* 4. Forzar que el cuerpo del modal esté por encima del footer gris */
+                #modalTravelSegmentoComponenteAjax .modal-body { z-index: 10; position: relative; }
+                #modalTravelSegmentoComponenteAjax .modal-footer { z-index: 1; position: relative; }
+            </style>
+            
+            <div class="modal fade" id="modalTravelSegmentoComponenteAjax" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-lg-down">
                     <div class="modal-content border-0 shadow-lg">
                         <div class="modal-header bg-warning text-dark border-0">
@@ -222,11 +304,11 @@ export default class extends Controller {
                                 <p class="mt-2 text-muted fw-bold text-uppercase" style="font-size: 11px;">Sincronizando datos...</p>
                             </div>
                             
-                            <div class="table-responsive mb-3">
+                            <div class="table-responsive mb-3 pb-5">
                                 <table class="table table-sm table-bordered bg-white shadow-sm mb-3" id="tscTableGeneral" style="display:none;">
                                     <thead class="table-light">
                                         <tr>
-                                            <th colspan="5" class="text-uppercase text-secondary text-nowrap" style="font-size: 11px; letter-spacing: 1px;">
+                                            <th colspan="6" class="text-uppercase text-secondary text-nowrap" style="font-size: 11px; letter-spacing: 1px;">
                                                 <i class="fas fa-layer-group me-1"></i> Insumos Base del Párrafo (Solo Lectura)
                                             </th>
                                         </tr>
@@ -237,16 +319,17 @@ export default class extends Controller {
                                 <table class="table table-sm table-bordered bg-white shadow-sm mb-0" id="tscTable" style="display:none;">
                                     <thead class="table-light">
                                         <tr>
-                                            <th colspan="5" class="text-uppercase text-primary text-nowrap" style="font-size: 11px; letter-spacing: 1px;">
+                                            <th colspan="6" class="text-uppercase text-primary text-nowrap" style="font-size: 11px; letter-spacing: 1px;">
                                                 <i class="fas fa-edit me-1"></i> Insumos Específicos de esta Plantilla
                                             </th>
                                         </tr>
                                         <tr>
-                                            <th class="text-uppercase text-muted text-nowrap" style="font-size: 11px;">Insumo Logístico / Operador</th>
-                                            <th class="text-uppercase text-muted text-nowrap text-center" style="font-size: 11px;">Inicio</th>
-                                            <th class="text-uppercase text-muted text-nowrap text-center" style="font-size: 11px;">Fin</th>
-                                            <th class="text-uppercase text-muted text-nowrap text-center" style="font-size: 11px;">Orden</th>
-                                            <th style="width:50px;"></th>
+                                            <th class="text-uppercase text-muted align-middle" style="font-size: 11px;">Insumo Logístico / Operador</th>
+                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 90px;">Inicio (24h)</th>
+                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 90px;">Fin (24h)</th>
+                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 150px;">Modo</th>
+                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 70px;">Orden</th>
+                                            <th style="width: 45px;"></th>
                                         </tr>
                                     </thead>
                                     <tbody id="tscTbody"></tbody>
