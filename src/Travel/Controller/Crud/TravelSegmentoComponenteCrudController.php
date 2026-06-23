@@ -28,16 +28,22 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
+        // Fila 1: Asociaciones principales (Divididas en 3 columnas iguales)
         yield AssociationField::new('componente', 'Componente Logístico')
-            ->setColumns('col-12 col-md-6')
+            ->setColumns('col-12 col-md-4')
             ->setFormTypeOption('choice_label', 'nombre');
 
-        // 🔥 Se cambió de Servicio a Itinerario
-        yield AssociationField::new('itinerarioContexto', 'Condicionado a Plantilla')
-            ->setHelp('Si se deja vacío, se inyectará en TODOS los itinerarios que usen este párrafo.')
-            ->setColumns('col-12 col-md-6')
+        yield AssociationField::new('tarifaPredeterminada', 'Tarifa (Opcional)')
+            ->setHelp('Fuerza esta tarifa al aplicar la plantilla.')
+            ->setColumns('col-12 col-md-4')
             ->setFormTypeOption('choice_label', 'nombreInterno');
 
+        yield AssociationField::new('itinerarioContexto', 'Condicionado a Plantilla')
+            ->setHelp('Si se deja vacío, se inyectará en TODOS los itinerarios que usen este párrafo.')
+            ->setColumns('col-12 col-md-4')
+            ->setFormTypeOption('choice_label', 'nombreInterno');
+
+        // Fila 2: Configuración operativa y comercial (Dividida en 4 columnas)
         yield TimeField::new('hora', 'Hora Inicio')
             ->setFormat('HH:mm')
             ->setFormTypeOptions([
@@ -51,7 +57,6 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
             ])
             ->setColumns('col-12 col-md-3');
 
-        // 🔥 NUEVO: Hora Fin
         yield TimeField::new('horaFin', 'Hora Fin')
             ->setFormat('HH:mm')
             ->setHelp('Dejar vacío para usar la duración por defecto.')
