@@ -16837,18 +16837,22 @@
                 "type": "object",
                 "properties": {
                     "id": {
+                        "description": "Obtiene el identificador \u00fanico del idioma.",
                         "type": "string"
                     },
                     "nombre": {
+                        "description": "Obtiene el nombre del idioma.",
                         "type": "string"
                     },
                     "bandera": {
+                        "description": "Obtiene la bandera o emoji representativo del idioma.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "prioridad": {
+                        "description": "Obtiene el nivel de prioridad del idioma.",
                         "type": "integer"
                     },
                     "createdAt": {
@@ -16868,18 +16872,22 @@
                 "type": "object",
                 "properties": {
                     "id": {
+                        "description": "Obtiene el identificador \u00fanico del idioma.",
                         "type": "string"
                     },
                     "nombre": {
+                        "description": "Obtiene el nombre del idioma.",
                         "type": "string"
                     },
                     "bandera": {
+                        "description": "Obtiene la bandera o emoji representativo del idioma.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "prioridad": {
+                        "description": "Obtiene el nivel de prioridad del idioma.",
                         "type": "integer"
                     },
                     "createdAt": {
@@ -16899,18 +16907,22 @@
                 "type": "object",
                 "properties": {
                     "id": {
+                        "description": "Obtiene el identificador \u00fanico del idioma.",
                         "type": "string"
                     },
                     "nombre": {
+                        "description": "Obtiene el nombre del idioma.",
                         "type": "string"
                     },
                     "bandera": {
+                        "description": "Obtiene la bandera o emoji representativo del idioma.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "prioridad": {
+                        "description": "Obtiene el nivel de prioridad del idioma.",
                         "type": "integer"
                     }
                 }
@@ -16919,18 +16931,22 @@
                 "type": "object",
                 "properties": {
                     "id": {
+                        "description": "Obtiene el identificador \u00fanico del idioma.",
                         "type": "string"
                     },
                     "nombre": {
+                        "description": "Obtiene el nombre del idioma.",
                         "type": "string"
                     },
                     "bandera": {
+                        "description": "Obtiene la bandera o emoji representativo del idioma.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "prioridad": {
+                        "description": "Obtiene el nivel de prioridad del idioma.",
                         "type": "integer"
                     },
                     "createdAt": {
@@ -16950,18 +16966,22 @@
                 "type": "object",
                 "properties": {
                     "id": {
+                        "description": "Obtiene el identificador \u00fanico del idioma.",
                         "type": "string"
                     },
                     "nombre": {
+                        "description": "Obtiene el nombre del idioma.",
                         "type": "string"
                     },
                     "bandera": {
+                        "description": "Obtiene la bandera o emoji representativo del idioma.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "prioridad": {
+                        "description": "Obtiene el nivel de prioridad del idioma.",
                         "type": "integer"
                     },
                     "createdAt": {
@@ -16981,18 +17001,22 @@
                 "type": "object",
                 "properties": {
                     "id": {
+                        "description": "Obtiene el identificador \u00fanico del idioma.",
                         "type": "string"
                     },
                     "nombre": {
+                        "description": "Obtiene el nombre del idioma.",
                         "type": "string"
                     },
                     "bandera": {
+                        "description": "Obtiene la bandera o emoji representativo del idioma.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "prioridad": {
+                        "description": "Obtiene el nivel de prioridad del idioma.",
                         "type": "integer"
                     }
                 }
@@ -17006,18 +17030,22 @@
                         "type": "object",
                         "properties": {
                             "id": {
+                                "description": "Obtiene el identificador \u00fanico del idioma.",
                                 "type": "string"
                             },
                             "nombre": {
+                                "description": "Obtiene el nombre del idioma.",
                                 "type": "string"
                             },
                             "bandera": {
+                                "description": "Obtiene la bandera o emoji representativo del idioma.",
                                 "type": [
                                     "string",
                                     "null"
                                 ]
                             },
                             "prioridad": {
+                                "description": "Obtiene el nivel de prioridad del idioma.",
                                 "type": "integer"
                             },
                             "createdAt": {
@@ -17044,18 +17072,22 @@
                         "type": "object",
                         "properties": {
                             "id": {
+                                "description": "Obtiene el identificador \u00fanico del idioma.",
                                 "type": "string"
                             },
                             "nombre": {
+                                "description": "Obtiene el nombre del idioma.",
                                 "type": "string"
                             },
                             "bandera": {
+                                "description": "Obtiene la bandera o emoji representativo del idioma.",
                                 "type": [
                                     "string",
                                     "null"
                                 ]
                             },
                             "prioridad": {
+                                "description": "Obtiene el nivel de prioridad del idioma.",
                                 "type": "integer"
                             },
                             "createdAt": {
@@ -17082,18 +17114,22 @@
                         "type": "object",
                         "properties": {
                             "id": {
+                                "description": "Obtiene el identificador \u00fanico del idioma.",
                                 "type": "string"
                             },
                             "nombre": {
+                                "description": "Obtiene el nombre del idioma.",
                                 "type": "string"
                             },
                             "bandera": {
+                                "description": "Obtiene la bandera o emoji representativo del idioma.",
                                 "type": [
                                     "string",
                                     "null"
                                 ]
                             },
                             "prioridad": {
+                                "description": "Obtiene el nivel de prioridad del idioma.",
                                 "type": "integer"
                             }
                         }
@@ -17104,18 +17140,22 @@
                 "type": "object",
                 "properties": {
                     "id": {
+                        "description": "Obtiene el identificador \u00fanico del idioma.",
                         "type": "string"
                     },
                     "nombre": {
+                        "description": "Obtiene el nombre del idioma.",
                         "type": "string"
                     },
                     "bandera": {
+                        "description": "Obtiene la bandera o emoji representativo del idioma.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "prioridad": {
+                        "description": "Obtiene el nivel de prioridad del idioma.",
                         "type": "integer"
                     },
                     "createdAt": {
@@ -17135,18 +17175,22 @@
                 "type": "object",
                 "properties": {
                     "id": {
+                        "description": "Obtiene el identificador \u00fanico del idioma.",
                         "type": "string"
                     },
                     "nombre": {
+                        "description": "Obtiene el nombre del idioma.",
                         "type": "string"
                     },
                     "bandera": {
+                        "description": "Obtiene la bandera o emoji representativo del idioma.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "prioridad": {
+                        "description": "Obtiene el nivel de prioridad del idioma.",
                         "type": "integer"
                     },
                     "createdAt": {
@@ -17166,18 +17210,22 @@
                 "type": "object",
                 "properties": {
                     "id": {
+                        "description": "Obtiene el identificador \u00fanico del idioma.",
                         "type": "string"
                     },
                     "nombre": {
+                        "description": "Obtiene el nombre del idioma.",
                         "type": "string"
                     },
                     "bandera": {
+                        "description": "Obtiene la bandera o emoji representativo del idioma.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "prioridad": {
+                        "description": "Obtiene el nivel de prioridad del idioma.",
                         "type": "integer"
                     }
                 }
@@ -24392,6 +24440,14 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
+                    "tarifaPredeterminada": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
                     "itinerarioContexto": {
                         "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
@@ -24452,6 +24508,14 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
+                    "tarifaPredeterminada": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
                     "itinerarioContexto": {
                         "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
@@ -24501,6 +24565,14 @@
                     "componente": {
                         "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "tarifaPredeterminada": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
@@ -24565,6 +24637,14 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
+                    "tarifaPredeterminada": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
                     "itinerarioContexto": {
                         "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
@@ -24622,6 +24702,14 @@
                     "componente": {
                         "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "tarifaPredeterminada": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
@@ -24686,6 +24774,14 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
+                    "tarifaPredeterminada": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
                     "itinerarioContexto": {
                         "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
@@ -24743,6 +24839,14 @@
                     "componente": {
                         "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "tarifaPredeterminada": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
@@ -24807,6 +24911,14 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
+                    "tarifaPredeterminada": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
                     "itinerarioContexto": {
                         "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
@@ -24864,6 +24976,14 @@
                     "componente": {
                         "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "tarifaPredeterminada": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },

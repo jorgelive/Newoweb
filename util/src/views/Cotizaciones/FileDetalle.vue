@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { apiClient } from '@/services/apiClient';
 import { useCotizacionFileStore } from '@/stores/cotizaciones/fileStore';
 
@@ -16,12 +16,56 @@ const isLoading = ref(true);
 const file = ref<any>(null);
 const isSavingFile = ref(false);
 
-// 🔥 Solo pedimos los países al backend
+// ============================================================================
+// 🔥 GUARDIÁN DE CAMBIOS SIN GUARDAR (DIRTY CHECK)
+// ============================================================================
+const isDirty = ref(false);
+let watchActivo = false;
+
+const onBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (isDirty.value) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('beforeunload', onBeforeUnload);
+  fetchCatalogos();
+  cargarFile();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', onBeforeUnload);
+});
+
+// Vigila el formulario base. Si cambia, marcamos como sucio.
+watch(() => file.value, () => {
+  if (watchActivo) {
+    isDirty.value = true;
+  }
+}, { deep: true });
+
+onBeforeRouteLeave((to, from, next) => {
+  if (isDirty.value) {
+    const confirmacion = window.confirm('Tienes cambios sin guardar en los Datos del Expediente. ¿Estás seguro de que deseas salir y perder los cambios?');
+    if (confirmacion) {
+      next();
+    } else {
+      next(false);
+    }
+  } else {
+    next();
+  }
+});
+
+// ============================================================================
+// CATÁLOGOS Y ENUMS
+// ============================================================================
 const catalogos = ref({
   paises: [] as any[],
 });
 
-// 🔥 Enums replicados en el Frontend para los selectores
 const ENUMS = {
   sexos: [
     { value: 'M', label: 'Masculino' },
@@ -42,18 +86,15 @@ const ENUMS = {
   ]
 };
 
-// Helpers para pintar las etiquetas en la vista
 const getSexoLabel = (val: string) => ENUMS.sexos.find(s => s.value === val)?.label || val;
 const getDocIdLabel = (val: string) => ENUMS.documentosIdentidad.find(d => d.value === val)?.label || val;
 const getArchivoLabel = (val: string) => ENUMS.archivosBoveda.find(a => a.value === val)?.label || val;
 
-// Estados Modales
 const showPaxModal = ref(false);
 const showDocModal = ref(false);
 const isSubmittingPax = ref(false);
 const isSubmittingDoc = ref(false);
 
-// Formularios
 const paxForm = ref({
   nombre: '', apellido: '', pais: '', sexo: '', tipodocumento: '', numerodocumento: '', fechanacimiento: ''
 });
@@ -75,6 +116,7 @@ const fetchCatalogos = async () => {
 
 const cargarFile = async () => {
   isLoading.value = true;
+  watchActivo = false; // Apagamos el guardián mientras hidratamos para no disparar falsas alarmas
   try {
     const response = await apiClient.get(`/platform/sales/cotizacion_files/${route.params.id}`);
     file.value = response.data;
@@ -83,13 +125,17 @@ const cargarFile = async () => {
     router.push('/cotizaciones');
   } finally {
     isLoading.value = false;
+    // Encendemos el guardián con un ligero delay tras pintar la UI
+    setTimeout(() => {
+      watchActivo = true;
+      isDirty.value = false;
+    }, 100);
   }
 };
 
-onMounted(() => {
-  fetchCatalogos();
-  cargarFile();
-});
+const handleVolver = () => {
+  router.push('/cotizaciones');
+};
 
 const guardarFile = async () => {
   isSavingFile.value = true;
@@ -102,6 +148,8 @@ const guardarFile = async () => {
       estado: file.value.estado
     };
     await apiClient.put(`/platform/sales/cotizacion_files/${extractIdStr(file.value.id || file.value['@id'])}`, payload);
+
+    isDirty.value = false; // 🔥 Limpiamos la alerta al guardar exitosamente
     alert('Expediente actualizado correctamente.');
   } catch (error) {
     alert('Error al guardar el expediente.');
@@ -119,7 +167,7 @@ const abrirMotor = (cotizacion: any) => {
 };
 
 // ==========================================
-// LÓGICA DE PASAJEROS (Usando el Store)
+// LÓGICA DE PASAJEROS
 // ==========================================
 const abrirPaxModal = () => {
   paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', tipodocumento: '', numerodocumento: '', fechanacimiento: '' };
@@ -128,37 +176,30 @@ const abrirPaxModal = () => {
 
 const guardarPasajero = async () => {
   isSubmittingPax.value = true;
-
   const payload = {
     ...paxForm.value,
     file: `/platform/sales/cotizacion_files/${extractIdStr(file.value.id || file.value['@id'])}`
   };
-
   const success = await fileStore.addPassenger(payload);
 
   if (success) {
     showPaxModal.value = false;
-    await cargarFile(); // Recargamos la data
+    await cargarFile();
   } else {
     alert(fileStore.error || "Error al registrar pasajero");
   }
-
   isSubmittingPax.value = false;
 };
 
 const eliminarPasajero = async (iri: string) => {
   if(!confirm('¿Eliminar pasajero?')) return;
   const success = await fileStore.deletePassenger(iri);
-
-  if (success) {
-    await cargarFile();
-  } else {
-    alert("Error al eliminar pasajero");
-  }
+  if (success) await cargarFile();
+  else alert("Error al eliminar pasajero");
 };
 
 // ==========================================
-// LÓGICA DE DOCUMENTOS (Usando el Store)
+// LÓGICA DE DOCUMENTOS
 // ==========================================
 const abrirDocModal = () => {
   docForm.value = { tipodocumento: '', vencimiento: '', fileObject: null };
@@ -176,7 +217,6 @@ const guardarDocumento = async () => {
   }
 
   isSubmittingDoc.value = true;
-
   const formData = new FormData();
   formData.append('documento', docForm.value.fileObject);
   formData.append('tipodocumento', docForm.value.tipodocumento);
@@ -187,26 +227,20 @@ const guardarDocumento = async () => {
   }
 
   const success = await fileStore.uploadDocument(formData);
-
   if (success) {
     showDocModal.value = false;
     await cargarFile();
   } else {
     alert(fileStore.error || "Error al subir el documento");
   }
-
   isSubmittingDoc.value = false;
 };
 
 const eliminarDocumento = async (iri: string) => {
   if(!confirm('¿Eliminar este documento de la bóveda?')) return;
-
   const success = await fileStore.deleteDocument(iri);
-  if (success) {
-    await cargarFile();
-  } else {
-    alert("Error al eliminar documento");
-  }
+  if (success) await cargarFile();
+  else alert("Error al eliminar documento");
 };
 </script>
 
@@ -215,12 +249,12 @@ const eliminarDocumento = async (iri: string) => {
 
     <header class="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-30 shadow-sm">
       <div class="flex items-center gap-4">
-        <button @click="router.push('/cotizaciones')" class="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
+        <button @click="handleVolver" class="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
           <i class="fas fa-arrow-left"></i>
         </button>
         <div>
           <h1 class="font-black text-2xl text-slate-800 tracking-tight leading-none mb-1">Detalle del Expediente</h1>
-          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ file?.localizador || 'Cargando...' }}</p>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ file?.localizador || 'Sin Localizador' }}</p>
         </div>
       </div>
       <button @click="nuevaVersion" class="px-5 py-2.5 bg-[#376875] hover:bg-[#2d5662] text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2">

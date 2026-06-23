@@ -37,6 +37,12 @@ class TravelSegmentoComponente
     #[ORM\JoinColumn(nullable: false)]
     private ?TravelComponente $componente = null;
 
+    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[ApiProperty(readableLink: false)]
+    #[ORM\ManyToOne(targetEntity: TravelTarifa::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?TravelTarifa $tarifaPredeterminada = null;
+
     /**
      * El Cerebro del Timeline: Define en qué plantilla específica de itinerario
      * debe inyectarse este componente. Si es null, se inyecta siempre.
@@ -123,6 +129,17 @@ class TravelSegmentoComponente
     public function setComponente(?TravelComponente $componente): self
     {
         $this->componente = $componente;
+        return $this;
+    }
+
+    public function getTarifaPredeterminada(): ?TravelTarifa
+    {
+        return $this->tarifaPredeterminada;
+    }
+
+    public function setTarifaPredeterminada(?TravelTarifa $tarifaPredeterminada): self
+    {
+        $this->tarifaPredeterminada = $tarifaPredeterminada;
         return $this;
     }
 

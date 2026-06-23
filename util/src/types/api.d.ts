@@ -4029,9 +4029,13 @@ export interface components {
             "@type": string;
         };
         "Idioma-file.read_file.item.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
             /** Format: date-time */
             createdAt?: string;
@@ -4039,9 +4043,13 @@ export interface components {
             updatedAt?: string | null;
         };
         "Idioma-file.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
             /** Format: date-time */
             createdAt?: string;
@@ -4049,15 +4057,23 @@ export interface components {
             updatedAt?: string | null;
         };
         "Idioma-pax.read": {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
         };
         "Idioma.html-file.read_file.item.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
             /** Format: date-time */
             createdAt?: string;
@@ -4065,9 +4081,13 @@ export interface components {
             updatedAt?: string | null;
         };
         "Idioma.html-file.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
             /** Format: date-time */
             createdAt?: string;
@@ -4075,15 +4095,23 @@ export interface components {
             updatedAt?: string | null;
         };
         "Idioma.html-pax.read": {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
         };
         "Idioma.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
             /** Format: date-time */
             createdAt?: string;
@@ -4091,9 +4119,13 @@ export interface components {
             updatedAt?: string | null;
         };
         "Idioma.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
             /** Format: date-time */
             createdAt?: string;
@@ -4101,15 +4133,23 @@ export interface components {
             updatedAt?: string | null;
         };
         "Idioma.jsonld-pax.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
         };
         "Idioma.multipart-file.read_file.item.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
             /** Format: date-time */
             createdAt?: string;
@@ -4117,9 +4157,13 @@ export interface components {
             updatedAt?: string | null;
         };
         "Idioma.multipart-file.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
             /** Format: date-time */
             createdAt?: string;
@@ -4127,9 +4171,13 @@ export interface components {
             updatedAt?: string | null;
         };
         "Idioma.multipart-pax.read": {
+            /** @description Obtiene el identificador único del idioma. */
             id?: string;
+            /** @description Obtiene el nombre del idioma. */
             nombre?: string;
+            /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
+            /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
         };
         Itinerario: {
@@ -6781,6 +6829,11 @@ export interface components {
             componente?: string;
             /**
              * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaPredeterminada?: string | null;
+            /**
+             * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
              *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
@@ -6819,6 +6872,11 @@ export interface components {
             componente?: string;
             /**
              * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaPredeterminada?: string | null;
+            /**
+             * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
              *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
@@ -6853,6 +6911,11 @@ export interface components {
              * @example https://example.com/
              */
             componente?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
@@ -6898,6 +6961,11 @@ export interface components {
             componente?: string;
             /**
              * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaPredeterminada?: string | null;
+            /**
+             * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
              *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
@@ -6934,6 +7002,11 @@ export interface components {
              * @example https://example.com/
              */
             componente?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
@@ -6979,6 +7052,11 @@ export interface components {
             componente?: string;
             /**
              * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaPredeterminada?: string | null;
+            /**
+             * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
              *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
@@ -7015,6 +7093,11 @@ export interface components {
              * @example https://example.com/
              */
             componente?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
@@ -7060,6 +7143,11 @@ export interface components {
             componente?: string;
             /**
              * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaPredeterminada?: string | null;
+            /**
+             * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
              *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
@@ -7096,6 +7184,11 @@ export interface components {
              * @example https://example.com/
              */
             componente?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario

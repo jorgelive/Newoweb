@@ -7,6 +7,7 @@ namespace App\Api\Controller\Travel;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelItinerarioSegmentoRel;
 use App\Travel\Entity\TravelSegmentoComponente;
+use App\Travel\Entity\TravelTarifa;
 use App\Travel\Enum\ComponenteItemModoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -39,9 +40,19 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
         // 1. Catálogo para el Select
         $componentes = $this->em->getRepository(TravelComponente::class)->findBy([], ['nombre' => 'ASC']);
-        $cat = array_map(fn($c) => ['id' => $c->getId()->toRfc4122(), 'nombre' => $c->getNombre()], $componentes);
+        $cat = array_map(function($c) {
+            $tarifas = array_map(fn($t) => [
+                'id' => $t->getId()->toRfc4122(),
+                'nombre' => $t->getNombreInterno() . ' (' . ($t->getMoneda() ? $t->getMoneda()->getId() : '') . ' ' . $t->getMonto() . ')'
+            ], $c->getTarifas()->toArray());
 
-        // 2. Data de la logística ESPECÍFICA de esta plantilla (Editable)
+            return [
+                'id' => $c->getId()->toRfc4122(),
+                'nombre' => $c->getNombre(),
+                'tarifas' => $tarifas
+            ];
+        }, $componentes);
+
         $logisticaEspecifica = $this->em->getRepository(TravelSegmentoComponente::class)->findBy([
             'itinerarioContexto' => $itinerarioId,
             'segmento'           => $segmentoId
@@ -50,6 +61,7 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
         // 🔥 Se envía el modo a la vista (String extraído del Enum)
         $dataEspecifica = array_map(fn($l) => [
             'componenteId' => $l->getComponente()->getId()->toRfc4122(),
+            'tarifaId'     => $l->getTarifaPredeterminada() ? $l->getTarifaPredeterminada()->getId()->toRfc4122() : null,
             'hora'         => $l->getHora() ? $l->getHora()->format('H:i') : '',
             'horaFin'      => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '',
             'modo'         => $l->getModo()->value,
@@ -64,11 +76,12 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
         // 🔥 Se envía el modo a la vista (String extraído del Enum)
         $dataGeneral = array_map(fn($l) => [
-            'nombre'  => $l->getComponente()->getNombre(),
-            'hora'    => $l->getHora() ? $l->getHora()->format('H:i') : '--:--',
-            'horaFin' => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '--:--',
-            'modo'    => $l->getModo()->value,
-            'orden'   => $l->getOrden()
+            'nombre'       => $l->getComponente()->getNombre(),
+            'tarifaNombre' => $l->getTarifaPredeterminada() ? $l->getTarifaPredeterminada()->getNombreInterno() : 'Auto / Varias',
+            'hora'         => $l->getHora() ? $l->getHora()->format('H:i') : '--:--',
+            'horaFin'      => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '--:--',
+            'modo'         => $l->getModo()->value,
+            'orden'        => $l->getOrden()
         ], $logisticaGeneral);
 
         return $this->json([
@@ -109,30 +122,28 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
         // 2. Insertar nueva operativa específica
         foreach ($payload as $row) {
-            if (empty($row['componenteId'])) {
-                continue;
-            }
+            if (empty($row['componenteId'])) continue;
 
             $uuidObj = Uuid::fromString($row['componenteId']);
             $comp = $this->em->getReference(TravelComponente::class, $uuidObj);
 
             $nuevaLog = new TravelSegmentoComponente();
-            $nuevaLog->setItinerarioContexto($itinerario); // Amarrado estrictamente a la plantilla
+            $nuevaLog->setItinerarioContexto($itinerario);
             $nuevaLog->setSegmento($segmento);
             $nuevaLog->setComponente($comp);
             $nuevaLog->setOrden((int)$row['orden']);
 
-            // 🔥 Recepción del Modo desde Javascript mapeado hacia el Enum estricto de PHP
-            $modoValue = $row['modo'] ?? 'incluido';
-            $modoEnum = ComponenteItemModoEnum::tryFrom($modoValue) ?? ComponenteItemModoEnum::INCLUIDO;
+            $modoEnum = ComponenteItemModoEnum::tryFrom($row['modo'] ?? 'incluido') ?? ComponenteItemModoEnum::INCLUIDO;
             $nuevaLog->setModo($modoEnum);
 
-            if (!empty($row['hora'])) {
-                $nuevaLog->setHora(new \DateTimeImmutable($row['hora']));
+            // 🔥 Guardar tarifa predeterminada apuntando correctamente a TravelTarifa
+            if (!empty($row['tarifaId'])) {
+                $tarifa = $this->em->getReference(TravelTarifa::class, Uuid::fromString($row['tarifaId']));
+                $nuevaLog->setTarifaPredeterminada($tarifa);
             }
-            if (!empty($row['horaFin'])) {
-                $nuevaLog->setHoraFin(new \DateTimeImmutable($row['horaFin']));
-            }
+
+            if (!empty($row['hora'])) $nuevaLog->setHora(new \DateTimeImmutable($row['hora']));
+            if (!empty($row['horaFin'])) $nuevaLog->setHoraFin(new \DateTimeImmutable($row['horaFin']));
 
             $this->em->persist($nuevaLog);
         }

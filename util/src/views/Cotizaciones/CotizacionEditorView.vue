@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useCotizacionEditorStore } from '@/stores/cotizaciones/cotizacionEditorStore';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import WysiwygEditor from '@/components/WysiwygEditor.vue';
@@ -18,6 +18,85 @@ defineProps<{
 const route = useRoute();
 const router = useRouter();
 const store = useCotizacionEditorStore();
+
+// ============================================================================
+// 🔥 GUARDIÁN DE CAMBIOS SIN GUARDAR
+// ============================================================================
+const isDirty = ref(false);
+let watchActivo = false;
+
+// Evitar cierre de pestaña o F5 accidental
+const onBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (isDirty.value) {
+    e.preventDefault();
+    e.returnValue = ''; // Requerido por los navegadores modernos para mostrar su alerta
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('beforeunload', onBeforeUnload);
+
+  const fileId = route.params.fileId as string;
+  const cotizacionId = route.params.cotizacionId as string;
+
+  if (fileId && cotizacionId) {
+    store.inicializarEditor(fileId, cotizacionId).then(() => {
+      // Damos 1 segundo para que todas las dependencias terminen de hidratarse
+      // antes de empezar a vigilar cambios, así evitamos falsos positivos.
+      setTimeout(() => {
+        watchActivo = true;
+        isDirty.value = false;
+      }, 1000);
+    });
+  } else {
+    router.push('/cotizaciones');
+  }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', onBeforeUnload);
+});
+
+// Vigila profundamente el objeto entero de la cotización
+watch(() => store.cotizacion, () => {
+  if (watchActivo) {
+    isDirty.value = true;
+  }
+}, { deep: true });
+
+// Evitar navegación a otras vistas dentro de la misma App
+onBeforeRouteLeave((to, from, next) => {
+  if (isDirty.value) {
+    const confirmacion = window.confirm('Tienes cambios sin guardar. ¿Estás seguro de que deseas salir y perder los cambios?');
+    if (confirmacion) {
+      next();
+    } else {
+      next(false);
+    }
+  } else {
+    next();
+  }
+});
+
+// ============================================================================
+// 🔥 ACCIONES DE HEADER
+// ============================================================================
+
+const handleVolver = () => {
+  // Aseguramos que retorne al listado de versiones de este file puntual
+  const fileId = route.params.fileId || store.fileActual?.id;
+  if (fileId) {
+    router.push(`/cotizaciones/${fileId}`);
+  } else {
+    router.push('/cotizaciones');
+  }
+};
+
+const handleGuardar = async () => {
+  await store.guardarCotizacion();
+  // Reinicia el estado de alerta porque los datos ya están a salvo en la BD
+  isDirty.value = false;
+};
 
 // ============================================================================
 // 🔥 1. MÁSCARA ESTRICTA PARA FECHA Y HORA (Componentes Logísticos / Vuelos)
@@ -109,7 +188,7 @@ const vDateMask = {
 };
 
 // ============================================================================
-// DATOS COMPUTADOS Y ONMOUNTED
+// DATOS COMPUTADOS
 // ============================================================================
 
 const idiomasOrdenados = computed(() => {
@@ -162,17 +241,6 @@ const opcionesPlantillas = computed(() => {
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
 
-onMounted(() => {
-  const fileId = route.params.fileId as string;
-  const cotizacionId = route.params.cotizacionId as string;
-
-  if (fileId && cotizacionId) {
-    store.inicializarEditor(fileId, cotizacionId);
-  } else {
-    router.push('/cotizaciones');
-  }
-});
-
 const formatFecha = (fecha?: string) => {
   if (!fecha) return '--';
   return new Date(fecha).toLocaleDateString('es-PE', { weekday: 'long', day: '2-digit', month: 'short', timeZone: 'UTC' });
@@ -183,7 +251,6 @@ const formatMoneda = (monto?: number | string, moneda?: string) => {
   return `${moneda === 'USD' ? '$' : 'S/'} ${num.toFixed(2)}`;
 };
 
-// 🔥 FUNCIÓN REESCRITA: Ignora tiempos "00:00" que son inicializaciones por defecto
 const formatRangoServicio = (servicio: any) => {
   if (!servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return 'Sin logística programada';
 
@@ -207,7 +274,6 @@ const formatRangoServicio = (servicio: any) => {
       const t = new Date(c.fechaHoraInicio).getTime();
       if (t < minDateFallback) { minDateFallback = t; minStrFallback = c.fechaHoraInicio; }
 
-      // Filtramos las 00:00:00 porque son el valor default de inicialización para Alojamientos/Tickets
       if (reqHora && !c.fechaHoraInicio.includes('T00:00:00')) {
         if (t < minTimeExact) { minTimeExact = t; minStrExact = c.fechaHoraInicio; tieneHorasValidas = true; }
       }
@@ -225,21 +291,17 @@ const formatRangoServicio = (servicio: any) => {
   const fTime = (d: Date) => d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
   const fDate = (d: Date) => d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).replace('.', '');
 
-  // Si ningún componente aportó una hora real
   if (!tieneHorasValidas) {
     if (minDateFallback === Infinity) return 'Horarios no definidos';
     const dMinF = new Date(minStrFallback);
     const dMaxF = new Date(maxStrFallback);
 
-    // Si es solo de 1 día
     if (maxDateFallback === -Infinity || dMinF.toDateString() === dMaxF.toDateString()) {
       return `${fDate(dMinF)}`;
     }
-    // Si es rango de fechas puras (ej. Hotel 3 noches)
     return `${fDate(dMinF)}  —  ${fDate(dMaxF)}`;
   }
 
-  // Si hay al menos una hora válida
   const dMin = new Date(minStrExact);
   const dMax = new Date(maxStrExact);
 
@@ -287,7 +349,7 @@ const getNombreMaestroRef = (comp: any) => {
   const targetId = extractIdStrView(comp.componenteMaestroId);
   if (!targetId) return 'Insumo sin seleccionar';
 
-  const c = store.catalogos.allComponentes.find(cat => extractIdStrView(cat.id) === targetId || extractIdStrView(cat['@id']) === targetId);
+  const c = store.catalogos.allComponentes.find((cat: any) => extractIdStrView(cat.id) === targetId || extractIdStrView(cat['@id']) === targetId);
 
   if (c && c.nombreInterno !== 'Sincronizando...') return c.nombreInterno || c.nombre || 'Insumo Genérico';
 
@@ -382,7 +444,7 @@ const dropSegmento = (e: DragEvent) => {
 
     <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md flex-shrink-0">
       <div class="flex items-center gap-3">
-        <button @click="router.push(`/cotizaciones/${store.fileActual?.id || ''}`)" class="w-8 h-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+        <button @click="handleVolver" class="w-8 h-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
           <i class="fas fa-arrow-left text-sm"></i>
         </button>
         <div class="overflow-hidden">
@@ -410,7 +472,7 @@ const dropSegmento = (e: DragEvent) => {
           </button>
         </div>
         <button @click="store.abrirNivel('resumen')" class="md:hidden px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold shadow-sm border border-slate-700">Totales</button>
-        <button @click="store.guardarCotizacion()" class="px-4 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
+        <button @click="handleGuardar" class="px-4 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
           <i class="fas fa-save"></i> <span class="hidden sm:inline">Guardar</span>
         </button>
       </div>
