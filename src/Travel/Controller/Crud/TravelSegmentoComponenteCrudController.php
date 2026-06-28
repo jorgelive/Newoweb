@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Travel\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Panel\Helper\AdminFieldHelper;
 use App\Travel\Entity\TravelSegmentoComponente;
 use App\Travel\Enum\ComponenteItemModoEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -22,28 +23,36 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
 
     public function configureCrud(Crud $crud): Crud
     {
-        return $crud
-            ->showEntityActionsInlined();
+        return $crud->showEntityActionsInlined();
     }
 
     public function configureFields(string $pageName): iterable
     {
-        // Fila 1: Asociaciones principales (Divididas en 3 columnas iguales)
-        yield AssociationField::new('componente', 'Componente Logístico')
-            ->setColumns('col-12 col-md-4')
-            ->setFormTypeOption('choice_label', 'nombre');
+        $apiHostUrl = rtrim($this->getParameter('api_host_url'), '/');
+        $endpointUrl = $apiHostUrl . '/platform/travel/tarifas';
 
-        yield AssociationField::new('tarifaPredeterminada', 'Tarifa (Opcional)')
-            ->setHelp('Fuerza esta tarifa al aplicar la plantilla.')
-            ->setColumns('col-12 col-md-4')
-            ->setFormTypeOption('choice_label', 'nombreInterno');
+        // FILA 1: Componente Logístico y Condicionado a Plantilla (50% cada uno)
+        yield AdminFieldHelper::controlsAjax(
+            AssociationField::new('componente', 'Componente Logístico'),
+            'js-tarifa-api-target',
+            $endpointUrl
+        )->setColumns('col-12 col-md-6')->setFormTypeOption('choice_label', 'nombre');
 
         yield AssociationField::new('itinerarioContexto', 'Condicionado a Plantilla')
-            ->setHelp('Si se deja vacío, se inyectará en TODOS los itinerarios que usen este párrafo.')
-            ->setColumns('col-12 col-md-4')
+            ->setColumns('col-12 col-md-6')
             ->setFormTypeOption('choice_label', 'nombreInterno');
 
-        // Fila 2: Configuración operativa y comercial (Dividida en 4 columnas)
+        // FILA 2: Tarifa (100% del ancho para acomodar el texto descriptivo largo)
+        yield AssociationField::new('tarifaPredeterminada', 'Tarifa (Opcional)')
+            ->autocomplete()
+            ->setColumns('col-12')
+            ->setFormTypeOptions([
+                'attr' => [
+                    'class' => 'js-tarifa-api-target'
+                ],
+            ]);
+
+        // FILA 3: Horarios, Modo y Orden (25% cada uno)
         yield TimeField::new('hora', 'Hora Inicio')
             ->setFormat('HH:mm')
             ->setFormTypeOptions([
@@ -72,11 +81,7 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
             ->setColumns('col-12 col-md-3');
 
         yield ChoiceField::new('modo', 'Modo Comercial')
-            ->setChoices(array_reduce(
-                ComponenteItemModoEnum::cases(),
-                static fn ($c, $e) => $c + [$e->name => $e],
-                []
-            ))
+            ->setChoices(array_reduce(ComponenteItemModoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
             ->formatValue(static fn ($value) => $value instanceof ComponenteItemModoEnum ? $value->value : $value)
             ->setFormTypeOptions([
                 'placeholder' => false

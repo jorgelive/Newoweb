@@ -22,7 +22,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 
-#[ApiFilter(SearchFilter::class, properties: ['id' => 'exact'])]
+#[ApiFilter(SearchFilter::class, properties: [
+    'id' => 'exact',
+    'nombreInterno' => 'partial'
+])]
 #[ApiResource(
     shortName: 'Tarifa',
     operations: [
@@ -30,7 +33,8 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
             normalizationContext: ['groups' => ['componente:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
-        new GetCollection(normalizationContext: ['groups' => ['componente:item:read']],
+        new GetCollection(
+            normalizationContext: ['groups' => ['componente:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         )
     ],
@@ -45,7 +49,6 @@ class TravelTarifa
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToOne(targetEntity: TravelComponente::class, inversedBy: 'tarifas')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelComponente $componente = null;
@@ -110,28 +113,20 @@ class TravelTarifa
         $this->initializeId();
     }
 
-    /**
-     * 🔥 Obligatorio para el Deep Clone de la entidad Padre.
-     */
     public function __clone()
     {
         $this->resetId();
         $this->resetTimestamps();
     }
 
-    /**
-     * Representación en texto para EasyAdmin y depuración.
-     */
     public function __toString(): string
     {
         if (!$this->nombreInterno) {
             return '✨ Nueva Tarifa';
         }
 
-        // 🔥 CORRECCIÓN: Extraemos el ID o Nombre de forma segura para evitar Crash en el Profiler
         $monedaStr = $this->moneda ? $this->moneda->getId() : '';
         $montoStr = $this->monto !== null ? $this->monto : '0.00';
-
         $etiqueta = sprintf('🏷️ %s | %s %s', $this->nombreInterno, $monedaStr, $montoStr);
 
         if ($this->costoPorGrupo) {
@@ -297,4 +292,22 @@ class TravelTarifa
         return $this;
     }
 
+    /**
+     * Expone el identificador de la entidad para respuestas JSON en formato plano.
+     * Garantiza que los componentes frontend como TomSelect dispongan del value requerido.
+     */
+    #[Groups(['componente:item:read'])]
+    public function getTarifaId(): ?string
+    {
+        return $this->getId() ? (string) $this->getId() : null;
+    }
+
+    /**
+     * 🔥 Expone la representación completa del __toString para el dropdown del frontend.
+     */
+    #[Groups(['componente:item:read'])]
+    public function getEtiquetaOpciones(): string
+    {
+        return $this->__toString();
+    }
 }

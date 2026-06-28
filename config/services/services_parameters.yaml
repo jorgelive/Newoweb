@@ -31,6 +31,7 @@ parameters:
     pax_host_url: '%env(PAX_HOST_URL)%'
     util_host_url: '%env(UTIL_HOST_URL)%'
     panel_host_url: '%env(PANEL_HOST_URL)%'
+    api_host_url: '%env(API_HOST_URL)%'
 
     pax_book_guide_url: '%env(PAX_HOST_URL)%/huesped/reserva'
     pax_book_guide_url_nd: 'huesped/reserva'
