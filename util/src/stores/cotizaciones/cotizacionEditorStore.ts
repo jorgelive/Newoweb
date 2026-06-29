@@ -769,7 +769,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             payload.totalVenta = String(resumenFinanciero.value?.totalVentaBruta || '0');
             payload.numPax = parseInt(payload.numPax) || 1;
             payload.tipoCambio = String(payload.tipoCambio || tipoCambioSugerido.value || 1);
-            delete payload.clasificacionFinanciera;
+            payload.clasificacionFinanciera = resumenFinanciero.value;
             delete payload.idiomaEdicion;
 
             if (payload.cotservicios && Array.isArray(payload.cotservicios)) {

@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Patch; // 🔥 IMPORTANTE: Añadimos Patch
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
@@ -45,6 +46,11 @@ use Symfony\Component\Serializer\Annotation\Groups;
             denormalizationContext: ['groups' => ['file:write']],
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar expedientes.'
+        ),
+        new Patch(
+            denormalizationContext: ['groups' => ['file:write']],
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para actualizar parcialmente expedientes.'
         ),
         new Delete(
             security: "is_granted('" . Roles::RESERVAS_DELETE . "')",

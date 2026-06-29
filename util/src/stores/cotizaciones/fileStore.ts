@@ -99,13 +99,41 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * 🔥 NUEVA ACCIÓN: Actualiza parcialmente un expediente usando PATCH.
+     * Esto evita que Doctrine haga "orphanRemoval" de las cotizaciones.
+     */
+    const updateFile = async (iri: string, payload: Partial<ApiCotizacionFileWrite>): Promise<ApiCotizacionFile | null> => {
+        loadingFiles.value = true;
+        error.value = null;
+
+        try {
+            // API Platform exige el Content-Type 'application/merge-patch+json' para los PATCH
+            const response = await apiClient.patch<ApiCotizacionFile>(iri, payload, {
+                headers: {
+                    'Content-Type': 'application/merge-patch+json'
+                }
+            });
+
+            // Actualizamos el objeto en nuestra caché local reactiva
+            const index = files.value.findIndex(f => f['@id'] === iri || f.id === iri);
+            if (index !== -1) {
+                files.value[index] = { ...files.value[index], ...response.data };
+            }
+
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.['hydra:description'] || err.response?.data?.detail || 'Error al actualizar el expediente.';
+            return null;
+        } finally {
+            loadingFiles.value = false;
+        }
+    };
+
     // ============================================================================
-    // 🔥 ACCIONES DE PASAJEROS Y BÓVEDA DIGITAL
+    // ACCIONES DE PASAJEROS Y BÓVEDA DIGITAL
     // ============================================================================
 
-    /**
-     * Sube un documento físico a la bóveda del expediente usando Multipart
-     */
     const uploadDocument = async (formData: FormData): Promise<boolean> => {
         error.value = null;
         try {
@@ -158,6 +186,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         getActiveFiles,
         fetchFiles,
         createFile,
+        updateFile,
         uploadDocument,
         deleteDocument,
         addPassenger,
