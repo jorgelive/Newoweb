@@ -139,20 +139,29 @@ const handleVolver = () => {
 
 const guardarFile = async () => {
   isSavingFile.value = true;
-  try {
-    const payload = {
-      nombreGrupo: file.value.nombreGrupo,
-      pasajeroPrincipal: file.value.pasajeroPrincipal,
-      email: file.value.email,
-      telefono: file.value.telefono,
-      estado: file.value.estado
-    };
-    await apiClient.put(`/platform/sales/cotizacion_files/${extractIdStr(file.value.id || file.value['@id'])}`, payload);
 
-    isDirty.value = false; // 🔥 Limpiamos la alerta al guardar exitosamente
-    alert('Expediente actualizado correctamente.');
+  // 1. Preparamos el payload con los campos que quieres actualizar
+  const payload = {
+    nombreGrupo: file.value.nombreGrupo,
+    pasajeroPrincipal: file.value.pasajeroPrincipal,
+    email: file.value.email,
+    telefono: file.value.telefono,
+    estado: file.value.estado
+  };
+
+  try {
+    // 2. Usamos la acción del store que SÍ usa PATCH y el header correcto
+    const iri = extractIdStr(file.value.id || file.value['@id']);
+    const success = await fileStore.updateFile(`/platform/sales/cotizacion_files/${iri}`, payload);
+
+    if (success) {
+      isDirty.value = false;
+      alert('Expediente actualizado correctamente.');
+    } else {
+      alert(fileStore.error || 'Error al guardar el expediente.');
+    }
   } catch (error) {
-    alert('Error al guardar el expediente.');
+    alert('Error de red al actualizar.');
   } finally {
     isSavingFile.value = false;
   }

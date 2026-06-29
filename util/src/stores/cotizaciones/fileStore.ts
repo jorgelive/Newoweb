@@ -98,7 +98,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             loadingFiles.value = false;
         }
     };
-    
+
     const updateFile = async (iri: string, payload: Partial<ApiCotizacionFileWrite>): Promise<ApiCotizacionFile | null> => {
         loadingFiles.value = true;
         error.value = null;
