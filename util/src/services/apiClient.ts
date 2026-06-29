@@ -20,9 +20,21 @@ export const apiClient = axios.create({
     baseURL: getUrls().api,
     withCredentials: true,
     headers: {
-        'Accept': 'application/ld+json',
-        'Content-Type': 'application/ld+json'
+        'Accept': 'application/ld+json'
     }
+});
+
+apiClient.interceptors.request.use((config) => {
+    const method = config.method?.toLowerCase();
+    const needsBody = method === 'post' || method === 'put' || method === 'patch';
+
+    if (needsBody && !config.headers['Content-Type']) {
+        config.headers['Content-Type'] = method === 'patch'
+            ? 'application/merge-patch+json'
+            : 'application/ld+json';
+    }
+
+    return config;
 });
 
 // ============================================================================

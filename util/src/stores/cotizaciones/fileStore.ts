@@ -98,32 +98,23 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             loadingFiles.value = false;
         }
     };
-
-    /**
-     * 🔥 NUEVA ACCIÓN: Actualiza parcialmente un expediente usando PATCH.
-     * Esto evita que Doctrine haga "orphanRemoval" de las cotizaciones.
-     */
+    
     const updateFile = async (iri: string, payload: Partial<ApiCotizacionFileWrite>): Promise<ApiCotizacionFile | null> => {
         loadingFiles.value = true;
         error.value = null;
 
         try {
-            // API Platform exige el Content-Type 'application/merge-patch+json' para los PATCH
-            const response = await apiClient.patch<ApiCotizacionFile>(iri, payload, {
-                headers: {
-                    'Content-Type': 'application/merge-patch+json'
-                }
-            });
+            // Ya no necesitas pasar los headers manualmente, el interceptor los pone
+            const response = await apiClient.patch<ApiCotizacionFile>(iri, payload);
 
-            // Actualizamos el objeto en nuestra caché local reactiva
             const index = files.value.findIndex(f => f['@id'] === iri || f.id === iri);
             if (index !== -1) {
                 files.value[index] = { ...files.value[index], ...response.data };
             }
-
             return response.data;
         } catch (err: any) {
-            error.value = err.response?.data?.['hydra:description'] || err.response?.data?.detail || 'Error al actualizar el expediente.';
+            // El interceptor ya maneja los errores globales, aquí solo gestionamos la UI
+            error.value = err.response?.data?.['hydra:description'] || 'Error al actualizar.';
             return null;
         } finally {
             loadingFiles.value = false;
