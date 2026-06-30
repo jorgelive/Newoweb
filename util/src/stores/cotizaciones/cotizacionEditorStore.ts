@@ -613,17 +613,27 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 if (!dataActiva.value.snapshotItems || dataActiva.value.snapshotItems.length === 0) {
                     dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(async (item: any) => {
                         let diccData = item.diccionario;
+
+                        // 🔥 FORZAR HIDRATACIÓN SI ES UN IRI
                         if (typeof diccData === 'string') {
-                            try { const res = await apiClient.get(diccData); diccData = res.data; } catch (err) {}
+                            try {
+                                const res = await apiClient.get(diccData);
+                                diccData = res.data;
+                            } catch (err) {
+                                console.error("No se pudo hidratar diccionario:", diccData);
+                            }
                         }
 
                         const modoBackend = item.modo || 'incluido';
                         const isIncluido = modoBackend === 'incluido' || modoBackend === 'cortesia';
                         const tieneUpsell = !!item.componenteAdicionalVinculado;
 
+                        // Aseguramos que diccData contenga el título
+                        const titulo = diccData?.titulo || item.titulo || [];
+
                         return {
                             id: crypto.randomUUID(),
-                            nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(diccData || item))),
+                            nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(titulo))), // Usamos el título hidratado
                             modo: modoBackend,
                             modoOriginal: modoBackend,
                             incluido: isIncluido,
