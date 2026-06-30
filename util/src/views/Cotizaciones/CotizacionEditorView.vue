@@ -782,19 +782,28 @@ const dropSegmento = (e: DragEvent) => {
 
                 <div v-for="comp in store.dataActiva.cotcomponentes" :key="comp.id"
                      @click="store.abrirNivel('componente', comp)"
-                     class="bg-white border-2 border-slate-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-sky-300 relative group overflow-hidden transition-all flex flex-col min-h-[140px]"
-                     :class="store.isComponenteConAlerta(comp) ? 'border-red-400 bg-red-50/20' : ''">
+                     class="bg-white border-2 rounded-xl p-4 shadow-sm cursor-pointer relative group overflow-hidden transition-all flex flex-col min-h-[140px]"
+                     :class="[
+                        store.isComponenteConAlerta(comp) ? 'border-red-400 bg-red-50/20' :
+                        (!store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/50' : 'border-slate-200 hover:border-sky-300')
+                     ]">
 
-                  <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : 'bg-sky-400'"></div>
+                  <div class="absolute left-0 top-0 bottom-0 w-1.5"
+                       :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : (!store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'bg-slate-300' : 'bg-sky-400')"></div>
 
                   <button v-if="!store.isComponenteBloqueado(comp)" @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
                     <i class="fas fa-trash-alt text-sm"></i>
                   </button>
 
                   <div class="flex justify-between items-start mb-3">
-                    <h4 class="font-black text-sm text-slate-800 leading-tight pr-8">
-                      <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500 mr-1" title="Tarifas no cuadran"></i>
-                      {{ getNombreMaestroRef(comp) }}
+                    <h4 class="font-black text-sm text-slate-800 leading-tight pr-8 flex flex-col">
+                      <div class="flex items-center gap-1.5">
+                        <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500" title="Tarifas no cuadran"></i>
+                        {{ getNombreMaestroRef(comp) }}
+                      </div>
+                      <span v-if="!store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId))" class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                         <i class="fas fa-infinity text-[8px] mr-0.5"></i> Horario Libre / Final del día
+                      </span>
                     </h4>
                     <span class="text-[10px] font-black px-2 py-1 rounded bg-slate-100 text-slate-500 border border-slate-200 shadow-sm whitespace-nowrap">
                       {{ comp.modo ? comp.modo.toUpperCase() : 'INCLUIDO' }}

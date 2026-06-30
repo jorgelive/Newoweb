@@ -207,11 +207,26 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return servicio.cotcomponentes.some((comp: any) => isComponenteConAlerta(comp));
     };
 
+    // 🔥 MODIFICADO: Ordena evaluando primero el día y enviando los sin horario al final del bloque de ese día.
     const ordenarComponentesCronologicamente = (componentes: any[]) => {
         if (!componentes || !Array.isArray(componentes)) return;
         componentes.sort((a, b) => {
-            const valA = a.fechaHoraInicio || '9999-12-31T23:59';
-            const valB = b.fechaHoraInicio || '9999-12-31T23:59';
+            const valA = a.fechaHoraInicio || '9999-12-31T23:59:59';
+            const valB = b.fechaHoraInicio || '9999-12-31T23:59:59';
+
+            const dateA = valA.split('T')[0];
+            const dateB = valB.split('T')[0];
+
+            if (dateA !== dateB) {
+                return dateA.localeCompare(dateB);
+            }
+
+            const reqA = requiereHoraExacta(getTipoComponente(a.componenteMaestroId));
+            const reqB = requiereHoraExacta(getTipoComponente(b.componenteMaestroId));
+
+            if (reqA && !reqB) return -1;
+            if (!reqA && reqB) return 1;
+
             return valA.localeCompare(valB);
         });
     };
@@ -234,16 +249,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    // 🔥 NUEVO: HELPER PARA BLINDAR INSUMOS INYECTADOS
     const isComponenteBloqueado = (comp: any): boolean => {
         if (!comp) return false;
-        // 1. Si viene inyectado de plantilla
         if (comp.cotsegmentoId || comp.cotsegmento) return true;
-        // 2. Si es efímero y acaba de ser inyectado por un upsell
         if (comp.upsellSourceItemId) return true;
 
-        // 3. Rastreo en frío (Sobrevive a recargas de BD):
-        // Buscamos si algún ítem de cualquier componente lo señala como su inyección.
         const servicio = findServicioByComponenteId(comp.id);
         if (servicio && servicio.cotcomponentes) {
             return servicio.cotcomponentes.some((cPadre: any) =>
