@@ -612,40 +612,36 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 if (!dataActiva.value.snapshotItems || dataActiva.value.snapshotItems.length === 0) {
                     dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(async (item: any) => {
-                        let diccData = item.diccionario;
+                        let tituloData = [];
 
-                        // 🔥 FORZAR HIDRATACIÓN SI ES UN IRI
-                        if (typeof diccData === 'string') {
+                        // Si es un string (IRI), lo pedimos al servidor
+                        if (typeof item.diccionario === 'string') {
                             try {
-                                const res = await apiClient.get(diccData);
-                                diccData = res.data;
+                                const res = await apiClient.get(item.diccionario);
+                                tituloData = res.data.titulo || [];
                             } catch (err) {
-                                console.error("No se pudo hidratar diccionario:", diccData);
+                                console.error("No se pudo cargar el diccionario:", item.diccionario);
                             }
+                        } else if (item.diccionario && item.diccionario.titulo) {
+                            // Si ya vino hidratado por el backend
+                            tituloData = item.diccionario.titulo;
                         }
 
                         const modoBackend = item.modo || 'incluido';
-                        const isIncluido = modoBackend === 'incluido' || modoBackend === 'cortesia';
-                        const tieneUpsell = !!item.componenteAdicionalVinculado;
-
-                        // Aseguramos que diccData contenga el título
-                        const titulo = diccData?.titulo || item.titulo || [];
-
                         return {
                             id: crypto.randomUUID(),
-                            nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(titulo))), // Usamos el título hidratado
+                            // Usamos la lógica de i18n del store para extraer el título correcto
+                            nombreSnapshot: JSON.parse(JSON.stringify(tituloData)),
                             modo: modoBackend,
                             modoOriginal: modoBackend,
-                            incluido: isIncluido,
-                            tieneUpsell: tieneUpsell,
+                            incluido: modoBackend === 'incluido' || modoBackend === 'cortesia',
+                            tieneUpsell: !!item.componenteAdicionalVinculado,
                             componenteAdicionalVinculado: item.componenteAdicionalVinculado || null,
                             idComponenteInyectado: null,
                             isInjecting: false,
                             sobreescribirTraduccion: false
                         };
                     }));
-                } else {
-                    dataActiva.value.snapshotItems.forEach((i: any) => i.isInjecting = false);
                 }
             }
         } catch (e) {}
