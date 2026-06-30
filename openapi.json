@@ -2250,6 +2250,151 @@
                         "explode": false
                     }
                 ]
+            },
+            "patch": {
+                "operationId": "api_salescotizacion_files_id_patch",
+                "tags": [
+                    "CotizacionFile"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CotizacionFile resource updated",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFile.jsonld"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFile"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFile.html"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFile.multipart"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Updates the CotizacionFile resource.",
+                "description": "Updates the CotizacionFile resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "CotizacionFile identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ],
+                "requestBody": {
+                    "description": "The updated CotizacionFile resource",
+                    "content": {
+                        "application/merge-patch+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFile-file.write.jsonMergePatch"
+                            }
+                        }
+                    },
+                    "required": true
+                }
             }
         },
         "/platform/sales/cotizacion_filedocumentos": {
@@ -6717,6 +6862,18 @@
                         },
                         "style": "form",
                         "explode": true
+                    },
+                    {
+                        "name": "nombreInterno",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "form",
+                        "explode": false
                     }
                 ]
             }
@@ -13136,6 +13293,53 @@
                 }
             },
             "CotizacionFile-file.write": {
+                "type": "object",
+                "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo.",
+                "properties": {
+                    "nombreGrupo": {
+                        "type": "string"
+                    },
+                    "pasajeroPrincipal": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "pais": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "idioma": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "estado": {
+                        "default": "abierto",
+                        "type": "string"
+                    }
+                }
+            },
+            "CotizacionFile-file.write.jsonMergePatch": {
                 "type": "object",
                 "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo.",
                 "properties": {
@@ -22963,6 +23167,19 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "tarifaId": {
+                        "readOnly": true,
+                        "description": "Expone el identificador de la entidad para respuestas JSON en formato plano.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd25 Expone la representaci\u00f3n completa del __toString para el dropdown del frontend.",
+                        "type": "string"
                     }
                 }
             },
@@ -23133,6 +23350,19 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "tarifaId": {
+                        "readOnly": true,
+                        "description": "Expone el identificador de la entidad para respuestas JSON en formato plano.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd25 Expone la representaci\u00f3n completa del __toString para el dropdown del frontend.",
+                        "type": "string"
                     }
                 }
             },
@@ -23223,6 +23453,19 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "tarifaId": {
+                                "readOnly": true,
+                                "description": "Expone el identificador de la entidad para respuestas JSON en formato plano.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "etiquetaOpciones": {
+                                "readOnly": true,
+                                "description": "\ud83d\udd25 Expone la representaci\u00f3n completa del __toString para el dropdown del frontend.",
+                                "type": "string"
                             }
                         }
                     }
@@ -23310,6 +23553,19 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "tarifaId": {
+                        "readOnly": true,
+                        "description": "Expone el identificador de la entidad para respuestas JSON en formato plano.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd25 Expone la representaci\u00f3n completa del __toString para el dropdown del frontend.",
+                        "type": "string"
                     }
                 }
             },
@@ -24429,18 +24685,19 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
-                        "description": "Obtiene el segmento narrativo padre.",
+                        "description": "El segmento narrativo padre al que pertenece esta configuraci\u00f3n log\u00edstico-temporal.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "componente": {
-                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
+                        "description": "El componente log\u00edstico del cat\u00e1logo maestro que ser\u00e1 inyectado en el timeline.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "tarifaPredeterminada": {
+                        "description": "Tarifa espec\u00edfica del cat\u00e1logo que se predefinir\u00e1 al instanciar este componente.",
                         "type": [
                             "string",
                             "null"
@@ -24449,13 +24706,20 @@
                         "example": "https://example.com/"
                     },
                     "itinerarioContexto": {
-                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se considera global y se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "description": "Filtro opcional de refinamiento: Determina el d\u00eda relativo exacto de la plantilla\nen el que se aplicar\u00e1 este componente log\u00edstico.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "hora": {
                         "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
@@ -24466,7 +24730,7 @@
                         "format": "date-time"
                     },
                     "horaFin": {
-                        "description": "Hora exacta a la que finaliza la operativa.",
+                        "description": "Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duraci\u00f3n del maestro.",
                         "type": [
                             "string",
                             "null"
@@ -24474,7 +24738,7 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -24485,7 +24749,7 @@
                         ]
                     },
                     "orden": {
-                        "description": "Orden en el que se lista dentro del segmento.",
+                        "description": "Orden posicional en el que se listar\u00e1 el componente dentro del contenedor del segmento.",
                         "default": 1,
                         "type": "integer"
                     },
@@ -24503,12 +24767,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
+                        "description": "El componente log\u00edstico del cat\u00e1logo maestro que ser\u00e1 inyectado en el timeline.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "tarifaPredeterminada": {
+                        "description": "Tarifa espec\u00edfica del cat\u00e1logo que se predefinir\u00e1 al instanciar este componente.",
                         "type": [
                             "string",
                             "null"
@@ -24517,13 +24782,20 @@
                         "example": "https://example.com/"
                     },
                     "itinerarioContexto": {
-                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se considera global y se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "description": "Filtro opcional de refinamiento: Determina el d\u00eda relativo exacto de la plantilla\nen el que se aplicar\u00e1 este componente log\u00edstico.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "hora": {
                         "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
@@ -24534,7 +24806,7 @@
                         "format": "date-time"
                     },
                     "horaFin": {
-                        "description": "Hora exacta a la que finaliza la operativa.",
+                        "description": "Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duraci\u00f3n del maestro.",
                         "type": [
                             "string",
                             "null"
@@ -24542,7 +24814,7 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -24553,7 +24825,7 @@
                         ]
                     },
                     "orden": {
-                        "description": "Orden en el que se lista dentro del segmento.",
+                        "description": "Orden posicional en el que se listar\u00e1 el componente dentro del contenedor del segmento.",
                         "default": 1,
                         "type": "integer"
                     }
@@ -24563,12 +24835,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
+                        "description": "El componente log\u00edstico del cat\u00e1logo maestro que ser\u00e1 inyectado en el timeline.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "tarifaPredeterminada": {
+                        "description": "Tarifa espec\u00edfica del cat\u00e1logo que se predefinir\u00e1 al instanciar este componente.",
                         "type": [
                             "string",
                             "null"
@@ -24577,13 +24850,20 @@
                         "example": "https://example.com/"
                     },
                     "itinerarioContexto": {
-                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se considera global y se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "description": "Filtro opcional de refinamiento: Determina el d\u00eda relativo exacto de la plantilla\nen el que se aplicar\u00e1 este componente log\u00edstico.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "hora": {
                         "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
@@ -24594,7 +24874,7 @@
                         "format": "date-time"
                     },
                     "horaFin": {
-                        "description": "Hora exacta a la que finaliza la operativa.",
+                        "description": "Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duraci\u00f3n del maestro.",
                         "type": [
                             "string",
                             "null"
@@ -24602,7 +24882,7 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -24613,7 +24893,7 @@
                         ]
                     },
                     "orden": {
-                        "description": "Orden en el que se lista dentro del segmento.",
+                        "description": "Orden posicional en el que se listar\u00e1 el componente dentro del contenedor del segmento.",
                         "default": 1,
                         "type": "integer"
                     }
@@ -24626,18 +24906,19 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
-                        "description": "Obtiene el segmento narrativo padre.",
+                        "description": "El segmento narrativo padre al que pertenece esta configuraci\u00f3n log\u00edstico-temporal.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "componente": {
-                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
+                        "description": "El componente log\u00edstico del cat\u00e1logo maestro que ser\u00e1 inyectado en el timeline.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "tarifaPredeterminada": {
+                        "description": "Tarifa espec\u00edfica del cat\u00e1logo que se predefinir\u00e1 al instanciar este componente.",
                         "type": [
                             "string",
                             "null"
@@ -24646,13 +24927,20 @@
                         "example": "https://example.com/"
                     },
                     "itinerarioContexto": {
-                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se considera global y se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "description": "Filtro opcional de refinamiento: Determina el d\u00eda relativo exacto de la plantilla\nen el que se aplicar\u00e1 este componente log\u00edstico.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "hora": {
                         "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
@@ -24663,7 +24951,7 @@
                         "format": "date-time"
                     },
                     "horaFin": {
-                        "description": "Hora exacta a la que finaliza la operativa.",
+                        "description": "Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duraci\u00f3n del maestro.",
                         "type": [
                             "string",
                             "null"
@@ -24671,7 +24959,7 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -24682,7 +24970,7 @@
                         ]
                     },
                     "orden": {
-                        "description": "Orden en el que se lista dentro del segmento.",
+                        "description": "Orden posicional en el que se listar\u00e1 el componente dentro del contenedor del segmento.",
                         "default": 1,
                         "type": "integer"
                     },
@@ -24700,12 +24988,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
+                        "description": "El componente log\u00edstico del cat\u00e1logo maestro que ser\u00e1 inyectado en el timeline.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "tarifaPredeterminada": {
+                        "description": "Tarifa espec\u00edfica del cat\u00e1logo que se predefinir\u00e1 al instanciar este componente.",
                         "type": [
                             "string",
                             "null"
@@ -24714,13 +25003,20 @@
                         "example": "https://example.com/"
                     },
                     "itinerarioContexto": {
-                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se considera global y se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "description": "Filtro opcional de refinamiento: Determina el d\u00eda relativo exacto de la plantilla\nen el que se aplicar\u00e1 este componente log\u00edstico.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "hora": {
                         "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
@@ -24731,7 +25027,7 @@
                         "format": "date-time"
                     },
                     "horaFin": {
-                        "description": "Hora exacta a la que finaliza la operativa.",
+                        "description": "Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duraci\u00f3n del maestro.",
                         "type": [
                             "string",
                             "null"
@@ -24739,7 +25035,7 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -24750,7 +25046,7 @@
                         ]
                     },
                     "orden": {
-                        "description": "Orden en el que se lista dentro del segmento.",
+                        "description": "Orden posicional en el que se listar\u00e1 el componente dentro del contenedor del segmento.",
                         "default": 1,
                         "type": "integer"
                     }
@@ -24763,18 +25059,19 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
-                        "description": "Obtiene el segmento narrativo padre.",
+                        "description": "El segmento narrativo padre al que pertenece esta configuraci\u00f3n log\u00edstico-temporal.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "componente": {
-                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
+                        "description": "El componente log\u00edstico del cat\u00e1logo maestro que ser\u00e1 inyectado en el timeline.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "tarifaPredeterminada": {
+                        "description": "Tarifa espec\u00edfica del cat\u00e1logo que se predefinir\u00e1 al instanciar este componente.",
                         "type": [
                             "string",
                             "null"
@@ -24783,13 +25080,20 @@
                         "example": "https://example.com/"
                     },
                     "itinerarioContexto": {
-                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se considera global y se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "description": "Filtro opcional de refinamiento: Determina el d\u00eda relativo exacto de la plantilla\nen el que se aplicar\u00e1 este componente log\u00edstico.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "hora": {
                         "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
@@ -24800,7 +25104,7 @@
                         "format": "date-time"
                     },
                     "horaFin": {
-                        "description": "Hora exacta a la que finaliza la operativa.",
+                        "description": "Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duraci\u00f3n del maestro.",
                         "type": [
                             "string",
                             "null"
@@ -24808,7 +25112,7 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -24819,7 +25123,7 @@
                         ]
                     },
                     "orden": {
-                        "description": "Orden en el que se lista dentro del segmento.",
+                        "description": "Orden posicional en el que se listar\u00e1 el componente dentro del contenedor del segmento.",
                         "default": 1,
                         "type": "integer"
                     },
@@ -24837,12 +25141,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
+                        "description": "El componente log\u00edstico del cat\u00e1logo maestro que ser\u00e1 inyectado en el timeline.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "tarifaPredeterminada": {
+                        "description": "Tarifa espec\u00edfica del cat\u00e1logo que se predefinir\u00e1 al instanciar este componente.",
                         "type": [
                             "string",
                             "null"
@@ -24851,13 +25156,20 @@
                         "example": "https://example.com/"
                     },
                     "itinerarioContexto": {
-                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se considera global y se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "description": "Filtro opcional de refinamiento: Determina el d\u00eda relativo exacto de la plantilla\nen el que se aplicar\u00e1 este componente log\u00edstico.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "hora": {
                         "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
@@ -24868,7 +25180,7 @@
                         "format": "date-time"
                     },
                     "horaFin": {
-                        "description": "Hora exacta a la que finaliza la operativa.",
+                        "description": "Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duraci\u00f3n del maestro.",
                         "type": [
                             "string",
                             "null"
@@ -24876,7 +25188,7 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -24887,7 +25199,7 @@
                         ]
                     },
                     "orden": {
-                        "description": "Orden en el que se lista dentro del segmento.",
+                        "description": "Orden posicional en el que se listar\u00e1 el componente dentro del contenedor del segmento.",
                         "default": 1,
                         "type": "integer"
                     }
@@ -24900,18 +25212,19 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
-                        "description": "Obtiene el segmento narrativo padre.",
+                        "description": "El segmento narrativo padre al que pertenece esta configuraci\u00f3n log\u00edstico-temporal.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "componente": {
-                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
+                        "description": "El componente log\u00edstico del cat\u00e1logo maestro que ser\u00e1 inyectado en el timeline.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "tarifaPredeterminada": {
+                        "description": "Tarifa espec\u00edfica del cat\u00e1logo que se predefinir\u00e1 al instanciar este componente.",
                         "type": [
                             "string",
                             "null"
@@ -24920,13 +25233,20 @@
                         "example": "https://example.com/"
                     },
                     "itinerarioContexto": {
-                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se considera global y se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "description": "Filtro opcional de refinamiento: Determina el d\u00eda relativo exacto de la plantilla\nen el que se aplicar\u00e1 este componente log\u00edstico.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "hora": {
                         "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
@@ -24937,7 +25257,7 @@
                         "format": "date-time"
                     },
                     "horaFin": {
-                        "description": "Hora exacta a la que finaliza la operativa.",
+                        "description": "Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duraci\u00f3n del maestro.",
                         "type": [
                             "string",
                             "null"
@@ -24945,7 +25265,7 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -24956,7 +25276,7 @@
                         ]
                     },
                     "orden": {
-                        "description": "Orden en el que se lista dentro del segmento.",
+                        "description": "Orden posicional en el que se listar\u00e1 el componente dentro del contenedor del segmento.",
                         "default": 1,
                         "type": "integer"
                     },
@@ -24974,12 +25294,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
+                        "description": "El componente log\u00edstico del cat\u00e1logo maestro que ser\u00e1 inyectado en el timeline.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "tarifaPredeterminada": {
+                        "description": "Tarifa espec\u00edfica del cat\u00e1logo que se predefinir\u00e1 al instanciar este componente.",
                         "type": [
                             "string",
                             "null"
@@ -24988,13 +25309,20 @@
                         "example": "https://example.com/"
                     },
                     "itinerarioContexto": {
-                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se considera global y se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "description": "Filtro opcional de refinamiento: Determina el d\u00eda relativo exacto de la plantilla\nen el que se aplicar\u00e1 este componente log\u00edstico.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "hora": {
                         "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
@@ -25005,7 +25333,7 @@
                         "format": "date-time"
                     },
                     "horaFin": {
-                        "description": "Hora exacta a la que finaliza la operativa.",
+                        "description": "Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duraci\u00f3n del maestro.",
                         "type": [
                             "string",
                             "null"
@@ -25013,7 +25341,7 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -25024,7 +25352,7 @@
                         ]
                     },
                     "orden": {
-                        "description": "Orden en el que se lista dentro del segmento.",
+                        "description": "Orden posicional en el que se listar\u00e1 el componente dentro del contenedor del segmento.",
                         "default": 1,
                         "type": "integer"
                     }

@@ -281,7 +281,11 @@ export interface paths {
         delete: operations["api_salescotizacion_files_id_delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Updates the CotizacionFile resource.
+         * @description Updates the CotizacionFile resource.
+         */
+        patch: operations["api_salescotizacion_files_id_patch"];
         trace?: never;
     };
     "/platform/sales/cotizacion_filedocumentos": {
@@ -2920,6 +2924,25 @@ export interface components {
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-file.write": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma?: string | null;
+            /** @default abierto */
+            estado: string;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile-file.write.jsonMergePatch": {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
             email?: string | null;
@@ -6174,6 +6197,10 @@ export interface components {
              */
             proveedor?: string | null;
             nombreParaProveedor?: string | null;
+            /** @description Expone el identificador de la entidad para respuestas JSON en formato plano. */
+            readonly tarifaId?: string | null;
+            /** @description 🔥 Expone la representación completa del __toString para el dropdown del frontend. */
+            readonly etiquetaOpciones?: string;
         };
         "Tarifa-componente.write": {
             nombreInterno?: string;
@@ -6218,6 +6245,10 @@ export interface components {
              */
             proveedor?: string | null;
             nombreParaProveedor?: string | null;
+            /** @description Expone el identificador de la entidad para respuestas JSON en formato plano. */
+            readonly tarifaId?: string | null;
+            /** @description 🔥 Expone la representación completa del __toString para el dropdown del frontend. */
+            readonly etiquetaOpciones?: string;
         };
         "Tarifa.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
@@ -6240,6 +6271,10 @@ export interface components {
              */
             proveedor?: string | null;
             nombreParaProveedor?: string | null;
+            /** @description Expone el identificador de la entidad para respuestas JSON en formato plano. */
+            readonly tarifaId?: string | null;
+            /** @description 🔥 Expone la representación completa del __toString para el dropdown del frontend. */
+            readonly etiquetaOpciones?: string;
         };
         "Tarifa.multipart-componente.item.read": {
             nombreInterno?: string;
@@ -6262,6 +6297,10 @@ export interface components {
              */
             proveedor?: string | null;
             nombreParaProveedor?: string | null;
+            /** @description Expone el identificador de la entidad para respuestas JSON en formato plano. */
+            readonly tarifaId?: string | null;
+            /** @description 🔥 Expone la representación completa del __toString para el dropdown del frontend. */
+            readonly etiquetaOpciones?: string;
         };
         "Template-template.read": {
             code: string;
@@ -6817,28 +6856,34 @@ export interface components {
         TravelSegmentoComponente: {
             /**
              * Format: iri-reference
-             * @description Obtiene el segmento narrativo padre.
+             * @description El segmento narrativo padre al que pertenece esta configuración logístico-temporal.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: iri-reference
-             * @description El componente logístico que será inyectado.
+             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se inyecta siempre.
+             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
              * @example https://example.com/
              */
             itinerarioContexto?: string | null;
+            /**
+             * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+             *     en el que se aplicará este componente logístico.
+             */
+            dia?: number | null;
             /**
              * Format: date-time
              * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
@@ -6846,17 +6891,17 @@ export interface components {
             hora?: string | null;
             /**
              * Format: date-time
-             * @description Hora exacta a la que finaliza la operativa.
+             * @description Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
              */
             horaFin?: string | null;
             /**
-             * @description Define si el componente suma al costo, no incluye, o es opcional.
+             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
-             * @description Orden en el que se lista dentro del segmento.
+             * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
              */
             orden: number;
@@ -6866,22 +6911,28 @@ export interface components {
         "TravelSegmentoComponente-segmento.item.read": {
             /**
              * Format: iri-reference
-             * @description El componente logístico que será inyectado.
+             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se inyecta siempre.
+             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
              * @example https://example.com/
              */
             itinerarioContexto?: string | null;
+            /**
+             * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+             *     en el que se aplicará este componente logístico.
+             */
+            dia?: number | null;
             /**
              * Format: date-time
              * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
@@ -6889,17 +6940,17 @@ export interface components {
             hora?: string | null;
             /**
              * Format: date-time
-             * @description Hora exacta a la que finaliza la operativa.
+             * @description Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
              */
             horaFin?: string | null;
             /**
-             * @description Define si el componente suma al costo, no incluye, o es opcional.
+             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
-             * @description Orden en el que se lista dentro del segmento.
+             * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
              */
             orden: number;
@@ -6907,22 +6958,28 @@ export interface components {
         "TravelSegmentoComponente-segmento.write": {
             /**
              * Format: iri-reference
-             * @description El componente logístico que será inyectado.
+             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se inyecta siempre.
+             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
              * @example https://example.com/
              */
             itinerarioContexto?: string | null;
+            /**
+             * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+             *     en el que se aplicará este componente logístico.
+             */
+            dia?: number | null;
             /**
              * Format: date-time
              * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
@@ -6930,17 +6987,17 @@ export interface components {
             hora?: string | null;
             /**
              * Format: date-time
-             * @description Hora exacta a la que finaliza la operativa.
+             * @description Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
              */
             horaFin?: string | null;
             /**
-             * @description Define si el componente suma al costo, no incluye, o es opcional.
+             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
-             * @description Orden en el que se lista dentro del segmento.
+             * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
              */
             orden: number;
@@ -6949,28 +7006,34 @@ export interface components {
         "TravelSegmentoComponente.html": {
             /**
              * Format: iri-reference
-             * @description Obtiene el segmento narrativo padre.
+             * @description El segmento narrativo padre al que pertenece esta configuración logístico-temporal.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: iri-reference
-             * @description El componente logístico que será inyectado.
+             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se inyecta siempre.
+             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
              * @example https://example.com/
              */
             itinerarioContexto?: string | null;
+            /**
+             * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+             *     en el que se aplicará este componente logístico.
+             */
+            dia?: number | null;
             /**
              * Format: date-time
              * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
@@ -6978,17 +7041,17 @@ export interface components {
             hora?: string | null;
             /**
              * Format: date-time
-             * @description Hora exacta a la que finaliza la operativa.
+             * @description Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
              */
             horaFin?: string | null;
             /**
-             * @description Define si el componente suma al costo, no incluye, o es opcional.
+             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
-             * @description Orden en el que se lista dentro del segmento.
+             * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
              */
             orden: number;
@@ -6998,22 +7061,28 @@ export interface components {
         "TravelSegmentoComponente.html-segmento.item.read": {
             /**
              * Format: iri-reference
-             * @description El componente logístico que será inyectado.
+             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se inyecta siempre.
+             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
              * @example https://example.com/
              */
             itinerarioContexto?: string | null;
+            /**
+             * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+             *     en el que se aplicará este componente logístico.
+             */
+            dia?: number | null;
             /**
              * Format: date-time
              * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
@@ -7021,17 +7090,17 @@ export interface components {
             hora?: string | null;
             /**
              * Format: date-time
-             * @description Hora exacta a la que finaliza la operativa.
+             * @description Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
              */
             horaFin?: string | null;
             /**
-             * @description Define si el componente suma al costo, no incluye, o es opcional.
+             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
-             * @description Orden en el que se lista dentro del segmento.
+             * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
              */
             orden: number;
@@ -7040,28 +7109,34 @@ export interface components {
         "TravelSegmentoComponente.jsonld": {
             /**
              * Format: iri-reference
-             * @description Obtiene el segmento narrativo padre.
+             * @description El segmento narrativo padre al que pertenece esta configuración logístico-temporal.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: iri-reference
-             * @description El componente logístico que será inyectado.
+             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se inyecta siempre.
+             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
              * @example https://example.com/
              */
             itinerarioContexto?: string | null;
+            /**
+             * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+             *     en el que se aplicará este componente logístico.
+             */
+            dia?: number | null;
             /**
              * Format: date-time
              * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
@@ -7069,17 +7144,17 @@ export interface components {
             hora?: string | null;
             /**
              * Format: date-time
-             * @description Hora exacta a la que finaliza la operativa.
+             * @description Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
              */
             horaFin?: string | null;
             /**
-             * @description Define si el componente suma al costo, no incluye, o es opcional.
+             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
-             * @description Orden en el que se lista dentro del segmento.
+             * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
              */
             orden: number;
@@ -7089,22 +7164,28 @@ export interface components {
         "TravelSegmentoComponente.jsonld-segmento.item.read": {
             /**
              * Format: iri-reference
-             * @description El componente logístico que será inyectado.
+             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se inyecta siempre.
+             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
              * @example https://example.com/
              */
             itinerarioContexto?: string | null;
+            /**
+             * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+             *     en el que se aplicará este componente logístico.
+             */
+            dia?: number | null;
             /**
              * Format: date-time
              * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
@@ -7112,17 +7193,17 @@ export interface components {
             hora?: string | null;
             /**
              * Format: date-time
-             * @description Hora exacta a la que finaliza la operativa.
+             * @description Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
              */
             horaFin?: string | null;
             /**
-             * @description Define si el componente suma al costo, no incluye, o es opcional.
+             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
-             * @description Orden en el que se lista dentro del segmento.
+             * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
              */
             orden: number;
@@ -7131,28 +7212,34 @@ export interface components {
         "TravelSegmentoComponente.multipart": {
             /**
              * Format: iri-reference
-             * @description Obtiene el segmento narrativo padre.
+             * @description El segmento narrativo padre al que pertenece esta configuración logístico-temporal.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: iri-reference
-             * @description El componente logístico que será inyectado.
+             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se inyecta siempre.
+             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
              * @example https://example.com/
              */
             itinerarioContexto?: string | null;
+            /**
+             * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+             *     en el que se aplicará este componente logístico.
+             */
+            dia?: number | null;
             /**
              * Format: date-time
              * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
@@ -7160,17 +7247,17 @@ export interface components {
             hora?: string | null;
             /**
              * Format: date-time
-             * @description Hora exacta a la que finaliza la operativa.
+             * @description Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
              */
             horaFin?: string | null;
             /**
-             * @description Define si el componente suma al costo, no incluye, o es opcional.
+             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
-             * @description Orden en el que se lista dentro del segmento.
+             * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
              */
             orden: number;
@@ -7180,22 +7267,28 @@ export interface components {
         "TravelSegmentoComponente.multipart-segmento.item.read": {
             /**
              * Format: iri-reference
-             * @description El componente logístico que será inyectado.
+             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
             /**
              * Format: iri-reference
              * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se inyecta siempre.
+             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
              * @example https://example.com/
              */
             itinerarioContexto?: string | null;
+            /**
+             * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+             *     en el que se aplicará este componente logístico.
+             */
+            dia?: number | null;
             /**
              * Format: date-time
              * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
@@ -7203,17 +7296,17 @@ export interface components {
             hora?: string | null;
             /**
              * Format: date-time
-             * @description Hora exacta a la que finaliza la operativa.
+             * @description Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
              */
             horaFin?: string | null;
             /**
-             * @description Define si el componente suma al costo, no incluye, o es opcional.
+             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
-             * @description Orden en el que se lista dentro del segmento.
+             * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
              */
             orden: number;
@@ -8546,6 +8639,81 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_files_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFile identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated CotizacionFile resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["CotizacionFile-file.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description CotizacionFile resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld"];
+                    "application/json": components["schemas"]["CotizacionFile"];
+                    "text/html": components["schemas"]["CotizacionFile.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };
@@ -10635,6 +10803,7 @@ export interface operations {
                 page?: number;
                 id?: string;
                 "id[]"?: string[];
+                nombreInterno?: string;
             };
             header?: never;
             path?: never;
