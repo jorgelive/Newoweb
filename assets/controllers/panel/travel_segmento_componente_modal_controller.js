@@ -95,7 +95,7 @@ export default class extends Controller {
         tr.innerHTML = `
             <td class="text-nowrap p-2"><i class="fas fa-lock me-2 text-secondary"></i> ${data.nombre}</td>
             <td class="text-muted p-2" style="font-size: 0.85em;">${data.tarifaNombre || 'Auto / Varias'}</td>
-            <td class="text-center text-nowrap p-2">${data.hora || '--:--'}</td>
+            <td class="text-center p-2">${data.dia || '-'}</td> <td class="text-center text-nowrap p-2">${data.hora || '--:--'}</td>
             <td class="text-center text-nowrap p-2">${data.horaFin || '--:--'}</td>
             <td class="text-center text-nowrap text-uppercase p-2" style="font-size: 0.85em;">${data.modo || 'INCLUIDO'}</td>
             <td class="text-center p-2">${data.orden || 1}</td>
@@ -141,6 +141,9 @@ export default class extends Controller {
             </td>
             <td class="p-1">
                 <select class="form-select form-select-sm comp-tarifa shadow-none w-100">${tarifaOptions}</select>
+            </td>
+            <td class="p-1">
+                <input type="number" min="1" class="form-control form-control-sm comp-dia text-center shadow-none w-100" value="${data.dia || 1}">
             </td>
             <td class="p-1">
                 <input type="text" class="form-control form-control-sm comp-ini shadow-none text-center flatpickr-time bg-white w-100" value="${data.hora || ''}" placeholder="HH:MM">
@@ -221,6 +224,7 @@ export default class extends Controller {
                 payload.push({
                     componenteId: cId,
                     tarifaId: tr.querySelector('.comp-tarifa').value || null,
+                    dia: tr.querySelector('.comp-dia').value || null,
                     hora: tr.querySelector('.comp-ini').value,
                     horaFin: tr.querySelector('.comp-fin').value,
                     modo: tr.querySelector('.comp-modo').value,
@@ -292,12 +296,13 @@ export default class extends Controller {
                                             </th>
                                         </tr>
                                         <tr>
-                                            <th class="text-uppercase text-muted align-middle" style="font-size: 11px;">Insumo Logístico / Operador</th>
-                                            <th class="text-uppercase text-muted align-middle" style="font-size: 11px; width: 220px;">Tarifa (Opcional)</th>
+                                            <th class="text-uppercase text-muted align-middle" style="font-size: 11px;">Insumo</th>
+                                            <th class="text-uppercase text-muted align-middle" style="font-size: 11px; width: 180px;">Tarifa</th>
+                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 50px;">Día</th>
                                             <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 80px;">Inicio</th>
                                             <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 80px;">Fin</th>
-                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 130px;">Modo</th>
-                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 60px;">Orden</th>
+                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 100px;">Modo</th>
+                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 50px;">Ord</th>
                                             <th style="width: 45px;"></th>
                                         </tr>
                                     </thead>

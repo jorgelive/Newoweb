@@ -13,7 +13,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Pivot Ternario: Vincula la logística (Componente) con la narrativa (Segmento),
- * pero condicionado de forma inteligente al contexto del Itinerario.
+ * condicionado de forma inteligente al contexto del Itinerario y al día de ejecución.
+ * * Razón de existencia: Esta entidad permite desacoplar los componentes del catálogo base
+ * e inyectarles reglas de negocio dinámicas (horarios, modos comerciales y filtros por día)
+ * dentro del storytelling de una cotización o plantilla.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_segmento_componente')]
@@ -22,14 +25,15 @@ class TravelSegmentoComponente
 {
     use IdTrait;
 
-    // 🚫 CORTE CIRCULAR: No serializamos el padre hacia arriba
+    /**
+     * @var TravelSegmento|null El segmento narrativo padre al que pertenece esta configuración logístico-temporal.
+     */
     #[ORM\ManyToOne(targetEntity: TravelSegmento::class, inversedBy: 'segmentoComponentes')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelSegmento $segmento = null;
 
     /**
-     * El componente logístico que será inyectado.
-     * readableLink false para que Vue solo necesite enviar/recibir el IRI.
+     * @var TravelComponente|null El componente logístico del catálogo maestro que será inyectado en el timeline.
      */
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ApiProperty(readableLink: false)]
@@ -37,6 +41,9 @@ class TravelSegmentoComponente
     #[ORM\JoinColumn(nullable: false)]
     private ?TravelComponente $componente = null;
 
+    /**
+     * @var TravelTarifa|null Tarifa específica del catálogo que se predefinirá al instanciar este componente.
+     */
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelTarifa::class)]
@@ -45,7 +52,8 @@ class TravelSegmentoComponente
 
     /**
      * El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-     * debe inyectarse este componente. Si es null, se inyecta siempre.
+     * debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
+     * * @var TravelItinerario|null
      */
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ApiProperty(readableLink: false)]
@@ -54,29 +62,39 @@ class TravelSegmentoComponente
     private ?TravelItinerario $itinerarioContexto = null;
 
     /**
-     * Hora exacta a la que inicia la operativa de este componente en el itinerario.
+     * Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
+     * en el que se aplicará este componente logístico.
+     * * Si es null, el componente se inyectará de forma global en cualquier día que se use el segmento.
+     * Si contiene un entero (ej: 2), actuará como discriminador estricto en el generador de itinerarios.
+     * * @var int|null
+     */
+    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $dia = null;
+
+    /**
+     * @var DateTimeImmutable|null Hora exacta a la que inicia la operativa de este componente en el itinerario.
      */
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'time_immutable', nullable: true)]
     private ?DateTimeImmutable $hora = null;
 
     /**
-     * Hora exacta a la que finaliza la operativa.
-     * Si está vacía, el frontend usará la duración por defecto del componente.
+     * @var DateTimeImmutable|null Hora exacta a la que finaliza la operativa. Si es nula, se calcula con la duración del maestro.
      */
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'time_immutable', nullable: true)]
     private ?DateTimeImmutable $horaFin = null;
 
     /**
-     * Define si el componente suma al costo, no incluye, o es opcional.
+     * @var ComponenteItemModoEnum Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
      */
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: ComponenteItemModoEnum::class)]
     private ComponenteItemModoEnum $modo = ComponenteItemModoEnum::INCLUIDO;
 
     /**
-     * Orden en el que se lista dentro del segmento.
+     * @var int Orden posicional en el que se listará el componente dentro del contenedor del segmento.
      */
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'integer')]
@@ -90,42 +108,31 @@ class TravelSegmentoComponente
     public function __toString(): string
     {
         $nombreComponente = $this->componente ? (string) $this->componente : 'Nuevo vínculo';
-        $horaFormateada = $this->hora ? sprintf(' [%s', $this->hora->format('H:i')) : '';
-        $horaFinFormateada = $this->horaFin ? sprintf(' - %s]', $this->horaFin->format('H:i')) : ($this->hora ? ']' : '');
+        $diaFormateada = $this->dia ? sprintf(' [Día %d]', $this->dia) : ' [Día Global]';
+        $horaFormateada = $this->hora ? sprintf(' (%s', $this->hora->format('H:i')) : '';
+        $horaFinFormateada = $this->horaFin ? sprintf(' - %s)', $this->horaFin->format('H:i')) : ($this->hora ? ')' : '');
         $contexto = $this->itinerarioContexto ? sprintf(' (Plantilla: %s)', $this->itinerarioContexto->getNombreInterno()) : ' (Global)';
         $estadoInclusion = sprintf(' - [%s]', $this->modo->name);
 
-        return $nombreComponente . $horaFormateada . $horaFinFormateada . $contexto . $estadoInclusion;
+        return $nombreComponente . $diaFormateada . $horaFormateada . $horaFinFormateada . $contexto . $estadoInclusion;
     }
 
-    /**
-     * Obtiene el segmento narrativo padre.
-     */
     public function getSegmento(): ?TravelSegmento
     {
         return $this->segmento;
     }
 
-    /**
-     * Establece el segmento narrativo padre.
-     */
     public function setSegmento(?TravelSegmento $segmento): self
     {
         $this->segmento = $segmento;
         return $this;
     }
 
-    /**
-     * Obtiene el componente logístico vinculado.
-     */
     public function getComponente(): ?TravelComponente
     {
         return $this->componente;
     }
 
-    /**
-     * Establece el componente logístico a inyectar.
-     */
     public function setComponente(?TravelComponente $componente): self
     {
         $this->componente = $componente;
@@ -143,85 +150,66 @@ class TravelSegmentoComponente
         return $this;
     }
 
-    /**
-     * Obtiene la plantilla de itinerario a la que está condicionada esta logística.
-     */
     public function getItinerarioContexto(): ?TravelItinerario
     {
         return $this->itinerarioContexto;
     }
 
-    /**
-     * Establece la plantilla de itinerario para filtrar su inyección.
-     */
     public function setItinerarioContexto(?TravelItinerario $itinerarioContexto): self
     {
         $this->itinerarioContexto = $itinerarioContexto;
         return $this;
     }
 
-    /**
-     * Obtiene la hora de inicio de la operativa.
-     */
+    public function getDia(): ?int
+    {
+        return $this->dia;
+    }
+
+    public function setDia(?int $dia): self
+    {
+        $this->dia = $dia;
+        return $this;
+    }
+
     public function getHora(): ?DateTimeImmutable
     {
         return $this->hora;
     }
 
-    /**
-     * Establece la hora de inicio de la operativa.
-     */
     public function setHora(?DateTimeImmutable $hora): self
     {
         $this->hora = $hora;
         return $this;
     }
 
-    /**
-     * Obtiene la hora de fin de la operativa.
-     */
     public function getHoraFin(): ?DateTimeImmutable
     {
         return $this->horaFin;
     }
 
-    /**
-     * Establece la hora de fin de la operativa.
-     */
     public function setHoraFin(?DateTimeImmutable $horaFin): self
     {
         $this->horaFin = $horaFin;
         return $this;
     }
 
-    /**
-     * Obtiene el modo comercial en el que se inyecta.
-     */
     public function getModo(): ComponenteItemModoEnum
     {
         return $this->modo;
     }
 
-    /**
-     * Establece el modo comercial (ej. INCLUIDO, OPCIONAL).
-     */
     public function setModo(ComponenteItemModoEnum $modo): self
     {
         $this->modo = $modo;
         return $this;
     }
 
-    /**
-     * Obtiene el orden de aparición.
-     */
     public function getOrden(): int
     {
         return $this->orden;
     }
 
-    /**
-     * Establece el orden de aparición.
-     */
     public function setOrden(int $orden): self
     {
         $this->orden = $orden;

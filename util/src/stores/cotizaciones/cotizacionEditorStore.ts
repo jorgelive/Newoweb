@@ -1308,6 +1308,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const compId = String(extractIdStr(compMaestro.id || compMaestro['@id']) || '');
                 if (!compId) return;
 
+                // 🔥 1. FILTRO DE REFINAMIENTO POR DÍA
+                // Si el backend envía el campo 'dia' y este no hace match exacto
+                // con el día relativo de la plantilla, ignoramos el componente.
+                if (segComp.dia && parseInt(segComp.dia) !== diaDelSegmento) {
+                    return;
+                }
+
                 let esPrioritario = false;
 
                 if (segComp.itinerarioContexto) {
@@ -1317,18 +1324,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if (itinerarioId && ctxId === currentItinerarioId) {
                         esPrioritario = true;
                     } else {
-                        return;
+                        return; // Pertenece a otra plantilla, se descarta.
                     }
                 }
 
-                const matchPrevio = mejoresMatches.get(compId);
+                // 🔥 2. LLAVE COMPUESTA
+                // Al concatenar el ID con la hora, permitimos que un mismo insumo (Ej: Machu Picchu)
+                // sobreviva en el mapa si está configurado en horas distintas para la misma plantilla.
+                const horaKey = segComp.hora ? String(segComp.hora) : 'default';
+                const llaveUnica = `${compId}_${horaKey}`;
+
+                const matchPrevio = mejoresMatches.get(llaveUnica);
                 if (!matchPrevio || esPrioritario) {
                     segComp.tempCompObj = compMaestro;
-                    mejoresMatches.set(compId, segComp);
+                    mejoresMatches.set(llaveUnica, segComp);
                 }
             });
 
-            for (const [compId, segComp] of mejoresMatches.entries()) {
+            for (const [llaveUnica, segComp] of mejoresMatches.entries()) {
                 let compMaestro = segComp.tempCompObj;
 
                 const targetId = String(extractIdStr(compMaestro.id || compMaestro['@id']) || '');
@@ -1342,6 +1355,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 let fechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
 
+                // 🔥 3. ASIGNACIÓN CRONOLÓGICA DIRECTA
+                // Toma la fecha raíz del servicio y le suma los días relativos del párrafo
+                // en el que está inyectando.
                 if (diaDelSegmento > 1) {
                     const dateObj = new Date(`${fechaBase}T12:00:00Z`);
                     dateObj.setUTCDate(dateObj.getUTCDate() + (diaDelSegmento - 1));

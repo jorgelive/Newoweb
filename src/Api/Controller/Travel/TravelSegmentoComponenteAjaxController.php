@@ -53,15 +53,17 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
             ];
         }, $componentes);
 
+        // 2. Data de la logística ESPECÍFICA (itinerarioContexto = actual)
         $logisticaEspecifica = $this->em->getRepository(TravelSegmentoComponente::class)->findBy([
             'itinerarioContexto' => $itinerarioId,
             'segmento'           => $segmentoId
         ], ['orden' => 'ASC']);
 
-        // 🔥 Se envía el modo a la vista (String extraído del Enum)
+        // 🔥 Se mapea el día a la vista
         $dataEspecifica = array_map(fn($l) => [
             'componenteId' => $l->getComponente()->getId()->toRfc4122(),
             'tarifaId'     => $l->getTarifaPredeterminada() ? $l->getTarifaPredeterminada()->getId()->toRfc4122() : null,
+            'dia'          => $l->getDia(), // <-- Inyectamos el filtro de día relativo
             'hora'         => $l->getHora() ? $l->getHora()->format('H:i') : '',
             'horaFin'      => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '',
             'modo'         => $l->getModo()->value,
@@ -74,10 +76,11 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
             'segmento'           => $segmentoId
         ], ['orden' => 'ASC']);
 
-        // 🔥 Se envía el modo a la vista (String extraído del Enum)
+        // 🔥 Se mapea el día a la vista
         $dataGeneral = array_map(fn($l) => [
             'nombre'       => $l->getComponente()->getNombre(),
             'tarifaNombre' => $l->getTarifaPredeterminada() ? $l->getTarifaPredeterminada()->getNombreInterno() : 'Auto / Varias',
+            'dia'          => $l->getDia(), // <-- Inyectamos el filtro de día relativo
             'hora'         => $l->getHora() ? $l->getHora()->format('H:i') : '--:--',
             'horaFin'      => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '--:--',
             'modo'         => $l->getModo()->value,
@@ -136,7 +139,14 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
             $modoEnum = ComponenteItemModoEnum::tryFrom($row['modo'] ?? 'incluido') ?? ComponenteItemModoEnum::INCLUIDO;
             $nuevaLog->setModo($modoEnum);
 
-            // 🔥 Guardar tarifa predeterminada apuntando correctamente a TravelTarifa
+            // 🔥 Persistir el campo Día si está presente en el payload
+            if (isset($row['dia']) && $row['dia'] !== '') {
+                $nuevaLog->setDia((int)$row['dia']);
+            } else {
+                $nuevaLog->setDia(null);
+            }
+
+            // Guardar tarifa predeterminada apuntando correctamente a TravelTarifa
             if (!empty($row['tarifaId'])) {
                 $tarifa = $this->em->getReference(TravelTarifa::class, Uuid::fromString($row['tarifaId']));
                 $nuevaLog->setTarifaPredeterminada($tarifa);

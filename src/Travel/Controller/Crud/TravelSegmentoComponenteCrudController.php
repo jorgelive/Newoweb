@@ -64,10 +64,11 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
                     'style'           => 'cursor: pointer;'
                 ],
             ])
-            ->setColumns('col-12 col-md-3');
+            ->setColumns('col-12 col-md-2');
 
         yield TimeField::new('horaFin', 'Hora Fin')
             ->setFormat('HH:mm')
+            ->setColumns('col-12 col-md-2')
             ->setHelp('Dejar vacío para usar la duración por defecto.')
             ->setFormTypeOptions([
                 'widget' => 'single_text',
@@ -77,8 +78,16 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
                     'class'           => 'form-control text-center fw-bold text-danger font-monospace',
                     'style'           => 'cursor: pointer;'
                 ],
-            ])
-            ->setColumns('col-12 col-md-3');
+            ]);
+
+        // 🔥 NUEVO: Campo para el filtro por día relativo
+        yield IntegerField::new('dia', 'Día (Filtro)')
+            ->setHelp('Día en la plantilla para aplicar esta logística (Ej: 2). Dejar vacío para aplicar todos los días.')
+            ->setHelp('Dejar vacío para aplicar en todos')
+            ->setColumns('col-12 col-md-2')
+            ->setFormTypeOptions([
+                'attr' => ['placeholder' => 'Global']
+            ]);
 
         yield ChoiceField::new('modo', 'Modo Comercial')
             ->setChoices(array_reduce(ComponenteItemModoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
@@ -93,9 +102,9 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
             ->setFormTypeOptions([
                 'empty_data' => '1',
                 'attr'       => [
-                    'placeholder'     => '1',
+                    'placeholder' => '1',
                     'data-default'    => '1',
-                ],
+                    ],
             ])
             ->hideOnIndex();
     }
