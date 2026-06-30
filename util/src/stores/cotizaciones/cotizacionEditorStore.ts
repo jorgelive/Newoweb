@@ -38,9 +38,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return maestro?.tipo || 'extras';
     };
 
-    /**
-     * Determina si la UI debe exigir un horario.
-     */
     const requiereHoraExacta = (tipo?: string): boolean => {
         if(!tipo) return false;
         const config = catalogos.value.tiposComponente.find((t: any) => t.id === tipo.toLowerCase());
@@ -217,6 +214,43 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const valB = b.fechaHoraInicio || '9999-12-31T23:59';
             return valA.localeCompare(valB);
         });
+    };
+
+    const sincronizarFechaServicio = (servicio: any) => {
+        if (!servicio || !servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return;
+
+        let fechaMinima = '9999-12-31T23:59:59';
+        servicio.cotcomponentes.forEach((c: any) => {
+            if (c.fechaHoraInicio && c.fechaHoraInicio < fechaMinima) {
+                fechaMinima = c.fechaHoraInicio;
+            }
+        });
+
+        if (fechaMinima !== '9999-12-31T23:59:59') {
+            const nuevaFechaAbs = getFechaLimpia(fechaMinima);
+            if (servicio.fechaInicioAbsoluta !== nuevaFechaAbs) {
+                servicio.fechaInicioAbsoluta = nuevaFechaAbs;
+            }
+        }
+    };
+
+    // 🔥 NUEVO: HELPER PARA BLINDAR INSUMOS INYECTADOS
+    const isComponenteBloqueado = (comp: any): boolean => {
+        if (!comp) return false;
+        // 1. Si viene inyectado de plantilla
+        if (comp.cotsegmentoId || comp.cotsegmento) return true;
+        // 2. Si es efímero y acaba de ser inyectado por un upsell
+        if (comp.upsellSourceItemId) return true;
+
+        // 3. Rastreo en frío (Sobrevive a recargas de BD):
+        // Buscamos si algún ítem de cualquier componente lo señala como su inyección.
+        const servicio = findServicioByComponenteId(comp.id);
+        if (servicio && servicio.cotcomponentes) {
+            return servicio.cotcomponentes.some((cPadre: any) =>
+                cPadre.snapshotItems?.some((item: any) => item.idComponenteInyectado === comp.id)
+            );
+        }
+        return false;
     };
 
     // ============================================================================
@@ -518,11 +552,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    /**
-     * Obtiene los catálogos base requeridos para inicializar la vista (Servicios y Proveedores).
-     * Se eliminó explícitamente la carga global de componentes para aplicar Lazy Loading
-     * y evitar sobrecarga inicial.
-     */
     const fetchCatalogos = async () => {
         try {
             const [resServicios, resProveedores, resTipos] = await Promise.all([
@@ -534,7 +563,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             catalogos.value.proveedores = resProveedores.data['hydra:member'] || resProveedores.data['member'] || [];
             catalogos.value.tiposComponente = resTipos.data || [];
 
-            // Inicializar contenedores de componentes, se poblarán bajo demanda al abrir un servicio.
             catalogos.value.allComponentes = [];
             catalogos.value.componentes = [];
         } catch (e) {
@@ -1027,6 +1055,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             servicio.cotcomponentes.push(nuevoComponente);
 
             ordenarComponentesCronologicamente(servicio.cotcomponentes);
+            sincronizarFechaServicio(servicio);
             abrirNivel('componente', nuevoComponente);
         }
     };
@@ -1036,6 +1065,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const servicio = cotizacion.value.cotservicios.find((s: any) => s.id === servicioId);
         if (servicio && servicio.cotcomponentes) {
             servicio.cotcomponentes = servicio.cotcomponentes.filter((c: any) => c.id !== componenteId);
+            sincronizarFechaServicio(servicio);
             if (dataActiva.value?.id === componenteId) retrocederNivel();
         }
     };
@@ -1078,21 +1108,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         item.idComponenteInyectado = null;
     };
 
-    /**
-     * Alterna la inclusión de un ítem descriptivo (inclusión/exclusión snapshot) y gestiona
-     * la inyección o remoción automática de componentes logísticos vinculados (Upsells).
-     * * Razón de existencia: Permite que un cambio en las condiciones descriptivas de la cotización
-     * impacte la estructura financiera de forma inmediata sin realizar viajes redundantes al servidor.
-     * Efectos secundarios: Modifica de forma directa el arreglo 'cotcomponentes' del servicio padre,
-     * insertando o eliminando componentes complejos y recalculando los subtotales financieros.
-     *
-     * @param {any} item El ítem descriptivo del snapshot que se está modificando.
-     * @param {any} componentePadre El componente logístico contenedor que aloja el snapshot de ítems.
-     */
     const toggleUpsellComponent = async (item: any, componentePadre: any) => {
         if (item.incluido) {
-            // 🔥 SOLUCIÓN DUPLICIDAD: Si tiene upsell, marcamos un modo operativo dedicado
-            // para evitar que los bucles de texto plano del voucher lo impriman como simple cadena.
             item.modo = item.tieneUpsell ? 'upsell_injected' : 'incluido';
 
             if (item.tieneUpsell && !item.idComponenteInyectado && !item.isInjecting) {
@@ -1101,8 +1118,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 try {
                     let compMaestro = item.componenteAdicionalVinculado;
 
-                    // 🔥 OPTIMIZACIÓN OPCIÓN B: Si el objeto ya viene completamente hidratado desde el backend,
-                    // consumimos los datos de memoria de forma directa evitando peticiones HTTP repetidas.
                     if (typeof compMaestro === 'string') {
                         const targetIriOrId = compMaestro;
                         const res = await apiClient.get(targetIriOrId);
@@ -1133,7 +1148,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         cottarifas: []
                     };
 
-                    // 🔥 HIDRATACIÓN DE DICCIONARIOS EN DEMANDA PARA EL COMPONENTE INYECTADO
                     if (compMaestro.componenteItems && Array.isArray(compMaestro.componenteItems)) {
                         nuevoComp.snapshotItems = await Promise.all(compMaestro.componenteItems.map(async (subItem: any) => {
                             let tituloData = [];
@@ -1162,8 +1176,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         }));
                     }
 
-                    // 🔥 LÓGICA DE AUTO-CARGA DE TARIFAS (OPCIÓN B)
-                    // Si el componente del upsell posee exactamente una única tarifa, el sistema la calcula y asume automáticamente.
                     let tarifasParaInyectar = [];
                     if (compMaestro.tarifas && compMaestro.tarifas.length === 1) {
                         tarifasParaInyectar.push(compMaestro.tarifas[0]);
@@ -1193,6 +1205,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         if (!servicio.cotcomponentes) servicio.cotcomponentes = [];
                         servicio.cotcomponentes.push(nuevoComp);
                         ordenarComponentesCronologicamente(servicio.cotcomponentes);
+                        sincronizarFechaServicio(servicio);
                     }
 
                 } catch(err) {
@@ -1213,21 +1226,57 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    /**
-     * Recorre el pool de componentes mapeados en un segmento maestro e inyecta de forma masiva
-     * los componentes logísticos correspondientes en la cotización activa bajo demanda,
-     * resolviendo de manera asíncrona la hidratación de los diccionarios de texto.
-     *
-     * Razón de existencia: Automatiza la carga de la estructura logística planificada en el itinerario
-     * base evitando que el operador configure manualmente cada insumo.
-     * Dependencias críticas: Realiza peticiones HTTP concurrentes controladas mediante Promise.all
-     * para la resolución de los IRIs de diccionarios de cada componente inyectado.
-     *
-     * @param {any} segmentoMaestro Datos completos de la entidad segmento del catálogo.
-     * @param {number} diaDelSegmento Día cronológico relativo del hito dentro del viaje.
-     * @param {string} idSegmentoGenerado Identificador único asignado al cotsegmento en la sesión actual.
-     * @param {string | null} itinerarioId Contexto de la plantilla para resolver componentes opcionales condicionados.
-     */
+    const agregarTarifa = (componenteId: string): void => {
+        const numPaxGlobal = parseInt(cotizacion.value.numPax) || 1;
+        const servicio = findServicioByComponenteId(componenteId);
+        if (servicio && servicio.cotcomponentes) {
+            const componente = servicio.cotcomponentes.find((c: any) => c.id === componenteId);
+            if (componente) {
+                let paxAsignados = 0;
+                const tarifas = componente.cottarifas || [];
+                tarifas.forEach((t: any) => {
+                    const maestro = todasLasTarifasMaestras.value.find((cat: any) => extractIdStr(cat.id || cat['@id']) === extractIdStr(t.tarifaMaestraId));
+                    const esGrupal = t.esGrupal !== undefined ? t.esGrupal : (maestro?.costoPorGrupo || false);
+                    if (!esGrupal) paxAsignados += parseInt(t.cantidad) || 0;
+                });
+                let pasajerosRestantes = numPaxGlobal - paxAsignados;
+                if (pasajerosRestantes <= 0) pasajerosRestantes = 1;
+                const nuevaTarifa = {
+                    id: crypto.randomUUID(), tarifaMaestraId: null,
+                    nombreSnapshot: [{ language: 'es', content: 'Nueva Tarifa' }],
+                    cantidad: pasajerosRestantes,
+                    moneda: cotizacion.value.monedaGlobal,
+                    montoCosto: 0.00, tipoModalidadSnapshot: 'Normal',
+                    proveedorMaestroId: null,
+                    proveedorNombreSnapshot: null,
+                    nombreParaProveedorSnapshot: null,
+                    estadoOperativoSnapshot: 'Sin Solicitar',
+                    vencimientoPagoSnapshot: null,
+                    detallesOperativos: [],
+                    esGrupal: false,
+                    sobreescribirTraduccion: false
+                };
+                if (!componente.cottarifas) componente.cottarifas = [];
+                componente.cottarifas.push(nuevaTarifa);
+                abrirNivel('tarifa', nuevaTarifa);
+            }
+        }
+    };
+
+    const eliminarTarifa = (componenteId: string, tarifaId: string): void => {
+        const servicio = findServicioByComponenteId(componenteId);
+        if (servicio && servicio.cotcomponentes) {
+            const componente = servicio.cotcomponentes.find((c: any) => c.id === componenteId);
+            if (componente && componente.cottarifas) {
+                componente.cottarifas = componente.cottarifas.filter((t: any) => t.id !== tarifaId);
+                if (dataActiva.value?.id === tarifaId) retrocederNivel();
+            }
+        }
+    };
+
+    const abrirEditorSegmentos = () => { isSegmentEditorOpen.value = true; };
+    const cerrarEditorSegmentos = () => { isSegmentEditorOpen.value = false; };
+
     const inyectarComponentesDeSegmento = async (segmentoMaestro: any, diaDelSegmento: number = 1, idSegmentoGenerado: string, itinerarioId: string | null = null) => {
         if (!dataActiva.value) return;
 
@@ -1315,7 +1364,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     fHoraFin = calcFin.split('T')[0] + 'T00:00';
                 }
 
-                // 🔥 HIDRATACIÓN ASÍNCRONA DE LOS DICCIONARIOS VENIDOS EN EL POOL DEL SEGMENTO
                 const snapshotItemsPreparados = await Promise.all((compMaestro.componenteItems || []).map(async (item: any) => {
                     let diccData = item.diccionario;
                     let tituloSnapshot = [];
@@ -1396,58 +1444,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             ordenarComponentesCronologicamente(dataActiva.value.cotcomponentes);
+            sincronizarFechaServicio(dataActiva.value);
         }
     };
-    const agregarTarifa = (componenteId: string): void => {
-        const numPaxGlobal = parseInt(cotizacion.value.numPax) || 1;
-        const servicio = findServicioByComponenteId(componenteId);
-        if (servicio && servicio.cotcomponentes) {
-            const componente = servicio.cotcomponentes.find((c: any) => c.id === componenteId);
-            if (componente) {
-                let paxAsignados = 0;
-                const tarifas = componente.cottarifas || [];
-                tarifas.forEach((t: any) => {
-                    const maestro = todasLasTarifasMaestras.value.find((cat: any) => extractIdStr(cat.id || cat['@id']) === extractIdStr(t.tarifaMaestraId));
-                    const esGrupal = t.esGrupal !== undefined ? t.esGrupal : (maestro?.costoPorGrupo || false);
-                    if (!esGrupal) paxAsignados += parseInt(t.cantidad) || 0;
-                });
-                let pasajerosRestantes = numPaxGlobal - paxAsignados;
-                if (pasajerosRestantes <= 0) pasajerosRestantes = 1;
-                const nuevaTarifa = {
-                    id: crypto.randomUUID(), tarifaMaestraId: null,
-                    nombreSnapshot: [{ language: 'es', content: 'Nueva Tarifa' }],
-                    cantidad: pasajerosRestantes,
-                    moneda: cotizacion.value.monedaGlobal,
-                    montoCosto: 0.00, tipoModalidadSnapshot: 'Normal',
-                    proveedorMaestroId: null,
-                    proveedorNombreSnapshot: null,
-                    nombreParaProveedorSnapshot: null,
-                    estadoOperativoSnapshot: 'Sin Solicitar',
-                    vencimientoPagoSnapshot: null,
-                    detallesOperativos: [],
-                    esGrupal: false,
-                    sobreescribirTraduccion: false
-                };
-                if (!componente.cottarifas) componente.cottarifas = [];
-                componente.cottarifas.push(nuevaTarifa);
-                abrirNivel('tarifa', nuevaTarifa);
-            }
-        }
-    };
-
-    const eliminarTarifa = (componenteId: string, tarifaId: string): void => {
-        const servicio = findServicioByComponenteId(componenteId);
-        if (servicio && servicio.cotcomponentes) {
-            const componente = servicio.cotcomponentes.find((c: any) => c.id === componenteId);
-            if (componente && componente.cottarifas) {
-                componente.cottarifas = componente.cottarifas.filter((t: any) => t.id !== tarifaId);
-                if (dataActiva.value?.id === tarifaId) retrocederNivel();
-            }
-        }
-    };
-
-    const abrirEditorSegmentos = () => { isSegmentEditorOpen.value = true; };
-    const cerrarEditorSegmentos = () => { isSegmentEditorOpen.value = false; };
 
     const aplicarPlantilla = async (plantillaId: string): Promise<void> => {
         isLoading.value = true;
@@ -1475,7 +1474,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 });
                 await Promise.all(Array.from(compIdsToFetch).map(id => fetchComponenteDetalles(id)));
 
-                // Bucle de asincronía secuencial para asegurar que las dependencias se hidraten
                 for (const [index, seg] of segmentosReales.entries()) {
                     ordenMaximo++;
                     const relacionOriginal = arrayRelaciones[index];
@@ -1641,6 +1639,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
         if (dataActiva.value.cotcomponentes) {
             dataActiva.value.cotcomponentes = dataActiva.value.cotcomponentes.filter((c: any) => c.cotsegmentoId !== id && c.cotsegmento !== id);
+            sincronizarFechaServicio(dataActiva.value);
         }
     };
 
@@ -1763,6 +1762,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
             });
             ordenarComponentesCronologicamente(servicio.cotcomponentes);
+            sincronizarFechaServicio(servicio);
         }
     };
 
@@ -1824,6 +1824,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
             }
             ordenarComponentesCronologicamente(servicio.cotcomponentes);
+            sincronizarFechaServicio(servicio);
         }
     };
 
@@ -1895,7 +1896,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
         updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente,
-        agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent,
+        agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent, isComponenteBloqueado,
         agregarTarifa, eliminarTarifa, fetchComponenteMaestroSilencioso,
         abrirEditorSegmentos, cerrarEditorSegmentos, aplicarPlantilla,
         agregarSegmentoIndividual, procesarInsercionSegmento, removerCotSegmento,

@@ -764,7 +764,10 @@ const dropSegmento = (e: DragEvent) => {
                   <h3 class="text-[10px] font-black text-indigo-700 uppercase tracking-widest"><i class="fas fa-align-left mr-1"></i> Storytelling</h3>
                   <p class="text-[10px] text-indigo-500 mt-1 font-medium">{{ store.getI18nText(store.dataActiva.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
                 </div>
-                <button @click="store.abrirEditorSegmentos()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-[10px] font-bold shadow-sm whitespace-nowrap">
+                <button @click="store.dataActiva.servicioMaestroId && store.abrirEditorSegmentos()"
+                        :disabled="!store.dataActiva.servicioMaestroId"
+                        :class="!store.dataActiva.servicioMaestroId ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 text-white'"
+                        class="px-3 py-2 rounded-lg text-[10px] font-bold shadow-sm whitespace-nowrap transition-colors">
                   <i class="fas fa-pencil-alt mr-1"></i> Configurar
                 </button>
               </div>
@@ -784,7 +787,7 @@ const dropSegmento = (e: DragEvent) => {
 
                   <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : 'bg-sky-400'"></div>
 
-                  <button v-if="!comp.cotsegmentoId && !comp.cotsegmento && !comp.upsellSourceItemId" @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
+                  <button v-if="!store.isComponenteBloqueado(comp)" @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
                     <i class="fas fa-trash-alt text-sm"></i>
                   </button>
 
@@ -808,11 +811,8 @@ const dropSegmento = (e: DragEvent) => {
                       {{ store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'FIN: ' + formatDateTimeFromISO(comp.fechaHoraFin) : 'HASTA: ' + formatDateOnlyFromISO(comp.fechaHoraFin) }}
                     </span>
 
-                    <span v-if="comp.cotsegmentoId || comp.cotsegmento" class="mt-1 text-[9px] font-bold text-indigo-400 flex items-center gap-1">
-                      <i class="fas fa-link"></i> Componente Matriz
-                    </span>
-                    <span v-if="comp.upsellSourceItemId" class="mt-1 text-[9px] font-bold text-orange-400 flex items-center gap-1">
-                      <i class="fas fa-arrow-up"></i> Upsell Inyectado
+                    <span v-if="store.isComponenteBloqueado(comp)" class="mt-1 text-[9px] font-bold text-indigo-400 flex items-center gap-1">
+                      <i class="fas fa-link"></i> Insumo Autogenerado (Vinculado)
                     </span>
                   </div>
 
@@ -861,7 +861,7 @@ const dropSegmento = (e: DragEvent) => {
               <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2"><i class="fas fa-box-open mr-1"></i> Insumo Maestro</label>
 
               <SearchableSelect
-                  v-if="!store.dataActiva.cotsegmentoId && !store.dataActiva.cotsegmento && !store.dataActiva.upsellSourceItemId"
+                  v-if="!store.isComponenteBloqueado(store.dataActiva)"
                   v-model="store.dataActiva.componenteMaestroId"
                   :options="opcionesComponentes"
                   placeholder="Buscar insumo..."
