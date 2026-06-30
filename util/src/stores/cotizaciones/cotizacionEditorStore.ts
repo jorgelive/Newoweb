@@ -186,7 +186,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const isComponenteConAlerta = (componente: any): boolean => {
         if (!cotizacion.value) return false;
-        // Ignorar alertas si el componente es meramente referencial o gratuito
         if (componente.modo === 'no_incluido' || componente.modo === 'cortesia') return false;
 
         if (!componente.cottarifas || componente.cottarifas.length === 0) return true;
@@ -519,20 +518,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    /**
+     * Obtiene los catálogos base requeridos para inicializar la vista (Servicios y Proveedores).
+     * Se eliminó explícitamente la carga global de componentes para aplicar Lazy Loading
+     * y evitar sobrecarga inicial.
+     */
     const fetchCatalogos = async () => {
         try {
-            const [resServicios, resComponentes, resProveedores, resTipos] = await Promise.all([
+            const [resServicios, resProveedores, resTipos] = await Promise.all([
                 apiClient.get('/platform/travel/servicios?pagination=false'),
-                apiClient.get('/platform/travel/componentes?pagination=false'),
                 apiClient.get('/platform/travel/proveedores?pagination=false'),
                 apiClient.get('/cotizacion/user/maestros-enum/componente-tipos')
             ]);
             catalogos.value.servicios = resServicios.data['hydra:member'] || resServicios.data['member'] || [];
-            catalogos.value.allComponentes = resComponentes.data['hydra:member'] || resComponentes.data['member'] || [];
-            catalogos.value.componentes = catalogos.value.allComponentes;
             catalogos.value.proveedores = resProveedores.data['hydra:member'] || resProveedores.data['member'] || [];
-
             catalogos.value.tiposComponente = resTipos.data || [];
+
+            // Inicializar contenedores de componentes, se poblarán bajo demanda al abrir un servicio.
+            catalogos.value.allComponentes = [];
+            catalogos.value.componentes = [];
         } catch (e) {
             console.error("Error cargando catálogos o enums", e);
         }
@@ -614,7 +618,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(async (item: any) => {
                         let tituloData = [];
 
-                        // Si es un string (IRI), lo pedimos al servidor
                         if (typeof item.diccionario === 'string') {
                             try {
                                 const res = await apiClient.get(item.diccionario);
@@ -623,14 +626,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 console.error("No se pudo cargar el diccionario:", item.diccionario);
                             }
                         } else if (item.diccionario && item.diccionario.titulo) {
-                            // Si ya vino hidratado por el backend
                             tituloData = item.diccionario.titulo;
                         }
 
                         const modoBackend = item.modo || 'incluido';
                         return {
                             id: crypto.randomUUID(),
-                            // Usamos la lógica de i18n del store para extraer el título correcto
                             nombreSnapshot: JSON.parse(JSON.stringify(tituloData)),
                             modo: modoBackend,
                             modoOriginal: modoBackend,
@@ -1077,20 +1078,36 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         item.idComponenteInyectado = null;
     };
 
+    /**
+     * Alterna la inclusión de un ítem descriptivo (inclusión/exclusión snapshot) y gestiona
+     * la inyección o remoción automática de componentes logísticos vinculados (Upsells).
+     * * Razón de existencia: Permite que un cambio en las condiciones descriptivas de la cotización
+     * impacte la estructura financiera de forma inmediata sin realizar viajes redundantes al servidor.
+     * Efectos secundarios: Modifica de forma directa el arreglo 'cotcomponentes' del servicio padre,
+     * insertando o eliminando componentes complejos y recalculando los subtotales financieros.
+     *
+     * @param {any} item El ítem descriptivo del snapshot que se está modificando.
+     * @param {any} componentePadre El componente logístico contenedor que aloja el snapshot de ítems.
+     */
     const toggleUpsellComponent = async (item: any, componentePadre: any) => {
         if (item.incluido) {
-            item.modo = 'incluido';
+            // 🔥 SOLUCIÓN DUPLICIDAD: Si tiene upsell, marcamos un modo operativo dedicado
+            // para evitar que los bucles de texto plano del voucher lo impriman como simple cadena.
+            item.modo = item.tieneUpsell ? 'upsell_injected' : 'incluido';
 
             if (item.tieneUpsell && !item.idComponenteInyectado && !item.isInjecting) {
                 item.isInjecting = true;
 
                 try {
-                    const targetIriOrId = typeof item.componenteAdicionalVinculado === 'string'
-                        ? item.componenteAdicionalVinculado
-                        : (item.componenteAdicionalVinculado['@id'] || item.componenteAdicionalVinculado.id);
+                    let compMaestro = item.componenteAdicionalVinculado;
 
-                    const res = await apiClient.get(targetIriOrId);
-                    const compMaestro = res.data;
+                    // 🔥 OPTIMIZACIÓN OPCIÓN B: Si el objeto ya viene completamente hidratado desde el backend,
+                    // consumimos los datos de memoria de forma directa evitando peticiones HTTP repetidas.
+                    if (typeof compMaestro === 'string') {
+                        const targetIriOrId = compMaestro;
+                        const res = await apiClient.get(targetIriOrId);
+                        compMaestro = res.data;
+                    }
 
                     const targetId = extractIdStr(compMaestro.id || compMaestro['@id']);
                     if (!catalogos.value.allComponentes.some(c => extractIdStr(c.id) === targetId)) {
@@ -1115,6 +1132,61 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         snapshotItems: [],
                         cottarifas: []
                     };
+
+                    // 🔥 HIDRATACIÓN DE DICCIONARIOS EN DEMANDA PARA EL COMPONENTE INYECTADO
+                    if (compMaestro.componenteItems && Array.isArray(compMaestro.componenteItems)) {
+                        nuevoComp.snapshotItems = await Promise.all(compMaestro.componenteItems.map(async (subItem: any) => {
+                            let tituloData = [];
+                            if (typeof subItem.diccionario === 'string') {
+                                try {
+                                    const resDicc = await apiClient.get(subItem.diccionario);
+                                    tituloData = resDicc.data.titulo || [];
+                                } catch (err) {
+                                    console.error("No se pudo cargar el diccionario inyectado:", subItem.diccionario);
+                                }
+                            } else if (subItem.diccionario && subItem.diccionario.titulo) {
+                                tituloData = subItem.diccionario.titulo;
+                            }
+                            return {
+                                id: crypto.randomUUID(),
+                                nombreSnapshot: JSON.parse(JSON.stringify(tituloData)),
+                                modo: subItem.modo || 'incluido',
+                                modoOriginal: subItem.modo || 'incluido',
+                                incluido: subItem.modo === 'incluido' || subItem.modo === 'cortesia',
+                                tieneUpsell: !!subItem.componenteAdicionalVinculado,
+                                componenteAdicionalVinculado: subItem.componenteAdicionalVinculado || null,
+                                idComponenteInyectado: null,
+                                isInjecting: false,
+                                sobreescribirTraduccion: false
+                            };
+                        }));
+                    }
+
+                    // 🔥 LÓGICA DE AUTO-CARGA DE TARIFAS (OPCIÓN B)
+                    // Si el componente del upsell posee exactamente una única tarifa, el sistema la calcula y asume automáticamente.
+                    let tarifasParaInyectar = [];
+                    if (compMaestro.tarifas && compMaestro.tarifas.length === 1) {
+                        tarifasParaInyectar.push(compMaestro.tarifas[0]);
+                    }
+
+                    nuevoComp.cottarifas = tarifasParaInyectar.map((tarifa: any) => ({
+                        id: crypto.randomUUID(),
+                        tarifaMaestraId: tarifa.id || tarifa['@id'],
+                        nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
+                        cantidad: tarifa.costoPorGrupo ? 1 : (parseInt(cotizacion.value?.numPax) || 1),
+                        moneda: tarifa.moneda?.codigo || tarifa.moneda?.id || tarifa.moneda || 'USD',
+                        montoCosto: parseFloat(tarifa.montoCosto || tarifa.monto || 0),
+                        esGrupal: tarifa.costoPorGrupo || false,
+                        proveedorMaestroId: tarifa.provider ? extractIdStr(tarifa.provider.id || tarifa.provider['@id'] || tarifa.provider) : null,
+                        proveedorNombreSnapshot: tarifa.provider?.nombreComercial || null,
+                        nombreParaProveedorSnapshot: tarifa.nombreParaProveedor || tarifa.nombreInterno || null,
+                        estadoOperativoSnapshot: 'Sin Solicitar',
+                        fechaLimitePago: null,
+                        condicionesPagoSnapshot: null,
+                        tipoModalidadSnapshot: tarifa.modalidad || 'Normal',
+                        detallesOperativos: [],
+                        sobreescribirTraduccion: false
+                    }));
 
                     const servicio = findServicioByComponenteId(componentePadre.id);
                     if (servicio) {
@@ -1141,6 +1213,191 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    /**
+     * Recorre el pool de componentes mapeados en un segmento maestro e inyecta de forma masiva
+     * los componentes logísticos correspondientes en la cotización activa bajo demanda,
+     * resolviendo de manera asíncrona la hidratación de los diccionarios de texto.
+     *
+     * Razón de existencia: Automatiza la carga de la estructura logística planificada en el itinerario
+     * base evitando que el operador configure manualmente cada insumo.
+     * Dependencias críticas: Realiza peticiones HTTP concurrentes controladas mediante Promise.all
+     * para la resolución de los IRIs de diccionarios de cada componente inyectado.
+     *
+     * @param {any} segmentoMaestro Datos completos de la entidad segmento del catálogo.
+     * @param {number} diaDelSegmento Día cronológico relativo del hito dentro del viaje.
+     * @param {string} idSegmentoGenerado Identificador único asignado al cotsegmento en la sesión actual.
+     * @param {string | null} itinerarioId Contexto de la plantilla para resolver componentes opcionales condicionados.
+     */
+    const inyectarComponentesDeSegmento = async (segmentoMaestro: any, diaDelSegmento: number = 1, idSegmentoGenerado: string, itinerarioId: string | null = null) => {
+        if (!dataActiva.value) return;
+
+        if (segmentoMaestro.segmentoComponentes && Array.isArray(segmentoMaestro.segmentoComponentes)) {
+
+            const mejoresMatches = new Map<string, any>();
+
+            segmentoMaestro.segmentoComponentes.forEach((segComp: any) => {
+                let compMaestro = segComp.componente;
+                if (!compMaestro) return;
+
+                if (typeof compMaestro === 'string') {
+                    const cId = String(extractIdStr(compMaestro) || '');
+                    compMaestro = catalogos.value.allComponentes.find((c: any) => String(extractIdStr(c.id || c['@id']) || '') === cId);
+                }
+
+                if (!compMaestro || typeof compMaestro !== 'object') return;
+
+                const compId = String(extractIdStr(compMaestro.id || compMaestro['@id']) || '');
+                if (!compId) return;
+
+                let esPrioritario = false;
+
+                if (segComp.itinerarioContexto) {
+                    const ctxId = String(extractIdStr(segComp.itinerarioContexto.id || segComp.itinerarioContexto['@id'] || segComp.itinerarioContexto) || '');
+                    const currentItinerarioId = String(extractIdStr(itinerarioId) || '');
+
+                    if (itinerarioId && ctxId === currentItinerarioId) {
+                        esPrioritario = true;
+                    } else {
+                        return;
+                    }
+                }
+
+                const matchPrevio = mejoresMatches.get(compId);
+                if (!matchPrevio || esPrioritario) {
+                    segComp.tempCompObj = compMaestro;
+                    mejoresMatches.set(compId, segComp);
+                }
+            });
+
+            for (const [compId, segComp] of mejoresMatches.entries()) {
+                let compMaestro = segComp.tempCompObj;
+
+                const targetId = String(extractIdStr(compMaestro.id || compMaestro['@id']) || '');
+
+                const compHidratado = catalogos.value.allComponentes.find((c: any) => String(extractIdStr(c.id || c['@id'])) === targetId);
+                if (compHidratado && compHidratado.tarifas) {
+                    compMaestro = compHidratado;
+                } else if (!catalogos.value.allComponentes.some((c: any) => String(extractIdStr(c.id || c['@id'])) === targetId)) {
+                    catalogos.value.allComponentes.push(compMaestro);
+                }
+
+                let fechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
+
+                if (diaDelSegmento > 1) {
+                    const dateObj = new Date(`${fechaBase}T12:00:00Z`);
+                    dateObj.setUTCDate(dateObj.getUTCDate() + (diaDelSegmento - 1));
+                    fechaBase = dateObj.toISOString().split('T')[0];
+                }
+
+                const tipoComp = compMaestro.tipo || 'extras';
+                const reqHora = requiereHoraExacta(tipoComp);
+
+                const hInicio = reqHora ? (getHoraLimpia(segComp.hora) || '08:00') : '00:00';
+                const fHoraInicio = `${fechaBase}T${hInicio}`;
+
+                let fHoraFin = '';
+                if (reqHora) {
+                    const hFin = getHoraLimpia(segComp.horaFin);
+                    if (hFin) {
+                        fHoraFin = `${fechaBase}T${hFin}`;
+                        if (fHoraFin < fHoraInicio) {
+                            const dNext = new Date(`${fechaBase}T12:00:00Z`);
+                            dNext.setUTCDate(dNext.getUTCDate() + 1);
+                            fHoraFin = `${dNext.toISOString().split('T')[0]}T${hFin}`;
+                        }
+                    } else {
+                        const duracion = parseFloat(compMaestro.duracion || 0);
+                        fHoraFin = addDurationToDate(fHoraInicio, duracion);
+                    }
+                } else {
+                    const duracion = parseFloat(compMaestro.duracion || 0);
+                    const calcFin = addDurationToDate(fHoraInicio, duracion);
+                    fHoraFin = calcFin.split('T')[0] + 'T00:00';
+                }
+
+                // 🔥 HIDRATACIÓN ASÍNCRONA DE LOS DICCIONARIOS VENIDOS EN EL POOL DEL SEGMENTO
+                const snapshotItemsPreparados = await Promise.all((compMaestro.componenteItems || []).map(async (item: any) => {
+                    let diccData = item.diccionario;
+                    let tituloSnapshot = [];
+
+                    if (typeof diccData === 'string') {
+                        try {
+                            const res = await apiClient.get(diccData);
+                            tituloSnapshot = res.data.titulo || [];
+                        } catch (e) {
+                            console.error("No se pudo profundizar el diccionario desde el segmento:", diccData, e);
+                        }
+                    } else if (diccData && diccData.titulo) {
+                        tituloSnapshot = diccData.titulo;
+                    }
+
+                    const modoBackend = item.modo || 'incluido';
+                    return {
+                        id: crypto.randomUUID(),
+                        nombreSnapshot: JSON.parse(JSON.stringify(tituloSnapshot)),
+                        modo: modoBackend,
+                        modoOriginal: modoBackend,
+                        incluido: modoBackend === 'incluido' || modoBackend === 'cortesia',
+                        tieneUpsell: !!item.componenteAdicionalVinculado,
+                        componenteAdicionalVinculado: item.componenteAdicionalVinculado || null,
+                        idComponenteInyectado: null,
+                        isInjecting: false,
+                        sobreescribirTraduccion: false
+                    };
+                }));
+
+                const nuevoComp: any = {
+                    id: crypto.randomUUID(),
+                    componenteMaestroId: compMaestro.id || compMaestro['@id'],
+                    nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
+                    cantidad: calcularPernoctes(fHoraInicio, fHoraFin),
+                    estado: 'Pendiente',
+                    modo: segComp.modo || 'incluido',
+                    fechaHoraInicio: fHoraInicio,
+                    fechaHoraFin: fHoraFin,
+                    cotsegmentoId: idSegmentoGenerado,
+                    sobreescribirTraduccion: false,
+                    cottarifas: [],
+                    snapshotItems: snapshotItemsPreparados
+                };
+
+                let tarifasParaInyectar: any[] = [];
+                const tarifaDefId = extractIdStr(segComp.tarifaId || segComp.tarifaPredeterminada?.id || segComp.tarifaPredeterminada);
+
+                if (tarifaDefId) {
+                    const tDef = (compMaestro.tarifas || []).find((t: any) => extractIdStr(t.id || t['@id']) === tarifaDefId)
+                        || todasLasTarifasMaestras.value.find((t: any) => extractIdStr(t.id || t['@id']) === tarifaDefId);
+                    if (tDef) tarifasParaInyectar.push(tDef);
+                } else if (compMaestro.tarifas && compMaestro.tarifas.length === 1 && nuevoComp.modo !== 'no_incluido') {
+                    tarifasParaInyectar.push(compMaestro.tarifas[0]);
+                }
+
+                nuevoComp.cottarifas = tarifasParaInyectar.map((tarifa: any) => ({
+                    id: crypto.randomUUID(),
+                    tarifaMaestraId: tarifa.id || tarifa['@id'],
+                    nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
+                    cantidad: tarifa.costoPorGrupo ? 1 : (parseInt(cotizacion.value?.numPax) || 1),
+                    moneda: tarifa.moneda?.codigo || tarifa.moneda?.id || tarifa.moneda || 'USD',
+                    montoCosto: parseFloat(tarifa.montoCosto || tarifa.monto || 0),
+                    esGrupal: tarifa.costoPorGrupo || false,
+                    proveedorMaestroId: tarifa.provider ? extractIdStr(tarifa.provider.id || tarifa.provider['@id'] || tarifa.provider) : null,
+                    proveedorNombreSnapshot: tarifa.provider?.nombreComercial || null,
+                    nombreParaProveedorSnapshot: tarifa.nombreParaProveedor || tarifa.nombreInterno || null,
+                    estadoOperativoSnapshot: 'Sin Solicitar',
+                    fechaLimitePago: null,
+                    condicionesPagoSnapshot: null,
+                    tipoModalidadSnapshot: tarifa.modalidad || 'Normal',
+                    detallesOperativos: [],
+                    sobreescribirTraduccion: false
+                }));
+
+                if (!dataActiva.value.cotcomponentes) dataActiva.value.cotcomponentes = [];
+                dataActiva.value.cotcomponentes.push(nuevoComp);
+            }
+
+            ordenarComponentesCronologicamente(dataActiva.value.cotcomponentes);
+        }
+    };
     const agregarTarifa = (componenteId: string): void => {
         const numPaxGlobal = parseInt(cotizacion.value.numPax) || 1;
         const servicio = findServicioByComponenteId(componenteId);
@@ -1192,164 +1449,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const abrirEditorSegmentos = () => { isSegmentEditorOpen.value = true; };
     const cerrarEditorSegmentos = () => { isSegmentEditorOpen.value = false; };
 
-    const inyectarComponentesDeSegmento = (segmentoMaestro: any, diaDelSegmento: number = 1, idSegmentoGenerado: string, itinerarioId: string | null = null) => {
-        if (!dataActiva.value) return;
-
-        if (segmentoMaestro.segmentoComponentes && Array.isArray(segmentoMaestro.segmentoComponentes)) {
-
-            const mejoresMatches = new Map<string, any>();
-
-            segmentoMaestro.segmentoComponentes.forEach((segComp: any) => {
-                let compMaestro = segComp.componente;
-                if (!compMaestro) return;
-
-                if (typeof compMaestro === 'string') {
-                    const cId = String(extractIdStr(compMaestro) || '');
-                    compMaestro = catalogos.value.allComponentes.find((c: any) => String(extractIdStr(c.id || c['@id']) || '') === cId);
-                }
-
-                if (!compMaestro || typeof compMaestro !== 'object') return;
-
-                const compId = String(extractIdStr(compMaestro.id || compMaestro['@id']) || '');
-                if (!compId) return;
-
-                let esPrioritario = false;
-
-                if (segComp.itinerarioContexto) {
-                    const ctxId = String(extractIdStr(segComp.itinerarioContexto.id || segComp.itinerarioContexto['@id'] || segComp.itinerarioContexto) || '');
-                    const currentItinerarioId = String(extractIdStr(itinerarioId) || '');
-
-                    if (itinerarioId && ctxId === currentItinerarioId) {
-                        esPrioritario = true;
-                    } else {
-                        return;
-                    }
-                }
-
-                const matchPrevio = mejoresMatches.get(compId);
-                if (!matchPrevio || esPrioritario) {
-                    segComp.tempCompObj = compMaestro;
-                    mejoresMatches.set(compId, segComp);
-                }
-            });
-
-            mejoresMatches.forEach((segComp: any) => {
-                let compMaestro = segComp.tempCompObj;
-
-                const targetId = String(extractIdStr(compMaestro.id || compMaestro['@id']) || '');
-
-                // 🔥 Aseguramos usar la versión full hidratada con tarifas si existe
-                const compHidratado = catalogos.value.allComponentes.find((c: any) => String(extractIdStr(c.id || c['@id'])) === targetId);
-                if (compHidratado && compHidratado.tarifas) {
-                    compMaestro = compHidratado;
-                } else if (!catalogos.value.allComponentes.some((c: any) => String(extractIdStr(c.id || c['@id'])) === targetId)) {
-                    catalogos.value.allComponentes.push(compMaestro);
-                }
-
-                let fechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
-
-                if (diaDelSegmento > 1) {
-                    const dateObj = new Date(`${fechaBase}T12:00:00Z`);
-                    dateObj.setUTCDate(dateObj.getUTCDate() + (diaDelSegmento - 1));
-                    fechaBase = dateObj.toISOString().split('T')[0];
-                }
-
-                const tipoComp = compMaestro.tipo || 'extras';
-                const reqHora = requiereHoraExacta(tipoComp);
-
-                const hInicio = reqHora ? (getHoraLimpia(segComp.hora) || '08:00') : '00:00';
-                const fHoraInicio = `${fechaBase}T${hInicio}`;
-
-                let fHoraFin = '';
-                if (reqHora) {
-                    const hFin = getHoraLimpia(segComp.horaFin);
-                    if (hFin) {
-                        fHoraFin = `${fechaBase}T${hFin}`;
-                        if (fHoraFin < fHoraInicio) {
-                            const dNext = new Date(`${fechaBase}T12:00:00Z`);
-                            dNext.setUTCDate(dNext.getUTCDate() + 1);
-                            fHoraFin = `${dNext.toISOString().split('T')[0]}T${hFin}`;
-                        }
-                    } else {
-                        const duracion = parseFloat(compMaestro.duracion || 0);
-                        fHoraFin = addDurationToDate(fHoraInicio, duracion);
-                    }
-                } else {
-                    const duracion = parseFloat(compMaestro.duracion || 0);
-                    const calcFin = addDurationToDate(fHoraInicio, duracion);
-                    fHoraFin = calcFin.split('T')[0] + 'T00:00';
-                }
-
-                const nuevoComp: any = {
-                    id: crypto.randomUUID(),
-                    componenteMaestroId: compMaestro.id || compMaestro['@id'],
-                    nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
-                    cantidad: calcularPernoctes(fHoraInicio, fHoraFin),
-                    estado: 'Pendiente',
-                    modo: segComp.modo || 'incluido',
-                    fechaHoraInicio: fHoraInicio,
-                    fechaHoraFin: fHoraFin,
-                    cotsegmentoId: idSegmentoGenerado,
-                    sobreescribirTraduccion: false,
-                    cottarifas: [], // 🔥 Propiedad vacía base
-
-                    snapshotItems: (compMaestro.componenteItems || []).map((item: any) => {
-                        let diccData = item.diccionario || item;
-                        const modoBackend = item.modo || 'incluido';
-                        return {
-                            id: crypto.randomUUID(),
-                            nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(diccData))),
-                            modo: modoBackend,
-                            modoOriginal: modoBackend,
-                            incluido: modoBackend === 'incluido' || modoBackend === 'cortesia',
-                            tieneUpsell: !!item.componenteAdicionalVinculado,
-                            componenteAdicionalVinculado: item.componenteAdicionalVinculado || null,
-                            idComponenteInyectado: null,
-                            isInjecting: false,
-                            sobreescribirTraduccion: false
-                        };
-                    })
-                };
-
-                // 🔥 LÓGICA DE TARIFAS PREDETERMINADAS Y AUTO-CARGA
-                let tarifasParaInyectar: any[] = [];
-                const tarifaDefId = extractIdStr(segComp.tarifaId || segComp.tarifaPredeterminada?.id || segComp.tarifaPredeterminada);
-
-                if (tarifaDefId) {
-                    const tDef = (compMaestro.tarifas || []).find((t: any) => extractIdStr(t.id || t['@id']) === tarifaDefId)
-                        || todasLasTarifasMaestras.value.find((t: any) => extractIdStr(t.id || t['@id']) === tarifaDefId);
-                    if (tDef) tarifasParaInyectar.push(tDef);
-                } else if (compMaestro.tarifas && compMaestro.tarifas.length === 1 && nuevoComp.modo !== 'no_incluido') {
-                    tarifasParaInyectar.push(compMaestro.tarifas[0]);
-                }
-
-                nuevoComp.cottarifas = tarifasParaInyectar.map((tarifa: any) => ({
-                    id: crypto.randomUUID(),
-                    tarifaMaestraId: tarifa.id || tarifa['@id'],
-                    nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
-                    cantidad: tarifa.costoPorGrupo ? 1 : (parseInt(cotizacion.value?.numPax) || 1),
-                    moneda: tarifa.moneda?.codigo || tarifa.moneda?.id || tarifa.moneda || 'USD',
-                    montoCosto: parseFloat(tarifa.montoCosto || tarifa.monto || 0),
-                    esGrupal: tarifa.costoPorGrupo || false,
-                    proveedorMaestroId: tarifa.provider ? extractIdStr(tarifa.provider.id || tarifa.provider['@id'] || tarifa.provider) : null,
-                    proveedorNombreSnapshot: tarifa.provider?.nombreComercial || null,
-                    nombreParaProveedorSnapshot: tarifa.nombreParaProveedor || tarifa.nombreInterno || null,
-                    estadoOperativoSnapshot: 'Sin Solicitar',
-                    fechaLimitePago: null,
-                    condicionesPagoSnapshot: null,
-                    tipoModalidadSnapshot: tarifa.modalidad || 'Normal',
-                    detallesOperativos: [],
-                    sobreescribirTraduccion: false
-                }));
-
-                if (!dataActiva.value.cotcomponentes) dataActiva.value.cotcomponentes = [];
-                dataActiva.value.cotcomponentes.push(nuevoComp);
-            });
-
-            ordenarComponentesCronologicamente(dataActiva.value.cotcomponentes);
-        }
-    };
-
     const aplicarPlantilla = async (plantillaId: string): Promise<void> => {
         isLoading.value = true;
         try {
@@ -1367,7 +1466,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const segmentosRaw = arrayRelaciones.map((rel: any) => rel.segmento ? rel.segmento : rel);
                 const segmentosReales = await hydrateRelations(segmentosRaw);
 
-                // 🔥 NUEVO: Pre-hidratar TODOS los componentes de estos segmentos
                 const compIdsToFetch = new Set<string>();
                 segmentosReales.forEach((seg: any) => {
                     (seg.segmentoComponentes || []).forEach((sc: any) => {
@@ -1377,7 +1475,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 });
                 await Promise.all(Array.from(compIdsToFetch).map(id => fetchComponenteDetalles(id)));
 
-                segmentosReales.forEach((seg: any, index: number) => {
+                // Bucle de asincronía secuencial para asegurar que las dependencias se hidraten
+                for (const [index, seg] of segmentosReales.entries()) {
                     ordenMaximo++;
                     const relacionOriginal = arrayRelaciones[index];
                     const diaDelSegmento = relacionOriginal.dia || 1;
@@ -1403,8 +1502,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         sobreescribirTraduccion: false
                     });
 
-                    inyectarComponentesDeSegmento(seg, diaDelSegmento, nuevoIdSeg, plantillaId);
-                });
+                    await inyectarComponentesDeSegmento(seg, diaDelSegmento, nuevoIdSeg, plantillaId);
+                }
             }
         } catch (error) {
             console.error("Error al aplicar la plantilla profunda", error);
@@ -1427,7 +1526,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             console.error("No se pudo profundizar el segmento", e);
         }
 
-        // 🔥 NUEVO: Pre-hidratar
         const compIdsToFetch = new Set<string>();
         (segmentoMaestro.segmentoComponentes || []).forEach((sc: any) => {
             const cId = extractIdStr(sc.componente?.id || sc.componente?.['@id'] || sc.componente);
@@ -1452,7 +1550,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             sobreescribirTraduccion: false
         });
 
-        inyectarComponentesDeSegmento(segmentoMaestro, 1, nuevoIdSeg, itinerarioId);
+        await inyectarComponentesDeSegmento(segmentoMaestro, 1, nuevoIdSeg, itinerarioId);
     };
 
     const procesarInsercionSegmento = async (segmentoMaestroRaw: any, itinerarioId: string | null, accion: 'append' | 'replace' | 'insert', targetId?: string) => {
@@ -1475,7 +1573,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             console.error("No se pudo profundizar el segmento", e);
         }
 
-        // 🔥 NUEVO: Pre-hidratar
         const compIdsToFetch = new Set<string>();
         (segmentoMaestro.segmentoComponentes || []).forEach((sc: any) => {
             const cId = extractIdStr(sc.componente?.id || sc.componente?.['@id'] || sc.componente);
@@ -1506,7 +1603,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             segAfectado.imagenesSnapshot = extraerImagenesSnapshot(segmentoMaestro);
             segAfectado.sobreescribirTraduccion = false;
 
-            inyectarComponentesDeSegmento(segmentoMaestro, segAfectado.dia || 1, segAfectado.id, itinerarioId);
+            await inyectarComponentesDeSegmento(segmentoMaestro, segAfectado.dia || 1, segAfectado.id, itinerarioId);
 
         } else if (accion === 'insert') {
             const nuevoIdSeg = crypto.randomUUID();
@@ -1533,7 +1630,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             dataActiva.value.cotsegmentos.splice(index + 1, 0, nuevoSeg);
             dataActiva.value.cotsegmentos.forEach((s: any, i: number) => s.orden = i + 1);
 
-            inyectarComponentesDeSegmento(segmentoMaestro, diaDelSegmento, nuevoIdSeg, itinerarioId);
+            await inyectarComponentesDeSegmento(segmentoMaestro, diaDelSegmento, nuevoIdSeg, itinerarioId);
         }
     };
 

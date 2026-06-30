@@ -25,11 +25,10 @@ const store = useCotizacionEditorStore();
 const isDirty = ref(false);
 let watchActivo = false;
 
-// Evitar cierre de pestaña o F5 accidental
 const onBeforeUnload = (e: BeforeUnloadEvent) => {
   if (isDirty.value) {
     e.preventDefault();
-    e.returnValue = ''; // Requerido por los navegadores modernos para mostrar su alerta
+    e.returnValue = '';
   }
 };
 
@@ -41,8 +40,6 @@ onMounted(() => {
 
   if (fileId && cotizacionId) {
     store.inicializarEditor(fileId, cotizacionId).then(() => {
-      // Damos 1 segundo para que todas las dependencias terminen de hidratarse
-      // antes de empezar a vigilar cambios, así evitamos falsos positivos.
       setTimeout(() => {
         watchActivo = true;
         isDirty.value = false;
@@ -57,14 +54,12 @@ onUnmounted(() => {
   window.removeEventListener('beforeunload', onBeforeUnload);
 });
 
-// Vigila profundamente el objeto entero de la cotización
 watch(() => store.cotizacion, () => {
   if (watchActivo) {
     isDirty.value = true;
   }
 }, { deep: true });
 
-// Evitar navegación a otras vistas dentro de la misma App
 onBeforeRouteLeave((to, from, next) => {
   if (isDirty.value) {
     const confirmacion = window.confirm('Tienes cambios sin guardar. ¿Estás seguro de que deseas salir y perder los cambios?');
@@ -78,12 +73,7 @@ onBeforeRouteLeave((to, from, next) => {
   }
 });
 
-// ============================================================================
-// 🔥 ACCIONES DE HEADER
-// ============================================================================
-
 const handleVolver = () => {
-  // Aseguramos que retorne al listado de versiones de este file puntual
   const fileId = route.params.fileId || store.fileActual?.id;
   if (fileId) {
     router.push(`/cotizaciones/${fileId}`);
@@ -94,7 +84,6 @@ const handleVolver = () => {
 
 const handleGuardar = async () => {
   await store.guardarCotizacion();
-  // Reinicia el estado de alerta porque los datos ya están a salvo en la BD
   isDirty.value = false;
 };
 
@@ -795,7 +784,7 @@ const dropSegmento = (e: DragEvent) => {
 
                   <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : 'bg-sky-400'"></div>
 
-                  <button v-if="!comp.cotsegmentoId && !comp.cotsegmento" @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
+                  <button v-if="!comp.cotsegmentoId && !comp.cotsegmento && !comp.upsellSourceItemId" @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
                     <i class="fas fa-trash-alt text-sm"></i>
                   </button>
 
@@ -821,6 +810,9 @@ const dropSegmento = (e: DragEvent) => {
 
                     <span v-if="comp.cotsegmentoId || comp.cotsegmento" class="mt-1 text-[9px] font-bold text-indigo-400 flex items-center gap-1">
                       <i class="fas fa-link"></i> Componente Matriz
+                    </span>
+                    <span v-if="comp.upsellSourceItemId" class="mt-1 text-[9px] font-bold text-orange-400 flex items-center gap-1">
+                      <i class="fas fa-arrow-up"></i> Upsell Inyectado
                     </span>
                   </div>
 
@@ -869,7 +861,7 @@ const dropSegmento = (e: DragEvent) => {
               <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2"><i class="fas fa-box-open mr-1"></i> Insumo Maestro</label>
 
               <SearchableSelect
-                  v-if="!store.dataActiva.cotsegmentoId && !store.dataActiva.cotsegmento"
+                  v-if="!store.dataActiva.cotsegmentoId && !store.dataActiva.cotsegmento && !store.dataActiva.upsellSourceItemId"
                   v-model="store.dataActiva.componenteMaestroId"
                   :options="opcionesComponentes"
                   placeholder="Buscar insumo..."
@@ -882,7 +874,7 @@ const dropSegmento = (e: DragEvent) => {
                       <i class="fas fa-link text-sm"></i>
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Insumo Maestro (Interno)</span>
+                      <span class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Insumo Maestro (Inyectado / Bloqueado)</span>
                       <span class="text-sm font-black text-indigo-900 mt-0.5">{{ getNombreMaestroRef(store.dataActiva) }}</span>
                     </div>
                   </div>
@@ -1375,7 +1367,13 @@ const dropSegmento = (e: DragEvent) => {
                       :options="opcionesPlantillas"
                       placeholder="Elegir itinerario..."
                   />
-                  <button @click="plantillaSeleccionada && store.aplicarPlantilla(plantillaSeleccionada)" class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors shadow-sm">Aplicar</button>
+                  <button @click="plantillaSeleccionada && store.aplicarPlantilla(plantillaSeleccionada)"
+                          :disabled="store.isLoading"
+                          class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
+                          :class="store.isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'">
+                    <i v-if="store.isLoading" class="fas fa-spinner fa-spin"></i>
+                    Aplicar
+                  </button>
                 </div>
               </div>
 
