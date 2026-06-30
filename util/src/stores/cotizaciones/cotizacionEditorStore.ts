@@ -1672,13 +1672,40 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (!dataActiva.value || !dataActiva.value.fechaInicioAbsoluta) return;
         const nuevaFechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
 
+        // 1. Inferir la fecha base anterior antes de aplicar los cambios
+        let oldFechaBase = '9999-12-31';
+        if (dataActiva.value.cotcomponentes && dataActiva.value.cotcomponentes.length > 0) {
+            dataActiva.value.cotcomponentes.forEach((c: any) => {
+                if (c.fechaHoraInicio) {
+                    const d = c.fechaHoraInicio.split('T')[0];
+                    if (d < oldFechaBase) oldFechaBase = d;
+                }
+            });
+        } else if (dataActiva.value.cotsegmentos && dataActiva.value.cotsegmentos.length > 0) {
+            oldFechaBase = dataActiva.value.cotsegmentos[0].fechaAbsoluta;
+        }
+
+        if (oldFechaBase === '9999-12-31') oldFechaBase = nuevaFechaBase;
+
+        // 2. Calcular la diferencia en días (Desplazamiento / Shift)
+        const diffTime = new Date(`${nuevaFechaBase}T12:00:00Z`).getTime() - new Date(`${oldFechaBase}T12:00:00Z`).getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        // 3. Desplazar las fechas de los componentes respetando su diferencia relativa (Día 1, Día 2, etc.)
         if (dataActiva.value.cotcomponentes && Array.isArray(dataActiva.value.cotcomponentes)) {
             dataActiva.value.cotcomponentes.forEach((comp: any) => {
                 if (comp.fechaHoraInicio) {
                     const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
 
+                    const oldFechaString = comp.fechaHoraInicio.split('T')[0];
                     const horaActual = comp.fechaHoraInicio.split('T')[1] || '08:00';
-                    comp.fechaHoraInicio = `${nuevaFechaBase}T${horaActual}`;
+
+                    // Sumar días exactos previniendo saltos de zona horaria
+                    const dateObj = new Date(`${oldFechaString}T12:00:00Z`);
+                    dateObj.setUTCDate(dateObj.getUTCDate() + diffDays);
+                    const nuevaFechaCompStr = dateObj.toISOString().split('T')[0];
+
+                    comp.fechaHoraInicio = `${nuevaFechaCompStr}T${horaActual}`;
 
                     const nS = new Date(comp.fechaHoraInicio).getTime();
                     const nE = new Date(nS + duracionMs);
@@ -1688,6 +1715,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             });
         }
 
+        // 4. Actualizar las fechas absolutas de los segmentos narrativos en base a su propiedad 'dia'
         if (dataActiva.value.cotsegmentos && Array.isArray(dataActiva.value.cotsegmentos)) {
             dataActiva.value.cotsegmentos.forEach((seg: any) => {
                 let fechaCalculada = nuevaFechaBase;
