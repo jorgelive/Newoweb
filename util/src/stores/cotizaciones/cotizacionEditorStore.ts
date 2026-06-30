@@ -1292,6 +1292,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         if (segmentoMaestro.segmentoComponentes && Array.isArray(segmentoMaestro.segmentoComponentes)) {
 
+            // 🔥 Llave = compId únicamente. El objetivo es UN solo ganador por
+            // componente, refinado progresivamente por 'dia' y 'itinerarioContexto'.
             const mejoresMatches = new Map<string, any>();
 
             segmentoMaestro.segmentoComponentes.forEach((segComp: any) => {
@@ -1317,6 +1319,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 let esPrioritario = false;
 
+                // 🔥 2. FILTRO/REFINAMIENTO POR ITINERARIO CONTEXTO
                 if (segComp.itinerarioContexto) {
                     const ctxId = String(extractIdStr(segComp.itinerarioContexto.id || segComp.itinerarioContexto['@id'] || segComp.itinerarioContexto) || '');
                     const currentItinerarioId = String(extractIdStr(itinerarioId) || '');
@@ -1328,20 +1331,19 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     }
                 }
 
-                // 🔥 2. LLAVE COMPUESTA
-                // Al concatenar el ID con la hora, permitimos que un mismo insumo (Ej: Machu Picchu)
-                // sobreviva en el mapa si está configurado en horas distintas para la misma plantilla.
-                const horaKey = segComp.hora ? String(segComp.hora) : 'default';
-                const llaveUnica = `${compId}_${horaKey}`;
-
-                const matchPrevio = mejoresMatches.get(llaveUnica);
-                if (!matchPrevio || esPrioritario) {
+                // 🔥 3. RESOLUCIÓN DE BEST MATCH POR COMPONENTE
+                // Solo reemplaza si no hay match previo, o si el actual es más
+                // refinado (prioritario) que el que ya estaba guardado.
+                // Esto es independiente del orden en que vengan los registros.
+                const matchPrevio = mejoresMatches.get(compId);
+                if (!matchPrevio || (esPrioritario && !matchPrevio.esPrioritario)) {
                     segComp.tempCompObj = compMaestro;
-                    mejoresMatches.set(llaveUnica, segComp);
+                    segComp.esPrioritario = esPrioritario;
+                    mejoresMatches.set(compId, segComp);
                 }
             });
 
-            for (const [llaveUnica, segComp] of mejoresMatches.entries()) {
+            for (const [compId, segComp] of mejoresMatches.entries()) {
                 let compMaestro = segComp.tempCompObj;
 
                 const targetId = String(extractIdStr(compMaestro.id || compMaestro['@id']) || '');
@@ -1355,7 +1357,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 let fechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
 
-                // 🔥 3. ASIGNACIÓN CRONOLÓGICA DIRECTA
+                // 🔥 ASIGNACIÓN CRONOLÓGICA DIRECTA
                 // Toma la fecha raíz del servicio y le suma los días relativos del párrafo
                 // en el que está inyectando.
                 if (diaDelSegmento > 1) {
@@ -1473,7 +1475,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             sincronizarFechaServicio(dataActiva.value);
         }
     };
-
+    
     const aplicarPlantilla = async (plantillaId: string): Promise<void> => {
         isLoading.value = true;
         try {
