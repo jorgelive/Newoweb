@@ -22,8 +22,8 @@ export type ApiTemplate = components['schemas']['Template.jsonld-template.read']
  */
 type BaseApiConversation = components['schemas']['Conversation-conversation.read'];
 export type ApiConversation = Omit<BaseApiConversation, 'contextMilestones'> & {
-    '@id'?: string; // 👈 AÑADE ESTO
-    '@type'?: string; // 👈 AÑADE ESTO
+    '@id'?: string;
+    '@type'?: string;
     contextMilestones?: { start?: string; end?: string; booked_at?: string; eta?: string; } | any;
 };
 
@@ -34,8 +34,8 @@ export type ApiConversation = Omit<BaseApiConversation, 'contextMilestones'> & {
  */
 type BaseApiMessage = components['schemas']['Message.jsonld-message.read'];
 export type ApiMessage = Omit<BaseApiMessage, 'metadata' | 'template' | 'channel' | 'whatsappMetaSendQueues' | 'beds24SendQueues' | 'attachments'> & {
-    '@id'?: string; // 👈 AÑADE ESTO
-    '@type'?: string; // 👈 AÑADE ESTO
+    '@id'?: string;
+    '@type'?: string;
     metadata?: {
         beds24?: { sent_at?: string; delivered_at?: string; read_at?: string; error?: string; [key: string]: any; };
         whatsappMeta?: { sent_at?: string; delivered_at?: string; read_at?: string; error_code?: string; error_reason?: string; reactions?: Record<string, string>; [key: string]: any; };

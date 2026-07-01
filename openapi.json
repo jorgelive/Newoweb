@@ -9551,6 +9551,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -9934,6 +9938,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -10098,6 +10106,10 @@
                                     "null"
                                 ],
                                 "format": "date-time"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
                             }
                         }
                     }
@@ -10266,6 +10278,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -10521,6 +10537,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -10826,6 +10846,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -11051,6 +11075,10 @@
                                     "null"
                                 ],
                                 "format": "date-time"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
                             }
                         }
                     }
@@ -11267,6 +11295,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -11413,6 +11445,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -11616,6 +11652,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -11774,6 +11814,10 @@
                                     "null"
                                 ],
                                 "format": "date-time"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
                             }
                         }
                     }
@@ -11922,6 +11966,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -12170,6 +12218,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -12528,6 +12580,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -12788,6 +12844,10 @@
                                     "null"
                                 ],
                                 "format": "date-time"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
                             }
                         }
                     }
@@ -13038,6 +13098,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -15687,6 +15751,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -15755,6 +15823,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -15782,6 +15854,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -15809,6 +15885,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -15959,6 +16039,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -16166,6 +16250,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -16328,6 +16416,10 @@
                                     "null"
                                 ],
                                 "format": "date-time"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
                             }
                         }
                     }
@@ -16480,6 +16572,10 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },

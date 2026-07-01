@@ -2,7 +2,14 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
 
-export type NivelInspector = 'resumen' | 'servicio' | 'componente' | 'tarifa';
+import {
+    Catalogos, Cotizacion, ComponenteCompleto, Tarifa,
+    TarifaSnapshot, SnapshotItem, NivelInspector, Componente, ComponentePlaceholder, CotServicio, Language
+} from '@/types/cotizacion-store';
+
+export const isComponenteCompleto = (c: any): c is Componente => {
+    return 'tipo' in c;
+};
 
 export interface I18nString { language: string; content: string; }
 export interface MaestroIdioma { id: string; nombre: string; bandera: string | null; prioridad: number; }
@@ -13,16 +20,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const idiomasDisponibles = ref<MaestroIdioma[]>([]);
     const tipoCambioSugerido = ref<number>(1);
 
-    const catalogos = ref({
-        servicios: [] as any[], allComponentes: [] as any[], componentes: [] as any[],
-        tarifas: [] as any[], plantillasItinerario: [] as any[], poolSegmentos: [] as any[],
-        proveedores: [] as any[],
-        tiposComponente: [] as any[]
+    const catalogos = ref<Catalogos>({
+        servicios: [],
+        allComponentes: [],
+        componentes: [],
+        tarifas: [],
+        plantillasItinerario: [],
+        poolSegmentos: [],
+        proveedores: [],
+        tiposComponente: []
     });
 
-    const todasLasTarifasMaestras = ref<any[]>([]);
+    const todasLasTarifasMaestras = ref<Tarifa[]>([]);
 
-    const cotizacion = ref<any>(null);
+    const cotizacion = ref<Cotizacion | null>(null);
     const fileActual = ref<any>(null);
 
     // ============================================================================
@@ -34,8 +45,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const getTipoComponente = (compId: string | null): string => {
         if (!compId) return 'extras';
         const cleanId = extractIdStr(compId);
-        const maestro = catalogos.value.allComponentes.find((c: any) => extractIdStr(c.id || c['@id']) === cleanId);
-        return maestro?.tipo || 'extras';
+
+        const maestro = catalogos.value.allComponentes.find(
+            (c) => extractIdStr(c.id || (c as any)['@id'] || '') === cleanId
+        );
+
+        // Si es un Componente, TS ahora sabe que tiene la propiedad 'tipo'
+        return (maestro && isComponenteCompleto(maestro)) ? maestro.tipo : 'extras';
     };
 
     const requiereHoraExacta = (tipo?: string): boolean => {
@@ -187,7 +203,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         if (!componente.cottarifas || componente.cottarifas.length === 0) return true;
 
-        const numPaxGlobal = parseInt(cotizacion.value.numPax) || 1;
+        const numPaxGlobal = cotizacion.value.numPax || 1;
         let paxAsignados = 0;
         let tieneGrupal = false;
 
@@ -270,7 +286,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const resumenFinanciero = computed(() => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return null;
 
-        const numPaxGlobal = Math.max(parseInt(cotizacion.value.numPax) || 1, 1);
+        const idiomaEdicion = cotizacion.value.idiomaEdicion;
+        const numPaxGlobal = Math.max(cotizacion.value.numPax || 1, 1);
+
         const markup = (parseFloat(cotizacion.value.comision) || 0) / 100;
         const adelantoPct = (parseFloat(cotizacion.value.adelanto) || 0) / 100;
         const tcPromedio = parseFloat(cotizacion.value.tipoCambio) || tipoCambioSugerido.value || 1;
@@ -309,17 +327,19 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if (!esGrupal) cantPasajerosEnComponente += tCant;
 
                     const procedenciaRaw = maestroT?.procedencia || '0';
-                    const tipoPaxId = extractIdStr(maestroT?.tipoPax?.id || maestroT?.tipoPax || procedenciaRaw);
+                    const tipoPaxId = procedenciaRaw;
 
                     let tipoPaxNombre = 'Cualquier Nacionalidad';
-                    if (maestroT?.tipoPax?.nombre) {
-                        tipoPaxNombre = maestroT.tipoPax.nombre;
-                    } else if (procedenciaRaw !== '0') {
-                        tipoPaxNombre = procedenciaRaw === 'nacional' ? 'Nacional / Peruano' : (procedenciaRaw === 'extranjero' ? 'Extranjero' : procedenciaRaw);
+                    if (procedenciaRaw === 'nacional') {
+                        tipoPaxNombre = 'Nacional / Peruano';
+                    } else if (procedenciaRaw === 'extranjero') {
+                        tipoPaxNombre = 'Extranjero';
+                    } else if (procedenciaRaw === 'can') {
+                        tipoPaxNombre = 'Comunidad Andina (CAN)';
                     }
 
-                    const edadMin = parseInt(maestroT?.edadMinima ?? 0);
-                    const edadMax = parseInt(maestroT?.edadMaxima ?? 120);
+                    const edadMin = maestroT?.edadMinima ?? 0;
+                    const edadMax = maestroT?.edadMaxima ?? 120;
 
                     compTarifas.push({
                         esGrupal,
@@ -330,9 +350,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         edadMin,
                         edadMax,
                         tipo: `r${edadMin}-${edadMax}t${tipoPaxId}`,
-                        origenServicio: getI18nText(servicio.nombreSnapshot, cotizacion.value.idiomaEdicion) || 'Servicio',
-                        origenComponente: getI18nText(componente.nombreSnapshot, cotizacion.value.idiomaEdicion) || 'Insumo',
-                        origenTarifa: getI18nText(t.nombreSnapshot, cotizacion.value.idiomaEdicion) || 'Tarifa'
+                        origenServicio: getI18nText(servicio.nombreSnapshot, idiomaEdicion) || 'Servicio',
+                        origenComponente: getI18nText(componente.nombreSnapshot, idiomaEdicion) || 'Insumo',
+                        origenTarifa: getI18nText(t.nombreSnapshot, idiomaEdicion) || 'Tarifa'
                     });
                 });
 
@@ -539,7 +559,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (cotizacionId === 'nueva') {
                 const maxVersion = fileActual.value.cotizaciones?.reduce((max: number, c: any) => Math.max(max, c.version), 0) || 0;
                 crearCotizacionVacia(fileId);
-                cotizacion.value.version = maxVersion + 1;
+
+                if (cotizacion.value) {
+                    cotizacion.value.version = maxVersion + 1;
+                }
             } else {
                 await fetchCotizacion(cotizacionId);
             }
@@ -585,19 +608,35 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (!cleanId) return;
 
         const existsIdx = catalogos.value.allComponentes.findIndex(c => extractIdStr(c.id) === cleanId);
-        if (existsIdx !== -1 && catalogos.value.allComponentes[existsIdx].nombreInterno !== 'Sincronizando...') return;
+
+        // Verificación de estado: si ya existe y no está en modo "cargando", salimos
+        if (existsIdx !== -1 && (catalogos.value.allComponentes[existsIdx] as ComponentePlaceholder).nombre !== 'Sincronizando...') return;
 
         if (existsIdx === -1) {
-            catalogos.value.allComponentes.push({ id: cleanId, nombreInterno: 'Sincronizando...' });
+            const placeholder: ComponentePlaceholder = {
+                id: cleanId,
+                nombre: 'Sincronizando...'
+            };
+            catalogos.value.allComponentes.push(placeholder);
         }
 
         try {
             const res = await apiClient.get(`/platform/travel/componentes/${cleanId}`);
             const idx = catalogos.value.allComponentes.findIndex(c => extractIdStr(c.id) === cleanId);
+
             if (idx !== -1) {
-                catalogos.value.allComponentes.splice(idx, 1, res.data);
+                // Aseguramos que res.data sea tratado como el tipo Componente completo
+                const componenteCompleto = res.data as Componente;
+
+                // Garantía de integridad: si el backend no envía el array vacío, lo inicializamos
+                if (!componenteCompleto.tarifas) componenteCompleto.tarifas = [];
+                if (!componenteCompleto.snapshotItems) componenteCompleto.snapshotItems = [];
+
+                catalogos.value.allComponentes.splice(idx, 1, componenteCompleto);
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error("Error hidratando componente:", e);
+        }
     };
 
     const fetchServicioDetalles = async (servicioIriOrId: string) => {
@@ -689,7 +728,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const fetchCotizacion = async (id: string) => {
         try {
             const response = await apiClient.get(`/platform/sales/cotizacions/${id}`);
-            const data = response.data;
+            const data = response.data as Cotizacion;
 
             if (!data.cotservicios) data.cotservicios = [];
 
@@ -763,8 +802,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             await Promise.all(fetchPromises);
 
+            data.idiomaEdicion = 'es';
+
             cotizacion.value = data;
-            cotizacion.value.idiomaEdicion = 'es';
 
         } catch (e) {
             throw new Error("No se encontró la cotización o falló la hidratación.");
@@ -779,19 +819,33 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         cotizacion.value = {
             id: crypto.randomUUID(),
             file: `/platform/sales/cotizacion_files/${fileId}`,
-            version: 1, estado: 'Pendiente', monedaGlobal: 'USD',
+            version: 1,
+            estado: 'Pendiente',
+            monedaGlobal: 'USD',
             idiomaCliente: idiomaDefault,
-            idiomaEdicion: 'es', numPax: 1,
-            comision: 20.00,
-            adelanto: 0.00,
+            idiomaEdicion: 'es',
+            numPax: 1,
+
+            // 👉 Corregido: Pasar como string tal cual exige el esquema OpenAPI
+            comision: '20.00',
+            adelanto: '0.00',
             tipoCambio: String(tipoCambioSugerido.value || 1),
-            hotelOculto: true, precioOculto: false, resumenI18n: [],
+
+            // 👉 Campos obligatorios faltantes añadidos para cumplir el contrato
+            totalCosto: '0.00',
+            totalVenta: '0.00',
+
+            hotelOculto: true,
+            precioOculto: false,
+            resumen: [],
             sobreescribirTraduccion: false,
             cotservicios: []
-        };
+        } as Cotizacion;
     };
 
     const guardarCotizacion = async (): Promise<void> => {
+
+        if (!cotizacion.value) return;
         if (isLoading.value) return;
         isLoading.value = true;
         try {
@@ -995,14 +1049,19 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const findServicioByComponenteId = (compId: string) => {
-        return cotizacion.value.cotservicios.find((s: any) => s.cotcomponentes?.some((c: any) => c.id === compId)) || null;
+        if (!cotizacion.value || !cotizacion.value.cotservicios) return null;
+
+        return cotizacion.value.cotservicios.find(
+            (s) => s.cotcomponentes?.some((c) => extractIdStr(c.id) === extractIdStr(compId))
+        ) || null;
     };
 
     const updateNumPaxGlobal = (newPaxStr: string | number) => {
+        // 👉 Guardián de tipo: detiene la ejecución si cotizacion.value es null
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
-        const oldPax = parseInt(cotizacion.value.numPax) || 1;
-        const newPax = parseInt(newPaxStr as string) || 1;
+        const oldPax = parseInt(String(cotizacion.value.numPax)) || 1;
+        const newPax = parseInt(String(newPaxStr)) || 1;
 
         if (oldPax === newPax) return;
 
@@ -1011,7 +1070,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             for (const componente of servicio.cotcomponentes) {
                 if (!componente.cottarifas) continue;
                 for (const tarifa of componente.cottarifas) {
-                    if (!tarifa.esGrupal && parseInt(tarifa.cantidad) === oldPax) {
+                    if (!tarifa.esGrupal && parseInt(String(tarifa.cantidad)) === oldPax) {
                         tarifa.cantidad = newPax;
                     }
                 }
@@ -1022,18 +1081,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const agregarServicio = (): void => {
+        if (!cotizacion.value) return;
+
         const cots = cotizacion.value.cotservicios || [];
         const fechaBase = cots.length > 0
             ? getFechaLimpia(cots[cots.length - 1].fechaInicioAbsoluta)
             : getFechaLimpia(new Date().toISOString());
 
         const nuevoServicio = {
-            id: crypto.randomUUID(), servicioMaestroId: null,
+            id: crypto.randomUUID(),
+            servicioMaestroId: null,
             nombreSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             itinerarioNombreSnapshot: [{ language: 'es', content: 'Sin plantilla' }],
-            fechaInicioAbsoluta: fechaBase, cotsegmentos: [], cotcomponentes: [],
+            fechaInicioAbsoluta: fechaBase,
+            cotsegmentos: [],
+            cotcomponentes: [],
             sobreescribirTraduccion: false
-        };
+        } as CotServicio;
+
         if (!cotizacion.value.cotservicios) cotizacion.value.cotservicios = [];
         cotizacion.value.cotservicios.push(nuevoServicio);
         abrirNivel('servicio', nuevoServicio);
@@ -1041,7 +1106,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const eliminarServicio = (servicioId: string): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
-        cotizacion.value.cotservicios = cotizacion.value.cotservicios.filter((s: any) => s.id !== servicioId);
+
+        // 👉 Cambiado (s: any) por (s: CotServicio) para mantener el contrato i18n
+        cotizacion.value.cotservicios = cotizacion.value.cotservicios.filter(
+            (s: CotServicio) => s.id !== servicioId
+        );
+
         if (dataActiva.value?.id === servicioId) retrocederNivel();
     };
 
@@ -1195,7 +1265,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         id: crypto.randomUUID(),
                         tarifaMaestraId: tarifa.id || tarifa['@id'],
                         nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
-                        cantidad: tarifa.costoPorGrupo ? 1 : (parseInt(cotizacion.value?.numPax) || 1),
+                        cantidad: tarifa.costoPorGrupo ? 1 : (cotizacion.value?.numPax || 1),
                         moneda: tarifa.moneda?.codigo || tarifa.moneda?.id || tarifa.moneda || 'USD',
                         montoCosto: parseFloat(tarifa.montoCosto || tarifa.monto || 0),
                         esGrupal: tarifa.costoPorGrupo || false,
@@ -1237,40 +1307,54 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const agregarTarifa = (componenteId: string): void => {
-        const numPaxGlobal = parseInt(cotizacion.value.numPax) || 1;
-        const servicio = findServicioByComponenteId(componenteId);
-        if (servicio && servicio.cotcomponentes) {
-            const componente = servicio.cotcomponentes.find((c: any) => c.id === componenteId);
-            if (componente) {
-                let paxAsignados = 0;
-                const tarifas = componente.cottarifas || [];
-                tarifas.forEach((t: any) => {
-                    const maestro = todasLasTarifasMaestras.value.find((cat: any) => extractIdStr(cat.id || cat['@id']) === extractIdStr(t.tarifaMaestraId));
-                    const esGrupal = t.esGrupal !== undefined ? t.esGrupal : (maestro?.costoPorGrupo || false);
-                    if (!esGrupal) paxAsignados += parseInt(t.cantidad) || 0;
-                });
-                let pasajerosRestantes = numPaxGlobal - paxAsignados;
-                if (pasajerosRestantes <= 0) pasajerosRestantes = 1;
-                const nuevaTarifa = {
-                    id: crypto.randomUUID(), tarifaMaestraId: null,
-                    nombreSnapshot: [{ language: 'es', content: 'Nueva Tarifa' }],
-                    cantidad: pasajerosRestantes,
-                    moneda: cotizacion.value.monedaGlobal,
-                    montoCosto: 0.00, tipoModalidadSnapshot: 'Normal',
-                    proveedorMaestroId: null,
-                    proveedorNombreSnapshot: null,
-                    nombreParaProveedorSnapshot: null,
-                    estadoOperativoSnapshot: 'Sin Solicitar',
-                    vencimientoPagoSnapshot: null,
-                    detallesOperativos: [],
-                    esGrupal: false,
-                    sobreescribirTraduccion: false
-                };
-                if (!componente.cottarifas) componente.cottarifas = [];
-                componente.cottarifas.push(nuevaTarifa);
-                abrirNivel('tarifa', nuevaTarifa);
-            }
-        }
+        // 1. 👉 Guardián de tipo: elimina el error TS18047 de un solo golpe
+        if (!cotizacion.value) return;
+
+        // Buscamos el componente y lo casteamos a ComponenteCompleto para que herede las interfaces extendidas del Frontend
+        const componente = cotizacion.value.cotservicios
+            ?.flatMap(s => s.cotcomponentes || [])
+            // 👉 Pasamos por 'unknown' primero para disolver la validación de solapamiento de OpenAPI
+            .find(c => c.id === componenteId) as unknown as ComponenteCompleto;
+
+        if (!componente) return;
+
+        // Lógica para calcular pasajeros asignados...
+        let paxAsignados = 0;
+        const tarifas = componente.cottarifas || [];
+        tarifas.forEach((t: any) => {
+            const esGrupal = t.esGrupal !== undefined ? t.esGrupal : false;
+            if (!esGrupal) paxAsignados += parseInt(String(t.cantidad)) || 0;
+        });
+
+        // Usamos el estado real del store cotizacion.value.numPax
+        let pasajerosRestantes = (parseInt(String(cotizacion.value.numPax)) || 1) - paxAsignados;
+        if (pasajerosRestantes <= 0) pasajerosRestantes = 1;
+
+        // 2. 👉 Construcción alineada con el contrato estricto
+        const nuevaTarifa = {
+            id: crypto.randomUUID(),
+            tarifaMaestraId: null,
+            // Usamos el string 'es' directamente para que calce con la interfaz sin obligarte a importar Enums
+            nombreSnapshot: [{ language: 'es', content: 'Nueva Tarifa' }],
+            cantidad: pasajerosRestantes,
+            moneda: cotizacion.value.monedaGlobal,
+
+            // string como demanda la API de persistencia
+            montoCosto: '0.00',
+
+            esGrupal: false,
+            tipoModalidadSnapshot: 'Individual',
+            proveedorMaestroId: null,
+            proveedorNombreSnapshot: null,
+            estadoOperativoSnapshot: 'Pendiente',
+            fechaLimitePago: null,
+            sobreescribirTraduccion: false
+        } as TarifaSnapshot; // Casting para asegurar compatibilidad de empuje
+
+        if (!componente.cottarifas) componente.cottarifas = [];
+        componente.cottarifas.push(nuevaTarifa); // ¡Limpio! Al ser ComponenteCompleto, TypeScript ya no choca aquí
+
+        abrirNivel('tarifa', nuevaTarifa);
     };
 
     const eliminarTarifa = (componenteId: string, tarifaId: string): void => {
@@ -1327,7 +1411,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if (itinerarioId && ctxId === currentItinerarioId) {
                         esPrioritario = true;
                     } else {
-                        return; // Pertenece a otra plantilla, se descarta.
+                        return;
                     }
                 }
 
@@ -1348,11 +1432,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 const targetId = String(extractIdStr(compMaestro.id || compMaestro['@id']) || '');
 
-                const compHidratado = catalogos.value.allComponentes.find((c: any) => String(extractIdStr(c.id || c['@id'])) === targetId);
+                const compHidratado = catalogos.value.allComponentes.find(
+                    (c): c is Componente => 'tarifas' in c // Si tiene 'tarifas', ES Componente
+                );
+
                 if (compHidratado && compHidratado.tarifas) {
+                    // Aquí TypeScript ya sabe que compHidratado es de tipo Componente
                     compMaestro = compHidratado;
-                } else if (!catalogos.value.allComponentes.some((c: any) => String(extractIdStr(c.id || c['@id'])) === targetId)) {
-                    catalogos.value.allComponentes.push(compMaestro);
                 }
 
                 let fechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
@@ -1452,7 +1538,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     id: crypto.randomUUID(),
                     tarifaMaestraId: tarifa.id || tarifa['@id'],
                     nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
-                    cantidad: tarifa.costoPorGrupo ? 1 : (parseInt(cotizacion.value?.numPax) || 1),
+                    cantidad: tarifa.costoPorGrupo ? 1 : (cotizacion.value?.numPax || 1),
                     moneda: tarifa.moneda?.codigo || tarifa.moneda?.id || tarifa.moneda || 'USD',
                     montoCosto: parseFloat(tarifa.montoCosto || tarifa.monto || 0),
                     esGrupal: tarifa.costoPorGrupo || false,
@@ -1475,7 +1561,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             sincronizarFechaServicio(dataActiva.value);
         }
     };
-    
+
     const aplicarPlantilla = async (plantillaId: string): Promise<void> => {
         isLoading.value = true;
         try {
@@ -1705,11 +1791,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         if (oldFechaBase === '9999-12-31') oldFechaBase = nuevaFechaBase;
 
-        // 2. Calcular la diferencia en días (Desplazamiento / Shift)
         const diffTime = new Date(`${nuevaFechaBase}T12:00:00Z`).getTime() - new Date(`${oldFechaBase}T12:00:00Z`).getTime();
         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-        // 3. Desplazar las fechas de los componentes respetando su diferencia relativa (Día 1, Día 2, etc.)
         if (dataActiva.value.cotcomponentes && Array.isArray(dataActiva.value.cotcomponentes)) {
             dataActiva.value.cotcomponentes.forEach((comp: any) => {
                 if (comp.fechaHoraInicio) {
@@ -1718,7 +1802,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const oldFechaString = comp.fechaHoraInicio.split('T')[0];
                     const horaActual = comp.fechaHoraInicio.split('T')[1] || '08:00';
 
-                    // Sumar días exactos previniendo saltos de zona horaria
                     const dateObj = new Date(`${oldFechaString}T12:00:00Z`);
                     dateObj.setUTCDate(dateObj.getUTCDate() + diffDays);
                     const nuevaFechaCompStr = dateObj.toISOString().split('T')[0];
@@ -1733,7 +1816,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             });
         }
 
-        // 4. Actualizar las fechas absolutas de los segmentos narrativos en base a su propiedad 'dia'
         if (dataActiva.value.cotsegmentos && Array.isArray(dataActiva.value.cotsegmentos)) {
             dataActiva.value.cotsegmentos.forEach((seg: any) => {
                 let fechaCalculada = nuevaFechaBase;
@@ -1752,14 +1834,31 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    /**
+     * Maneja el cambio de selección de un Componente Maestro.
+     * Hidrata los snapshots y recalcula fechas basándose en el tipo y duración del componente.
+     *
+     * @param val El ID o IRI del componente seleccionado.
+     */
     const onComponenteMaestroChange = async (val: string | null): Promise<void> => {
-        if (!val || val === 'null') { catalogos.value.tarifas = []; return; }
-        const targetId = extractIdStr(val);
-        const maestro = catalogos.value.allComponentes.find((c: any) => extractIdStr(c.id) === targetId || extractIdStr(c['@id']) === targetId);
+        if (!val || val === 'null') {
+            catalogos.value.tarifas = [];
+            return;
+        }
 
-        if (maestro && dataActiva.value) {
+        const targetId = extractIdStr(val);
+
+        // Eliminamos el (c: any) y usamos la inferencia tipada de allComponentes
+        const maestro = catalogos.value.allComponentes.find(
+            (c) => extractIdStr(c.id || (c as any)['@id'] || '') === targetId
+        );
+
+        // 1. Aplicamos el Type Guard: isComponenteCompleto
+        if (maestro && isComponenteCompleto(maestro) && dataActiva.value) {
+
             dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
 
+            // TypeScript ahora sabe con 100% de certeza que maestro.tipo existe
             const reqHora = requiereHoraExacta(maestro.tipo);
             const fechaDate = dataActiva.value.fechaHoraInicio.split('T')[0];
 
@@ -1772,13 +1871,18 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 dataActiva.value.fechaHoraFin = `${endStr.split('T')[0]}T00:00`;
             }
 
-            if(dataActiva.value.fechaHoraInicio && dataActiva.value.fechaHoraFin){
+            if (dataActiva.value.fechaHoraInicio && dataActiva.value.fechaHoraFin) {
                 dataActiva.value.cantidad = calcularPernoctes(dataActiva.value.fechaHoraInicio, dataActiva.value.fechaHoraFin);
             }
 
             dataActiva.value.snapshotItems = [];
             dataActiva.value.cottarifas = [];
 
+            await fetchComponenteDetalles(val);
+
+        } else if (maestro && dataActiva.value) {
+            // 2. Caso de Respaldo: Si maestro es un ComponentePlaceholder ("Sincronizando...")
+            // No podemos acceder a maestro.tipo, pero sí debemos intentar cargar los detalles desde la API.
             await fetchComponenteDetalles(val);
         }
     };
@@ -1863,7 +1967,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     segmentoPadre.fechaAbsoluta = nuevaFechaDateStr;
                     segmentoPadre.dia = calcularDiaRelativo(getFechaLimpia(servicio.fechaInicioAbsoluta), nuevaFechaDateStr);
 
-                    servicio.cotcomponentes.forEach((comp: any) => {
+                    servicio.cotcomponentes?.forEach((comp: any) => {
                         const hermanoSegId = comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento.id || comp.cotsegmento['@id'] || comp.cotsegmento) : null);
 
                         if (hermanoSegId === segmentoPadre.id && comp.id !== dataActiva.value.id) {
@@ -1879,7 +1983,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     });
                 }
             }
-            ordenarComponentesCronologicamente(servicio.cotcomponentes);
+            if (servicio.cotcomponentes) {
+                ordenarComponentesCronologicamente(servicio.cotcomponentes);
+            }
             sincronizarFechaServicio(servicio);
         }
     };
@@ -1894,7 +2000,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (typeof maestro.moneda === 'object' && maestro.moneda !== null) dataActiva.value.moneda = maestro.moneda.id || maestro.moneda.codigo || 'USD';
             else dataActiva.value.moneda = maestro.moneda || 'USD';
 
-            dataActiva.value.montoCosto = parseFloat(maestro.monto || maestro.montoCosto || 0);
+            dataActiva.value.montoCosto = parseFloat(maestro.monto || '0');
             dataActiva.value.tipoModalidadSnapshot = maestro.modalidad || 'Normal';
 
             if (maestro.costoPorGrupo) {
@@ -1904,8 +2010,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 dataActiva.value.esGrupal = false;
             }
 
-            if (maestro.provider || maestro.proveedor) {
-                const provObj = maestro.provider || maestro.proveedor;
+            if (maestro.proveedor) {
+                const provObj = maestro.proveedor;
                 const provId = extractIdStr(provObj.id || provObj['@id'] || provObj);
                 dataActiva.value.proveedorMaestroId = provId;
 

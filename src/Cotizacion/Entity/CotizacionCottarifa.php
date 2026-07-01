@@ -106,7 +106,7 @@ class CotizacionCottarifa
     }
 
     // --- MÉTODOS SOBRESCRITOS PARA EXPONER EL FLAG A API PLATFORM ---
-    #[Groups(['cotizacion:write'])]
+    #[Groups(['cotizacion:write', 'cotizacion:read'])]
     public function getSobreescribirTraduccion(): bool
     {
         return $this->sobreescribirTraduccion;

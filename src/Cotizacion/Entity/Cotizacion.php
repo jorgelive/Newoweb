@@ -149,7 +149,7 @@ class Cotizacion
         return $this;
     }
 
-    #[Groups(['cotizacion:write'])]
+    #[Groups(['cotizacion:write', 'cotizacion:read'])]
     public function getSobreescribirTraduccion(): bool
     {
         return $this->sobreescribirTraduccion;

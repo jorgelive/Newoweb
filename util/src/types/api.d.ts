@@ -1737,6 +1737,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "Cotizacion-cotizacion.write": {
             /**
@@ -1872,6 +1874,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "Cotizacion.html-file.read_file.item.read_timestamp.read": {
             /** @default 1 */
@@ -1925,6 +1929,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "Cotizacion.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default 1 */
@@ -1978,6 +1984,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "Cotizacion.multipart-file.read_file.item.read_timestamp.read": {
             /** @default 1 */
@@ -2065,6 +2073,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCotcomponente-cotizacion.write": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
@@ -2164,6 +2174,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -2238,6 +2250,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.multipart": {
@@ -2311,6 +2325,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         CotizacionCotservicio: {
             /**
@@ -2351,6 +2367,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCotservicio-cotizacion.write": {
             nombreSnapshot?: string[];
@@ -2403,6 +2421,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCotservicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -2443,6 +2463,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCotservicio.multipart": {
             /**
@@ -2483,6 +2505,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         CotizacionCottarifa: {
             /**
@@ -2567,6 +2591,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa-cotizacion.write": {
             nombreSnapshot?: string[];
@@ -2685,6 +2711,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -2769,6 +2797,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa.multipart": {
             /**
@@ -2853,6 +2883,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         CotizacionFile: {
@@ -3618,6 +3650,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionNota-cotizacion.write": {
             /**
@@ -3637,6 +3671,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionNota.jsonld-cotizacion.read_timestamp.read": {
             id?: string;
@@ -3644,6 +3680,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionNota.multipart-cotizacion.read_timestamp.read": {
             id?: string;
@@ -3651,6 +3689,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         CotizacionSegmento: {
             /**
@@ -3700,6 +3740,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionSegmento-cotizacion.write": {
             /** @default 1 */
@@ -3765,6 +3807,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionSegmento.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -3814,6 +3858,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionSegmento.multipart": {
             /**
@@ -3863,6 +3909,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         Diccionario: {
             nombreInterno?: string;
