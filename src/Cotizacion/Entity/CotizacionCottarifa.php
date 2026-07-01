@@ -86,9 +86,6 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $esGrupal = false;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
-    #[ORM\Column(type: 'json')]
-    private array $detallesOperativos = [];
 
     public function __construct()
     {
@@ -262,6 +259,4 @@ class CotizacionCottarifa
     public function isEsGrupal(): bool { return $this->esGrupal; }
     public function setEsGrupal(bool $esGrupal): self { $this->esGrupal = $esGrupal; return $this; }
 
-    public function getDetallesOperativos(): array { return $this->detallesOperativos; }
-    public function setDetallesOperativos(array $detallesOperativos): self { $this->detallesOperativos = $detallesOperativos; return $this; }
 }

@@ -10408,6 +10408,12 @@
                             "null"
                         ]
                     },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -10438,6 +10444,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "detallesParaCliente": {
+                        "readOnly": true,
+                        "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -10516,6 +10530,12 @@
                             "null"
                         ]
                     },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -10541,6 +10561,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "detallesParaCliente": {
+                        "readOnly": true,
+                        "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -10619,6 +10647,12 @@
                             "null"
                         ]
                     },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -10633,6 +10667,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "detallesParaCliente": {
+                        "readOnly": true,
+                        "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -10717,6 +10759,12 @@
                             "null"
                         ]
                     },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -10747,6 +10795,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "detallesParaCliente": {
+                        "readOnly": true,
+                        "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -10825,6 +10881,12 @@
                             "null"
                         ]
                     },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -10850,6 +10912,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "detallesParaCliente": {
+                        "readOnly": true,
+                        "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -10938,6 +11008,12 @@
                                     "null"
                                 ]
                             },
+                            "detallesOperativos": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
                             "id": {
                                 "allOf": [
                                     {
@@ -10968,6 +11044,14 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "detallesParaCliente": {
+                                "readOnly": true,
+                                "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
                             }
                         }
                     }
@@ -11054,6 +11138,12 @@
                                     "null"
                                 ]
                             },
+                            "detallesOperativos": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
                             "id": {
                                 "allOf": [
                                     {
@@ -11079,6 +11169,14 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "detallesParaCliente": {
+                                "readOnly": true,
+                                "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
                             }
                         }
                     }
@@ -11166,6 +11264,12 @@
                             "null"
                         ]
                     },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -11196,6 +11300,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "detallesParaCliente": {
+                        "readOnly": true,
+                        "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -11274,6 +11386,12 @@
                             "null"
                         ]
                     },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -11299,6 +11417,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "detallesParaCliente": {
+                        "readOnly": true,
+                        "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -12065,12 +12191,6 @@
                     "esGrupal": {
                         "type": "boolean"
                     },
-                    "detallesOperativos": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "id": {
                         "allOf": [
                             {
@@ -12191,12 +12311,6 @@
                     "esGrupal": {
                         "type": "boolean"
                     },
-                    "detallesOperativos": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "id": {
                         "allOf": [
                             {
@@ -12312,12 +12426,6 @@
                     "esGrupal": {
                         "type": "boolean"
                     },
-                    "detallesOperativos": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "id": {
                         "allOf": [
                             {
@@ -12426,12 +12534,6 @@
                     },
                     "esGrupal": {
                         "type": "boolean"
-                    },
-                    "detallesOperativos": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     },
                     "id": {
                         "allOf": [
@@ -12552,12 +12654,6 @@
                     },
                     "esGrupal": {
                         "type": "boolean"
-                    },
-                    "detallesOperativos": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     },
                     "id": {
                         "allOf": [
@@ -12683,12 +12779,6 @@
                             },
                             "esGrupal": {
                                 "type": "boolean"
-                            },
-                            "detallesOperativos": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
                             },
                             "id": {
                                 "allOf": [
@@ -12817,12 +12907,6 @@
                             "esGrupal": {
                                 "type": "boolean"
                             },
-                            "detallesOperativos": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
                             "id": {
                                 "allOf": [
                                     {
@@ -12945,12 +13029,6 @@
                     "esGrupal": {
                         "type": "boolean"
                     },
-                    "detallesOperativos": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "id": {
                         "allOf": [
                             {
@@ -13070,12 +13148,6 @@
                     },
                     "esGrupal": {
                         "type": "boolean"
-                    },
-                    "detallesOperativos": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     },
                     "id": {
                         "allOf": [

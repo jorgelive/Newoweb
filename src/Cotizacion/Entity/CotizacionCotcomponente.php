@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use App\Attribute\AutoTranslate;
 use App\Cotizacion\Enum\ComponenteEstadoEnum;
+use App\Cotizacion\Enum\DetalleOperativoTipoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
@@ -79,6 +80,11 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $componenteMaestroId = null;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['detalle'], format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $detallesOperativos = [];
+
     public function __construct()
     {
         $this->initializeId();
@@ -145,6 +151,36 @@ class CotizacionCotcomponente
         }
         return $this;
     }
+
+    public function getDetallesOperativos(): array
+    {
+        return $this->detallesOperativos;
+    }
+
+    public function setDetallesOperativos(array $detallesOperativos): self
+    {
+        foreach ($detallesOperativos as $bloque) {
+            if (!isset($bloque['tipo']) || DetalleOperativoTipoEnum::tryFrom($bloque['tipo']) === null) {
+                throw new \InvalidArgumentException('Tipo de detalle operativo inválido.');
+            }
+        }
+        $this->detallesOperativos = $detallesOperativos;
+        return $this;
+    }
+
+    /**
+     * Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'cotizacion:cliente:read'])]
+    public function getDetallesParaCliente(): array
+    {
+        return array_values(array_filter(
+            $this->detallesOperativos,
+            static fn (array $bloque): bool =>
+                ($bloque['tipo'] ?? null) === DetalleOperativoTipoEnum::CLIENTE->value
+        ));
+    }
+
     public function removeCottarifa(CotizacionCottarifa $cottarifa): self
     {
         if ($this->cottarifas->removeElement($cottarifa)) {

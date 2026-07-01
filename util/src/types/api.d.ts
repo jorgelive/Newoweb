@@ -2033,6 +2033,7 @@ export interface components {
             snapshotItems?: string[];
             cottarifas?: string[];
             componenteMaestroId?: string | null;
+            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2045,6 +2046,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
+            readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
@@ -2068,6 +2071,7 @@ export interface components {
             snapshotItems?: string[];
             cottarifas?: components["schemas"]["CotizacionCottarifa-cotizacion.read_timestamp.read"][];
             componenteMaestroId?: string | null;
+            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2075,6 +2079,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
+            readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente-cotizacion.write": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
@@ -2098,9 +2104,12 @@ export interface components {
             snapshotItems?: string[];
             cottarifas?: components["schemas"]["CotizacionCottarifa-cotizacion.write"][];
             componenteMaestroId?: string | null;
+            detallesOperativos?: string[];
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
+            readonly detallesParaCliente?: string[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.html": {
@@ -2134,6 +2143,7 @@ export interface components {
             snapshotItems?: string[];
             cottarifas?: string[];
             componenteMaestroId?: string | null;
+            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2146,6 +2156,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
+            readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
@@ -2169,6 +2181,7 @@ export interface components {
             snapshotItems?: string[];
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-cotizacion.read_timestamp.read"][];
             componenteMaestroId?: string | null;
+            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2176,6 +2189,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
+            readonly detallesParaCliente?: string[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -2209,6 +2224,7 @@ export interface components {
             snapshotItems?: string[];
             cottarifas?: string[];
             componenteMaestroId?: string | null;
+            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2221,6 +2237,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
+            readonly detallesParaCliente?: string[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -2245,6 +2263,7 @@ export interface components {
             snapshotItems?: string[];
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read"][];
             componenteMaestroId?: string | null;
+            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2252,6 +2271,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
+            readonly detallesParaCliente?: string[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.multipart": {
@@ -2285,6 +2306,7 @@ export interface components {
             snapshotItems?: string[];
             cottarifas?: string[];
             componenteMaestroId?: string | null;
+            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2297,6 +2319,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
+            readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
@@ -2320,6 +2344,7 @@ export interface components {
             snapshotItems?: string[];
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-cotizacion.read_timestamp.read"][];
             componenteMaestroId?: string | null;
+            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2327,6 +2352,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
+            readonly detallesParaCliente?: string[];
         };
         CotizacionCotservicio: {
             /**
@@ -2542,7 +2569,6 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
-            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2585,7 +2611,6 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
-            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2623,7 +2648,6 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
-            detallesOperativos?: string[];
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -2662,7 +2686,6 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
-            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2705,7 +2728,6 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
-            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2748,7 +2770,6 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
-            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2791,7 +2812,6 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
-            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2834,7 +2854,6 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
-            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2877,7 +2896,6 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
-            detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;

@@ -2,30 +2,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
-
-/**
- * Interfaz base para elementos maestros.
- */
-export interface ApiMaestro {
-    '@id'?: string;
-    id: string;
-    nombre: string;
-    bandera?: string | null;
-    prioridad?: number;
-}
+import { ApiPais, ApiIdioma } from '@/types/MaestroModel';
 
 export const useMaestroStore = defineStore('maestroStore', () => {
-    // ============================================================================
-    // ESTADOS
-    // ============================================================================
-    const paises = ref<ApiMaestro[]>([]);
-    const idiomas = ref<ApiMaestro[]>([]);
+
+    const paises = ref<ApiPais[]>([]);
+    const idiomas = ref<ApiIdioma[]>([]);
     const isLoading = ref<boolean>(false);
     const error = ref<string | null>(null);
-
-    // ============================================================================
-    // ACCIONES
-    // ============================================================================
 
     /**
      * Carga de manera concurrente los catálogos de Países e Idiomas desde el API.

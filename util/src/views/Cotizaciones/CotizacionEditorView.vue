@@ -32,6 +32,25 @@ const onBeforeUnload = (e: BeforeUnloadEvent) => {
   }
 };
 
+const cambiarIdiomaCliente = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  if (store.cotizacion) {
+    store.cotizacion.idiomaCliente = target.value;
+    store.cotizacion.idiomaEdicion = 'es';
+  }
+};
+const toggleSobreescribirTraduccion = () => {
+  if (store.cotizacion) {
+    store.cotizacion.sobreescribirTraduccion = !store.cotizacion.sobreescribirTraduccion;
+  }
+};
+
+const actualizarResumen = (texto: string) => {
+  if (store.cotizacion) {
+    store.setI18nText(store.cotizacion.resumen, store.cotizacion.idiomaEdicion, texto);
+  }
+};
+
 onMounted(() => {
   window.addEventListener('beforeunload', onBeforeUnload);
 
@@ -182,14 +201,18 @@ const vDateMask = {
 
 const idiomasOrdenados = computed(() => {
   if (!store.idiomasDisponibles) return [];
-  return [...store.idiomasDisponibles].sort((a, b) => b.prioridad - a.prioridad);
+
+  return [...store.idiomasDisponibles].sort(
+      (a, b) => (b.prioridad ?? 0) - (a.prioridad ?? 0)
+  );
 });
+
 
 const opcionesServicios = computed(() => {
   return store.catalogos.servicios
       .map(s => ({
-        value: s.id || s['@id'],
-        label: s.nombreInterno || s.nombre || 'Servicio sin nombre'
+        value: store.extractIdStr(s),
+        label: s.nombreInterno || (s as any).nombre || 'Servicio sin nombre'
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
@@ -197,8 +220,8 @@ const opcionesServicios = computed(() => {
 const opcionesComponentes = computed(() => {
   return store.catalogos.componentes
       .map(c => ({
-        value: c.id || c['@id'],
-        label: c.nombreInterno || c.nombre || 'Insumo sin nombre'
+        value: store.extractIdStr(c),
+        label: c.nombre || (c as any).nombre || 'Insumo sin nombre'
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
@@ -206,7 +229,7 @@ const opcionesComponentes = computed(() => {
 const opcionesTarifas = computed(() => {
   return store.catalogos.tarifas
       .map(t => ({
-        value: t.id || t['@id'],
+        value: store.extractIdStr(t),
         label: store.getTarifaLabel(t, store.cotizacion?.idiomaEdicion || 'es')
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
@@ -215,7 +238,7 @@ const opcionesTarifas = computed(() => {
 const opcionesProveedores = computed(() => {
   return store.catalogos.proveedores
       .map(p => ({
-        value: p.id || p['@id'],
+        value: store.extractIdStr(p),
         label: p.nombreComercial || 'Sin nombre'
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
@@ -224,8 +247,8 @@ const opcionesProveedores = computed(() => {
 const opcionesPlantillas = computed(() => {
   return store.catalogos.plantillasItinerario
       .map(p => ({
-        value: p.id || p['@id'],
-        label: p.nombreInterno || p.nombre || 'Plantilla sin nombre'
+        value: store.extractIdStr(p),
+        label: p.nombreInterno || (p as any).nombre || 'Plantilla sin nombre'
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
@@ -340,16 +363,16 @@ const getNombreMaestroRef = (comp: any) => {
 
   const c = store.catalogos.allComponentes.find((cat: any) => extractIdStrView(cat.id) === targetId || extractIdStrView(cat['@id']) === targetId);
 
-  if (c && c.nombreInterno !== 'Sincronizando...') return c.nombreInterno || c.nombre || 'Insumo Genérico';
+  if (c && c.nombre !== 'Sincronizando...') return c.nombre || (c as any).nombre || 'Insumo Genérico';
 
-  if (c && c.nombreInterno === 'Sincronizando...') {
-    const snapshotName = store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es');
+  if (c && c.nombre === 'Sincronizando...') {
+    const snapshotName = store.getI18nText(comp.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es');
     return snapshotName ? snapshotName : 'Sincronizando...';
   }
 
   store.fetchComponenteMaestroSilencioso(targetId as string);
 
-  const snapshotName = store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es');
+  const snapshotName = store.getI18nText(comp.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es');
   return snapshotName ? snapshotName : 'Sincronizando...';
 };
 
@@ -360,7 +383,7 @@ const poolFiltrado = computed(() => {
   const q = filtroSegmentos.value.toLowerCase();
   return store.catalogos.poolSegmentos.filter((seg: any) => {
     const code = (seg.nombreInterno || '').toLowerCase();
-    const title = store.getI18nText(seg.titulo, store.cotizacion?.idiomaEdicion || 'es').toLowerCase();
+    const title = store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es').toLowerCase();
     return code.includes(q) || title.includes(q);
   });
 });
@@ -420,6 +443,8 @@ const confirmarInsercion = async () => {
 
 const isProveedorOpen = ref(false);
 
+const detallesOperativosAbierto = ref(true);
+
 const dropSegmento = (e: DragEvent) => {
   if (e.dataTransfer) {
     const data = e.dataTransfer.getData('application/json');
@@ -448,12 +473,13 @@ const dropSegmento = (e: DragEvent) => {
 
       <div class="flex gap-2 md:gap-3" v-if="store.cotizacion">
         <div class="hidden md:flex items-center bg-slate-800 rounded-lg p-1 gap-1">
+          <!-- 👉 Protegido: if(store.cotizacion) -->
           <button @click="store.cotizacion.idiomaEdicion = 'es'"
                   :class="store.cotizacion.idiomaEdicion === 'es' ? 'bg-[#376875] text-white shadow' : 'text-slate-400 hover:text-white'"
                   class="px-3 py-1 rounded text-[10px] font-black tracking-widest transition-all">
             ES (INTERNO)
           </button>
-          <button v-if="store.cotizacion.idiomaCliente !== 'es'"
+          <button v-if="store.cotizacion.idiomaCliente && store.cotizacion.idiomaCliente !== 'es'"
                   @click="store.cotizacion.idiomaEdicion = store.cotizacion.idiomaCliente"
                   :class="store.cotizacion.idiomaEdicion === store.cotizacion.idiomaCliente ? 'bg-[#E07845] text-white shadow' : 'text-slate-400 hover:text-white'"
                   class="px-3 py-1 rounded text-[10px] font-black tracking-widest uppercase transition-all">
@@ -517,22 +543,23 @@ const dropSegmento = (e: DragEvent) => {
                     <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
 
-                      <span v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
-                        {{ store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                      <!-- 👉 Type cast (as any) para resolver el array crudo vs I18nContent[] -->
+                      <span v-if="store.getI18nText(servicio.itinerarioNombreSnapshot as any, 'es') !== 'Sin plantilla'">
+                        {{ store.getI18nText(servicio.itinerarioNombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
                       </span>
 
                       <ul v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0" class="flex flex-col gap-0 leading-[1.15] mt-1">
                         <li v-for="seg in [...servicio.cotsegmentos].sort((a, b) => (a.orden || 0) - (b.orden || 0))" :key="seg.id" class="text-[16px] text-slate-800 tracking-tight">
-                          <span v-if="servicio.cotsegmentos.length > 1">- </span>{{ store.getI18nText(seg.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                          <span v-if="servicio.cotsegmentos.length > 1">- </span>{{ store.getI18nText(seg.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
                         </li>
                       </ul>
 
                       <span v-else>
-                        {{ store.getI18nText(servicio.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                        {{ store.getI18nText(servicio.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
                       </span>
                     </div>
 
-                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
+                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot as any, 'es') !== 'Sin plantilla'">
                       <i class="fas fa-map-signs mr-1"></i> Plantilla Aplicada
                     </p>
                     <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0">
@@ -590,15 +617,16 @@ const dropSegmento = (e: DragEvent) => {
               <i class="fas fa-chart-pie absolute -right-6 -bottom-6 text-8xl opacity-10"></i>
               <div class="relative z-10">
                 <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Venta Total Sugerida</p>
-                <p class="text-4xl font-black tracking-tight">{{ formatMoneda(store.resumenFinanciero?.totalVentaBruta, store.cotizacion.monedaGlobal) }}</p>
+                <!-- 👉 Uso del optional chaining (?) en vez del punto directo -->
+                <p class="text-4xl font-black tracking-tight">{{ formatMoneda(store.resumenFinanciero?.totalVentaBruta, store.cotizacion?.monedaGlobal) }}</p>
                 <div class="mt-4 pt-4 border-t border-slate-800/30 flex justify-between items-end">
                   <div>
                     <p class="text-[9px] text-slate-300 uppercase font-bold">Costo Neto</p>
-                    <p class="text-lg font-bold text-white">{{ formatMoneda(store.resumenFinanciero?.totalCostoNeto, store.cotizacion.monedaGlobal) }}</p>
+                    <p class="text-lg font-bold text-white">{{ formatMoneda(store.resumenFinanciero?.totalCostoNeto, store.cotizacion?.monedaGlobal) }}</p>
                   </div>
                   <div class="text-right">
                     <p class="text-[9px] text-emerald-400 uppercase font-bold">Margen Bruto</p>
-                    <p class="text-lg font-bold text-emerald-300">+{{ formatMoneda(store.resumenFinanciero?.ganancia, store.cotizacion.monedaGlobal) }}</p>
+                    <p class="text-lg font-bold text-emerald-300">+{{ formatMoneda(store.resumenFinanciero?.ganancia, store.cotizacion?.monedaGlobal) }}</p>
                   </div>
                 </div>
               </div>
@@ -626,18 +654,18 @@ const dropSegmento = (e: DragEvent) => {
                   </div>
                   <div class="text-right">
                     <p class="text-[9px] text-slate-400 font-bold uppercase">Venta Unit.</p>
-                    <p class="text-sm font-black text-slate-800">{{ formatMoneda(clase.resumen.ventaDolares / (clase.cantidad || 1), store.cotizacion.monedaGlobal) }}</p>
+                    <p class="text-sm font-black text-slate-800">{{ formatMoneda(clase.resumen.ventaDolares / (clase.cantidad || 1), store.cotizacion?.monedaGlobal) }}</p>
                   </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-50">
                   <div class="bg-slate-50 p-2 rounded-lg text-center">
                     <p class="text-[8px] text-slate-400 font-bold uppercase">Costo Total</p>
-                    <p class="text-[11px] font-black text-slate-600">{{ formatMoneda(clase.resumen.montoDolares, store.cotizacion.monedaGlobal) }}</p>
+                    <p class="text-[11px] font-black text-slate-600">{{ formatMoneda(clase.resumen.montoDolares, store.cotizacion?.monedaGlobal) }}</p>
                   </div>
                   <div class="bg-emerald-50 p-2 rounded-lg text-center">
                     <p class="text-[8px] text-emerald-600 font-bold uppercase">Utilidad</p>
-                    <p class="text-[11px] font-black text-emerald-700">{{ formatMoneda(clase.resumen.gananciaDolares, store.cotizacion.monedaGlobal) }}</p>
+                    <p class="text-[11px] font-black text-emerald-700">{{ formatMoneda(clase.resumen.gananciaDolares, store.cotizacion?.monedaGlobal) }}</p>
                   </div>
                 </div>
 
@@ -667,8 +695,14 @@ const dropSegmento = (e: DragEvent) => {
                 </div>
                 <div>
                   <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Idioma</span>
-                  <select v-model="store.cotizacion.idiomaCliente" @change="store.cotizacion.idiomaEdicion = 'es'" class="w-full font-black text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] text-sm appearance-none shadow-sm">
-                    <option v-for="lang in idiomasOrdenados" :key="lang.id" :value="lang.id">{{ lang.nombre }}</option>
+                  <select
+                      :value="store.cotizacion.idiomaCliente"
+                      @change="cambiarIdiomaCliente"
+                      class="w-full font-black text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] text-sm appearance-none shadow-sm"
+                  >
+                    <option v-for="lang in idiomasOrdenados" :key="lang.id" :value="lang.id">
+                      {{ lang.nombre }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -697,15 +731,18 @@ const dropSegmento = (e: DragEvent) => {
             <div>
               <div class="flex items-center justify-between mb-1.5 ml-1">
                 <label class="block text-[10px] font-black text-slate-500 uppercase">Resumen ({{ store.cotizacion.idiomaEdicion.toUpperCase() }})</label>
-                <button @click="store.cotizacion.sobreescribirTraduccion = !store.cotizacion.sobreescribirTraduccion"
-                        :class="store.cotizacion.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
-                        class="p-1 px-2 border rounded-lg transition-colors shadow-sm text-[10px] font-bold flex items-center gap-1" title="Traducir automáticamente a otros idiomas al guardar">
-                  <i class="fas fa-language"></i> <span v-if="store.cotizacion.sobreescribirTraduccion">Auto-Traducir ACTIVO</span>
+                <button @click="toggleSobreescribirTraduccion"
+                        :class="store.cotizacion?.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                        class="p-1 px-2 border rounded-lg transition-colors shadow-sm text-[10px] font-bold flex items-center gap-1"
+                        title="Traducir automáticamente a otros idiomas al guardar">
+                  <i class="fas fa-language"></i>
+                  <span v-if="store.cotizacion?.sobreescribirTraduccion">Auto-Traducir ACTIVO</span>
                 </button>
               </div>
+              <!-- 👉 Corregido: Llamar 'resumen' en lugar de resumenI18n -->
               <WysiwygEditor
-                  :model-value="store.getI18nText(store.cotizacion.resumenI18n, store.cotizacion.idiomaEdicion)"
-                  @update:model-value="store.setI18nText(store.cotizacion.resumenI18n, store.cotizacion.idiomaEdicion, $event)"
+                  :model-value="store.getI18nText(store.cotizacion?.resumen as any, store.cotizacion?.idiomaEdicion || 'es')"
+                  @update:model-value="actualizarResumen"
               />
             </div>
           </div>
@@ -716,7 +753,7 @@ const dropSegmento = (e: DragEvent) => {
             <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"><i class="fas fa-arrow-left"></i></button>
             <div class="flex-1 min-w-0">
               <p class="text-[9px] font-black text-[#E07845] uppercase tracking-widest truncate">Edición de Servicio</p>
-              <h2 class="text-sm font-black truncate">{{ store.getI18nText(store.dataActiva?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</h2>
+              <h2 class="text-sm font-black truncate">{{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h2>
             </div>
           </div>
           <div class="p-5 flex-1 overflow-y-auto space-y-6 pb-28">
@@ -726,7 +763,7 @@ const dropSegmento = (e: DragEvent) => {
 
                 <div v-if="store.dataActiva.servicioMaestroId && store.dataActiva.cotcomponentes?.length > 0"
                      class="w-full bg-slate-100 border border-slate-200 text-slate-500 rounded-lg px-3 py-2.5 text-sm font-bold flex justify-between items-center cursor-not-allowed shadow-inner">
-                  <span>{{ store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion) || 'Servicio Bloqueado' }}</span>
+                  <span>{{ store.getI18nText(store.dataActiva.nombreSnapshot as any, store.cotizacion.idiomaEdicion) || 'Servicio Bloqueado' }}</span>
                   <i class="fas fa-lock text-orange-400"></i>
                 </div>
 
@@ -741,8 +778,8 @@ const dropSegmento = (e: DragEvent) => {
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
                 <div class="flex gap-2">
-                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                         @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
 
                   <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
@@ -762,7 +799,7 @@ const dropSegmento = (e: DragEvent) => {
               <div class="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <h3 class="text-[10px] font-black text-indigo-700 uppercase tracking-widest"><i class="fas fa-align-left mr-1"></i> Storytelling</h3>
-                  <p class="text-[10px] text-indigo-500 mt-1 font-medium">{{ store.getI18nText(store.dataActiva.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
+                  <p class="text-[10px] text-indigo-500 mt-1 font-medium">{{ store.getI18nText(store.dataActiva.itinerarioNombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</p>
                 </div>
                 <button @click="store.dataActiva.servicioMaestroId && store.abrirEditorSegmentos()"
                         :disabled="!store.dataActiva.servicioMaestroId"
@@ -830,11 +867,11 @@ const dropSegmento = (e: DragEvent) => {
                          class="flex items-center justify-between bg-slate-50 hover:bg-orange-50 p-2 rounded-lg border border-slate-200 transition-colors">
                       <div class="flex flex-col min-w-0 pr-2">
                         <span class="text-[9px] font-black text-slate-500 uppercase truncate leading-none mb-1">
-                          {{ store.getI18nText(tarifa.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                          {{ store.getI18nText(tarifa.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
                         </span>
                         <span class="text-[9px] font-bold text-slate-400 flex items-center gap-1 leading-none">
                           <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
-                          {{ tarifa.esGrupal ? '1 GRUPO' : `${tarifa.cantidad} PAX` }}
+                          {{ tarifa.esGrupal ? '1 GRUPO' : `${tarifa.cantidad} Pax` }}
                         </span>
                       </div>
                       <div class="text-right flex-shrink-0">
@@ -896,8 +933,8 @@ const dropSegmento = (e: DragEvent) => {
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
 
                 <div class="flex gap-2" v-if="!isComponenteSoloItems(store.dataActiva)">
-                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                         @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
 
                   <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
@@ -1020,8 +1057,8 @@ const dropSegmento = (e: DragEvent) => {
                            @change="store.toggleUpsellComponent(item, store.dataActiva)"
                            class="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
 
-                    <input :value="store.getI18nText(item.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                           @input="e => store.setI18nText(item.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                    <input :value="store.getI18nText(item.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                           @input="e => { if(store.cotizacion) store.setI18nText(item.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                            class="text-xs font-bold text-slate-700 w-full outline-none bg-transparent"
                            :class="(!item.incluido && item.modo === 'no_incluido') ? 'line-through text-slate-400' : (!item.incluido && item.modo === 'opcional') ? 'text-slate-500 italic' : ''"
                            placeholder="Descripción de la inclusión...">
@@ -1043,6 +1080,52 @@ const dropSegmento = (e: DragEvent) => {
               </div>
             </div>
 
+
+
+            <div class="border-t border-sky-100 pt-5">
+              <button @click="detallesOperativosAbierto = !detallesOperativosAbierto"
+                      class="w-full flex items-center justify-between text-[10px] font-black text-sky-700 uppercase tracking-widest mb-3">
+    <span class="flex items-center gap-1.5">
+      <i class="fas fa-chevron-right transition-transform" :class="detallesOperativosAbierto ? 'rotate-90' : ''"></i>
+      <i class="fas fa-clipboard-list"></i> Detalles Operativos
+    </span>
+                <span class="flex items-center gap-2">
+      <button @click.stop="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
+              :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+              class="px-2 py-1 border rounded-lg transition-colors shadow-sm" title="Forzar traducción de todo el componente al guardar">
+        <i class="fas fa-language text-xs"></i>
+      </button>
+      <span @click.stop="store.agregarDetalleOperativo(store.dataActiva.id)"
+            class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold border border-sky-200 hover:bg-sky-200 transition-colors normal-case tracking-normal cursor-pointer">
+        + Añadir Detalle
+      </span>
+    </span>
+              </button>
+
+              <div v-show="detallesOperativosAbierto" class="space-y-2">
+                <div v-if="!store.dataActiva.detallesOperativos?.length" class="text-[10px] font-bold text-slate-400 uppercase text-center py-2 border border-dashed border-slate-200 rounded-lg">
+                  Sin detalles operativos
+                </div>
+                <div v-else v-for="bloque in store.dataActiva.detallesOperativos" :key="bloque.id"
+                     class="flex gap-2 items-start bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+                  <select v-model="bloque.tipo" class="flex-shrink-0 w-32 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-[10px] font-bold text-slate-600 outline-none">
+                    <option value="cliente">Detalles</option>
+                    <option value="operativa">Operativa</option>
+                  </select>
+                  <textarea :value="store.getI18nText(bloque.detalle as any, store.cotizacion?.idiomaEdicion || 'es')"
+                            @input="e => { if(store.cotizacion) store.setI18nText(bloque.detalle, store.cotizacion.idiomaEdicion, (e.target as HTMLTextAreaElement).value) }"
+                            rows="2"
+                            class="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none resize-none"
+                            placeholder="Contenido..."></textarea>
+                  <button @click="store.eliminarDetalleOperativo(store.dataActiva.id, bloque.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1 flex-shrink-0">
+                    <i class="fas fa-times text-sm"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+
+
             <div class="border-t border-sky-100 pt-5">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest">
@@ -1054,7 +1137,7 @@ const dropSegmento = (e: DragEvent) => {
                 <button @click="store.agregarTarifa(store.dataActiva.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
               </div>
               <div class="space-y-3">
-                <div v-for="tarifa in store.dataActiva.cottarifas" :key="tarifa.id" @click="store.abrirNivel('tarifa', tarifa)"
+                <div v-for="(tarifa, idx) in store.dataActiva.cottarifas" :key="tarifa.id || idx" @click="store.abrirNivel('tarifa', tarifa)"
                      class="bg-white border-2 border-orange-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-orange-400 relative group overflow-hidden transition-all">
                   <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-400"></div>
 
@@ -1064,7 +1147,7 @@ const dropSegmento = (e: DragEvent) => {
 
                   <div class="flex justify-between items-center pr-6">
                     <div>
-                      <h4 class="font-bold text-sm text-slate-800">{{ store.getI18nText(tarifa.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</h4>
+                      <h4 class="font-bold text-sm text-slate-800">{{ store.getI18nText(tarifa.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h4>
                       <div class="flex gap-2 mt-1">
       <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
          <i :class="tarifa.esGrupal ? 'fas fa-users' : 'fas fa-user'"></i>
@@ -1081,12 +1164,16 @@ const dropSegmento = (e: DragEvent) => {
           </div>
         </div>
 
+
+
+
+
         <div v-else-if="store.inspectorActivo === 'tarifa'" class="flex-1 flex flex-col min-h-0 bg-slate-900">
           <div class="px-5 py-4 border-b border-slate-700 flex items-center gap-3 bg-slate-800 flex-shrink-0">
             <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-colors"><i class="fas fa-arrow-left"></i></button>
             <div class="flex-1 min-w-0">
               <p class="text-[9px] font-black text-emerald-400 uppercase tracking-widest truncate">Costo y Operativa</p>
-              <h2 class="text-sm font-black text-white truncate">{{ store.getI18nText(store.dataActiva?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</h2>
+              <h2 class="text-sm font-black text-white truncate">{{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h2>
             </div>
           </div>
           <div class="p-5 flex-1 overflow-y-auto space-y-6 pb-28">
@@ -1097,18 +1184,18 @@ const dropSegmento = (e: DragEvent) => {
                   :options="opcionesTarifas"
                   placeholder="Precio manual..."
                   :darkMode="true"
-                  @change="val => store.onTarifaMaestraChange(val)"
+                  @update:model-value="val => store.onTarifaMaestraChange(val)"
               />
 
               <div v-if="store.dataActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-700 flex flex-wrap gap-2">
-                <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t.id || t['@id']) === store.extractIdStr(store.dataActiva.tarifaMaestraId))]">
+                <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t) === store.extractIdStr(store.dataActiva.tarifaMaestraId))]">
                   <span v-if="catT" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
                     <i class="fas fa-globe-americas text-emerald-400 mr-1"></i>
-                    {{ catT.procedencia ? catT.procedencia : 'Sin restricción origen' }}
+                    {{ (catT as any).procedencia ? (catT as any).procedencia : 'Sin restricción origen' }}
                   </span>
-                  <span v-if="catT && (catT.edadMinima > 0 || catT.edadMaxima < 120)" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
-                    <i class="fas fa-birthday-cake text-orange-400 mr-1"></i>
-                    {{ catT.edadMinima || 0 }} - {{ catT.edadMaxima || 120 }} años
+                  <!-- 👉 Corregido null checking de edades -->
+                  <span v-if="catT && (((catT as any).edadMinima ?? 0) > 0 || ((catT as any).edadMaxima ?? 120) < 120)">                    <i class="fas fa-birthday-cake text-orange-400 mr-1"></i>
+                    {{ (catT as any).edadMinima ?? 0 }} - {{ (catT as any).edadMaxima ?? 120 }} años
                   </span>
                 </template>
               </div>
@@ -1146,8 +1233,8 @@ const dropSegmento = (e: DragEvent) => {
               <div class="col-span-2 mt-2">
                 <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Nombre en Recibo *</label>
                 <div class="flex gap-2">
-                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                         @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none">
 
                   <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
@@ -1360,7 +1447,7 @@ const dropSegmento = (e: DragEvent) => {
           <header class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
             <div>
               <h2 class="font-black text-lg flex items-center gap-2"><i class="fas fa-book-open"></i> Constructor de Storytelling</h2>
-              <p class="text-[11px] font-bold text-indigo-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.dataActiva?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
+              <p class="text-[11px] font-bold text-indigo-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</p>
             </div>
             <button @click="store.cerrarEditorSegmentos()" class="w-8 h-8 rounded-full bg-indigo-500 hover:bg-indigo-400 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
           </header>
@@ -1395,15 +1482,19 @@ const dropSegmento = (e: DragEvent) => {
                 </div>
 
                 <div class="space-y-2 md:space-y-3 overflow-y-auto flex-1 pb-2">
-                  <div v-for="seg in poolFiltrado" :key="seg.id" draggable="true" @dragstart="dragStart($event, seg)"
-                       class="bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl cursor-grab hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start">
+                  <div v-for="(seg, idx) in poolFiltrado"
+                       :key="store.extractIdStr(seg) || idx"
+                       draggable="true"
+                       @dragstart="dragStart($event, seg)"
+                       class="bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl cursor-grab hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start"
+                  >
 
                     <i class="fas fa-grip-vertical text-slate-300 mt-1 hidden md:block"></i>
 
                     <div class="flex-1 min-w-0">
                       <div class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
-                      <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo, store.cotizacion.idiomaEdicion) }}</h4>
-                      <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido, store.cotizacion.idiomaEdicion)"></div>
+                      <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
+                      <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido as any, store.cotizacion?.idiomaEdicion || 'es')"></div>
                     </div>
 
                     <button @click="prepararInsercion(seg)" class="text-indigo-600 hover:bg-indigo-200 bg-indigo-50 md:bg-transparent md:hover:bg-indigo-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors flex-shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-indigo-100"><i class="fas fa-plus"></i></button>
@@ -1441,8 +1532,8 @@ const dropSegmento = (e: DragEvent) => {
                         </div>
 
                         <div class="flex items-center gap-2 w-full md:w-auto">
-                          <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                                 @input="e => store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                          <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                                 @input="e => { if(store.cotizacion) store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                                  class="bg-transparent text-xs font-black text-slate-700 uppercase outline-none flex-1 min-w-[150px]" placeholder="Título..." />
 
                           <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
@@ -1459,8 +1550,8 @@ const dropSegmento = (e: DragEvent) => {
 
                       <div class="p-4 bg-white">
                         <WysiwygEditor
-                            :model-value="store.getI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion)"
-                            @update:model-value="store.setI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion, $event)"
+                            :model-value="store.getI18nText(cotSeg.contenidoSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                            @update:model-value="(event) => { if(store.cotizacion) store.setI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion, event) }"
                         />
 
                         <div v-if="(cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0) || (cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0)" class="mt-8 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1480,7 +1571,7 @@ const dropSegmento = (e: DragEvent) => {
                                     </div>
                                     <div class="px-2.5 py-1.5 flex-1 min-w-0 flex flex-col justify-center">
                                     <span class="text-[10px] font-bold text-slate-700 block truncate w-full max-w-[160px]">
-                                      {{ store.getI18nText(nota.titulo, store.cotizacion.idiomaEdicion) || nota.nombreInterno }}
+                                      {{ store.getI18nText(nota.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || nota.nombreInterno }}
                                     </span>
                                     </div>
                                     <button @click.stop="cotSeg.notasSnapshot.splice(cotSeg.notasSnapshot.indexOf(nota), 1)"
@@ -1512,62 +1603,6 @@ const dropSegmento = (e: DragEvent) => {
                 </div>
               </div>
             </main>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <Transition name="fade-scale">
-      <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-[1100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
-          <div class="bg-indigo-600 px-5 py-4 text-white flex justify-between items-center">
-            <h3 class="font-black text-sm uppercase tracking-widest"><i class="fas fa-layer-group mr-2"></i> Inyectar Párrafo</h3>
-            <button @click="modalInsercion.isOpen = false" class="text-indigo-200 hover:text-white"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="p-5 space-y-4">
-
-            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
-              <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest block">{{ modalInsercion.segmentoMaestro?.nombreInterno || 'SIN CÓDIGO' }}</span>
-              <span class="text-xs font-bold text-slate-700">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo, store.cotizacion.idiomaEdicion) }}</span>
-            </div>
-
-            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'append' ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-slate-200'">
-              <input type="radio" v-model="opcionInsercion" value="append" class="text-indigo-600 focus:ring-indigo-500">
-              <div class="flex-1 text-sm font-bold text-slate-700">Añadir al final del documento</div>
-            </label>
-
-            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'insert' ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-slate-200'">
-              <input type="radio" v-model="opcionInsercion" value="insert" class="text-indigo-600 focus:ring-indigo-500">
-              <div class="flex-1 text-sm font-bold text-slate-700">Insertar en una posición (Desplaza abajo)</div>
-            </label>
-
-            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'replace' ? 'border-orange-500 bg-orange-50/50 shadow-sm' : 'border-slate-200'">
-              <input type="radio" v-model="opcionInsercion" value="replace" class="text-orange-500 focus:ring-orange-500">
-              <div class="flex-1 text-sm font-bold text-slate-700">Reemplazar un párrafo (Purga la logística)</div>
-            </label>
-
-            <Transition name="fade-scale">
-              <div v-if="opcionInsercion !== 'append'" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2">
-                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
-                  Selecciona el segmento objetivo:
-                </label>
-                <select v-model="targetSegmentoId" class="w-full bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
-                  <option v-for="(seg, idx) in store.dataActiva?.cotsegmentos" :key="seg.id" :value="seg.id">
-                    Posición #{{ idx + 1 }} - {{ store.getI18nText(seg.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
-                  </option>
-                </select>
-                <p v-if="opcionInsercion === 'replace'" class="text-[9px] font-bold text-orange-500 mt-2 flex items-center gap-1">
-                  <i class="fas fa-exclamation-triangle"></i> ¡Cuidado! Los trenes y guías del Párrafo #{{ store.dataActiva?.cotsegmentos?.findIndex((s: any) => s.id === targetSegmentoId) + 1 }} serán reemplazados.
-                </p>
-              </div>
-            </Transition>
-
-          </div>
-          <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-3">
-            <button @click="modalInsercion.isOpen = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-300 rounded-lg shadow-sm transition-colors">Cancelar</button>
-            <button @click="confirmarInsercion" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2">
-              <i class="fas fa-check"></i> Ejecutar
-            </button>
           </div>
         </div>
       </div>
@@ -1674,10 +1709,10 @@ const dropSegmento = (e: DragEvent) => {
           </div>
           <div class="p-6 overflow-y-auto flex-1">
             <h4 class="text-lg font-black text-slate-800 mb-4 leading-tight">
-              {{ store.getI18nText(modalNota.nota?.titulo, store.cotizacion.idiomaEdicion) || modalNota.nota?.nombreInterno }}
+              {{ store.getI18nText(modalNota.nota?.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || modalNota.nota?.nombreInterno }}
             </h4>
             <div class="prose prose-sm max-w-none text-slate-600 leading-relaxed"
-                 v-html="store.getI18nText(modalNota.nota?.contenido, store.cotizacion.idiomaEdicion)">
+                 v-html="store.getI18nText(modalNota.nota?.contenido as any, store.cotizacion?.idiomaEdicion || 'es')">
             </div>
           </div>
           <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end flex-shrink-0">

@@ -1,31 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { components } from '@/types/api';
 import { apiClient } from '@/services/apiClient';
-import type { ApiMaestro } from '@/stores/maestroStore';
+import {ApiCotizacionFile, ApiCotizacionFileWrite} from '@/types/FileDetalleModel';
 
 // ============================================================================
 // TIPOS AUTOGENERADOS Y EXTENDIDOS (HÍBRIDOS)
 // ============================================================================
-type BaseApiCotizacionFile = components['schemas']['CotizacionFile.jsonld-file.read_timestamp.read'];
 
-export type ApiCotizacionFile = BaseApiCotizacionFile & {
-    '@id'?: string;
-    '@type'?: string;
-    id?: string;
-    localizador?: string | null;
-    email?: string | null;
-    telefono?: string | null;
-    pais?: ApiMaestro | null;
-    idioma?: ApiMaestro | null;
-};
-
-export type ApiCotizacionFileWrite = components['schemas']['CotizacionFile-file.write'] & {
-    pais?: string | null;
-    idioma?: string | null;
-    email?: string | null;
-    telefono?: string | null;
-};
 
 export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
 
