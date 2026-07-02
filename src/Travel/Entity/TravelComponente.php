@@ -105,9 +105,11 @@ class TravelComponente
 
     /**
      * 👇 CASCADA HACIA ABAJO (Tarifas)
+     * Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
      */
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelTarifa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['nombreInterno' => 'ASC'])]
     private Collection $tarifas;
 
     /**
