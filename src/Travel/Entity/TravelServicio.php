@@ -29,7 +29,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
         new GetCollection(normalizationContext: ['groups' => ['servicio:read']], security: "is_granted('" . Roles::MAESTROS_SHOW . "')"),
         new Get(normalizationContext: ['groups' => ['servicio:item:read']], security: "is_granted('" . Roles::MAESTROS_SHOW . "')"),
         new Post(denormalizationContext: ['groups' => ['servicio:write']], securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')", securityPostDenormalizeMessage: 'No tienes permiso para crear servicios.'),
-        new Put(denormalizationContext: ['groups' => ['servicio:write']], security: "is_granted('" . Roles::MAESTROS_WRITE . "')", securityMessage: 'No tienes permiso para editar servicios.'),
+        new Put(denormalizationContext: ['groups' => ['servicio:write']], security: "is_granted('" . Roles::MAESTROS_WRITE . "')", securityMessage: 'No tienes permission para editar servicios.'),
         new Delete(security: "is_granted('" . Roles::MAESTROS_DELETE . "')", securityMessage: 'No tienes permiso para eliminar servicios.')
     ],
     routePrefix: '/travel'
@@ -77,6 +77,16 @@ class TravelServicio
         $this->segmentos = new ArrayCollection();
     }
 
+    /**
+     * Clona el servicio manteniendo la relación con los componentes originales.
+     *
+     * Resetea la identidad de la entidad y actualiza su nombre para indicar que es un clon.
+     * Al ser una relación ManyToMany, conserva las referencias a las mismas entidades
+     * de tipo TravelComponente ya persistidas en la base de datos. Esto permite que
+     * el nuevo servicio comparta los mismos componentes base sin duplicar información,
+     * logrando que Doctrine inserte limpiamente los registros en la tabla intermedia
+     * de unión sin lanzar excepciones de entidades no persistidas.
+     */
     public function __clone()
     {
         $this->resetId();
@@ -86,13 +96,18 @@ class TravelServicio
             $this->nombreInterno = '(Clon) ' . $this->nombreInterno;
         }
 
+        // Resguardamos temporalmente la colección original
         $componentesOriginales = $this->componentes;
+
+        // Inicializamos la nueva colección para la entidad clonada
         $this->componentes = new ArrayCollection();
+
+        // Volvemos a vincular bidireccionalmente los mismos componentes persistidos
         foreach ($componentesOriginales as $compOriginal) {
-            $clonComp = clone $compOriginal;
-            $this->addComponente($clonComp);
+            $this->addComponente($compOriginal);
         }
 
+        // Las colecciones dependientes OneToMany se inicializan vacías
         $this->itinerarios = new ArrayCollection();
         $this->segmentos = new ArrayCollection();
     }
