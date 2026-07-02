@@ -47,6 +47,23 @@ class TravelItinerarioSegmentoRel
         $this->initializeId();
     }
 
+    /**
+     * 🔥 CLONACIÓN PROFUNDA (DEEP CLONE)
+     * Limpia la identidad para que Doctrine reconozca este segmento relacional como
+     * un nuevo registro en la base de datos al ser persistido. Existe explícitamente
+     * para el encadenamiento de clonado desde TravelItinerario.
+     */
+    public function __clone()
+    {
+        // 1. Limpieza de identidad para evitar colisiones de ID
+        $this->resetId();
+
+        // 2. Desvinculamos el padre anterior para evitar errores de persistencia.
+        // El nuevo padre clonado se asignará automáticamente mediante el método
+        // addItinerarioSegmento() de la entidad TravelItinerario.
+        $this->itinerario = null;
+    }
+
     public function __toString(): string
     {
         // Devuelve el nombre interno del segmento, o un fallback si aún no está asignado

@@ -105,6 +105,19 @@ class TravelSegmentoComponente
         $this->initializeId();
     }
 
+    /**
+     * 🔥 CLONACIÓN PROFUNDA
+     * Limpia la identidad para permitir su persistencia como un nuevo registro
+     * vinculado al segmento clonado.
+     */
+    public function __clone()
+    {
+        $this->resetId();
+        // Desvinculamos del padre original. El addSegmentoComponente()
+        // de la entidad TravelSegmento volverá a establecer esta relación con el nuevo clon.
+        $this->segmento = null;
+    }
+
     public function __toString(): string
     {
         $nombreComponente = $this->componente ? (string) $this->componente : 'Nuevo vínculo';

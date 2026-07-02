@@ -117,6 +117,12 @@ class TravelTarifa
     {
         $this->resetId();
         $this->resetTimestamps();
+
+        $this->componente = null;
+
+        if ($this->nombreInterno) {
+            $this->nombreInterno = '(Clon) ' . $this->nombreInterno;
+        }
     }
 
     public function __toString(): string
@@ -292,22 +298,21 @@ class TravelTarifa
         return $this;
     }
 
-    /**
-     * Expone el identificador de la entidad para respuestas JSON en formato plano.
-     * Garantiza que los componentes frontend como TomSelect dispongan del value requerido.
-     */
     #[Groups(['componente:item:read'])]
     public function getTarifaId(): ?string
     {
         return $this->getId() ? (string) $this->getId() : null;
     }
 
-    /**
-     * 🔥 Expone la representación completa del __toString para el dropdown del frontend.
-     */
     #[Groups(['componente:item:read'])]
     public function getEtiquetaOpciones(): string
     {
         return $this->__toString();
     }
+
+    // 🔥 VIRTUALES PARA EASYADMIN (Evita el HTTP 500 al renderizar HTML personalizado)
+    public function getVirtualTitulo(): string { return ''; }
+    public function getVirtualCostoPorGrupo(): string { return ''; }
+    public function getVirtualModalidad(): string { return ''; }
+    public function getVirtualProcedencia(): string { return ''; }
 }

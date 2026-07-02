@@ -21,45 +21,18 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
-// 🔥 NUEVOS IMPORTS PARA LA VALIDACIÓN
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ApiResource(
-    shortName: 'Itinerario', // 🔥 Define el recurso base para generar '/itinerarios'
+    shortName: 'Itinerario',
     operations: [
-        // Genera: GET /travel/itinerarios
-        new GetCollection(
-            normalizationContext: ['groups' => ['itinerario:read']],
-            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
-        ),
-
-        // Genera: GET /travel/itinerarios/{id}
-        new Get(
-            normalizationContext: ['groups' => ['itinerario:item:read']],
-            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
-        ),
-
-        // Genera: POST /travel/itinerarios
-        new Post(
-            denormalizationContext: ['groups' => ['itinerario:write']],
-            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityPostDenormalizeMessage: 'No tienes permiso para crear itinerarios.'
-        ),
-
-        // Genera: PUT /travel/itinerarios/{id}
-        new Put(
-            denormalizationContext: ['groups' => ['itinerario:write']],
-            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar itinerarios.'
-        ),
-
-        // Genera: DELETE /travel/itinerarios/{id}
-        new Delete(
-            security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
-            securityMessage: 'No tienes permiso para eliminar itinerarios.'
-        )
-    ],  // 🔥 Agrupa todas las rutas bajo el módulo logístico
+        new GetCollection(normalizationContext: ['groups' => ['itinerario:read']], security: "is_granted('" . Roles::MAESTROS_SHOW . "')"),
+        new Get(normalizationContext: ['groups' => ['itinerario:item:read']], security: "is_granted('" . Roles::MAESTROS_SHOW . "')"),
+        new Post(denormalizationContext: ['groups' => ['itinerario:write']], securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')", securityPostDenormalizeMessage: 'No tienes permiso para crear itinerarios.'),
+        new Put(denormalizationContext: ['groups' => ['itinerario:write']], security: "is_granted('" . Roles::MAESTROS_WRITE . "')", securityMessage: 'No tienes permiso para editar itinerarios.'),
+        new Delete(security: "is_granted('" . Roles::MAESTROS_DELETE . "')", securityMessage: 'No tienes permiso para eliminar itinerarios.')
+    ],
     routePrefix: '/travel'
 )]
 #[ORM\Entity]
@@ -90,7 +63,6 @@ class TravelItinerario
     #[ORM\Column(type: 'integer')]
     private int $duracionDias = 1;
 
-    // 👇 CASCADA HACIA ABAJO (Segmentos ordenados por día)
     #[Groups(['itinerario:item:read', 'itinerario:write'])]
     #[ORM\OneToMany(mappedBy: 'itinerario', targetEntity: TravelItinerarioSegmentoRel::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['dia' => 'ASC', 'orden' => 'ASC'])]
@@ -100,6 +72,23 @@ class TravelItinerario
     {
         $this->initializeId();
         $this->itinerarioSegmentos = new ArrayCollection();
+    }
+
+    public function __clone()
+    {
+        $this->resetId();
+        $this->resetTimestamps();
+
+        if ($this->nombreInterno) {
+            $this->nombreInterno = '(Clon) ' . $this->nombreInterno;
+        }
+
+        $segmentosOriginales = $this->itinerarioSegmentos;
+        $this->itinerarioSegmentos = new ArrayCollection();
+        foreach ($segmentosOriginales as $segmentoOriginal) {
+            $clonSegmento = clone $segmentoOriginal;
+            $this->addItinerarioSegmento($clonSegmento);
+        }
     }
 
     #[Groups(['itinerario:read', 'itinerario:item:read', 'servicio:item:read', 'cotizacion:read', 'segmento:item:read'])]
@@ -181,16 +170,14 @@ class TravelItinerario
         return $this;
     }
 
-    /**
-     * 🔥 NUEVO: Valida que el arreglo JSON de Título contenga el idioma Español ('es')
-     * y que este no esté en blanco.
-     * EasyAdmin llamará a este método automáticamente al intentar guardar el formulario.
-     */
+    // 🔥 VIRTUALES PARA EASYADMIN (TextField compatibles)
+    public function getVirtualTitulo(): string { return ''; }
+    public function getVirtualSegmentos(): string { return ''; }
+
     #[Assert\Callback]
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
     {
         $hasValidSpanish = false;
-
         if (is_array($this->titulo)) {
             foreach ($this->titulo as $item) {
                 if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
@@ -201,11 +188,8 @@ class TravelItinerario
                 }
             }
         }
-
         if (!$hasValidSpanish) {
-            $context->buildViolation('El título público en Español es obligatorio.')
-                ->atPath('titulo') // Marca el campo en rojo en EasyAdmin
-                ->addViolation();
+            $context->buildViolation('El título público en Español es obligatorio.')->atPath('titulo')->addViolation();
         }
     }
 }

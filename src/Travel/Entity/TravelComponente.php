@@ -27,7 +27,6 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 /**
  * Entidad base para la logística pura (El insumo financiero).
  */
-
 #[ApiFilter(SearchFilter::class, properties: ['id' => 'exact'])]
 #[ApiResource(
     shortName: 'Componente', // 🔥 Define el recurso base para generar '/componentes'
@@ -124,6 +123,7 @@ class TravelComponente
         $this->tarifas = new ArrayCollection();
         $this->servicios = new ArrayCollection();
     }
+
     /**
      * 🔥 CLONACIÓN PROFUNDA (DEEP CLONE)
      * Delega la responsabilidad a la propia entidad para mantener la atomicidad.
@@ -361,4 +361,10 @@ class TravelComponente
         }
         return $this;
     }
+
+    // 🔥 VIRTUALES PARA EASYADMIN (Evitan error 500 al usar TextField con renderAsHtml)
+    public function getVirtualTitulo(): string { return ''; }
+    public function getVirtualServicios(): string { return ''; }
+    public function getVirtualItems(): string { return ''; }
+    public function getVirtualTarifas(): string { return ''; }
 }

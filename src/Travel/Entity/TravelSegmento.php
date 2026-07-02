@@ -20,45 +20,18 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
-// 🔥 NUEVOS IMPORTS PARA LA VALIDACIÓN
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ApiResource(
-    shortName: 'Segmento',  // 🔥 Define el recurso base para generar '/segmentos'
+    shortName: 'Segmento',
     operations: [
-        // Genera: GET /travel/segmentos
-        new GetCollection(
-            normalizationContext: ['groups' => ['segmento:read']],
-            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
-        ),
-
-        // Genera: GET /travel/segmentos/{id}
-        new Get(
-            normalizationContext: ['groups' => ['segmento:item:read']],
-            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
-        ),
-
-        // Genera: POST /travel/segmentos
-        new Post(
-            denormalizationContext: ['groups' => ['segmento:write']],
-            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityPostDenormalizeMessage: 'No tienes permiso para crear segmentos.'
-        ),
-
-        // Genera: PUT /travel/segmentos/{id}
-        new Put(
-            denormalizationContext: ['groups' => ['segmento:write']],
-            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar segmentos.'
-        ),
-
-        // Genera: DELETE /travel/segmentos/{id}
-        new Delete(
-            security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
-            securityMessage: 'No tienes permiso para eliminar segmentos.'
-        )
-    ], // 🔥 Agrupa todas las rutas bajo el módulo logístico
+        new GetCollection(normalizationContext: ['groups' => ['segmento:read']], security: "is_granted('" . Roles::MAESTROS_SHOW . "')"),
+        new Get(normalizationContext: ['groups' => ['segmento:item:read']], security: "is_granted('" . Roles::MAESTROS_SHOW . "')"),
+        new Post(denormalizationContext: ['groups' => ['segmento:write']], securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')", securityPostDenormalizeMessage: 'No tienes permiso para crear segmentos.'),
+        new Put(denormalizationContext: ['groups' => ['segmento:write']], security: "is_granted('" . Roles::MAESTROS_WRITE . "')", securityMessage: 'No tienes permiso para editar segmentos.'),
+        new Delete(security: "is_granted('" . Roles::MAESTROS_DELETE . "')", securityMessage: 'No tienes permiso para eliminar segmentos.')
+    ],
     routePrefix: '/travel'
 )]
 #[ORM\Entity]
@@ -70,7 +43,6 @@ class TravelSegmento
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToMany(targetEntity: TravelServicio::class, inversedBy: 'segmentos')]
     #[ORM\JoinTable(name: 'travel_segmento_servicio_pool')]
     private Collection $servicios;
@@ -89,20 +61,15 @@ class TravelSegmento
     #[ORM\Column(type: 'json')]
     private array $contenido = [];
 
-    /**
-     * @var Collection<int, TravelNota>
-     */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[ORM\ManyToMany(targetEntity: TravelNota::class, inversedBy: 'segmentos')]
     #[ORM\JoinTable(name: 'travel_segmento_notas_rel')]
     private Collection $notas;
 
-    // 👇 CASCADA HACIA ABAJO
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoImagen::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $imagenes;
 
-    // 👇 CASCADA HACIA ABAJO
     #[Groups(['segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoComponente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['orden' => 'ASC'])]
@@ -117,6 +84,42 @@ class TravelSegmento
         $this->segmentoComponentes = new ArrayCollection();
     }
 
+    public function __clone()
+    {
+        $this->resetId();
+        $this->resetTimestamps();
+
+        if ($this->nombreInterno) {
+            $this->nombreInterno = '(Clon) ' . $this->nombreInterno;
+        }
+
+        $serviciosOriginales = $this->servicios;
+        $this->servicios = new ArrayCollection();
+        foreach ($serviciosOriginales as $servicio) {
+            $this->addServicio($servicio);
+        }
+
+        $notasOriginales = $this->notas;
+        $this->notas = new ArrayCollection();
+        foreach ($notasOriginales as $nota) {
+            $this->addNota($nota);
+        }
+
+        $componentesOriginales = $this->segmentoComponentes;
+        $this->segmentoComponentes = new ArrayCollection();
+        foreach ($componentesOriginales as $compOriginal) {
+            $clonComp = clone $compOriginal;
+            $this->addSegmentoComponente($clonComp);
+        }
+
+        $imagenesOriginales = $this->imagenes;
+        $this->imagenes = new ArrayCollection();
+        foreach ($imagenesOriginales as $imgOriginal) {
+            $clonImg = clone $imgOriginal;
+            $this->addImagen($clonImg);
+        }
+    }
+
     public function __toString(): string
     {
         return $this->nombreInterno ?? 'Sin nombre';
@@ -128,17 +131,11 @@ class TravelSegmento
         return $this->id;
     }
 
-    /**
-     * @return Collection<int, TravelServicio>
-     */
     public function getServicios(): Collection
     {
         return $this->servicios;
     }
 
-    /**
-     * Añade este segmento narrativo al pool de un servicio específico.
-     */
     public function addServicio(TravelServicio $servicio): self
     {
         if (!$this->servicios->contains($servicio)) {
@@ -147,9 +144,6 @@ class TravelSegmento
         return $this;
     }
 
-    /**
-     * Retira este segmento narrativo del pool de un servicio específico.
-     */
     public function removeServicio(TravelServicio $servicio): self
     {
         $this->servicios->removeElement($servicio);
@@ -189,9 +183,6 @@ class TravelSegmento
         return $this;
     }
 
-    /**
-     * @return Collection<int, TravelNota>
-     */
     public function getNotas(): Collection
     {
         return $this->notas;
@@ -235,9 +226,6 @@ class TravelSegmento
         return $this;
     }
 
-    /**
-     * @return Collection<int, TravelSegmentoComponente>
-     */
     public function getSegmentoComponentes(): Collection
     {
         return $this->segmentoComponentes;
@@ -262,26 +250,16 @@ class TravelSegmento
         return $this;
     }
 
-    /**
-     * Campo virtual para EasyAdmin.
-     * Retorna un string vacío para engañar al validador estricto de TextField,
-     * permitiendo que el CRUD Controller inyecte el HTML personalizado sin colapsar.
-     */
-    public function getVirtualLogistica(): string
-    {
-        return '';
-    }
+    // 🔥 VIRTUALES PARA EASYADMIN (TextField compatibles)
+    public function getVirtualLogistica(): string { return ''; }
+    public function getVirtualTitulo(): string { return ''; }
+    public function getVirtualServicios(): string { return ''; }
+    public function getVirtualNotas(): string { return ''; }
 
-    /**
-     * 🔥 NUEVO: Valida que el arreglo JSON de Título contenga el idioma Español ('es')
-     * y que este no esté en blanco.
-     * EasyAdmin llamará a este método automáticamente al intentar guardar el formulario.
-     */
     #[Assert\Callback]
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
     {
         $hasValidSpanish = false;
-
         if (is_array($this->titulo)) {
             foreach ($this->titulo as $item) {
                 if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
@@ -292,11 +270,8 @@ class TravelSegmento
                 }
             }
         }
-
         if (!$hasValidSpanish) {
-            $context->buildViolation('El título público en Español es obligatorio.')
-                ->atPath('titulo') // Marca el campo en rojo en EasyAdmin
-                ->addViolation();
+            $context->buildViolation('El título público en Español es obligatorio.')->atPath('titulo')->addViolation();
         }
     }
 }

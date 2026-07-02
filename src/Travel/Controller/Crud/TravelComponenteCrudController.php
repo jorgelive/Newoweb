@@ -48,16 +48,13 @@ class TravelComponenteCrudController extends BaseCrudController
             ->linkToCrudAction('cloneComponente')
             ->setCssClass('btn btn-info')
             ->setHtmlAttributes([
-                // 1. Conectamos el controlador y el evento click
                 'data-controller' => 'panel--confirm',
                 'data-action' => 'click->panel--confirm#ask',
-
-                // 2. Pasamos los valores personalizados para SweetAlert2
                 'data-panel--confirm-title-value' => '¿Clonar componente?',
                 'data-panel--confirm-text-value' => 'Se duplicará el componente con todas sus tarifas e ítems internos. Podrás editarlo a continuación.',
                 'data-panel--confirm-icon-value' => 'question',
                 'data-panel--confirm-confirm-button-text-value' => 'Sí, clonar',
-                'data-panel--confirm-confirm-color-value' => '#0ea5e9' // Un tono azul/celeste que combine con el btn-info
+                'data-panel--confirm-confirm-color-value' => '#0ea5e9'
             ]);
 
         $actions
@@ -89,9 +86,7 @@ class TravelComponenteCrudController extends BaseCrudController
         /** @var TravelComponente $original */
         $original = $context->getEntity()->getInstance();
 
-        // ¡Toda la magia recursiva ocurre aquí gracias a las entidades!
         $clon = clone $original;
-
         $em->persist($clon);
         $em->flush();
 
@@ -125,54 +120,135 @@ class TravelComponenteCrudController extends BaseCrudController
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
 
+        // 🔥 LECTURA OPTIMIZADA: Se eliminó el fw-bold rudo por un fw-semibold más fino y limpio
+        yield TextField::new('virtualTitulo', 'Título Comercial')
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                if (is_iterable($entity->getTitulo())) {
+                    foreach ($entity->getTitulo() as $item) {
+                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                            return sprintf('<span class="text-dark fw-semibold" style="letter-spacing: -0.2px;">%s</span>', htmlspecialchars(strip_tags($item['content'])));
+                        }
+                    }
+                }
+                return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
+            })
+            ->renderAsHtml();
+
+        // ESCRITURA
         yield CollectionField::new('titulo', 'Título Comercial')
             ->setEntryType(TranslationTextType::class)
             ->setRequired(false)
+            ->hideOnIndex()
+            ->hideOnDetail()
             ->setColumns(12);
 
         yield FormField::addPanel('Configuración Operativa')->setIcon('fa fa-cogs');
 
-        yield NumberField::new('duracion', 'Duración (Horas)')
+        yield NumberField::new('duracion', 'Duración')
             ->setNumDecimals(1)
-            ->setColumns(4);
-
-        yield IntegerField::new('anticipacionalerta', 'Alerta Temprana (Días)')
             ->setColumns(4)
-            ->hideOnIndex();
+            ->formatValue(static fn ($value) => $value ? sprintf('%s hrs', $value) : '-');
+
+        yield IntegerField::new('anticipacionalerta', 'Alerta Temprana')
+            ->setColumns(4)
+            ->hideOnIndex()
+            ->formatValue(static fn ($value) => $value ? sprintf('%d Días', $value) : '-');
 
         yield FormField::addPanel('Ítems y Upsells (Lo que incluye)')->setIcon('fa fa-list-check');
 
+        // 🔥 LECTURA OPTIMIZADA: Detalle de inclusiones con scroll vertical limpio y alineado
+        yield TextField::new('virtualItems', 'Detalle de Inclusiones')
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                $items = $entity->getComponenteItems();
+                if ($items->isEmpty()) {
+                    return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin inclusiones</span>';
+                }
+
+                $html = '<ul style="max-height: 150px; overflow-y: auto; text-align: left; min-width: 240px; margin: 0; padding: 0 5px 0 0; list-style: none;">';
+                foreach ($items as $item) {
+                    $nombre = htmlspecialchars((string) $item);
+                    $html .= sprintf(
+                        '<li class="px-2 py-1 mb-1 bg-white border rounded small text-truncate" title="%s" style="display: block;">
+                            <i class="fas fa-angle-right text-muted" style="margin-right: 4px;"></i> <span class="text-dark">%s</span>
+                        </li>',
+                        $nombre, $nombre
+                    );
+                }
+                $html .= '</ul>';
+                return $html;
+            })
+            ->renderAsHtml();
+
+        // ESCRITURA
         yield CollectionField::new('componenteItems', 'Detalle de Inclusiones')
             ->useEntryCrudForm(TravelComponenteItemCrudController::class)
             ->setFormTypeOption('by_reference', false)
             ->setFormTypeOption('required', false)
-            ->setColumns(12)
-            ->setHelp('Para paquetes (Pools), añade aquí los servicios que incluye (Bus, Guía, etc). Si este componente es un servicio atómico (Ej: Ticket de Tren), puedes dejar esto completamente vacío.');
+            ->hideOnIndex()
+            ->hideOnDetail()
+            ->setColumns(12);
 
         yield FormField::addPanel('Tarifario Base')->setIcon('fa fa-money-bill-wave');
 
+        // 🔥 LECTURA OPTIMIZADA: Tarifas con scrollbar y diseño en bloque blanco alineado
+        yield TextField::new('virtualTarifas', 'Costos Maestros')
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                $tarifas = $entity->getTarifas();
+                if ($tarifas->isEmpty()) {
+                    return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin costos maestros</span>';
+                }
+
+                $html = '<ul style="max-height: 150px; overflow-y: auto; text-align: left; min-width: 240px; margin: 0; padding: 0 5px 0 0; list-style: none;">';
+                foreach ($tarifas as $tarifa) {
+                    $nombre = htmlspecialchars((string) $tarifa);
+                    $html .= sprintf(
+                        '<li class="px-2 py-1 mb-1 bg-white border rounded small text-truncate" title="%s" style="display: block;">
+                            <i class="fas fa-tag text-success" style="font-size: 0.85em; margin-right: 4px;"></i> <span class="text-dark fw-medium">%s</span>
+                        </li>',
+                        $nombre, $nombre
+                    );
+                }
+                $html .= '</ul>';
+                return $html;
+            })
+            ->renderAsHtml();
+
+        // ESCRITURA
         yield CollectionField::new('tarifas', 'Costos Maestros')
             ->useEntryCrudForm(TravelTarifaCrudController::class)
             ->setFormTypeOption('by_reference', false)
-            ->setColumns(12)
-            ->setHelp('Agrega las tarifas para este componente (Adultos, Niños, Extranjeros, etc).');
+            ->hideOnIndex()
+            ->hideOnDetail()
+            ->setColumns(12);
 
         yield FormField::addPanel('Trazabilidad')->setIcon('fa fa-link')->onlyOnDetail();
 
-        yield CollectionField::new('servicios', 'Servicios (Tours) que usan este insumo')
+        yield TextField::new('virtualServicios', 'Servicios (Tours) que usan este insumo')
             ->onlyOnDetail()
             ->formatValue(static function ($value, $entity) {
-                $servicios = [];
+                $servicios = $entity->getServicios();
 
-                foreach ($entity->getServicios() as $servicio) {
-                    $servicios[] = sprintf('<li>%s</li>', htmlspecialchars((string) $servicio->getNombreInterno()));
+                if ($servicios->isEmpty()) {
+                    return '<span class="text-muted small"><i class="fas fa-info-circle"></i> No está vinculado a ningún servicio (tour) actualmente.</span>';
                 }
 
-                if (empty($servicios)) {
-                    return '<span class="text-muted">No está vinculado a ningún servicio (tour) actualmente.</span>';
+                $html = '<ul style="max-height: 160px; overflow-y: auto; text-align: left; min-width: 240px; margin: 0; padding: 0 5px 0 0; list-style: none;">';
+                foreach ($servicios as $servicio) {
+                    $nombre = htmlspecialchars((string) $servicio->getNombreInterno());
+                    $html .= sprintf(
+                        '<li class="px-2 py-1 mb-1 bg-light border rounded small text-truncate" title="%s" style="display: block;">
+                            <i class="fas fa-layer-group text-primary" style="font-size: 0.8em; margin-right: 4px;"></i> <span class="text-dark fw-medium">%s</span>
+                        </li>',
+                        $nombre, $nombre
+                    );
                 }
+                $html .= '</ul>';
 
-                return sprintf('<ul style="padding-left: 15px; margin: 0;">%s</ul>', implode('', $servicios));
-            });
+                return $html;
+            })
+            ->renderAsHtml();
     }
 }

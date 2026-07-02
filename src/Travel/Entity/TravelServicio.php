@@ -20,49 +20,18 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
-// 🔥 NUEVOS IMPORTS PARA LA VALIDACIÓN
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
-/**
- * Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
- * para que luego las plantillas de itinerario y las cotizaciones los utilicen.
- */
 #[ApiResource(
-    shortName: 'Servicio',  // 🔥 Define el recurso base para generar '/servicios'
+    shortName: 'Servicio',
     operations: [
-        // Genera: GET /travel/servicios
-        new GetCollection(
-            normalizationContext: ['groups' => ['servicio:read']],
-            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
-        ),
-
-        // Genera: GET /travel/servicios/{id}
-        new Get(
-            normalizationContext: ['groups' => ['servicio:item:read']],
-            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
-        ),
-
-        // Genera: POST /travel/servicios
-        new Post(
-            denormalizationContext: ['groups' => ['servicio:write']],
-            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityPostDenormalizeMessage: 'No tienes permiso para crear servicios.'
-        ),
-
-        // Genera: PUT /travel/servicios/{id}
-        new Put(
-            denormalizationContext: ['groups' => ['servicio:write']],
-            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar servicios.'
-        ),
-
-        // Genera: DELETE /travel/servicios/{id}
-        new Delete(
-            security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
-            securityMessage: 'No tienes permiso para eliminar servicios.'
-        )
-    ], // 🔥 Agrupa todas las rutas bajo el módulo logístico
+        new GetCollection(normalizationContext: ['groups' => ['servicio:read']], security: "is_granted('" . Roles::MAESTROS_SHOW . "')"),
+        new Get(normalizationContext: ['groups' => ['servicio:item:read']], security: "is_granted('" . Roles::MAESTROS_SHOW . "')"),
+        new Post(denormalizationContext: ['groups' => ['servicio:write']], securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')", securityPostDenormalizeMessage: 'No tienes permiso para crear servicios.'),
+        new Put(denormalizationContext: ['groups' => ['servicio:write']], security: "is_granted('" . Roles::MAESTROS_WRITE . "')", securityMessage: 'No tienes permiso para editar servicios.'),
+        new Delete(security: "is_granted('" . Roles::MAESTROS_DELETE . "')", securityMessage: 'No tienes permiso para eliminar servicios.')
+    ],
     routePrefix: '/travel'
 )]
 #[ORM\Entity]
@@ -87,24 +56,15 @@ class TravelServicio
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
-    /**
-     * Pool logístico. Solo lectura profunda, al escribir pasamos IRIs.
-     */
     #[Groups(['servicio:item:read', 'servicio:write'])]
     #[ORM\ManyToMany(targetEntity: TravelComponente::class, inversedBy: 'servicios')]
     #[ORM\JoinTable(name: 'travel_servicio_componentes_pool')]
     private Collection $componentes;
 
-    /**
-     * Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.
-     */
     #[Groups(['servicio:item:read', 'servicio:write'])]
     #[ORM\OneToMany(mappedBy: 'servicio', targetEntity: TravelItinerario::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $itinerarios;
 
-    /**
-     * Pool narrativo.
-     */
     #[Groups(['servicio:item:read', 'servicio:write'])]
     #[ORM\ManyToMany(targetEntity: TravelSegmento::class, mappedBy: 'servicios')]
     private Collection $segmentos;
@@ -113,6 +73,26 @@ class TravelServicio
     {
         $this->initializeId();
         $this->componentes = new ArrayCollection();
+        $this->itinerarios = new ArrayCollection();
+        $this->segmentos = new ArrayCollection();
+    }
+
+    public function __clone()
+    {
+        $this->resetId();
+        $this->resetTimestamps();
+
+        if ($this->nombreInterno) {
+            $this->nombreInterno = '(Clon) ' . $this->nombreInterno;
+        }
+
+        $componentesOriginales = $this->componentes;
+        $this->componentes = new ArrayCollection();
+        foreach ($componentesOriginales as $compOriginal) {
+            $clonComp = clone $compOriginal;
+            $this->addComponente($clonComp);
+        }
+
         $this->itinerarios = new ArrayCollection();
         $this->segmentos = new ArrayCollection();
     }
@@ -170,7 +150,6 @@ class TravelServicio
     {
         if (!$this->componentes->contains($componente)) {
             $this->componentes->add($componente);
-            // 🔥 CLAVE: Sincronización bidireccional para que Doctrine lo guarde
             $componente->addServicio($this);
         }
         return $this;
@@ -179,7 +158,6 @@ class TravelServicio
     public function removeComponente(TravelComponente $componente): self
     {
         if ($this->componentes->removeElement($componente)) {
-            // 🔥 CLAVE: Sincronización bidireccional al eliminar
             $componente->removeServicio($this);
         }
         return $this;
@@ -214,9 +192,6 @@ class TravelServicio
         return $this->segmentos;
     }
 
-    /**
-     * Vincula un segmento narrativo al pool de este servicio.
-     */
     public function addSegmento(TravelSegmento $segmento): self
     {
         if (!$this->segmentos->contains($segmento)) {
@@ -226,9 +201,6 @@ class TravelServicio
         return $this;
     }
 
-    /**
-     * Desvincula un segmento narrativo del pool de este servicio.
-     */
     public function removeSegmento(TravelSegmento $segmento): self
     {
         if ($this->segmentos->removeElement($segmento)) {
@@ -237,19 +209,16 @@ class TravelServicio
         return $this;
     }
 
-    /**
-     * 🔥 NUEVO: Valida que el arreglo JSON de Título contenga el idioma Español ('es')
-     * y que este no esté en blanco.
-     * EasyAdmin llamará a este método automáticamente al intentar guardar el formulario.
-     */
+    // 🔥 VIRTUALES PARA EASYADMIN (TextField compatibles)
+    public function getVirtualTitulo(): string { return ''; }
+    public function getVirtualComponentes(): string { return ''; }
+
     #[Assert\Callback]
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
     {
         $hasValidSpanish = false;
-
         if (is_array($this->titulo)) {
             foreach ($this->titulo as $item) {
-                // Verificamos la estructura clásica de tus campos i18n: ['language' => 'es', 'content' => '...']
                 if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
                     if (trim(strip_tags((string) $item['content'])) !== '') {
                         $hasValidSpanish = true;
@@ -258,11 +227,8 @@ class TravelServicio
                 }
             }
         }
-
         if (!$hasValidSpanish) {
-            $context->buildViolation('El título público en Español es obligatorio.')
-                ->atPath('titulo') // Marca el campo en rojo en EasyAdmin
-                ->addViolation();
+            $context->buildViolation('El título público en Español es obligatorio.')->atPath('titulo')->addViolation();
         }
     }
 }

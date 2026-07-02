@@ -161,9 +161,9 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::subMenu('Catálogo de Productos', 'fa fa-map-marked-alt')
             ->setSubItems([
                 MenuItem::linkTo(TravelServicioCrudController::class, 'Servicios / Tours', 'fa fa-route'),
-                MenuItem::linkTo(TravelSegmentoCrudController::class, 'Segmentos Narrativos', 'fa fa-paragraph'),
-                MenuItem::linkTo(TravelSegmentoImagenCrudController::class, 'Galería de Segmentos', 'fa fa-images'),
                 MenuItem::linkTo(TravelItinerarioCrudController::class, 'Plantillas de Itinerario', 'fa fa-book-open'),
+                MenuItem::linkTo(TravelSegmentoCrudController::class, 'Segmentos Narrativos', 'fa fa-paragraph'),
+                MenuItem::linkTo(TravelSegmentoImagenCrudController::class, 'Imágenes de Segmentos', 'fa fa-images'),
                 MenuItem::linkTo(TravelNotaCrudController::class, 'Intro y tips', 'fa fa-file-alt'),
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
@@ -172,7 +172,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::subMenu('Logística y Tarifas', 'fa fa-cogs')
             ->setSubItems([
                 MenuItem::linkTo(ProveedorCrudController::class, 'Proveedores', 'fa fa-handshake'), // <-- NUEVO
-                MenuItem::linkTo(ProveedorImagenCrudController::class, 'Galería de Proveedores', 'fa fa-images'), // <-- NUEVO
+                MenuItem::linkTo(ProveedorImagenCrudController::class, 'Imágenes de Proveedores', 'fa fa-images'), // <-- NUEVO
                 MenuItem::linkTo(TravelComponenteCrudController::class, 'Componentes Base', 'fa fa-cubes'),
                 MenuItem::linkTo(TravelTarifaCrudController::class, 'Tarifario Maestro', 'fa fa-hand-holding-usd'),
                 MenuItem::linkTo(TravelItemDiccionarioCrudController::class, 'Diccionario Multiidioma', 'fa fa-language'),
