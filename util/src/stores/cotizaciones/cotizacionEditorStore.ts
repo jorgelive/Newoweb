@@ -660,6 +660,40 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             grupos[fecha].push(srv);
         });
 
+        // Obtiene la hora más temprana entre los componentes que requieren hora exacta.
+        // Si el servicio no tiene ningún componente con hora exacta, retorna null (va al final).
+        const getHoraClaveServicio = (srv: CotServicio): string | null => {
+            if (!srv.cotcomponentes || srv.cotcomponentes.length === 0) return null;
+
+            let horaMinima: string | null = null;
+            srv.cotcomponentes.forEach((c: ComponenteCompleto) => {
+                const tipo = getTipoComponente(c.componenteMaestroId || null);
+                if (requiereHoraExacta(tipo) && c.fechaHoraInicio) {
+                    if (horaMinima === null || c.fechaHoraInicio < horaMinima) {
+                        horaMinima = c.fechaHoraInicio;
+                    }
+                }
+            });
+
+            return horaMinima;
+        };
+
+        Object.keys(grupos).forEach((fecha) => {
+            grupos[fecha].sort((a: CotServicio, b: CotServicio) => {
+                const horaA = getHoraClaveServicio(a);
+                const horaB = getHoraClaveServicio(b);
+
+                // Ninguno tiene hora exacta -> empate, conserva orden original (estable)
+                if (horaA === null && horaB === null) return 0;
+                // Solo A no tiene hora exacta -> A va al final
+                if (horaA === null) return 1;
+                // Solo B no tiene hora exacta -> B va al final
+                if (horaB === null) return -1;
+                // Ambos tienen hora exacta -> ordena por la más temprana
+                return horaA.localeCompare(horaB);
+            });
+        });
+
         const fechasOrdenadas = Object.keys(grupos).sort();
         const fechaBase = fechasOrdenadas.length > 0 ? new Date(fechasOrdenadas[0] + 'T12:00:00Z') : new Date();
 
@@ -1787,23 +1821,36 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const hInicio = reqHora ? (getHoraLimpia(segComp.hora) || '08:00') : '00:00';
                 const fHoraInicio = `${fechaBase}T${hInicio}`;
 
+                const duracionComp = parseFloat(String(compMaestro.duracion || 0));
+
                 let fHoraFin = '';
                 if (reqHora) {
                     const hFin = getHoraLimpia(segComp.horaFin);
                     if (hFin) {
-                        fHoraFin = `${fechaBase}T${hFin}`;
-                        if (fHoraFin < fHoraInicio) {
-                            const dNext = new Date(`${fechaBase}T12:00:00Z`);
-                            dNext.setUTCDate(dNext.getUTCDate() + 1);
-                            fHoraFin = `${dNext.toISOString().split('T')[0]}T${hFin}`;
+                        // Días completos que ya aporta la duración del maestro (24h -> +1, 48h -> +2, etc.)
+                        let extraDias = Math.floor(duracionComp / 24);
+
+                        // Si la hora de fin es <= hora de inicio, asumimos que cruzó medianoche al menos una vez
+                        if (hFin <= hInicio) {
+                            extraDias = Math.max(extraDias, 1);
                         }
+
+                        let fechaFin = fechaBase;
+                        if (extraDias > 0) {
+                            const dNext = new Date(`${fechaBase}T12:00:00Z`);
+                            dNext.setUTCDate(dNext.getUTCDate() + extraDias);
+                            fechaFin = dNext.toISOString().split('T')[0];
+                        }
+
+                        fHoraFin = `${fechaFin}T${hFin}`;
                     } else {
-                        const duracion = parseFloat(String(compMaestro.duracion || 0));
-                        fHoraFin = addDurationToDate(fHoraInicio, duracion);
+                        // Fallback: duracion pura, addDurationToDate resuelve el rollover de días
+                        fHoraFin = addDurationToDate(fHoraInicio, duracionComp);
                     }
                 } else {
-                    const duracion = parseFloat(String(compMaestro.duracion || 0));
-                    const calcFin = addDurationToDate(fHoraInicio, duracion);
+                    // Alojamiento y similares: SOLO duracion decide, hora siempre 00:00,
+                    // se ignora segComp.horaFin por completo
+                    const calcFin = addDurationToDate(fHoraInicio, duracionComp);
                     fHoraFin = calcFin.split('T')[0] + 'T00:00';
                 }
 
