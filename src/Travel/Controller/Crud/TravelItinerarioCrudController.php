@@ -118,6 +118,12 @@ class TravelItinerarioCrudController extends BaseCrudController
     {
         yield FormField::addPanel('Definición de Plantilla')->setIcon('fa fa-book');
 
+        yield TextField::new('nombreInterno', 'Nombre de Plantilla')->setColumns(6);
+
+        yield IntegerField::new('duracionDias', 'Duración Total')
+            ->setColumns(4)
+            ->formatValue(static fn ($value) => $value ? sprintf('%d Días', $value) : '-');
+
         // LECTURA
         yield TextField::new('servicio', 'Servicio Vinculado')
             ->hideOnForm()
@@ -133,12 +139,6 @@ class TravelItinerarioCrudController extends BaseCrudController
             ->autocomplete()
             ->hideOnIndex()
             ->hideOnDetail();
-
-        yield TextField::new('nombreInterno', 'Nombre de Plantilla')->setColumns(6);
-
-        yield IntegerField::new('duracionDias', 'Duración Total')
-            ->setColumns(4)
-            ->formatValue(static fn ($value) => $value ? sprintf('%d Días', $value) : '-');
 
         yield FormField::addPanel('Presentación')->setIcon('fa fa-bullhorn');
 
