@@ -21,6 +21,10 @@ use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+// 🔥 IMPORTAMOS LAS CLASES DE FILTROS DE EASYADMIN
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -39,6 +43,20 @@ class TravelComponenteCrudController extends BaseCrudController
             ->setEntityLabelInPlural('Componentes Logísticos')
             ->setSearchFields(['id', 'nombre', 'tipo'])
             ->setDefaultSort(['createdAt' => 'DESC']);
+    }
+
+    /**
+     * 🔥 NUEVO: CONFIGURACIÓN DE FILTROS LATERALES
+     */
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            // Filtro por la colección ManyToMany de Servicios
+            ->add(EntityFilter::new('servicios', 'Servicio (Tour)'))
+            // Filtro por el Enum de Categoría Operativa
+            ->add(ChoiceFilter::new('tipo', 'Categoría Operativa')->setChoices(
+                array_reduce(ComponenteTipoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e->value], [])
+            ));
     }
 
     public function configureActions(Actions $actions): Actions
@@ -86,7 +104,9 @@ class TravelComponenteCrudController extends BaseCrudController
         /** @var TravelComponente $original */
         $original = $context->getEntity()->getInstance();
 
+        // ¡Toda la magia recursiva ocurre aquí gracias a las entidades!
         $clon = clone $original;
+
         $em->persist($clon);
         $em->flush();
 
