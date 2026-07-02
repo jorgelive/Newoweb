@@ -23,6 +23,9 @@ use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+// 🔥 IMPORTAMOS LAS CLASES DE FILTROS DE EASYADMIN
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -41,6 +44,20 @@ class TravelTarifaCrudController extends BaseCrudController
             ->setEntityLabelInPlural('Tarifario Maestro')
             ->setSearchFields(['id', 'nombreInterno', 'monto'])
             ->setDefaultSort(['createdAt' => 'DESC']);
+    }
+
+    /**
+     * 🔥 NUEVO: CONFIGURACIÓN DE FILTROS LATERALES
+     * Aquí definimos qué campos se pueden usar para filtrar la tabla principal.
+     */
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            // Filtro principal solicitado: Por componente
+            ->add(EntityFilter::new('componente', 'Componente Logístico'))
+            // Filtros extra de regalo que te serán muy útiles
+            ->add(EntityFilter::new('moneda', 'Moneda'))
+            ->add(EntityFilter::new('proveedor', 'Proveedor'));
     }
 
     public function configureActions(Actions $actions): Actions
