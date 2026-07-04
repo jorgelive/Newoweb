@@ -19,8 +19,38 @@ use RuntimeException;
  */
 class AutoTranslationService
 {
+
+
     /** @var string[] Códigos de idioma en minúsculas (ej: 'en', 'pt', 'es') */
     private array $validLanguageCodes = [];
+
+    private const string OVERWRITE_FLAG_KEY = 'sobreescribirTraduccion';
+
+    /**
+     * Resuelve el flag de sobrescritura a nivel de contenedor (item anidado o nodo intermedio).
+     * Si el contenedor trae su propia llave "sobreescribirTraduccion", esta tiene prioridad
+     * sobre el flag heredado del nivel padre, y se auto-apaga (true -> false) en memoria,
+     * igual que el flag de la entidad, para que no se quede "pegado".
+     *
+     * @param array $container Contenedor a inspeccionar/mutar (por referencia).
+     * @param bool  $inheritedOverwrite Flag heredado del nivel superior.
+     *
+     * @return bool Flag efectivo para procesar este contenedor.
+     */
+    private function resolveLocalOverwrite(array &$container, bool $inheritedOverwrite): bool
+    {
+        if (!array_key_exists(self::OVERWRITE_FLAG_KEY, $container)) {
+            return $inheritedOverwrite;
+        }
+
+        $localFlag = (bool) $container[self::OVERWRITE_FLAG_KEY];
+
+        if ($localFlag) {
+            $container[self::OVERWRITE_FLAG_KEY] = false;
+        }
+
+        return $localFlag;
+    }
 
     public function __construct(
         private readonly GoogleTranslateService $translator,
@@ -145,6 +175,31 @@ class AutoTranslationService
     }
 
     /**
+     * Recorre recursivamente toda la estructura y apaga (true -> false) cualquier
+     * flag de sobrescritura encontrado. Se ejecuta una sola vez, después de haber
+     * procesado TODOS los targetKeys de la propiedad, para que un mismo contenedor
+     * con varios campos traducibles vea el flag activo durante todo el proceso
+     * y no se "gaste" en el primer campo que lo consulta.
+     *
+     * @param array $data Estructura ya traducida.
+     * @return array Estructura con los flags apagados.
+     */
+    private function resetOverwriteFlags(array $data): array
+    {
+        if (($data[self::OVERWRITE_FLAG_KEY] ?? null) === true) {
+            $data[self::OVERWRITE_FLAG_KEY] = false;
+        }
+
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $data[$key] = $this->resetOverwriteFlags($value);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
      * Inicia la travesía de los campos anidados leyendo la notación de flecha (->).
      *
      * @param array $data Los datos estructurados a procesar.
@@ -162,7 +217,26 @@ class AutoTranslationService
             $pathParts = explode('->', $keyPath);
             $data = $this->traverseAndTranslate($data, $pathParts, $sourceLang, $mimeType, $overwrite, $propName);
         }
-        return $data;
+
+        return $this->resetOverwriteFlags($data);
+    }
+
+    /**
+     * Lee (sin mutar) el flag de sobrescritura de un contenedor específico.
+     * Si el contenedor no trae su propia llave, se hereda el flag del nivel padre.
+     *
+     * @param array $container Contenedor a inspeccionar.
+     * @param bool  $inheritedOverwrite Flag heredado del nivel superior.
+     *
+     * @return bool Flag efectivo para procesar este contenedor.
+     */
+    private function peekLocalOverwrite(array $container, bool $inheritedOverwrite): bool
+    {
+        if (!array_key_exists(self::OVERWRITE_FLAG_KEY, $container)) {
+            return $inheritedOverwrite;
+        }
+
+        return (bool) $container[self::OVERWRITE_FLAG_KEY];
     }
 
     /**
@@ -187,13 +261,17 @@ class AutoTranslationService
         if (array_is_list($data) && !empty($data)) {
             foreach ($data as $index => $item) {
                 if (is_array($item) && !empty($item[$currentKey])) {
+                    $itemOverwrite = $this->peekLocalOverwrite($item, $overwrite);
+
                     if (empty($pathParts)) {
                         $fieldMap = $this->normalizeNestedFieldToRowMap($item[$currentKey], $sourceLang, $fullPath . '.' . $currentKey);
-                        $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $overwrite);
-                        $data[$index][$currentKey] = $this->mapRowsToList($translatedMap);
+                        $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $itemOverwrite);
+                        $item[$currentKey] = $this->mapRowsToList($translatedMap);
                     } else {
-                        $data[$index][$currentKey] = $this->traverseAndTranslate($item[$currentKey], $pathParts, $sourceLang, $mimeType, $overwrite, $fullPath . '.' . $currentKey);
+                        $item[$currentKey] = $this->traverseAndTranslate($item[$currentKey], $pathParts, $sourceLang, $mimeType, $itemOverwrite, $fullPath . '.' . $currentKey);
                     }
+
+                    $data[$index] = $item;
                 }
             }
             return $data;
@@ -201,12 +279,14 @@ class AutoTranslationService
 
         // CASO B: Objeto Simple
         if (isset($data[$currentKey]) && !empty($data[$currentKey])) {
+            $localOverwrite = $this->peekLocalOverwrite($data, $overwrite);
+
             if (empty($pathParts)) {
                 $fieldMap = $this->normalizeNestedFieldToRowMap($data[$currentKey], $sourceLang, $fullPath . '.' . $currentKey);
-                $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $overwrite);
+                $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $localOverwrite);
                 $data[$currentKey] = $this->mapRowsToList($translatedMap);
             } else {
-                $data[$currentKey] = $this->traverseAndTranslate($data[$currentKey], $pathParts, $sourceLang, $mimeType, $overwrite, $fullPath . '.' . $currentKey);
+                $data[$currentKey] = $this->traverseAndTranslate($data[$currentKey], $pathParts, $sourceLang, $mimeType, $localOverwrite, $fullPath . '.' . $currentKey);
             }
         }
 
@@ -229,7 +309,6 @@ class AutoTranslationService
         $sourceLangNorm = strtolower($sourceLang);
         $cleanMap = [];
 
-        // Filtra claves que no pertenecen al diccionario principal
         foreach ($valuesMap as $lang => $row) {
             $langNorm = strtolower((string) $lang);
             if ($langNorm === $sourceLangNorm || in_array($langNorm, $this->validLanguageCodes, true)) {
@@ -238,14 +317,22 @@ class AutoTranslationService
         }
         $valuesMap = $cleanMap;
 
-        // Obtenemos la fila base original
         $sourceRow = $valuesMap[$sourceLangNorm] ?? null;
-        if (!is_array($sourceRow) || empty($sourceRow['content']) || !is_string($sourceRow['content'])) {
+        $sourceIsUsable = is_array($sourceRow) && !empty($sourceRow['content']) && is_string($sourceRow['content']);
+
+        if (!$sourceIsUsable) {
+            // 🗑️ Solo limpiamos las traducciones huérfanas cuando el usuario pidió
+            // explícitamente sobrescribir (overwrite=true) para este campo/rama.
+            // Si overwrite es false, puede que este campo simplemente nunca tuvo
+            // base cargada todavía, y no hay que tocar lo que ya existe.
+            if ($overwrite) {
+                return $sourceRow !== null ? [$sourceLangNorm => $sourceRow] : [];
+            }
+
             return $valuesMap;
         }
 
         $sourceText = $sourceRow['content'];
-        $hasChanged = false;
 
         foreach ($this->validLanguageCodes as $targetCode) {
             if ($targetCode === $sourceLangNorm) continue;
@@ -253,7 +340,6 @@ class AutoTranslationService
             $existingRow = $valuesMap[$targetCode] ?? null;
             $isContentEmpty = $existingRow === null || trim((string) $existingRow['content']) === '';
 
-            // Si no debemos sobrescribir y ya hay contenido, lo ignoramos y dejamos lo que puso el usuario.
             if (!$overwrite && !$isContentEmpty) {
                 continue;
             }
@@ -262,21 +348,18 @@ class AutoTranslationService
                 $res = $this->translator->translate($sourceText, $targetCode, $sourceLangNorm, $mimeType);
 
                 if (!empty($res[0]) && is_string($res[0])) {
-                    // Si ya existía, preservamos sus llaves (ej: metadatos, status). Si no, clonamos de la fuente.
                     $baseRow = $existingRow !== null ? $existingRow : $sourceRow;
                     $valuesMap[$targetCode] = array_merge($baseRow, [
                         'language' => $targetCode,
                         'content'  => $res[0],
                     ]);
-                    $hasChanged = true;
                 }
             } catch (\Throwable) {
-                // Silenciamos excepciones puntuales de traducción para no detener todo el proceso.
                 continue;
             }
         }
 
-        return $hasChanged ? $valuesMap : $valuesMap;
+        return $valuesMap;
     }
 
     /**
