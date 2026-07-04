@@ -341,13 +341,6 @@ const formatDateOnlyFromISO = (isoString?: string) => {
   return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
 };
 
-const dragStart = (e: DragEvent, segmentoMaestro: any) => {
-  if (e.dataTransfer) {
-    e.dataTransfer.setData('application/json', JSON.stringify(segmentoMaestro));
-    e.dataTransfer.effectAllowed = 'copy';
-  }
-};
-
 const plantillaSeleccionada = ref<string | null>(null);
 
 const isComponenteSoloItems = (componente: any) => {
@@ -399,6 +392,21 @@ let dragActivated = false;
 let pointerStartY = 0;
 const LONG_PRESS_MS = 320;
 const MOVE_CANCEL_THRESHOLD = 10;
+
+const tooltipDetalleActivo = ref<string | null>(null);
+let detalleLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+const onDetallePointerDown = (e: PointerEvent, bloqueId: string) => {
+  if (e.pointerType !== 'touch') return;
+  detalleLongPressTimer = setTimeout(() => {
+    tooltipDetalleActivo.value = bloqueId;
+    if (navigator.vibrate) navigator.vibrate(10);
+  }, 320);
+};
+const onDetallePointerUp = () => {
+  if (detalleLongPressTimer) { clearTimeout(detalleLongPressTimer); detalleLongPressTimer = null; }
+  setTimeout(() => { tooltipDetalleActivo.value = null; }, 1600);
+};
 
 const reordenarSnapshotItems = (fromId: string, toId: string) => {
   if (!store.dataActiva?.snapshotItems || fromId === toId) return;
@@ -520,12 +528,22 @@ const isProveedorOpen = ref(false);
 
 const detallesOperativosAbierto = ref(true);
 
-const dropSegmento = (e: DragEvent) => {
-  if (e.dataTransfer) {
-    const data = e.dataTransfer.getData('application/json');
-    if (data) prepararInsercion(JSON.parse(data));
-  }
+const tooltipPoolActivo = ref<string | null>(null);
+let poolLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+const onPoolPointerDown = (e: PointerEvent, id: string) => {
+  if (e.pointerType !== 'touch') return;
+  poolLongPressTimer = setTimeout(() => {
+    tooltipPoolActivo.value = id;
+    if (navigator.vibrate) navigator.vibrate(10);
+  }, 320);
 };
+const onPoolPointerUp = () => {
+  if (poolLongPressTimer) { clearTimeout(poolLongPressTimer); poolLongPressTimer = null; }
+  setTimeout(() => { tooltipPoolActivo.value = null; }, 1600);
+};
+
+const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.length);
+
 </script>
 
 <template>
@@ -938,6 +956,27 @@ const dropSegmento = (e: DragEvent) => {
                     </span>
                   </div>
 
+                  <div v-if="comp.detallesOperativos?.length" class="flex flex-wrap gap-1.5 mb-3">
+                    <div v-for="bloque in comp.detallesOperativos" :key="bloque.id"
+                         class="relative"
+                         @click.stop
+                         @mouseenter="tooltipDetalleActivo = bloque.id"
+                         @mouseleave="tooltipDetalleActivo = null"
+                         @pointerdown.stop="onDetallePointerDown($event, bloque.id)"
+                         @pointerup.stop="onDetallePointerUp"
+                         @pointercancel.stop="onDetallePointerUp">
+    <span class="text-[9px] font-black px-2 py-1 rounded-lg border shadow-sm flex items-center gap-1 cursor-help select-none"
+          :class="bloque.tipo === 'operativa' ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-sky-50 text-sky-700 border-sky-100'">
+      <i class="fas" :class="bloque.tipo === 'operativa' ? 'fa-cogs' : 'fa-info-circle'"></i>
+      {{ bloque.tipo === 'operativa' ? 'Operativa' : 'Detalle' }}
+    </span>
+                      <div v-if="tooltipDetalleActivo === bloque.id"
+                           class="absolute z-30 bottom-full left-0 mb-2 w-52 bg-slate-900 text-white text-[10px] font-medium p-2.5 rounded-lg shadow-xl leading-snug">
+                        {{ store.getI18nText(bloque.detalle as any, store.cotizacion.idiomaEdicion) || 'Sin contenido' }}
+                      </div>
+                    </div>
+                  </div>
+
                   <div v-if="comp.cottarifas?.length" class="mt-auto pt-3 border-t border-slate-100 grid grid-cols-1 gap-2">
                     <div v-for="tarifa in comp.cottarifas" :key="tarifa.id"
                          class="flex items-center justify-between bg-slate-50 hover:bg-orange-50 p-2 rounded-lg border border-slate-200 transition-colors">
@@ -1043,7 +1082,7 @@ const dropSegmento = (e: DragEvent) => {
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
                       <input v-if="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
                              type="text"
-                             class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
                              :value="formatParaMascara(store.dataActiva.fechaHoraInicio)"
                              v-strict-mask="(val: string) => procesarFechaMascara(val, 'inicio')"
                              @keydown.enter="onEnter"
@@ -1052,7 +1091,7 @@ const dropSegmento = (e: DragEvent) => {
                       />
                       <input v-else
                              type="text"
-                             class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
                              :value="formatFechaCortaParaMascara(store.dataActiva.fechaHoraInicio)"
                              v-date-mask="(val: string) => procesarFechaCortaMascara(val, 'inicio')"
                              @keydown.enter="onEnter"
@@ -1077,7 +1116,7 @@ const dropSegmento = (e: DragEvent) => {
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
                       <input v-if="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
                              type="text"
-                             class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
                              :value="formatParaMascara(store.dataActiva.fechaHoraFin)"
                              v-strict-mask="(val: string) => procesarFechaMascara(val, 'fin')"
                              @keydown.enter="onEnter"
@@ -1086,7 +1125,7 @@ const dropSegmento = (e: DragEvent) => {
                       />
                       <input v-else
                              type="text"
-                             class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
+                             class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
                              :value="formatFechaCortaParaMascara(store.dataActiva.fechaHoraFin)"
                              v-date-mask="(val: string) => procesarFechaCortaMascara(val, 'fin')"
                              @keydown.enter="onEnter"
@@ -1100,16 +1139,16 @@ const dropSegmento = (e: DragEvent) => {
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Cantidad / Noches</label>
-                <input v-model="store.dataActiva.cantidad" type="number" readonly class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-black text-center outline-none shadow-inner cursor-not-allowed">
+                <input v-model="store.dataActiva.cantidad" type="number" readonly class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black text-center outline-none shadow-inner cursor-not-allowed">
               </div>
 
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo Comercial</label>
-                <select v-model="store.dataActiva.modo" class="w-full bg-white text-slate-800 border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none appearance-none shadow-sm focus:ring-2 focus:ring-sky-500">
-                  <option value="incluido">Incluido (Suma Costo)</option>
-                  <option value="opcional">Opcional (No Suma)</option>
-                  <option value="no_incluido">No Incluido (Se Tacha)</option>
-                  <option value="cortesia">Cortesía (Suma 0)</option>
+                  <select v-model="store.dataActiva.modo" class="w-full bg-white text-slate-800 border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold outline-none appearance-none shadow-sm focus:ring-2 focus:ring-sky-500">
+                    <option value="incluido">Incluido</option>
+                    <option value="opcional">Opcional</option>
+                    <option value="no_incluido">No incluido</option>
+                    <option value="cortesia">Cortesía</option>
                 </select>
               </div>
             </div>
@@ -1313,7 +1352,7 @@ const dropSegmento = (e: DragEvent) => {
                 </div>
                 <div>
                   <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 text-right">Costo Unitario</label>
-                  <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-32 bg-slate-900 border border-slate-600 text-orange-400 rounded-xl px-3 py-2 text-xl font-black text-right focus:border-orange-500 outline-none">
+                  <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-32 bg-slate-900 border border-slate-600 text-orange-400 rounded-xl px-3 py-2 text-lg font-black text-right focus:border-orange-500 outline-none">
                 </div>
               </div>
 
@@ -1532,6 +1571,53 @@ const dropSegmento = (e: DragEvent) => {
 
   <Teleport to="body">
 
+
+    <Transition name="fade-scale">
+      <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-[1400] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalInsercion.isOpen = false">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
+          <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
+            <h3 class="font-black text-sm uppercase tracking-widest"><i class="fas fa-arrows-alt-v mr-2"></i>¿Dónde ubicar el segmento?</h3>
+            <button @click="modalInsercion.isOpen = false" class="hover:opacity-70"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="p-5 space-y-4">
+            <p class="text-xs font-bold text-slate-500">
+              Insertando: <span class="text-indigo-600">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || modalInsercion.segmentoMaestro?.nombreInterno }}</span>
+            </p>
+
+            <div class="space-y-2">
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'append' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
+                <input type="radio" value="append" v-model="opcionInsercion" class="accent-indigo-600">
+                <span class="text-xs font-bold text-slate-700">Agregar al final del itinerario</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'insert' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
+                <input type="radio" value="insert" v-model="opcionInsercion" class="accent-indigo-600">
+                <span class="text-xs font-bold text-slate-700">Insertar después de un párrafo existente</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'replace' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
+                <input type="radio" value="replace" v-model="opcionInsercion" class="accent-indigo-600">
+                <span class="text-xs font-bold text-slate-700">Reemplazar un párrafo existente</span>
+              </label>
+            </div>
+
+            <div v-if="opcionInsercion !== 'append'">
+              <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                {{ opcionInsercion === 'insert' ? 'Insertar después de:' : 'Párrafo a reemplazar:' }}
+              </label>
+              <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                <option v-for="(cotSeg, idx) in store.dataActiva?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
+                  {{ idx + 1 }}. {{ store.getI18nText(cotSeg.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end gap-2">
+            <button @click="modalInsercion.isOpen = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
+            <button @click="confirmarInsercion" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <Transition name="fade-scale">
       <div v-if="store.isSegmentEditorOpen && store.cotizacion" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
         <div class="bg-[#F8FAFC] w-full max-w-6xl h-full max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
@@ -1554,10 +1640,12 @@ const dropSegmento = (e: DragEvent) => {
                       :options="opcionesPlantillas"
                       placeholder="Elegir itinerario..."
                   />
-                  <button @click="plantillaSeleccionada && store.aplicarPlantilla(plantillaSeleccionada)"
-                          :disabled="store.isLoading"
-                          class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
-                          :class="store.isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'">
+                  <button @click="plantillaSeleccionada && puedeAplicarPlantilla && store.aplicarPlantilla(plantillaSeleccionada)"
+                      :disabled="store.isLoading || !puedeAplicarPlantilla"
+                      :title="!puedeAplicarPlantilla ? 'Ya hay párrafos en este servicio. Vacía el panel para aplicar una plantilla.' : ''"
+                      class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
+                      :class="(store.isLoading || !puedeAplicarPlantilla) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'">
+
                     <i v-if="store.isLoading" class="fas fa-spinner fa-spin"></i>
                     Aplicar
                   </button>
@@ -1573,15 +1661,16 @@ const dropSegmento = (e: DragEvent) => {
                 </div>
 
                 <div class="space-y-2 md:space-y-3 overflow-y-auto flex-1 pb-2">
-                  <div v-for="(seg, idx) in poolFiltrado"
-                       :key="store.extractIdStr(seg) || idx"
-                       draggable="true"
-                       @dragstart="dragStart($event, seg)"
-                       class="bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl cursor-grab hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start"
-                  >
 
-                    <i class="fas fa-grip-vertical text-slate-300 mt-1 hidden md:block"></i>
-
+                    <div v-for="(seg, idx) in poolFiltrado"
+                        :key="store.extractIdStr(seg) || idx"
+                        class="relative bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start"
+                        @mouseenter="tooltipPoolActivo = store.extractIdStr(seg) || String(idx)"
+                        @mouseleave="tooltipPoolActivo = null"
+                        @pointerdown="onPoolPointerDown($event, store.extractIdStr(seg) || String(idx))"
+                        @pointerup="onPoolPointerUp"
+                        @pointercancel="onPoolPointerUp"
+                    >
                     <div class="flex-1 min-w-0">
                       <div class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
                       <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
@@ -1589,11 +1678,16 @@ const dropSegmento = (e: DragEvent) => {
                     </div>
 
                     <button @click="prepararInsercion(seg)" class="text-indigo-600 hover:bg-indigo-200 bg-indigo-50 md:bg-transparent md:hover:bg-indigo-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors flex-shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-indigo-100"><i class="fas fa-plus"></i></button>
-                  </div>
+                    <div v-if="tooltipPoolActivo === (store.extractIdStr(seg) || String(idx))" class="absolute z-30 bottom-full left-2 mb-2 w-64 bg-slate-900 text-white text-[10px] font-medium p-2.5 rounded-lg shadow-xl leading-snug">
+                      <p class="font-black text-indigo-300 uppercase tracking-widest text-[9px] mb-1">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</p>
+                      <p>{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
+                    </div>
+
+                    </div>
                 </div>
               </div>
             </aside>
-            <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-[#F8FAFC]" @dragover.prevent @dragenter.prevent @drop="dropSegmento">
+            <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-[#F8FAFC]">
               <div class="max-w-3xl mx-auto space-y-6 pb-20">
                 <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest"><i class="fas fa-stream mr-2"></i> Párrafos en la Cotización</h3>
 

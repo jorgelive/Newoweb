@@ -1191,6 +1191,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // NAVEGACIÓN Y ABMC
     // ============================================================================
 
+
+
     const inspectorActivo = ref<NivelInspector>('resumen');
     const dataActiva = ref<any>(null);
     const historialNavegacion = ref<{ nivel: NivelInspector, data: any }[]>([]);

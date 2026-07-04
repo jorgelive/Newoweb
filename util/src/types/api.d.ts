@@ -1062,7 +1062,10 @@ export interface components {
             anticipacionalerta?: number | null;
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            /**
+             * @description 👇 CASCADA HACIA ABAJO (Tarifas)
+             *     Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+             */
             tarifas?: string[];
             /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
             servicios?: string[];
@@ -1079,6 +1082,10 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualServicios?: string;
+            readonly virtualItems?: string;
+            readonly virtualTarifas?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.item.read": {
@@ -1098,7 +1105,10 @@ export interface components {
             anticipacionalerta?: number | null;
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.item.read"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            /**
+             * @description 👇 CASCADA HACIA ABAJO (Tarifas)
+             *     Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+             */
             tarifas?: components["schemas"]["Tarifa-componente.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -1140,7 +1150,10 @@ export interface components {
             anticipacionalerta?: number | null;
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.write"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            /**
+             * @description 👇 CASCADA HACIA ABAJO (Tarifas)
+             *     Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+             */
             tarifas?: components["schemas"]["Tarifa-componente.write"][];
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
@@ -1180,7 +1193,10 @@ export interface components {
             anticipacionalerta?: number | null;
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.html"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            /**
+             * @description 👇 CASCADA HACIA ABAJO (Tarifas)
+             *     Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+             */
             tarifas?: string[];
             /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
             servicios?: string[];
@@ -1197,6 +1213,10 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualServicios?: string;
+            readonly virtualItems?: string;
+            readonly virtualTarifas?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-componente.item.read": {
@@ -1216,7 +1236,10 @@ export interface components {
             anticipacionalerta?: number | null;
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.html-componente.item.read"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            /**
+             * @description 👇 CASCADA HACIA ABAJO (Tarifas)
+             *     Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+             */
             tarifas?: components["schemas"]["Tarifa.html-componente.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -1277,7 +1300,10 @@ export interface components {
             anticipacionalerta?: number | null;
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            /**
+             * @description 👇 CASCADA HACIA ABAJO (Tarifas)
+             *     Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+             */
             tarifas?: string[];
             /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
             servicios?: string[];
@@ -1294,6 +1320,10 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualServicios?: string;
+            readonly virtualItems?: string;
+            readonly virtualTarifas?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -1313,7 +1343,10 @@ export interface components {
             anticipacionalerta?: number | null;
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            /**
+             * @description 👇 CASCADA HACIA ABAJO (Tarifas)
+             *     Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+             */
             tarifas?: components["schemas"]["Tarifa.jsonld-componente.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -1374,7 +1407,10 @@ export interface components {
             anticipacionalerta?: number | null;
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            /**
+             * @description 👇 CASCADA HACIA ABAJO (Tarifas)
+             *     Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+             */
             tarifas?: string[];
             /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
             servicios?: string[];
@@ -1391,6 +1427,10 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualServicios?: string;
+            readonly virtualItems?: string;
+            readonly virtualTarifas?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-componente.item.read": {
@@ -1410,7 +1450,10 @@ export interface components {
             anticipacionalerta?: number | null;
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart-componente.item.read"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            /**
+             * @description 👇 CASCADA HACIA ABAJO (Tarifas)
+             *     Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+             */
             tarifas?: components["schemas"]["Tarifa.multipart-componente.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -2363,6 +2406,7 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: string[];
@@ -2384,6 +2428,7 @@ export interface components {
         "CotizacionCotservicio-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.read_timestamp.read"][];
@@ -2400,6 +2445,7 @@ export interface components {
         "CotizacionCotservicio-cotizacion.write": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.write"][];
@@ -2417,6 +2463,7 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: string[];
@@ -2438,6 +2485,7 @@ export interface components {
         "CotizacionCotservicio.html-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-cotizacion.read_timestamp.read"][];
@@ -2459,6 +2507,7 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: string[];
@@ -2480,6 +2529,7 @@ export interface components {
         "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read"][];
@@ -2501,6 +2551,7 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: string[];
@@ -2522,6 +2573,7 @@ export interface components {
         "CotizacionCotservicio.multipart-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read"][];
@@ -4293,6 +4345,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualSegmentos?: string;
         };
         "Itinerario-itinerario.item.read": {
             /**
@@ -4363,6 +4417,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualSegmentos?: string;
         };
         "Itinerario.html-itinerario.item.read": {
             /**
@@ -4421,6 +4477,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualSegmentos?: string;
         };
         "Itinerario.jsonld-itinerario.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -4479,6 +4537,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualSegmentos?: string;
         };
         "Itinerario.multipart-itinerario.item.read": {
             /**
@@ -5812,8 +5872,10 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
-            /** @description Campo virtual para EasyAdmin. */
             readonly virtualLogistica?: string;
+            readonly virtualTitulo?: string;
+            readonly virtualServicios?: string;
+            readonly virtualNotas?: string;
         };
         "Segmento-segmento.item.read": {
             nombreInterno?: string;
@@ -5871,8 +5933,10 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
-            /** @description Campo virtual para EasyAdmin. */
             readonly virtualLogistica?: string;
+            readonly virtualTitulo?: string;
+            readonly virtualServicios?: string;
+            readonly virtualNotas?: string;
         };
         "Segmento.html-segmento.item.read": {
             nombreInterno?: string;
@@ -5922,8 +5986,10 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
-            /** @description Campo virtual para EasyAdmin. */
             readonly virtualLogistica?: string;
+            readonly virtualTitulo?: string;
+            readonly virtualServicios?: string;
+            readonly virtualNotas?: string;
         };
         "Segmento.jsonld-segmento.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
@@ -5973,8 +6039,10 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
-            /** @description Campo virtual para EasyAdmin. */
             readonly virtualLogistica?: string;
+            readonly virtualTitulo?: string;
+            readonly virtualServicios?: string;
+            readonly virtualNotas?: string;
         };
         "Segmento.multipart-segmento.item.read": {
             nombreInterno?: string;
@@ -6003,19 +6071,12 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         Servicio: {
             nombreInterno?: string;
             codigo?: string | null;
             titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
             componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
             itinerarios?: string[];
-            /** @description Pool narrativo. */
             segmentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -6030,28 +6091,19 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualComponentes?: string;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio-servicio.item.read": {
             nombreInterno?: string;
             codigo?: string | null;
             titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
             componentes?: components["schemas"]["Componente-servicio.item.read"][];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
             itinerarios?: components["schemas"]["Itinerario-servicio.item.read"][];
-            /** @description Pool narrativo. */
             segmentos?: components["schemas"]["Segmento-servicio.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio-servicio.read": {
             nombreInterno?: string;
             codigo?: string | null;
@@ -6059,34 +6111,20 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio-servicio.write": {
             nombreInterno?: string;
             codigo?: string | null;
             titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
             componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
             itinerarios?: string[];
-            /** @description Pool narrativo. */
             segmentos?: string[];
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio.html": {
             nombreInterno?: string;
             codigo?: string | null;
             titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
             componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
             itinerarios?: string[];
-            /** @description Pool narrativo. */
             segmentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -6101,28 +6139,19 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualComponentes?: string;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio.html-servicio.item.read": {
             nombreInterno?: string;
             codigo?: string | null;
             titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
             componentes?: components["schemas"]["Componente.html-servicio.item.read"][];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
             itinerarios?: components["schemas"]["Itinerario.html-servicio.item.read"][];
-            /** @description Pool narrativo. */
             segmentos?: components["schemas"]["Segmento.html-servicio.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio.html-servicio.read": {
             nombreInterno?: string;
             codigo?: string | null;
@@ -6130,19 +6159,12 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
             codigo?: string | null;
             titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
             componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
             itinerarios?: string[];
-            /** @description Pool narrativo. */
             segmentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -6157,28 +6179,19 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualComponentes?: string;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
             codigo?: string | null;
             titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
             componentes?: components["schemas"]["Componente.jsonld-servicio.item.read"][];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
             itinerarios?: components["schemas"]["Itinerario.jsonld-servicio.item.read"][];
-            /** @description Pool narrativo. */
             segmentos?: components["schemas"]["Segmento.jsonld-servicio.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio.jsonld-servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
             codigo?: string | null;
@@ -6186,19 +6199,12 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio.multipart": {
             nombreInterno?: string;
             codigo?: string | null;
             titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
             componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
             itinerarios?: string[];
-            /** @description Pool narrativo. */
             segmentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -6213,28 +6219,19 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            readonly virtualTitulo?: string;
+            readonly virtualComponentes?: string;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio.multipart-servicio.item.read": {
             nombreInterno?: string;
             codigo?: string | null;
             titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
             componentes?: components["schemas"]["Componente.multipart-servicio.item.read"][];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
             itinerarios?: components["schemas"]["Itinerario.multipart-servicio.item.read"][];
-            /** @description Pool narrativo. */
             segmentos?: components["schemas"]["Segmento.multipart-servicio.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
         "Servicio.multipart-servicio.read": {
             nombreInterno?: string;
             codigo?: string | null;
@@ -6263,9 +6260,7 @@ export interface components {
              */
             proveedor?: string | null;
             nombreParaProveedor?: string | null;
-            /** @description Expone el identificador de la entidad para respuestas JSON en formato plano. */
             readonly tarifaId?: string | null;
-            /** @description 🔥 Expone la representación completa del __toString para el dropdown del frontend. */
             readonly etiquetaOpciones?: string;
         };
         "Tarifa-componente.write": {
@@ -6311,9 +6306,7 @@ export interface components {
              */
             proveedor?: string | null;
             nombreParaProveedor?: string | null;
-            /** @description Expone el identificador de la entidad para respuestas JSON en formato plano. */
             readonly tarifaId?: string | null;
-            /** @description 🔥 Expone la representación completa del __toString para el dropdown del frontend. */
             readonly etiquetaOpciones?: string;
         };
         "Tarifa.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -6337,9 +6330,7 @@ export interface components {
              */
             proveedor?: string | null;
             nombreParaProveedor?: string | null;
-            /** @description Expone el identificador de la entidad para respuestas JSON en formato plano. */
             readonly tarifaId?: string | null;
-            /** @description 🔥 Expone la representación completa del __toString para el dropdown del frontend. */
             readonly etiquetaOpciones?: string;
         };
         "Tarifa.multipart-componente.item.read": {
@@ -6363,9 +6354,7 @@ export interface components {
              */
             proveedor?: string | null;
             nombreParaProveedor?: string | null;
-            /** @description Expone el identificador de la entidad para respuestas JSON en formato plano. */
             readonly tarifaId?: string | null;
-            /** @description 🔥 Expone la representación completa del __toString para el dropdown del frontend. */
             readonly etiquetaOpciones?: string;
         };
         "Template-template.read": {

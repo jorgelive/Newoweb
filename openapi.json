@@ -7421,7 +7421,7 @@
                         }
                     },
                     "tarifas": {
-                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
+                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)\nOrdenamos la colecci\u00f3n de tarifas por el campo nombreInterno de forma ascendente.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -7465,6 +7465,22 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualServicios": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualItems": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualTarifas": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
@@ -7524,7 +7540,7 @@
                         }
                     },
                     "tarifas": {
-                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
+                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)\nOrdenamos la colecci\u00f3n de tarifas por el campo nombreInterno de forma ascendente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Tarifa-componente.item.read"
@@ -7654,7 +7670,7 @@
                         }
                     },
                     "tarifas": {
-                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
+                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)\nOrdenamos la colecci\u00f3n de tarifas por el campo nombreInterno de forma ascendente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Tarifa-componente.write"
@@ -7776,7 +7792,7 @@
                         }
                     },
                     "tarifas": {
-                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
+                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)\nOrdenamos la colecci\u00f3n de tarifas por el campo nombreInterno de forma ascendente.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -7820,6 +7836,22 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualServicios": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualItems": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualTarifas": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
@@ -7879,7 +7911,7 @@
                         }
                     },
                     "tarifas": {
-                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
+                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)\nOrdenamos la colecci\u00f3n de tarifas por el campo nombreInterno de forma ascendente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Tarifa.html-componente.item.read"
@@ -8071,7 +8103,7 @@
                                 }
                             },
                             "tarifas": {
-                                "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
+                                "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)\nOrdenamos la colecci\u00f3n de tarifas por el campo nombreInterno de forma ascendente.",
                                 "type": "array",
                                 "items": {
                                     "type": "string",
@@ -8115,6 +8147,22 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "virtualTitulo": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualServicios": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualItems": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualTarifas": {
+                                "readOnly": true,
+                                "type": "string"
                             }
                         }
                     }
@@ -8181,7 +8229,7 @@
                                 }
                             },
                             "tarifas": {
-                                "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
+                                "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)\nOrdenamos la colecci\u00f3n de tarifas por el campo nombreInterno de forma ascendente.",
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/components/schemas/Tarifa.jsonld-componente.item.read"
@@ -8386,7 +8434,7 @@
                         }
                     },
                     "tarifas": {
-                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
+                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)\nOrdenamos la colecci\u00f3n de tarifas por el campo nombreInterno de forma ascendente.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -8430,6 +8478,22 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualServicios": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualItems": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualTarifas": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
@@ -8489,7 +8553,7 @@
                         }
                     },
                     "tarifas": {
-                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
+                        "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)\nOrdenamos la colecci\u00f3n de tarifas por el campo nombreInterno de forma ascendente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Tarifa.multipart-componente.item.read"
@@ -11448,6 +11512,12 @@
                             "type": "string"
                         }
                     },
+                    "nombrePublicoSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "fechaInicioAbsoluta": {
                         "type": [
                             "string",
@@ -11525,6 +11595,12 @@
                             "type": "string"
                         }
                     },
+                    "nombrePublicoSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "fechaInicioAbsoluta": {
                         "type": [
                             "string",
@@ -11593,6 +11669,12 @@
                             "type": "string"
                         }
                     },
+                    "nombrePublicoSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "fechaInicioAbsoluta": {
                         "type": [
                             "string",
@@ -11650,6 +11732,12 @@
                         }
                     },
                     "itinerarioNombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombrePublicoSnapshot": {
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -11732,6 +11820,12 @@
                             "type": "string"
                         }
                     },
+                    "nombrePublicoSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "fechaInicioAbsoluta": {
                         "type": [
                             "string",
@@ -11805,6 +11899,12 @@
                                 }
                             },
                             "itinerarioNombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "nombrePublicoSnapshot": {
                                 "type": "array",
                                 "items": {
                                     "type": "string"
@@ -11894,6 +11994,12 @@
                                     "type": "string"
                                 }
                             },
+                            "nombrePublicoSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
                             "fechaInicioAbsoluta": {
                                 "type": [
                                     "string",
@@ -11964,6 +12070,12 @@
                         }
                     },
                     "itinerarioNombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombrePublicoSnapshot": {
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -12041,6 +12153,12 @@
                         }
                     },
                     "itinerarioNombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombrePublicoSnapshot": {
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -17656,6 +17774,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualSegmentos": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
@@ -17832,6 +17958,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualSegmentos": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
@@ -17984,6 +18118,14 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "virtualTitulo": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualSegmentos": {
+                                "readOnly": true,
+                                "type": "string"
                             }
                         }
                     }
@@ -18154,6 +18296,14 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualSegmentos": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
@@ -21768,7 +21918,18 @@
                     },
                     "virtualLogistica": {
                         "readOnly": true,
-                        "description": "Campo virtual para EasyAdmin.",
+                        "type": "string"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualServicios": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualNotas": {
+                        "readOnly": true,
                         "type": "string"
                     }
                 }
@@ -22009,7 +22170,18 @@
                     },
                     "virtualLogistica": {
                         "readOnly": true,
-                        "description": "Campo virtual para EasyAdmin.",
+                        "type": "string"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualServicios": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualNotas": {
+                        "readOnly": true,
                         "type": "string"
                     }
                 }
@@ -22215,7 +22387,18 @@
                             },
                             "virtualLogistica": {
                                 "readOnly": true,
-                                "description": "Campo virtual para EasyAdmin.",
+                                "type": "string"
+                            },
+                            "virtualTitulo": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualServicios": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualNotas": {
+                                "readOnly": true,
                                 "type": "string"
                             }
                         }
@@ -22439,7 +22622,18 @@
                     },
                     "virtualLogistica": {
                         "readOnly": true,
-                        "description": "Campo virtual para EasyAdmin.",
+                        "type": "string"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualServicios": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualNotas": {
+                        "readOnly": true,
                         "type": "string"
                     }
                 }
@@ -22566,7 +22760,6 @@
             },
             "Servicio": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -22584,7 +22777,6 @@
                         }
                     },
                     "componentes": {
-                        "description": "Pool log\u00edstico. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -22593,7 +22785,6 @@
                         }
                     },
                     "itinerarios": {
-                        "description": "Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -22602,7 +22793,6 @@
                         }
                     },
                     "segmentos": {
-                        "description": "Pool narrativo.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -22637,12 +22827,19 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualComponentes": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
             "Servicio-servicio.item.read": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -22660,21 +22857,18 @@
                         }
                     },
                     "componentes": {
-                        "description": "Pool log\u00edstico. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Componente-servicio.item.read"
                         }
                     },
                     "itinerarios": {
-                        "description": "Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Itinerario-servicio.item.read"
                         }
                     },
                     "segmentos": {
-                        "description": "Pool narrativo.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Segmento-servicio.item.read"
@@ -22692,7 +22886,6 @@
             },
             "Servicio-servicio.read": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -22721,7 +22914,6 @@
             },
             "Servicio-servicio.write": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -22739,7 +22931,6 @@
                         }
                     },
                     "componentes": {
-                        "description": "Pool log\u00edstico. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -22748,7 +22939,6 @@
                         }
                     },
                     "itinerarios": {
-                        "description": "Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -22757,7 +22947,6 @@
                         }
                     },
                     "segmentos": {
-                        "description": "Pool narrativo.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -22769,7 +22958,6 @@
             },
             "Servicio.html": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -22787,7 +22975,6 @@
                         }
                     },
                     "componentes": {
-                        "description": "Pool log\u00edstico. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -22796,7 +22983,6 @@
                         }
                     },
                     "itinerarios": {
-                        "description": "Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -22805,7 +22991,6 @@
                         }
                     },
                     "segmentos": {
-                        "description": "Pool narrativo.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -22840,12 +23025,19 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualComponentes": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
             "Servicio.html-servicio.item.read": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -22863,21 +23055,18 @@
                         }
                     },
                     "componentes": {
-                        "description": "Pool log\u00edstico. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Componente.html-servicio.item.read"
                         }
                     },
                     "itinerarios": {
-                        "description": "Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Itinerario.html-servicio.item.read"
                         }
                     },
                     "segmentos": {
-                        "description": "Pool narrativo.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Segmento.html-servicio.item.read"
@@ -22895,7 +23084,6 @@
             },
             "Servicio.html-servicio.read": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -22946,7 +23134,6 @@
                                 }
                             },
                             "componentes": {
-                                "description": "Pool log\u00edstico. Solo lectura profunda, al escribir pasamos IRIs.",
                                 "type": "array",
                                 "items": {
                                     "type": "string",
@@ -22955,7 +23142,6 @@
                                 }
                             },
                             "itinerarios": {
-                                "description": "Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.",
                                 "type": "array",
                                 "items": {
                                     "type": "string",
@@ -22964,7 +23150,6 @@
                                 }
                             },
                             "segmentos": {
-                                "description": "Pool narrativo.",
                                 "type": "array",
                                 "items": {
                                     "type": "string",
@@ -22999,11 +23184,18 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "virtualTitulo": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualComponentes": {
+                                "readOnly": true,
+                                "type": "string"
                             }
                         }
                     }
-                ],
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen."
+                ]
             },
             "Servicio.jsonld-servicio.item.read": {
                 "allOf": [
@@ -23029,21 +23221,18 @@
                                 }
                             },
                             "componentes": {
-                                "description": "Pool log\u00edstico. Solo lectura profunda, al escribir pasamos IRIs.",
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/components/schemas/Componente.jsonld-servicio.item.read"
                                 }
                             },
                             "itinerarios": {
-                                "description": "Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.",
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/components/schemas/Itinerario.jsonld-servicio.item.read"
                                 }
                             },
                             "segmentos": {
-                                "description": "Pool narrativo.",
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/components/schemas/Segmento.jsonld-servicio.item.read"
@@ -23059,8 +23248,7 @@
                             }
                         }
                     }
-                ],
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen."
+                ]
             },
             "Servicio.jsonld-servicio.read": {
                 "allOf": [
@@ -23095,12 +23283,10 @@
                             }
                         }
                     }
-                ],
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen."
+                ]
             },
             "Servicio.multipart": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -23118,7 +23304,6 @@
                         }
                     },
                     "componentes": {
-                        "description": "Pool log\u00edstico. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -23127,7 +23312,6 @@
                         }
                     },
                     "itinerarios": {
-                        "description": "Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -23136,7 +23320,6 @@
                         }
                     },
                     "segmentos": {
-                        "description": "Pool narrativo.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -23171,12 +23354,19 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTitulo": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualComponentes": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
             "Servicio.multipart-servicio.item.read": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -23194,21 +23384,18 @@
                         }
                     },
                     "componentes": {
-                        "description": "Pool log\u00edstico. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Componente.multipart-servicio.item.read"
                         }
                     },
                     "itinerarios": {
-                        "description": "Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Itinerario.multipart-servicio.item.read"
                         }
                     },
                     "segmentos": {
-                        "description": "Pool narrativo.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Segmento.multipart-servicio.item.read"
@@ -23226,7 +23413,6 @@
             },
             "Servicio.multipart-servicio.read": {
                 "type": "object",
-                "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen.",
                 "properties": {
                     "nombreInterno": {
                         "type": "string"
@@ -23338,7 +23524,6 @@
                     },
                     "tarifaId": {
                         "readOnly": true,
-                        "description": "Expone el identificador de la entidad para respuestas JSON en formato plano.",
                         "type": [
                             "string",
                             "null"
@@ -23346,7 +23531,6 @@
                     },
                     "etiquetaOpciones": {
                         "readOnly": true,
-                        "description": "\ud83d\udd25 Expone la representaci\u00f3n completa del __toString para el dropdown del frontend.",
                         "type": "string"
                     }
                 }
@@ -23521,7 +23705,6 @@
                     },
                     "tarifaId": {
                         "readOnly": true,
-                        "description": "Expone el identificador de la entidad para respuestas JSON en formato plano.",
                         "type": [
                             "string",
                             "null"
@@ -23529,7 +23712,6 @@
                     },
                     "etiquetaOpciones": {
                         "readOnly": true,
-                        "description": "\ud83d\udd25 Expone la representaci\u00f3n completa del __toString para el dropdown del frontend.",
                         "type": "string"
                     }
                 }
@@ -23624,7 +23806,6 @@
                             },
                             "tarifaId": {
                                 "readOnly": true,
-                                "description": "Expone el identificador de la entidad para respuestas JSON en formato plano.",
                                 "type": [
                                     "string",
                                     "null"
@@ -23632,7 +23813,6 @@
                             },
                             "etiquetaOpciones": {
                                 "readOnly": true,
-                                "description": "\ud83d\udd25 Expone la representaci\u00f3n completa del __toString para el dropdown del frontend.",
                                 "type": "string"
                             }
                         }
@@ -23724,7 +23904,6 @@
                     },
                     "tarifaId": {
                         "readOnly": true,
-                        "description": "Expone el identificador de la entidad para respuestas JSON en formato plano.",
                         "type": [
                             "string",
                             "null"
@@ -23732,7 +23911,6 @@
                     },
                     "etiquetaOpciones": {
                         "readOnly": true,
-                        "description": "\ud83d\udd25 Expone la representaci\u00f3n completa del __toString para el dropdown del frontend.",
                         "type": "string"
                     }
                 }
@@ -26251,7 +26429,7 @@
         },
         {
             "name": "Servicio",
-            "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen."
+            "description": "Resource 'Servicio' operations."
         },
         {
             "name": "Tarifa",
