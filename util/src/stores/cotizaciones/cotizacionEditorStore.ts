@@ -902,6 +902,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             data.cotservicios.forEach((s: CotServicio) => {
                 s.fechaInicioAbsoluta = getFechaLimpia(s.fechaInicioAbsoluta);
+                if (!s.nombrePublicoSnapshot) s.nombrePublicoSnapshot = JSON.parse(JSON.stringify(s.nombreSnapshot || []));
 
                 if (s.cotsegmentos && Array.isArray(s.cotsegmentos)) {
                     // 👉 TIPADO 100% ESTRICTO: seg se valida bajo la interfaz CotSegmento
@@ -1271,6 +1272,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             servicioMaestroId: null,
             nombreSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             itinerarioNombreSnapshot: [{ language: 'es', content: 'Sin plantilla' }],
+            nombrePublicoSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             fechaInicioAbsoluta: fechaBase,
             cotsegmentos: [],
             cotcomponentes: [],
@@ -1285,11 +1287,33 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const eliminarServicio = (servicioId: string): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
+        // 🔥 Detectamos si lo que está abierto en el inspector pertenece al servicio que se va a borrar,
+        // sin importar en qué nivel de profundidad estés (servicio, componente o tarifa)
+        let afectaAlActivo = false;
+        if (dataActiva.value) {
+            if (inspectorActivo.value === 'servicio' && dataActiva.value.id === servicioId) {
+                afectaAlActivo = true;
+            } else if (inspectorActivo.value === 'componente' || inspectorActivo.value === 'tarifa') {
+                const servicioPadre = cotizacion.value.cotservicios.find((s: CotServicio) => s.id === servicioId);
+                const perteneceAlServicio = servicioPadre?.cotcomponentes?.some((c: ComponenteCompleto) => {
+                    if (c.id === dataActiva.value.id) return true;
+                    return c.cottarifas?.some((t: TarifaSnapshot) => t.id === dataActiva.value.id);
+                });
+                if (perteneceAlServicio) afectaAlActivo = true;
+            }
+        }
+
         cotizacion.value.cotservicios = cotizacion.value.cotservicios.filter(
             (s: CotServicio) => s.id !== servicioId
         );
 
-        if (dataActiva.value?.id === servicioId) retrocederNivel();
+        if (afectaAlActivo) {
+            // 🔥 Reset total al header del expediente en vez de retrocederNivel (que podía dejar un historial "fantasma")
+            inspectorActivo.value = 'resumen';
+            dataActiva.value = null;
+            historialNavegacion.value = [];
+            isMobileOpen.value = false;
+        }
     };
 
     const agregarComponente = (servicioId: string): void => {
@@ -1952,6 +1976,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (!dataActiva.value) return;
 
             dataActiva.value.itinerarioNombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda)));
+            dataActiva.value.nombrePublicoSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda))); // 👉 NUEVO
             let ordenMaximo = dataActiva.value.cotsegmentos ? dataActiva.value.cotsegmentos.length : 0;
 
             const arrayRelaciones = plantillaProfunda.segmentos || plantillaProfunda.itinerarioSegmentos || [];
@@ -2148,7 +2173,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const targetId = extractIdStr(val);
         const maestro = catalogos.value.servicios.find((s: any) => extractIdStr(s.id) === targetId || extractIdStr(s['@id']) === targetId);
         if (maestro && dataActiva.value) {
-            dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+            const titulo = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+            dataActiva.value.nombreSnapshot = titulo;
+            dataActiva.value.nombrePublicoSnapshot = JSON.parse(JSON.stringify(titulo)); // 👉 NUEVO: nombre de cara al cliente
             await fetchServicioDetalles(val);
         }
     };

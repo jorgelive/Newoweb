@@ -36,20 +36,22 @@ export type Itinerario = components['schemas']['Itinerario-itinerario.read'];
 
 type CotServicioBase = components["schemas"]["CotizacionCotservicio-cotizacion.read_timestamp.read"];
 
-export type CotServicio = Omit<CotServicioBase, 'nombreSnapshot' | 'itinerarioNombreSnapshot' | 'cotcomponentes'> & {
+export type CotServicio = Omit<CotServicioBase, 'nombreSnapshot' | 'itinerarioNombreSnapshot' | 'nombrePublicoSnapshot' | 'cotcomponentes'> & {
     nombreSnapshot: I18nContent[];
     itinerarioNombreSnapshot: I18nContent[];
+    nombrePublicoSnapshot: I18nContent[];
     cotcomponentes?: ComponenteCompleto[];
     cotsegmentos?: CotSegmento[];
 };
 
 export type Cotizacion = Omit<
     components['schemas']['Cotizacion-cotizacion.read_timestamp.read'],
-    'file' | 'cotservicios'
+    'file' | 'cotservicios' | 'resumen'
 > & {
     idiomaEdicion: string;
     file: { id?: string; '@id'?: string; createdAt?: string; updatedAt?: string; } | string;
     cotservicios: CotServicio[];
+    resumen: I18nContent[];
 };
 
 type CotizacionFileBase = components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];

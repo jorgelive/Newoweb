@@ -388,6 +388,81 @@ const poolFiltrado = computed(() => {
   });
 });
 
+// ============================================================================
+// 🔥 REORDENAMIENTO DE ITEMS (Inclusiones / Upsells) — Drag & Drop + Long Press
+// ============================================================================
+const dragItemId = ref<string | null>(null);
+const dragOverItemId = ref<string | null>(null);
+let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+let pointerIsDown = false;
+let dragActivated = false;
+let pointerStartY = 0;
+const LONG_PRESS_MS = 320;
+const MOVE_CANCEL_THRESHOLD = 10;
+
+const reordenarSnapshotItems = (fromId: string, toId: string) => {
+  if (!store.dataActiva?.snapshotItems || fromId === toId) return;
+  const items = store.dataActiva.snapshotItems;
+  const fromIdx = items.findIndex((i: any) => i.id === fromId);
+  const toIdx = items.findIndex((i: any) => i.id === toId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  const [moved] = items.splice(fromIdx, 1);
+  items.splice(toIdx, 0, moved);
+};
+
+const onItemPointerDown = (e: PointerEvent, item: any) => {
+  pointerIsDown = true;
+  dragActivated = false;
+  pointerStartY = e.clientY;
+  (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+
+  if (e.pointerType === 'touch') {
+    // 🔥 Long-tap: solo activamos el drag si sostiene sin soltar
+    longPressTimer = setTimeout(() => {
+      if (pointerIsDown) {
+        dragActivated = true;
+        dragItemId.value = item.id;
+        if (navigator.vibrate) navigator.vibrate(15);
+      }
+    }, LONG_PRESS_MS);
+  } else {
+    // 🔥 Mouse: click y arrastre inmediato
+    dragActivated = true;
+    dragItemId.value = item.id;
+  }
+};
+
+const onItemPointerMove = (e: PointerEvent) => {
+  if (!pointerIsDown) return;
+
+  if (!dragActivated) {
+    // Si se mueve antes de activarse (probable scroll en touch), cancelamos el long-press
+    if (Math.abs(e.clientY - pointerStartY) > MOVE_CANCEL_THRESHOLD && longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+    return;
+  }
+
+  e.preventDefault();
+  const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-item-id]') as HTMLElement | null;
+  if (el && dragItemId.value) {
+    const overId = el.getAttribute('data-item-id');
+    if (overId && overId !== dragItemId.value) {
+      dragOverItemId.value = overId;
+      reordenarSnapshotItems(dragItemId.value, overId);
+    }
+  }
+};
+
+const onItemPointerUp = () => {
+  pointerIsDown = false;
+  dragActivated = false;
+  dragItemId.value = null;
+  dragOverItemId.value = null;
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+};
+
 const modalInsercion = ref({ isOpen: false, segmentoMaestro: null as any });
 const modalNota = ref({ isOpen: false, nota: null as any });
 const opcionInsercion = ref<'append'|'insert'|'replace'>('append');
@@ -471,22 +546,21 @@ const dropSegmento = (e: DragEvent) => {
         </div>
       </div>
 
-      <div class="flex gap-2 md:gap-3" v-if="store.cotizacion">
-        <div class="hidden md:flex items-center bg-slate-800 rounded-lg p-1 gap-1">
-          <!-- 👉 Protegido: if(store.cotizacion) -->
+      <div class="flex gap-2 md:gap-3 items-center" v-if="store.cotizacion">
+        <div class="flex items-center bg-slate-800 rounded-lg p-1 gap-1">
           <button @click="store.cotizacion.idiomaEdicion = 'es'"
                   :class="store.cotizacion.idiomaEdicion === 'es' ? 'bg-[#376875] text-white shadow' : 'text-slate-400 hover:text-white'"
-                  class="px-3 py-1 rounded text-[10px] font-black tracking-widest transition-all">
-            ES (INTERNO)
+                  class="px-2 md:px-3 py-1 rounded text-[9px] md:text-[10px] font-black tracking-widest transition-all whitespace-nowrap">
+            ES<span class="hidden md:inline"> (INTERNO)</span>
           </button>
           <button v-if="store.cotizacion.idiomaCliente && store.cotizacion.idiomaCliente !== 'es'"
                   @click="store.cotizacion.idiomaEdicion = store.cotizacion.idiomaCliente"
                   :class="store.cotizacion.idiomaEdicion === store.cotizacion.idiomaCliente ? 'bg-[#E07845] text-white shadow' : 'text-slate-400 hover:text-white'"
-                  class="px-3 py-1 rounded text-[10px] font-black tracking-widest uppercase transition-all">
-            {{ store.cotizacion.idiomaCliente }} (CLIENTE)
+                  class="px-2 md:px-3 py-1 rounded text-[9px] md:text-[10px] font-black tracking-widest uppercase transition-all whitespace-nowrap">
+            {{ store.cotizacion.idiomaCliente }}<span class="hidden md:inline"> (CLIENTE)</span>
           </button>
         </div>
-        <button @click="store.abrirNivel('resumen')" class="md:hidden px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold shadow-sm border border-slate-700">Totales</button>
+        <button @click="store.abrirNivel('resumen')" class="md:hidden px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold shadow-sm border border-slate-700 whitespace-nowrap">Totales</button>
         <button @click="handleGuardar" class="px-4 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
           <i class="fas fa-save"></i> <span class="hidden sm:inline">Guardar</span>
         </button>
@@ -753,7 +827,9 @@ const dropSegmento = (e: DragEvent) => {
             <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"><i class="fas fa-arrow-left"></i></button>
             <div class="flex-1 min-w-0">
               <p class="text-[9px] font-black text-[#E07845] uppercase tracking-widest truncate">Edición de Servicio</p>
-              <h2 class="text-sm font-black truncate">{{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h2>
+              <h2 class="text-sm font-black truncate">
+                {{ store.getI18nText(store.dataActiva?.nombrePublicoSnapshot as any, store.cotizacion.idiomaEdicion) || store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
+              </h2>
             </div>
           </div>
           <div class="p-5 flex-1 overflow-y-auto space-y-6 pb-28">
@@ -778,8 +854,8 @@ const dropSegmento = (e: DragEvent) => {
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
                 <div class="flex gap-2">
-                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
-                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                  <input :value="store.getI18nText(store.dataActiva.nombrePublicoSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
 
                   <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
@@ -1049,10 +1125,25 @@ const dropSegmento = (e: DragEvent) => {
                   No hay ítems registrados
                 </div>
                 <div v-else v-for="item in store.dataActiva.snapshotItems" :key="item.id"
-                     class="flex flex-col gap-1 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm transition-all"
-                     :class="item.tieneUpsell ? 'border-l-4 border-l-orange-400' : ''">
+                     :data-item-id="item.id"
+                     class="flex flex-col gap-1 bg-white p-2.5 rounded-xl border shadow-sm transition-all"
+                     :class="[
+        item.tieneUpsell ? 'border-l-4 border-l-orange-400' : 'border-slate-200',
+        dragItemId === item.id ? 'opacity-40 scale-[0.98]' : '',
+        dragOverItemId === item.id && dragItemId !== item.id ? 'ring-2 ring-sky-400' : ''
+     ]">
 
                   <div class="flex gap-3 items-center">
+                    <!-- 🔥 Handle: click+arrastre (mouse) o long-tap+arrastre (touch) -->
+                    <div class="text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing select-none px-1"
+                         style="touch-action: none;"
+                         @pointerdown="onItemPointerDown($event, item)"
+                         @pointermove="onItemPointerMove"
+                         @pointerup="onItemPointerUp"
+                         @pointercancel="onItemPointerUp">
+                      <i class="fas fa-grip-vertical"></i>
+                    </div>
+
                     <input type="checkbox" v-model="item.incluido"
                            @change="store.toggleUpsellComponent(item, store.dataActiva)"
                            class="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">

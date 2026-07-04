@@ -42,6 +42,11 @@ class CotizacionCotservicio
     private array $itinerarioNombreSnapshot = [];
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $nombrePublicoSnapshot = [];
+
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?DateTimeImmutable $fechaInicioAbsoluta = null;
 
@@ -104,6 +109,9 @@ class CotizacionCotservicio
 
     public function getItinerarioNombreSnapshot(): array { return $this->itinerarioNombreSnapshot; }
     public function setItinerarioNombreSnapshot(array $itinerarioNombreSnapshot): self { $this->itinerarioNombreSnapshot = $itinerarioNombreSnapshot; return $this; }
+
+    public function getNombrePublicoSnapshot(): array { return $this->nombrePublicoSnapshot; }
+    public function setNombrePublicoSnapshot(array $nombrePublicoSnapshot): self { $this->nombrePublicoSnapshot = $nombrePublicoSnapshot; return $this; }
 
     public function getFechaInicioAbsoluta(): ?DateTimeImmutable { return $this->fechaInicioAbsoluta; }
     public function setFechaInicioAbsoluta(?DateTimeImmutable $fechaInicioAbsoluta): self { $this->fechaInicioAbsoluta = $fechaInicioAbsoluta; return $this; }
