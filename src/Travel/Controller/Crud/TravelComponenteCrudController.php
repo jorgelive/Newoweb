@@ -11,6 +11,7 @@ use App\Travel\Entity\TravelComponenteItem;
 use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
@@ -47,12 +48,12 @@ class TravelComponenteCrudController extends BaseCrudController
     }
 
     /**
-     * 🔥 NUEVO: CONFIGURACIÓN DE FILTROS LATERALES
+     * 🔥 CONFIGURACIÓN DE FILTROS LATERALES
      */
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            // Filtro por la colección ManyToMany de Servicios
+            // Filtro por la colección ManyToMany de Servicios (lado inverso, filtrable igual)
             ->add(EntityFilter::new('servicios', 'Servicio (Tour)'))
             // Filtro por el Enum de Categoría Operativa
             ->add(ChoiceFilter::new('tipo', 'Categoría Operativa')->setChoices(
@@ -164,6 +165,42 @@ class TravelComponenteCrudController extends BaseCrudController
             ->hideOnDetail()
             ->setColumns(12);
 
+        yield FormField::addPanel('Trazabilidad')->setIcon('fa fa-link');
+
+        // 🔥 LECTURA OPTIMIZADA: solo en Detalle, listado bonito de solo-lectura
+        yield TextField::new('virtualServicios', 'Servicios (Tours)')
+            ->hideOnForm() // se ve en índice y detalle, pero no en el formulario new/edit (para eso está el AssociationField)
+            ->formatValue(static function ($value, $entity) {
+                $servicios = $entity->getServicios();
+
+                if ($servicios->isEmpty()) {
+                    return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin servicios</span>';
+                }
+
+                $html = '<ul style="max-height: 160px; overflow-y: auto; text-align: left; min-width: 200px; margin: 0; padding: 0 5px 0 0; list-style: none;">';
+                foreach ($servicios as $servicio) {
+                    $nombre = htmlspecialchars((string) $servicio->getNombreInterno());
+                    $html .= sprintf(
+                        '<li class="px-2 py-1 mb-1 bg-light border rounded small text-truncate" title="%s" style="display: block;">
+                    <i class="fas fa-layer-group text-primary" style="font-size: 0.8em; margin-right: 4px;"></i> <span class="text-dark fw-medium">%s</span>
+                </li>',
+                        $nombre, $nombre
+                    );
+                }
+                $html .= '</ul>';
+
+                return $html;
+            })
+            ->renderAsHtml();
+
+        // ✏️ ESCRITURA: selección múltiple de Servicios existentes (relación inversa)
+        yield AssociationField::new('servicios', 'Servicios (Tours) que usan este insumo')
+            ->onlyOnForms()
+            ->setFormTypeOption('by_reference', false)
+            ->autocomplete()
+            ->setColumns(12)
+            ->setHelp('Selecciona los Servicios/Tours donde este componente ya está incluido. Al guardar, se vincula desde ambos lados automáticamente.');
+
         yield FormField::addPanel('Configuración Operativa')->setIcon('fa fa-cogs');
 
         yield NumberField::new('duracion', 'Duración')
@@ -246,31 +283,6 @@ class TravelComponenteCrudController extends BaseCrudController
             ->hideOnDetail()
             ->setColumns(12);
 
-        yield FormField::addPanel('Trazabilidad')->setIcon('fa fa-link')->onlyOnDetail();
 
-        yield TextField::new('virtualServicios', 'Servicios (Tours) que usan este insumo')
-            ->onlyOnDetail()
-            ->formatValue(static function ($value, $entity) {
-                $servicios = $entity->getServicios();
-
-                if ($servicios->isEmpty()) {
-                    return '<span class="text-muted small"><i class="fas fa-info-circle"></i> No está vinculado a ningún servicio (tour) actualmente.</span>';
-                }
-
-                $html = '<ul style="max-height: 160px; overflow-y: auto; text-align: left; min-width: 240px; margin: 0; padding: 0 5px 0 0; list-style: none;">';
-                foreach ($servicios as $servicio) {
-                    $nombre = htmlspecialchars((string) $servicio->getNombreInterno());
-                    $html .= sprintf(
-                        '<li class="px-2 py-1 mb-1 bg-light border rounded small text-truncate" title="%s" style="display: block;">
-                            <i class="fas fa-layer-group text-primary" style="font-size: 0.8em; margin-right: 4px;"></i> <span class="text-dark fw-medium">%s</span>
-                        </li>',
-                        $nombre, $nombre
-                    );
-                }
-                $html .= '</ul>';
-
-                return $html;
-            })
-            ->renderAsHtml();
     }
 }

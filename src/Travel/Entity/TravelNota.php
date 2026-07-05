@@ -199,5 +199,5 @@ class TravelNota
 
         return '—';
     }
-    
+
 }
