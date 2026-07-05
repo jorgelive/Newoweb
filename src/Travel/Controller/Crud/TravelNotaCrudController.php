@@ -52,10 +52,19 @@ class TravelNotaCrudController extends BaseCrudController
 
         yield CollectionField::new('titulo', 'Título Visible al Cliente')
             ->setEntryType(TranslationTextType::class)
+            ->onlyOnForms()
             ->setColumns(12);
 
         yield CollectionField::new('contenido', 'Cuerpo del Texto')
             ->setEntryType(TranslationHtmlType::class)
+            ->onlyOnForms()
             ->setColumns(12);
+
+        // 🔥 Virtuales solo para el listado
+        yield TextField::new('virtualTituloEs', 'Título (ES)')
+            ->onlyOnIndex();
+
+        yield TextField::new('virtualContenidoEs', 'Contenido (ES)')
+            ->onlyOnIndex();
     }
 }

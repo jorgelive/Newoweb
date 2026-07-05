@@ -166,4 +166,38 @@ class TravelNota
         }
         return $this;
     }
+
+    /**
+     * Muestra el título visible al cliente en español directamente en la lista.
+     * Estructura real: [{"language": "es", "content": "..."}, ...]
+     */
+    public function getVirtualTituloEs(): string
+    {
+        foreach ($this->titulo as $entrada) {
+            if (($entrada['language'] ?? null) === 'es') {
+                return $entrada['content'] ?? '—';
+            }
+        }
+
+        return '—';
+    }
+
+    /**
+     * Muestra un preview corto del cuerpo en español (el contenido es HTML,
+     * así que lo despojamos de tags para no romper el layout del listado).
+     */
+    public function getVirtualContenidoEs(): string
+    {
+        foreach ($this->contenido as $entrada) {
+            if (($entrada['language'] ?? null) === 'es') {
+                $texto = strip_tags($entrada['content'] ?? '');
+                return mb_strlen($texto) > 120
+                    ? mb_substr($texto, 0, 120) . '…'
+                    : ($texto ?: '—');
+            }
+        }
+
+        return '—';
+    }
+    
 }

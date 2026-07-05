@@ -7,6 +7,7 @@ namespace App\Travel\Controller\Crud;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelComponente;
+use App\Travel\Entity\TravelComponenteItem;
 use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
@@ -204,7 +205,8 @@ class TravelComponenteCrudController extends BaseCrudController
         // ESCRITURA
         yield CollectionField::new('componenteItems', 'Detalle de Inclusiones')
             ->useEntryCrudForm(TravelComponenteItemCrudController::class)
-            ->setFormTypeOption('by_reference', false)
+            ->setFormTypeOptions(['by_reference' => false, 'prototype' => true])
+            ->setFormTypeOption('prototype_data', new TravelComponenteItem())
             ->setFormTypeOption('required', false)
             ->hideOnIndex()
             ->hideOnDetail()

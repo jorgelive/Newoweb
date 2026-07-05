@@ -10,6 +10,8 @@ use App\Entity\Trait\TimestampTrait;
 use App\Travel\Enum\ComponenteItemModoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Define un ítem descriptivo o un sub-componente dentro de un Componente Logístico mayor.
@@ -28,8 +30,9 @@ class TravelComponenteItem
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelComponente $componente = null;
 
+    #[Assert\NotNull(message: 'Debes seleccionar un ítem del diccionario.')]
     #[Groups(['componente:item:read', 'componente:write'])]
-    #[ORM\ManyToOne(targetEntity: TravelItemDiccionario::class)]
+    #[ORM\ManyToOne(targetEntity: TravelItemDiccionario::class, inversedBy: 'componenteItems')]
     #[ORM\JoinColumn(nullable: false)]
     private ?TravelItemDiccionario $diccionario = null;
 
@@ -46,6 +49,7 @@ class TravelComponenteItem
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?TravelComponente $componenteAdicionalVinculado = null;
 
+    #[Assert\PositiveOrZero]
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 1;
@@ -92,6 +96,31 @@ class TravelComponenteItem
     {
         $this->resetId();
         $this->resetTimestamps();
+    }
+
+    /**
+     * Valida la coherencia entre el modo del ítem y el componente adicional vinculado.
+     * - OPCIONAL requieren un componente vinculado para poder costearse.
+     * - Cualquier otro modo NO debe tener un componente vinculado (evita tarifas fantasma).
+     */
+    #[Assert\Callback]
+    public function validateVinculacionCosto(ExecutionContextInterface $context): void
+    {
+        $esOpcionalOUpsell = in_array($this->modo, [
+            ComponenteItemModoEnum::OPCIONAL
+        ], true);
+
+        if ($esOpcionalOUpsell && !$this->componenteAdicionalVinculado) {
+            $context->buildViolation('Los ítems opcionales o upsell deben vincular un componente adicional para el costeo.')
+                ->atPath('componenteAdicionalVinculado')
+                ->addViolation();
+        }
+
+        if (!$esOpcionalOUpsell && $this->componenteAdicionalVinculado) {
+            $context->buildViolation('Solo los ítems en modo OPCIONAL o UPSELL pueden tener un componente adicional vinculado.')
+                ->atPath('componenteAdicionalVinculado')
+                ->addViolation();
+        }
     }
 
     public function getComponente(): ?TravelComponente

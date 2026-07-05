@@ -166,6 +166,7 @@ class TravelSegmentoCrudController extends BaseCrudController
 
         yield CollectionField::new('contenido', 'Cuerpo del Relato')
             ->setEntryType(TranslationHtmlType::class)
+            ->onlyOnForms()
             ->setColumns(12);
 
         yield FormField::addPanel('Logística y Multimedia')->setIcon('fa fa-cogs');

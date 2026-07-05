@@ -69,6 +69,16 @@ class TravelItemDiccionarioCrudController extends BaseCrudController
             ->setEntryType(TranslationTextType::class)
             ->setRequired(false)
             ->setColumns(12)
+            ->onlyOnForms()
             ->setHelp('Ingresa el idioma base (Ej: Español) y el sistema traducirá los demás al guardar.');
+
+        // 🔥 Virtuales solo para el listado
+        yield TextField::new('virtualTituloEs', 'Título (ES)')
+            ->onlyOnIndex()
+            ->renderAsHtml();
+
+        yield TextField::new('virtualComponentesUsados', 'Usado en Componentes')
+            ->onlyOnIndex()
+            ->renderAsHtml();
     }
 }
