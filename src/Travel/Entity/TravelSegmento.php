@@ -75,6 +75,13 @@ class TravelSegmento
     #[ORM\OrderBy(['orden' => 'ASC'])]
     private Collection $segmentoComponentes;
 
+    /**
+     * 🔍 SOLO LECTURA: lado inverso para saber en qué Itinerarios (plantillas) y en qué
+     * día se está inyectando este segmento. El dueño real es TravelItinerarioSegmentoRel.
+     */
+    #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelItinerarioSegmentoRel::class)]
+    private Collection $itinerarioSegmentosInyectados;
+
     public function __construct()
     {
         $this->initializeId();
@@ -82,6 +89,7 @@ class TravelSegmento
         $this->notas = new ArrayCollection();
         $this->imagenes = new ArrayCollection();
         $this->segmentoComponentes = new ArrayCollection();
+        $this->itinerarioSegmentosInyectados = new ArrayCollection();
     }
 
     public function __clone()
@@ -250,11 +258,21 @@ class TravelSegmento
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelItinerarioSegmentoRel>
+     */
+    public function getItinerarioSegmentosInyectados(): Collection
+    {
+        return $this->itinerarioSegmentosInyectados;
+    }
+
     // 🔥 VIRTUALES PARA EASYADMIN (TextField compatibles)
     public function getVirtualLogistica(): string { return ''; }
     public function getVirtualTitulo(): string { return ''; }
     public function getVirtualServicios(): string { return ''; }
     public function getVirtualNotas(): string { return ''; }
+
+    public function getVirtualItinerarios(): string { return ''; }
 
     #[Assert\Callback]
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void

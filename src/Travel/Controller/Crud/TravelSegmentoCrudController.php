@@ -24,12 +24,23 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 
 class TravelSegmentoCrudController extends BaseCrudController
 {
     public static function getEntityFqcn(): string
     {
         return TravelSegmento::class;
+    }
+
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            // Filtro directo: servicios es ManyToMany propio de TravelSegmento
+            ->add(EntityFilter::new('servicios', 'Servicio (Tour)'))
+            // Filtro indirecto: navega por la colección inversa hasta el itinerario
+            ->add(EntityFilter::new('itinerarioSegmentosInyectados.itinerario', 'Plantilla (Itinerario)'));
     }
 
     public function configureCrud(Crud $crud): Crud
@@ -139,6 +150,42 @@ class TravelSegmentoCrudController extends BaseCrudController
         yield TextField::new('nombreInterno', 'Nombre Administrativo (ID)')->setColumns(6);
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
+
+        yield FormField::addPanel('Uso en Plantillas (Itinerarios)')->setIcon('fa fa-route');
+
+        yield TextField::new('virtualItinerarios', 'Plantillas donde se usa')
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                $coleccion = $entity->getItinerarioSegmentosInyectados();
+
+                if ($coleccion->isEmpty()) {
+                    return '<span class="badge bg-light text-muted border">No inyectado en ninguna plantilla</span>';
+                }
+
+                $html = '<div class="d-flex flex-column gap-1" style="font-size: 11px; min-width: 250px; max-height: 220px; overflow-y: auto; padding-right: 5px;">';
+                foreach ($coleccion as $rel) {
+                    $itinerarioNombre = $rel->getItinerario() ? htmlspecialchars((string) $rel->getItinerario()) : 'N/A';
+                    $servicioNombre = $rel->getItinerario() && $rel->getItinerario()->getServicio()
+                        ? htmlspecialchars((string) $rel->getItinerario()->getServicio())
+                        : null;
+
+                    $html .= sprintf(
+                        '<div class="p-1 border rounded bg-white shadow-sm">
+                    <strong class="d-block text-truncate mb-1" style="max-width: 280px;" title="%s">%s</strong>
+                    <span class="text-muted"><i class="fas fa-calendar-day"></i> Día %d</span>%s
+                </div>',
+                        $itinerarioNombre,
+                        $itinerarioNombre,
+                        $rel->getDia(),
+                        $servicioNombre
+                            ? sprintf(' <span class="mx-1 text-muted">|</span> <span class="text-primary fw-bold"><i class="fas fa-layer-group"></i> %s</span>', $servicioNombre)
+                            : ''
+                    );
+                }
+                $html .= '</div>';
+                return $html;
+            })
+            ->renderAsHtml();
 
         yield FormField::addPanel('Contenido Narrativo')->setIcon('fa fa-pen-fancy');
 

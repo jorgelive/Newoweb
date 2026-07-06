@@ -30,7 +30,7 @@ class TravelItinerarioSegmentoRel
      */
     #[Groups(['itinerario:item:read', 'itinerario:write'])]
     #[ApiProperty(readableLink: false)]
-    #[ORM\ManyToOne(targetEntity: TravelSegmento::class)]
+    #[ORM\ManyToOne(targetEntity: TravelSegmento::class, inversedBy: 'itinerarioSegmentosInyectados')]
     #[ORM\JoinColumn(nullable: false)]
     private ?TravelSegmento $segmento = null;
 
