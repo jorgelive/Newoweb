@@ -110,7 +110,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
     {
         yield IdField::new('id')
             ->setMaxLength(40)
-            ->hideOnForm();
+            ->onlyOnDetail();
 
         yield FormField::addPanel('Configuración')->setIcon('fa fa-cog');
 
