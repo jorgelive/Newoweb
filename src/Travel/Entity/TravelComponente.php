@@ -120,12 +120,20 @@ class TravelComponente
     #[ORM\ManyToMany(targetEntity: TravelServicio::class, mappedBy: 'componentes')]
     private Collection $servicios;
 
+    /**
+     * 🔍 SOLO LECTURA: lado inverso para saber en qué Segmentos (itinerarios) se está
+     * inyectando este componente. El dueño real es TravelSegmentoComponente.
+     */
+    #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelSegmentoComponente::class)]
+    private Collection $segmentoComponentesInyectados;
+
     public function __construct()
     {
         $this->initializeId();
         $this->componenteItems = new ArrayCollection();
         $this->tarifas = new ArrayCollection();
         $this->servicios = new ArrayCollection();
+        $this->segmentoComponentesInyectados = new ArrayCollection();
     }
 
     /**
@@ -366,9 +374,18 @@ class TravelComponente
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelSegmentoComponente>
+     */
+    public function getSegmentoComponentesInyectados(): Collection
+    {
+        return $this->segmentoComponentesInyectados;
+    }
+
     // 🔥 VIRTUALES PARA EASYADMIN (Evitan error 500 al usar TextField con renderAsHtml)
     public function getVirtualTitulo(): string { return ''; }
     public function getVirtualServicios(): string { return ''; }
     public function getVirtualItems(): string { return ''; }
     public function getVirtualTarifas(): string { return ''; }
+    public function getVirtualSegmentosInyectados(): string { return ''; }
 }

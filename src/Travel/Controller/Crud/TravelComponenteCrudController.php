@@ -201,6 +201,40 @@ class TravelComponenteCrudController extends BaseCrudController
             ->setColumns(12)
             ->setHelp('Selecciona los Servicios/Tours donde este componente ya está incluido. Al guardar, se vincula desde ambos lados automáticamente.');
 
+        yield FormField::addPanel('Uso en Itinerarios')->setIcon('fa fa-route');
+
+        yield TextField::new('virtualSegmentosInyectados', 'Segmentos donde se usa')
+            ->hideOnForm() // se ve en índice y detalle, no en new/edit
+            ->formatValue(static function ($value, $entity) {
+                $coleccion = $entity->getSegmentoComponentesInyectados();
+
+                if ($coleccion->isEmpty()) {
+                    return '<span class="badge bg-light text-muted border">No inyectado en ningún segmento</span>';
+                }
+
+                $html = '<div class="d-flex flex-column gap-1" style="font-size: 11px; min-width: 260px; max-height: 220px; overflow-y: auto; padding-right: 5px;">';
+                foreach ($coleccion as $sc) {
+                    $segmentoNombre = $sc->getSegmento() ? htmlspecialchars((string) $sc->getSegmento()) : 'N/A';
+                    $hora = $sc->getHora() ? $sc->getHora()->format('H:i') : 'Horario BD';
+                    $ctx = $sc->getItinerarioContexto() ? htmlspecialchars($sc->getItinerarioContexto()->getNombreInterno()) : 'Global';
+                    $colorCtx = $sc->getItinerarioContexto() ? 'text-primary' : 'text-success';
+                    $iconCtx = $sc->getItinerarioContexto() ? 'fa-filter' : 'fa-globe';
+
+                    $html .= sprintf(
+                        '<div class="p-1 border rounded bg-white shadow-sm">
+                    <strong class="d-block text-truncate mb-1" style="max-width: 280px;" title="%s">%s</strong>
+                    <span class="text-muted"><i class="far fa-clock"></i> %s</span>
+                    <span class="mx-1 text-muted">|</span>
+                    <span class="%s fw-bold" title="Contexto de Plantilla"><i class="fas %s"></i> %s</span>
+                </div>',
+                        $segmentoNombre, $segmentoNombre, $hora, $colorCtx, $iconCtx, $ctx
+                    );
+                }
+                $html .= '</div>';
+                return $html;
+            })
+            ->renderAsHtml();
+
         yield FormField::addPanel('Configuración Operativa')->setIcon('fa fa-cogs');
 
         yield NumberField::new('duracion', 'Duración')
