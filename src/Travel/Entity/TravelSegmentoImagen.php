@@ -239,4 +239,31 @@ class TravelSegmentoImagen
 
         return sprintf('%s - img - %d', $nombreSegmento, $this->orden);
     }
+
+    /**
+     * Nombre administrativo del segmento padre, para mostrar en el listado de imágenes.
+     */
+    public function getVirtualSegmentoNombre(): string
+    {
+        return $this->segmento?->getNombreInterno() ?? '—';
+    }
+
+    /**
+     * Título público en español del segmento padre.
+     * Estructura real: [{"language": "es", "content": "..."}, ...]
+     */
+    public function getVirtualSegmentoTituloEs(): string
+    {
+        if (!$this->segmento) {
+            return '—';
+        }
+
+        foreach ($this->segmento->getTitulo() as $entrada) {
+            if (($entrada['language'] ?? null) === 'es') {
+                return $entrada['content'] ?? '—';
+            }
+        }
+
+        return '—';
+    }
 }
