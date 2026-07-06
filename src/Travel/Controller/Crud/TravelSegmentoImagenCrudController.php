@@ -13,6 +13,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
@@ -94,6 +95,11 @@ class TravelSegmentoImagenCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
+        yield AssociationField::new('segmento', 'Segmento')
+            ->autocomplete()
+            ->setColumns(12)
+            ->setHelp('Segmento narrativo al que pertenece esta imagen.');
+
         yield TextField::new('imageFile', 'Subir Imagen')
             ->setFormType(VichImageType::class)
             ->onlyOnForms()
