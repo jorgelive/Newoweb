@@ -102,6 +102,7 @@ class TravelSegmentoImagenCrudController extends BaseCrudController
 
         yield TextField::new('imageFile', 'Subir Imagen')
             ->setFormType(VichImageType::class)
+            ->setFormTypeOptions(['allow_delete' => true, 'download_uri' => false])
             ->onlyOnForms()
             ->setColumns(12);
 

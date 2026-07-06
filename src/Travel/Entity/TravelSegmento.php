@@ -271,8 +271,8 @@ class TravelSegmento
     public function getVirtualTitulo(): string { return ''; }
     public function getVirtualServicios(): string { return ''; }
     public function getVirtualNotas(): string { return ''; }
-
     public function getVirtualItinerarios(): string { return ''; }
+    public function getVirtualGaleria(): string { return ''; }
 
     #[Assert\Callback]
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
