@@ -117,6 +117,8 @@ class PmsGuiaItem
 
     public function __toString(): string { return $this->nombreInterno ?: ($this->titulo['es'] ?? 'Ítem sin nombre'); }
 
+    public function getVirtualGaleria(): string { return ''; }
+
     #[Assert\Callback]
     public function validate(ExecutionContextInterface $context): void
     {

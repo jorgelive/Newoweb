@@ -21,9 +21,18 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use Liip\ImagineBundle\Imagine\Cache\CacheManager;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 class PmsGuiaItemCrudController extends AbstractCrudController
 {
+    public function __construct(
+        #[Autowire('%pms.path.galeria_images%')]
+        private readonly string $uploadPath,
+        private readonly CacheManager $imagineCacheManager,
+    ) {
+    }
+
     public static function getEntityFqcn(): string
     {
         return PmsGuiaItem::class;
@@ -85,6 +94,16 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
             ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
             ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
+    }
+
+    /**
+     * Construye la URL del thumbnail vía LiipImagine para una imagen de la galería.
+     */
+    private function resolveThumbUrl(string $imageName, string $filterSet): string
+    {
+        $relativePath = ltrim($this->uploadPath, '/') . '/' . $imageName;
+
+        return $this->imagineCacheManager->getBrowserPath($relativePath, $filterSet);
     }
 
     public function configureFields(string $pageName): iterable
@@ -169,7 +188,74 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setIcon('fa fa-images')
             ->setHelp('Sube fotos aquí para crear un carrusel o grilla.');
 
+        // 🔥 NUEVO: LECTURA — thumbnails con Liip + modal, solo para el índice
+        yield TextField::new('virtualGaleria', 'Fotos')
+            ->onlyOnIndex()
+            ->formatValue(function ($value, $entity) {
+                $fotos = $entity->getGaleria();
+
+                if ($fotos->isEmpty()) {
+                    return '<span class="text-muted small"><i class="fas fa-images"></i> Sin fotos</span>';
+                }
+
+                $modalId = 'galeria-item-' . str_replace('-', '', (string) $entity->getId());
+
+                $thumbsHtml = '<div class="d-flex flex-wrap gap-1" style="max-width: 260px;">';
+                $modalItemsHtml = '';
+
+                foreach ($fotos as $i => $foto) {
+                    if (!$foto->getImageName()) {
+                        continue;
+                    }
+
+                    $thumbUrl = $this->resolveThumbUrl($foto->getImageName(), 'pms_thumb_admin');
+                    $fullUrl = $this->resolveThumbUrl($foto->getImageName(), 'pms_compress_initial');
+                    $alt = htmlspecialchars(sprintf('Foto %d', $i + 1));
+
+                    $thumbsHtml .= sprintf(
+                        '<img src="%s" alt="%s" loading="lazy"
+                             class="rounded border"
+                             style="width: 42px; height: 42px; object-fit: cover; cursor: pointer;"
+                             data-bs-toggle="modal" data-bs-target="#%s">',
+                        htmlspecialchars($thumbUrl), $alt, $modalId
+                    );
+
+                    $modalItemsHtml .= sprintf(
+                        '<div class="col-6 col-md-4 mb-3">
+                            <img src="%s" alt="%s" class="img-fluid rounded shadow-sm w-100" style="object-fit: cover; max-height: 260px;">
+                        </div>',
+                        htmlspecialchars($fullUrl), $alt
+                    );
+                }
+
+                $thumbsHtml .= '</div>';
+
+                $modalHtml = sprintf(
+                    '<div class="modal fade" id="%s" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h6 class="modal-title">Galería — %s</h6>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">%s</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>',
+                    $modalId,
+                    htmlspecialchars((string) $entity),
+                    $modalItemsHtml
+                );
+
+                return $thumbsHtml . $modalHtml;
+            })
+            ->renderAsHtml();
+
+        // ESCRITURA (Campo Real, sin thumbnails, formulario CRUD normal)
         yield CollectionField::new('galeria', 'Fotos')
+            ->hideOnIndex()
             ->useEntryCrudForm(PmsGuiaItemGaleriaCrudController::class)
             ->setFormTypeOption('prototype_data', new PmsGuiaItemGaleria())
             ->setFormTypeOption('by_reference', false)
