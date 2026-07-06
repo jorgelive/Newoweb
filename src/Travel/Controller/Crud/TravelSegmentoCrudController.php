@@ -7,6 +7,7 @@ namespace App\Travel\Controller\Crud;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationHtmlType;
 use App\Panel\Form\Type\TranslationTextType;
+use App\Travel\Entity\TravelItinerario;
 use App\Travel\Entity\TravelSegmento;
 use App\Travel\Entity\TravelSegmentoComponente;
 use App\Travel\Entity\TravelSegmentoImagen;
@@ -37,10 +38,13 @@ class TravelSegmentoCrudController extends BaseCrudController
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            // Filtro directo: servicios es ManyToMany propio de TravelSegmento
+            // Filtro directo: servicios es ManyToMany propio de TravelSegmento (sin cambios, este ya funcionaba)
             ->add(EntityFilter::new('servicios', 'Servicio (Tour)'))
-            // Filtro indirecto: navega por la colección inversa hasta el itinerario
-            ->add(EntityFilter::new('itinerarioSegmentosInyectados.itinerario', 'Plantilla (Itinerario)'));
+            // Filtro indirecto: hay que indicar la clase target manualmente
+            ->add(
+                EntityFilter::new('itinerarioSegmentosInyectados.itinerario', 'Plantilla (Itinerario)')
+                    ->setFormTypeOption('value_type_options.class', TravelItinerario::class)
+            );
     }
 
     public function configureCrud(Crud $crud): Crud
