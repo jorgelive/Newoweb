@@ -14,6 +14,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
@@ -47,7 +48,6 @@ class ProveedorServicioCrudController extends BaseCrudController
 
     /**
      * Configuración de acciones, botones globales y permisos de acceso del CRUD.
-     * Garantiza la coherencia de permisos con el módulo de maestros de Travel.
      *
      * @param Actions $actions
      * @return Actions
@@ -70,10 +70,9 @@ class ProveedorServicioCrudController extends BaseCrudController
 
     /**
      * Configuración de los campos visibles y editables en el panel de administración.
-     * Mapea el nombre, la URL externa, los campos JSON traducibles y la galería de imágenes física.
      *
-     * @param string $pageName Nombre de la página/contexto actual de EasyAdmin.
-     * @return iterable Lista de configuraciones de campos de EasyAdmin.
+     * @param string $pageName
+     * @return iterable
      */
     public function configureFields(string $pageName): iterable
     {
@@ -94,10 +93,31 @@ class ProveedorServicioCrudController extends BaseCrudController
             ->setColumns(12);
 
         /* ====================================================================
-         * CAMPOS JSON (MULTIDIOMA / ESTRUCTURADOS)
-         * Se inyectan los FormTypes personalizados para gestionar el formato array JSON de la BD.
+         * CAMPO VIRTUAL: RENDERIZADO OPTIMIZADO PARA LISTADOS (INDEX / DETAIL)
+         * Extrae dinámicamente el título en español desde la estructura JSON.
          * ==================================================================== */
-        yield CollectionField::new('titulo', 'Título Comercial')
+        yield TextField::new('virtualTitulo', 'Título Comercial')
+            ->setVirtual(true)
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                if (is_iterable($entity->getTitulo())) {
+                    foreach ($entity->getTitulo() as $item) {
+                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                            return sprintf('<span class="text-dark fw-semibold" style="letter-spacing: -0.2px;">%s</span>', htmlspecialchars(strip_tags($item['content'])));
+                        }
+                    }
+                }
+                return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
+            })
+            ->renderAsHtml();
+
+        /* ====================================================================
+         * CAMPOS JSON (MULTIDIOMA / ESTRUCTURADOS) PARA FORMULARIOS
+         * ==================================================================== */
+
+        yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
+        yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
+        yield CollectionField::new('titulo', 'Título Comercial (Traducciones)')
             ->setEntryType(TranslationTextType::class)
             ->setRequired(false)
             ->hideOnIndex()
@@ -113,8 +133,6 @@ class ProveedorServicioCrudController extends BaseCrudController
 
         /* ====================================================================
          * COLECCIÓN ANIDADA DE IMÁGENES DEL SERVICIO
-         * Se delega el renderizado de los campos al ProveedorServicioImagenCrudController
-         * aplicando las configuraciones para la correcta sincronización bidireccional de Doctrine.
          * ==================================================================== */
         yield CollectionField::new('proveedorServicioImagenes', 'Galería de Imágenes del Servicio')
             ->onlyOnForms()

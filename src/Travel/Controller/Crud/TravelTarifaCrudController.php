@@ -47,7 +47,7 @@ class TravelTarifaCrudController extends BaseCrudController
     }
 
     /**
-     * 🔥 NUEVO: CONFIGURACIÓN DE FILTROS LATERALES
+     * 🔥 CONFIGURACIÓN DE FILTROS LATERALES
      * Aquí definimos qué campos se pueden usar para filtrar la tabla principal.
      */
     public function configureFilters(Filters $filters): Filters
@@ -57,7 +57,8 @@ class TravelTarifaCrudController extends BaseCrudController
             ->add(EntityFilter::new('componente', 'Componente Logístico'))
             // Filtros extra de regalo que te serán muy útiles
             ->add(EntityFilter::new('moneda', 'Moneda'))
-            ->add(EntityFilter::new('proveedor', 'Proveedor'));
+            ->add(EntityFilter::new('proveedor', 'Proveedor'))
+            ->add(EntityFilter::new('proveedorServicio', 'Servicio de Proveedor'));
     }
 
     public function configureActions(Actions $actions): Actions
@@ -176,21 +177,32 @@ class TravelTarifaCrudController extends BaseCrudController
         yield FormField::addPanel('Operaciones B2B (Requerimientos)')->setIcon('fa fa-truck-loading')
             ->setHelp('Datos sugeridos al momento de cotizar. El operador podrá cambiarlos libremente en el motor operativo.');
 
-        // Lectura
+        // Lectura Proveedor
         yield TextField::new('proveedor', 'Proveedor')
             ->hideOnForm()
             ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-building text-info"></i> %s</span>', htmlspecialchars((string) $value)) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
-        // Escritura
+        // Escritura Proveedor
         yield AssociationField::new('proveedor', 'Proveedor por Defecto')
             ->hideOnIndex()->hideOnDetail()
             ->setRequired(false)->setHelp('Sugerencia operativa (Ej: PeruRail).')->setColumns(6);
 
+        // 🔥 NUEVO: Lectura ProveedorServicio
+        yield TextField::new('proveedorServicio', 'Servicio Asignado')
+            ->hideOnForm()
+            ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-concierge-bell text-warning"></i> %s</span>', htmlspecialchars((string) $value)) : '<span class="text-muted small">Cualquiera</span>')
+            ->renderAsHtml();
+
+        // 🔥 NUEVO: Escritura ProveedorServicio
+        yield AssociationField::new('proveedorServicio', 'Servicio por Defecto')
+            ->hideOnIndex()->hideOnDetail()
+            ->setRequired(false)->setHelp('Servicio físico/lógico (Ej: Habitación Doble).')->setColumns(6);
+
         yield TextField::new('nombreParaProveedor', 'Nombre en Tarifario del Proveedor')
             ->setRequired(false)
             ->setHelp('El texto exacto que el proveedor reconoce en sus reservas (Ej: Ticket Tren Expedition).')
-            ->setColumns(6);
+            ->setColumns(12);
 
         yield FormField::addPanel('Restricciones de Venta (Constraints)')->setIcon('fa fa-filter')
             ->setHelp('Si dejas estos campos vacíos, la tarifa funcionará como "Comodín" y aplicará para cualquier pasajero o modalidad.');

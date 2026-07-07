@@ -104,6 +104,15 @@ class TravelTarifa
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Proveedor $proveedor = null;
 
+    /**
+     * Relación directa con un servicio específico del proveedor (ej. una habitación o tour exacto).
+     * Permite asociar una tarifa a un recurso físico/lógico del proveedor para que salga por defecto en las cotizaciones.
+     */
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\ManyToOne(targetEntity: ProveedorServicio::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ProveedorServicio $proveedorServicio = null;
+
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombreParaProveedor = null;
@@ -284,6 +293,29 @@ class TravelTarifa
     public function setProveedor(?Proveedor $proveedor): self
     {
         $this->proveedor = $proveedor;
+        return $this;
+    }
+
+    /**
+     * Obtiene el servicio específico del proveedor asociado a esta tarifa.
+     * Útil para autocompletar o sugerir el servicio (ej. habitación) por defecto en cotizaciones.
+     *
+     * @return ProveedorServicio|null
+     */
+    public function getProveedorServicio(): ?ProveedorServicio
+    {
+        return $this->proveedorServicio;
+    }
+
+    /**
+     * Establece el servicio específico del proveedor asociado a esta tarifa.
+     *
+     * @param ProveedorServicio|null $proveedorServicio Entidad del servicio a relacionar.
+     * @return self
+     */
+    public function setProveedorServicio(?ProveedorServicio $proveedorServicio): self
+    {
+        $this->proveedorServicio = $proveedorServicio;
         return $this;
     }
 

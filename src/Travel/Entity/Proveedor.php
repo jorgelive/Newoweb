@@ -7,6 +7,8 @@ namespace App\Travel\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use App\Attribute\AutoTranslate;
+use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -40,6 +42,7 @@ class Proveedor
 {
     use IdTrait;
     use TimestampTrait;
+    use AutoTranslateControlTrait;
 
     #[Groups(['proveedor:read', 'proveedor:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
@@ -58,10 +61,12 @@ class Proveedor
     private ?string $email = null;
 
     #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
     #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $descripcion = [];
 
@@ -331,4 +336,8 @@ class Proveedor
         }
         return $this;
     }
+
+    public function getVirtualTitulo(): string { return ''; }
+
+    public function getVirtualDescripcion(): string { return ''; }
 }

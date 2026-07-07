@@ -14,6 +14,7 @@ use App\Travel\Entity\ProveedorServicio;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TelephoneField;
@@ -94,9 +95,31 @@ class ProveedorCrudController extends BaseCrudController
             ->setColumns(12);
 
         /* ====================================================================
-         * CAMPOS JSON (MULTIDIOMA / ESTRUCTURADOS)
-         * Utilizan los FormTypes personalizados para hidratar el array JSON.
+         * CAMPO VIRTUAL: RENDERIZADO OPTIMIZADO PARA LISTADOS (INDEX / DETAIL)
+         * Extrae dinámicamente el título en español desde la estructura JSON.
          * ==================================================================== */
+        yield TextField::new('virtualTitulo', 'Título')
+            ->setVirtual(true)
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                if (is_iterable($entity->getTitulo())) {
+                    foreach ($entity->getTitulo() as $item) {
+                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                            return sprintf('<span class="text-dark fw-semibold" style="letter-spacing: -0.2px;">%s</span>', htmlspecialchars(strip_tags($item['content'])));
+                        }
+                    }
+                }
+                return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
+            })
+            ->renderAsHtml();
+
+        /* ====================================================================
+         * CAMPOS JSON (MULTIDIOMA / ESTRUCTURADOS) PARA FORMULARIOS
+         * ==================================================================== */
+
+        yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
+        yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
+
         yield CollectionField::new('titulo', 'Título')
             ->setEntryType(TranslationTextType::class)
             ->setRequired(false)
