@@ -51,8 +51,15 @@ final class ItinerarioPlantillaFilter implements FilterInterface
             $queryBuilder->leftJoin(sprintf('%s.itinerarioSegmentosInyectados', $rootAlias), $relAlias);
         }
 
+        $itinerario = $filterDataDto->getValue();
+
+        // Extraemos el UUID real de la entidad seleccionada
+        $itinerarioId = $itinerario instanceof \App\Travel\Entity\TravelItinerario
+            ? $itinerario->getId()
+            : $itinerario;
+
         $queryBuilder
             ->andWhere(sprintf('%s.itinerario = :itinFiltroValor', $relAlias))
-            ->setParameter('itinFiltroValor', $filterDataDto->getValue());
+            ->setParameter('itinFiltroValor', $itinerarioId, 'uuid');
     }
 }
