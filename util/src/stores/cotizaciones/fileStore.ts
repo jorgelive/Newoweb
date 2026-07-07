@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
-import {ApiCotizacionFile, ApiCotizacionFileWrite} from '@/types/FileDetalleModel';
+import {ApiCotizacionFile, ApiCotizacionFileWrite} from '@/types/fileDetalleModel.ts';
 
 // ============================================================================
 // TIPOS AUTOGENERADOS Y EXTENDIDOS (HÍBRIDOS)

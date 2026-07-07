@@ -1,5 +1,5 @@
 import type { components } from '@/types/api';
-import type {ApiIdioma, ApiPais} from '@/stores/maestroStore';
+import type {ApiIdioma, ApiPais} from '@/types/maestroModel';
 
 
 type BaseApiCotizacionFile = components['schemas']['CotizacionFile.jsonld-file.read_timestamp.read'];

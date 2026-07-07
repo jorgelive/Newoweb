@@ -8,32 +8,30 @@ use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationLongTextType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Security\Roles;
-use App\Travel\Entity\Proveedor;
-use App\Travel\Entity\ProveedorImagen;
 use App\Travel\Entity\ProveedorServicio;
+use App\Travel\Entity\ProveedorServicioImagen;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TelephoneField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 
-class ProveedorCrudController extends BaseCrudController
+class ProveedorServicioCrudController extends BaseCrudController
 {
     /**
      * Define la entidad administrada por este controlador.
      *
-     * @return string
+     * @return string Retorna el FQCN de la entidad ProveedorServicio.
      */
     public static function getEntityFqcn(): string
     {
-        return Proveedor::class;
+        return ProveedorServicio::class;
     }
 
     /**
-     * Configuración general del comportamiento del CRUD.
+     * Configuración general del comportamiento del CRUD para los servicios.
      *
      * @param Crud $crud
      * @return Crud
@@ -42,13 +40,14 @@ class ProveedorCrudController extends BaseCrudController
     {
         return $crud
             ->showEntityActionsInlined()
-            ->setEntityLabelInSingular('Proveedor')
-            ->setEntityLabelInPlural('Proveedores')
-            ->setDefaultSort(['nombreComercial' => 'ASC']);
+            ->setEntityLabelInSingular('Servicio de Proveedor')
+            ->setEntityLabelInPlural('Servicios de Proveedores')
+            ->setDefaultSort(['nombre' => 'ASC']);
     }
 
     /**
      * Configuración de acciones, botones globales y permisos de acceso del CRUD.
+     * Garantiza la coherencia de permisos con el módulo de maestros de Travel.
      *
      * @param Actions $actions
      * @return Actions
@@ -70,34 +69,35 @@ class ProveedorCrudController extends BaseCrudController
     }
 
     /**
-     * Configuración de los campos visibles en el panel.
+     * Configuración de los campos visibles y editables en el panel de administración.
+     * Mapea el nombre, la URL externa, los campos JSON traducibles y la galería de imágenes física.
      *
-     * @param string $pageName
-     * @return iterable
+     * @param string $pageName Nombre de la página/contexto actual de EasyAdmin.
+     * @return iterable Lista de configuraciones de campos de EasyAdmin.
      */
     public function configureFields(string $pageName): iterable
     {
-        yield TextField::new('nombreComercial', 'Nombre Comercial')
-            ->setColumns(6);
+        $isEmbedded = $this->isEmbedded();
+        if (!$isEmbedded){
+            yield AssociationField::new('proveedor', 'Proveedor')
+                ->autocomplete()
+                ->setColumns(12)
+                ->setHelp('Proveedor al que pertenece el servicio.');
+        }
 
-        yield TextField::new('razonSocial', 'Razón Social')
-            ->setColumns(6);
-
-        yield TelephoneField::new('telefono', 'Teléfono')
-            ->setColumns(6);
-
-        yield EmailField::new('email', 'Correo Electrónico')
-            ->setColumns(6);
+        yield TextField::new('nombre', 'Nombre del Servicio')
+            ->setHelp('Ejemplo: Habitación Doble Estándar, Tour Guiado Privado, etc.')
+            ->setColumns(12);
 
         yield UrlField::new('url', 'Sitio Web / URL Externa')
-            ->setHelp('Enlace directo corporativo o sitio web del proveedor.')
+            ->setHelp('Enlace directo a las especificaciones técnicas o micrositio del servicio.')
             ->setColumns(12);
 
         /* ====================================================================
          * CAMPOS JSON (MULTIDIOMA / ESTRUCTURADOS)
-         * Utilizan los FormTypes personalizados para hidratar el array JSON.
+         * Se inyectan los FormTypes personalizados para gestionar el formato array JSON de la BD.
          * ==================================================================== */
-        yield CollectionField::new('titulo', 'Título')
+        yield CollectionField::new('titulo', 'Título Comercial')
             ->setEntryType(TranslationTextType::class)
             ->setRequired(false)
             ->hideOnIndex()
@@ -112,33 +112,18 @@ class ProveedorCrudController extends BaseCrudController
             ->setColumns(12);
 
         /* ====================================================================
-         * COLECCIÓN ANIDADA DE IMÁGENES
-         * Se delega el renderizado de los campos al ProveedorImagenCrudController
-         * y se configuran las opciones estrictas para la hidratación de Doctrine.
+         * COLECCIÓN ANIDADA DE IMÁGENES DEL SERVICIO
+         * Se delega el renderizado de los campos al ProveedorServicioImagenCrudController
+         * aplicando las configuraciones para la correcta sincronización bidireccional de Doctrine.
          * ==================================================================== */
-        yield CollectionField::new('proveedorImagenes', 'Galería de Imágenes')
+        yield CollectionField::new('proveedorServicioImagenes', 'Galería de Imágenes del Servicio')
             ->onlyOnForms()
             ->setColumns(12)
-            ->useEntryCrudForm(ProveedorImagenCrudController::class)
+            ->useEntryCrudForm(ProveedorServicioImagenCrudController::class)
             ->setFormTypeOptions([
                 'by_reference' => false,
                 'prototype'    => true,
             ])
-            ->setFormTypeOption('prototype_data', new ProveedorImagen());
-
-        /* ====================================================================
-         * COLECCIÓN ANIDADA DE SERVICIOS
-         * Se delega el renderizado al ProveedorServicioCrudController para
-         * gestionar las habitaciones/servicios directamente desde el proveedor.
-         * ==================================================================== */
-        yield CollectionField::new('proveedorServicios', 'Servicios / Habitaciones')
-            ->onlyOnForms()
-            ->setColumns(12)
-            ->useEntryCrudForm(ProveedorServicioCrudController::class)
-            ->setFormTypeOptions([
-                'by_reference' => false,
-                'prototype'    => true,
-            ])
-            ->setFormTypeOption('prototype_data', new ProveedorServicio());
+            ->setFormTypeOption('prototype_data', new ProveedorServicioImagen());
     }
 }

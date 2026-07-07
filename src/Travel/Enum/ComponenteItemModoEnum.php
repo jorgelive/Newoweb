@@ -14,6 +14,7 @@ enum ComponenteItemModoEnum: string
     case OPCIONAL = 'opcional';
     case NO_INCLUIDO = 'no_incluido';
     case CORTESIA = 'cortesia';
+    case REEMPLAZADO = 'reemplazado';
 
     /**
      * Determina si el ítem debe ser considerado para sumar un costo a la cotización
@@ -37,8 +38,8 @@ enum ComponenteItemModoEnum: string
     public function afectaCosto(): bool
     {
         return match($this) {
-            self::NO_INCLUIDO => true,
-            default => false,
+            self::NO_INCLUIDO, self::REEMPLAZADO => false,
+            default => true,
         };
     }
 }

@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
-import { ApiPais, ApiIdioma } from '@/types/MaestroModel';
+import { ApiPais, ApiIdioma } from '@/types/maestroModel.ts';
 
 export const useMaestroStore = defineStore('maestroStore', () => {
 

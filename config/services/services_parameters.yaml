@@ -48,3 +48,4 @@ parameters:
     travel.path.segmento_imagenes: '/carga/travel/segmentos'
     cotizacion.path.file_documentos: '/carga/cotizaciones/documentos'
     travel.path.proveedor_galeria: '/carga/travel/proveedor/galeria'
+    travel.path.proveedor_servicio_galeria: '/carga/travel/proveedor_servicio/galeria'

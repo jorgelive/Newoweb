@@ -57,6 +57,18 @@ class Proveedor
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $email = null;
 
+    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[ORM\Column(type: 'json')]
+    private array $titulo = [];
+
+    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[ORM\Column(type: 'json')]
+    private array $descripcion = [];
+
+    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $url = null;
+
     /**
      * @var Collection<int, ProveedorImagen>
      */
@@ -70,13 +82,26 @@ class Proveedor
     private Collection $proveedorImagenes;
 
     /**
+     * @var Collection<int, ProveedorServicio>
+     */
+    #[Groups(['proveedor:item:read'])]
+    #[ORM\OneToMany(
+        mappedBy: 'proveedor',
+        targetEntity: ProveedorServicio::class,
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
+    private Collection $proveedorServicios;
+
+    /**
      * Constructor de la entidad Proveedor.
-     * Inicializa el identificador único UUIDv7 y la colección interna de imágenes.
+     * Inicializa el identificador único UUIDv7 y las colecciones internas.
      */
     public function __construct()
     {
         $this->id = Uuid::v7();
         $this->proveedorImagenes = new ArrayCollection();
+        $this->proveedorServicios = new ArrayCollection();
     }
 
     /**
@@ -158,6 +183,74 @@ class Proveedor
     }
 
     /**
+     * Obtiene el título estructurado en formato JSON.
+     * Diseñado para almacenar traducciones dinámicas o estructuras complejas de texto.
+     * Ejemplo de uso: $proveedor->getTitulo()['es'] ?? '';
+     *
+     * @return array Arreglo asociativo del título.
+     */
+    public function getTitulo(): array
+    {
+        return $this->titulo;
+    }
+
+    /**
+     * Establece el título estructurado en formato JSON.
+     *
+     * @param array $titulo Arreglo de datos estructurados para el título.
+     * @return $this
+     */
+    public function setTitulo(array $titulo): self
+    {
+        $this->titulo = $titulo;
+        return $this;
+    }
+
+    /**
+     * Obtiene la descripción estructurada en formato JSON.
+     * Ideal para guardar descripciones localizadas por idioma sin duplicar filas en BD.
+     * Ejemplo de uso: $proveedor->getDescripcion()['en'] ?? '';
+     *
+     * @return array Arreglo asociativo de la descripción.
+     */
+    public function getDescripcion(): array
+    {
+        return $this->descripcion;
+    }
+
+    /**
+     * Establece la descripción estructurada en formato JSON.
+     *
+     * @param array $descripcion Arreglo de datos estructurados para la descripción.
+     * @return $this
+     */
+    public function setDescripcion(array $descripcion): self
+    {
+        $this->descripcion = $descripcion;
+        return $this;
+    }
+
+    /**
+     * Obtiene la URL de texto externa asociada al proveedor.
+     */
+    public function getUrl(): ?string
+    {
+        return $this->url;
+    }
+
+    /**
+     * Establece la URL de texto externa asociada al proveedor.
+     *
+     * @param string|null $url Dirección web corporativa o de referencia técnica.
+     * @return $this
+     */
+    public function setUrl(?string $url): self
+    {
+        $this->url = $url;
+        return $this;
+    }
+
+    /**
      * Obtiene la colección completa de imágenes pertenecientes a la galería del proveedor.
      *
      * @return Collection<int, ProveedorImagen>
@@ -193,6 +286,47 @@ class Proveedor
         if ($this->proveedorImagenes->removeElement($proveedorImagen)) {
             if ($proveedorImagen->getProveedor() === $this) {
                 $proveedorImagen->setProveedor(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Obtiene la colección completa de servicios (ej. habitaciones) pertenecientes al proveedor.
+     *
+     * @return Collection<int, ProveedorServicio>
+     */
+    public function getProveedorServicios(): Collection
+    {
+        return $this->proveedorServicios;
+    }
+
+    /**
+     * Añade un servicio al proveedor garantizando la sincronización bidireccional de Doctrine.
+     *
+     * @param ProveedorServicio $proveedorServicio Instancia del servicio a asociar.
+     * @return $this
+     */
+    public function addProveedorServicio(ProveedorServicio $proveedorServicio): self
+    {
+        if (!$this->proveedorServicios->contains($proveedorServicio)) {
+            $this->proveedorServicios->add($proveedorServicio);
+            $proveedorServicio->setProveedor($this);
+        }
+        return $this;
+    }
+
+    /**
+     * Remueve un servicio del proveedor rompiendo el vínculo asociativo.
+     *
+     * @param ProveedorServicio $proveedorServicio Instancia del servicio a desvincular.
+     * @return $this
+     */
+    public function removeProveedorServicio(ProveedorServicio $proveedorServicio): self
+    {
+        if ($this->proveedorServicios->removeElement($proveedorServicio)) {
+            if ($proveedorServicio->getProveedor() === $this) {
+                $proveedorServicio->setProveedor(null);
             }
         }
         return $this;

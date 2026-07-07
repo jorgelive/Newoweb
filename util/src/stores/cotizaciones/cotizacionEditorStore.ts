@@ -25,7 +25,7 @@ import {
     DetalleOperativoTipo
 } from '@/types/cotizacionEditorModel.ts';
 
-import { ApiPais, ApiIdioma } from '@/types/MaestroModel';
+import { ApiPais, ApiIdioma } from '@/types/maestroModel';
 import {components} from "@/types/api";
 
 // 👉 Corregido: El Type Guard debe validar la existencia de 'tipo' para Componente Completo de Catálogo
@@ -226,7 +226,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const isComponenteConAlerta = (componente: ComponenteCompleto): boolean => {
         if (!cotizacion.value) return false;
-        if (componente.modo === 'no_incluido' || componente.modo === 'cortesia') return false;
+        if (componente.modo === 'no_incluido' || componente.modo === 'cortesia' || componente.modo === 'reemplazado') return false;
 
         if (!componente.cottarifas || componente.cottarifas.length === 0) return true;
 
@@ -372,7 +372,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const modoComercial = componente.modo ? componente.modo.toLowerCase() : '';
                 const estadoOperativo = componente.estado ? componente.estado.toLowerCase() : '';
 
-                if (modoComercial !== 'incluido' || estadoOperativo === 'cancelado') return;
+                if (modoComercial !== 'incluido' || estadoOperativo === 'cancelado' || estadoOperativo === 'remplazado') return;
 
                 let cantPasajerosEnComponente = 0;
                 const compTarifas: any[] = [];
@@ -1950,7 +1950,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const tDef = (compMaestro.tarifas || []).find((t: any) => extractIdStr(t.id || t['@id']) === tarifaDefId)
                         || todasLasTarifasMaestras.value.find((t: any) => extractIdStr(t.id || t['@id']) === tarifaDefId);
                     if (tDef) tarifasParaInyectar.push(tDef);
-                } else if (compMaestro.tarifas && compMaestro.tarifas.length === 1 && nuevoComp.modo !== 'no_incluido') {
+                } else if (compMaestro.tarifas && compMaestro.tarifas.length === 1 && !['no_incluido', 'reemplazado'].includes(nuevoComp.modo)) {
                     tarifasParaInyectar.push(compMaestro.tarifas[0]);
                 }
 

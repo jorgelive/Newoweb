@@ -1149,6 +1149,7 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
                     <option value="opcional">Opcional</option>
                     <option value="no_incluido">No incluido</option>
                     <option value="cortesia">Cortesía</option>
+                    <option value="reemplazadoa">Reemplazado</option>
                 </select>
               </div>
             </div>
