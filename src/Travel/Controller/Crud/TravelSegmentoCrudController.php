@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Travel\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Panel\Filter\ItinerarioPlantillaFilter;
 use App\Panel\Form\Type\TranslationHtmlType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelItinerario;
@@ -52,10 +53,7 @@ class TravelSegmentoCrudController extends BaseCrudController
     {
         return $filters
             ->add(EntityFilter::new('servicios', 'Servicio (Tour)'))
-            ->add(
-                EntityFilter::new('itinerarioSegmentosInyectados.itinerario', 'Plantilla (Itinerario)')
-                    ->setFormTypeOption('value_type_options.class', TravelItinerario::class)
-            );
+            ->add(ItinerarioPlantillaFilter::new('itinerarioSegmentosInyectados.itinerario', 'Plantilla (Itinerario)'));
     }
 
     public function configureCrud(Crud $crud): Crud

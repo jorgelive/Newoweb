@@ -200,4 +200,7 @@ class TravelNota
         return '—';
     }
 
+    // 🔥 VIRTUAL PARA EASYADMIN (TextField compatible)
+    public function getVirtualSegmentos(): string { return ''; }
+
 }
