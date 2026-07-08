@@ -1,35 +1,33 @@
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import { apiClient } from '@/services/apiClient';
+import {defineStore} from 'pinia';
+import {computed, ref} from 'vue';
+import {apiClient} from '@/services/apiClient';
 
 import {
     Catalogos,
-    Cotizacion,
-    ComponenteCompleto,
-    Tarifa,
-    TarifaSnapshot,
-    SnapshotItem,
-    NivelInspector,
-    Componente,
-    ComponentePlaceholder,
-    CotServicio,
-    Language,
-    I18nContent,
-    CotizacionFileExtended,
     ClasificacionFinanciera,
-    Servicio,
+    ClasificacionFinancieraCliente,
+    Componente,
+    ComponenteCompleto,
+    ComponentePlaceholder,
+    Cotizacion,
+    CotizacionFileExtended,
     CotSegmento,
-    SegmentoComponenteProcesado,
-    TarifaBase,
+    CotServicio,
     DetalleOperativoBloque,
     DetalleOperativoTipo,
-    ProveedorServicioOption
+    I18nContent,
+    NivelInspector,
+    SegmentoComponenteProcesado,
+    Servicio,
+    SnapshotItem,
+    Tarifa,
+    TarifaBase,
+    TarifaSnapshot
 } from '@/types/cotizacionEditorModel.ts';
 
-import { ApiPais, ApiIdioma } from '@/types/maestroModel';
+import {ApiIdioma} from '@/types/maestroModel';
 import {components} from "@/types/api";
 
-// 👉 Corregido: El Type Guard debe validar la existencia de 'tipo' para Componente Completo de Catálogo
 export const isComponenteCompleto = (c: any): c is Componente => {
     return c && 'tipo' in c;
 };
@@ -69,6 +67,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
         return String(val).split('/').pop() || '';
     };
+
     const getTipoComponente = (compId: string | null): string => {
         if (!compId) return 'extras';
         const cleanId = extractIdStr(compId);
@@ -167,10 +166,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const getTarifaLabel = (cat: any, lang: string) => {
         const nombre = cat.nombreInterno || cat.nombre || 'Tarifa sin nombre';
-
-        // 👉 CORRECCIÓN: Adaptado estrictamente al tipo MaestroMoneda
         const moneda = cat.moneda?.nombre || cat.moneda?.id || cat.moneda || '';
-
         const monto = parseFloat(cat.monto || cat.montoCosto || 0).toFixed(2);
         const esGrupal = cat.costoPorGrupo || cat.esGrupal || false;
 
@@ -302,10 +298,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const s = String(val).trim();
         const upper = s.toUpperCase();
         if (upper === 'PEN' || upper === 'USD') return upper;
-        // Fallback para datos legacy guardados como nombre de display
-        if (/soles?/i.test(s)) return 'PEN';
-        if (/d[oó]lar/i.test(s)) return 'USD';
-        return upper; // deja pasar otros códigos ISO válidos (EUR, etc.) tal cual
+        return upper;
     };
 
     const isComponenteBloqueado = (comp: any): boolean => {
@@ -435,7 +428,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         montoPorPaxDolares,
                         tipoPaxId,
                         tipoPaxNombre,
-                        nodeMin: edadMin, // Sincronizado para el voter interno
+                        nodeMin: edadMin,
                         edadMin,
                         edadMax,
                         tipo: `r${edadMin}-${edadMax}t${tipoPaxId}`,
@@ -490,7 +483,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             maestroTarifas.forEach((t) => {
                 if (t.esGrupal) return;
 
-                // 👉 TIPADO SEGURO: El compilador infiere PerfilPasajeroVoter | undefined automáticamente
                 let clase = clases.find(c => c.tipo === t.tipo);
 
                 if (!clase) {
@@ -511,7 +503,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     clase = nuevaClase;
                 }
 
-                // TypeScript ahora garantiza la existencia y coherencia numérica de las propiedades
                 clase.cantidad += t.cantidad;
                 clase.cantidadRestante += t.cantidad;
             });
@@ -728,7 +719,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             fileActual.value = fileRes.data;
 
             if (cotizacionId === 'nueva') {
-                const maxVersion: number = fileActual.value?.cotizaciones?.reduce((max: number, c) => Math.max(max, c.version), 0) || 0;                crearCotizacionVacia(fileId);
+                const maxVersion: number = fileActual.value?.cotizaciones?.reduce((max: number, c) => Math.max(max, c.version), 0) || 0;
+                crearCotizacionVacia(fileId);
 
                 if (cotizacion.value) {
                     cotizacion.value.version = maxVersion + 1;
@@ -907,7 +899,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 if (!s.nombrePublicoSnapshot) s.nombrePublicoSnapshot = JSON.parse(JSON.stringify(s.nombreSnapshot || []));
 
                 if (s.cotsegmentos && Array.isArray(s.cotsegmentos)) {
-                    // 👉 TIPADO 100% ESTRICTO: seg se valida bajo la interfaz CotSegmento
                     s.cotsegmentos.forEach((seg: CotSegmento) => {
                         seg.fechaAbsoluta = getFechaLimpia(seg.fechaAbsoluta);
                     });
@@ -1007,6 +998,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             totalVenta: '0.00',
             hotelOculto: true,
             precioOculto: false,
+            proveedorOculto: false,
             resumen: [],
             sobreescribirTraduccion: false,
             cotservicios: []
@@ -1037,7 +1029,29 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             payload.totalVenta = String(resumenFinanciero.value?.totalVentaBruta || '0');
             payload.numPax = parseInt(payload.numPax) || 1;
             payload.tipoCambio = String(payload.tipoCambio || tipoCambioSugerido.value || 1);
-            payload.clasificacionFinanciera = resumenFinanciero.value;
+
+            const fin = resumenFinanciero.value;
+            payload.clasificacionFinanciera = fin;
+
+            // 🔥 Procesamiento de la clasificación financiera expurgada ESTRICTAMENTE TIPADA
+            if (fin) {
+                payload.clasificacionFinancieraCliente = {
+                    montoAdelanto: fin.montoAdelanto,
+                    totalVentaBruta: fin.totalVentaBruta,
+                    clasesPasajeros: fin.clasesPasajeros.map(clase => ({
+                        tipo: clase.tipo,
+                        tipoPaxNombre: clase.tipoPaxNombre,
+                        cantidad: clase.cantidad,
+                        edadMin: clase.edadMin,
+                        edadMax: clase.edadMax,
+                        conflictos: clase.conflictos,
+                        resumen: {
+                            ventaDolares: clase.resumen.ventaDolares
+                        }
+                    }))
+                };
+            }
+
             delete payload.idiomaEdicion;
 
             if (payload.cotservicios && Array.isArray(payload.cotservicios)) {
@@ -1060,7 +1074,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     }
 
                     if (servicio.cotcomponentes && Array.isArray(servicio.cotcomponentes)) {
-                        // 👉 TIPADO 100% ESTRICTO: Reemplazamos 'any' por la interfaz del contrato real
                         servicio.cotcomponentes.forEach((componente: ComponenteCompleto) => {
                             componente.cantidad = parseInt(String(componente.cantidad)) || 1;
 
@@ -1078,7 +1091,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 }
                             }
 
-                            // Resolución segura y fuertemente tipada de la relación con el segmento del itinerario
                             const segId = componente.cotsegmentoId || (
                                 typeof componente.cotsegmento === 'string'
                                     ? extractIdStr(componente.cotsegmento)
@@ -1137,7 +1149,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         }
                     });
 
-                    if (c.cotsegmento) { // Usamos la propiedad evaluada de forma segura
+                    if (c.cotsegmento) {
                         c.cotsegmentoId = typeof c.cotsegmento === 'string'
                             ? extractIdStr(c.cotsegmento)
                             : extractIdStr(c.cotsegmento?.id || c.cotsegmento?.['@id'] || null);
@@ -1154,7 +1166,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 let relinked: CotServicio | ComponenteCompleto | TarifaSnapshot | undefined = undefined;
 
                 if (inspectorActivo.value === 'servicio') {
-                    // El motor infiere y valida que relinked mantenga el contrato de CotServicio
                     relinked = savedData.cotservicios.find((s: CotServicio) => s.id === oldId);
 
                 } else if (inspectorActivo.value === 'componente') {
@@ -1193,8 +1204,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // NAVEGACIÓN Y ABMC
     // ============================================================================
 
-
-
     const inspectorActivo = ref<NivelInspector>('resumen');
     const dataActiva = ref<any>(null);
     const historialNavegacion = ref<{ nivel: NivelInspector, data: any }[]>([]);
@@ -1207,8 +1216,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         inspectorActivo.value = nivel;
         dataActiva.value = data;
         isMobileOpen.value = true;
+
         if (nivel === 'servicio' && data?.servicioMaestroId) await fetchServicioDetalles(data.servicioMaestroId);
         if (nivel === 'componente' && data?.componenteMaestroId) await fetchComponenteDetalles(data.componenteMaestroId);
+
+        if (nivel === 'tarifa' && data?.proveedorMaestroId) {
+            await fetchProveedorServiciosDeProveedor(data.proveedorMaestroId);
+        }
+    };
+
+    const limpiarServicioProveedor = () => {
+        if (dataActiva.value) {
+            dataActiva.value.proveedorServicioMaestroId = null;
+            dataActiva.value.proveedorServicioNombreSnapshot = null;
+            dataActiva.value.proveedorServicioTituloSnapshot = [];
+            dataActiva.value.proveedorServicioUrlSnapshot = null;
+        }
     };
 
     const retrocederNivel = (): void => {
@@ -1291,8 +1314,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const eliminarServicio = (servicioId: string): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
-        // 🔥 Detectamos si lo que está abierto en el inspector pertenece al servicio que se va a borrar,
-        // sin importar en qué nivel de profundidad estés (servicio, componente o tarifa)
         let afectaAlActivo = false;
         if (dataActiva.value) {
             if (inspectorActivo.value === 'servicio' && dataActiva.value.id === servicioId) {
@@ -1312,7 +1333,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         );
 
         if (afectaAlActivo) {
-            // 🔥 Reset total al header del expediente en vez de retrocederNivel (que podía dejar un historial "fantasma")
             inspectorActivo.value = 'resumen';
             dataActiva.value = null;
             historialNavegacion.value = [];
@@ -1323,14 +1343,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const agregarComponente = (servicioId: string): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
-        // 👉 TIPADO 100% ESTRICTO: 's' se valida bajo el contrato real CotServicio
         const servicio = cotizacion.value.cotservicios.find((s: CotServicio) => s.id === servicioId);
 
         if (servicio) {
             const fechaBase = getFechaLimpia(servicio.fechaInicioAbsoluta);
             const fechaHoraInicio = `${fechaBase}T00:00`;
 
-            // 👉 TIPADO 100% ESTRICTO: Forzamos el molde corporativo completo al instanciar el objeto
             const nuevoComponente: ComponenteCompleto = {
                 id: crypto.randomUUID(),
                 componenteMaestroId: null,
@@ -1342,7 +1360,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 fechaHoraInicio: fechaHoraInicio,
                 fechaHoraFin: fechaHoraInicio,
                 cotsegmentoId: null,
-                cotsegmento: null, // Soportado bajo el nuevo tipo dual (string | CotSegmento | null)
+                cotsegmento: null,
                 sobreescribirTraduccion: false,
                 snapshotItems: [],
                 cottarifas: [],
@@ -1355,7 +1373,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             servicio.cotcomponentes.push(nuevoComponente);
 
-            // Invocaciones seguras y acopladas a tipos estrictos
             ordenarComponentesCronologicamente(servicio.cotcomponentes);
             sincronizarFechaServicio(servicio);
             abrirNivel('componente', nuevoComponente);
@@ -1375,11 +1392,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const eliminarComponente = (servicioId: string, componenteId: string): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
-        // 👉 TIPADO 100% ESTRICTO: 's' se valida bajo el contrato real CotServicio
         const servicio = cotizacion.value.cotservicios.find((s: CotServicio) => s.id === servicioId);
 
         if (servicio && servicio.cotcomponentes) {
-            // 👉 TIPADO 100% ESTRICTO: 'c' se valida bajo la interfaz ComponenteCompleto
             servicio.cotcomponentes = servicio.cotcomponentes.filter((c: ComponenteCompleto) => c.id !== componenteId);
 
             // Sincroniza y recalcula las fronteras temporales del servicio afectado
@@ -1468,7 +1483,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         compMaestro = vinculado;
                     }
 
-                    if (!compMaestro) return; // guard explícito en vez de que .id truene sobre undefined
+                    if (!compMaestro) return;
 
                     const targetId = extractIdStr(compMaestro.id || compMaestro['@id']);
                     if (!catalogos.value.allComponentes.some((c) => extractIdStr(c.id || c['@id']) === targetId)) {
@@ -1498,21 +1513,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     };
 
                     if (compMaestro.componenteItems && Array.isArray(compMaestro.componenteItems)) {
-                        // 👉 SOLUCIÓN: Tipamos usando el subtipo autogenerado por el esquema de la API
                         nuevoComp.snapshotItems = await Promise.all(compMaestro.componenteItems.map(async (
                             subItem: components['schemas']['TravelComponenteItem-componente.item.read']
                         ) => {
                             let tituloData: I18nContent[] = [];
 
-                            if (typeof subItem.diccionario === 'string') {
-                                try {
-                                    const resDicc = await apiClient.get(subItem.diccionario);
-                                    tituloData = resDicc.data.titulo || [];
-                                } catch (err) {
-                                    console.error("No se pudo cargar el diccionario inyectado:", subItem.diccionario);
-                                }
-                            } else if (subItem.diccionario && (subItem.diccionario as any).titulo) {
-                                tituloData = (subItem.diccionario as any).titulo;
+                            try {
+                                const resDicc = await apiClient.get(subItem.diccionario);
+                                tituloData = resDicc.data.titulo || [];
+                            } catch (err) {
+                                console.error("No se pudo cargar el diccionario inyectado:", subItem.diccionario);
                             }
                             return {
                                 id: crypto.randomUUID(),
@@ -1576,7 +1586,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         let paxAsignados = 0;
         const tarifas = componente.cottarifas || [];
 
-        // 👉 Cambiado de (t: any) al contrato real TarifaSnapshot
         tarifas.forEach((t: TarifaSnapshot) => {
             const esGrupal = t.esGrupal !== undefined ? t.esGrupal : false;
             if (!esGrupal) paxAsignados += parseInt(String(t.cantidad)) || 0;
@@ -1604,6 +1613,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             proveedorServicioUrlSnapshot: null,
             estadoOperativoSnapshot: 'Pendiente',
             fechaLimitePago: null,
+            proveedorOculto: false,
             sobreescribirTraduccion: false
         } as TarifaSnapshot;
 
@@ -1627,14 +1637,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const servicio = findServicioByComponenteId(componenteId);
 
         if (servicio && servicio.cotcomponentes) {
-            // 👉 TIPADO 100% ESTRICTO: 'c' se valida bajo el contrato real ComponenteCompleto
             const componente = servicio.cotcomponentes.find((c: ComponenteCompleto) => c.id === componenteId);
 
             if (componente && componente.cottarifas) {
-                // 👉 TIPADO 100% ESTRICTO: 't' se valida bajo la interfaz TarifaSnapshot
                 componente.cottarifas = componente.cottarifas.filter((t: TarifaSnapshot) => t.id !== tarifaId);
 
-                // Limpia el foco del inspector si el elemento activo coincide con la tarifa removida
                 if (dataActiva.value?.id === tarifaId) {
                     retrocederNivel();
                 }
@@ -1793,6 +1800,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             estadoOperativoSnapshot: 'Sin Solicitar',
             fechaLimitePago: null,
             condicionesPagoSnapshot: null,
+            proveedorOculto: false,
             sobreescribirTraduccion: false
         };
     }
@@ -1816,17 +1824,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 if (!compMaestro) return;
 
-                if (typeof compMaestro === 'string') {
-                    const cId = String(extractIdStr(compMaestro) || '');
-                    const found = catalogos.value.allComponentes.find((c) => String(extractIdStr(c.id || c['@id']) || '') === cId);
-                    if (found) {
-                        compMaestro = found as ComponenteCompleto;
-                    }
+                const cId = String(extractIdStr(compMaestro) || '');
+                const found = catalogos.value.allComponentes.find((c) => String(extractIdStr(c.id || c['@id']) || '') === cId);
+                if (found) {
+                    compMaestro = found as ComponenteCompleto;
                 }
 
                 if (!compMaestro || typeof compMaestro !== 'object') return;
 
-                // 👉 CORRECCIÓN: Reemplazado (compMaestro as any) por Record estándar de indexación segura
                 const compObj = compMaestro as Record<string, unknown>;
                 const compId: string = String(extractIdStr(String(compObj.id || compObj['@id'] || '')) || '');
                 if (!compId) return;
@@ -1933,7 +1938,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             console.error("No se pudo profundizar el diccionario desde el segmento:", diccData, e);
                         }
                     } else if (diccData && typeof diccData === 'object') {
-                        // 👉 CORRECCIÓN: Estructurado de forma segura mapeando el subobjeto diccionario sin cast sucios
                         const diccObj = diccData as Record<string, unknown>;
                         if (Array.isArray(diccObj.titulo)) {
                             tituloSnapshot = diccObj.titulo as I18nContent[];
@@ -1955,7 +1959,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     };
                 }));
 
-                // 👉 CORRECCIÓN: Cast de propiedades del meta-esquema estructurado
                 const maestroObj = compMaestro as Record<string, unknown>;
                 const nuevoComp: ComponenteCompleto = {
                     id: crypto.randomUUID(),
@@ -1975,7 +1978,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     snapshotItems: snapshotItemsPreparados
                 };
 
-                // 👉 CORRECCIÓN: Tipamos estrictamente el pool de tarifas maestras usando el esquema global
                 let tarifasParaInyectar: (components['schemas']['Tarifa-componente.item.read'] | Tarifa)[] = [];
 
                 const tarifaPredObj = segComp.tarifaPredeterminada as Record<string, unknown> | null | undefined;
@@ -1993,7 +1995,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     tarifasParaInyectar.push(compMaestro.tarifas[0]);
                 }
 
-                // 👉 REFACTORIZACIÓN FINAL: Tu .map() se reduce a una sola línea limpia, tipada y elegante
                 nuevoComp.cottarifas = tarifasParaInyectar.map((t) =>
                     mapearATarifaSnapshot(t, cotizacion.value?.numPax || 1)
                 );
@@ -2056,7 +2057,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         fechaAbsoluta: fechaCalculada,
                         nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(seg))),
                         contenidoSnapshot: JSON.parse(JSON.stringify(seg.contenido || [])),
-                        notesSnapshot: extraerNotasSnapshot(seg),
+                        notasSnapshot: extraerNotasSnapshot(seg),
                         imagenesSnapshot: extraerImagenesSnapshot(seg),
                         sobreescribirTraduccion: false
                     });
@@ -2216,7 +2217,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (maestro && dataActiva.value) {
             const titulo = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
             dataActiva.value.nombreSnapshot = titulo;
-            dataActiva.value.nombrePublicoSnapshot = JSON.parse(JSON.stringify(titulo)); // 👉 NUEVO: nombre de cara al cliente
+            dataActiva.value.nombrePublicoSnapshot = JSON.parse(JSON.stringify(titulo));
             await fetchServicioDetalles(val);
         }
     };
@@ -2555,7 +2556,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const res = await apiClient.get(`/platform/travel/proveedor-servicios/${targetId}`);
             dataActiva.value.proveedorServicioNombreSnapshot = res.data.nombre;
             dataActiva.value.proveedorServicioTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(res.data)));
-            dataActiva.value.proveedorServicioUrlSnapshot = res.data.url || null; // 👈 NUEVO
+            dataActiva.value.proveedorServicioUrlSnapshot = res.data.url || null;
         } catch (e) {
             console.error('No se pudo hidratar el servicio-proveedor', e);
         }
@@ -2608,6 +2609,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange,
         actualizarInicioManteniendoRango, onProveedorChange, agregarDetalleOperativo, eliminarDetalleOperativo,
-        fetchProveedorServiciosDeProveedor, onProveedorServicioChange
+        fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor
     };
 });

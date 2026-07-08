@@ -52,6 +52,8 @@ export type Cotizacion = Omit<
     file: { id?: string; '@id'?: string; createdAt?: string; updatedAt?: string; } | string;
     cotservicios: CotServicio[];
     resumen: I18nContent[];
+    clasificacionFinancieraCliente?: ClasificacionFinancieraCliente;
+    proveedorOculto?: boolean;
 };
 
 type CotizacionFileBase = components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
@@ -160,6 +162,23 @@ export interface ClasificacionFinanciera {
     }>;
 }
 
+// 🔥 NUEVA INTERFAZ: Molde estricto para la data expuesta al cliente
+export interface ClasificacionFinancieraCliente {
+    montoAdelanto: number;
+    totalVentaBruta: number;
+    clasesPasajeros: Array<{
+        tipo: string;
+        tipoPaxNombre: string;
+        cantidad: number;
+        edadMin: number;
+        edadMax: number;
+        conflictos: string[];
+        resumen: {
+            ventaDolares: number;
+        };
+    }>;
+}
+
 export interface TarifaSnapshot {
     id: string;
     tarifaMaestraId: string | null;
@@ -181,6 +200,7 @@ export interface TarifaSnapshot {
     fechaLimitePago: string | null;
     nombreParaProveedorSnapshot?: string | null;
     condicionesPagoSnapshot?: string | null;
+    proveedorOculto: boolean;
     sobreescribirTraduccion: boolean;
 }
 

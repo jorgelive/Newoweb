@@ -78,6 +78,11 @@ class Cotizacion
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $precioOculto = false;
 
+    // 🔥 NUEVO FLAG DE PROVEEDOR OCULTO A NIVEL GLOBAL
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $proveedorOculto = false;
+
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
@@ -103,7 +108,6 @@ class Cotizacion
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $totalVenta = '0.00';
 
-    // 🔥 EL NUEVO CAMPO DE TIPO DE CAMBIO
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 10, scale: 4, options: ['default' => '1.0000'])]
     private string $tipoCambio = '1.0000';
@@ -111,6 +115,11 @@ class Cotizacion
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $clasificacionFinanciera = null;
+
+    // 🔥 NUEVA PROPIEDAD: CLASIFICACION FINANCIERA SIN COSTOS NI MÁRGENES
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $clasificacionFinancieraCliente = null;
 
     /**
      * @var Collection<int, CotizacionCotservicio>
@@ -189,6 +198,32 @@ class Cotizacion
     public function getClasificacionFinanciera(): ?array { return $this->clasificacionFinanciera; }
     public function setClasificacionFinanciera(?array $clasificacionFinanciera): self { $this->clasificacionFinanciera = $clasificacionFinanciera; return $this; }
 
+    /**
+     * Obtiene el resumen financiero apto para vistas de cliente.
+     *
+     * Este método existe para proveer una estructura de totales y desglose
+     * de precios de venta sin filtrar datos sensibles como el costo neto
+     * o la utilidad de la agencia en endpoints públicos o PDFs.
+     *
+     * @return array|null
+     */
+    public function getClasificacionFinancieraCliente(): ?array
+    {
+        return $this->clasificacionFinancieraCliente;
+    }
+
+    /**
+     * Establece el resumen financiero apto para vistas de cliente.
+     *
+     * @param array|null $clasificacionFinancieraCliente
+     * @return self
+     */
+    public function setClasificacionFinancieraCliente(?array $clasificacionFinancieraCliente): self
+    {
+        $this->clasificacionFinancieraCliente = $clasificacionFinancieraCliente;
+        return $this;
+    }
+
     public function getCotservicios(): Collection { return $this->cotservicios; }
     public function addCotservicio(CotizacionCotservicio $cotservicio): self
     {
@@ -240,6 +275,30 @@ class Cotizacion
 
     public function isPrecioOculto(): bool { return $this->precioOculto; }
     public function setPrecioOculto(bool $precioOculto): void { $this->precioOculto = $precioOculto; }
+
+    /**
+     * Determina si todos los proveedores de la cotización deben ocultarse al cliente.
+     *
+     * Este método existe para accionar un anonimato logístico masivo en
+     * las plantillas de renderización públicas.
+     *
+     * @return bool
+     */
+    public function isProveedorOculto(): bool
+    {
+        return $this->proveedorOculto;
+    }
+
+    /**
+     * Define el estado de ocultamiento global de los proveedores logísticos.
+     *
+     * @param bool $proveedorOculto
+     * @return void
+     */
+    public function setProveedorOculto(bool $proveedorOculto): void
+    {
+        $this->proveedorOculto = $proveedorOculto;
+    }
 
     public function getResumen(): array { return $this->resumen; }
     public function setResumen(array $resumen): void { $this->resumen = $resumen; }

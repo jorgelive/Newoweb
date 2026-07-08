@@ -123,6 +123,11 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $esGrupal = false;
 
+    // 🔥 NUEVO FLAG DE ANONIMATO INDIVIDUAL
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $proveedorOculto = false;
+
 
     public function __construct()
     {
@@ -216,7 +221,6 @@ class CotizacionCottarifa
 
     public function getProveedorServicioUrlSnapshot(): ?string { return $this->proveedorServicioUrlSnapshot; }
     public function setProveedorServicioUrlSnapshot(?string $proveedorServicioUrlSnapshot): self { $this->proveedorServicioUrlSnapshot = $proveedorServicioUrlSnapshot; return $this; }
-
 
     /**
      * Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
@@ -315,4 +319,29 @@ class CotizacionCottarifa
     public function isEsGrupal(): bool { return $this->esGrupal; }
     public function setEsGrupal(bool $esGrupal): self { $this->esGrupal = $esGrupal; return $this; }
 
+    /**
+     * Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.
+     *
+     * Este método existe para permitir el anonimato a nivel granular de un ítem
+     * tarifario (ej. un transporte "White Label") cuando la cotización global sí
+     * muestra a otros proveedores.
+     *
+     * @return bool
+     */
+    public function isProveedorOculto(): bool
+    {
+        return $this->proveedorOculto;
+    }
+
+    /**
+     * Define si se oculta o expone el nombre y marca del proveedor logístico en la interfaz pública.
+     *
+     * @param bool $proveedorOculto
+     * @return self
+     */
+    public function setProveedorOculto(bool $proveedorOculto): self
+    {
+        $this->proveedorOculto = $proveedorOculto;
+        return $this;
+    }
 }

@@ -544,6 +544,13 @@ const onPoolPointerUp = () => {
 
 const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.length);
 
+// 🔥 NUEVO: Lazy loading de servicios del proveedor para cuando el panel se expanda
+watch(isProveedorOpen, (newVal) => {
+  if (newVal && store.dataActiva?.proveedorMaestroId && store.catalogos.proveedorServicios.length === 0) {
+    store.fetchProveedorServiciosDeProveedor(store.dataActiva.proveedorMaestroId);
+  }
+});
+
 </script>
 
 <template>
@@ -635,7 +642,6 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
                     <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
 
-                      <!-- 👉 Type cast (as any) para resolver el array crudo vs I18nContent[] -->
                       <span v-if="store.getI18nText(servicio.itinerarioNombreSnapshot as any, 'es') !== 'Sin plantilla'">
                         {{ store.getI18nText(servicio.itinerarioNombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
                       </span>
@@ -696,7 +702,7 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
             'fixed inset-0 z-50 md:z-10 w-full',
             store.isMobileOpen ? 'translate-y-0' : 'translate-y-full',
             'md:relative md:w-[420px] md:border-l md:translate-y-0 md:transform-none',
-            store.inspectorActivo === 'tarifa' ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'
+            store.inspectorActivo === 'tarifa' ? 'bg-white text-slate-800' : 'bg-white text-slate-800'
         ]">
 
         <div v-if="store.inspectorActivo === 'resumen'" class="flex-1 flex flex-col min-h-0">
@@ -705,11 +711,26 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
             <button @click="store.cerrarInspectorMobile" class="md:hidden text-slate-400 hover:text-red-500"><i class="fas fa-times text-lg"></i></button>
           </div>
           <div class="p-6 flex-1 overflow-y-auto space-y-6 pb-32">
+
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
+              <div>
+                <h3 class="text-[10px] font-black text-indigo-700 uppercase tracking-widest"><i class="fas fa-user-secret mr-1"></i> Anonimato Logístico</h3>
+                <p class="text-[9px] text-indigo-500 mt-1 font-medium leading-tight pr-4">Ocultar todos los proveedores y servicios logísticos al generar vistas públicas o vouchers.</p>
+              </div>
+              <button @click="store.cotizacion.proveedorOculto = !store.cotizacion.proveedorOculto"
+                      :class="[
+                           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none flex-shrink-0',
+                           store.cotizacion.proveedorOculto ? 'bg-indigo-600' : 'bg-slate-300'
+                       ]">
+                 <span :class="store.cotizacion.proveedorOculto ? 'translate-x-6' : 'translate-x-1'"
+                       class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
+              </button>
+            </div>
+
             <div class="bg-[#376875] text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
               <i class="fas fa-chart-pie absolute -right-6 -bottom-6 text-8xl opacity-10"></i>
               <div class="relative z-10">
                 <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Venta Total Sugerida</p>
-                <!-- 👉 Uso del optional chaining (?) en vez del punto directo -->
                 <p class="text-4xl font-black tracking-tight">{{ formatMoneda(store.resumenFinanciero?.totalVentaBruta, store.cotizacion?.monedaGlobal) }}</p>
                 <div class="mt-4 pt-4 border-t border-slate-800/30 flex justify-between items-end">
                   <div>
@@ -831,7 +852,6 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
                   <span v-if="store.cotizacion?.sobreescribirTraduccion">Auto-Traducir ACTIVO</span>
                 </button>
               </div>
-              <!-- 👉 Corregido: Llamar 'resumen' en lugar de resumenI18n -->
               <WysiwygEditor
                   :model-value="store.getI18nText(store.cotizacion?.resumen as any, store.cotizacion?.idiomaEdicion || 'es')"
                   @update:model-value="actualizarResumen"
@@ -1144,12 +1164,12 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
 
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo Comercial</label>
-                  <select v-model="store.dataActiva.modo" class="w-full bg-white text-slate-800 border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold outline-none appearance-none shadow-sm focus:ring-2 focus:ring-sky-500">
-                    <option value="incluido">Incluido</option>
-                    <option value="opcional">Opcional</option>
-                    <option value="no_incluido">No incluido</option>
-                    <option value="cortesia">Cortesía</option>
-                    <option value="reemplazadoa">Reemplazado</option>
+                <select v-model="store.dataActiva.modo" class="w-full bg-white text-slate-800 border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold outline-none appearance-none shadow-sm focus:ring-2 focus:ring-sky-500">
+                  <option value="incluido">Incluido</option>
+                  <option value="opcional">Opcional</option>
+                  <option value="no_incluido">No incluido</option>
+                  <option value="cortesia">Cortesía</option>
+                  <option value="reemplazadoa">Reemplazado</option>
                 </select>
               </div>
             </div>
@@ -1171,10 +1191,9 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
         item.tieneUpsell ? 'border-l-4 border-l-orange-400' : 'border-slate-200',
         dragItemId === item.id ? 'opacity-40 scale-[0.98]' : '',
         dragOverItemId === item.id && dragItemId !== item.id ? 'ring-2 ring-sky-400' : ''
-     ]">
+      ]">
 
                   <div class="flex gap-3 items-center">
-                    <!-- 🔥 Handle: click+arrastre (mouse) o long-tap+arrastre (touch) -->
                     <div class="text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing select-none px-1"
                          style="touch-action: none;"
                          @pointerdown="onItemPointerDown($event, item)"
@@ -1285,6 +1304,10 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
          {{ tarifa.esGrupal ? 'Costo Grupal' : `${tarifa.cantidad} Pax` }}
       </span>
                         <span v-if="tarifa.esGrupal" class="text-[9px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase">Fijo</span>
+
+                        <span v-if="tarifa.proveedorOculto" class="text-[9px] font-black bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
+                            <i class="fas fa-user-secret"></i> Oculto
+                        </span>
                       </div>
                     </div>
                     <span class="font-black text-orange-600 text-lg">{{ formatMoneda(tarifa.montoCosto * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
@@ -1299,33 +1322,34 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
 
 
 
-        <div v-else-if="store.inspectorActivo === 'tarifa'" class="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <div class="px-5 py-4 border-b border-slate-700 flex items-center gap-3 bg-slate-800 flex-shrink-0">
-            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-colors"><i class="fas fa-arrow-left"></i></button>
+        <div v-else-if="store.inspectorActivo === 'tarifa'" class="flex-1 flex flex-col min-h-0 bg-white">
+          <div class="px-5 py-4 border-b border-orange-200 flex items-center gap-3 bg-orange-50 flex-shrink-0 shadow-sm z-10">
+            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-orange-200 text-orange-600 flex items-center justify-center transition-colors"><i class="fas fa-arrow-left"></i></button>
             <div class="flex-1 min-w-0">
-              <p class="text-[9px] font-black text-emerald-400 uppercase tracking-widest truncate">Costo y Operativa</p>
-              <h2 class="text-sm font-black text-white truncate">{{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h2>
+              <p class="text-[9px] font-black text-orange-500 uppercase tracking-widest truncate">Costo y Operativa</p>
+              <h2 class="text-sm font-black text-slate-800 truncate">{{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h2>
             </div>
           </div>
-          <div class="p-5 flex-1 overflow-y-auto space-y-6 pb-28">
-            <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl">
-              <label class="block text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2"><i class="fas fa-tags mr-1"></i> Tarifa Maestra</label>
+
+          <div class="p-5 flex-1 overflow-y-auto space-y-6 pb-28 bg-slate-50/50">
+
+            <div class="bg-white border border-slate-200 shadow-sm p-4 rounded-xl">
+              <label class="block text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2"><i class="fas fa-tags mr-1"></i> Tarifa Maestra</label>
               <SearchableSelect
                   v-model="store.dataActiva.tarifaMaestraId"
                   :options="opcionesTarifas"
                   placeholder="Precio manual..."
-                  :darkMode="true"
+                  :darkMode="false"
                   @update:model-value="val => store.onTarifaMaestraChange(val)"
               />
 
-              <div v-if="store.dataActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-700 flex flex-wrap gap-2">
+              <div v-if="store.dataActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
                 <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t) === store.extractIdStr(store.dataActiva.tarifaMaestraId))]">
-                  <span v-if="catT" class="text-[9px] font-bold text-slate-300 bg-slate-700 px-2 py-1 rounded border border-slate-600 uppercase">
-                    <i class="fas fa-globe-americas text-emerald-400 mr-1"></i>
+                  <span v-if="catT" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
+                    <i class="fas fa-globe-americas text-emerald-500 mr-1"></i>
                     {{ (catT as any).procedencia ? (catT as any).procedencia : 'Sin restricción origen' }}
                   </span>
-                  <!-- 👉 Corregido null checking de edades -->
-                  <span v-if="catT && (((catT as any).edadMinima ?? 0) > 0 || ((catT as any).edadMaxima ?? 120) < 120)">                    <i class="fas fa-birthday-cake text-orange-400 mr-1"></i>
+                  <span v-if="catT && (((catT as any).edadMinima ?? 0) > 0 || ((catT as any).edadMaxima ?? 120) < 120)" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">                    <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
                     {{ (catT as any).edadMinima ?? 0 }} - {{ (catT as any).edadMaxima ?? 120 }} años
                   </span>
                 </template>
@@ -1334,55 +1358,55 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Cant (Pax) *</label>
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Cant (Pax) *</label>
                 <input v-model="store.dataActiva.cantidad"
                        type="number"
                        :readonly="store.dataActiva.esGrupal"
-                       :class="store.dataActiva.esGrupal ? 'bg-slate-700 text-slate-500 cursor-not-allowed border-slate-700' : 'bg-slate-800 text-white border-slate-600 focus:ring-2 focus:ring-orange-500'"
+                       :class="store.dataActiva.esGrupal ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' : 'bg-white text-slate-800 border-slate-300 focus:ring-2 focus:ring-orange-500'"
                        class="w-full rounded-xl px-4 py-3 text-sm font-bold text-center outline-none shadow-sm border">
-                <p v-if="store.dataActiva.esGrupal" class="text-[9px] text-orange-400 mt-1 ml-1">Precio por grupo fijo</p>
+                <p v-if="store.dataActiva.esGrupal" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo</p>
               </div>
 
-              <div class="col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-4 flex justify-between items-center shadow-sm">
+              <div class="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 flex justify-between items-center shadow-sm">
                 <div>
-                  <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5">Moneda</label>
-                  <select v-model="store.dataActiva.moneda" class="bg-transparent text-white font-bold text-xs outline-none border-b border-slate-600 pb-1 appearance-none">
-                    <option value="USD" class="text-slate-800">USD</option>
-                    <option value="PEN" class="text-slate-800">PEN</option>
+                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5">Moneda</label>
+                  <select v-model="store.dataActiva.moneda" class="bg-transparent text-slate-800 font-bold text-xs outline-none border-b border-slate-300 pb-1 appearance-none focus:border-orange-500 transition-colors">
+                    <option value="USD">USD</option>
+                    <option value="PEN">PEN</option>
                   </select>
                 </div>
                 <div>
-                  <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 text-right">Costo Unitario</label>
-                  <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-32 bg-slate-900 border border-slate-600 text-orange-400 rounded-xl px-3 py-2 text-lg font-black text-right focus:border-orange-500 outline-none">
+                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 text-right">Costo Unitario</label>
+                  <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-32 bg-slate-50 border border-slate-300 text-orange-600 rounded-xl px-3 py-2 text-lg font-black text-right focus:border-orange-500 outline-none shadow-inner">
                 </div>
               </div>
 
               <div class="col-span-2 text-right">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">Subtotal Neto: <span class="text-orange-400 text-sm">{{ formatMoneda(store.dataActiva.montoCosto * store.dataActiva.cantidad, store.dataActiva.moneda) }}</span></p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase">Subtotal Neto: <span class="text-orange-600 text-sm font-black ml-1">{{ formatMoneda(store.dataActiva.montoCosto * store.dataActiva.cantidad, store.dataActiva.moneda) }}</span></p>
               </div>
 
               <div class="col-span-2 mt-2">
-                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Nombre en Recibo *</label>
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre en Recibo *</label>
                 <div class="flex gap-2">
                   <input :value="store.getI18nText(store.dataActiva.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
                          @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
-                         type="text" class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none">
+                         type="text" class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm">
 
                   <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-500/20 text-orange-400 border-orange-500/50' : 'bg-slate-800 text-slate-500 border-slate-600 hover:text-slate-300'"
-                          class="px-4 border rounded-xl transition-colors" title="Forzar traducción">
+                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                          class="px-4 border rounded-xl transition-colors shadow-sm" title="Forzar traducción">
                     <i class="fas fa-language"></i>
                   </button>
                 </div>
               </div>
 
-              <div class="col-span-2 bg-slate-800/50 border border-slate-700 p-4 rounded-2xl mb-2">
+              <div class="col-span-2 bg-white border border-slate-200 p-4 rounded-2xl mb-2 shadow-sm">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-xs font-black text-white flex items-center gap-2">
-                      <i class="fas fa-calculator text-emerald-400"></i> Modalidad de Cálculo
+                    <p class="text-xs font-black text-slate-800 flex items-center gap-2">
+                      <i class="fas fa-calculator text-emerald-500"></i> Modalidad de Cálculo
                     </p>
-                    <p class="text-[10px] text-slate-400 mt-1">
+                    <p class="text-[10px] text-slate-500 mt-1">
                       {{ store.dataActiva.tarifaMaestraId ? 'Bloqueado por Catálogo Maestro' : 'Define si el costo es por persona o por el total' }}
                     </p>
                   </div>
@@ -1390,8 +1414,8 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
                   <button @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = !store.dataActiva.esGrupal)"
                           :disabled="!!store.dataActiva.tarifaMaestraId"
                           :class="[
-                              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
-                              store.dataActiva.esGrupal ? 'bg-orange-500' : 'bg-slate-600',
+                              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shadow-sm flex-shrink-0',
+                              store.dataActiva.esGrupal ? 'bg-orange-500' : 'bg-slate-300',
                               store.dataActiva.tarifaMaestraId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                           ]">
                     <span :class="store.dataActiva.esGrupal ? 'translate-x-6' : 'translate-x-1'"
@@ -1400,177 +1424,218 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
                 </div>
 
                 <div class="flex gap-4 mt-4">
-                  <div :class="store.dataActiva.esGrupal ? 'opacity-50' : 'opacity-100'" class="flex-1 text-center p-2 rounded-xl border border-dashed border-slate-600">
+                  <div :class="store.dataActiva.esGrupal ? 'opacity-50 bg-slate-50 border-slate-200' : 'opacity-100 bg-orange-50 border-orange-300 text-orange-600 shadow-sm'" class="flex-1 text-center p-2 rounded-xl border transition-all text-slate-500">
                     <i class="fas fa-user text-xs mb-1"></i>
                     <p class="text-[8px] font-black uppercase">Unitario (Pax)</p>
                   </div>
-                  <div :class="!store.dataActiva.esGrupal ? 'opacity-50' : 'opacity-100'" class="flex-1 text-center p-2 rounded-xl border border-orange-500/50 bg-orange-500/10 text-orange-400">
+                  <div :class="!store.dataActiva.esGrupal ? 'opacity-50 bg-slate-50 border-slate-200' : 'opacity-100 bg-orange-50 border-orange-300 text-orange-600 shadow-sm'" class="flex-1 text-center p-2 rounded-xl border transition-all text-slate-500">
                     <i class="fas fa-users text-xs mb-1"></i>
                     <p class="text-[8px] font-black uppercase">Grupal (Flat)</p>
                   </div>
                 </div>
               </div>
 
-              <div class="col-span-2 bg-slate-800/50 border border-slate-700 rounded-2xl mt-4 relative overflow-hidden transition-all duration-300 shadow-sm">
-                <div class="absolute left-0 top-0 bottom-0 w-1 bg-sky-500 z-10"></div>
+              <div class="col-span-2 bg-white border border-orange-200 rounded-2xl mt-2 relative overflow-hidden transition-all duration-300 shadow-sm">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-orange-400 z-10"></div>
 
-                <div @click="isProveedorOpen = !isProveedorOpen" class="p-4 pl-5 cursor-pointer flex items-center justify-between hover:bg-slate-700/50 transition-colors relative">
+                <div @click="isProveedorOpen = !isProveedorOpen" class="p-4 pl-5 cursor-pointer flex items-center justify-between hover:bg-orange-50/50 transition-colors relative">
                   <div>
-                    <label class="block text-[10px] font-black text-sky-400 uppercase tracking-widest cursor-pointer mb-0.5 flex items-center gap-1.5">
-                      <i class="fas fa-truck-loading"></i> Operador Logístico
+                    <label class="block text-[10px] font-black text-orange-500 uppercase tracking-widest cursor-pointer mb-0.5 flex items-center gap-1.5">
+                      <i class="fas fa-truck-loading"></i> Datos del Proveedor
 
                       <span v-if="store.dataActiva.estadoOperativoSnapshot && store.dataActiva.estadoOperativoSnapshot !== 'Sin Solicitar'"
-                            class="text-[8px] px-1.5 py-0.5 rounded border uppercase font-black tracking-tighter"
+                            class="text-[8px] px-1.5 py-0.5 rounded border uppercase font-black tracking-tighter ml-2"
                             :class="{
-                                'bg-amber-500/20 text-amber-400 border-amber-500/30': store.dataActiva.estadoOperativoSnapshot === 'Solicitado',
-                                'bg-emerald-500/20 text-emerald-400 border-emerald-500/30': store.dataActiva.estadoOperativoSnapshot === 'Confirmado' || store.dataActiva.estadoOperativoSnapshot === 'Reconfirmado',
-                                'bg-red-500/20 text-red-400 border-red-500/30': store.dataActiva.estadoOperativoSnapshot === 'Pendiente Pago'
+                                'bg-amber-100 text-amber-600 border-amber-200': store.dataActiva.estadoOperativoSnapshot === 'Solicitado',
+                                'bg-emerald-100 text-emerald-600 border-emerald-200': store.dataActiva.estadoOperativoSnapshot === 'Confirmado' || store.dataActiva.estadoOperativoSnapshot === 'Reconfirmado',
+                                'bg-red-100 text-red-600 border-red-200': store.dataActiva.estadoOperativoSnapshot === 'Pendiente Pago'
                             }">
                         {{ store.dataActiva.estadoOperativoSnapshot }}
                       </span>
                     </label>
-                    <p class="text-sm font-bold flex items-center gap-2" :class="store.dataActiva.proveedorNombreSnapshot ? 'text-white' : 'text-slate-500 italic'">
+                    <p class="text-sm font-bold flex items-center gap-2" :class="store.dataActiva.proveedorNombreSnapshot ? 'text-slate-800' : 'text-slate-400 italic'">
                       {{ store.dataActiva.proveedorNombreSnapshot || 'Sin proveedor asignado' }}
-                      <i v-if="store.dataActiva.vencimientoPagoSnapshot" class="fas fa-bell text-orange-400 text-xs" title="Tiene alerta de pago"></i>
+                      <i v-if="store.dataActiva.vencimientoPagoSnapshot" class="fas fa-bell text-orange-500 text-xs" title="Tiene alerta de pago"></i>
                     </p>
                   </div>
 
                   <div class="flex items-center gap-3">
-                    <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-black hidden sm:inline-block">
+                    <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded border border-emerald-200 uppercase font-black hidden sm:inline-block">
                       Catálogo
                     </span>
-                    <span v-else-if="store.dataActiva.proveedorNombreSnapshot" class="text-[8px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30 uppercase font-black hidden sm:inline-block">
+                    <span v-else-if="store.dataActiva.proveedorNombreSnapshot" class="text-[8px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded border border-sky-200 uppercase font-black hidden sm:inline-block">
                       Libre
                     </span>
-                    <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 flex-shrink-0">
+                    <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0 border border-slate-200">
                       <i class="fas transition-transform" :class="isProveedorOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                     </div>
                   </div>
                 </div>
 
-                <div v-show="isProveedorOpen" class="p-4 pt-2 border-t border-slate-700/50">
+                <div v-show="isProveedorOpen" class="p-4 pt-2 border-t border-slate-100 bg-slate-50/50">
 
-                  <div>
-                    <SearchableSelect
-                        v-model="store.dataActiva.proveedorMaestroId"
-                        :options="opcionesProveedores"
-                        placeholder="Seleccionar proveedor para operar..."
-                        :darkMode="true"
-                        @change="val => store.onProveedorChange(val)"
-                    />
-                  </div>
+                  <fieldset class="border border-slate-200 bg-white rounded-xl p-4 mb-5 shadow-sm">
+                    <legend class="text-[10px] font-black text-slate-500 uppercase px-2 bg-white rounded border border-slate-100">1. Proveedor Logístico</legend>
 
-                  <div class="mt-4">
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                      Título Público del Proveedor
-                    </label>
-                    <div class="flex gap-2">
-                      <input :value="store.getI18nText(store.dataActiva.proveedorTituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
-                             @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.proveedorTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
-                             type="text"
-                             class="flex-1 bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-sky-500 outline-none"
-                             placeholder="Nombre del proveedor de cara al cliente..." />
-                      <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-                              :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-500/20 text-orange-400 border-orange-500/50' : 'bg-slate-800 text-slate-500 border-slate-600'"
-                              class="px-3 border rounded-lg transition-colors" title="Forzar traducción">
-                        <i class="fas fa-language"></i>
+                    <div class="flex items-center justify-between mb-4 bg-orange-50/50 p-2 rounded-lg border border-orange-100">
+                      <label class="flex items-center gap-2 cursor-pointer w-full">
+                        <input type="checkbox" v-model="store.dataActiva.proveedorOculto" class="w-4 h-4 text-orange-600 border-slate-300 rounded focus:ring-orange-500">
+                        <span class="text-[10px] font-bold text-slate-700 uppercase">Ocultar este proveedor al cliente</span>
+                      </label>
+                    </div>
+
+                    <div class="flex gap-2 items-center">
+                      <SearchableSelect
+                          v-model="store.dataActiva.proveedorMaestroId"
+                          :options="opcionesProveedores"
+                          placeholder="Seleccionar proveedor del catálogo..."
+                          :darkMode="false"
+                          @change="val => store.onProveedorChange(val)"
+                          class="flex-1"
+                      />
+                      <button v-if="store.dataActiva.proveedorMaestroId"
+                              @click="store.onProveedorChange(null)"
+                              class="w-9 h-9 flex-shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
+                              title="Deseleccionar Proveedor">
+                        <i class="fas fa-times"></i>
                       </button>
                     </div>
 
-                    <!-- 👇 NUEVO: URL del PROVEEDOR (nivel superior) -->
-                    <div class="flex items-center gap-2 mt-2">
-                      <i class="fas fa-building text-sky-500 text-xs w-4 flex-shrink-0" title="URL a nivel Proveedor"></i>
-                      <input v-model="store.dataActiva.proveedorUrlSnapshot"
-                             type="url"
-                             class="flex-1 bg-slate-900 border border-slate-700 text-sky-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-sky-500 outline-none"
-                             placeholder="URL del proveedor (sitio, microsite, doc)..." />
-                    </div>
-                  </div>
+                    <div class="mt-4">
+                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">
+                        Título Público del Proveedor
+                      </label>
+                      <div class="flex gap-2">
+                        <input :value="store.getI18nText(store.dataActiva.proveedorTituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                               @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.proveedorTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                               type="text"
+                               class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
+                               placeholder="Nombre del proveedor de cara al cliente..." />
+                        <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
+                                :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200'"
+                                class="px-3 border rounded-lg transition-colors shadow-sm" title="Forzar traducción">
+                          <i class="fas fa-language"></i>
+                        </button>
+                      </div>
 
-                  <div class="mt-5 pt-5 border-t border-slate-700/50">
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
-                      <i class="fas fa-concierge-bell text-indigo-400"></i> Servicio del Proveedor (Habitación / Producto)
+                      <div class="flex items-center gap-2 mt-3">
+                        <i class="fas fa-building text-slate-400 text-xs w-4 flex-shrink-0 text-center" title="URL a nivel Proveedor"></i>
+                        <input v-model="store.dataActiva.proveedorUrlSnapshot"
+                               type="url"
+                               class="flex-1 bg-white border border-slate-300 text-sky-600 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
+                               placeholder="URL del proveedor (sitio, microsite, doc)..." />
+                      </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
+                      <input v-model="store.dataActiva.proveedorNombreSnapshot"
+                             @input="e => { if (!(e.target as HTMLInputElement).value.trim() && !store.dataActiva.proveedorMaestroId) store.limpiarServicioProveedor(); }"
+                             type="text"
+                             class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
+                             placeholder="Nombre del proveedor o servicio libre..." />
+                      <p class="text-[9px] text-slate-400 mt-1 ml-1 flex items-center gap-1">
+                        <i class="fas fa-info-circle"></i> Fija la identidad para el historial financiero.
+                      </p>
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="border border-slate-200 bg-white rounded-xl p-4 mb-4 shadow-sm">
+                    <legend class="text-[10px] font-black text-slate-500 uppercase px-2 bg-white rounded border border-slate-100">2. Servicio Contratado</legend>
+
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-2 ml-1 flex items-center gap-1">
+                      <i class="fas fa-concierge-bell text-indigo-500"></i> Buscar en el catálogo del proveedor (Opcional)
                     </label>
 
-                    <SearchableSelect
-                        v-if="store.dataActiva.proveedorMaestroId"
-                        v-model="store.dataActiva.proveedorServicioMaestroId"
-                        :options="store.catalogos.proveedorServicios.map(ps => ({ value: ps.id, label: ps.nombre }))"
-                        placeholder="Buscar servicio del proveedor..."
-                        :darkMode="true"
-                        @change="val => store.onProveedorServicioChange(val)"
-                    />
-                    <div v-else class="w-full bg-slate-800 border border-slate-700 text-slate-500 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center gap-2 cursor-not-allowed">
-                      <i class="fas fa-lock"></i> Selecciona un proveedor del catálogo primero
+                    <div class="flex gap-2 items-center">
+                      <!-- 1. El v-if original -->
+                      <SearchableSelect
+                          v-if="store.dataActiva.proveedorMaestroId"
+                          v-model="store.dataActiva.proveedorServicioMaestroId"
+                          :options="store.catalogos.proveedorServicios.map(ps => ({ value: ps.id, label: ps.nombre }))"
+                          placeholder="Buscar servicio del proveedor..."
+                          :darkMode="false"
+                          @change="val => store.onProveedorServicioChange(val)"
+                          class="flex-1"
+                      />
+
+                      <!-- 2. El v-else, justo a continuación -->
+                      <div v-else class="flex-1 bg-slate-50 border border-slate-200 text-slate-400 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center gap-2 shadow-inner">
+                        <i class="fas fa-info-circle"></i> Selecciona un proveedor arriba para ver sus servicios
+                      </div>
+
+                      <!-- 3. Botón fuera de la cadena v-if/v-else para evitar conflictos -->
+                      <button v-if="store.dataActiva.proveedorServicioMaestroId"
+                              @click="store.onProveedorServicioChange(null)"
+                              class="w-9 h-9 flex-shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm"
+                              title="Quitar servicio">
+                        <i class="fas fa-times"></i>
+                      </button>
+                      <div v-else class="w-full bg-slate-50 border border-slate-200 text-slate-400 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center gap-2 shadow-inner">
+                        <i class="fas fa-info-circle"></i> Selecciona un proveedor arriba para ver sus servicios
+                      </div>
+
                     </div>
 
-                    <div class="flex gap-2 mt-3">
+
+                    <div class="mt-4">
+                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">
+                        Nombre Interno del Servicio
+                      </label>
                       <input v-model="store.dataActiva.proveedorServicioNombreSnapshot"
                              type="text"
-                             :disabled="!store.dataActiva.proveedorMaestroId"
-                             class="flex-1 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-40 disabled:cursor-not-allowed"
-                             placeholder="Nombre interno del servicio..." />
+                             class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+                             placeholder="Ej: Habitación Matrimonial Standard..." />
                     </div>
 
-                    <div class="flex gap-2 mt-2">
-                      <input :value="store.getI18nText(store.dataActiva.proveedorServicioTituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
-                             @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.proveedorServicioTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
-                             type="text"
-                             :disabled="!store.dataActiva.proveedorMaestroId"
-                             class="flex-1 bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-40 disabled:cursor-not-allowed"
-                             placeholder="Título público del servicio..." />
-                      <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-                              :disabled="!store.dataActiva.proveedorMaestroId"
-                              :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-500/20 text-orange-400 border-orange-500/50' : 'bg-slate-800 text-slate-500 border-slate-600'"
-                              class="px-3 border rounded-lg transition-colors disabled:opacity-40" title="Forzar traducción">
-                        <i class="fas fa-language"></i>
-                      </button>
+                    <div class="mt-3">
+                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">
+                        Título Público del Servicio
+                      </label>
+                      <div class="flex gap-2">
+                        <input :value="store.getI18nText(store.dataActiva.proveedorServicioTituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                               @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.proveedorServicioTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                               type="text"
+                               class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+                               placeholder="Título público del servicio..." />
+                        <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
+                                :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200'"
+                                class="px-3 border rounded-lg transition-colors shadow-sm" title="Forzar traducción">
+                          <i class="fas fa-language"></i>
+                        </button>
+                      </div>
                     </div>
 
-                    <!-- 👇 NUEVO: URL del SERVICIO (nivel hijo, ícono distinto) -->
-                    <div class="flex items-center gap-2 mt-2">
-                      <i class="fas fa-door-open text-indigo-400 text-xs w-4 flex-shrink-0" title="URL a nivel Servicio del Proveedor"></i>
+                    <div class="flex items-center gap-2 mt-3">
+                      <i class="fas fa-door-open text-indigo-400 text-xs w-4 flex-shrink-0 text-center" title="URL a nivel Servicio del Proveedor"></i>
                       <input v-model="store.dataActiva.proveedorServicioUrlSnapshot"
                              type="url"
-                             :disabled="!store.dataActiva.proveedorMaestroId"
-                             class="flex-1 bg-slate-900 border border-slate-700 text-indigo-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                             class="flex-1 bg-white border border-slate-300 text-sky-600 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
                              placeholder="URL del servicio (ej: ficha de la habitación)..." />
                     </div>
-                  </div>
+                  </fieldset>
 
-                  <div class="mt-4">
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
-                    <input v-model="store.dataActiva.proveedorNombreSnapshot"
-                           type="text"
-                           class="w-full bg-slate-900 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-sky-500 outline-none"
-                           placeholder="Nombre del proveedor o servicio libre..." />
-                    <p class="text-[9px] text-slate-500 mt-1 ml-1 flex items-center gap-1">
-                      <i class="fas fa-info-circle"></i> Fija la identidad para el historial financiero.
-                    </p>
-                  </div>
-
-                  <div class="mt-4 pt-4 border-t border-slate-700/50">
+                  <div class="mt-5 pt-4 border-t border-slate-200">
                     <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
                       <span>Nombre para la Reserva (Email)</span>
-                      <i class="fas fa-paper-plane text-slate-600"></i>
+                      <i class="fas fa-paper-plane text-slate-400"></i>
                     </label>
                     <input v-model="store.dataActiva.nombreParaProveedorSnapshot"
                            type="text"
-                           class="w-full bg-slate-900 border border-slate-700 text-emerald-400 rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
-                           placeholder="Ej: Cena Buffet Tunupa..." />
-                    <p class="text-[9px] text-slate-500 mt-1 ml-1 flex items-start gap-1">
-                      <i class="fas fa-exclamation-circle mt-0.5 text-orange-400"></i>
+                           class="w-full bg-emerald-50/50 border border-emerald-200 text-emerald-700 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm"
+                           placeholder="Ej: Cena Buffet Tunupa / 2 Pax..." />
+                    <p class="text-[9px] text-slate-400 mt-1 ml-1 flex items-start gap-1">
+                      <i class="fas fa-exclamation-circle mt-0.5 text-emerald-500"></i>
                       Este es el texto exacto del requerimiento automático.
                     </p>
                   </div>
 
-                  <div class="mt-5 pt-5 border-t border-slate-700/50 grid grid-cols-1 md:grid-cols-3 gap-4">
-
+                  <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
-                        <i class="fas fa-tasks text-sky-400"></i> Estado de Reserva
+                        <i class="fas fa-tasks text-sky-500"></i> Estado de Reserva
                       </label>
-                      <select v-model="store.dataActiva.estadoOperativoSnapshot" class="w-full bg-slate-900 border border-slate-700 text-white font-bold rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-sky-500 outline-none appearance-none cursor-pointer">
+                      <select v-model="store.dataActiva.estadoOperativoSnapshot" class="w-full bg-white border border-slate-300 text-slate-800 font-bold rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500 outline-none shadow-sm cursor-pointer appearance-none">
                         <option value="Sin Solicitar">Sin Solicitar</option>
                         <option value="Solicitado">Solicitado</option>
                         <option value="Confirmado">Confirmado</option>
@@ -1582,24 +1647,23 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
                     <div>
                       <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
                         <span>Día de Vencimiento</span>
-                        <i class="far fa-calendar-alt text-red-400"></i>
+                        <i class="far fa-calendar-alt text-red-500"></i>
                       </label>
                       <input v-model="store.dataActiva.fechaLimitePago"
                              type="date"
-                             class="w-full bg-slate-900 border border-slate-700 text-red-400 rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-red-500 outline-none [color-scheme:dark]" />
+                             class="w-full bg-white border border-slate-300 text-red-600 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-red-500 outline-none shadow-sm" />
                     </div>
 
                     <div>
                       <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
                         <span>Nota de Pago</span>
-                        <i class="fas fa-sticky-note text-amber-400"></i>
+                        <i class="fas fa-sticky-note text-amber-500"></i>
                       </label>
                       <input v-model="store.dataActiva.condicionesPagoSnapshot"
                              type="text"
-                             class="w-full bg-slate-900 border border-slate-700 text-amber-400 rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-amber-500 outline-none placeholder-slate-600"
+                             class="w-full bg-white border border-slate-300 text-amber-600 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-amber-500 outline-none shadow-sm placeholder-slate-300"
                              placeholder="Ej: Depósito BCP / 15 días antes..." />
                     </div>
-
                   </div>
 
                 </div>
@@ -1720,10 +1784,10 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
                       placeholder="Elegir itinerario..."
                   />
                   <button @click="plantillaSeleccionada && puedeAplicarPlantilla && store.aplicarPlantilla(plantillaSeleccionada)"
-                      :disabled="store.isLoading || !puedeAplicarPlantilla"
-                      :title="!puedeAplicarPlantilla ? 'Ya hay párrafos en este servicio. Vacía el panel para aplicar una plantilla.' : ''"
-                      class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
-                      :class="(store.isLoading || !puedeAplicarPlantilla) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'">
+                          :disabled="store.isLoading || !puedeAplicarPlantilla"
+                          :title="!puedeAplicarPlantilla ? 'Ya hay párrafos en este servicio. Vacía el panel para aplicar una plantilla.' : ''"
+                          class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
+                          :class="(store.isLoading || !puedeAplicarPlantilla) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'">
 
                     <i v-if="store.isLoading" class="fas fa-spinner fa-spin"></i>
                     Aplicar
@@ -1741,15 +1805,15 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
 
                 <div class="space-y-2 md:space-y-3 overflow-y-auto flex-1 pb-2">
 
-                    <div v-for="(seg, idx) in poolFiltrado"
-                        :key="store.extractIdStr(seg) || idx"
-                        class="relative bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start"
-                        @mouseenter="tooltipPoolActivo = store.extractIdStr(seg) || String(idx)"
-                        @mouseleave="tooltipPoolActivo = null"
-                        @pointerdown="onPoolPointerDown($event, store.extractIdStr(seg) || String(idx))"
-                        @pointerup="onPoolPointerUp"
-                        @pointercancel="onPoolPointerUp"
-                    >
+                  <div v-for="(seg, idx) in poolFiltrado"
+                       :key="store.extractIdStr(seg) || idx"
+                       class="relative bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start"
+                       @mouseenter="tooltipPoolActivo = store.extractIdStr(seg) || String(idx)"
+                       @mouseleave="tooltipPoolActivo = null"
+                       @pointerdown="onPoolPointerDown($event, store.extractIdStr(seg) || String(idx))"
+                       @pointerup="onPoolPointerUp"
+                       @pointercancel="onPoolPointerUp"
+                  >
                     <div class="flex-1 min-w-0">
                       <div class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
                       <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
@@ -1762,7 +1826,7 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
                       <p>{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
                     </div>
 
-                    </div>
+                  </div>
                 </div>
               </div>
             </aside>
