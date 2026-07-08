@@ -6,6 +6,7 @@ namespace App\Travel\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
+use App\Panel\Helper\AdminFieldHelper;
 use App\Travel\Entity\TravelTarifa;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
@@ -23,7 +24,6 @@ use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-// 🔥 IMPORTAMOS LAS CLASES DE FILTROS DE EASYADMIN
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
@@ -31,11 +31,17 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TravelTarifaCrudController extends BaseCrudController
 {
+    /**
+     * Define la entidad asociada a este controlador CRUD.
+     */
     public static function getEntityFqcn(): string
     {
         return TravelTarifa::class;
     }
 
+    /**
+     * Configuración básica del comportamiento del tarifario en EasyAdmin.
+     */
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
@@ -47,20 +53,20 @@ class TravelTarifaCrudController extends BaseCrudController
     }
 
     /**
-     * 🔥 CONFIGURACIÓN DE FILTROS LATERALES
-     * Aquí definimos qué campos se pueden usar para filtrar la tabla principal.
+     * Define los filtros laterales disponibles en el listado principal del tarifario.
      */
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            // Filtro principal solicitado: Por componente
             ->add(EntityFilter::new('componente', 'Componente Logístico'))
-            // Filtros extra de regalo que te serán muy útiles
             ->add(EntityFilter::new('moneda', 'Moneda'))
             ->add(EntityFilter::new('proveedor', 'Proveedor'))
             ->add(EntityFilter::new('proveedorServicio', 'Servicio de Proveedor'));
     }
 
+    /**
+     * Configura los permisos y botones de acción del CRUD, incluyendo el proceso de clonación.
+     */
     public function configureActions(Actions $actions): Actions
     {
         $cloneAction = Action::new('cloneAction', 'Clonar', 'fa fa-copy')
@@ -96,6 +102,14 @@ class TravelTarifaCrudController extends BaseCrudController
             ->setPermission('cloneAction', Roles::MAESTROS_WRITE);
     }
 
+    /**
+     * Permite duplicar un registro de tarifa existente para agilizar la carga masiva manual de costos.
+     *
+     * @param AdminContext $context Contexto de EasyAdmin.
+     * @param EntityManagerInterface $em Manejador de persistencia.
+     * @param AdminUrlGenerator $adminUrlGenerator Generador de rutas del panel.
+     * @return Response Redirección al formulario de edición del clon generado.
+     */
     public function cloneTarifa(
         AdminContext $context,
         EntityManagerInterface $em,
@@ -103,7 +117,6 @@ class TravelTarifaCrudController extends BaseCrudController
     ): Response {
         /** @var TravelTarifa $original */
         $original = $context->getEntity()->getInstance();
-
         $componenteOriginal = $original->getComponente();
 
         $clon = clone $original;
@@ -123,20 +136,26 @@ class TravelTarifaCrudController extends BaseCrudController
         return $this->redirect($url);
     }
 
+    /**
+     * Mapea y estructura los campos del formulario y las vistas de consulta del tarifario.
+     *
+     * @param string $pageName Nombre de la página del contexto actual.
+     * @return iterable Lista de configuraciones de campos de EasyAdmin.
+     */
     public function configureFields(string $pageName): iterable
     {
         $isEmbedded = $this->isEmbedded();
+        $apiHostUrl = rtrim($this->getParameter('api_host_url'), '/');
+        $endpointProveedorServicio = $apiHostUrl . '/platform/travel/proveedor-servicios';
 
         yield FormField::addPanel('Identificación y Costo')->setIcon('fa fa-tag');
 
         if (!$isEmbedded) {
-            // Lectura
             yield TextField::new('componente', 'Componente Logístico')
                 ->hideOnForm()
                 ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-cube text-muted"></i> %s</span>', htmlspecialchars((string) $value)) : '-')
                 ->renderAsHtml();
 
-            // Escritura
             yield AssociationField::new('componente', 'Componente Logístico')
                 ->hideOnIndex()->hideOnDetail()->setColumns(6);
         }
@@ -144,13 +163,11 @@ class TravelTarifaCrudController extends BaseCrudController
         yield TextField::new('nombreInterno', 'Referencia Interna')
             ->setColumns(6);
 
-        // Lectura
         yield TextField::new('moneda', 'Moneda')
             ->hideOnForm()
             ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-secondary text-white">%s</span>', htmlspecialchars((string) $value)) : '-')
             ->renderAsHtml();
 
-        // Escritura
         yield AssociationField::new('moneda', 'Moneda')
             ->hideOnIndex()->hideOnDetail()
             ->setColumns(3)->setRequired(true)->setFormTypeOption('attr', ['required' => true]);
@@ -160,7 +177,6 @@ class TravelTarifaCrudController extends BaseCrudController
             ->setColumns(3)
             ->formatValue(static fn($value) => $value ? sprintf('<strong class="text-dark">%s</strong>', $value) : '0.00');
 
-        // 🔥 LECTURA (Virtual): Badge HTML para Costo Fijo
         yield TextField::new('virtualCostoPorGrupo', '¿Costo Fijo (Grupal)?')
             ->hideOnForm()
             ->formatValue(static fn($value, $entity) => $entity->isCostoPorGrupo()
@@ -168,12 +184,15 @@ class TravelTarifaCrudController extends BaseCrudController
                 : '<span class="badge bg-light text-dark border"><i class="fas fa-user text-muted"></i> Por Pasajero</span>')
             ->renderAsHtml();
 
-        // 🔥 ESCRITURA (Real): Checkbox nativo
         yield BooleanField::new('costoPorGrupo', '¿Costo Fijo (Grupal)?')
             ->onlyOnForms()
             ->setHelp('Activa esto si el costo NO se debe multiplicar por la cantidad de pasajeros (Ej. Un bus completo).')
             ->setColumns(6);
 
+        /* ====================================================================
+         * PANEL: OPERACIONES B2B (REQUERIMIENTOS LOGÍSTICOS)
+         * Implementa el encadenamiento dinámico mediante Ajax para los proveedores.
+         * ==================================================================== */
         yield FormField::addPanel('Operaciones B2B (Requerimientos)')->setIcon('fa fa-truck-loading')
             ->setHelp('Datos sugeridos al momento de cotizar. El operador podrá cambiarlos libremente en el motor operativo.');
 
@@ -183,48 +202,64 @@ class TravelTarifaCrudController extends BaseCrudController
             ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-building text-info"></i> %s</span>', htmlspecialchars((string) $value)) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
-        // Escritura Proveedor
-        yield AssociationField::new('proveedor', 'Proveedor por Defecto')
-            ->hideOnIndex()->hideOnDetail()
-            ->setRequired(false)->setHelp('Sugerencia operativa (Ej: PeruRail).')->setColumns(6);
+        // Escritura Proveedor (Gatillo AJAX)
+        // Se añade el atributo dinámico modificado para que el JS sepa que debe filtrar por 'proveedor.id' en API Platform
+        yield AdminFieldHelper::controlsAjax(
+            AssociationField::new('proveedor', 'Proveedor por Defecto'),
+            'js-proveedor-servicio-api-target',
+            $endpointProveedorServicio,
+            'proveedor.id',
+            'nombre'
+        )
+            ->hideOnIndex()
+            ->hideOnDetail()
+            ->setRequired(false)
+            ->setHelp('Sugerencia operativa (Ej: Hotel Cusco Splendid).')
+            ->setColumns(6);
 
-        // 🔥 NUEVO: Lectura ProveedorServicio
+        // Lectura ProveedorServicio
         yield TextField::new('proveedorServicio', 'Servicio Asignado')
             ->hideOnForm()
             ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-concierge-bell text-warning"></i> %s</span>', htmlspecialchars((string) $value)) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
-        // 🔥 NUEVO: Escritura ProveedorServicio
+        // Escritura ProveedorServicio (Target del AJAX)
         yield AssociationField::new('proveedorServicio', 'Servicio por Defecto')
             ->hideOnIndex()->hideOnDetail()
-            ->setRequired(false)->setHelp('Servicio físico/lógico (Ej: Habitación Doble).')->setColumns(6);
+            ->setRequired(false)
+            ->setHelp('Servicio físico/lógico del proveedor (Ej: Habitación Matrimonial Standard).')
+            ->setColumns(6)
+            ->setFormTypeOptions([
+                'attr' => [
+                    'class' => 'js-proveedor-servicio-api-target'
+                ],
+            ]);
 
         yield TextField::new('nombreParaProveedor', 'Nombre en Tarifario del Proveedor')
             ->setRequired(false)
             ->setHelp('El texto exacto que el proveedor reconoce en sus reservas (Ej: Ticket Tren Expedition).')
             ->setColumns(12);
 
+        /* ====================================================================
+         * PANEL: RESTRICCIONES DE VENTA
+         * ==================================================================== */
         yield FormField::addPanel('Restricciones de Venta (Constraints)')->setIcon('fa fa-filter')
             ->setHelp('Si dejas estos campos vacíos, la tarifa funcionará como "Comodín" y aplicará para cualquier pasajero o modalidad.');
 
-        // 🔥 LECTURA (Virtual): Render HTML limpio para Modalidad
         yield TextField::new('virtualModalidad', 'Modalidad')
             ->hideOnForm()
             ->formatValue(static fn ($value, $entity) => $entity->getModalidad() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getModalidad()->value) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
-        // 🔥 ESCRITURA (Real): Select nativo
         yield ChoiceField::new('modalidad', 'Modalidad')
             ->setChoices(array_reduce(TarifaModalidadEnum::cases(), fn ($c, $e) => $c + [$e->name => $e], []))
             ->setRequired(false)->onlyOnForms()->setColumns(6);
 
-        // 🔥 LECTURA (Virtual): Render HTML limpio para Procedencia
         yield TextField::new('virtualProcedencia', 'Mercado (Procedencia)')
             ->hideOnForm()
             ->formatValue(static fn ($value, $entity) => $entity->getProcedencia() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getProcedencia()->value) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
-        // 🔥 ESCRITURA (Real): Select nativo
         yield ChoiceField::new('procedencia', 'Mercado (Procedencia)')
             ->setChoices(array_reduce(TarifaProcedenciaEnum::cases(), fn ($c, $e) => $c + [$e->name => $e], []))
             ->setRequired(false)->onlyOnForms()->setColumns(6);
@@ -234,12 +269,14 @@ class TravelTarifaCrudController extends BaseCrudController
         yield IntegerField::new('capacidadMinima', 'Cap. Mínima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn ($value) => $value ?? '-');
         yield IntegerField::new('capacidadMaxima', 'Cap. Máxima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn ($value) => $value ?? '-');
 
+        /* ====================================================================
+         * PANEL: TRADUCCIONES
+         * ==================================================================== */
         yield FormField::addPanel('Traducciones del Costo (Opcional)')->setIcon('fa fa-language');
 
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
 
-        // 🔥 LECTURA (Virtual): Render HTML de idioma
         yield TextField::new('virtualTitulo', 'Título Visible al Cliente')
             ->hideOnForm()
             ->formatValue(static function ($value, $entity) {
@@ -254,7 +291,6 @@ class TravelTarifaCrudController extends BaseCrudController
             })
             ->renderAsHtml();
 
-        // 🔥 ESCRITURA (Real): El CollectionField original
         yield CollectionField::new('titulo', 'Título Visible al Cliente')
             ->setEntryType(TranslationTextType::class)
             ->setRequired(false)->hideOnIndex()->hideOnDetail()->setColumns(12);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -11,6 +13,7 @@ use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,18 +22,25 @@ use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
- * Expuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.
+ * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
+#[ApiFilter(SearchFilter::class, properties: [
+    'id' => 'exact',
+    'nombreComercial' => 'partial',
+    'razonSocial' => 'partial'
+])]
 #[ApiResource(
     shortName: 'Proveedor',
     operations: [
         new GetCollection(
             uriTemplate: '/proveedores',
-            normalizationContext: ['groups' => ['proveedor:read']]
+            normalizationContext: ['groups' => ['proveedor:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
         new Get(
             uriTemplate: '/proveedores/{id}',
-            normalizationContext: ['groups' => ['proveedor:read', 'proveedor:item:read']]
+            normalizationContext: ['groups' => ['proveedor:read', 'proveedor:item:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         )
     ],
     routePrefix: '/travel'
@@ -44,7 +54,7 @@ class Proveedor
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor_servicio:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreComercial = null;
 
@@ -110,7 +120,7 @@ class Proveedor
     }
 
     /**
-     * Representación textual legible de la entidad para EasyAdmin.
+     * Representación textual legible de la entidad para EasyAdmin y opciones en selects.
      *
      * @return string Retorna el nombre comercial del proveedor o un marcador genérico.
      */
@@ -189,10 +199,7 @@ class Proveedor
 
     /**
      * Obtiene el título estructurado en formato JSON.
-     * Diseñado para almacenar traducciones dinámicas o estructuras complejas de texto.
-     * Ejemplo de uso: $proveedor->getTitulo()['es'] ?? '';
-     *
-     * @return array Arreglo asociativo del título.
+     * Diseñado para almacenar traducciones dinámicas.
      */
     public function getTitulo(): array
     {
@@ -201,9 +208,6 @@ class Proveedor
 
     /**
      * Establece el título estructurado en formato JSON.
-     *
-     * @param array $titulo Arreglo de datos estructurados para el título.
-     * @return $this
      */
     public function setTitulo(array $titulo): self
     {
@@ -213,10 +217,6 @@ class Proveedor
 
     /**
      * Obtiene la descripción estructurada en formato JSON.
-     * Ideal para guardar descripciones localizadas por idioma sin duplicar filas en BD.
-     * Ejemplo de uso: $proveedor->getDescripcion()['en'] ?? '';
-     *
-     * @return array Arreglo asociativo de la descripción.
      */
     public function getDescripcion(): array
     {
@@ -225,9 +225,6 @@ class Proveedor
 
     /**
      * Establece la descripción estructurada en formato JSON.
-     *
-     * @param array $descripcion Arreglo de datos estructurados para la descripción.
-     * @return $this
      */
     public function setDescripcion(array $descripcion): self
     {
@@ -245,9 +242,6 @@ class Proveedor
 
     /**
      * Establece la URL de texto externa asociada al proveedor.
-     *
-     * @param string|null $url Dirección web corporativa o de referencia técnica.
-     * @return $this
      */
     public function setUrl(?string $url): self
     {
@@ -265,12 +259,6 @@ class Proveedor
         return $this->proveedorImagenes;
     }
 
-    /**
-     * Añade un recurso de imagen a la galería garantizando la sincronización bidireccional de Doctrine.
-     *
-     * @param ProveedorImagen $proveedorImagen Instancia de la imagen a asociar.
-     * @return $this
-     */
     public function addProveedorImagen(ProveedorImagen $proveedorImagen): self
     {
         if (!$this->proveedorImagenes->contains($proveedorImagen)) {
@@ -280,12 +268,6 @@ class Proveedor
         return $this;
     }
 
-    /**
-     * Remueve un recurso de imagen de la galería rompiendo el vínculo asociativo.
-     *
-     * @param ProveedorImagen $proveedorImagen Instancia de la imagen a desvincular.
-     * @return $this
-     */
     public function removeProveedorImagen(ProveedorImagen $proveedorImagen): self
     {
         if ($this->proveedorImagenes->removeElement($proveedorImagen)) {
@@ -297,7 +279,7 @@ class Proveedor
     }
 
     /**
-     * Obtiene la colección completa de servicios (ej. habitaciones) pertenecientes al proveedor.
+     * Obtiene la colección completa de servicios pertenecientes al proveedor.
      *
      * @return Collection<int, ProveedorServicio>
      */
@@ -306,12 +288,6 @@ class Proveedor
         return $this->proveedorServicios;
     }
 
-    /**
-     * Añade un servicio al proveedor garantizando la sincronización bidireccional de Doctrine.
-     *
-     * @param ProveedorServicio $proveedorServicio Instancia del servicio a asociar.
-     * @return $this
-     */
     public function addProveedorServicio(ProveedorServicio $proveedorServicio): self
     {
         if (!$this->proveedorServicios->contains($proveedorServicio)) {
@@ -321,12 +297,6 @@ class Proveedor
         return $this;
     }
 
-    /**
-     * Remueve un servicio del proveedor rompiendo el vínculo asociativo.
-     *
-     * @param ProveedorServicio $proveedorServicio Instancia del servicio a desvincular.
-     * @return $this
-     */
     public function removeProveedorServicio(ProveedorServicio $proveedorServicio): self
     {
         if ($this->proveedorServicios->removeElement($proveedorServicio)) {
@@ -337,7 +307,33 @@ class Proveedor
         return $this;
     }
 
-    public function getVirtualTitulo(): string { return ''; }
+    /* ========================================================================
+     * MÉTODOS DE SOPORTE PARA FRONTEND (API PLATFORM / VUE / STIMULUS)
+     * ======================================================================== */
 
-    public function getVirtualDescripcion(): string { return ''; }
+    /**
+     * Devuelve el ID casteado como string para su manipulación directa en JS.
+     */
+    #[Groups(['proveedor:read'])]
+    public function getProveedorId(): ?string
+    {
+        return $this->getId() ? (string) $this->getId() : null;
+    }
+
+    /**
+     * Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.
+     */
+    #[Groups(['proveedor:read'])]
+    public function getEtiquetaOpciones(): string
+    {
+        return $this->__toString();
+    }
+
+    /**
+     * Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'.
+     */
+    public function getVirtualTitulo(): string
+    {
+        return '';
+    }
 }

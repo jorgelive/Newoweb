@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -11,6 +13,7 @@ use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,17 +22,24 @@ use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
+ * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
+#[ApiFilter(SearchFilter::class, properties: [
+    'id' => 'exact',
+    'nombre' => 'partial'
+])]
 #[ApiResource(
     shortName: 'ProveedorServicio',
     operations: [
         new GetCollection(
             uriTemplate: '/proveedor-servicios',
-            normalizationContext: ['groups' => ['proveedor_servicio:read']]
+            normalizationContext: ['groups' => ['proveedor_servicio:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
         new Get(
             uriTemplate: '/proveedor-servicios/{id}',
-            normalizationContext: ['groups' => ['proveedor_servicio:read', 'proveedor_servicio:item:read']]
+            normalizationContext: ['groups' => ['proveedor_servicio:read', 'proveedor_servicio:item:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         )
     ],
     routePrefix: '/travel'
@@ -43,7 +53,7 @@ class ProveedorServicio
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'componente:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
@@ -61,7 +71,7 @@ class ProveedorServicio
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $url = null;
 
-    #[Groups(['proveedor_servicio:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['proveedor_servicio:read', 'proveedor_servicio:item:read', 'componente:item:read'])]
     #[ORM\ManyToOne(targetEntity: Proveedor::class, inversedBy: 'proveedorServicios')]
     #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?Proveedor $proveedor = null;
@@ -80,7 +90,7 @@ class ProveedorServicio
 
     /**
      * Constructor de la entidad ProveedorServicio.
-     * Inicializa el identificador único UUIDv7 y la colección interna de imágenes del servicio.
+     * Inicializa el identificador único UUIDv7 y la colección interna de imágenes.
      */
     public function __construct()
     {
@@ -241,7 +251,35 @@ class ProveedorServicio
         return $this;
     }
 
-    public function getVirtualTitulo(): string { return ''; }
+    /* ========================================================================
+     * MÉTODOS DE SOPORTE PARA FRONTEND (API PLATFORM / VUE / STIMULUS)
+     * ======================================================================== */
 
-    public function getVirtualDescripcion(): string { return ''; }
+    /**
+     * Devuelve el ID casteado como string para su manipulación directa en JS.
+     */
+    #[Groups(['proveedor_servicio:read', 'componente:item:read'])]
+    public function getProveedorServicioId(): ?string
+    {
+        return $this->getId() ? (string) $this->getId() : null;
+    }
+
+    /**
+     * Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.
+     * Concatena el nombre del proveedor para que en los listados del frontend sea fácil identificar a qué hotel pertenece.
+     */
+    #[Groups(['proveedor_servicio:read'])]
+    public function getEtiquetaOpciones(): string
+    {
+        $nombreProveedor = $this->proveedor ? $this->proveedor->getNombreComercial() : 'Desconocido';
+        return sprintf('%s - %s', $nombreProveedor, $this->nombre ?? 'Servicio sin nombre');
+    }
+
+    /**
+     * Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'.
+     */
+    public function getVirtualTitulo(): string
+    {
+        return '';
+    }
 }

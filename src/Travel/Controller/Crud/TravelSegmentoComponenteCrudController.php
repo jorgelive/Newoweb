@@ -14,6 +14,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TimeField;
 
+/**
+ * Controlador CRUD encargado de gestionar la relación asociativa entre Segmentos de Itinerario
+ * y sus componentes logísticos / tarifas asignadas.
+ */
 class TravelSegmentoComponenteCrudController extends BaseCrudController
 {
     public static function getEntityFqcn(): string
@@ -31,18 +35,27 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
         $apiHostUrl = rtrim($this->getParameter('api_host_url'), '/');
         $endpointUrl = $apiHostUrl . '/platform/travel/tarifas';
 
-        // FILA 1: Componente Logístico y Condicionado a Plantilla (50% cada uno)
+        /* ====================================================================
+         * FILA 1: COMPONENTE LOGÍSTICO (GATILLO AJAX) Y CONTEXTO DE PLANTILLA
+         * Se pasan explícitamente los parámetros para cumplir el contrato agnóstico.
+         * ==================================================================== */
         yield AdminFieldHelper::controlsAjax(
             AssociationField::new('componente', 'Componente Logístico'),
             'js-tarifa-api-target',
-            $endpointUrl
-        )->setColumns('col-12 col-md-6')->setFormTypeOption('choice_label', 'nombre');
+            $endpointUrl,
+            'componente_id',
+            'nombreInterno'
+        )
+            ->setColumns('col-12 col-md-6')
+            ->setFormTypeOption('choice_label', 'nombre');
 
         yield AssociationField::new('itinerarioContexto', 'Condicionado a Plantilla')
             ->setColumns('col-12 col-md-6')
             ->setFormTypeOption('choice_label', 'nombreInterno');
 
-        // FILA 2: Tarifa (100% del ancho para acomodar el texto descriptivo largo)
+        /* ====================================================================
+         * FILA 2: TARIFA PREDETERMINADA (TARGET AJAX)
+         * ==================================================================== */
         yield AssociationField::new('tarifaPredeterminada', 'Tarifa (Opcional)')
             ->autocomplete()
             ->setColumns('col-12')
@@ -52,7 +65,9 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
                 ],
             ]);
 
-        // FILA 3: Horarios, Modo y Orden (25% cada uno)
+        /* ====================================================================
+         * FILA 3: CONFIGURACIÓN HORARIA, MODO COMERCIAL Y FILTROS OPERATIVOS
+         * ==================================================================== */
         yield TimeField::new('hora', 'Hora Inicio')
             ->setFormat('HH:mm')
             ->setFormTypeOptions([
@@ -80,10 +95,8 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
                 ],
             ]);
 
-        // 🔥 NUEVO: Campo para el filtro por día relativo
         yield IntegerField::new('dia', 'Día (Filtro)')
-            ->setHelp('Día en la plantilla para aplicar esta logística (Ej: 2). Dejar vacío para aplicar todos los días.')
-            ->setHelp('Dejar vacío para aplicar en todos')
+            ->setHelp('Día específico en la plantilla para aplicar esta logística (Ej: 2). Dejar vacío para aplicar todos los días.')
             ->setColumns('col-12 col-md-2')
             ->setFormTypeOptions([
                 'attr' => ['placeholder' => 'Global']
@@ -104,7 +117,7 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
                 'attr'       => [
                     'placeholder' => '1',
                     'data-default'    => '1',
-                    ],
+                ],
             ])
             ->hideOnIndex();
     }

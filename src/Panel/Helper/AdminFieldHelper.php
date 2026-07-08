@@ -7,7 +7,7 @@ namespace App\Panel\Helper;
 /**
  * AdminFieldHelper.
  * Facilita la configuración de campos dependientes en EasyAdmin mediante Stimulus.
- * Optimizado para IDs Naturales (String) y UUIDs (Binary/Hex).
+ * Diseñado de forma estrictamente agnóstica y abstracta para ser reutilizado en cualquier módulo del sistema.
  */
 class AdminFieldHelper
 {
@@ -20,6 +20,9 @@ class AdminFieldHelper
     public const SCOPE_FORM = '.form-widget-compound';
     public const SCOPE_EA   = '.form-fieldset-body';
 
+    /**
+     * Genera la colección de atributos de datos base para el controlador síncrono estándar.
+     */
     public static function getAttributes(
         string $childSelector,
         string $childAttr,
@@ -44,12 +47,22 @@ class AdminFieldHelper
     }
 
     /**
-     * Aplica atributos para un selector dependiente que se alimenta de API Platform vía AJAX.
+     * Aplica atributos de Stimulus para un selector dependiente asíncrono alimentado por AJAX.
+     * Desacoplado al 100% de nombres de columnas o lógicas de negocio específicas de las entidades.
+     *
+     * @param mixed $field Instancia del campo de EasyAdmin (ej: AssociationField).
+     * @param string $childClass Clase CSS que identifica al elemento select hijo en el DOM.
+     * @param string $endpointUrl URL absoluta del endpoint de API Platform a consultar.
+     * @param string $paramName Parámetro GET obligatorio que espera la API para filtrar por la entidad padre (ej: 'componente_id', 'proveedor.id').
+     * @param string|null $searchParam Parámetro GET opcional para búsquedas dinámicas tipeadas en TomSelect (ej: 'nombreInterno', 'nombre').
+     * @return mixed El mismo objeto de campo modificado con los atributos HTML correspondientes.
      */
     public static function controlsAjax(
         $field,
         string $childClass,
-        string $endpointUrl
+        string $endpointUrl,
+        string $paramName,
+        ?string $searchParam = null
     ) {
         $controllerName = 'panel--dependent-select-ajax';
 
@@ -57,10 +70,18 @@ class AdminFieldHelper
         $field->setHtmlAttribute('data-action', 'change->' . $controllerName . '#updateUrl');
         $field->setHtmlAttribute('data-' . $controllerName . '-child-class-value', $childClass);
         $field->setHtmlAttribute('data-' . $controllerName . '-url-value', $endpointUrl);
+        $field->setHtmlAttribute('data-' . $controllerName . '-param-name-value', $paramName);
+
+        if (null !== $searchParam) {
+            $field->setHtmlAttribute('data-' . $controllerName . '-search-param-value', $searchParam);
+        }
 
         return $field;
     }
 
+    /**
+     * Vincula el comportamiento dependiente local (síncrono) sobre colecciones precargadas en el DOM.
+     */
     public static function controls(
         $field,
         string $childSelector,

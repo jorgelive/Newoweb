@@ -116,6 +116,12 @@ export interface ComponenteTipo {
     prioridad: number;
 }
 
+export interface ProveedorServicioOption {
+    id: string;
+    nombre: string;
+    proveedorId: string;
+}
+
 export interface ComponentePlaceholder {
     id: string;
     nombre: string;
@@ -130,6 +136,7 @@ export interface Catalogos {
     plantillasItinerario: Itinerario[];
     poolSegmentos: Segmento[];
     proveedores: Proveedor[];
+    proveedorServicios: ProveedorServicioOption[];
     tiposComponente: ComponenteTipo[];
 }
 
@@ -164,6 +171,12 @@ export interface TarifaSnapshot {
     tipoModalidadSnapshot: string;
     proveedorMaestroId: string | null;
     proveedorNombreSnapshot: string | null;
+    proveedorTituloSnapshot?: I18nContent[];
+    proveedorUrlSnapshot?: string | null;
+    proveedorServicioMaestroId?: string | null;
+    proveedorServicioNombreSnapshot?: string | null;
+    proveedorServicioTituloSnapshot?: I18nContent[];
+    proveedorServicioUrlSnapshot?: string | null;
     estadoOperativoSnapshot: string;
     fechaLimitePago: string | null;
     nombreParaProveedorSnapshot?: string | null;

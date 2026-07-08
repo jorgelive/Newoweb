@@ -22,7 +22,8 @@ import {
     SegmentoComponenteProcesado,
     TarifaBase,
     DetalleOperativoBloque,
-    DetalleOperativoTipo
+    DetalleOperativoTipo,
+    ProveedorServicioOption
 } from '@/types/cotizacionEditorModel.ts';
 
 import { ApiPais, ApiIdioma } from '@/types/maestroModel';
@@ -47,6 +48,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         plantillasItinerario: [],
         poolSegmentos: [],
         proveedores: [],
+        proveedorServicios: [],
         tiposComponente: []
     });
 
@@ -1594,6 +1596,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tipoModalidadSnapshot: 'Individual',
             proveedorMaestroId: null,
             proveedorNombreSnapshot: null,
+            proveedorTituloSnapshot: [],
+            proveedorUrlSnapshot: null,
+            proveedorServicioMaestroId: null,
+            proveedorServicioNombreSnapshot: null,
+            proveedorServicioTituloSnapshot: [],
+            proveedorServicioUrlSnapshot: null,
             estadoOperativoSnapshot: 'Pendiente',
             fechaLimitePago: null,
             sobreescribirTraduccion: false
@@ -1689,14 +1697,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     /**
      * Estructura de forma segura la información del proveedor asociado, parseando referencias cruzadas o IRIs.
+     * Resuelve título/url contra el catálogo ya cargado en memoria (sin fetch adicional).
      */
-    const getProveedorTarifa = (t: TarifaLike): { id: string | null; nombre: string | null } => {
+    const getProveedorTarifa = (t: TarifaLike): { id: string | null; nombre: string | null; titulo?: I18nContent[]; url?: string | null } => {
         if ('proveedor' in t && t.proveedor) {
             const id = extractIdStr(t.proveedor);
             const encontrado = catalogos.value.proveedores.find(
                 (p) => extractIdStr(p.id || p['@id']) === id
             );
-            return { id, nombre: encontrado?.nombreComercial || null };
+            return {
+                id,
+                nombre: encontrado?.nombreComercial || null,
+                titulo: (encontrado as any)?.titulo,
+                url: encontrado?.url || null
+            };
         }
         if ('provider' in t && t.provider) {
             const p = t.provider as { id?: string; '@id'?: string; nombreComercial?: string };
@@ -1706,6 +1720,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             };
         }
         return { id: null, nombre: null };
+    };
+
+    /**
+     * Resuelve el servicio-proveedor embebido (ej. tipo de habitación) desde el payload plano de tarifa.
+     * Solo extrae id + nombre; título/url/imágenes se resuelven aparte por UUID cuando se necesiten.
+     */
+    const getProveedorServicioTarifa = (t: TarifaLike): { id: string | null; nombre: string | null } => {
+        const psRaw = 'proveedorServicio' in t ? (t as any).proveedorServicio : null;
+        if (!psRaw) return { id: null, nombre: null };
+
+        if (typeof psRaw === 'string') {
+            return { id: extractIdStr(psRaw), nombre: null };
+        }
+
+        return {
+            id: extractIdStr(psRaw.proveedorServicioId || psRaw.id || psRaw['@id'] || ''),
+            nombre: psRaw.nombre || null
+        };
     };
 
     /**
@@ -1738,6 +1770,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     function mapearATarifaSnapshot(tarifa: TarifaLike, numPax: number = 1): TarifaSnapshot {
         const esGrupal = getEsGrupalTarifa(tarifa);
         const proveedor = getProveedorTarifa(tarifa);
+        const proveedorServicio = getProveedorServicioTarifa(tarifa);
 
         return {
             id: crypto.randomUUID(),
@@ -1750,6 +1783,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tipoModalidadSnapshot: getModalidadTarifa(tarifa),
             proveedorMaestroId: proveedor.id,
             proveedorNombreSnapshot: proveedor.nombre,
+            proveedorTituloSnapshot: proveedor.titulo ? JSON.parse(JSON.stringify(proveedor.titulo)) : [],
+            proveedorUrlSnapshot: proveedor.url || null,
+            proveedorServicioMaestroId: proveedorServicio.id,
+            proveedorServicioNombreSnapshot: proveedorServicio.nombre,
+            proveedorServicioTituloSnapshot: [],
+            proveedorServicioUrlSnapshot: null,
             nombreParaProveedorSnapshot: getNombreParaProveedorTarifa(tarifa),
             estadoOperativoSnapshot: 'Sin Solicitar',
             fechaLimitePago: null,
@@ -2405,28 +2444,23 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const onTarifaMaestraChange = (val: string): void => {
         const targetId = extractIdStr(val);
 
-        // 👉 Buscamos tanto en el catálogo local como en el pool de todas las tarifas hidratadas
         const maestro = catalogos.value.tarifas.find((t: any) => extractIdStr(t.id) === targetId || extractIdStr(t['@id']) === targetId)
             || todasLasTarifasMaestras.value.find((t: any) => extractIdStr(t.id) === targetId || extractIdStr(t['@id']) === targetId);
 
         if (maestro && dataActiva.value) {
 
-            // Fallback de título alineado estrictamente con TarifaBase
             let titulo = getTituloSafe(maestro);
             if ((!titulo || titulo.length === 0) && maestro.nombreInterno) {
                 titulo = [{ language: 'es', content: maestro.nombreInterno }];
             }
             dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(titulo));
 
-            // 👉 APLICACIÓN DEL NUEVO TIPO MaestroMoneda
-            // Verificamos si viene el objeto hidratado de MaestroMoneda o solo el string del IRI
             if (typeof maestro.moneda === 'object' && maestro.moneda !== null) {
                 dataActiva.value.moneda = maestro.moneda.id || maestro.moneda.nombre || 'USD';
             } else {
                 dataActiva.value.moneda = maestro.moneda || 'USD';
             }
 
-            // Leer explícitamente maestro.monto
             dataActiva.value.montoCosto = parseFloat(maestro.monto || '0');
             dataActiva.value.tipoModalidadSnapshot = maestro.modalidad || 'Normal';
 
@@ -2438,13 +2472,30 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             if (maestro.proveedor) {
-                const provId = extractIdStr(maestro.proveedor); // extractIdStr ya maneja string directo
+                const provId = extractIdStr(maestro.proveedor);
                 dataActiva.value.proveedorMaestroId = provId;
 
                 const provCat = catalogos.value.proveedores.find((p: any) => extractIdStr(p.id || p['@id']) === provId);
                 if (provCat) {
                     dataActiva.value.proveedorNombreSnapshot = provCat.nombreComercial;
+                    dataActiva.value.proveedorTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(provCat)));
+                    dataActiva.value.proveedorUrlSnapshot = provCat.url || null;
                 }
+
+                fetchProveedorServiciosDeProveedor(provId);
+            }
+
+            const psRaw = (maestro as any).proveedorServicio;
+            if (psRaw && typeof psRaw === 'object') {
+                dataActiva.value.proveedorServicioMaestroId = extractIdStr(psRaw.proveedorServicioId || psRaw.id || psRaw['@id'] || '');
+                dataActiva.value.proveedorServicioNombreSnapshot = psRaw.nombre || null;
+                dataActiva.value.proveedorServicioTituloSnapshot = [];
+                dataActiva.value.proveedorServicioUrlSnapshot = null;
+            } else {
+                dataActiva.value.proveedorServicioMaestroId = null;
+                dataActiva.value.proveedorServicioNombreSnapshot = null;
+                dataActiva.value.proveedorServicioTituloSnapshot = [];
+                dataActiva.value.proveedorServicioUrlSnapshot = null;
             }
 
             dataActiva.value.nombreParaProveedorSnapshot = maestro.nombreParaProveedor || maestro.nombreInterno || null;
@@ -2454,12 +2505,78 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    /**
+     * Carga los servicios (livianos: id+nombre) del proveedor seleccionado.
+     * Se dispara cada vez que cambia el proveedor elegido en la tarifa, para alimentar
+     * el dropdown filtrado de ProveedorServicio.
+     */
+    const fetchProveedorServiciosDeProveedor = async (proveedorId: string | null) => {
+        if (!proveedorId) {
+            catalogos.value.proveedorServicios = [];
+            return;
+        }
+        try {
+            const res = await apiClient.get(`/platform/travel/proveedor-servicios?proveedor_id=${proveedorId}&pagination=false`);
+            const raw = res.data['hydra:member'] || res.data['member'] || [];
+            catalogos.value.proveedorServicios = raw.map((ps: any) => ({
+                id: extractIdStr(ps.id || ps['@id']),
+                nombre: ps.nombre,
+                proveedorId
+            }));
+        } catch (e) {
+            console.error('Error cargando servicios del proveedor', e);
+            catalogos.value.proveedorServicios = [];
+        }
+    };
+
+    /**
+     * El usuario eligió un servicio-proveedor del dropdown. Como la colección no trae 'titulo'
+     * (solo el Get individual lo expone), hacemos un fetch de detalle para hidratar el snapshot completo.
+     */
+    const onProveedorServicioChange = async (val: string | null): Promise<void> => {
+        if (!val || val === 'null') {
+            if (dataActiva.value) {
+                dataActiva.value.proveedorServicioMaestroId = null;
+                dataActiva.value.proveedorServicioNombreSnapshot = null;
+                dataActiva.value.proveedorServicioTituloSnapshot = [];
+                dataActiva.value.proveedorServicioUrlSnapshot = null;
+            }
+            return;
+        }
+        const targetId = extractIdStr(val);
+        if (!dataActiva.value) return;
+
+        dataActiva.value.proveedorServicioMaestroId = targetId;
+
+        const opcionLocal = catalogos.value.proveedorServicios.find((ps) => ps.id === targetId);
+        if (opcionLocal) dataActiva.value.proveedorServicioNombreSnapshot = opcionLocal.nombre;
+
+        try {
+            const res = await apiClient.get(`/platform/travel/proveedor-servicios/${targetId}`);
+            dataActiva.value.proveedorServicioNombreSnapshot = res.data.nombre;
+            dataActiva.value.proveedorServicioTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(res.data)));
+            dataActiva.value.proveedorServicioUrlSnapshot = res.data.url || null; // 👈 NUEVO
+        } catch (e) {
+            console.error('No se pudo hidratar el servicio-proveedor', e);
+        }
+    };
+
     const onProveedorChange = (val: string | null): void => {
+        if (dataActiva.value) {
+            dataActiva.value.proveedorServicioMaestroId = null;
+            dataActiva.value.proveedorServicioNombreSnapshot = null;
+            dataActiva.value.proveedorServicioTituloSnapshot = [];
+            dataActiva.value.proveedorServicioUrlSnapshot = null;
+        }
+
         if (!val || val === 'null') {
             if (dataActiva.value) {
                 dataActiva.value.proveedorMaestroId = null;
                 dataActiva.value.proveedorNombreSnapshot = null;
+                dataActiva.value.proveedorTituloSnapshot = [];
+                dataActiva.value.proveedorUrlSnapshot = null;
             }
+            catalogos.value.proveedorServicios = [];
             return;
         }
 
@@ -2469,7 +2586,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (provCat && dataActiva.value) {
             dataActiva.value.proveedorMaestroId = targetId;
             dataActiva.value.proveedorNombreSnapshot = provCat.nombreComercial;
+            dataActiva.value.proveedorTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(provCat)));
+            dataActiva.value.proveedorUrlSnapshot = provCat.url || null;
         }
+
+        fetchProveedorServiciosDeProveedor(targetId);
     };
 
     return {
@@ -2486,6 +2607,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarSegmentoIndividual, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange,
-        actualizarInicioManteniendoRango, onProveedorChange, agregarDetalleOperativo, eliminarDetalleOperativo
+        actualizarInicioManteniendoRango, onProveedorChange, agregarDetalleOperativo, eliminarDetalleOperativo,
+        fetchProveedorServiciosDeProveedor, onProveedorServicioChange
     };
 });

@@ -1461,6 +1461,84 @@ const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.le
                   </div>
 
                   <div class="mt-4">
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">
+                      Título Público del Proveedor
+                    </label>
+                    <div class="flex gap-2">
+                      <input :value="store.getI18nText(store.dataActiva.proveedorTituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                             @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.proveedorTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                             type="text"
+                             class="flex-1 bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-sky-500 outline-none"
+                             placeholder="Nombre del proveedor de cara al cliente..." />
+                      <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
+                              :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-500/20 text-orange-400 border-orange-500/50' : 'bg-slate-800 text-slate-500 border-slate-600'"
+                              class="px-3 border rounded-lg transition-colors" title="Forzar traducción">
+                        <i class="fas fa-language"></i>
+                      </button>
+                    </div>
+
+                    <!-- 👇 NUEVO: URL del PROVEEDOR (nivel superior) -->
+                    <div class="flex items-center gap-2 mt-2">
+                      <i class="fas fa-building text-sky-500 text-xs w-4 flex-shrink-0" title="URL a nivel Proveedor"></i>
+                      <input v-model="store.dataActiva.proveedorUrlSnapshot"
+                             type="url"
+                             class="flex-1 bg-slate-900 border border-slate-700 text-sky-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-sky-500 outline-none"
+                             placeholder="URL del proveedor (sitio, microsite, doc)..." />
+                    </div>
+                  </div>
+
+                  <div class="mt-5 pt-5 border-t border-slate-700/50">
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
+                      <i class="fas fa-concierge-bell text-indigo-400"></i> Servicio del Proveedor (Habitación / Producto)
+                    </label>
+
+                    <SearchableSelect
+                        v-if="store.dataActiva.proveedorMaestroId"
+                        v-model="store.dataActiva.proveedorServicioMaestroId"
+                        :options="store.catalogos.proveedorServicios.map(ps => ({ value: ps.id, label: ps.nombre }))"
+                        placeholder="Buscar servicio del proveedor..."
+                        :darkMode="true"
+                        @change="val => store.onProveedorServicioChange(val)"
+                    />
+                    <div v-else class="w-full bg-slate-800 border border-slate-700 text-slate-500 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center gap-2 cursor-not-allowed">
+                      <i class="fas fa-lock"></i> Selecciona un proveedor del catálogo primero
+                    </div>
+
+                    <div class="flex gap-2 mt-3">
+                      <input v-model="store.dataActiva.proveedorServicioNombreSnapshot"
+                             type="text"
+                             :disabled="!store.dataActiva.proveedorMaestroId"
+                             class="flex-1 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                             placeholder="Nombre interno del servicio..." />
+                    </div>
+
+                    <div class="flex gap-2 mt-2">
+                      <input :value="store.getI18nText(store.dataActiva.proveedorServicioTituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                             @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.proveedorServicioTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                             type="text"
+                             :disabled="!store.dataActiva.proveedorMaestroId"
+                             class="flex-1 bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                             placeholder="Título público del servicio..." />
+                      <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
+                              :disabled="!store.dataActiva.proveedorMaestroId"
+                              :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-500/20 text-orange-400 border-orange-500/50' : 'bg-slate-800 text-slate-500 border-slate-600'"
+                              class="px-3 border rounded-lg transition-colors disabled:opacity-40" title="Forzar traducción">
+                        <i class="fas fa-language"></i>
+                      </button>
+                    </div>
+
+                    <!-- 👇 NUEVO: URL del SERVICIO (nivel hijo, ícono distinto) -->
+                    <div class="flex items-center gap-2 mt-2">
+                      <i class="fas fa-door-open text-indigo-400 text-xs w-4 flex-shrink-0" title="URL a nivel Servicio del Proveedor"></i>
+                      <input v-model="store.dataActiva.proveedorServicioUrlSnapshot"
+                             type="url"
+                             :disabled="!store.dataActiva.proveedorMaestroId"
+                             class="flex-1 bg-slate-900 border border-slate-700 text-indigo-300 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                             placeholder="URL del servicio (ej: ficha de la habitación)..." />
+                    </div>
+                  </div>
+
+                  <div class="mt-4">
                     <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
                     <input v-model="store.dataActiva.proveedorNombreSnapshot"
                            type="text"

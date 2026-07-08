@@ -5514,6 +5514,27 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
                     }
                 },
                 "summary": "Retrieves the collection of Proveedor resources.",
@@ -5528,6 +5549,57 @@
                         "schema": {
                             "type": "integer",
                             "default": 1
+                        },
+                        "style": "form",
+                        "explode": false
+                    },
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "form",
+                        "explode": false
+                    },
+                    {
+                        "name": "id[]",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "style": "form",
+                        "explode": true
+                    },
+                    {
+                        "name": "nombreComercial",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "form",
+                        "explode": false
+                    },
+                    {
+                        "name": "razonSocial",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
                         },
                         "style": "form",
                         "explode": false
@@ -5566,6 +5638,27 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
                     },
                     "404": {
                         "description": "Not found",
@@ -5668,6 +5761,312 @@
                         "name": "id",
                         "in": "path",
                         "description": "ProveedorImagen identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/travel/proveedor-servicios": {
+            "get": {
+                "operationId": "api_travelproveedor-servicios_get_collection",
+                "tags": [
+                    "ProveedorServicio"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ProveedorServicio collection",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "description": "ProveedorServicio.jsonld-proveedor_servicio.read collection.",
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/HydraCollectionBaseSchema"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "member"
+                                            ],
+                                            "properties": {
+                                                "member": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/ProveedorServicio.jsonld-proveedor_servicio.read"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProveedorServicio-proveedor_servicio.read"
+                                    }
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProveedorServicio.html-proveedor_servicio.read"
+                                    }
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProveedorServicio.multipart-proveedor_servicio.read"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves the collection of ProveedorServicio resources.",
+                "description": "Retrieves the collection of ProveedorServicio resources.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "The collection page number",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        },
+                        "style": "form",
+                        "explode": false
+                    },
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "form",
+                        "explode": false
+                    },
+                    {
+                        "name": "id[]",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "style": "form",
+                        "explode": true
+                    },
+                    {
+                        "name": "nombre",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "form",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/travel/proveedor-servicios/{id}": {
+            "get": {
+                "operationId": "api_travelproveedor-servicios_id_get",
+                "tags": [
+                    "ProveedorServicio"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ProveedorServicio resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorServicio.jsonld-proveedor_servicio.read_proveedor_servicio.item.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorServicio-proveedor_servicio.read_proveedor_servicio.item.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorServicio.html-proveedor_servicio.read_proveedor_servicio.item.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorServicio.multipart-proveedor_servicio.read_proveedor_servicio.item.read"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a ProveedorServicio resource.",
+                "description": "Retrieves a ProveedorServicio resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ProveedorServicio identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/travel/proveedor_servicio_imagens/{id}": {
+            "get": {
+                "operationId": "api_travelproveedor_servicio_imagens_id_get",
+                "tags": [
+                    "ProveedorServicioImagen"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ProveedorServicioImagen resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorServicioImagen.jsonld-proveedor_servicio.item.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorServicioImagen-proveedor_servicio.item.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorServicioImagen.html-proveedor_servicio.item.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProveedorServicioImagen.multipart-proveedor_servicio.item.read"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a ProveedorServicioImagen resource.",
+                "description": "Retrieves a ProveedorServicioImagen resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ProveedorServicioImagen identifier",
                         "required": true,
                         "deprecated": false,
                         "schema": {
@@ -7438,6 +7837,14 @@
                             "example": "https://example.com/"
                         }
                     },
+                    "segmentoComponentesInyectados": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Segmentos (itinerarios) se est\u00e1\ninyectando este componente. El due\u00f1o real es TravelSegmentoComponente.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelSegmentoComponente"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -7479,6 +7886,10 @@
                         "type": "string"
                     },
                     "virtualTarifas": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualSegmentosInyectados": {
                         "readOnly": true,
                         "type": "string"
                     }
@@ -7809,6 +8220,14 @@
                             "example": "https://example.com/"
                         }
                     },
+                    "segmentoComponentesInyectados": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Segmentos (itinerarios) se est\u00e1\ninyectando este componente. El due\u00f1o real es TravelSegmentoComponente.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelSegmentoComponente.html"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -7850,6 +8269,10 @@
                         "type": "string"
                     },
                     "virtualTarifas": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualSegmentosInyectados": {
                         "readOnly": true,
                         "type": "string"
                     }
@@ -8120,6 +8543,14 @@
                                     "example": "https://example.com/"
                                 }
                             },
+                            "segmentoComponentesInyectados": {
+                                "readOnly": true,
+                                "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Segmentos (itinerarios) se est\u00e1\ninyectando este componente. El due\u00f1o real es TravelSegmentoComponente.",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/TravelSegmentoComponente.jsonld"
+                                }
+                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -8161,6 +8592,10 @@
                                 "type": "string"
                             },
                             "virtualTarifas": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualSegmentosInyectados": {
                                 "readOnly": true,
                                 "type": "string"
                             }
@@ -8451,6 +8886,14 @@
                             "example": "https://example.com/"
                         }
                     },
+                    "segmentoComponentesInyectados": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Segmentos (itinerarios) se est\u00e1\ninyectando este componente. El due\u00f1o real es TravelSegmentoComponente.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelSegmentoComponente.multipart"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -8492,6 +8935,10 @@
                         "type": "string"
                     },
                     "virtualTarifas": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualSegmentosInyectados": {
                         "readOnly": true,
                         "type": "string"
                     }
@@ -10435,7 +10882,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
@@ -10559,7 +11007,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
@@ -10676,7 +11125,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
@@ -10786,7 +11236,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
@@ -10910,7 +11361,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
@@ -11035,7 +11487,8 @@
                                     "incluido",
                                     "opcional",
                                     "no_incluido",
-                                    "cortesia"
+                                    "cortesia",
+                                    "reemplazado"
                                 ]
                             },
                             "fechaHoraInicio": {
@@ -11167,7 +11620,8 @@
                                     "incluido",
                                     "opcional",
                                     "no_incluido",
-                                    "cortesia"
+                                    "cortesia",
+                                    "reemplazado"
                                 ]
                             },
                             "fechaHoraInicio": {
@@ -11291,7 +11745,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
@@ -11415,7 +11870,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
@@ -16781,6 +17237,14 @@
                             "type": "string"
                         }
                     },
+                    "componenteItems": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Componentes se est\u00e1 usando este t\u00e9rmino.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelComponenteItem"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -16808,6 +17272,16 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTituloEs": {
+                        "readOnly": true,
+                        "description": "Muestra el t\u00edtulo en espa\u00f1ol directamente en la lista, sin abrir el JSON completo.",
+                        "type": "string"
+                    },
+                    "virtualComponentesUsados": {
+                        "readOnly": true,
+                        "description": "Muestra los componentes (y su modo) donde se est\u00e1 usando este t\u00e9rmino del diccionario.",
+                        "type": "string"
                     }
                 }
             },
@@ -16865,6 +17339,14 @@
                             "type": "string"
                         }
                     },
+                    "componenteItems": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Componentes se est\u00e1 usando este t\u00e9rmino.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelComponenteItem.html"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -16892,6 +17374,16 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTituloEs": {
+                        "readOnly": true,
+                        "description": "Muestra el t\u00edtulo en espa\u00f1ol directamente en la lista, sin abrir el JSON completo.",
+                        "type": "string"
+                    },
+                    "virtualComponentesUsados": {
+                        "readOnly": true,
+                        "description": "Muestra los componentes (y su modo) donde se est\u00e1 usando este t\u00e9rmino del diccionario.",
+                        "type": "string"
                     }
                 }
             },
@@ -16940,6 +17432,14 @@
                                     "type": "string"
                                 }
                             },
+                            "componenteItems": {
+                                "readOnly": true,
+                                "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Componentes se est\u00e1 usando este t\u00e9rmino.",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/TravelComponenteItem.jsonld"
+                                }
+                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -16967,6 +17467,16 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "virtualTituloEs": {
+                                "readOnly": true,
+                                "description": "Muestra el t\u00edtulo en espa\u00f1ol directamente en la lista, sin abrir el JSON completo.",
+                                "type": "string"
+                            },
+                            "virtualComponentesUsados": {
+                                "readOnly": true,
+                                "description": "Muestra los componentes (y su modo) donde se est\u00e1 usando este t\u00e9rmino del diccionario.",
+                                "type": "string"
                             }
                         }
                     }
@@ -17026,6 +17536,14 @@
                             "type": "string"
                         }
                     },
+                    "componenteItems": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Componentes se est\u00e1 usando este t\u00e9rmino.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelComponenteItem.multipart"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -17053,6 +17571,16 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTituloEs": {
+                        "readOnly": true,
+                        "description": "Muestra el t\u00edtulo en espa\u00f1ol directamente en la lista, sin abrir el JSON completo.",
+                        "type": "string"
+                    },
+                    "virtualComponentesUsados": {
+                        "readOnly": true,
+                        "description": "Muestra los componentes (y su modo) donde se est\u00e1 usando este t\u00e9rmino del diccionario.",
+                        "type": "string"
                     }
                 }
             },
@@ -19241,6 +19769,20 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTituloEs": {
+                        "readOnly": true,
+                        "description": "Muestra el t\u00edtulo visible al cliente en espa\u00f1ol directamente en la lista.",
+                        "type": "string"
+                    },
+                    "virtualContenidoEs": {
+                        "readOnly": true,
+                        "description": "Muestra un preview corto del cuerpo en espa\u00f1ol (el contenido es HTML,\nas\u00ed que lo despojamos de tags para no romper el layout del listado).",
+                        "type": "string"
+                    },
+                    "virtualSegmentos": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
@@ -19487,6 +20029,20 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTituloEs": {
+                        "readOnly": true,
+                        "description": "Muestra el t\u00edtulo visible al cliente en espa\u00f1ol directamente en la lista.",
+                        "type": "string"
+                    },
+                    "virtualContenidoEs": {
+                        "readOnly": true,
+                        "description": "Muestra un preview corto del cuerpo en espa\u00f1ol (el contenido es HTML,\nas\u00ed que lo despojamos de tags para no romper el layout del listado).",
+                        "type": "string"
+                    },
+                    "virtualSegmentos": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
@@ -19707,6 +20263,20 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "virtualTituloEs": {
+                                "readOnly": true,
+                                "description": "Muestra el t\u00edtulo visible al cliente en espa\u00f1ol directamente en la lista.",
+                                "type": "string"
+                            },
+                            "virtualContenidoEs": {
+                                "readOnly": true,
+                                "description": "Muestra un preview corto del cuerpo en espa\u00f1ol (el contenido es HTML,\nas\u00ed que lo despojamos de tags para no romper el layout del listado).",
+                                "type": "string"
+                            },
+                            "virtualSegmentos": {
+                                "readOnly": true,
+                                "type": "string"
                             }
                         }
                     }
@@ -19961,6 +20531,20 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualTituloEs": {
+                        "readOnly": true,
+                        "description": "Muestra el t\u00edtulo visible al cliente en espa\u00f1ol directamente en la lista.",
+                        "type": "string"
+                    },
+                    "virtualContenidoEs": {
+                        "readOnly": true,
+                        "description": "Muestra un preview corto del cuerpo en espa\u00f1ol (el contenido es HTML,\nas\u00ed que lo despojamos de tags para no romper el layout del listado).",
+                        "type": "string"
+                    },
+                    "virtualSegmentos": {
+                        "readOnly": true,
+                        "type": "string"
                     }
                 }
             },
@@ -21267,7 +21851,7 @@
             },
             "Proveedor-proveedor.read": {
                 "type": "object",
-                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
                 "properties": {
                     "nombreComercial": {
                         "description": "Obtiene el nombre comercial del proveedor.",
@@ -21293,12 +21877,46 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
                     }
                 }
             },
             "Proveedor-proveedor.read_proveedor.item.read": {
                 "type": "object",
-                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
                 "properties": {
                     "nombreComercial": {
                         "description": "Obtiene el nombre comercial del proveedor.",
@@ -21320,6 +21938,27 @@
                     },
                     "email": {
                         "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada al proveedor.",
                         "type": [
                             "string",
                             "null"
@@ -21330,12 +21969,49 @@
                         "items": {
                             "$ref": "#/components/schemas/ProveedorImagen-proveedor.read_proveedor.item.read"
                         }
+                    },
+                    "proveedorServicios": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorServicio-proveedor.read_proveedor.item.read"
+                        }
+                    },
+                    "proveedorId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
+                    }
+                }
+            },
+            "Proveedor-proveedor_servicio.read": {
+                "type": "object",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
+                    }
+                }
+            },
+            "Proveedor-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
                     }
                 }
             },
             "Proveedor.html-proveedor.read": {
                 "type": "object",
-                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
                 "properties": {
                     "nombreComercial": {
                         "description": "Obtiene el nombre comercial del proveedor.",
@@ -21361,12 +22037,46 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
                     }
                 }
             },
             "Proveedor.html-proveedor.read_proveedor.item.read": {
                 "type": "object",
-                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
                 "properties": {
                     "nombreComercial": {
                         "description": "Obtiene el nombre comercial del proveedor.",
@@ -21388,6 +22098,27 @@
                     },
                     "email": {
                         "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada al proveedor.",
                         "type": [
                             "string",
                             "null"
@@ -21398,6 +22129,43 @@
                         "items": {
                             "$ref": "#/components/schemas/ProveedorImagen.html-proveedor.read_proveedor.item.read"
                         }
+                    },
+                    "proveedorServicios": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorServicio.html-proveedor.read_proveedor.item.read"
+                        }
+                    },
+                    "proveedorId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
+                    }
+                }
+            },
+            "Proveedor.html-proveedor_servicio.read": {
+                "type": "object",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
+                    }
+                }
+            },
+            "Proveedor.html-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
                     }
                 }
             },
@@ -21433,11 +22201,45 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "titulo": {
+                                "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "descripcion": {
+                                "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "url": {
+                                "description": "Obtiene la URL de texto externa asociada al proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorId": {
+                                "readOnly": true,
+                                "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "etiquetaOpciones": {
+                                "readOnly": true,
+                                "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                                "type": "string"
                             }
                         }
                     }
                 ],
-                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue."
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
             },
             "Proveedor.jsonld-proveedor.read_proveedor.item.read": {
                 "allOf": [
@@ -21472,20 +22274,94 @@
                                     "null"
                                 ]
                             },
+                            "titulo": {
+                                "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "descripcion": {
+                                "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "url": {
+                                "description": "Obtiene la URL de texto externa asociada al proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "proveedorImagenes": {
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/components/schemas/ProveedorImagen.jsonld-proveedor.read_proveedor.item.read"
                                 }
+                            },
+                            "proveedorServicios": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ProveedorServicio.jsonld-proveedor.read_proveedor.item.read"
+                                }
+                            },
+                            "proveedorId": {
+                                "readOnly": true,
+                                "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "etiquetaOpciones": {
+                                "readOnly": true,
+                                "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                                "type": "string"
                             }
                         }
                     }
                 ],
-                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue."
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
+            },
+            "Proveedor.jsonld-proveedor_servicio.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreComercial": {
+                                "description": "Obtiene el nombre comercial del proveedor.",
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
+            },
+            "Proveedor.jsonld-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreComercial": {
+                                "description": "Obtiene el nombre comercial del proveedor.",
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
             },
             "Proveedor.multipart-proveedor.read": {
                 "type": "object",
-                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
                 "properties": {
                     "nombreComercial": {
                         "description": "Obtiene el nombre comercial del proveedor.",
@@ -21511,12 +22387,46 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
                     }
                 }
             },
             "Proveedor.multipart-proveedor.read_proveedor.item.read": {
                 "type": "object",
-                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue.",
+                "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
                 "properties": {
                     "nombreComercial": {
                         "description": "Obtiene el nombre comercial del proveedor.",
@@ -21538,6 +22448,27 @@
                     },
                     "email": {
                         "description": "Obtiene el correo electr\u00f3nico comercial del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada al proveedor.",
                         "type": [
                             "string",
                             "null"
@@ -21548,6 +22479,43 @@
                         "items": {
                             "$ref": "#/components/schemas/ProveedorImagen.multipart-proveedor.read_proveedor.item.read"
                         }
+                    },
+                    "proveedorServicios": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorServicio.multipart-proveedor.read_proveedor.item.read"
+                        }
+                    },
+                    "proveedorId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
+                    }
+                }
+            },
+            "Proveedor.multipart-proveedor_servicio.read": {
+                "type": "object",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
+                    }
+                }
+            },
+            "Proveedor.multipart-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombreComercial": {
+                        "description": "Obtiene el nombre comercial del proveedor.",
+                        "type": "string"
                     }
                 }
             },
@@ -21842,6 +22810,1115 @@
                     }
                 }
             },
+            "ProveedorServicio-componente.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "proveedor": {
+                        "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "proveedorServicioId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicio-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioImagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorServicioImagen-proveedor.read_proveedor.item.read"
+                        }
+                    }
+                }
+            },
+            "ProveedorServicio-proveedor_servicio.read": {
+                "type": "object",
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedor": {
+                        "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                        "$ref": "#/components/schemas/Proveedor-proveedor_servicio.read"
+                    },
+                    "proveedorServicioId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
+                    }
+                }
+            },
+            "ProveedorServicio-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "type": "object",
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedor": {
+                        "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                        "$ref": "#/components/schemas/Proveedor-proveedor_servicio.read_proveedor_servicio.item.read"
+                    },
+                    "proveedorServicioImagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorServicioImagen-proveedor_servicio.read_proveedor_servicio.item.read"
+                        }
+                    },
+                    "proveedorServicioId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
+                    }
+                }
+            },
+            "ProveedorServicio.html-componente.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "proveedor": {
+                        "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "proveedorServicioId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicio.html-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioImagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorServicioImagen.html-proveedor.read_proveedor.item.read"
+                        }
+                    }
+                }
+            },
+            "ProveedorServicio.html-proveedor_servicio.read": {
+                "type": "object",
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedor": {
+                        "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                        "$ref": "#/components/schemas/Proveedor.html-proveedor_servicio.read"
+                    },
+                    "proveedorServicioId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
+                    }
+                }
+            },
+            "ProveedorServicio.html-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "type": "object",
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedor": {
+                        "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                        "$ref": "#/components/schemas/Proveedor.html-proveedor_servicio.read_proveedor_servicio.item.read"
+                    },
+                    "proveedorServicioImagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorServicioImagen.html-proveedor_servicio.read_proveedor_servicio.item.read"
+                        }
+                    },
+                    "proveedorServicioId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
+                    }
+                }
+            },
+            "ProveedorServicio.jsonld-componente.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombre": {
+                                "description": "Obtiene el nombre identificativo del servicio.",
+                                "type": "string"
+                            },
+                            "proveedor": {
+                                "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                                "type": "string",
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
+                            },
+                            "proveedorServicioId": {
+                                "readOnly": true,
+                                "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
+            },
+            "ProveedorServicio.jsonld-proveedor.read_proveedor.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombre": {
+                                "description": "Obtiene el nombre identificativo del servicio.",
+                                "type": "string"
+                            },
+                            "titulo": {
+                                "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "descripcion": {
+                                "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "url": {
+                                "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorServicioImagenes": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ProveedorServicioImagen.jsonld-proveedor.read_proveedor.item.read"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
+            },
+            "ProveedorServicio.jsonld-proveedor_servicio.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombre": {
+                                "description": "Obtiene el nombre identificativo del servicio.",
+                                "type": "string"
+                            },
+                            "titulo": {
+                                "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "descripcion": {
+                                "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "url": {
+                                "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedor": {
+                                "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                                "$ref": "#/components/schemas/Proveedor.jsonld-proveedor_servicio.read"
+                            },
+                            "proveedorServicioId": {
+                                "readOnly": true,
+                                "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "etiquetaOpciones": {
+                                "readOnly": true,
+                                "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
+            },
+            "ProveedorServicio.jsonld-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombre": {
+                                "description": "Obtiene el nombre identificativo del servicio.",
+                                "type": "string"
+                            },
+                            "titulo": {
+                                "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "descripcion": {
+                                "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "url": {
+                                "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedor": {
+                                "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                                "$ref": "#/components/schemas/Proveedor.jsonld-proveedor_servicio.read_proveedor_servicio.item.read"
+                            },
+                            "proveedorServicioImagenes": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ProveedorServicioImagen.jsonld-proveedor_servicio.read_proveedor_servicio.item.read"
+                                }
+                            },
+                            "proveedorServicioId": {
+                                "readOnly": true,
+                                "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "etiquetaOpciones": {
+                                "readOnly": true,
+                                "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
+            },
+            "ProveedorServicio.multipart-componente.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "proveedor": {
+                        "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "proveedorServicioId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicio.multipart-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioImagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorServicioImagen.multipart-proveedor.read_proveedor.item.read"
+                        }
+                    }
+                }
+            },
+            "ProveedorServicio.multipart-proveedor_servicio.read": {
+                "type": "object",
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedor": {
+                        "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                        "$ref": "#/components/schemas/Proveedor.multipart-proveedor_servicio.read"
+                    },
+                    "proveedorServicioId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
+                    }
+                }
+            },
+            "ProveedorServicio.multipart-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "type": "object",
+                "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles.",
+                "properties": {
+                    "nombre": {
+                        "description": "Obtiene el nombre identificativo del servicio.",
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "description": "Obtiene el t\u00edtulo estructurado en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "descripcion": {
+                        "description": "Obtiene la descripci\u00f3n estructurada en formato JSON.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "description": "Obtiene la URL de texto externa asociada a este servicio.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedor": {
+                        "description": "Obtiene el proveedor principal que ofrece este servicio.",
+                        "$ref": "#/components/schemas/Proveedor.multipart-proveedor_servicio.read_proveedor_servicio.item.read"
+                    },
+                    "proveedorServicioImagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProveedorServicioImagen.multipart-proveedor_servicio.read_proveedor_servicio.item.read"
+                        }
+                    },
+                    "proveedorServicioId": {
+                        "readOnly": true,
+                        "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "etiquetaOpciones": {
+                        "readOnly": true,
+                        "description": "Expone la representaci\u00f3n visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.",
+                        "type": "string"
+                    }
+                }
+            },
+            "ProveedorServicioImagen-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del servicio.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicioImagen-proveedor_servicio.item.read": {
+                "type": "object",
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un ProveedorServicio (ej. fotos de habitaci\u00f3n).\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin.",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del servicio.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicioImagen-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "type": "object",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del servicio.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicioImagen.html-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del servicio.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicioImagen.html-proveedor_servicio.item.read": {
+                "type": "object",
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un ProveedorServicio (ej. fotos de habitaci\u00f3n).\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin.",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del servicio.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicioImagen.html-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "type": "object",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del servicio.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicioImagen.jsonld-proveedor.read_proveedor.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "orden": {
+                                "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                                "type": "integer"
+                            },
+                            "isPortada": {
+                                "description": "Indica si esta imagen es la portada principal del servicio.",
+                                "type": "boolean"
+                            },
+                            "imageName": {
+                                "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "imageSize": {
+                                "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "imageUrl": {
+                                "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un ProveedorServicio (ej. fotos de habitaci\u00f3n).\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin."
+            },
+            "ProveedorServicioImagen.jsonld-proveedor_servicio.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "orden": {
+                                "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                                "type": "integer"
+                            },
+                            "isPortada": {
+                                "description": "Indica si esta imagen es la portada principal del servicio.",
+                                "type": "boolean"
+                            },
+                            "imageName": {
+                                "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "imageSize": {
+                                "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "imageUrl": {
+                                "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un ProveedorServicio (ej. fotos de habitaci\u00f3n).\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin."
+            },
+            "ProveedorServicioImagen.jsonld-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "orden": {
+                                "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                                "type": "integer"
+                            },
+                            "isPortada": {
+                                "description": "Indica si esta imagen es la portada principal del servicio.",
+                                "type": "boolean"
+                            },
+                            "imageName": {
+                                "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "imageSize": {
+                                "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "imageUrl": {
+                                "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un ProveedorServicio (ej. fotos de habitaci\u00f3n).\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin."
+            },
+            "ProveedorServicioImagen.multipart-proveedor.read_proveedor.item.read": {
+                "type": "object",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del servicio.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicioImagen.multipart-proveedor_servicio.item.read": {
+                "type": "object",
+                "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un ProveedorServicio (ej. fotos de habitaci\u00f3n).\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin.",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del servicio.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "ProveedorServicioImagen.multipart-proveedor_servicio.read_proveedor_servicio.item.read": {
+                "type": "object",
+                "properties": {
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del servicio.",
+                        "type": "boolean"
+                    },
+                    "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "description": "Obtiene el tama\u00f1o del archivo en bytes.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual inyectada din\u00e1micamente que expone la ubicaci\u00f3n HTTP del recurso.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
             "Segmento": {
                 "type": "object",
                 "properties": {
@@ -21888,6 +23965,14 @@
                             "$ref": "#/components/schemas/TravelSegmentoComponente"
                         }
                     },
+                    "itinerarioSegmentosInyectados": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Itinerarios (plantillas) y en qu\u00e9\nd\u00eda se est\u00e1 inyectando este segmento. El due\u00f1o real es TravelItinerarioSegmentoRel.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelItinerarioSegmentoRel"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -21929,6 +24014,14 @@
                         "type": "string"
                     },
                     "virtualNotas": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualItinerarios": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualGaleria": {
                         "readOnly": true,
                         "type": "string"
                     }
@@ -22140,6 +24233,14 @@
                             "$ref": "#/components/schemas/TravelSegmentoComponente.html"
                         }
                     },
+                    "itinerarioSegmentosInyectados": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Itinerarios (plantillas) y en qu\u00e9\nd\u00eda se est\u00e1 inyectando este segmento. El due\u00f1o real es TravelItinerarioSegmentoRel.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelItinerarioSegmentoRel.html"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -22181,6 +24282,14 @@
                         "type": "string"
                     },
                     "virtualNotas": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualItinerarios": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualGaleria": {
                         "readOnly": true,
                         "type": "string"
                     }
@@ -22357,6 +24466,14 @@
                                     "$ref": "#/components/schemas/TravelSegmentoComponente.jsonld"
                                 }
                             },
+                            "itinerarioSegmentosInyectados": {
+                                "readOnly": true,
+                                "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Itinerarios (plantillas) y en qu\u00e9\nd\u00eda se est\u00e1 inyectando este segmento. El due\u00f1o real es TravelItinerarioSegmentoRel.",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/TravelItinerarioSegmentoRel.jsonld"
+                                }
+                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -22398,6 +24515,14 @@
                                 "type": "string"
                             },
                             "virtualNotas": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualItinerarios": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "virtualGaleria": {
                                 "readOnly": true,
                                 "type": "string"
                             }
@@ -22592,6 +24717,14 @@
                             "$ref": "#/components/schemas/TravelSegmentoComponente.multipart"
                         }
                     },
+                    "itinerarioSegmentosInyectados": {
+                        "readOnly": true,
+                        "description": "\ud83d\udd0d SOLO LECTURA: lado inverso para saber en qu\u00e9 Itinerarios (plantillas) y en qu\u00e9\nd\u00eda se est\u00e1 inyectando este segmento. El due\u00f1o real es TravelItinerarioSegmentoRel.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelItinerarioSegmentoRel.multipart"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -22633,6 +24766,14 @@
                         "type": "string"
                     },
                     "virtualNotas": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualItinerarios": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "virtualGaleria": {
                         "readOnly": true,
                         "type": "string"
                     }
@@ -23516,6 +25657,17 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
+                    "proveedorServicio": {
+                        "description": "Relaci\u00f3n directa con un servicio espec\u00edfico del proveedor (ej. una habitaci\u00f3n o tour exacto).",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ProveedorServicio-componente.item.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
                     "nombreParaProveedor": {
                         "type": [
                             "string",
@@ -23612,6 +25764,15 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
+                    "proveedorServicio": {
+                        "description": "Relaci\u00f3n directa con un servicio espec\u00edfico del proveedor (ej. una habitaci\u00f3n o tour exacto).",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
                     "nombreParaProveedor": {
                         "type": [
                             "string",
@@ -23696,6 +25857,17 @@
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "proveedorServicio": {
+                        "description": "Relaci\u00f3n directa con un servicio espec\u00edfico del proveedor (ej. una habitaci\u00f3n o tour exacto).",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ProveedorServicio.html-componente.item.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "nombreParaProveedor": {
                         "type": [
@@ -23798,6 +25970,17 @@
                                 "format": "iri-reference",
                                 "example": "https://example.com/"
                             },
+                            "proveedorServicio": {
+                                "description": "Relaci\u00f3n directa con un servicio espec\u00edfico del proveedor (ej. una habitaci\u00f3n o tour exacto).",
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/ProveedorServicio.jsonld-componente.item.read"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
                             "nombreParaProveedor": {
                                 "type": [
                                     "string",
@@ -23895,6 +26078,17 @@
                         ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
+                    },
+                    "proveedorServicio": {
+                        "description": "Relaci\u00f3n directa con un servicio espec\u00edfico del proveedor (ej. una habitaci\u00f3n o tour exacto).",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ProveedorServicio.multipart-componente.item.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "nombreParaProveedor": {
                         "type": [
@@ -24409,7 +26603,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -24422,6 +26617,7 @@
                         "example": "https://example.com/"
                     },
                     "orden": {
+                        "minimum": 0,
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
@@ -24445,10 +26641,16 @@
                         ],
                         "format": "date-time"
                     }
-                }
+                },
+                "required": [
+                    "diccionario"
+                ]
             },
             "TravelComponenteItem-componente.item.read": {
                 "type": "object",
+                "required": [
+                    "diccionario"
+                ],
                 "properties": {
                     "diccionario": {
                         "description": "Obtiene el objeto del diccionario para traducciones.",
@@ -24463,7 +26665,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -24476,6 +26679,7 @@
                         "example": "https://example.com/"
                     },
                     "orden": {
+                        "minimum": 0,
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
@@ -24484,6 +26688,9 @@
             },
             "TravelComponenteItem-componente.write": {
                 "type": "object",
+                "required": [
+                    "diccionario"
+                ],
                 "properties": {
                     "diccionario": {
                         "description": "Obtiene el objeto del diccionario para traducciones.",
@@ -24498,7 +26705,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -24513,6 +26721,7 @@
                         ]
                     },
                     "orden": {
+                        "minimum": 0,
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
@@ -24541,7 +26750,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -24554,6 +26764,7 @@
                         "example": "https://example.com/"
                     },
                     "orden": {
+                        "minimum": 0,
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
@@ -24577,10 +26788,16 @@
                         ],
                         "format": "date-time"
                     }
-                }
+                },
+                "required": [
+                    "diccionario"
+                ]
             },
             "TravelComponenteItem.html-componente.item.read": {
                 "type": "object",
+                "required": [
+                    "diccionario"
+                ],
                 "properties": {
                     "diccionario": {
                         "description": "Obtiene el objeto del diccionario para traducciones.",
@@ -24595,7 +26812,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -24608,6 +26826,7 @@
                         "example": "https://example.com/"
                     },
                     "orden": {
+                        "minimum": 0,
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
@@ -24636,7 +26855,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -24649,6 +26869,7 @@
                         "example": "https://example.com/"
                     },
                     "orden": {
+                        "minimum": 0,
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
@@ -24672,10 +26893,16 @@
                         ],
                         "format": "date-time"
                     }
-                }
+                },
+                "required": [
+                    "diccionario"
+                ]
             },
             "TravelComponenteItem.jsonld-componente.item.read": {
                 "type": "object",
+                "required": [
+                    "diccionario"
+                ],
                 "properties": {
                     "diccionario": {
                         "description": "Obtiene el objeto del diccionario para traducciones.",
@@ -24690,7 +26917,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -24703,6 +26931,7 @@
                         "example": "https://example.com/"
                     },
                     "orden": {
+                        "minimum": 0,
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
@@ -24731,7 +26960,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -24744,6 +26974,7 @@
                         "example": "https://example.com/"
                     },
                     "orden": {
+                        "minimum": 0,
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
@@ -24767,10 +26998,16 @@
                         ],
                         "format": "date-time"
                     }
-                }
+                },
+                "required": [
+                    "diccionario"
+                ]
             },
             "TravelComponenteItem.multipart-componente.item.read": {
                 "type": "object",
+                "required": [
+                    "diccionario"
+                ],
                 "properties": {
                     "diccionario": {
                         "description": "Obtiene el objeto del diccionario para traducciones.",
@@ -24785,7 +27022,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -24798,6 +27036,7 @@
                         "example": "https://example.com/"
                     },
                     "orden": {
+                        "minimum": 0,
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
@@ -25091,7 +27330,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "orden": {
@@ -25167,7 +27407,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "orden": {
@@ -25235,7 +27476,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "orden": {
@@ -25312,7 +27554,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "orden": {
@@ -25388,7 +27631,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "orden": {
@@ -25465,7 +27709,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "orden": {
@@ -25541,7 +27786,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "orden": {
@@ -25618,7 +27864,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "orden": {
@@ -25694,7 +27941,8 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "cortesia"
+                            "cortesia",
+                            "reemplazado"
                         ]
                     },
                     "orden": {
@@ -25778,6 +28026,16 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "virtualSegmentoNombre": {
+                        "readOnly": true,
+                        "description": "Nombre administrativo del segmento padre, para mostrar en el listado de im\u00e1genes.",
+                        "type": "string"
+                    },
+                    "virtualSegmentoTituloEs": {
+                        "readOnly": true,
+                        "description": "T\u00edtulo p\u00fablico en espa\u00f1ol del segmento padre.",
+                        "type": "string"
                     },
                     "image": {
                         "readOnly": true,
@@ -25919,6 +28177,16 @@
                             "null"
                         ]
                     },
+                    "virtualSegmentoNombre": {
+                        "readOnly": true,
+                        "description": "Nombre administrativo del segmento padre, para mostrar en el listado de im\u00e1genes.",
+                        "type": "string"
+                    },
+                    "virtualSegmentoTituloEs": {
+                        "readOnly": true,
+                        "description": "T\u00edtulo p\u00fablico en espa\u00f1ol del segmento padre.",
+                        "type": "string"
+                    },
                     "image": {
                         "readOnly": true,
                         "description": "Determina si el archivo es compatible con LiipImagine.",
@@ -26032,6 +28300,16 @@
                             "null"
                         ]
                     },
+                    "virtualSegmentoNombre": {
+                        "readOnly": true,
+                        "description": "Nombre administrativo del segmento padre, para mostrar en el listado de im\u00e1genes.",
+                        "type": "string"
+                    },
+                    "virtualSegmentoTituloEs": {
+                        "readOnly": true,
+                        "description": "T\u00edtulo p\u00fablico en espa\u00f1ol del segmento padre.",
+                        "type": "string"
+                    },
                     "image": {
                         "readOnly": true,
                         "description": "Determina si el archivo es compatible con LiipImagine.",
@@ -26144,6 +28422,16 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "virtualSegmentoNombre": {
+                        "readOnly": true,
+                        "description": "Nombre administrativo del segmento padre, para mostrar en el listado de im\u00e1genes.",
+                        "type": "string"
+                    },
+                    "virtualSegmentoTituloEs": {
+                        "readOnly": true,
+                        "description": "T\u00edtulo p\u00fablico en espa\u00f1ol del segmento padre.",
+                        "type": "string"
                     },
                     "image": {
                         "readOnly": true,
@@ -26401,11 +28689,19 @@
         },
         {
             "name": "Proveedor",
-            "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform en modo de solo lectura para ser consumido por el motor de Vue."
+            "description": "Entidad de Cat\u00e1logo Maestro que representa un Proveedor log\u00edstico u hotelero.\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
         },
         {
             "name": "ProveedorImagen",
             "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un Proveedor.\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin."
+        },
+        {
+            "name": "ProveedorServicio",
+            "description": "Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).\nExpuesto en API Platform con filtros de b\u00fasqueda y seguridad por roles."
+        },
+        {
+            "name": "ProveedorServicioImagen",
+            "description": "Gestiona los archivos f\u00edsicos de la galer\u00eda de im\u00e1genes de un ProveedorServicio (ej. fotos de habitaci\u00f3n).\nMapeado nativamente con VichUploader para su administraci\u00f3n en EasyAdmin."
         },
         {
             "name": "Componente",

@@ -66,6 +66,43 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $proveedorNombreSnapshot = null;
 
+    /**
+     * Título público del proveedor (I18nContent[]), traducible.
+     * Snapshot independiente del catálogo maestro — sobrevive aunque el Proveedor cambie o se borre.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $proveedorTituloSnapshot = [];
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $proveedorUrlSnapshot = null;
+
+    /**
+     * SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación).
+     * Permite al frontend resolver título/imágenes en tiempo real si el registro maestro aún existe.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $proveedorServicioMaestroId = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $proveedorServicioNombreSnapshot = null;
+
+    /**
+     * Título público del servicio del proveedor (I18nContent[]), traducible.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $proveedorServicioTituloSnapshot = [];
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $proveedorServicioUrlSnapshot = null;
+
     #[ORM\Column(type: 'string', length: 50, nullable: true, enumType: EstadoOperativo::class)]
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     private ?EstadoOperativo $estadoOperativoSnapshot = EstadoOperativo::SIN_SOLICITAR;
@@ -161,6 +198,25 @@ class CotizacionCottarifa
 
     public function getProveedorNombreSnapshot(): ?string { return $this->proveedorNombreSnapshot; }
     public function setProveedorNombreSnapshot(?string $proveedorNombreSnapshot): self { $this->proveedorNombreSnapshot = $proveedorNombreSnapshot; return $this; }
+
+    public function getProveedorTituloSnapshot(): array { return $this->proveedorTituloSnapshot; }
+    public function setProveedorTituloSnapshot(array $proveedorTituloSnapshot): self { $this->proveedorTituloSnapshot = $proveedorTituloSnapshot; return $this; }
+
+    public function getProveedorUrlSnapshot(): ?string { return $this->proveedorUrlSnapshot; }
+    public function setProveedorUrlSnapshot(?string $proveedorUrlSnapshot): self { $this->proveedorUrlSnapshot = $proveedorUrlSnapshot; return $this; }
+
+    public function getProveedorServicioMaestroId(): ?string { return $this->proveedorServicioMaestroId; }
+    public function setProveedorServicioMaestroId(?string $proveedorServicioMaestroId): self { $this->proveedorServicioMaestroId = $proveedorServicioMaestroId; return $this; }
+
+    public function getProveedorServicioNombreSnapshot(): ?string { return $this->proveedorServicioNombreSnapshot; }
+    public function setProveedorServicioNombreSnapshot(?string $proveedorServicioNombreSnapshot): self { $this->proveedorServicioNombreSnapshot = $proveedorServicioNombreSnapshot; return $this; }
+
+    public function getProveedorServicioTituloSnapshot(): array { return $this->proveedorServicioTituloSnapshot; }
+    public function setProveedorServicioTituloSnapshot(array $proveedorServicioTituloSnapshot): self { $this->proveedorServicioTituloSnapshot = $proveedorServicioTituloSnapshot; return $this; }
+
+    public function getProveedorServicioUrlSnapshot(): ?string { return $this->proveedorServicioUrlSnapshot; }
+    public function setProveedorServicioUrlSnapshot(?string $proveedorServicioUrlSnapshot): self { $this->proveedorServicioUrlSnapshot = $proveedorServicioUrlSnapshot; return $this; }
+
 
     /**
      * Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
