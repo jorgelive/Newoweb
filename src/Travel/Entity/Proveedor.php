@@ -84,6 +84,10 @@ class Proveedor
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $url = null;
 
+    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $direccion = null;
+
     /**
      * @var Collection<int, ProveedorImagen>
      */
@@ -246,6 +250,23 @@ class Proveedor
     public function setUrl(?string $url): self
     {
         $this->url = $url;
+        return $this;
+    }
+
+    /**
+     * Obtiene la direccion del proveedor.
+     */
+    public function getDireccion(): ?string
+    {
+        return $this->direccion;
+    }
+
+    /**
+     * Establece la direccion del proveedor.
+     */
+    public function setDireccion(?string $direccion): self
+    {
+        $this->direccion = $direccion;
         return $this;
     }
 

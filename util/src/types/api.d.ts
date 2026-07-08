@@ -1843,6 +1843,8 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
+            /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
+            proveedorOculto?: boolean;
             resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
@@ -1857,6 +1859,8 @@ export interface components {
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
+            /** @description Obtiene el resumen financiero apto para vistas de cliente. */
+            clasificacionFinancieraCliente?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.read_timestamp.read"][];
             cotnotas?: components["schemas"]["CotizacionNota-cotizacion.read_timestamp.read"][];
             id?: string;
@@ -1888,6 +1892,8 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
+            /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
+            proveedorOculto?: boolean;
             resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
@@ -1902,6 +1908,8 @@ export interface components {
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
+            /** @description Obtiene el resumen financiero apto para vistas de cliente. */
+            clasificacionFinancieraCliente?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
             cotnotas?: components["schemas"]["CotizacionNota-cotizacion.write"][];
             id?: string;
@@ -1929,6 +1937,8 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
+            /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
+            proveedorOculto?: boolean;
             resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
@@ -1943,6 +1953,8 @@ export interface components {
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
+            /** @description Obtiene el resumen financiero apto para vistas de cliente. */
+            clasificacionFinancieraCliente?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
             cotnotas?: components["schemas"]["CotizacionNota-cotizacion.write"][];
             id?: string;
@@ -1980,6 +1992,8 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
+            /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
+            proveedorOculto?: boolean;
             resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
@@ -1994,6 +2008,8 @@ export interface components {
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
+            /** @description Obtiene el resumen financiero apto para vistas de cliente. */
+            clasificacionFinancieraCliente?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.html-cotizacion.read_timestamp.read"][];
             cotnotas?: components["schemas"]["CotizacionNota.html-cotizacion.read_timestamp.read"][];
             id?: string;
@@ -2035,6 +2051,8 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
+            /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
+            proveedorOculto?: boolean;
             resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
@@ -2049,6 +2067,8 @@ export interface components {
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
+            /** @description Obtiene el resumen financiero apto para vistas de cliente. */
+            clasificacionFinancieraCliente?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read"][];
             cotnotas?: components["schemas"]["CotizacionNota.jsonld-cotizacion.read_timestamp.read"][];
             id?: string;
@@ -2090,6 +2110,8 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
+            /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
+            proveedorOculto?: boolean;
             resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
@@ -2104,6 +2126,8 @@ export interface components {
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
+            /** @description Obtiene el resumen financiero apto para vistas de cliente. */
+            clasificacionFinancieraCliente?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-cotizacion.read_timestamp.read"][];
             cotnotas?: components["schemas"]["CotizacionNota.multipart-cotizacion.read_timestamp.read"][];
             id?: string;
@@ -2690,6 +2714,15 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /** @description Título público del proveedor (I18nContent[]), traducible. */
+            proveedorTituloSnapshot?: string[];
+            proveedorUrlSnapshot?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
+            proveedorServicioMaestroId?: string | null;
+            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
+            proveedorServicioTituloSnapshot?: string[];
+            proveedorServicioUrlSnapshot?: string | null;
             /**
              * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
              * @default Sin Solicitar
@@ -2705,6 +2738,8 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
+            /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
+            proveedorOculto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2732,6 +2767,15 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /** @description Título público del proveedor (I18nContent[]), traducible. */
+            proveedorTituloSnapshot?: string[];
+            proveedorUrlSnapshot?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
+            proveedorServicioMaestroId?: string | null;
+            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
+            proveedorServicioTituloSnapshot?: string[];
+            proveedorServicioUrlSnapshot?: string | null;
             /**
              * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
              * @default Sin Solicitar
@@ -2747,6 +2791,8 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
+            /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
+            proveedorOculto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2769,6 +2815,15 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /** @description Título público del proveedor (I18nContent[]), traducible. */
+            proveedorTituloSnapshot?: string[];
+            proveedorUrlSnapshot?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
+            proveedorServicioMaestroId?: string | null;
+            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
+            proveedorServicioTituloSnapshot?: string[];
+            proveedorServicioUrlSnapshot?: string | null;
             /**
              * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
              * @default Sin Solicitar
@@ -2784,6 +2839,8 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
+            /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
+            proveedorOculto?: boolean;
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -2807,6 +2864,15 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /** @description Título público del proveedor (I18nContent[]), traducible. */
+            proveedorTituloSnapshot?: string[];
+            proveedorUrlSnapshot?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
+            proveedorServicioMaestroId?: string | null;
+            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
+            proveedorServicioTituloSnapshot?: string[];
+            proveedorServicioUrlSnapshot?: string | null;
             /**
              * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
              * @default Sin Solicitar
@@ -2822,6 +2888,8 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
+            /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
+            proveedorOculto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2849,6 +2917,15 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /** @description Título público del proveedor (I18nContent[]), traducible. */
+            proveedorTituloSnapshot?: string[];
+            proveedorUrlSnapshot?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
+            proveedorServicioMaestroId?: string | null;
+            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
+            proveedorServicioTituloSnapshot?: string[];
+            proveedorServicioUrlSnapshot?: string | null;
             /**
              * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
              * @default Sin Solicitar
@@ -2864,6 +2941,8 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
+            /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
+            proveedorOculto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2891,6 +2970,15 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /** @description Título público del proveedor (I18nContent[]), traducible. */
+            proveedorTituloSnapshot?: string[];
+            proveedorUrlSnapshot?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
+            proveedorServicioMaestroId?: string | null;
+            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
+            proveedorServicioTituloSnapshot?: string[];
+            proveedorServicioUrlSnapshot?: string | null;
             /**
              * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
              * @default Sin Solicitar
@@ -2906,6 +2994,8 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
+            /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
+            proveedorOculto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2933,6 +3023,15 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /** @description Título público del proveedor (I18nContent[]), traducible. */
+            proveedorTituloSnapshot?: string[];
+            proveedorUrlSnapshot?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
+            proveedorServicioMaestroId?: string | null;
+            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
+            proveedorServicioTituloSnapshot?: string[];
+            proveedorServicioUrlSnapshot?: string | null;
             /**
              * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
              * @default Sin Solicitar
@@ -2948,6 +3047,8 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
+            /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
+            proveedorOculto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2975,6 +3076,15 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /** @description Título público del proveedor (I18nContent[]), traducible. */
+            proveedorTituloSnapshot?: string[];
+            proveedorUrlSnapshot?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
+            proveedorServicioMaestroId?: string | null;
+            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
+            proveedorServicioTituloSnapshot?: string[];
+            proveedorServicioUrlSnapshot?: string | null;
             /**
              * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
              * @default Sin Solicitar
@@ -2990,6 +3100,8 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
+            /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
+            proveedorOculto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3017,6 +3129,15 @@ export interface components {
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
             proveedorNombreSnapshot?: string | null;
+            /** @description Título público del proveedor (I18nContent[]), traducible. */
+            proveedorTituloSnapshot?: string[];
+            proveedorUrlSnapshot?: string | null;
+            /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
+            proveedorServicioMaestroId?: string | null;
+            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
+            proveedorServicioTituloSnapshot?: string[];
+            proveedorServicioUrlSnapshot?: string | null;
             /**
              * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
              * @default Sin Solicitar
@@ -3032,6 +3153,8 @@ export interface components {
             condicionesPagoSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
             esGrupal?: boolean;
+            /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
+            proveedorOculto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5778,6 +5901,8 @@ export interface components {
             descripcion?: string[];
             /** @description Obtiene la URL de texto externa asociada al proveedor. */
             url?: string | null;
+            /** @description Obtiene la direccion del proveedor. */
+            direccion?: string | null;
             /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
             readonly proveedorId?: string | null;
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
@@ -5802,6 +5927,8 @@ export interface components {
             descripcion?: string[];
             /** @description Obtiene la URL de texto externa asociada al proveedor. */
             url?: string | null;
+            /** @description Obtiene la direccion del proveedor. */
+            direccion?: string | null;
             proveedorImagenes?: components["schemas"]["ProveedorImagen-proveedor.read_proveedor.item.read"][];
             proveedorServicios?: components["schemas"]["ProveedorServicio-proveedor.read_proveedor.item.read"][];
             /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
@@ -5836,6 +5963,8 @@ export interface components {
             descripcion?: string[];
             /** @description Obtiene la URL de texto externa asociada al proveedor. */
             url?: string | null;
+            /** @description Obtiene la direccion del proveedor. */
+            direccion?: string | null;
             /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
             readonly proveedorId?: string | null;
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
@@ -5860,6 +5989,8 @@ export interface components {
             descripcion?: string[];
             /** @description Obtiene la URL de texto externa asociada al proveedor. */
             url?: string | null;
+            /** @description Obtiene la direccion del proveedor. */
+            direccion?: string | null;
             proveedorImagenes?: components["schemas"]["ProveedorImagen.html-proveedor.read_proveedor.item.read"][];
             proveedorServicios?: components["schemas"]["ProveedorServicio.html-proveedor.read_proveedor.item.read"][];
             /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
@@ -5894,6 +6025,8 @@ export interface components {
             descripcion?: string[];
             /** @description Obtiene la URL de texto externa asociada al proveedor. */
             url?: string | null;
+            /** @description Obtiene la direccion del proveedor. */
+            direccion?: string | null;
             /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
             readonly proveedorId?: string | null;
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
@@ -5918,6 +6051,8 @@ export interface components {
             descripcion?: string[];
             /** @description Obtiene la URL de texto externa asociada al proveedor. */
             url?: string | null;
+            /** @description Obtiene la direccion del proveedor. */
+            direccion?: string | null;
             proveedorImagenes?: components["schemas"]["ProveedorImagen.jsonld-proveedor.read_proveedor.item.read"][];
             proveedorServicios?: components["schemas"]["ProveedorServicio.jsonld-proveedor.read_proveedor.item.read"][];
             /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
@@ -5960,6 +6095,8 @@ export interface components {
             descripcion?: string[];
             /** @description Obtiene la URL de texto externa asociada al proveedor. */
             url?: string | null;
+            /** @description Obtiene la direccion del proveedor. */
+            direccion?: string | null;
             /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
             readonly proveedorId?: string | null;
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
@@ -5984,6 +6121,8 @@ export interface components {
             descripcion?: string[];
             /** @description Obtiene la URL de texto externa asociada al proveedor. */
             url?: string | null;
+            /** @description Obtiene la direccion del proveedor. */
+            direccion?: string | null;
             proveedorImagenes?: components["schemas"]["ProveedorImagen.multipart-proveedor.read_proveedor.item.read"][];
             proveedorServicios?: components["schemas"]["ProveedorServicio.multipart-proveedor.read_proveedor.item.read"][];
             /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */

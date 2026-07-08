@@ -94,6 +94,10 @@ class ProveedorCrudController extends BaseCrudController
             ->setHelp('Enlace directo corporativo o sitio web del proveedor.')
             ->setColumns(12);
 
+        yield UrlField::new('direccion', 'Dirección')
+            ->setHelp('Dirección del proveedor.')
+            ->setColumns(12);
+
         /* ====================================================================
          * CAMPO VIRTUAL: RENDERIZADO OPTIMIZADO PARA LISTADOS (INDEX / DETAIL)
          * Extrae dinámicamente el título en español desde la estructura JSON.

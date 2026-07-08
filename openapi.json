@@ -9987,6 +9987,10 @@
                     "precioOculto": {
                         "type": "boolean"
                     },
+                    "proveedorOculto": {
+                        "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                        "type": "boolean"
+                    },
                     "resumen": {
                         "type": "array",
                         "items": {
@@ -10021,6 +10025,16 @@
                         "type": "string"
                     },
                     "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "clasificacionFinancieraCliente": {
+                        "description": "Obtiene el resumen financiero apto para vistas de cliente.",
                         "type": [
                             "array",
                             "null"
@@ -10110,6 +10124,10 @@
                     "precioOculto": {
                         "type": "boolean"
                     },
+                    "proveedorOculto": {
+                        "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                        "type": "boolean"
+                    },
                     "resumen": {
                         "type": "array",
                         "items": {
@@ -10144,6 +10162,16 @@
                         "type": "string"
                     },
                     "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "clasificacionFinancieraCliente": {
+                        "description": "Obtiene el resumen financiero apto para vistas de cliente.",
                         "type": [
                             "array",
                             "null"
@@ -10222,6 +10250,10 @@
                     "precioOculto": {
                         "type": "boolean"
                     },
+                    "proveedorOculto": {
+                        "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                        "type": "boolean"
+                    },
                     "resumen": {
                         "type": "array",
                         "items": {
@@ -10256,6 +10288,16 @@
                         "type": "string"
                     },
                     "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "clasificacionFinancieraCliente": {
+                        "description": "Obtiene el resumen financiero apto para vistas de cliente.",
                         "type": [
                             "array",
                             "null"
@@ -10374,6 +10416,10 @@
                     "precioOculto": {
                         "type": "boolean"
                     },
+                    "proveedorOculto": {
+                        "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                        "type": "boolean"
+                    },
                     "resumen": {
                         "type": "array",
                         "items": {
@@ -10408,6 +10454,16 @@
                         "type": "string"
                     },
                     "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "clasificacionFinancieraCliente": {
+                        "description": "Obtiene el resumen financiero apto para vistas de cliente.",
                         "type": [
                             "array",
                             "null"
@@ -10542,6 +10598,10 @@
                             "precioOculto": {
                                 "type": "boolean"
                             },
+                            "proveedorOculto": {
+                                "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                                "type": "boolean"
+                            },
                             "resumen": {
                                 "type": "array",
                                 "items": {
@@ -10576,6 +10636,16 @@
                                 "type": "string"
                             },
                             "clasificacionFinanciera": {
+                                "type": [
+                                    "array",
+                                    "null"
+                                ],
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "clasificacionFinancieraCliente": {
+                                "description": "Obtiene el resumen financiero apto para vistas de cliente.",
                                 "type": [
                                     "array",
                                     "null"
@@ -10714,6 +10784,10 @@
                     "precioOculto": {
                         "type": "boolean"
                     },
+                    "proveedorOculto": {
+                        "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                        "type": "boolean"
+                    },
                     "resumen": {
                         "type": "array",
                         "items": {
@@ -10748,6 +10822,16 @@
                         "type": "string"
                     },
                     "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "clasificacionFinancieraCliente": {
+                        "description": "Obtiene el resumen financiero apto para vistas de cliente.",
                         "type": [
                             "array",
                             "null"
@@ -12725,6 +12809,45 @@
                             "null"
                         ]
                     },
+                    "proveedorTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del ProveedorServicio del cat\u00e1logo maestro (ej. tipo de habitaci\u00f3n).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del servicio del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorServicioUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "estadoOperativoSnapshot": {
                         "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
                         "default": "Sin Solicitar",
@@ -12763,6 +12886,10 @@
                         ]
                     },
                     "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.",
                         "type": "boolean"
                     },
                     "id": {
@@ -12845,6 +12972,45 @@
                             "null"
                         ]
                     },
+                    "proveedorTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del ProveedorServicio del cat\u00e1logo maestro (ej. tipo de habitaci\u00f3n).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del servicio del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorServicioUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "estadoOperativoSnapshot": {
                         "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
                         "default": "Sin Solicitar",
@@ -12883,6 +13049,10 @@
                         ]
                     },
                     "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.",
                         "type": "boolean"
                     },
                     "id": {
@@ -12960,6 +13130,45 @@
                             "null"
                         ]
                     },
+                    "proveedorTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del ProveedorServicio del cat\u00e1logo maestro (ej. tipo de habitaci\u00f3n).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del servicio del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorServicioUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "estadoOperativoSnapshot": {
                         "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
                         "default": "Sin Solicitar",
@@ -12998,6 +13207,10 @@
                         ]
                     },
                     "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.",
                         "type": "boolean"
                     },
                     "id": {
@@ -13069,6 +13282,45 @@
                             "null"
                         ]
                     },
+                    "proveedorTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del ProveedorServicio del cat\u00e1logo maestro (ej. tipo de habitaci\u00f3n).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del servicio del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorServicioUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "estadoOperativoSnapshot": {
                         "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
                         "default": "Sin Solicitar",
@@ -13107,6 +13359,10 @@
                         ]
                     },
                     "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.",
                         "type": "boolean"
                     },
                     "id": {
@@ -13189,6 +13445,45 @@
                             "null"
                         ]
                     },
+                    "proveedorTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del ProveedorServicio del cat\u00e1logo maestro (ej. tipo de habitaci\u00f3n).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del servicio del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorServicioUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "estadoOperativoSnapshot": {
                         "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
                         "default": "Sin Solicitar",
@@ -13227,6 +13522,10 @@
                         ]
                     },
                     "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.",
                         "type": "boolean"
                     },
                     "id": {
@@ -13314,6 +13613,45 @@
                                     "null"
                                 ]
                             },
+                            "proveedorTituloSnapshot": {
+                                "description": "T\u00edtulo p\u00fablico del proveedor (I18nContent[]), traducible.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "proveedorUrlSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorServicioMaestroId": {
+                                "description": "SOFT-LINK: Guarda el UUID del ProveedorServicio del cat\u00e1logo maestro (ej. tipo de habitaci\u00f3n).",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorServicioNombreSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorServicioTituloSnapshot": {
+                                "description": "T\u00edtulo p\u00fablico del servicio del proveedor (I18nContent[]), traducible.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "proveedorServicioUrlSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "estadoOperativoSnapshot": {
                                 "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
                                 "default": "Sin Solicitar",
@@ -13352,6 +13690,10 @@
                                 ]
                             },
                             "esGrupal": {
+                                "type": "boolean"
+                            },
+                            "proveedorOculto": {
+                                "description": "Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.",
                                 "type": "boolean"
                             },
                             "id": {
@@ -13441,6 +13783,45 @@
                                     "null"
                                 ]
                             },
+                            "proveedorTituloSnapshot": {
+                                "description": "T\u00edtulo p\u00fablico del proveedor (I18nContent[]), traducible.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "proveedorUrlSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorServicioMaestroId": {
+                                "description": "SOFT-LINK: Guarda el UUID del ProveedorServicio del cat\u00e1logo maestro (ej. tipo de habitaci\u00f3n).",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorServicioNombreSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorServicioTituloSnapshot": {
+                                "description": "T\u00edtulo p\u00fablico del servicio del proveedor (I18nContent[]), traducible.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "proveedorServicioUrlSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "estadoOperativoSnapshot": {
                                 "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
                                 "default": "Sin Solicitar",
@@ -13479,6 +13860,10 @@
                                 ]
                             },
                             "esGrupal": {
+                                "type": "boolean"
+                            },
+                            "proveedorOculto": {
+                                "description": "Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.",
                                 "type": "boolean"
                             },
                             "id": {
@@ -13563,6 +13948,45 @@
                             "null"
                         ]
                     },
+                    "proveedorTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del ProveedorServicio del cat\u00e1logo maestro (ej. tipo de habitaci\u00f3n).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del servicio del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorServicioUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "estadoOperativoSnapshot": {
                         "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
                         "default": "Sin Solicitar",
@@ -13601,6 +14025,10 @@
                         ]
                     },
                     "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.",
                         "type": "boolean"
                     },
                     "id": {
@@ -13683,6 +14111,45 @@
                             "null"
                         ]
                     },
+                    "proveedorTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioMaestroId": {
+                        "description": "SOFT-LINK: Guarda el UUID del ProveedorServicio del cat\u00e1logo maestro (ej. tipo de habitaci\u00f3n).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorServicioTituloSnapshot": {
+                        "description": "T\u00edtulo p\u00fablico del servicio del proveedor (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "proveedorServicioUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "estadoOperativoSnapshot": {
                         "description": "Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.",
                         "default": "Sin Solicitar",
@@ -13721,6 +14188,10 @@
                         ]
                     },
                     "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.",
                         "type": "boolean"
                     },
                     "id": {
@@ -21899,6 +22370,13 @@
                             "null"
                         ]
                     },
+                    "direccion": {
+                        "description": "Obtiene la direccion del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "proveedorId": {
                         "readOnly": true,
                         "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
@@ -21959,6 +22437,13 @@
                     },
                     "url": {
                         "description": "Obtiene la URL de texto externa asociada al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "direccion": {
+                        "description": "Obtiene la direccion del proveedor.",
                         "type": [
                             "string",
                             "null"
@@ -22059,6 +22544,13 @@
                             "null"
                         ]
                     },
+                    "direccion": {
+                        "description": "Obtiene la direccion del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "proveedorId": {
                         "readOnly": true,
                         "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
@@ -22119,6 +22611,13 @@
                     },
                     "url": {
                         "description": "Obtiene la URL de texto externa asociada al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "direccion": {
+                        "description": "Obtiene la direccion del proveedor.",
                         "type": [
                             "string",
                             "null"
@@ -22223,6 +22722,13 @@
                                     "null"
                                 ]
                             },
+                            "direccion": {
+                                "description": "Obtiene la direccion del proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "proveedorId": {
                                 "readOnly": true,
                                 "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
@@ -22290,6 +22796,13 @@
                             },
                             "url": {
                                 "description": "Obtiene la URL de texto externa asociada al proveedor.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "direccion": {
+                                "description": "Obtiene la direccion del proveedor.",
                                 "type": [
                                     "string",
                                     "null"
@@ -22409,6 +22922,13 @@
                             "null"
                         ]
                     },
+                    "direccion": {
+                        "description": "Obtiene la direccion del proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "proveedorId": {
                         "readOnly": true,
                         "description": "Devuelve el ID casteado como string para su manipulaci\u00f3n directa en JS.",
@@ -22469,6 +22989,13 @@
                     },
                     "url": {
                         "description": "Obtiene la URL de texto externa asociada al proveedor.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "direccion": {
+                        "description": "Obtiene la direccion del proveedor.",
                         "type": [
                             "string",
                             "null"
