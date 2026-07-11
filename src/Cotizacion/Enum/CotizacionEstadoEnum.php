@@ -10,21 +10,23 @@ namespace App\Cotizacion\Enum;
  */
 enum CotizacionEstadoEnum: string
 {
-    case PENDIENTE = 'Pendiente';
-    case ARCHIVADO = 'Archivado';
-    case CONFIRMADO = 'Confirmado';
-    case OPERADO = 'Operado';
-    case CANCELADO = 'Cancelado';
+    case PENDIENTE = 'pendiente';
+    case ENVIADO = 'enviado';
+    case ARCHIVADO = 'archivado';
+    case CONFIRMADO = 'confirmado';
+    case OPERADO = 'operado';
+    case CANCELADO = 'cancelado';
 
     /**
-     * Reemplaza la antigua columna `nopublico` de la base de datos (0 = true, 1 = false).
+     * Reemplaza la antigua columna `nopublico` de la base de datos.
      * Define si el cliente final tiene acceso al enlace web o PDF de esta propuesta.
+     * Solo Enviado y Confirmado son visibles para el cliente.
      */
     public function esPublico(): bool
     {
         return match($this) {
-            self::PENDIENTE, self::CONFIRMADO => true, // nopublico = 0 en el legacy
-            self::ARCHIVADO, self::OPERADO, self::CANCELADO => false, // nopublico = 1 en el legacy
+            self::ENVIADO, self::CONFIRMADO => true,
+            self::PENDIENTE, self::ARCHIVADO, self::OPERADO, self::CANCELADO => false,
         };
     }
 
@@ -34,11 +36,12 @@ enum CotizacionEstadoEnum: string
     public function badgeColor(): string
     {
         return match($this) {
-            self::PENDIENTE => 'amber',    // Amarillo/Naranja
-            self::CONFIRMADO => 'emerald', // Verde éxito
-            self::OPERADO => 'blue',       // Azul operativo
-            self::ARCHIVADO => 'slate',    // Gris neutro
-            self::CANCELADO => 'rose',     // Rojo alerta
+            self::PENDIENTE => 'amber',
+            self::ENVIADO => 'sky',        // 🔥 faltaba, causaba UnhandledMatchError
+            self::CONFIRMADO => 'emerald',
+            self::OPERADO => 'blue',
+            self::ARCHIVADO => 'slate',
+            self::CANCELADO => 'rose',
         };
     }
 }

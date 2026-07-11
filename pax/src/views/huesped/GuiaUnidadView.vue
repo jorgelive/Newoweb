@@ -2,9 +2,9 @@
 /* src/views/huesped/GuiaUnidadView.vue */
 import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { usePmsGuiaStore } from '@/stores/pmsGuiaStore';
+import { usePmsGuiaStore } from '@/stores/huesped/pmsGuiaStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
-import type { PmsGuiaSeccion } from '@/types/pms';
+import type { PmsGuiaSeccion } from '@/types/pmsModel.ts';
 import GuiaUnidadItemDispatcher from '@/components/GuiaUnidad/GuiaUnidadItemDispatcher.vue';
 
 const props = defineProps<{

@@ -1,12 +1,14 @@
 // src/stores/chatStore.ts
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef, watch } from 'vue';
-import { useAttachmentStore } from './attachmentStore';
-import { useNotificationStore } from './notificationStore';
+import { useAttachmentStore } from '../attachmentStore.ts';
+import { useNotificationStore } from '../notificationStore.ts';
 // 👇 Importamos los tipos automáticos de API Platform generados desde OpenAPI
 import type { components } from '@/types/api';
 // 👇 Importamos el cliente centralizado y sus utilidades de sesión
-import { apiClient, getUrls, processQueue, type CustomAxiosRequestConfig } from '@/services/apiClient';
+import { apiClient, getUrls, processQueue, type CustomAxiosRequestConfig } from '@/services/apiClient.ts';
+
+import { isSessionExpired } from '@/services/sessionState.ts';
 
 // ============================================================================
 // TIPOS AUTOGENERADOS (HÍBRIDOS)
@@ -82,7 +84,7 @@ export const useChatStore = defineStore('chatStore', () => {
      * Flag reactivo que detiene la UI y muestra el modal de re-login
      * cuando `apiClient.ts` detecta una caída de sesión (HTML o 401).
      */
-    const isSessionExpired = ref(false);
+
 
     // ============================================================================
     // ESTADOS PRINCIPALES DEL CHAT

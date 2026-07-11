@@ -1,6 +1,6 @@
 // src/services/paxService.ts
-import type { PmsGuia, GuiaHelperContext } from '@/types/pms';
-import type { MaestroIdioma } from '@/types/maestros';
+import type { PmsGuia, GuiaHelperContext } from '@/types/pmsModel.ts';
+import type { MaestroIdioma } from '@/types/maestroModel.ts';
 
 const API_BASE = window.OPENPERU_CONFIG?.apiUrl || import.meta.env.VITE_API_URL;
 

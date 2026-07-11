@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
-import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation } from '@/stores/chatStore';
+import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation } from '@/stores/chat/chatStore.ts';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import { useNotificationStore } from '@/stores/notificationStore';

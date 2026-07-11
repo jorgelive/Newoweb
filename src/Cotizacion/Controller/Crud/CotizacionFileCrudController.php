@@ -14,7 +14,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
 /**
- * Controlador para ver los expedientes raíz de las cotizaciones.
+ * Controlador para ver los expedientes raíz de las cotizacion.
  * La creación profunda se debe hacer desde la interfaz de Vue.
  */
 class CotizacionFileCrudController extends BaseCrudController
@@ -61,7 +61,7 @@ class CotizacionFileCrudController extends BaseCrudController
             ])
             ->setColumns(3);
 
-        yield CollectionField::new('cotizaciones', 'Versiones de Cotización')
+        yield CollectionField::new('cotizacion', 'Versiones de Cotización')
             ->onlyOnDetail()
             ->setTemplatePath('panel/cotizacion/field/cotizacion_versions_helper.html.twig'); // Opcional: Para darle formato bonito
     }

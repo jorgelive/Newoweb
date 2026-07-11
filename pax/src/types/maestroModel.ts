@@ -1,4 +1,4 @@
-// src/types/maestros.ts
+// src/types/maestroModel.ts
 
 export interface MaestroIdioma {
     '@id'?: string;    // "/api/maestro_idiomas/es" (Viene de JSON-LD)

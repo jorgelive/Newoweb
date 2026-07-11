@@ -1,4 +1,4 @@
-// src/types/pms.ts
+// src/types/pmsModel.ts
 
 // --- COMUNES ---
 export interface PmsContenidoTraducible {

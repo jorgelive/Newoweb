@@ -28,13 +28,21 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 /**
  * Entidad base para la logística pura (El insumo financiero).
  */
-#[ApiFilter(SearchFilter::class, properties: ['id' => 'exact'])]
 #[ApiResource(
-    shortName: 'Componente', // 🔥 Define el recurso base para generar '/componentes'
+    shortName: 'Componente',
     operations: [
         // Genera: GET /travel/componentes
         new GetCollection(
             normalizationContext: ['groups' => ['componente:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
+        ),
+
+        // Mismo grupo que el Get individual, para que el frontend pueda
+        // precargar en una sola petición el detalle completo (con tarifas
+        // y componenteItems) de varios componentes a la vez vía ?id[]=...
+        new GetCollection(
+            uriTemplate: '/componentes/batch',
+            normalizationContext: ['groups' => ['componente:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
 
@@ -63,7 +71,7 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar componentes.'
         )
-    ],  // 🔥 Agrupa todas las rutas bajo el módulo logístico
+    ],
     routePrefix: '/travel'
 )]
 #[ORM\Entity]

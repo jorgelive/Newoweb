@@ -10,6 +10,7 @@ use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -17,7 +18,14 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 
-#[ApiResource(operations: [new Get()], routePrefix: '/sales')]
+#[ApiResource(
+    operations: [
+        new Get(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+        )
+    ],
+    routePrefix: '/sales'
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_segmento')]
 #[ORM\HasLifecycleCallbacks]
@@ -31,29 +39,29 @@ class CotizacionSegmento
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionCotservicio $cotservicio = null;
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer')]
     private int $dia = 1;
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 1;
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'date_immutable')]
     private ?DateTimeImmutable $fechaAbsoluta = null;
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $nombreSnapshot = [];
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
     private array $contenidoSnapshot = [];
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json')]
     private array $imagenesSnapshot = [];
 
@@ -61,7 +69,7 @@ class CotizacionSegmento
      * SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.
      * Estructura: [ {"nombreInterno": "...", "contenido": [...]}, ... ]
      */
-    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json')]
     private array $notasSnapshot = [];
 
@@ -74,7 +82,7 @@ class CotizacionSegmento
         $this->cotcomponentes = new ArrayCollection();
     }
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     public function getId(): ?Uuid { return $this->id; }
 
     #[Groups(['cotizacion:write'])]

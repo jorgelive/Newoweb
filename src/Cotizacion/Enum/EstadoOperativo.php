@@ -13,9 +13,9 @@ namespace App\Cotizacion\Enum;
  */
 enum EstadoOperativo: string
 {
-    case SIN_SOLICITAR = 'Sin Solicitar';
-    case SOLICITADO = 'Solicitado';
-    case CONFIRMADO = 'Confirmado';
-    case RECONFIRMADO = 'Reconfirmado';
-    case PENDIENTE_PAGO = 'Pendiente Pago';
+    case SIN_SOLICITAR = 'sin-solicitar';
+    case SOLICITADO = 'solicitado';
+    case CONFIRMADO = 'confirmado';
+    case RECONFIRMADO = 'reconfirmado';
+    case PENDIENTE_PAGO = 'pendiente-pago';
 }

@@ -16,6 +16,7 @@ use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -25,12 +26,28 @@ use Symfony\Component\Uid\Uuid;
 #[ApiResource(
     shortName: 'Cotizacion',
     operations: [
-        new GetCollection(),
-        new Get(),
-        new Post(),
-        new Put(),
-        new Patch(),
-        new Delete()
+        new GetCollection(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+        ),
+        new Get(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+        ),
+        new Post(
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear cotizaciones.'
+        ),
+        new Put(
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar cotizaciones.'
+        ),
+        new Patch(
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para actualizar parcialmente cotizaciones.'
+        ),
+        new Delete(
+            security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar cotizaciones.'
+        )
     ],
     routePrefix: '/sales',
     normalizationContext: ['groups' => ['cotizacion:read', 'timestamp:read']],
@@ -50,15 +67,15 @@ class Cotizacion
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
 
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer')]
     private int $version = 1;
 
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 30, enumType: CotizacionEstadoEnum::class, options: ['default' => 'Pendiente'])]
     private CotizacionEstadoEnum $estado = CotizacionEstadoEnum::PENDIENTE;
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer', options: ['default' => 1])]
     private int $numPax = 1;
 
@@ -66,49 +83,45 @@ class Cotizacion
     #[ORM\Column(type: 'decimal', precision: 5, scale: 2, options: ['default' => '20.00'])]
     private string $comision = '20.00';
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $adelanto = '0.00';
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
-    #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private bool $hotelOculto = false;
-
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $precioOculto = false;
 
     // 🔥 NUEVO FLAG DE PROVEEDOR OCULTO A NIVEL GLOBAL
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $proveedorOculto = false;
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
     private array $resumen = [];
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $fechaExpiracion = null;
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 10, options: ['default' => 'USD'])]
     private string $monedaGlobal = 'USD';
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 5, options: ['default' => 'es'])]
     private string $idiomaCliente = 'es';
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $totalCosto = '0.00';
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $totalVenta = '0.00';
 
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
     #[ORM\Column(type: 'decimal', precision: 10, scale: 4, options: ['default' => '1.0000'])]
     private string $tipoCambio = '1.0000';
 
@@ -117,30 +130,23 @@ class Cotizacion
     private ?array $clasificacionFinanciera = null;
 
     // 🔥 NUEVA PROPIEDAD: CLASIFICACION FINANCIERA SIN COSTOS NI MÁRGENES
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $clasificacionFinancieraCliente = null;
 
     /**
      * @var Collection<int, CotizacionCotservicio>
      */
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\OneToMany(mappedBy: 'cotizacion', targetEntity: CotizacionCotservicio::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['fechaInicioAbsoluta' => 'ASC'])]
     private Collection $cotservicios;
 
-    /**
-     * @var Collection<int, CotizacionNota>
-     */
-    #[Groups(['cotizacion:read', 'cotizacion:write'])]
-    #[ORM\OneToMany(mappedBy: 'cotizacion', targetEntity: CotizacionNota::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $cotnotas;
 
     public function __construct()
     {
         $this->initializeId();
         $this->cotservicios = new ArrayCollection();
-        $this->cotnotas = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -169,6 +175,16 @@ class Cotizacion
     {
         $this->sobreescribirTraduccion = $sobreescribirTraduccion;
         return $this;
+    }
+
+    /**
+     * Ganancia bruta calculada (venta - costo). Expuesta como valor derivado
+     * para no forzar al frontend a hacer aritmética sobre strings decimales.
+     */
+    #[Groups(['cotizacion:read', 'file:item:read'])]
+    public function getGanancia(): string
+    {
+        return bcsub($this->totalVenta, $this->totalCosto, 2);
     }
 
     public function getFile(): ?CotizacionFile { return $this->file; }
@@ -241,23 +257,6 @@ class Cotizacion
         return $this;
     }
 
-    public function getCotnotas(): Collection { return $this->cotnotas; }
-    public function addCotnota(CotizacionNota $cotnota): self
-    {
-        if (!$this->cotnotas->contains($cotnota)) {
-            $this->cotnotas->add($cotnota);
-            $cotnota->setCotizacion($this);
-        }
-        return $this;
-    }
-    public function removeCotnota(CotizacionNota $cotnota): self
-    {
-        if ($this->cotnotas->removeElement($cotnota)) {
-            if ($cotnota->getCotizacion() === $this) { $cotnota->setCotizacion(null); }
-        }
-        return $this;
-    }
-
     public function getEstado(): CotizacionEstadoEnum { return $this->estado; }
     public function setEstado(CotizacionEstadoEnum $estado): self { $this->estado = $estado; return $this; }
 
@@ -269,9 +268,6 @@ class Cotizacion
 
     public function getAdelanto(): string { return $this->adelanto; }
     public function setAdelanto(string $adelanto): void { $this->adelanto = $adelanto; }
-
-    public function isHotelOculto(): bool { return $this->hotelOculto; }
-    public function setHotelOculto(bool $hotelOculto): void { $this->hotelOculto = $hotelOculto; }
 
     public function isPrecioOculto(): bool { return $this->precioOculto; }
     public function setPrecioOculto(bool $precioOculto): void { $this->precioOculto = $precioOculto; }

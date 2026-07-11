@@ -1,9 +1,9 @@
 // src/stores/pmsGuiaStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { paxService } from '@/services/paxService';
-import { useMaestroStore } from './maestroStore';
-import type { PmsGuia, GuiaHelperContext, PmsContenidoTraducible } from '@/types/pms';
+import { paxService } from '@/services/paxService.ts';
+import { useMaestroStore } from '../maestroStore.ts';
+import type { PmsGuia, GuiaHelperContext, PmsContenidoTraducible } from '@/types/pmsModel.ts';
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
 
 export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {

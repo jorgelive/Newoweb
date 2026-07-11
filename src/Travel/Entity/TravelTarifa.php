@@ -16,6 +16,7 @@ use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
+use App\Travel\Enum\TarifaRolEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -23,7 +24,6 @@ use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 
 #[ApiFilter(SearchFilter::class, properties: [
-    'id' => 'exact',
     'nombreInterno' => 'partial'
 ])]
 #[ApiResource(
@@ -100,13 +100,21 @@ class TravelTarifa
     private bool $costoPorGrupo = false;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\Column(type: 'string', length: 20, enumType: TarifaRolEnum::class, options: ['default' => 'estandar'])]
+    private TarifaRolEnum $rol = TarifaRolEnum::ESTANDAR;
+
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 2, nullable: true)]
+    private ?string $comisionOverride = null; // null = usa la comisión global de la cotización
+
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\ManyToOne(targetEntity: Proveedor::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Proveedor $proveedor = null;
 
     /**
      * Relación directa con un servicio específico del proveedor (ej. una habitación o tour exacto).
-     * Permite asociar una tarifa a un recurso físico/lógico del proveedor para que salga por defecto en las cotizaciones.
+     * Permite asociar una tarifa a un recurso físico/lógico del proveedor para que salga por defecto en las cotizacion.
      */
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\ManyToOne(targetEntity: ProveedorServicio::class)]
@@ -144,10 +152,10 @@ class TravelTarifa
         $montoStr = $this->monto !== null ? $this->monto : '0.00';
         $etiqueta = sprintf('🏷️ %s | %s %s', $this->nombreInterno, $monedaStr, $montoStr);
 
-        if ($this->costoPorGrupo) {
-            $etiqueta .= ' 👥 [Por Grupo]';
-        } else {
-            $etiqueta .= ' 👤 [Por Pax]';
+        $etiqueta .= $this->costoPorGrupo ? ' 👥' : ' 👤';
+
+        if ($this->procedencia !== null) {
+            $etiqueta .= ' ' . $this->getProcedenciaIcono();
         }
 
         if ($this->edadMinima !== null || $this->edadMaxima !== null) {
@@ -157,6 +165,20 @@ class TravelTarifa
         }
 
         return $etiqueta;
+    }
+
+    /**
+     * Icono de procedencia sin texto, para mantener el __toString() compacto
+     * en los selects/autocompletes de EasyAdmin.
+     */
+    private function getProcedenciaIcono(): string
+    {
+        return match ($this->procedencia) {
+            TarifaProcedenciaEnum::NACIONAL => '🇵🇪',
+            TarifaProcedenciaEnum::EXTRANJERO => '🌎',
+            TarifaProcedenciaEnum::COMUNIDAD_ANDINA => '🤝 CAN',
+            default => '',
+        };
     }
 
     public function getMonto(): ?string
@@ -285,6 +307,11 @@ class TravelTarifa
         return $this;
     }
 
+    public function getRol(): TarifaRolEnum { return $this->rol; }
+    public function setRol(TarifaRolEnum $rol): self { $this->rol = $rol; return $this; }
+    public function getComisionOverride(): ?string { return $this->comisionOverride; }
+    public function setComisionOverride(?string $comisionOverride): self { $this->comisionOverride = $comisionOverride; return $this; }
+
     public function getProveedor(): ?Proveedor
     {
         return $this->proveedor;
@@ -298,7 +325,7 @@ class TravelTarifa
 
     /**
      * Obtiene el servicio específico del proveedor asociado a esta tarifa.
-     * Útil para autocompletar o sugerir el servicio (ej. habitación) por defecto en cotizaciones.
+     * Útil para autocompletar o sugerir el servicio (ej. habitación) por defecto en cotizacion.
      *
      * @return ProveedorServicio|null
      */

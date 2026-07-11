@@ -12,6 +12,7 @@ use App\Cotizacion\Enum\DetalleOperativoTipoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use App\Travel\Enum\ComponenteItemModoEnum;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -23,7 +24,14 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos.
  */
-#[ApiResource(operations: [new Get()], routePrefix: '/sales')]
+#[ApiResource(
+    operations: [
+        new Get(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+        )
+    ],
+    routePrefix: '/sales'
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_cotcomponente')]
 #[ORM\HasLifecycleCallbacks]
@@ -37,17 +45,17 @@ class CotizacionCotcomponente
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionCotservicio $cotservicio = null;
 
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\ManyToOne(targetEntity: CotizacionSegmento::class, cascade: ['persist'], inversedBy: 'cotcomponentes')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?CotizacionSegmento $cotsegmento = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $nombreSnapshot = [];
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer', options: ['default' => 1])]
     private int $cantidad = 1;
 
@@ -59,11 +67,11 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'string', length: 30, enumType: ComponenteItemModoEnum::class, options: ['default' => 'incluido'])]
     private ComponenteItemModoEnum $modo = ComponenteItemModoEnum::INCLUIDO;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?DateTimeImmutable $fechaHoraInicio = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?DateTimeImmutable $fechaHoraFin = null;
 
@@ -72,7 +80,7 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'json')]
     private array $snapshotItems = [];
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\OneToMany(mappedBy: 'cotcomponente', targetEntity: CotizacionCottarifa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $cottarifas;
 
@@ -171,7 +179,7 @@ class CotizacionCotcomponente
     /**
      * Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.
      */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'cotizacion:cliente:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     public function getDetallesParaCliente(): array
     {
         return array_values(array_filter(

@@ -4,7 +4,7 @@
  */
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { usePmsReservaStore } from '@/stores/pmsReservaStore';
+import { usePmsReservaStore } from '@/stores/huesped/pmsReservaStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
 
 const props = defineProps<{

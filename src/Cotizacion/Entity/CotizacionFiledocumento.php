@@ -6,12 +6,14 @@ namespace App\Cotizacion\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Cotizacion\State\CotizacionFiledocumentoMultipartProcessor;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Panel\Entity\Trait\MediaTrait;
+use App\Security\Roles;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
@@ -28,9 +30,19 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
                 'multipart' => ['multipart/form-data']
             ],
             denormalizationContext: ['groups' => ['file:write']],
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para subir documentos.',
             processor: CotizacionFiledocumentoMultipartProcessor::class
         ),
-        new Delete()
+        new Patch(
+            denormalizationContext: ['groups' => ['file:write']],
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar documentos.'
+        ),
+        new Delete(
+            security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar documentos.'
+        )
     ],
     routePrefix: '/sales'
 )]
@@ -44,12 +56,12 @@ class CotizacionFiledocumento
     use TimestampTrait;
     use MediaTrait;
 
-    #[Groups(['file:item:read', 'file:write'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'date', nullable: true)]
     private ?DateTimeInterface $vencimiento = null;
 
     // 🔥 Reemplazado por el nuevo Enum dentro del módulo Cotizacion
-    #[Groups(['file:item:read', 'file:write'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 20, enumType: ArchivoTipoEnum::class)]
     private ?ArchivoTipoEnum $tipodocumento = null;
 
@@ -76,7 +88,7 @@ class CotizacionFiledocumento
      * Propiedad virtual para exponer la URL pública.
      * Es inyectada dinámicamente por el AssetListener.
      */
-    #[Groups(['file:item:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
     private ?string $imageUrl = null;
 
     public function __construct()

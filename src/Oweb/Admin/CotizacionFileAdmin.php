@@ -162,7 +162,7 @@ class CotizacionFileAdmin extends AbstractSecureAdmin
             ->add('filedocumentos', null, [
                 'label' => 'Documentos'
             ])
-            ->add('cotizaciones', null, [
+            ->add('cotizacion', null, [
                 'label' => 'Cotizaciones',
                 'associated_property' => 'nombre'
             ])
@@ -270,7 +270,7 @@ class CotizacionFileAdmin extends AbstractSecureAdmin
             ->add('filedocumentos', null, [
                 'label' => 'Documentos'
             ])
-            ->add('cotizaciones', null, [
+            ->add('cotizacion', null, [
                 'label' => 'Cotizaciones'
             ])
         ;

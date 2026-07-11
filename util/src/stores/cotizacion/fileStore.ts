@@ -102,6 +102,50 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    const deleteCotizacion = async (iri: string): Promise<boolean> => {
+        try {
+            await apiClient.delete(iri);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    };
+
+    const deleteFile = async (iri: string): Promise<boolean> => {
+        try {
+            await apiClient.delete(iri);
+            files.value = files.value.filter(f => f['@id'] !== iri && f.id !== iri);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    };
+
+    const updateCotizacionVersion = async (iri: string, version: number): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.patch(iri, { version });
+            return true;
+        } catch (err: any) {
+            error.value = err.response?.data?.['hydra:description'] || 'Error al actualizar la versión.';
+            return false;
+        }
+    };
+
+    /**
+     * Extrae un preview truncado y sin HTML de un campo AutoTranslate (I18nContent[]).
+     * Usado para previsualizar `resumen` en la tarjeta de versión sin abrir el motor.
+     */
+    const extraerResumenPreview = (resumen: any, idiomaPreferido = 'es', maxLen = 90): string => {
+        if (!resumen || !Array.isArray(resumen) || resumen.length === 0) return '';
+
+        const match = resumen.find((r: any) => r.language === idiomaPreferido) || resumen[0];
+        const texto = match?.content || '';
+
+        const sinHtml = texto.replace(/<[^>]*>/g, '').trim();
+        return sinHtml.length > maxLen ? sinHtml.slice(0, maxLen) + '…' : sinHtml;
+    };
+
     // ============================================================================
     // ACCIONES DE PASAJEROS Y BÓVEDA DIGITAL
     // ============================================================================
@@ -115,6 +159,17 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             return true;
         } catch (err: any) {
             error.value = err.response?.data?.['hydra:description'] || 'Error al subir el documento.';
+            return false;
+        }
+    };
+
+    const updateDocument = async (iri: string, payload: { tipodocumento: string; vencimiento: string | null }): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.patch(iri, payload);
+            return true;
+        } catch (err: any) {
+            error.value = err.response?.data?.['hydra:description'] || 'Error al actualizar el documento.';
             return false;
         }
     };
@@ -135,6 +190,17 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             return true;
         } catch (err: any) {
             error.value = err.response?.data?.['hydra:description'] || 'Error al registrar el pasajero.';
+            return false;
+        }
+    };
+
+    const updatePassenger = async (iri: string, payload: any): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.patch(iri, payload);
+            return true;
+        } catch (err: any) {
+            error.value = err.response?.data?.['hydra:description'] || 'Error al actualizar el pasajero.';
             return false;
         }
     };
@@ -162,6 +228,12 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         uploadDocument,
         deleteDocument,
         addPassenger,
-        deletePassenger
+        deletePassenger,
+        deleteCotizacion,
+        deleteFile,
+        updateCotizacionVersion,
+        extraerResumenPreview,
+        updatePassenger,
+        updateDocument
     };
 });

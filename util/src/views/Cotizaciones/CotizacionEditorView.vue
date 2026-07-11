@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
-import { useCotizacionEditorStore } from '@/stores/cotizaciones/cotizacionEditorStore';
+import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import WysiwygEditor from '@/components/WysiwygEditor.vue';
 
@@ -9,6 +9,15 @@ import WysiwygEditor from '@/components/WysiwygEditor.vue';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import IMask from 'imask';
+import {
+  ESTADO_COTIZACION_CONFIG,
+  getModoItemConfig,
+  getEstadoComponenteConfig,
+  getEstadoOperativoConfig,
+  getProcedenciaUI,
+  getTipoNotaUI,
+  getRolTarifaUI, Servicio, TarifaSnapshot, formatRangoEdad,
+} from '@/types/cotizacionEditorModel';
 
 defineProps<{
   fileId?: string;
@@ -65,7 +74,7 @@ onMounted(() => {
       }, 1000);
     });
   } else {
-    router.push('/cotizaciones');
+    router.push('/cotizacion');
   }
 });
 
@@ -95,9 +104,9 @@ onBeforeRouteLeave((to, from, next) => {
 const handleVolver = () => {
   const fileId = route.params.fileId || store.fileActual?.id;
   if (fileId) {
-    router.push(`/cotizaciones/${fileId}`);
+    router.push(`/cotizacion/${fileId}`);
   } else {
-    router.push('/cotizaciones');
+    router.push('/cotizacion');
   }
 };
 
@@ -207,11 +216,24 @@ const idiomasOrdenados = computed(() => {
   );
 });
 
+const cottarifasOrdenadas = computed(() => {
+  if (!store.dataActiva?.cottarifas) return [];
+  return [...store.dataActiva.cottarifas].sort((a: any, b: any) => (a.grupoTarifa ?? Infinity) - (b.grupoTarifa ?? Infinity));
+});
+
+const calcularVentaTarifa = (tarifa: TarifaSnapshot): number => {
+  const costoTotal = (parseFloat(String(tarifa.montoCosto)) || 0) * (tarifa.esGrupal ? 1 : (tarifa.cantidad || 1));
+  const tieneOverride = tarifa.comisionOverrideSnapshot != null && tarifa.comisionOverrideSnapshot !== '';
+  const comisionPct = tieneOverride
+      ? parseFloat(String(tarifa.comisionOverrideSnapshot))
+      : (parseFloat(String(store.cotizacion?.comision ?? '0')) || 0);
+  return costoTotal * (1 + comisionPct / 100);
+};
 
 const opcionesServicios = computed(() => {
   return store.catalogos.servicios
-      .map(s => ({
-        value: store.extractIdStr(s),
+      .map((s: Servicio) => ({
+        value: store.extractIdStr(s.id || s['@id']),
         label: s.nombreInterno || (s as any).nombre || 'Servicio sin nombre'
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
@@ -481,23 +503,15 @@ const abrirModalNota = (nota: any) => {
   modalNota.value = { isOpen: true, nota };
 };
 
-const agruparNotasPorTipo = (notas: any[]) => {
-  if (!notas || !Array.isArray(notas)) return {};
-  return notas.reduce((acc, nota) => {
+const agruparNotasPorTipo = (notas: any[]): Map<string, any[]> => {
+  const mapa = new Map<string, any[]>();
+  if (!notas || !Array.isArray(notas)) return mapa;
+  notas.forEach((nota) => {
     const tipo = nota.tipo || 'OTROS';
-    if (!acc[tipo]) acc[tipo] = [];
-    acc[tipo].push(nota);
-    return acc;
-  }, {} as Record<string, any[]>);
-};
-
-const getTipoNotaUI = (tipo: string | number) => {
-  const t = String(tipo).toLowerCase();
-  if (t.includes('alerta') || t.includes('peligro')) return { icon: 'fa-exclamation-triangle', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' };
-  if (t.includes('politica') || t.includes('regla')) return { icon: 'fa-gavel', bg: 'bg-slate-200', text: 'text-slate-700', border: 'border-slate-300' };
-  if (t.includes('tip') || t.includes('operativo')) return { icon: 'fa-lightbulb', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' };
-  if (t.includes('intro')) return { icon: 'fa-book-open', bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' };
-  return { icon: 'fa-info-circle', bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200' };
+    if (!mapa.has(tipo)) mapa.set(tipo, []);
+    mapa.get(tipo)!.push(nota);
+  });
+  return mapa;
 };
 
 const prepararInsercion = async (seg: any) => {
@@ -586,7 +600,9 @@ watch(isProveedorOpen, (newVal) => {
           </button>
         </div>
         <button @click="store.abrirNivel('resumen')" class="md:hidden px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold shadow-sm border border-slate-700 whitespace-nowrap">Totales</button>
-        <button @click="handleGuardar" class="px-4 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
+        <button @click="handleGuardar"
+                :class="store.isMobileOpen ? 'hidden md:flex' : 'flex'"
+                class="items-center gap-2 px-4 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors">
           <i class="fas fa-save"></i> <span class="hidden sm:inline">Guardar</span>
         </button>
       </div>
@@ -799,11 +815,9 @@ watch(isProveedorOpen, (newVal) => {
                 <div>
                   <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Estado Versión</span>
                   <select v-model="store.cotizacion.estado" class="w-full font-black text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] text-sm appearance-none shadow-sm">
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="Archivado">Archivado</option>
-                    <option value="Confirmado">Confirmado</option>
-                    <option value="Operado">Operado</option>
-                    <option value="Cancelado">Cancelado</option>
+                    <option v-for="(cfg, valor) in ESTADO_COTIZACION_CONFIG" :key="valor" :value="valor">
+                      {{ cfg.label }}
+                    </option>
                   </select>
                 </div>
                 <div>
@@ -861,13 +875,33 @@ watch(isProveedorOpen, (newVal) => {
         </div>
 
         <div v-else-if="store.inspectorActivo === 'servicio'" class="flex-1 flex flex-col min-h-0">
-          <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50 flex-shrink-0">
-            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"><i class="fas fa-arrow-left"></i></button>
+          <div class="px-5 py-1 border-b border-emerald-100 flex items-center gap-3 bg-emerald-50 flex-shrink-0">
+            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-emerald-100 text-slate-500 flex items-center justify-center transition-colors flex-shrink-0"><i class="fas fa-arrow-left"></i></button>
+
             <div class="flex-1 min-w-0">
-              <p class="text-[9px] font-black text-[#E07845] uppercase tracking-widest truncate">Edición de Servicio</p>
+              <p class="text-[9px] font-black text-[#E07845] uppercase tracking-widest truncate flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                Edición de Servicio
+              </p>
               <h2 class="text-sm font-black truncate">
                 {{ store.getI18nText(store.dataActiva?.nombrePublicoSnapshot as any, store.cotizacion.idiomaEdicion) || store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
               </h2>
+              <p v-if="store.serviciosOrdenados.length > 1" class="text-[11px] font-bold text-emerald-600/70 mt-0.5">
+                Servicio {{ store.serviciosOrdenados.findIndex(s => s.id === store.dataActiva.id) + 1 }} de {{ store.serviciosOrdenados.length }}
+              </p>
+            </div>
+
+            <div v-if="store.serviciosOrdenados.length > 1" class="flex flex-col gap-1 flex-shrink-0 self-center">
+              <button @click="store.irAServicioAdyacente(-1)"
+                      :disabled="store.serviciosOrdenados.findIndex(s => s.id === store.dataActiva.id) === 0"
+                      class="w-9 h-9 rounded-lg bg-white border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
+                <i class="fas fa-chevron-up text-xs"></i>
+              </button>
+              <button @click="store.irAServicioAdyacente(1)"
+                      :disabled="store.serviciosOrdenados.findIndex(s => s.id === store.dataActiva.id) === store.serviciosOrdenados.length - 1"
+                      class="w-9 h-9 rounded-lg bg-white border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
+                <i class="fas fa-chevron-down text-xs"></i>
+              </button>
             </div>
           </div>
           <div class="p-5 flex-1 overflow-y-auto space-y-6 pb-28">
@@ -956,9 +990,18 @@ watch(isProveedorOpen, (newVal) => {
                          <i class="fas fa-infinity text-[8px] mr-0.5"></i> Horario Libre / Final del día
                       </span>
                     </h4>
-                    <span class="text-[10px] font-black px-2 py-1 rounded bg-slate-100 text-slate-500 border border-slate-200 shadow-sm whitespace-nowrap">
-                      {{ comp.modo ? comp.modo.toUpperCase() : 'INCLUIDO' }}
-                    </span>
+                    <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span class="text-[10px] font-black px-2 py-1 rounded border shadow-sm whitespace-nowrap flex items-center gap-1"
+                            :class="[getModoItemConfig(comp.modo).bg, getModoItemConfig(comp.modo).text, getModoItemConfig(comp.modo).border]">
+                            <i class="fas text-[9px]" :class="getModoItemConfig(comp.modo).icon"></i>
+                            {{ getModoItemConfig(comp.modo).label.toUpperCase() }}
+                      </span>
+                       <span class="text-[9px] font-black px-2 py-0.5 rounded border shadow-sm whitespace-nowrap flex items-center gap-1"
+                             :class="[getEstadoComponenteConfig(comp.estado).bg, getEstadoComponenteConfig(comp.estado).text, getEstadoComponenteConfig(comp.estado).border]">
+                        <i class="fas text-[8px]" :class="getEstadoComponenteConfig(comp.estado).icon"></i>
+                        {{ getEstadoComponenteConfig(comp.estado).label.toUpperCase() }}
+                      </span>
+                    </div>
                   </div>
 
                   <div class="flex flex-col gap-1.5 mb-3">
@@ -1030,12 +1073,33 @@ watch(isProveedorOpen, (newVal) => {
         </div>
 
         <div v-else-if="store.inspectorActivo === 'componente'" class="flex-1 flex flex-col min-h-0 bg-sky-50/50">
-          <div class="px-5 py-4 border-b border-sky-200 flex items-center gap-3 bg-sky-600 text-white flex-shrink-0">
-            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-sky-500 flex items-center justify-center transition-colors"><i class="fas fa-arrow-left"></i></button>
+          <div class="px-5 py-2 border-b border-sky-200 flex items-center gap-3 bg-sky-600 text-white flex-shrink-0">
+            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-sky-500 flex items-center justify-center transition-colors flex-shrink-0"><i class="fas fa-arrow-left"></i></button>
+
             <div class="flex-1 min-w-0">
-              <p class="text-[9px] font-black text-sky-200 uppercase tracking-widest truncate">Componente Logístico</p>
+              <p class="text-[11px] font-black text-sky-200 uppercase tracking-widest truncate flex items-center gap-1">
+                <i class="fas fa-route"></i>
+                {{ store.getI18nText(store.servicioActualDeComponente?.nombrePublicoSnapshot as any, store.cotizacion.idiomaEdicion) || 'Servicio' }}
+              </p>
               <h2 class="text-sm font-black truncate">{{ getNombreMaestroRef(store.dataActiva) }}</h2>
+              <p v-if="store.componentesHermanos.length > 1" class="text-[11px] font-bold text-sky-200 mt-0.5">
+                Componente {{ store.componentesHermanos.findIndex(c => c.id === store.dataActiva.id) + 1 }} de {{ store.componentesHermanos.length }}
+              </p>
             </div>
+
+            <div v-if="store.componentesHermanos.length > 1" class="flex flex-col gap-1 flex-shrink-0">
+              <button @click="store.irAComponenteAdyacente(-1)"
+                      :disabled="store.componentesHermanos.findIndex(c => c.id === store.dataActiva.id) === 0"
+                      class="w-9 h-9 rounded-lg bg-sky-500/60 hover:bg-sky-400 text-white flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
+                <i class="fas fa-chevron-up text-xs"></i>
+              </button>
+              <button @click="store.irAComponenteAdyacente(1)"
+                      :disabled="store.componentesHermanos.findIndex(c => c.id === store.dataActiva.id) === store.componentesHermanos.length - 1"
+                      class="w-9 h-9 rounded-lg bg-sky-500/60 hover:bg-sky-400 text-white flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
+                <i class="fas fa-chevron-down text-xs"></i>
+              </button>
+            </div>
+
           </div>
           <div class="p-5 flex-1 overflow-y-auto space-y-6 pb-28">
             <div class="bg-white border border-sky-200 p-4 rounded-xl shadow-sm">
@@ -1162,15 +1226,39 @@ watch(isProveedorOpen, (newVal) => {
                 <input v-model="store.dataActiva.cantidad" type="number" readonly class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black text-center outline-none shadow-inner cursor-not-allowed">
               </div>
 
-              <div>
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo Comercial</label>
-                <select v-model="store.dataActiva.modo" class="w-full bg-white text-slate-800 border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold outline-none appearance-none shadow-sm focus:ring-2 focus:ring-sky-500">
-                  <option value="incluido">Incluido</option>
-                  <option value="opcional">Opcional</option>
-                  <option value="no_incluido">No incluido</option>
-                  <option value="cortesia">Cortesía</option>
-                  <option value="reemplazadoa">Reemplazado</option>
-                </select>
+              <div class="col-span-2 grid grid-cols-1 gap-3">
+                <div>
+                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo Comercial</label>
+                  <div class="relative">
+                    <select v-model="store.dataActiva.modo"
+                      class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
+                      :class="[getModoItemConfig(store.dataActiva.modo).bg, getModoItemConfig(store.dataActiva.modo).text, getModoItemConfig(store.dataActiva.modo).border]">
+                      <option value="incluido">Incluido</option>
+                      <option value="opcional">Opcional</option>
+                      <option value="no_incluido">No incluido</option>
+                      <option value="cortesia">Cortesía</option>
+                      <option value="reemplazado">Reemplazado</option>
+                    </select>
+                    <i class="fas absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs"
+                       :class="[getModoItemConfig(store.dataActiva.modo).icon, getModoItemConfig(store.dataActiva.modo).text]"></i>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Estado del Servicio</label>
+                  <div class="relative">
+                    <select v-model="store.dataActiva.estado"
+                            class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
+                            :class="[getEstadoComponenteConfig(store.dataActiva.estado).bg, getEstadoComponenteConfig(store.dataActiva.estado).text, getEstadoComponenteConfig(store.dataActiva.estado).border]">
+                      <option value="pendiente">Pendiente</option>
+                      <option value="confirmado">Confirmado</option>
+                      <option value="reconfirmado">Reconfirmado</option>
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                    <i class="fas absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs"
+                       :class="[getEstadoComponenteConfig(store.dataActiva.estado).icon, getEstadoComponenteConfig(store.dataActiva.estado).text]"></i>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1188,10 +1276,10 @@ watch(isProveedorOpen, (newVal) => {
                      :data-item-id="item.id"
                      class="flex flex-col gap-1 bg-white p-2.5 rounded-xl border shadow-sm transition-all"
                      :class="[
-        item.tieneUpsell ? 'border-l-4 border-l-orange-400' : 'border-slate-200',
-        dragItemId === item.id ? 'opacity-40 scale-[0.98]' : '',
-        dragOverItemId === item.id && dragItemId !== item.id ? 'ring-2 ring-sky-400' : ''
-      ]">
+                    item.tieneUpsell ? 'border-l-4 border-l-orange-400' : 'border-slate-200',
+                    dragItemId === item.id ? 'opacity-40 scale-[0.98]' : '',
+                    dragOverItemId === item.id && dragItemId !== item.id ? 'ring-2 ring-sky-400' : ''
+                  ]">
 
                   <div class="flex gap-3 items-center">
                     <div class="text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing select-none px-1"
@@ -1235,21 +1323,21 @@ watch(isProveedorOpen, (newVal) => {
             <div class="border-t border-sky-100 pt-5">
               <button @click="detallesOperativosAbierto = !detallesOperativosAbierto"
                       class="w-full flex items-center justify-between text-[10px] font-black text-sky-700 uppercase tracking-widest mb-3">
-    <span class="flex items-center gap-1.5">
-      <i class="fas fa-chevron-right transition-transform" :class="detallesOperativosAbierto ? 'rotate-90' : ''"></i>
-      <i class="fas fa-clipboard-list"></i> Detalles Operativos
-    </span>
+                <span class="flex items-center gap-1.5">
+                  <i class="fas fa-chevron-right transition-transform" :class="detallesOperativosAbierto ? 'rotate-90' : ''"></i>
+                  <i class="fas fa-clipboard-list"></i> Detalles Operativos
+                </span>
                 <span class="flex items-center gap-2">
-      <button @click.stop="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-              :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
-              class="px-2 py-1 border rounded-lg transition-colors shadow-sm" title="Forzar traducción de todo el componente al guardar">
-        <i class="fas fa-language text-xs"></i>
-      </button>
-      <span @click.stop="store.agregarDetalleOperativo(store.dataActiva.id)"
-            class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold border border-sky-200 hover:bg-sky-200 transition-colors normal-case tracking-normal cursor-pointer">
-        + Añadir Detalle
-      </span>
-    </span>
+                  <button @click.stop="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
+                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                          class="px-2 py-1 border rounded-lg transition-colors shadow-sm" title="Forzar traducción de todo el componente al guardar">
+                    <i class="fas fa-language text-xs"></i>
+                  </button>
+                  <span @click.stop="store.agregarDetalleOperativo(store.dataActiva.id)"
+                        class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold border border-sky-200 hover:bg-sky-200 transition-colors normal-case tracking-normal cursor-pointer">
+                    + Añadir Detalle
+                  </span>
+                </span>
               </button>
 
               <div v-show="detallesOperativosAbierto" class="space-y-2">
@@ -1274,22 +1362,20 @@ watch(isProveedorOpen, (newVal) => {
               </div>
             </div>
 
-
-
             <div class="border-t border-sky-100 pt-5">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest">
                   <span>Tarifas / Costos</span>
                 </h3>
                 <span v-if="store.isComponenteConAlerta(store.dataActiva)" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[9px] font-bold border border-red-200">
-                      <i class="fas fa-exclamation-circle mr-1"></i> Faltan Pax
-                  </span>
+                    <i class="fas fa-exclamation-circle mr-1"></i> Faltan Pax
+                </span>
                 <button @click="store.agregarTarifa(store.dataActiva.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
               </div>
               <div class="space-y-3">
-                <div v-for="(tarifa, idx) in store.dataActiva.cottarifas" :key="tarifa.id || idx" @click="store.abrirNivel('tarifa', tarifa)"
+                <div v-for="(tarifa, idx) in cottarifasOrdenadas" :key="tarifa.id || idx" @click="store.abrirNivel('tarifa', tarifa)"
                      class="bg-white border-2 border-orange-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-orange-400 relative group overflow-hidden transition-all">
-                  <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-400"></div>
+                  <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="getRolTarifaUI(tarifa.rolSnapshot).bg.replace('bg-', 'bg-').replace('-50','-400')"></div>
 
                   <button @click.stop="store.eliminarTarifa(store.dataActiva.id, tarifa.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 p-1 bg-slate-50 w-6 h-6 rounded-full flex items-center justify-center">
                     <i class="fas fa-trash-alt text-xs"></i>
@@ -1298,20 +1384,57 @@ watch(isProveedorOpen, (newVal) => {
                   <div class="flex justify-between items-center pr-6">
                     <div>
                       <h4 class="font-bold text-sm text-slate-800">{{ store.getI18nText(tarifa.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h4>
-                      <div class="flex gap-2 mt-1">
-      <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
-         <i :class="tarifa.esGrupal ? 'fas fa-users' : 'fas fa-user'"></i>
-         {{ tarifa.esGrupal ? 'Costo Grupal' : `${tarifa.cantidad} Pax` }}
-      </span>
-                        <span v-if="tarifa.esGrupal" class="text-[9px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase">Fijo</span>
+                      <div class="flex gap-2 mt-1 flex-wrap">
+                        <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                           <i :class="tarifa.esGrupal ? 'fas fa-users' : 'fas fa-user'"></i>
+                           {{ tarifa.esGrupal ? 'Costo Grupal (Fijo)' : `${tarifa.cantidad} Pax` }}
+                        </span>
+                        <span class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
+                              :class="[getRolTarifaUI(tarifa.rolSnapshot).bg, getRolTarifaUI(tarifa.rolSnapshot).text, getRolTarifaUI(tarifa.rolSnapshot).border]">
+                          <i class="fas" :class="getRolTarifaUI(tarifa.rolSnapshot).icon"></i>
+                          {{ getRolTarifaUI(tarifa.rolSnapshot).label }}
+                        </span>
+
+                        <span v-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase">
+                          Grupo {{ tarifa.grupoTarifa }}
+                        </span>
 
                         <span v-if="tarifa.proveedorOculto" class="text-[9px] font-black bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
                             <i class="fas fa-user-secret"></i> Oculto
                         </span>
                       </div>
                     </div>
-                    <span class="font-black text-orange-600 text-lg">{{ formatMoneda(tarifa.montoCosto * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
+                    <div class="text-right flex-shrink-0">
+                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(tarifa.montoCosto * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
+                      <p class="text-xs font-black text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
+                        <i class="fas fa-tag text-[9px]"></i>
+                        {{ formatMoneda(calcularVentaTarifa(tarifa), tarifa.moneda) }}
+                        <span class="text-slate-400 font-bold normal-case">
+                          ({{ tarifa.comisionOverrideSnapshot ? `${tarifa.comisionOverrideSnapshot}%` : 'global' }})
+                        </span>
+                      </p>
+                    </div>
                   </div>
+
+                  <div v-if="tarifa.proveedorNombreSnapshot" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                    <span class="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
+                      <i class="fas fa-truck-loading text-slate-400"></i> {{ tarifa.proveedorNombreSnapshot }}
+                    </span>
+
+                    <span v-if="tarifa.estadoOperativoSnapshot && tarifa.estadoOperativoSnapshot !== 'sin-solicitar'"
+                          class="text-[9px] font-black px-2 py-1 rounded-lg border shadow-sm flex items-center gap-1"
+                          :class="[getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).bg, getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).text, getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).border]">
+                      <i class="fas" :class="getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).icon"></i>
+                      {{ getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).label }}
+                    </span>
+
+                    <span v-if="tarifa.fechaLimitePago"
+                          class="text-[9px] font-black px-2 py-1 rounded-lg border shadow-sm flex items-center gap-1"
+                          :class="new Date(tarifa.fechaLimitePago) < new Date() ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-600 border-slate-200'">
+                      <i class="far fa-calendar-alt"></i> {{ formatDateOnlyFromISO(tarifa.fechaLimitePago) }}
+                    </span>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -1323,11 +1446,30 @@ watch(isProveedorOpen, (newVal) => {
 
 
         <div v-else-if="store.inspectorActivo === 'tarifa'" class="flex-1 flex flex-col min-h-0 bg-white">
-          <div class="px-5 py-4 border-b border-orange-200 flex items-center gap-3 bg-orange-50 flex-shrink-0 shadow-sm z-10">
-            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-orange-200 text-orange-600 flex items-center justify-center transition-colors"><i class="fas fa-arrow-left"></i></button>
+          <div class="px-5 py-1 border-b border-orange-200 flex items-center gap-3 bg-orange-50 flex-shrink-0 shadow-sm z-10">
+            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-orange-200 text-orange-600 flex items-center justify-center transition-colors flex-shrink-0"><i class="fas fa-arrow-left"></i></button>
+
             <div class="flex-1 min-w-0">
-              <p class="text-[9px] font-black text-orange-500 uppercase tracking-widest truncate">Costo y Operativa</p>
+              <p class="text-[11px] font-black text-orange-400 uppercase tracking-widest truncate flex items-center gap-1">
+                <i class="fas fa-box-open"></i> {{ getNombreMaestroRef(store.componenteActualDeTarifa) }}
+              </p>
               <h2 class="text-sm font-black text-slate-800 truncate">{{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h2>
+              <p v-if="store.tarifasHermanas.length > 1" class="text-[11px] font-bold text-slate-400 mt-0.5">
+                Tarifa {{ store.tarifasHermanas.findIndex(t => t.id === store.dataActiva.id) + 1 }} de {{ store.tarifasHermanas.length }}
+              </p>
+            </div>
+
+            <div v-if="store.tarifasHermanas.length > 1" class="flex flex-col gap-1 flex-shrink-0">
+              <button @click="store.irATarifaAdyacente(-1)"
+                      :disabled="store.tarifasHermanas.findIndex(t => t.id === store.dataActiva.id) === 0"
+                      class="w-9 h-9 rounded-lg bg-white border border-orange-200 text-orange-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
+                <i class="fas fa-chevron-up text-xs"></i>
+              </button>
+              <button @click="store.irATarifaAdyacente(1)"
+                      :disabled="store.tarifasHermanas.findIndex(t => t.id === store.dataActiva.id) === store.tarifasHermanas.length - 1"
+                      class="w-9 h-9 rounded-lg bg-white border border-orange-200 text-orange-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
+                <i class="fas fa-chevron-down text-xs"></i>
+              </button>
             </div>
           </div>
 
@@ -1346,45 +1488,50 @@ watch(isProveedorOpen, (newVal) => {
               <div v-if="store.dataActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
                 <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t) === store.extractIdStr(store.dataActiva.tarifaMaestraId))]">
                   <span v-if="catT" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
-                    <i class="fas fa-globe-americas text-emerald-500 mr-1"></i>
-                    {{ (catT as any).procedencia ? (catT as any).procedencia : 'Sin restricción origen' }}
-                  </span>
-                  <span v-if="catT && (((catT as any).edadMinima ?? 0) > 0 || ((catT as any).edadMaxima ?? 120) < 120)" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">                    <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
-                    {{ (catT as any).edadMinima ?? 0 }} - {{ (catT as any).edadMaxima ?? 120 }} años
+                    <span class="mr-1">{{ getProcedenciaUI((catT as any).procedencia).icon }}</span>
+                      {{ getProcedenciaUI((catT as any).procedencia).label }}
+                    </span>
+                  <span v-if="catT && formatRangoEdad((catT as any).edadMinima, (catT as any).edadMaxima)" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
+                    <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
+                    {{ formatRangoEdad((catT as any).edadMinima, (catT as any).edadMaxima) }}
                   </span>
                 </template>
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-4">
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Cant (Pax) *</label>
                 <input v-model="store.dataActiva.cantidad"
                        type="number"
                        :readonly="store.dataActiva.esGrupal"
                        :class="store.dataActiva.esGrupal ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' : 'bg-white text-slate-800 border-slate-300 focus:ring-2 focus:ring-orange-500'"
-                       class="w-full rounded-xl px-4 py-3 text-sm font-bold text-center outline-none shadow-sm border">
+                       class="w-full rounded-xl px-4 py-3 text-sm font-bold text-center outline-none shadow-sm border h-[50px]">
                 <p v-if="store.dataActiva.esGrupal" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo</p>
               </div>
 
-              <div class="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 flex justify-between items-center shadow-sm">
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5">Moneda</label>
-                  <select v-model="store.dataActiva.moneda" class="bg-transparent text-slate-800 font-bold text-xs outline-none border-b border-slate-300 pb-1 appearance-none focus:border-orange-500 transition-colors">
-                    <option value="USD">USD</option>
-                    <option value="PEN">PEN</option>
-                  </select>
+              <div class="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5">Moneda</label>
+                    <select v-model="store.dataActiva.moneda" class="bg-transparent text-slate-800 font-bold text-xs outline-none border-b border-slate-300 pb-1 appearance-none focus:border-orange-500 transition-colors">
+                      <option value="USD">USD</option>
+                      <option value="PEN">PEN</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 text-right">Costo Unitario</label>
+                    <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-28 bg-slate-50 border border-slate-300 text-orange-600 rounded-xl px-3 py-2 text-lg font-black text-right focus:border-orange-500 outline-none shadow-inner">
+                  </div>
                 </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 text-right">Costo Unitario</label>
-                  <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-32 bg-slate-50 border border-slate-300 text-orange-600 rounded-xl px-3 py-2 text-lg font-black text-right focus:border-orange-500 outline-none shadow-inner">
+                <div class="flex justify-end items-baseline gap-1.5 mt-3 pt-3 border-t border-slate-100">
+                  <span class="text-[9px] text-slate-500 font-bold uppercase">Subtotal Neto:</span>
+                  <span class="text-orange-600 text-sm font-black">{{ formatMoneda(store.dataActiva.montoCosto * store.dataActiva.cantidad, store.dataActiva.moneda) }}</span>
                 </div>
               </div>
+            </div>
 
-              <div class="col-span-2 text-right">
-                <p class="text-[10px] text-slate-500 font-bold uppercase">Subtotal Neto: <span class="text-orange-600 text-sm font-black ml-1">{{ formatMoneda(store.dataActiva.montoCosto * store.dataActiva.cantidad, store.dataActiva.moneda) }}</span></p>
-              </div>
-
+            <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2 mt-2">
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre en Recibo *</label>
                 <div class="flex gap-2">
@@ -1435,6 +1582,75 @@ watch(isProveedorOpen, (newVal) => {
                 </div>
               </div>
 
+              <div class="col-span-2 bg-white border border-purple-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                  <p class="text-xs font-black text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-layer-group text-purple-500"></i> Rol y Agrupamiento
+                  </p>
+                  <span class="text-[9px] font-black px-2 py-1 rounded border uppercase"
+                        :class="[getRolTarifaUI(store.dataActiva.rolSnapshot).bg, getRolTarifaUI(store.dataActiva.rolSnapshot).text, getRolTarifaUI(store.dataActiva.rolSnapshot).border]">
+      <i class="fas" :class="getRolTarifaUI(store.dataActiva.rolSnapshot).icon"></i>
+      {{ getRolTarifaUI(store.dataActiva.rolSnapshot).label }}
+    </span>
+                </div>
+
+                <div v-if="store.dataActiva.rolSnapshot === 'operativo'" class="mb-3 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
+                  <i class="fas fa-lock text-slate-400 mt-0.5"></i>
+                  <span class="text-[10px] font-bold text-slate-500 leading-tight">Rol Operativo — heredado del catálogo maestro. No se elige a mano ni participa del selector de opciones del cliente.</span>
+                </div>
+
+                <div v-else class="flex gap-2 mb-3">
+                  <button @click="store.dataActiva.grupoTarifa != null && store.marcarTarifaComoEstandar(store.dataActiva.id)"
+                          :disabled="store.dataActiva.grupoTarifa == null"
+                          :class="[
+            store.dataActiva.rolSnapshot === 'estandar' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-blue-50',
+            store.dataActiva.grupoTarifa == null ? 'opacity-40 cursor-not-allowed' : ''
+          ]"
+                          class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
+                    <i class="fas fa-star mr-1"></i> Estándar
+                  </button>
+                  <button @click="store.dataActiva.rolSnapshot = 'alternativa'"
+                          :class="store.dataActiva.rolSnapshot === 'alternativa' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-purple-50'"
+                          class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
+                    <i class="fas fa-right-left mr-1"></i> Alternativa
+                  </button>
+                </div>
+
+                <p v-if="store.dataActiva.grupoTarifa == null" class="text-[9px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-3">
+                  <i class="fas fa-exclamation-triangle mr-1"></i> Sin grupo asignado — no se puede marcar como estándar hasta definir un grupo.
+                </p>
+
+                <div class="grid grid-cols-2 gap-3">
+
+                  <div>
+                    <div v-if="store.dataActiva.rolSnapshot !== 'operativo'">
+                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Grupo (Opción Comercial)</label>
+                      <input v-model.number="store.dataActiva.grupoTarifa" type="number" min="1" placeholder="Ej: 1"
+                             class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
+                    </div>
+                    <div v-else class="flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg py-2">
+                      <span class="text-[9px] font-black text-slate-400 uppercase">Sin grupo</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Comisión Propia (%)</label>
+                    <input v-model.number="store.dataActiva.comisionOverrideSnapshot" type="number" step="0.1" placeholder="Usa la global"
+                           class="w-full bg-white border border-slate-300 text-emerald-600 rounded-lg px-3 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
+                    <p class="text-[8px] text-slate-400 mt-1 ml-1">Vacío = usa la comisión global de la cotización.</p>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nota Aclaratoria (horarios, condiciones...)</label>
+                  <textarea :value="store.getI18nText(store.dataActiva.notaRol as any, store.cotizacion?.idiomaEdicion || 'es')"
+                            @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.notaRol, store.cotizacion.idiomaEdicion, (e.target as HTMLTextAreaElement).value) }"
+                            rows="2"
+                            class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-purple-500 shadow-sm resize-none"
+                            placeholder="Ej: Sale 06:00am, llega 10:00am..."></textarea>
+                </div>
+              </div>
+
               <div class="col-span-2 bg-white border border-orange-200 rounded-2xl mt-2 relative overflow-hidden transition-all duration-300 shadow-sm">
                 <div class="absolute left-0 top-0 bottom-0 w-1 bg-orange-400 z-10"></div>
 
@@ -1443,14 +1659,15 @@ watch(isProveedorOpen, (newVal) => {
                     <label class="block text-[10px] font-black text-orange-500 uppercase tracking-widest cursor-pointer mb-0.5 flex items-center gap-1.5">
                       <i class="fas fa-truck-loading"></i> Datos del Proveedor
 
-                      <span v-if="store.dataActiva.estadoOperativoSnapshot && store.dataActiva.estadoOperativoSnapshot !== 'Sin Solicitar'"
-                            class="text-[8px] px-1.5 py-0.5 rounded border uppercase font-black tracking-tighter ml-2"
-                            :class="{
-                                'bg-amber-100 text-amber-600 border-amber-200': store.dataActiva.estadoOperativoSnapshot === 'Solicitado',
-                                'bg-emerald-100 text-emerald-600 border-emerald-200': store.dataActiva.estadoOperativoSnapshot === 'Confirmado' || store.dataActiva.estadoOperativoSnapshot === 'Reconfirmado',
-                                'bg-red-100 text-red-600 border-red-200': store.dataActiva.estadoOperativoSnapshot === 'Pendiente Pago'
-                            }">
-                        {{ store.dataActiva.estadoOperativoSnapshot }}
+                      <span v-if="store.dataActiva.estadoOperativoSnapshot && store.dataActiva.estadoOperativoSnapshot !== 'sin-solicitar'"
+                            class="inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded border uppercase font-black tracking-tighter ml-2"
+                            :class="[
+                              getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).bg,
+                              getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).text,
+                              getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).border
+                            ]">
+                        <i class="fas" :class="getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).icon"></i>
+                        {{ getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).label }}
                       </span>
                     </label>
                     <p class="text-sm font-bold flex items-center gap-2" :class="store.dataActiva.proveedorNombreSnapshot ? 'text-slate-800' : 'text-slate-400 italic'">
@@ -1615,56 +1832,72 @@ watch(isProveedorOpen, (newVal) => {
                     </div>
                   </fieldset>
 
-                  <div class="mt-5 pt-4 border-t border-slate-200">
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
-                      <span>Nombre para la Reserva (Email)</span>
-                      <i class="fas fa-paper-plane text-slate-400"></i>
-                    </label>
-                    <input v-model="store.dataActiva.nombreParaProveedorSnapshot"
-                           type="text"
-                           class="w-full bg-emerald-50/50 border border-emerald-200 text-emerald-700 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm"
-                           placeholder="Ej: Cena Buffet Tunupa / 2 Pax..." />
-                    <p class="text-[9px] text-slate-400 mt-1 ml-1 flex items-start gap-1">
-                      <i class="fas fa-exclamation-circle mt-0.5 text-emerald-500"></i>
-                      Este es el texto exacto del requerimiento automático.
-                    </p>
-                  </div>
 
-                  <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
-                        <i class="fas fa-tasks text-sky-500"></i> Estado de Reserva
-                      </label>
-                      <select v-model="store.dataActiva.estadoOperativoSnapshot" class="w-full bg-white border border-slate-300 text-slate-800 font-bold rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500 outline-none shadow-sm cursor-pointer appearance-none">
-                        <option value="Sin Solicitar">Sin Solicitar</option>
-                        <option value="Solicitado">Solicitado</option>
-                        <option value="Confirmado">Confirmado</option>
-                        <option value="Reconfirmado">Reconfirmado</option>
-                        <option value="Pendiente Pago">Pendiente Pago</option>
-                      </select>
-                    </div>
-
-                    <div>
+                  <template v-if="store.dataActiva.proveedorNombreSnapshot">
+                    <div class="mt-5 pt-4 border-t border-slate-200">
                       <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
-                        <span>Día de Vencimiento</span>
-                        <i class="far fa-calendar-alt text-red-500"></i>
+                        <span>Nombre para la Reserva (Email)</span>
+                        <i class="fas fa-paper-plane text-slate-400"></i>
                       </label>
-                      <input v-model="store.dataActiva.fechaLimitePago"
-                             type="date"
-                             class="w-full bg-white border border-slate-300 text-red-600 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-red-500 outline-none shadow-sm" />
-                    </div>
-
-                    <div>
-                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
-                        <span>Nota de Pago</span>
-                        <i class="fas fa-sticky-note text-amber-500"></i>
-                      </label>
-                      <input v-model="store.dataActiva.condicionesPagoSnapshot"
+                      <input v-model="store.dataActiva.nombreParaProveedorSnapshot"
                              type="text"
-                             class="w-full bg-white border border-slate-300 text-amber-600 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-amber-500 outline-none shadow-sm placeholder-slate-300"
-                             placeholder="Ej: Depósito BCP / 15 días antes..." />
+                             class="w-full bg-emerald-50/50 border border-emerald-200 text-emerald-700 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm"
+                             placeholder="Ej: Cena Buffet Tunupa / 2 Pax..." />
+                      <p class="text-[9px] text-slate-400 mt-1 ml-1 flex items-start gap-1">
+                        <i class="fas fa-exclamation-circle mt-0.5 text-emerald-500"></i>
+                        Este es el texto exacto del requerimiento automático.
+                      </p>
                     </div>
+
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                      <div>
+                        <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
+                          <i class="fas fa-tasks text-sky-500"></i> Estado de Reserva
+                        </label>
+                        <div class="relative">
+                          <select v-model="store.dataActiva.estadoOperativoSnapshot"
+                                  class="w-full appearance-none rounded-lg px-3 py-2 pr-8 text-xs font-black outline-none shadow-sm border cursor-pointer transition-colors"
+                                  :class="[getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).bg, getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).text, getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).border]">
+                            <option value="sin-solicitar">Sin Solicitar</option>
+                            <option value="solicitado">Solicitado</option>
+                            <option value="confirmado">Confirmado</option>
+                            <option value="reconfirmado">Reconfirmado</option>
+                            <option value="pendiente-pago">Pendiente Pago</option>
+                          </select>
+                          <i class="fas absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]"
+                             :class="[getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).icon, getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).text]"></i>
+                        </div>
+                      </div>
+
+
+                      <div>
+                        <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
+                          <span>Día de Vencimiento</span>
+                          <i class="far fa-calendar-alt text-red-500"></i>
+                        </label>
+                        <input v-model="store.dataActiva.fechaLimitePago"
+                               type="date"
+                               class="w-full bg-white border border-slate-300 text-red-600 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-red-500 outline-none shadow-sm" />
+                      </div>
+
+                      <div>
+                        <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
+                          <span>Nota de Pago</span>
+                          <i class="fas fa-sticky-note text-amber-500"></i>
+                        </label>
+                        <input v-model="store.dataActiva.condicionesPagoSnapshot"
+                               type="text"
+                               class="w-full bg-white border border-slate-300 text-amber-600 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-amber-500 outline-none shadow-sm placeholder-slate-300"
+                               placeholder="Ej: Depósito BCP / 15 días antes..." />
+                      </div>
+                    </div>
+                  </template>
+                  <div v-else class="mt-5 pt-4 border-t border-slate-200 text-center py-6 text-slate-400">
+                    <i class="fas fa-user-slash text-2xl mb-2 opacity-40"></i>
+                    <p class="text-[10px] font-bold uppercase tracking-widest">Asigna un proveedor para gestionar la reserva</p>
                   </div>
+
 
                 </div>
               </div>
@@ -1674,9 +1907,9 @@ watch(isProveedorOpen, (newVal) => {
           </div>
         </div>
 
-        <div v-if="store.inspectorActivo !== 'resumen' && store.cotizacion"
-             @click="isTotalsDrawerOpen = true"
-             class="absolute bottom-0 w-full bg-slate-900 border-t border-slate-700/50 px-5 py-4 flex justify-between items-center flex-shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.4)] z-40 cursor-pointer hover:bg-slate-800 active:bg-slate-950 transition-colors">
+        <<div v-if="store.inspectorActivo !== 'resumen' && store.cotizacion"
+              @click="isTotalsDrawerOpen = true"
+              class="absolute bottom-0 w-full bg-slate-900 border-t border-slate-700/50 px-6 py-4 flex justify-between items-center flex-shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.4)] z-40 cursor-pointer hover:bg-slate-800 active:bg-slate-950 transition-colors">
 
           <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 px-4 py-0.5 rounded-t-lg border-t border-x border-slate-700/50 text-slate-400 shadow-sm flex flex-col items-center justify-center">
             <i class="fas fa-chevron-up text-[10px]"></i>
@@ -1691,9 +1924,17 @@ watch(isProveedorOpen, (newVal) => {
               <span class="text-base font-black text-white leading-none">{{ formatMoneda(store.totalCostoNeto, store.cotizacion.monedaGlobal) }}</span>
             </div>
           </div>
-          <div class="flex flex-col items-end">
-            <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-0.5">Venta Sugerida</span>
-            <span class="text-xl font-black text-emerald-400 leading-none">{{ formatMoneda(store.ventaSugerida, store.cotizacion.monedaGlobal) }}</span>
+
+          <div class="flex items-center gap-3">
+            <div class="px-4 flex flex-col items-end">
+              <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-0.5">Venta Sugerida</span>
+              <span class="text-xl font-black text-emerald-400 leading-none">{{ formatMoneda(store.ventaSugerida, store.cotizacion.monedaGlobal) }}</span>
+            </div>
+
+            <button @click.stop="handleGuardar"
+                    class="md:hidden w-9 h-9 rounded-full bg-[#E07845] hover:bg-[#c96636] active:scale-95 flex items-center justify-center shadow-md transition-all flex-shrink-0">
+              <i class="fas fa-save text-sm text-white"></i>
+            </button>
           </div>
         </div>
       </aside>
@@ -1705,7 +1946,7 @@ watch(isProveedorOpen, (newVal) => {
       <p class="text-slate-500 mt-2 font-medium max-w-md">
         El motor operativo necesita saber exactamente qué Expediente y qué Versión cargar. Revisa que la URL contenga los identificadores correctos.
       </p>
-      <button @click="router.push('/cotizaciones')" class="mt-8 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all">
+      <button @click="router.push('/cotizacion')" class="mt-8 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all">
         <i class="fas fa-arrow-left mr-2"></i> Volver al Dashboard
       </button>
     </div>
@@ -1886,7 +2127,7 @@ watch(isProveedorOpen, (newVal) => {
                           <div v-if="cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0">
                             <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-clipboard-list mr-1"></i> Recomendaciones del Segmento</h4>
                             <div class="flex flex-col gap-4">
-                              <div v-for="(notasGrupo, tipo) in agruparNotasPorTipo(cotSeg.notasSnapshot)" :key="tipo">
+                              <div v-for="[tipo, notasGrupo] in agruparNotasPorTipo(cotSeg.notasSnapshot)" :key="tipo">
                                 <div class="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
                                   <i class="fas" :class="getTipoNotaUI(tipo).icon"></i> {{ tipo }}
                                 </div>
@@ -2028,7 +2269,7 @@ watch(isProveedorOpen, (newVal) => {
     <Transition name="fade-scale">
       <div v-if="modalNota.isOpen" class="fixed inset-0 z-[1300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalNota.isOpen = false">
         <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
-          <div :class="[getTipoNotaUI(modalNota.nota?.tipo).bg, getTipoNotaUI(modalNota.nota?.text)]" class="px-5 py-4 flex justify-between items-center border-b border-black/5 flex-shrink-0">
+          <div :class="[getTipoNotaUI(modalNota.nota?.tipo).bg, getTipoNotaUI(modalNota.nota?.tipo).text]" class="px-5 py-4 flex justify-between items-center border-b border-black/5 flex-shrink-0">
             <h3 class="font-black text-sm uppercase tracking-widest flex items-center gap-2">
               <i class="fas" :class="getTipoNotaUI(modalNota.nota?.tipo).icon"></i>
               {{ modalNota.nota?.tipo }}

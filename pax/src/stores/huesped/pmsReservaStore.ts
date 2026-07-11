@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { paxService } from '@/services/paxService';
-import type { PmsReserva } from '@/types/pms';
+import { paxService } from '@/services/paxService.ts';
+import type { PmsReserva } from '@/types/pmsModel.ts';
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
 
 export const usePmsReservaStore = defineStore('pmsReservaStore', () => {

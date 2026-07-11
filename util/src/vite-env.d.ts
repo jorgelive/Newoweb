@@ -12,6 +12,7 @@ interface Window {
     OPENPERU_CONFIG: {
         apiUrl: string;
         panelUrl: string;
+        paxUrl: string;
     };
 }
 

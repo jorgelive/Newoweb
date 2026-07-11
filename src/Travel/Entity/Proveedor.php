@@ -91,7 +91,7 @@ class Proveedor
     /**
      * @var Collection<int, ProveedorImagen>
      */
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read'])]
     #[ORM\OneToMany(
         mappedBy: 'proveedor',
         targetEntity: ProveedorImagen::class,

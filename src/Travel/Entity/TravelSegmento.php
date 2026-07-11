@@ -70,7 +70,7 @@ class TravelSegmento
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoImagen::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $imagenes;
 
-    #[Groups(['segmento:item:read', 'segmento:write', 'servicio:item:read'])]
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoComponente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['orden' => 'ASC'])]
     private Collection $segmentoComponentes;

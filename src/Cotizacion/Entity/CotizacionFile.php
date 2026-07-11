@@ -9,9 +9,11 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
-use ApiPlatform\Metadata\Patch; // 🔥 IMPORTANTE: Añadimos Patch
+use ApiPlatform\Metadata\Patch;
+use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
@@ -22,6 +24,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 
 /**
  * El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo.
@@ -36,6 +39,15 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Get(
             normalizationContext: ['groups' => ['file:read', 'file:item:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+        ),
+        new Get(
+            uriTemplate: '/client/cotizacion/cotizacion_file/{localizador}',
+            uriVariables: [
+                'localizador' => new Link(fromClass: CotizacionFile::class, identifiers: ['localizador']),
+            ],
+            normalizationContext: ['groups' => ['pax_cotizacion:read']],
+            security: "is_granted('PUBLIC_ACCESS')",
+            provider: CotizacionFilePublicProvider::class,
         ),
         new Post(
             denormalizationContext: ['groups' => ['file:write']],
@@ -68,11 +80,11 @@ class CotizacionFile
     use TimestampTrait;
     use LocatorTrait;
 
-    #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreGrupo = null;
 
-    #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $pasajeroPrincipal = null;
 
@@ -102,7 +114,7 @@ class CotizacionFile
      * @var Collection<int, Cotizacion>
      */
     #[ApiProperty(fetchEager: false)]
-    #[Groups(['file:item:read'])]
+    #[Groups(['file:item:read', 'file:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: Cotizacion::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['version' => 'DESC'])]
     private Collection $cotizaciones;
@@ -111,7 +123,7 @@ class CotizacionFile
      * @var Collection<int, CotizacionFilepasajero>
      */
     #[ApiProperty(fetchEager: false)]
-    #[Groups(['file:item:read'])]
+    #[Groups(['file:item:read', 'pax_cotizacion:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFilepasajero::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $filepasajeros;
 
@@ -140,6 +152,41 @@ class CotizacionFile
     /* ======================================================
      * GETTERS Y SETTERS
      * ====================================================== */
+
+    #[Groups(['file:read', 'file:item:read', 'pax_cotizacion:read'])]
+    #[SerializedName('localizador')]
+    public function getLocalizadorPublico(): ?string
+    {
+        // Se mapea con la propiedad $this->localizador del Trait
+        return $this->localizador;
+    }
+
+    /**
+     * Cotización activa expuesta al cliente vía el visor público.
+     * Se resuelve aquí (no en el provider) para que la serialización
+     * la incluya embebida en la misma respuesta, sin exponer un id
+     * de Cotizacion consultable de forma independiente.
+     */
+    #[Groups(['pax_cotizacion:read'])]
+    public function getCotizacionActiva(): ?Cotizacion
+    {
+        return $this->cotizaciones
+            ->filter(fn(Cotizacion $c) => $c->getEstado()->esPublico())
+            ->first() ?: null;
+    }
+
+    /**
+     * Documentos visibles para el cliente en el visor público.
+     * Filtra por ArchivoTipoEnum::esPublico() en vez de una lista de
+     * strings hardcodeada, para mantener la regla en un solo sitio.
+     */
+    #[Groups(['pax_cotizacion:read'])]
+    public function getDocumentosParaCliente(): array
+    {
+        return $this->filedocumentos->filter(
+            fn(CotizacionFiledocumento $doc) => $doc->getTipodocumento()?->esPublico() === true
+        )->getValues();
+    }
 
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }

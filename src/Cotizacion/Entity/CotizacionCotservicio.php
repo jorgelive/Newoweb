@@ -10,6 +10,7 @@ use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -17,7 +18,14 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 
-#[ApiResource(operations: [new Get()], routePrefix: '/sales')]
+#[ApiResource(
+    operations: [
+        new Get(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+        )
+    ],
+    routePrefix: '/sales'
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_cotservicio')]
 #[ORM\HasLifecycleCallbacks]
@@ -41,19 +49,19 @@ class CotizacionCotservicio
     #[ORM\Column(type: 'json')]
     private array $itinerarioNombreSnapshot = [];
 
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $nombrePublicoSnapshot = [];
 
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?DateTimeImmutable $fechaInicioAbsoluta = null;
 
     /**
      * @var Collection<int, CotizacionCotcomponente>
      */
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     #[ORM\OneToMany(mappedBy: 'cotservicio', targetEntity: CotizacionCotcomponente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['fechaHoraInicio' => 'ASC'])]
     private Collection $cotcomponentes;
@@ -61,7 +69,7 @@ class CotizacionCotservicio
     /**
      * @var Collection<int, CotizacionSegmento>
      */
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     #[ORM\OneToMany(mappedBy: 'cotservicio', targetEntity: CotizacionSegmento::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['dia' => 'ASC', 'orden' => 'ASC'])]
     private Collection $cotsegmentos;
@@ -77,7 +85,7 @@ class CotizacionCotservicio
         $this->cotsegmentos = new ArrayCollection();
     }
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     public function getId(): ?Uuid { return $this->id; }
 
     #[Groups(['cotizacion:write'])]

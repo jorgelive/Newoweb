@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pax\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -8,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpKernel\KernelInterface;
 
-class HuespedAppController extends AbstractController
+class PaxAppController extends AbstractController
 {
     /**
      * App Pax (Symfony-first):
@@ -16,9 +18,11 @@ class HuespedAppController extends AbstractController
      * - En dev: carga Vite HMR
      * - En prod/build: lee manifest.json de Vite y carga assets compilados
      *
-     * Esta ruta atrapa /huesped y subrutas, y Vue Router maneja el enrutamiento interno.
+     * @param Request $request La petición entrante para capturar flags de desarrollo.
+     * @param KernelInterface $kernel Interfaz para determinar el entorno y directorios.
+     * @return Response El HTML base renderizado por Twig que monta la aplicación Vue.
      */
-    #[Route('/huesped/{route}', name: 'huesped_app_entry', requirements: ['route' => '.*'], defaults: ['route' => ''], priority: -1)]
+    #[Route('/{route}', name: 'pax_app_entry', requirements: ['route' => '.*'], defaults: ['route' => ''], priority: -100)]
     public function index(Request $request, KernelInterface $kernel): Response
     {
         $env = $kernel->getEnvironment();

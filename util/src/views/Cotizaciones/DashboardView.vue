@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useCotizacionFileStore } from '@/stores/cotizaciones/fileStore';
+import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 
 /**
@@ -82,7 +82,7 @@ const handleCreate = async (): Promise<void> => {
 
     // Extracción segura del ID en presencia del estándar Hydra
     const safeId = result.id || (result['@id'] as string).split('/').pop();
-    router.push(`/cotizaciones/${safeId}`);
+    router.push(`/cotizacion/${safeId}`);
   }
 };
 
@@ -135,7 +135,7 @@ const loadMore = (): void => {
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div v-for="(file, index) in fileStore.files" :key="file.id ?? index"
              class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col relative overflow-hidden"
-             @click="router.push(`/cotizaciones/${file.id || (file['@id']?.split('/').pop())}`)">
+             @click="router.push(`/cotizacion/${file.id || (file['@id']?.split('/').pop())}`)">
 
           <div class="flex justify-between items-start mb-4">
                     <span class="px-3 py-1 bg-slate-100 text-[#E07845] font-black text-xs rounded-lg tracking-widest border border-slate-200 uppercase">

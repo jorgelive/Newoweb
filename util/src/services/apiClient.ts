@@ -1,6 +1,6 @@
 // src/services/apiClient.ts
 import axios, { type InternalAxiosRequestConfig } from 'axios';
-import { useChatStore } from '@/stores/chatStore';
+import { isSessionExpired } from './sessionState';
 
 export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
@@ -12,7 +12,8 @@ export const getUrls = () => {
     const config = window.OPENPERU_CONFIG || {};
     return {
         api: config.apiUrl || import.meta.env.VITE_API_URL || 'https://api.openperu.pe',
-        panel: config.panelUrl || import.meta.env.VITE_PANEL_URL || 'https://panel.openperu.pe'
+        panel: config.panelUrl || import.meta.env.VITE_PANEL_URL || 'https://panel.openperu.pe',
+        pax: config.paxUrl || import.meta.env.VITE_PAX_URL || 'https://pax.openperu.pe',
     };
 };
 
@@ -69,9 +70,7 @@ apiClient.interceptors.response.use(
             if (!originalRequest._retry && !originalRequest._silentAuthCheck) {
                 originalRequest._retry = true;
 
-                // Importación dinámica de Pinia para evitar dependencias circulares al arrancar la app
-                const store = useChatStore();
-                store.isSessionExpired = true; // Esto dispara el modal en la UI
+                isSessionExpired.value = true;
 
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject, config: originalRequest });
@@ -87,8 +86,7 @@ apiClient.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry && !originalRequest._silentAuthCheck) {
             originalRequest._retry = true;
 
-            const store = useChatStore();
-            store.isSessionExpired = true;
+            isSessionExpired.value = true;
 
             return new Promise((resolve, reject) => {
                 failedQueue.push({ resolve, reject, config: originalRequest });

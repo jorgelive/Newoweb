@@ -26,14 +26,14 @@ const router = createRouter({
 
         // 1. Dashboard: Lista de todos los Files (Expedientes)
         {
-            path: '/cotizaciones',
+            path: '/cotizacion',
             name: 'cotizaciones_dashboard',
             component: () => import('../views/Cotizaciones/DashboardView.vue')
         },
 
         // 2. Sala del File (NUEVO): Datos del cliente y lista de versiones (V1, V2...)
         {
-            path: '/cotizaciones/:id',
+            path: '/cotizacion/:id',
             name: 'file_detalle',
             // Asegúrate de que este archivo exista con el nombre que le dimos en el paso anterior
             component: () => import('../views/Cotizaciones/FileDetalle.vue'),
@@ -42,7 +42,7 @@ const router = createRouter({
 
         // 3. Motor Operativo: Edición de una versión específica de la cotización
         {
-            path: '/cotizaciones/:fileId/version/:cotizacionId',
+            path: '/cotizacion/:fileId/version/:cotizacionId',
             name: 'cotizaciones_editor',
             // Tu vista del Editor / Motor Operativo
             component: () => import('../views/Cotizaciones/CotizacionEditorView.vue'),

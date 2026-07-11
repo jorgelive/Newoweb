@@ -11,11 +11,19 @@ use App\Cotizacion\Enum\EstadoOperativo;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 
-#[ApiResource(operations: [new Get()], routePrefix: '/sales')]
+#[ApiResource(
+    operations: [
+        new Get(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+        )
+    ],
+    routePrefix: '/sales'
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_cottarifa')]
 #[ORM\HasLifecycleCallbacks]
@@ -29,7 +37,7 @@ class CotizacionCottarifa
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionCotcomponente $cotcomponente = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $nombreSnapshot = [];
@@ -38,7 +46,7 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombreParaProveedorSnapshot = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer', options: ['default' => 1])]
     private int $cantidad = 1;
 
@@ -62,7 +70,7 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $proveedorMaestroId = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $proveedorNombreSnapshot = null;
 
@@ -70,14 +78,27 @@ class CotizacionCottarifa
      * Título público del proveedor (I18nContent[]), traducible.
      * Snapshot independiente del catálogo maestro — sobrevive aunque el Proveedor cambie o se borre.
      */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $proveedorTituloSnapshot = [];
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $proveedorUrlSnapshot = null;
+
+    /**
+     * Galería de imágenes del proveedor (snapshot). Necesario porque el visor
+     * público no tiene acceso al catálogo maestro para resolverlas en vivo.
+     * Estructura: [{ imageUrl, orden, isPortada }, ...]
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'json')]
+    private array $proveedorImagenesSnapshot = [];
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'json')]
+    private array $proveedorServicioImagenesSnapshot = [];
 
     /**
      * SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación).
@@ -87,19 +108,19 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $proveedorServicioMaestroId = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $proveedorServicioNombreSnapshot = null;
 
     /**
      * Título público del servicio del proveedor (I18nContent[]), traducible.
      */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $proveedorServicioTituloSnapshot = [];
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $proveedorServicioUrlSnapshot = null;
 
@@ -115,18 +136,55 @@ class CotizacionCottarifa
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     private ?string $condicionesPagoSnapshot = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
-    private ?string $tipoModalidadSnapshot = null;
+    private ?string $modalidadSnapshot = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    private ?string $procedenciaSnapshot = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $edadMinimaSnapshot = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $edadMaximaSnapshot = null;
 
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $capacidadMinimaSnapshot = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $capacidadMaximaSnapshot = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $esGrupal = false;
 
     // 🔥 NUEVO FLAG DE ANONIMATO INDIVIDUAL
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $proveedorOculto = false;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 20, nullable: true)]
+    private ?string $rolSnapshot = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $grupoTarifa = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 2, nullable: true)]
+    private ?string $comisionOverrideSnapshot = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $notaRol = [];
 
 
     public function __construct()
@@ -134,7 +192,7 @@ class CotizacionCottarifa
         $this->initializeId();
     }
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     public function getId(): ?Uuid { return $this->id; }
 
     #[Groups(['cotizacion:write'])]
@@ -221,6 +279,13 @@ class CotizacionCottarifa
 
     public function getProveedorServicioUrlSnapshot(): ?string { return $this->proveedorServicioUrlSnapshot; }
     public function setProveedorServicioUrlSnapshot(?string $proveedorServicioUrlSnapshot): self { $this->proveedorServicioUrlSnapshot = $proveedorServicioUrlSnapshot; return $this; }
+
+    // getters/setters estándar para ambos
+    public function getProveedorImagenesSnapshot(): array { return $this->proveedorImagenesSnapshot; }
+    public function setProveedorImagenesSnapshot(array $v): self { $this->proveedorImagenesSnapshot = $v; return $this; }
+
+    public function getProveedorServicioImagenesSnapshot(): array { return $this->proveedorServicioImagenesSnapshot; }
+    public function setProveedorServicioImagenesSnapshot(array $v): self { $this->proveedorServicioImagenesSnapshot = $v; return $this; }
 
     /**
      * Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
@@ -313,8 +378,23 @@ class CotizacionCottarifa
         return $this;
     }
 
-    public function getTipoModalidadSnapshot(): ?string { return $this->tipoModalidadSnapshot; }
-    public function setTipoModalidadSnapshot(?string $tipoModalidadSnapshot): self { $this->tipoModalidadSnapshot = $tipoModalidadSnapshot; return $this; }
+    public function getModalidadSnapshot(): ?string { return $this->modalidadSnapshot; }
+    public function setModalidadSnapshot(?string $modalidadSnapshot): self { $this->modalidadSnapshot = $modalidadSnapshot; return $this; }
+
+    public function getProcedenciaSnapshot(): ?string { return $this->procedenciaSnapshot; }
+    public function setProcedenciaSnapshot(?string $procedenciaSnapshot): self { $this->procedenciaSnapshot = $procedenciaSnapshot; return $this; }
+
+    public function getEdadMinimaSnapshot(): ?int { return $this->edadMinimaSnapshot; }
+    public function setEdadMinimaSnapshot(?int $edadMinimaSnapshot): self { $this->edadMinimaSnapshot = $edadMinimaSnapshot; return $this; }
+
+    public function getEdadMaximaSnapshot(): ?int { return $this->edadMaximaSnapshot; }
+    public function setEdadMaximaSnapshot(?int $edadMaximaSnapshot): self { $this->edadMaximaSnapshot = $edadMaximaSnapshot; return $this; }
+
+    public function getCapacidadMinimaSnapshot(): ?int { return $this->capacidadMinimaSnapshot; }
+    public function setCapacidadMinimaSnapshot(?int $capacidadMinimaSnapshot): self { $this->capacidadMinimaSnapshot = $capacidadMinimaSnapshot; return $this; }
+
+    public function getCapacidadMaximaSnapshot(): ?int { return $this->capacidadMaximaSnapshot; }
+    public function setCapacidadMaximaSnapshot(?int $capacidadMaximaSnapshot): self { $this->capacidadMaximaSnapshot = $capacidadMaximaSnapshot; return $this; }
 
     public function isEsGrupal(): bool { return $this->esGrupal; }
     public function setEsGrupal(bool $esGrupal): self { $this->esGrupal = $esGrupal; return $this; }
@@ -344,4 +424,14 @@ class CotizacionCottarifa
         $this->proveedorOculto = $proveedorOculto;
         return $this;
     }
+
+    public function getRolSnapshot(): ?string { return $this->rolSnapshot; }
+    public function setRolSnapshot(?string $rolSnapshot): self { $this->rolSnapshot = $rolSnapshot; return $this; }
+    public function getGrupoTarifa(): ?int { return $this->grupoTarifa; }
+    public function setGrupoTarifa(?int $grupoTarifa): self { $this->grupoTarifa = $grupoTarifa; return $this; }
+    public function getComisionOverrideSnapshot(): ?string { return $this->comisionOverrideSnapshot; }
+    public function setComisionOverrideSnapshot(?string $comisionOverrideSnapshot): self { $this->comisionOverrideSnapshot = $comisionOverrideSnapshot; return $this; }
+    public function getNotaRol(): array { return $this->notaRol; }
+    public function setNotaRol(array $notaRol): self { $this->notaRol = $notaRol; return $this; }
+
 }

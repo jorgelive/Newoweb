@@ -16,7 +16,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
 /**
- * Controlador de solo lectura para auditar las versiones de las cotizaciones emitidas.
+ * Controlador de solo lectura para auditar las versiones de las cotizacion emitidas.
  */
 class CotizacionCrudController extends BaseCrudController
 {

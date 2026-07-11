@@ -4,6 +4,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 const router = createRouter({
     history: createWebHistory('/'),
     routes: [
+        {
+            path: '/file/:localizador?', // El "?" lo hace opcional. Si no está, muestra el buscador
+            name: 'file_publica',
+            component: () => import('@/views/cotizacion/CotizacionClientView.vue'),
+            props: true
+        },
+
         // -----------------------------------------------------------------
         // 1. RUTA DE RESERVA (Entrada Clásica)
         // -----------------------------------------------------------------

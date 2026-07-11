@@ -10,6 +10,7 @@ use App\Panel\Helper\AdminFieldHelper;
 use App\Travel\Entity\TravelTarifa;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
+use App\Travel\Enum\TarifaRolEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
@@ -239,6 +240,17 @@ class TravelTarifaCrudController extends BaseCrudController
             ->setRequired(false)
             ->setHelp('El texto exacto que el proveedor reconoce en sus reservas (Ej: Ticket Tren Expedition).')
             ->setColumns(12);
+
+        yield FormField::addPanel('Rol Comercial y Comisión')->setIcon('fa fa-sliders-h')
+            ->setHelp('Operativo = costo prorrateado que nunca se muestra al cliente (ej. guía acompañante).');
+
+        yield ChoiceField::new('rol', 'Rol')
+            ->setChoices(array_reduce(TarifaRolEnum::cases(), fn ($c, $e) => $c + [$e->name => $e], []))
+            ->setRequired(true)->onlyOnForms()->setColumns(6);
+
+        yield NumberField::new('comisionOverride', 'Comisión Propia (%)')
+            ->setNumDecimals(2)->setRequired(false)->setColumns(6)
+            ->setHelp('Vacío = usa la comisión global de la cotización.');
 
         /* ====================================================================
          * PANEL: RESTRICCIONES DE VENTA

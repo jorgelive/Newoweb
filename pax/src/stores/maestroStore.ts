@@ -2,8 +2,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { paxService } from '@/services/paxService';
-import type { MaestroIdioma } from '@/types/maestros';
-import type { PmsContenidoTraducible } from '@/types/pms';
+import type { MaestroIdioma } from '@/types/maestroModel.ts';
+import type { PmsContenidoTraducible } from '@/types/pmsModel.ts';
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
 
 export const useMaestroStore = defineStore('maestroStore', () => {

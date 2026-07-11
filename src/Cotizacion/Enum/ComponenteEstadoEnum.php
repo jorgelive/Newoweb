@@ -10,10 +10,10 @@ namespace App\Cotizacion\Enum;
  */
 enum ComponenteEstadoEnum: string
 {
-    case PENDIENTE = 'Pendiente';
-    case CONFIRMADO = 'Confirmado';
-    case RECONFIRMADO = 'Reconfirmado';
-    case CANCELADO = 'Cancelado';
+    case PENDIENTE = 'pendiente';
+    case CONFIRMADO = 'confirmado';
+    case RECONFIRMADO = 'reconfirmado';
+    case CANCELADO = 'cancelado';
 
     /**
      * Retorna el color principal heredado del sistema legacy (para badges/UI general).
