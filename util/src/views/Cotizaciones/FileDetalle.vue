@@ -578,7 +578,7 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tipo Doc *</label>
-              <select v-model="paxForm.tipodocumento" required ...>
+              <select v-model="paxForm.tipodocumento" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
                 <option v-for="(label, valor) in DOCUMENTO_IDENTIDAD_LABELS" :key="valor" :value="valor">{{ label }}</option>
               </select>
             </div>
@@ -592,7 +592,7 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sexo *</label>
-              <select v-model="paxForm.sexo" required ...>
+              <select v-model="paxForm.sexo" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
                 <option v-for="(label, valor) in SEXO_LABELS" :key="valor" :value="valor">{{ label }}</option>
               </select>
             </div>
@@ -611,8 +611,6 @@ const eliminarDocumento = async (iri?: string) => {
   <Teleport to="body">
     <div v-if="showDocModal" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
-
-
 
         <div class="bg-sky-600 px-6 py-4 flex justify-between items-center text-white">
           <h3 class="font-black text-sm uppercase tracking-widest">
