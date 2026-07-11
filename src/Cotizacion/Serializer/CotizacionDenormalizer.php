@@ -38,35 +38,44 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
 
     public function denormalize(mixed $data, string $type, ?string $format = null, array $context = []): mixed
     {
+        // En POST api_allow_update es false: ItemNormalizer lanza
+        // "Update is not allowed" ante CUALQUIER id presente en los datos.
+        $permiteUpdate = true === ($context['api_allow_update'] ?? false);
+
         $idsNuevos = []; // path => uuid string
+
+        // Id raíz: en POST hay que quitarlo y reasignarlo después
+        $rootId = null;
+        if (!$permiteUpdate && isset($data['id'])) {
+            $rootId = $data['id'];
+            unset($data['id'], $data['@id']);
+        }
 
         if (isset($data['cotservicios']) && is_array($data['cotservicios'])) {
             foreach ($data['cotservicios'] as $i => &$servicio) {
 
-                // 1. UPSERT: quitar ids que no existen en BD para que se creen
-                //    en vez de que ItemNormalizer intente buscarlos (Item not found).
-                $this->prepararId($servicio, CotizacionCotservicio::class, "s$i", $idsNuevos);
+                $this->prepararId($servicio, CotizacionCotservicio::class, "s$i", $idsNuevos, $permiteUpdate);
 
                 if (isset($servicio['cotsegmentos']) && is_array($servicio['cotsegmentos'])) {
                     foreach ($servicio['cotsegmentos'] as $j => &$segData) {
-                        $this->prepararId($segData, CotizacionSegmento::class, "s$i.g$j", $idsNuevos);
+                        $this->prepararId($segData, CotizacionSegmento::class, "s$i.g$j", $idsNuevos, $permiteUpdate);
                     }
                     unset($segData);
                 }
 
                 if (isset($servicio['cotcomponentes']) && is_array($servicio['cotcomponentes'])) {
                     foreach ($servicio['cotcomponentes'] as $k => &$comp) {
-                        $this->prepararId($comp, CotizacionCotcomponente::class, "s$i.c$k", $idsNuevos);
+                        $this->prepararId($comp, CotizacionCotcomponente::class, "s$i.c$k", $idsNuevos, $permiteUpdate);
 
                         if (isset($comp['cottarifas']) && is_array($comp['cottarifas'])) {
                             foreach ($comp['cottarifas'] as $t => &$tar) {
-                                $this->prepararId($tar, CotizacionCottarifa::class, "s$i.c$k.t$t", $idsNuevos);
+                                $this->prepararId($tar, CotizacionCottarifa::class, "s$i.c$k.t$t", $idsNuevos, $permiteUpdate);
                             }
                             unset($tar);
                         }
 
-                        // 2. Desconectar el IRI del cotsegmento; el paso 5 lo reconecta
-                        //    usando el mapa en memoria (el segmento puede no existir aún en BD).
+                        // Desconectar el IRI del cotsegmento; se reconecta al final
+                        // usando el mapa en memoria (el segmento puede no existir aún en BD).
                         if (!empty($comp['cotsegmento'])) {
                             $comp['_cotsegmentoUuid'] = basename($comp['cotsegmento']);
                             $comp['cotsegmento'] = null;
@@ -78,13 +87,16 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
             unset($servicio);
         }
 
-        // 3. Dejar que el denormalizador estándar procese el resto normalmente
+        // Denormalización estándar
         $context[self::ALREADY_CALLED] = true;
         /** @var Cotizacion $cotizacion */
         $cotizacion = $this->denormalizer->denormalize($data, $type, $format, $context);
 
-        // 4. Reasignar los UUID del cliente a las entidades recién creadas
-        //    (antes de reconectar segmentos, para que el mapa por id funcione).
+        // Reasignar los UUID del cliente a las entidades recién creadas
+        if ($rootId !== null) {
+            $cotizacion->setId($rootId);
+        }
+
         foreach ($cotizacion->getCotservicios() as $i => $servicio) {
             if (isset($idsNuevos["s$i"])) {
                 $servicio->setId($idsNuevos["s$i"]);
@@ -106,7 +118,7 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
             }
         }
 
-        // 5. Reconectar los componentes a sus segmentos usando el mapa
+        // Reconectar los componentes a sus segmentos usando el mapa
         foreach ($cotizacion->getCotservicios() as $srvIdx => $servicio) {
             $segmentoMap = [];
             foreach ($servicio->getCotsegmentos() as $segmento) {
@@ -126,10 +138,11 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
     }
 
     /**
-     * Si el ítem trae un id que NO existe en BD, lo remueve del payload
-     * (para que se cree como entidad nueva) y lo guarda para reasignarlo después.
+     * POST: quita SIEMPRE el id (crear, ItemNormalizer no permite ids).
+     * PUT/PATCH: quita el id solo si no existe en BD (upsert).
+     * En ambos casos guarda el UUID para reasignarlo a la entidad nueva.
      */
-    private function prepararId(array &$item, string $class, string $path, array &$idsNuevos): void
+    private function prepararId(array &$item, string $class, string $path, array &$idsNuevos, bool $permiteUpdate): void
     {
         if (!isset($item['id']) || !is_string($item['id'])) {
             return;
@@ -140,7 +153,7 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
             return;
         }
 
-        if (null === $this->em->find($class, Uuid::fromString($item['id']))) {
+        if (!$permiteUpdate || null === $this->em->find($class, Uuid::fromString($item['id']))) {
             $idsNuevos[$path] = $item['id'];
             unset($item['id'], $item['@id']);
         }

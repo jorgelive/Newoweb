@@ -1129,7 +1129,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tipoCambio: String(tipoCambioSugerido.value || 1),
             totalCosto: '0.00',
             totalVenta: '0.00',
-            hotelOculto: true,
             precioOculto: false,
             proveedorOculto: false,
             resumen: [],
