@@ -8,7 +8,7 @@ use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelItinerarioSegmentoRel;
 use App\Travel\Entity\TravelSegmentoComponente;
 use App\Travel\Entity\TravelTarifa;
-use App\Travel\Enum\ComponenteItemModoEnum;
+use App\Travel\Enum\ComponenteModoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -136,7 +136,7 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
             $nuevaLog->setComponente($comp);
             $nuevaLog->setOrden((int)$row['orden']);
 
-            $modoEnum = ComponenteItemModoEnum::tryFrom($row['modo'] ?? 'incluido') ?? ComponenteItemModoEnum::INCLUIDO;
+            $modoEnum = ComponenteModoEnum::tryFrom($row['modo'] ?? 'incluido') ?? ComponenteModoEnum::INCLUIDO;
             $nuevaLog->setModo($modoEnum);
 
             // 🔥 Persistir el campo Día si está presente en el payload

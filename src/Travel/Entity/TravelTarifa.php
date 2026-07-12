@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
@@ -14,14 +16,12 @@ use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
+use App\Travel\Enum\TarifaCategoriaEnum;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
 use App\Travel\Enum\TarifaRolEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
-
-use ApiPlatform\Metadata\ApiFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 
 #[ApiFilter(SearchFilter::class, properties: [
     'nombreInterno' => 'partial'
@@ -72,11 +72,18 @@ class TravelTarifa
     private ?MaestroMoneda $moneda = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
-    #[ORM\Column(type: 'string', length: 30, enumType: TarifaModalidadEnum::class, nullable: true)]
+    #[ORM\Column(type: 'string', length: 30, nullable: true, enumType: TarifaModalidadEnum::class)]
     private ?TarifaModalidadEnum $modalidad = null;
 
+    /**
+     * Categoría o nivel de confort asociado a la tarifa (ej. Estándar, Económico, Superior, Premium).
+     */
     #[Groups(['componente:item:read', 'componente:write'])]
-    #[ORM\Column(type: 'string', length: 30, enumType: TarifaProcedenciaEnum::class, nullable: true)]
+    #[ORM\Column(type: 'string', length: 30, nullable: true, enumType: TarifaCategoriaEnum::class)]
+    private ?TarifaCategoriaEnum $categoria = null;
+
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\Column(type: 'string', length: 30, nullable: true, enumType: TarifaProcedenciaEnum::class)]
     private ?TarifaProcedenciaEnum $procedencia = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
@@ -114,7 +121,7 @@ class TravelTarifa
 
     /**
      * Relación directa con un servicio específico del proveedor (ej. una habitación o tour exacto).
-     * Permite asociar una tarifa a un recurso físico/lógico del proveedor para que salga por defecto en las cotizacion.
+     * Permite asociar una tarifa a un recurso físico/lógico del proveedor para que salga por defecto en las cotización.
      */
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\ManyToOne(targetEntity: ProveedorServicio::class)]
@@ -170,6 +177,8 @@ class TravelTarifa
     /**
      * Icono de procedencia sin texto, para mantener el __toString() compacto
      * en los selects/autocompletes de EasyAdmin.
+     *
+     * @return string
      */
     private function getProcedenciaIcono(): string
     {
@@ -243,6 +252,28 @@ class TravelTarifa
         return $this;
     }
 
+    /**
+     * Obtiene el enum de la categoría asociada a la tarifa.
+     *
+     * @return TarifaCategoriaEnum|null
+     */
+    public function getCategoria(): ?TarifaCategoriaEnum
+    {
+        return $this->categoria;
+    }
+
+    /**
+     * Establece la categoría de confort asociada a la tarifa.
+     *
+     * @param TarifaCategoriaEnum|null $categoria
+     * @return self
+     */
+    public function setCategoria(?TarifaCategoriaEnum $categoria): self
+    {
+        $this->categoria = $categoria;
+        return $this;
+    }
+
     public function getProcedencia(): ?TarifaProcedenciaEnum
     {
         return $this->procedencia;
@@ -307,10 +338,27 @@ class TravelTarifa
         return $this;
     }
 
-    public function getRol(): TarifaRolEnum { return $this->rol; }
-    public function setRol(TarifaRolEnum $rol): self { $this->rol = $rol; return $this; }
-    public function getComisionOverride(): ?string { return $this->comisionOverride; }
-    public function setComisionOverride(?string $comisionOverride): self { $this->comisionOverride = $comisionOverride; return $this; }
+    public function getRol(): TarifaRolEnum
+    {
+        return $this->rol;
+    }
+
+    public function setRol(TarifaRolEnum $rol): self
+    {
+        $this->rol = $rol;
+        return $this;
+    }
+
+    public function getComisionOverride(): ?string
+    {
+        return $this->comisionOverride;
+    }
+
+    public function setComisionOverride(?string $comisionOverride): self
+    {
+        $this->comisionOverride = $comisionOverride;
+        return $this;
+    }
 
     public function getProveedor(): ?Proveedor
     {
@@ -325,7 +373,7 @@ class TravelTarifa
 
     /**
      * Obtiene el servicio específico del proveedor asociado a esta tarifa.
-     * Útil para autocompletar o sugerir el servicio (ej. habitación) por defecto en cotizacion.
+     * Útil para autocompletar o sugerir el servicio (ej. habitación) por defecto en cotización.
      *
      * @return ProveedorServicio|null
      */
@@ -370,8 +418,23 @@ class TravelTarifa
     }
 
     // 🔥 VIRTUALES PARA EASYADMIN (Evita el HTTP 500 al renderizar HTML personalizado)
-    public function getVirtualTitulo(): string { return ''; }
-    public function getVirtualCostoPorGrupo(): string { return ''; }
-    public function getVirtualModalidad(): string { return ''; }
-    public function getVirtualProcedencia(): string { return ''; }
+    public function getVirtualTitulo(): string
+    {
+        return '';
+    }
+
+    public function getVirtualCostoPorGrupo(): string
+    {
+        return '';
+    }
+
+    public function getVirtualModalidad(): string
+    {
+        return '';
+    }
+
+    public function getVirtualProcedencia(): string
+    {
+        return '';
+    }
 }

@@ -7,7 +7,7 @@ namespace App\Travel\Controller\Crud;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Helper\AdminFieldHelper;
 use App\Travel\Entity\TravelSegmentoComponente;
-use App\Travel\Enum\ComponenteItemModoEnum;
+use App\Travel\Enum\ComponenteModoEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
@@ -103,8 +103,8 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
             ]);
 
         yield ChoiceField::new('modo', 'Modo Comercial')
-            ->setChoices(array_reduce(ComponenteItemModoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
-            ->formatValue(static fn ($value) => $value instanceof ComponenteItemModoEnum ? $value->value : $value)
+            ->setChoices(array_reduce(ComponenteModoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
+            ->formatValue(static fn ($value) => $value instanceof ComponenteModoEnum ? $value->value : $value)
             ->setFormTypeOptions([
                 'placeholder' => false
             ])

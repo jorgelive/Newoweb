@@ -127,12 +127,13 @@ export default class extends Controller {
             }
         }
 
+        // 🔥 Se actualizan las opciones para que reflejen estrictamente ComponenteModoEnum
         const modoActual = data.modo || 'incluido';
         const opcionesModo = `
             <option value="incluido" ${modoActual === 'incluido' ? 'selected' : ''}>Incluido</option>
-            <option value="opcional" ${modoActual === 'opcional' ? 'selected' : ''}>Opcional</option>
             <option value="no_incluido" ${modoActual === 'no_incluido' ? 'selected' : ''}>No Incluido</option>
             <option value="cortesia" ${modoActual === 'cortesia' ? 'selected' : ''}>Cortesía</option>
+            <option value="reemplazado" ${modoActual === 'reemplazado' ? 'selected' : ''}>Reemplazado</option>
         `;
 
         tr.innerHTML = `

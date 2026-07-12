@@ -6,7 +6,7 @@ namespace App\Travel\Entity;
 
 use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
-use App\Travel\Enum\ComponenteItemModoEnum;
+use App\Travel\Enum\ComponenteModoEnum;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -92,11 +92,11 @@ class TravelSegmentoComponente
     private ?DateTimeImmutable $horaFin = null;
 
     /**
-     * @var ComponenteItemModoEnum Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+     * @var ComponenteModoEnum Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
      */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
-    #[ORM\Column(type: 'string', length: 30, enumType: ComponenteItemModoEnum::class)]
-    private ComponenteItemModoEnum $modo = ComponenteItemModoEnum::INCLUIDO;
+    #[ORM\Column(type: 'string', length: 30, enumType: ComponenteModoEnum::class)]
+    private ComponenteModoEnum $modo = ComponenteModoEnum::INCLUIDO;
 
     /**
      * @var int Orden posicional en el que se listará el componente dentro del contenedor del segmento.
@@ -123,6 +123,10 @@ class TravelSegmentoComponente
         $this->segmento = null;
     }
 
+    /**
+     * Retorna una representación en texto del vínculo logístico.
+     * * @return string
+     */
     public function __toString(): string
     {
         $nombreComponente = $this->componente ? (string) $this->componente : 'Nuevo vínculo';
@@ -135,105 +139,171 @@ class TravelSegmentoComponente
         return $nombreComponente . $diaFormateada . $horaFormateada . $horaFinFormateada . $contexto . $estadoInclusion;
     }
 
+    /**
+     * @return Uuid|null
+     */
     #[Groups(['segmento:read', 'segmento:item:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;
     }
 
+    /**
+     * @return TravelSegmento|null
+     */
     public function getSegmento(): ?TravelSegmento
     {
         return $this->segmento;
     }
 
+    /**
+     * @param TravelSegmento|null $segmento
+     * @return self
+     */
     public function setSegmento(?TravelSegmento $segmento): self
     {
         $this->segmento = $segmento;
         return $this;
     }
 
+    /**
+     * @return TravelComponente|null
+     */
     public function getComponente(): ?TravelComponente
     {
         return $this->componente;
     }
 
+    /**
+     * @param TravelComponente|null $componente
+     * @return self
+     */
     public function setComponente(?TravelComponente $componente): self
     {
         $this->componente = $componente;
         return $this;
     }
 
+    /**
+     * @return TravelTarifa|null
+     */
     public function getTarifaPredeterminada(): ?TravelTarifa
     {
         return $this->tarifaPredeterminada;
     }
 
+    /**
+     * @param TravelTarifa|null $tarifaPredeterminada
+     * @return self
+     */
     public function setTarifaPredeterminada(?TravelTarifa $tarifaPredeterminada): self
     {
         $this->tarifaPredeterminada = $tarifaPredeterminada;
         return $this;
     }
 
+    /**
+     * @return TravelItinerario|null
+     */
     public function getItinerarioContexto(): ?TravelItinerario
     {
         return $this->itinerarioContexto;
     }
 
+    /**
+     * @param TravelItinerario|null $itinerarioContexto
+     * @return self
+     */
     public function setItinerarioContexto(?TravelItinerario $itinerarioContexto): self
     {
         $this->itinerarioContexto = $itinerarioContexto;
         return $this;
     }
 
+    /**
+     * @return int|null
+     */
     public function getDia(): ?int
     {
         return $this->dia;
     }
 
+    /**
+     * @param int|null $dia
+     * @return self
+     */
     public function setDia(?int $dia): self
     {
         $this->dia = $dia;
         return $this;
     }
 
+    /**
+     * @return DateTimeImmutable|null
+     */
     public function getHora(): ?DateTimeImmutable
     {
         return $this->hora;
     }
 
+    /**
+     * @param DateTimeImmutable|null $hora
+     * @return self
+     */
     public function setHora(?DateTimeImmutable $hora): self
     {
         $this->hora = $hora;
         return $this;
     }
 
+    /**
+     * @return DateTimeImmutable|null
+     */
     public function getHoraFin(): ?DateTimeImmutable
     {
         return $this->horaFin;
     }
 
+    /**
+     * @param DateTimeImmutable|null $horaFin
+     * @return self
+     */
     public function setHoraFin(?DateTimeImmutable $horaFin): self
     {
         $this->horaFin = $horaFin;
         return $this;
     }
 
-    public function getModo(): ComponenteItemModoEnum
+    /**
+     * @return ComponenteModoEnum
+     */
+    public function getModo(): ComponenteModoEnum
     {
         return $this->modo;
     }
 
-    public function setModo(ComponenteItemModoEnum $modo): self
+    /**
+     * @param ComponenteModoEnum $modo
+     * @return self
+     */
+    public function setModo(ComponenteModoEnum $modo): self
     {
         $this->modo = $modo;
         return $this;
     }
 
+    /**
+     * @return int
+     */
     public function getOrden(): int
     {
         return $this->orden;
     }
 
+    /**
+     * @param int $orden
+     * @return self
+     */
     public function setOrden(int $orden): self
     {
         $this->orden = $orden;

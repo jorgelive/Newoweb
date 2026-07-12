@@ -37,11 +37,6 @@ class CotizacionCottarifa
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionCotcomponente $cotcomponente = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
-    #[ORM\Column(type: 'json')]
-    private array $nombreSnapshot = [];
-
     #[Groups(['cotizacion:item:read', 'cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombreParaProveedorSnapshot = null;
@@ -109,8 +104,13 @@ class CotizacionCottarifa
     private ?string $proveedorServicioMaestroId = null;
 
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $tituloSnapshot = [];
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
-    private ?string $proveedorServicioNombreSnapshot = null;
+    private ?string $nombreInternoSnapshot = null;
 
     /**
      * Título público del servicio del proveedor (I18nContent[]), traducible.
@@ -219,9 +219,17 @@ class CotizacionCottarifa
     public function getCotcomponente(): ?CotizacionCotcomponente { return $this->cotcomponente; }
     public function setCotcomponente(?CotizacionCotcomponente $cotcomponente): self { $this->cotcomponente = $cotcomponente; return $this; }
 
-    public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
-    public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }
+    /**
+     * Obtiene el título comercial multidioma de la tarifa.
+     */
+    public function getTituloSnapshot(): array { return $this->tituloSnapshot; }
+    public function setTituloSnapshot(array $tituloSnapshot): self { $this->tituloSnapshot = $tituloSnapshot; return $this; }
 
+    /**
+     * Obtiene el nombre interno operativo de la tarifa.
+     */
+    public function getNombreInternoSnapshot(): ?string { return $this->nombreInternoSnapshot; }
+    public function setNombreInternoSnapshot(?string $nombreInternoSnapshot): self { $this->nombreInternoSnapshot = $nombreInternoSnapshot; return $this; }
     /**
      * Obtiene el nombre exclusivo para el requerimiento al proveedor.
      *

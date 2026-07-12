@@ -6,10 +6,13 @@ namespace App\Travel\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Travel\Entity\TravelComponenteItem;
-use App\Travel\Enum\ComponenteItemModoEnum;
+use App\Travel\Enum\ItemModoEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Option\TextAlign;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 
 /**
@@ -29,6 +32,12 @@ class TravelComponenteItemCrudController extends BaseCrudController
             ->showEntityActionsInlined();
     }
 
+    /**
+     * Define los campos visibles y editable para la entidad TravelComponenteItem.
+     *
+     * @param string $pageName
+     * @return iterable
+     */
     public function configureFields(string $pageName): iterable
     {
         yield AssociationField::new('diccionario', 'Término / Viñeta')
@@ -37,8 +46,8 @@ class TravelComponenteItemCrudController extends BaseCrudController
             ->setRequired(true);
 
         yield ChoiceField::new('modo', 'Condición Base')
-            ->setChoices(array_reduce(ComponenteItemModoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
-            ->formatValue(static fn ($value) => $value instanceof ComponenteItemModoEnum ? $value->value : $value)
+            ->setChoices(array_reduce(ItemModoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
+            ->formatValue(static fn ($value) => $value instanceof ItemModoEnum ? $value->value : $value)
             ->setHelp('¿Viene incluido, es opcional, o no está incluido?')
             ->setColumns(4)
             ->setRequired(true);
@@ -47,6 +56,27 @@ class TravelComponenteItemCrudController extends BaseCrudController
             ->setHelp('SOLO SI ES OPCIONAL: Selecciona el componente logístico que se agregará a los costos si el cliente elige esta opción.')
             ->setColumns(4)
             ->setRequired(false);
+
+        /* ====================================================================
+         * VISIBILIDAD DE TARIFAS (CONFIGURACIÓN PÚBLICA)
+         * ==================================================================== */
+        yield BooleanField::new('tituloTarifaVisible', 'Ver Título Tarifa')
+            ->setHelp('Muestra u oculta el título de la tarifa asociada al cliente final.')
+            ->renderAsSwitch(true)
+            ->setTextAlign(TextAlign::CENTER)
+            ->setColumns(4);
+
+        yield BooleanField::new('categoriaTarifaVisible', 'Ver Cat. Tarifa')
+            ->setHelp('Muestra u oculta la categoría de la tarifa asociada al cliente final.')
+            ->renderAsSwitch(true)
+            ->setTextAlign(TextAlign::CENTER)
+            ->setColumns(4);
+
+        yield BooleanField::new('modalidadTarifaVisible', 'Ver Mod. Tarifa')
+            ->setHelp('Muestra u oculta la modalidad de la tarifa asociada al cliente final.')
+            ->renderAsSwitch(true)
+            ->setTextAlign(TextAlign::CENTER)
+            ->setColumns(4);
 
         yield IntegerField::new('orden', 'Orden de lista')
             ->setColumns(12)

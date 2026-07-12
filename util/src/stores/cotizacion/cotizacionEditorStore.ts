@@ -4,8 +4,7 @@ import {apiClient} from '@/services/apiClient';
 
 import {
     Catalogos,
-    ClasificacionFinanciera,
-    ClasificacionFinancieraCliente,
+    ClasificacionFinancieraInterna,
     Componente,
     ComponenteCompleto,
     ComponentePlaceholder,
@@ -24,7 +23,10 @@ import {
     TarifaBase,
     TarifaSnapshot,
     ImagenProveedorSnapshot,
-    getProcedenciaUI, TarifaRolValue, formatRangoEdad,
+    getProcedenciaUI, TarifaRolValue, formatRangoEdad, Item, OpcionUpgradeInterna, ModoFinanciero,
+    LineaDetalleClaseInterna, TotalesInternos, ClasePasajeroInterna, CLASIFICACION_SCHEMA_VERSION,
+    DeltaUpgradePorPerfil, InclusionTarifa, InclusionLinea, InclusionServicio, totalesInternosVacios,
+    expurgarParaCliente,
 } from '@/types/cotizacionEditorModel.ts';
 
 import {ApiIdioma} from '@/types/maestroModel';
@@ -167,6 +169,42 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return [];
     };
 
+    const mapearItemASnapshot = async (item: Item): Promise<SnapshotItem> => {
+        let tituloData: I18nContent[] = [];
+        const dicc = item.diccionario;
+
+        if (typeof dicc === 'string') {
+            try {
+                const res = await apiClient.get(dicc);
+                tituloData = res.data.titulo || [];
+            } catch (err) {
+                console.error('No se pudo cargar el diccionario del item:', dicc, err);
+            }
+        } else if (dicc && typeof dicc === 'object' && Array.isArray((dicc as { titulo?: I18nContent[] }).titulo)) {
+            tituloData = (dicc as { titulo: I18nContent[] }).titulo;
+        }
+
+        const modoBackend = item.modo || 'incluido';
+
+        return {
+            id: crypto.randomUUID(),
+            nombreSnapshot: JSON.parse(JSON.stringify(tituloData)),
+            modo: modoBackend,
+            modoOriginal: modoBackend,
+            // ItemModoEnum ya no tiene 'cortesia': solo 'incluido' marca el check
+            incluido: modoBackend === 'incluido',
+            tieneUpsell: !!item.componenteAdicionalVinculado,
+            componenteAdicionalVinculado: item.componenteAdicionalVinculado || null,
+            idComponenteInyectado: null,
+            isInjecting: false,
+            // Flags snapshoteados desde el ComponenteItem maestro (default false)
+            tituloTarifaVisible: item.tituloTarifaVisible ?? false,
+            categoriaTarifaVisible: item.categoriaTarifaVisible ?? false,
+            modalidadTarifaVisible: item.modalidadTarifaVisible ?? false,
+            sobreescribirTraduccion: false
+        };
+    };
+
     const mapearImagenesSnapshot = (imagenes: ImagenProveedorSnapshot[] | undefined | null): ImagenProveedorSnapshot[] => {
         if (!imagenes || !Array.isArray(imagenes)) return [];
         return imagenes.map(img => ({
@@ -247,25 +285,41 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const isComponenteConAlerta = (componente: ComponenteCompleto): boolean => {
         if (!cotizacion.value) return false;
-        if (componente.modo === 'no_incluido' || componente.modo === 'cortesia' || componente.modo === 'reemplazado') return false;
 
-        if (!componente.cottarifas || componente.cottarifas.length === 0) return true;
+        const modo = (componente.modo || '').toLowerCase();
+        if (modo === 'reemplazado') return false;
+
+        const tarifas = componente.cottarifas || [];
+
+        if (modo === 'no_incluido' && tarifas.length === 0) return false;
+        if (tarifas.length === 0) return true;   // incluido / cortesía sin tarifas
 
         const numPaxGlobal = cotizacion.value.numPax || 1;
-        let paxAsignados = 0;
-        let tieneGrupal = false;
 
-        componente.cottarifas.forEach((t: TarifaSnapshot) => {
+        const resolverGrupal = (t: TarifaSnapshot): boolean => {
+            if (t.esGrupal !== undefined) return t.esGrupal;
             const maestro = todasLasTarifasMaestras.value.find(
                 (cat) => extractIdStr(cat.tarifaId || (cat as Record<string, any>)['@id']) === extractIdStr(t.tarifaMaestraId)
             );
-            const tarifaEsGrupal = t.esGrupal !== undefined ? t.esGrupal : (maestro ? getEsGrupalTarifa(maestro) : false);
-            if (tarifaEsGrupal) tieneGrupal = true;
-            else paxAsignados += parseInt(String(t.cantidad)) || 0;
-        });
+            return maestro ? getEsGrupalTarifa(maestro) : false;
+        };
 
-        if (tieneGrupal) return false;
-        return paxAsignados !== numPaxGlobal;
+        const grupos = new Map<number, { pax: number; grupal: boolean }>();
+        for (const t of tarifas) {
+            if (t.rolSnapshot === 'operativo' || t.grupoTarifa == null) continue;
+            const acc = grupos.get(t.grupoTarifa) || { pax: 0, grupal: false };
+            if (resolverGrupal(t)) acc.grupal = true;
+            else acc.pax += parseInt(String(t.cantidad)) || 0;
+            grupos.set(t.grupoTarifa, acc);
+        }
+
+        // Solo operativas: no hay cuadre de pax exigible
+        if (grupos.size === 0) return false;
+
+        for (const g of grupos.values()) {
+            if (!g.grupal && g.pax !== numPaxGlobal) return true;
+        }
+        return false;
     };
 
     const isServicioConAlerta = (servicio: CotServicio): boolean => {
@@ -356,339 +410,538 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      *
      * @returns Estructura financiera completa procesada o null si no hay un expediente activo cargado.
      */
-    const resumenFinanciero = computed<ClasificacionFinanciera | null>(() => {
+    const resumenFinanciero = computed<ClasificacionFinancieraInterna | null>(() => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return null;
 
-        const idiomaEdicion = cotizacion.value.idiomaEdicion;
+        const idiomaEdicion = cotizacion.value.idiomaEdicion || 'es';
         const numPaxGlobal = Math.max(cotizacion.value.numPax || 1, 1);
-
-        const markup = (parseFloat(cotizacion.value.comision) || 0) / 100;
+        const comisionGlobal = parseFloat(cotizacion.value.comision) || 0;
+        const globalMarkup = comisionGlobal / 100;
         const adelantoPct = (parseFloat(cotizacion.value.adelanto) || 0) / 100;
-        const tcPromedio = parseFloat(cotizacion.value.tipoCambio) || tipoCambioSugerido.value || 1;
+        const tc = parseFloat(cotizacion.value.tipoCambio) || tipoCambioSugerido.value || 1;
+        const advertencias: string[] = [];
 
-        const todosLosComponentes: Array<Array<{
+        // ── Helpers de moneda: la moneda ORIGINAL manda, la otra se deriva 1 vez ──
+        interface Bimoneda { soles: number; dolares: number; }
+        const aBimoneda = (montoNativo: number, moneda: string): Bimoneda =>
+            String(moneda).toUpperCase() === 'PEN'
+                ? { soles: montoNativo, dolares: montoNativo / tc }
+                : { soles: montoNativo * tc, dolares: montoNativo };
+
+        const markupDeLinea = (t: TarifaSnapshot): number => {
+            const ov = t.comisionOverrideSnapshot;
+            if (ov !== null && ov !== undefined && ov !== '') return (parseFloat(String(ov)) || 0) / 100;
+            return globalMarkup;
+        };
+
+        const resolverGrupal = (t: TarifaSnapshot): boolean => {
+            if (t.esGrupal !== undefined) return t.esGrupal;
+            const maestro = todasLasTarifasMaestras.value.find(
+                (cat) => extractIdStr(cat.tarifaId || (cat as Record<string, any>)['@id']) === extractIdStr(t.tarifaMaestraId)
+            );
+            return maestro ? getEsGrupalTarifa(maestro) : false;
+        };
+
+        const nombreDeComponente = (componente: ComponenteCompleto): I18nContent[] => {
+            if (componente.nombreSnapshot?.length) return componente.nombreSnapshot;
+            // Caso 1 (contenedor sin nombre): fallback al segmento
+            const seg = componente.cotsegmento;
+            if (seg && typeof seg === 'object' && Array.isArray((seg as CotSegmento).nombreSnapshot)) {
+                return (seg as CotSegmento).nombreSnapshot as I18nContent[];
+            }
+            return [];
+        };
+
+        // ── Estructuras internas del voter ──────────────────────────────────────
+        interface LineaVoter {
             esGrupal: boolean;
-            cantidad: number;
-            montoPorPaxDolares: number;
+            cantidad: number;                       // cupos (grupal => numPax)
+            modo: ModoFinanciero;
+            costoPP: Bimoneda;                      // por pax
+            ventaPP: Bimoneda;                      // por pax
             tipoPaxId: string;
             tipoPaxNombre: string;
-            nodeMin: number;
             edadMin: number;
             edadMax: number;
             tipo: string;
-            origenServicio: string;
-            origenComponente: string;
-            origenTarifa: string;
-        }>> = [];
+            rutaOrigen: string;
+            base: Omit<LineaDetalleClaseInterna, 'costoSoles' | 'costoDolares' | 'ventaSoles' | 'ventaDolares'>;
+        }
+
+        interface PerfilVoter {
+            tipo: string; tipoPaxNombre: string;
+            cantidad: number; cantidadRestante: number;
+            edadMin: number; edadMax: number; tipoPaxId: string;
+            acumCostoD: number; acumVentaD: number;         // clase completa, solo incluido
+            isReal: boolean;
+            conflictos: string[];
+            detalle: LineaDetalleClaseInterna[];
+            porModo: { normal: TotalesInternos; ctaPax: TotalesInternos; cortesia: TotalesInternos };
+        }
+
+        const nombrePax = (p: string): string =>
+            p === 'nacional' ? 'Nacional / Peruano'
+                : p === 'extranjero' ? 'Extranjero'
+                    : p === 'can' ? 'Comunidad Andina (CAN)'
+                        : 'Cualquier Nacionalidad';
+
+        // ── PASO 1: recolección (rama principal) + upgrades + candidato maestro ──
+        const componentesProcesados: LineaVoter[][] = [];
+        const opcionesUpgrade: OpcionUpgradeInterna[] = [];
         let mejorPuntaje = -1;
-        let maestroTarifas: any[] = [];
-        let globalCostoNetoDolares = 0;
+        let maestroLineas: LineaVoter[] = [];
+
+        const buckets = {
+            incluido: totalesInternosVacios(),
+            noIncluido: totalesInternosVacios(),
+            cortesia: totalesInternosVacios()
+        };
 
         cotizacion.value.cotservicios.forEach((servicio: CotServicio) => {
+            const servicioId = extractIdStr(servicio.id);
+            const servicioNombre = servicio.nombrePublicoSnapshot?.length
+                ? servicio.nombrePublicoSnapshot : (servicio.nombreSnapshot || []);
+            const servicioLabel = getI18nText(servicioNombre, idiomaEdicion) || 'Servicio';
+
             servicio.cotcomponentes?.forEach((componente: ComponenteCompleto) => {
-                // NORMALIZACIÓN Y TIPADO ESTRICTO: Evitamos discrepancias de mayúsculas/minúsculas de la API
-                const modoComercial = componente.modo ? componente.modo.toLowerCase() : '';
-                const estadoOperativo = componente.estado ? componente.estado.toLowerCase() : '';
+                const modo = (componente.modo || '').toLowerCase();
+                const estado = (componente.estado || '').toLowerCase();
+                if (estado === 'cancelado' || modo === 'reemplazado') return;
+                if (modo !== 'incluido' && modo !== 'no_incluido' && modo !== 'cortesia') return;
 
-                if (modoComercial !== 'incluido' || estadoOperativo === 'cancelado') return;
-
-                let cantPasajerosEnComponente = 0;
-                const compTarifas: any[] = [];
+                const modoFin = modo as ModoFinanciero;
+                const compNombre = nombreDeComponente(componente);
+                const compLabel = getI18nText(compNombre, idiomaEdicion) || 'Insumo Logístico';
                 const cCant = componente.cantidad || 1;
+                const fecha = getFechaLimpia(componente.fechaHoraInicio);
 
-                componente.cottarifas?.forEach((t: TarifaSnapshot) => {
-                    const maestroT = todasLasTarifasMaestras.value.find((cat: Tarifa) => {
-                        const idMaestro = cat['@id'] || cat.tarifaId;
-                        return extractIdStr(idMaestro) === extractIdStr(t.tarifaMaestraId);
-                    });
+                const lineas: LineaVoter[] = [];
+                let paxEstandar = 0;
 
-                    const esGrupal = t.esGrupal !== undefined ? t.esGrupal : (maestroT ? getEsGrupalTarifa(maestroT) : false);
+                (componente.cottarifas || []).forEach((t: TarifaSnapshot) => {
+                    const rol = t.rolSnapshot || 'estandar';
+                    if (rol === 'alternativa') return;   // → opcionesUpgrade
+
+                    const esGrupal = resolverGrupal(t);
                     const tCant = parseInt(String(t.cantidad)) || 1;
                     const montoBase = parseFloat(String(t.montoCosto)) || 0;
+                    const moneda = String(t.moneda || 'USD').toUpperCase();
 
-                    const monedaRaw = t.moneda || 'USD';
-                    const isPen = String(monedaRaw).toUpperCase() === 'PEN';
+                    const costoTotal = aBimoneda(montoBase * tCant * cCant, moneda);
+                    const markup = modoFin === 'incluido' ? markupDeLinea(t) : 0;
+                    // cortesía: venta 0 (el costo lo absorbe el file); no_incluido: venta = costo
+                    const ventaTotal: Bimoneda = modoFin === 'cortesia'
+                        ? { soles: 0, dolares: 0 }
+                        : { soles: costoTotal.soles * (1 + markup), dolares: costoTotal.dolares * (1 + markup) };
 
-                    const costoTotalLinea = montoBase * tCant * cCant;
-                    const costoTotalDolares = isPen ? (costoTotalLinea / tcPromedio) : costoTotalLinea;
+                    const b = modoFin === 'incluido' ? buckets.incluido
+                        : modoFin === 'no_incluido' ? buckets.noIncluido
+                            : buckets.cortesia;
+                    b.costoSoles += costoTotal.soles;   b.costoDolares += costoTotal.dolares;
+                    b.ventaSoles += ventaTotal.soles;   b.ventaDolares += ventaTotal.dolares;
 
-                    globalCostoNetoDolares += costoTotalDolares;
+                    const cupos = esGrupal ? numPaxGlobal : tCant;
+                    if (!esGrupal && modoFin === 'incluido' && rol === 'estandar') paxEstandar += tCant;
 
-                    const cantidadParaVoter = esGrupal ? numPaxGlobal : tCant;
-                    const montoPorPaxDolares = costoTotalDolares / cantidadParaVoter;
-
-                    if (!esGrupal) cantPasajerosEnComponente += tCant;
-
-                    const procedenciaRaw = t.procedenciaSnapshot || '0';
-                    const tipoPaxId = procedenciaRaw;
-
-                    let tipoPaxNombre = 'Cualquier Nacionalidad';
-                    if (procedenciaRaw === 'nacional') {
-                        tipoPaxNombre = 'Nacional / Peruano';
-                    } else if (procedenciaRaw === 'extranjero') {
-                        tipoPaxNombre = 'Extranjero';
-                    } else if (procedenciaRaw === 'can') {
-                        tipoPaxNombre = 'Comunidad Andina (CAN)';
-                    }
-
-
+                    const procedencia = t.procedenciaSnapshot || '0';
                     const edadMin = t.edadMinimaSnapshot ?? 0;
                     const edadMax = t.edadMaximaSnapshot ?? 120;
 
-                    // RESOLUCIÓN OPERATIVA CORRECTA: Buscamos el nombre comercial real en el catálogo maestro
-                    const compMaestroId = extractIdStr(componente.componenteMaestroId);
-                    const compMaestro = catalogos.value.allComponentes.find((cat) => {
-                        const idComponente = cat.id || cat['@id'];
-                        return extractIdStr(idComponente) === compMaestroId;
-                    });
-
-                    const nombreInsumo = compMaestro && compMaestro.nombre !== 'Sincronizando...'
-                        ? compMaestro.nombre
-                        : 'Insumo Logístico';
-
-                    compTarifas.push({
+                    lineas.push({
                         esGrupal,
-                        cantidad: cantidadParaVoter,
-                        montoPorPaxDolares,
-                        tipoPaxId,
-                        tipoPaxNombre,
-                        nodeMin: edadMin,
-                        edadMin,
-                        edadMax,
-                        tipo: `r${edadMin}-${edadMax}t${tipoPaxId}`,
-                        origenServicio: getI18nText(servicio.nombreSnapshot, idiomaEdicion) || 'Servicio',
-                        origenComponente: nombreInsumo,
-                        origenTarifa: getI18nText(t.nombreSnapshot, idiomaEdicion) || 'Tarifa'
+                        cantidad: cupos,
+                        modo: modoFin,
+                        costoPP: { soles: costoTotal.soles / cupos, dolares: costoTotal.dolares / cupos },
+                        ventaPP: { soles: ventaTotal.soles / cupos, dolares: ventaTotal.dolares / cupos },
+                        tipoPaxId: procedencia,
+                        tipoPaxNombre: nombrePax(procedencia),
+                        edadMin, edadMax,
+                        tipo: `r${edadMin}-${edadMax}t${procedencia}`,
+                        rutaOrigen: `${servicioLabel} ➔ ${compLabel} (${getI18nText(t.tituloSnapshot, idiomaEdicion) || t.nombreInternoSnapshot || 'Tarifa'})`,
+                        base: {
+                            montoCotizado: String(t.montoCosto || '0'),
+                            moneda,
+                            esGrupal,
+                            cantidad: tCant,
+                            cantidadComponente: cCant,
+                            modo: modoFin,
+                            fecha,
+                            modalidad: t.modalidadSnapshot || null,
+                            categoria: t.categoriaSnapshot || null,
+                            rol,
+                            notaRol: t.notaRol || [],
+                            tarifaTitulo: t.tituloSnapshot || [],
+                            componenteNombre: compNombre,
+                            servicioId,
+                            servicioNombre,
+                            comisionAplicada: modoFin === 'incluido' ? markup * 100 : 0,
+                            comisionOverride: (t.comisionOverrideSnapshot === '' || t.comisionOverrideSnapshot == null)
+                                ? null : String(t.comisionOverrideSnapshot),
+                            tarifaMaestraId: t.tarifaMaestraId ? extractIdStr(t.tarifaMaestraId) : null,
+                            nombreInterno: t.nombreInternoSnapshot || null
+                        }
                     });
                 });
 
-                todosLosComponentes.push(compTarifas);
+                if (lineas.length > 0) componentesProcesados.push(lineas);
 
-                if (cantPasajerosEnComponente === numPaxGlobal) {
+                // Candidato a partición canónica: incluido, Σ estandar no-grupal == numPax
+                if (modoFin === 'incluido' && paxEstandar === numPaxGlobal) {
                     let score = 0;
-                    compTarifas.forEach(t => {
-                        if (t.tipoPaxId !== '0') score += 100;
-                        score += (120 - (t.edadMax - t.nodeMin));
+                    lineas.forEach((l) => {
+                        if (l.esGrupal || l.base.rol !== 'estandar') return;
+                        if (l.tipoPaxId !== '0') score += 100;
+                        score += (120 - (l.edadMax - l.edadMin));
                     });
                     if (score > mejorPuntaje) {
                         mejorPuntaje = score;
-                        maestroTarifas = compTarifas;
+                        maestroLineas = lineas.filter((l) => !l.esGrupal && l.base.rol === 'estandar');
                     }
+                }
+
+                // ── Upgrades: alternativas por componente (solo incluidos) ──
+                if (modoFin === 'incluido') {
+                    const alternativas = (componente.cottarifas || []).filter((t) => t.rolSnapshot === 'alternativa');
+                    if (alternativas.length === 0) return;
+
+                    const estandares = (componente.cottarifas || []).filter((t) => (t.rolSnapshot || 'estandar') === 'estandar');
+
+                    const ventaPPde = (t: TarifaSnapshot): number => {
+                        const esGrupal = resolverGrupal(t);
+                        const monto = parseFloat(String(t.montoCosto)) || 0;
+                        const nativo = monto * cCant * (1 + (markupDeLinea(t)));
+                        const usd = String(t.moneda || 'USD').toUpperCase() === 'PEN' ? nativo / tc : nativo;
+                        return esGrupal ? usd / numPaxGlobal : usd;   // no-grupal: el monto YA es por pax
+                    };
+                    const costoPPde = (t: TarifaSnapshot): number => {
+                        const esGrupal = resolverGrupal(t);
+                        const monto = parseFloat(String(t.montoCosto)) || 0;
+                        const usd = String(t.moneda || 'USD').toUpperCase() === 'PEN' ? (monto * cCant) / tc : monto * cCant;
+                        return esGrupal ? usd / numPaxGlobal : usd;
+                    };
+
+                    // Base ponderada (cifra única) + firma para matching exacto por perfil
+                    let sumaVenta = 0, sumaPax = 0;
+                    estandares.forEach((t) => {
+                        const pax = resolverGrupal(t) ? numPaxGlobal : (parseInt(String(t.cantidad)) || 1);
+                        sumaVenta += ventaPPde(t) * pax;
+                        sumaPax += pax;
+                    });
+                    const basePP = sumaPax > 0 ? sumaVenta / sumaPax : 0;
+
+                    const firma = (t: TarifaSnapshot) =>
+                        `${t.procedenciaSnapshot || '0'}|${t.edadMinimaSnapshot ?? 0}|${t.edadMaximaSnapshot ?? 120}`;
+                    const estandarPorFirma = new Map(estandares.map(t => [firma(t), t]));
+
+                    // Validación de simetría: cada alternativa debe espejar una estándar
+                    const grupos = new Map<number, TarifaSnapshot[]>();
+                    alternativas.forEach((t) => {
+                        const g = t.grupoTarifa ?? 0;
+                        if (!grupos.has(g)) grupos.set(g, []);
+                        grupos.get(g)!.push(t);
+                    });
+
+                    grupos.forEach((tarifasGrupo, grupo) => {
+                        const firmasAlt = tarifasGrupo.map(firma).sort().join('||');
+                        const firmasStd = estandares.filter(t => !resolverGrupal(t) || tarifasGrupo.some(a => resolverGrupal(a)))
+                            .map(firma).sort().join('||');
+                        if (firmasAlt !== firmasStd) {
+                            advertencias.push(
+                                `Grupo ${grupo} de "${compLabel}" no espeja la partición del grupo estándar (procedencia/edades). Corrige antes de enviar.`
+                            );
+                        }
+
+                        tarifasGrupo.forEach((t) => {
+                            const std = estandarPorFirma.get(firma(t));
+                            const altPP = ventaPPde(t);
+                            const stdPP = std ? ventaPPde(std) : basePP;
+                            const deltasPorPerfil: DeltaUpgradePorPerfil[] = std
+                                ? [{
+                                    procedencia: t.procedenciaSnapshot || null,
+                                    edadMin: t.edadMinimaSnapshot ?? 0,
+                                    edadMax: t.edadMaximaSnapshot ?? 120,
+                                    deltaVentaPorPax: altPP - stdPP
+                                }]
+                                : [];
+
+                            opcionesUpgrade.push({
+                                componenteId: extractIdStr(componente.id),
+                                grupoTarifa: grupo,
+                                componenteNombre: compNombre,
+                                servicioId,
+                                servicioNombre,
+                                tarifaTitulo: t.tituloSnapshot || [],
+                                notaRol: t.notaRol || [],
+                                modalidad: t.modalidadSnapshot || null,
+                                categoria: t.categoriaSnapshot || null,
+                                deltaVentaPorPax: altPP - basePP,
+                                deltasPorPerfil,
+                                deltaVentaTotal: (altPP - basePP) * numPaxGlobal,
+                                tarifaMaestraId: t.tarifaMaestraId ? extractIdStr(t.tarifaMaestraId) : null,
+                                ventaPorPaxEstandar: stdPP,
+                                ventaPorPaxAlternativa: altPP,
+                                deltaCostoPorPax: costoPPde(t) - (std ? costoPPde(std) : basePP / (1 + globalMarkup)),
+                                comisionAplicada: markupDeLinea(t) * 100,
+                                comisionOverride: (t.comisionOverrideSnapshot === '' || t.comisionOverrideSnapshot == null)
+                                    ? null : String(t.comisionOverrideSnapshot)
+                            });
+                        });
+                    });
                 }
             });
         });
 
-        // 👉 1. INTERFAZ INTERNA: Molde estricto para el acumulador electoral del Voter
-        interface PerfilPasajeroVoter {
-            tipo: string;
-            tipoPaxNombre: string;
-            cantidad: number;
-            cantidadRestante: number;
-            edadMin: number;
-            edadMax: number;
-            tipoPaxId: string;
-            acumuladoDolares: number;
-            isReal: boolean;
-            conflictos: string[];
-        }
+        // ── PASO 2: partición de clases (componente maestro) ─────────────────────
+        const clases: PerfilVoter[] = [];
+        const nuevaClase = (tipo: string, nombre: string, tipoPaxId: string, edadMin: number, edadMax: number, isReal: boolean): PerfilVoter => ({
+            tipo, tipoPaxNombre: nombre, cantidad: 0, cantidadRestante: 0,
+            edadMin, edadMax, tipoPaxId,
+            acumCostoD: 0, acumVentaD: 0, isReal, conflictos: [], detalle: [],
+            porModo: { normal: totalesInternosVacios(), ctaPax: totalesInternosVacios(), cortesia: totalesInternosVacios() }
+        });
 
-        // 👉 2. REEMPLAZO: Tipamos la colección acumuladora de forma fuerte
-        const clases: PerfilPasajeroVoter[] = [];
-
-        if (maestroTarifas.length === 0) {
-            clases.push({
-                tipo: 'r0-120t0', tipoPaxNombre: 'Cualquier Nacionalidad',
-                cantidad: numPaxGlobal, cantidadRestante: numPaxGlobal,
-                edadMin: 0, edadMax: 120, tipoPaxId: '0', acumuladoDolares: 0,
-                isReal: true,
-                conflictos: []
-            });
+        if (maestroLineas.length === 0) {
+            const c = nuevaClase('r0-120t0', 'Cualquier Nacionalidad', '0', 0, 120, true);
+            c.cantidad = numPaxGlobal; c.cantidadRestante = numPaxGlobal;
+            clases.push(c);
         } else {
-            maestroTarifas.forEach((t) => {
-                if (t.esGrupal) return;
-
-                let clase = clases.find(c => c.tipo === t.tipo);
-
+            maestroLineas.forEach((l) => {
+                let clase = clases.find(c => c.tipo === l.tipo);
                 if (!clase) {
-                    // Almacenamos la referencia tipada directamente al inyectarla al pool
-                    const nuevaClase: PerfilPasajeroVoter = {
-                        tipo: t.tipo,
-                        tipoPaxNombre: t.tipoPaxNombre,
-                        cantidad: 0,
-                        cantidadRestante: 0,
-                        edadMin: t.edadMin,
-                        edadMax: t.edadMax,
-                        tipoPaxId: t.tipoPaxId,
-                        acumuladoDolares: 0,
-                        isReal: true,
-                        conflictos: []
-                    };
-                    clases.push(nuevaClase);
-                    clase = nuevaClase;
+                    clase = nuevaClase(l.tipo, l.tipoPaxNombre, l.tipoPaxId, l.edadMin, l.edadMax, true);
+                    clases.push(clase);
                 }
-
-                clase.cantidad += t.cantidad;
-                clase.cantidadRestante += t.cantidad;
+                clase.cantidad += l.cantidad;
+                clase.cantidadRestante += l.cantidad;
             });
         }
 
-        interface LineaTarifaVoter {
-            esGrupal: boolean;
-            cantidad: number;
-            montoPorPaxDolares: number;
-            tipoPaxId: string;
-            tipoPaxNombre: string;
-            nodeMin: number;
-            edadMin: number;
-            edadMax: number;
-            tipo: string;
-            origenServicio: string;
-            origenComponente: string;
-            origenTarifa: string;
-        }
+        // ── PASO 3: voter + captura del detalle ──────────────────────────────────
+        const registrar = (clase: PerfilVoter, l: LineaVoter, asignados: number) => {
+            const bucket = l.modo === 'incluido' ? clase.porModo.normal
+                : l.modo === 'no_incluido' ? clase.porModo.ctaPax
+                    : clase.porModo.cortesia;
+            // Detalle y porModo: POR PAX
+            bucket.costoSoles += l.costoPP.soles;   bucket.costoDolares += l.costoPP.dolares;
+            bucket.ventaSoles += l.ventaPP.soles;   bucket.ventaDolares += l.ventaPP.dolares;
+            bucket.gananciaSoles += l.ventaPP.soles - l.costoPP.soles;
+            bucket.gananciaDolares += l.ventaPP.dolares - l.costoPP.dolares;
 
-        /**
-         * Asigna recursivamente una línea de tarifa (por pax) a la mejor clase de perfil
-         * de pasajero disponible, repartiendo el remanente si la clase no tiene cupo
-         * suficiente para cubrir toda la cantidad pendiente.
-         *
-         * Reglas de matching, en orden de prioridad (vía el score `s`):
-         *  1. Match EXACTO de tipoPaxId (nacional=nacional, extranjero=extranjero, can=can) + cantidad exacta.
-         *  2. Match exacto de tipoPaxId con cantidad parcial (se parte, la recursión cubre el resto).
-         *  3. Fallback CAN <-> Extranjero con cantidad exacta.
-         *     CAN es un subconjunto de "extranjero": si no hay tarifa CAN específica, una
-         *     tarifa extranjero puede cubrir pasajeros CAN, y viceversa. Es bidireccional
-         *     porque en la práctica la mayoría de tarifas solo distinguen nacional/extranjero,
-         *     y CAN es la excepción puntual en un par de tarifas.
-         *  4. Fallback CAN <-> Extranjero con cantidad parcial (se parte igual que el caso 2).
-         *  5. Comodín ('0' = sin restricción de procedencia en cualquiera de los dos lados).
-         *
-         * El bonus de "cantidad exacta" (+5) siempre prioriza dejar una clase sin remanente
-         * antes que partir una tarifa innecesariamente, sin importar por cuál de las reglas
-         * anteriores se llegó al match.
-         *
-         * Si ninguna clase matchea, la cantidad pendiente se acumula en una clase "anómala"
-         * (⚠️ CONFLICTO) que registra el origen exacto (servicio → componente → tarifa) para
-         * que el usuario pueda ubicar y corregir el desajuste desde el panel de resumen.
-         *
-         * @param tarifa - Línea de tarifa a asignar (ya resuelta con su monto por pax en USD).
-         * @param cantidadPendiente - Cantidad de pax de esta tarifa aún sin asignar a una clase.
-         * @param recursividad - Contador de profundidad recursiva; corta a los 10 niveles para
-         *                        evitar loops infinitos ante datos corruptos o edge cases no previstos.
-         */
-        const asignarAlVoter = (tarifa: LineaTarifaVoter, cantidadPendiente: number, recursividad = 0): void => {
-            if (recursividad > 10 || cantidadPendiente <= 0) return;
+            clase.detalle.push({
+                ...l.base,
+                costoSoles: l.costoPP.soles,
+                costoDolares: l.costoPP.dolares,
+                ventaSoles: l.ventaPP.soles,
+                ventaDolares: l.ventaPP.dolares
+            });
 
-            let bestIdx = -1;
-            let maxScore = 0;
+            if (l.modo === 'incluido') {
+                clase.acumCostoD += l.costoPP.dolares * asignados;
+                clase.acumVentaD += l.ventaPP.dolares * asignados;
+            }
+        };
 
+        const asignar = (l: LineaVoter, pendiente: number, prof = 0): void => {
+            if (prof > 10 || pendiente <= 0) return;
+            let bestIdx = -1, maxScore = 0;
             clases.forEach((c, idx) => {
                 if (c.cantidadRestante <= 0) return;
-                if (!(tarifa.edadMin <= c.edadMax && tarifa.edadMax >= c.edadMin)) return;
-
-                const matchExacto = tarifa.tipoPaxId === c.tipoPaxId;
-                const matchComodin = tarifa.tipoPaxId === '0' || c.tipoPaxId === '0';
-                // 🔥 CAN y Extranjero son intercambiables como fallback mutuo:
-                // CAN es subconjunto de extranjero, y una tarifa extranjero puede cubrir CAN
-                // (o viceversa) cuando no hay tarifa/perfil específico disponible o con cupo.
-                const matchCanExtranjero =
-                    (tarifa.tipoPaxId === 'can' && c.tipoPaxId === 'extranjero') ||
-                    (tarifa.tipoPaxId === 'extranjero' && c.tipoPaxId === 'can');
-
-                if (!matchExacto && !matchComodin && !matchCanExtranjero) return;
-
+                if (!(l.edadMin <= c.edadMax && l.edadMax >= c.edadMin)) return;
+                const exacto = l.tipoPaxId === c.tipoPaxId;
+                const comodin = l.tipoPaxId === '0' || c.tipoPaxId === '0';
+                const canExt = (l.tipoPaxId === 'can' && c.tipoPaxId === 'extranjero')
+                    || (l.tipoPaxId === 'extranjero' && c.tipoPaxId === 'can');
+                if (!exacto && !comodin && !canExt) return;
                 let s = 0.1;
-                if (matchExacto && c.tipoPaxId !== '0') s += 10;
-                if (matchCanExtranjero) s += 3;
-                if (tarifa.edadMin === c.edadMin) s += 2;
-                if (tarifa.edadMax === c.edadMax) s += 2;
-                if (c.cantidadRestante === cantidadPendiente) s += 5;
-
+                if (exacto && c.tipoPaxId !== '0') s += 10;
+                if (canExt) s += 3;
+                if (l.edadMin === c.edadMin) s += 2;
+                if (l.edadMax === c.edadMax) s += 2;
+                if (c.cantidadRestante === pendiente) s += 5;
                 if (s > maxScore) { maxScore = s; bestIdx = idx; }
             });
 
             if (bestIdx === -1) {
-                let anomalo = clases.find(c => c.tipo === 'anomalo_' + tarifa.tipo);
+                let anomalo = clases.find(c => c.tipo === 'anomalo_' + l.tipo);
                 if (!anomalo) {
-                    anomalo = {
-                        tipo: 'anomalo_' + tarifa.tipo,
-                        tipoPaxNombre: '⚠️ CONFLICTO: ' + tarifa.tipoPaxNombre,
-                        cantidad: 0,
-                        cantidadRestante: 0,
-                        edadMin: tarifa.edadMin,
-                        edadMax: tarifa.edadMax,
-                        tipoPaxId: tarifa.tipoPaxId,
-                        acumuladoDolares: 0,
-                        isReal: false,
-                        conflictos: []
-                    };
+                    anomalo = nuevaClase('anomalo_' + l.tipo, '⚠️ CONFLICTO: ' + l.tipoPaxNombre, l.tipoPaxId, l.edadMin, l.edadMax, false);
                     clases.push(anomalo);
                 }
-                anomalo.cantidad += cantidadPendiente;
-                anomalo.acumuladoDolares += (tarifa.montoPorPaxDolares * cantidadPendiente);
-
-                const rutaConflicto = `${tarifa.origenServicio} ➔ ${tarifa.origenComponente} (${tarifa.origenTarifa})`;
-                if (!anomalo.conflictos.includes(rutaConflicto)) {
-                    anomalo.conflictos.push(rutaConflicto);
-                }
+                anomalo.cantidad += pendiente;
+                registrar(anomalo, l, pendiente);
+                if (!anomalo.conflictos.includes(l.rutaOrigen)) anomalo.conflictos.push(l.rutaOrigen);
                 return;
             }
 
-            const asignarAhora = Math.min(clases[bestIdx].cantidadRestante, cantidadPendiente);
-            clases[bestIdx].cantidadRestante -= asignarAhora;
-            clases[bestIdx].acumuladoDolares += (tarifa.montoPorPaxDolares * asignarAhora);
-
-            if (cantidadPendiente > asignarAhora) {
-                asignarAlVoter(tarifa, cantidadPendiente - asignarAhora, recursividad + 1);
-            }
+            const ahora = Math.min(clases[bestIdx].cantidadRestante, pendiente);
+            clases[bestIdx].cantidadRestante -= ahora;
+            registrar(clases[bestIdx], l, ahora);
+            if (pendiente > ahora) asignar(l, pendiente - ahora, prof + 1);
         };
 
-        todosLosComponentes.forEach((compTarifas: LineaTarifaVoter[]) => {
-            compTarifas.forEach((t: LineaTarifaVoter) => {
-                if (t.esGrupal) {
-                    clases.forEach((c: PerfilPasajeroVoter) => {
-                        if (c.isReal) {
-                            c.acumuladoDolares += (t.montoPorPaxDolares * c.cantidad);
-                        }
-                    });
+        componentesProcesados.forEach((lineas) => {
+            lineas.forEach((l) => {
+                if (l.esGrupal) {
+                    clases.forEach((c) => { if (c.isReal) registrar(c, l, c.cantidad); });
                 } else {
-                    // Sincronizado de forma segura con la firma del Voter recursivo
-                    asignarAlVoter(t, t.cantidad);
+                    asignar(l, l.cantidad);
                 }
             });
-
-            // Reestablecemos el balance electoral para el siguiente hito logístico
-            clases.forEach((c: PerfilPasajeroVoter) => c.cantidadRestante = c.cantidad);
+            clases.forEach((c) => c.cantidadRestante = c.cantidad);   // reset por componente
         });
 
-        const clasesFinales = clases.map(c => {
-            const ventaDolares = c.acumuladoDolares * (1 + markup);
-            return {
-                tipo: c.tipo,
-                tipoPaxNombre: c.tipoPaxNombre,
-                cantidad: c.cantidad,
-                // Mapeo adaptado explícitamente a las propiedades requeridas por la interfaz ClasificacionFinanciera
-                edadMin: c.edadMin,
-                edadMax: c.edadMax,
-                conflictos: c.conflictos || [],
-                resumen: {
-                    montoDolares: c.acumuladoDolares,
-                    ventaDolares: ventaDolares,
-                    gananciaDolares: ventaDolares - c.acumuladoDolares
-                }
-            };
-        });
+        // Detalle ordenado: fecha → servicio (contrato plano pre-ordenado)
+        clases.forEach((c) => c.detalle.sort((a, b) =>
+            a.fecha.localeCompare(b.fecha) || a.servicioId.localeCompare(b.servicioId)));
 
-        const ventaTotalGlobal = globalCostoNetoDolares * (1 + markup);
+        // ── PASO 4: inclusiones aplanadas ────────────────────────────────────────
+        const inclusiones = construirInclusiones(advertencias);
+
+        // ── PASO 5: salida ───────────────────────────────────────────────────────
+        const gan = (t: TotalesInternos) => { t.gananciaSoles = t.ventaSoles - t.costoSoles; t.gananciaDolares = t.ventaDolares - t.costoDolares; return t; };
+        gan(buckets.incluido);
+        buckets.noIncluido.gananciaSoles = 0; buckets.noIncluido.gananciaDolares = 0;
+        gan(buckets.cortesia);   // negativa: −costo
+
+        const tieneConflictos = clases.some(c => !c.isReal);
+        const ganancia = buckets.incluido.gananciaDolares + buckets.cortesia.gananciaDolares;
 
         return {
-            totalCostoNeto: globalCostoNetoDolares,
-            totalVentaBruta: ventaTotalGlobal,
-            ganancia: ventaTotalGlobal - globalCostoNetoDolares,
-            montoAdelanto: ventaTotalGlobal * adelantoPct,
-            clasesPasajeros: clasesFinales.sort((a, b) => b.edadMin - a.edadMin)
+            schemaVersion: CLASIFICACION_SCHEMA_VERSION,
+            generatedAt: new Date().toISOString(),
+            numPax: numPaxGlobal,
+            tipoCambio: tc,
+            precioOculto: !!cotizacion.value.precioOculto,
+            comisionGlobal,
+            totalCostoNeto: buckets.incluido.costoDolares,
+            totalVentaBruta: buckets.incluido.ventaDolares,
+            ganancia,
+            montoAdelanto: buckets.incluido.ventaDolares * adelantoPct,
+            resumenGeneral: buckets,
+            clasesPasajeros: clases
+                .sort((a, b) => b.edadMin - a.edadMin)
+                .map((c): ClasePasajeroInterna => ({
+                    tipo: c.tipo, tipoPaxNombre: c.tipoPaxNombre, cantidad: c.cantidad,
+                    edadMin: c.edadMin, edadMax: c.edadMax,
+                    conflictos: c.conflictos,
+                    detalle: c.detalle,
+                    resumenPorModo: c.porModo,
+                    resumen: { montoDolares: c.acumCostoD, ventaDolares: c.acumVentaD, gananciaDolares: c.acumVentaD - c.acumCostoD }
+                })),
+            opcionesUpgrade,
+            inclusiones,
+            advertencias,
+            publicable: !tieneConflictos && advertencias.length === 0
         };
     });
+
+    // ────────────────────────────────────────────────────────────────────────────
+// Builder de inclusiones (agregar al store; lo consume el computed de arriba)
+// Recorre servicios→componentes directamente (no el voter): cubre componentes
+// sin tarifas y aplana los items con herencia condicional por flags.
+// ────────────────────────────────────────────────────────────────────────────
+    const construirInclusiones = (advertencias: string[]): InclusionServicio[] => {
+        if (!cotizacion.value?.cotservicios) return [];
+        const idiomaEdicion = cotizacion.value.idiomaEdicion || 'es';
+        const resultado: InclusionServicio[] = [];
+
+        const serviciosOrden = [...cotizacion.value.cotservicios]
+            .sort((a, b) => getFechaLimpia(a.fechaInicioAbsoluta).localeCompare(getFechaLimpia(b.fechaInicioAbsoluta)));
+
+        serviciosOrden.forEach((servicio) => {
+            const bloque: InclusionServicio = {
+                servicioId: extractIdStr(servicio.id),
+                servicioNombre: servicio.nombrePublicoSnapshot?.length
+                    ? servicio.nombrePublicoSnapshot : (servicio.nombreSnapshot || []),
+                incluidos: [], noIncluidos: [], cortesias: [], opcionales: []
+            };
+
+            const destino = (modo: string): InclusionLinea[] =>
+                modo === 'no_incluido' ? bloque.noIncluidos
+                    : modo === 'cortesia' ? bloque.cortesias
+                        : modo === 'opcional' ? bloque.opcionales
+                            : bloque.incluidos;
+
+            servicio.cotcomponentes?.forEach((componente: ComponenteCompleto) => {
+                const modo = (componente.modo || '').toLowerCase();
+                const estado = (componente.estado || '').toLowerCase();
+                if (estado === 'cancelado' || modo === 'reemplazado') return;
+                if (modo !== 'incluido' && modo !== 'no_incluido' && modo !== 'cortesia') return;
+
+                const fecha = getFechaLimpia(componente.fechaHoraInicio);
+                const cCant = componente.cantidad || 1;
+                const tieneNombre = !!componente.nombreSnapshot?.length;
+                const items = componente.snapshotItems || [];
+
+                // Tarifa estándar visible (fuente de herencia para items y línea propia)
+                const estandares = (componente.cottarifas || []).filter(
+                    (t: TarifaSnapshot) => (t.rolSnapshot || 'estandar') === 'estandar'
+                );
+                const tarifaRef = estandares[0] || null;
+
+                if (items.length > 0 && tarifaRef && !tarifaRef.modalidadSnapshot) {
+                    const etiqueta = getI18nText(
+                        componente.nombreSnapshot?.length
+                            ? componente.nombreSnapshot
+                            : ((componente.cotsegmento as CotSegmento)?.nombreSnapshot || []),
+                        idiomaEdicion
+                    ) || 'Pool sin nombre';
+                    advertencias.push(
+                        `El pool "${etiqueta}" tiene items pero su tarifa estándar no define modalidad — los items heredarán vacío.`
+                    );
+                }
+
+                // Línea del COMPONENTE (casos 2 y 3): solo si tiene nombre propio
+                if (tieneNombre) {
+                    destino(modo).push({
+                        origen: 'componente',
+                        modo: modo as ModoFinanciero,
+                        nombre: componente.nombreSnapshot,
+                        fecha,
+                        cantidadComponente: cCant,
+                        modalidad: tarifaRef?.modalidadSnapshot || null,
+                        categoria: tarifaRef?.categoriaSnapshot || null,
+                        tarifaTitulo: [],
+                        tarifas: estandares.map((t: TarifaSnapshot): InclusionTarifa => ({
+                            tarifaTitulo: t.tituloSnapshot || [],
+                            cantidad: parseInt(String(t.cantidad)) || 1,
+                            esGrupal: !!t.esGrupal,
+                            modalidad: t.modalidadSnapshot || null,
+                            categoria: t.categoriaSnapshot || null,
+                            rol: (t.rolSnapshot || 'estandar') as TarifaRolValue,
+                            notaRol: t.notaRol || [],
+                            montoCotizado: String(t.montoCosto || '0'),   // interna con monto; expurgador limpia
+                            moneda: String(t.moneda || 'USD')
+                        }))
+                    });
+                }
+
+                // Líneas de ITEMS aplanadas (casos 1 y 3): cada item con su propio modo
+                items.forEach((item: SnapshotItem) => {
+                    const modoItem = (item.modo || 'incluido').toLowerCase();
+                    destino(modoItem).push({
+                        origen: 'item',
+                        modo: modoItem as InclusionLinea['modo'],
+                        nombre: item.nombreSnapshot,
+                        fecha,
+                        cantidadComponente: 1,
+                        // Herencia condicional por flags desde la tarifa estándar del contenedor
+                        modalidad: item.modalidadTarifaVisible ? (tarifaRef?.modalidadSnapshot || null) : null,
+                        categoria: item.categoriaTarifaVisible ? (tarifaRef?.categoriaSnapshot || null) : null,
+                        tarifaTitulo: item.tituloTarifaVisible ? (tarifaRef?.tituloSnapshot || []) : [],
+                        tarifas: []   // items: sin dimensión monetaria, nunca "0"
+                    });
+                });
+            });
+
+            if (bloque.incluidos.length || bloque.noIncluidos.length || bloque.cortesias.length || bloque.opcionales.length) {
+                resultado.push(bloque);
+            }
+        });
+
+        return resultado;
+    };
+
 
     const totalCostoNeto = computed(() => resumenFinanciero.value?.totalCostoNeto || 0);
     const ventaSugerida = computed(() => resumenFinanciero.value?.totalVentaBruta || 0);
@@ -936,34 +1189,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             });
 
             if (dataActiva.value && inspectorActivo.value === 'componente') {
-                const itemsRaw = detalle.componenteItems || [];
+                const itemsRaw: Item[] = detalle.componenteItems ?? [];   // ó fetchedComp.componenteItems
                 if (!dataActiva.value.snapshotItems || dataActiva.value.snapshotItems.length === 0) {
-                    dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(async (item: any) => {
-                        let tituloData = [];
-                        if (typeof item.diccionario === 'string') {
-                            try {
-                                const res = await apiClient.get(item.diccionario);
-                                tituloData = res.data.titulo || [];
-                            } catch (err) {
-                                console.error("No se pudo cargar el diccionario:", item.diccionario);
-                            }
-                        } else if (item.diccionario && item.diccionario.titulo) {
-                            tituloData = item.diccionario.titulo;
-                        }
-                        const modoBackend = item.modo || 'incluido';
-                        return {
-                            id: crypto.randomUUID(),
-                            nombreSnapshot: JSON.parse(JSON.stringify(tituloData)),
-                            modo: modoBackend,
-                            modoOriginal: modoBackend,
-                            incluido: modoBackend === 'incluido' || modoBackend === 'cortesia',
-                            tieneUpsell: !!item.componenteAdicionalVinculado,
-                            componenteAdicionalVinculado: item.componenteAdicionalVinculado || null,
-                            idComponenteInyectado: null,
-                            isInjecting: false,
-                            sobreescribirTraduccion: false
-                        };
-                    }));
+                    dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
                 }
             }
             return; // 🔥 nunca llega al fetch
@@ -1163,26 +1391,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             payload.tipoCambio = String(payload.tipoCambio || tipoCambioSugerido.value || 1);
 
             const fin = resumenFinanciero.value;
-            payload.clasificacionFinanciera = fin;
 
-            // 🔥 Procesamiento de la clasificación financiera expurgada ESTRICTAMENTE TIPADA
-            if (fin) {
-                payload.clasificacionFinancieraCliente = {
-                    montoAdelanto: fin.montoAdelanto,
-                    totalVentaBruta: fin.totalVentaBruta,
-                    clasesPasajeros: fin.clasesPasajeros.map(clase => ({
-                        tipo: clase.tipo,
-                        tipoPaxNombre: clase.tipoPaxNombre,
-                        cantidad: clase.cantidad,
-                        edadMin: clase.edadMin,
-                        edadMax: clase.edadMax,
-                        conflictos: clase.conflictos,
-                        resumen: {
-                            ventaDolares: clase.resumen.ventaDolares
-                        }
-                    }))
-                };
+            if (payload.estado === 'enviado' && fin && !fin.publicable) {
+                alert(
+                    'La cotización no puede marcarse como Enviada:\n\n' +
+                    (fin.advertencias.length
+                        ? fin.advertencias.map(a => `• ${a}`).join('\n')
+                        : '• Hay perfiles de pasajero en conflicto (revisa el panel de resumen).')
+                );
+                return;
             }
+
+            payload.totalCosto = String(fin?.totalCostoNeto ?? '0');
+            payload.totalVenta = String(fin?.totalVentaBruta ?? '0');
+            payload.clasificacionFinanciera = fin ?? null;                                // interna completa
+            payload.clasificacionFinancieraCliente = fin ? expurgarParaCliente(fin) : null; // masticada
 
             delete payload.idiomaEdicion;
 
@@ -1486,14 +1709,19 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return itinerarioDinamico.value.flatMap(dia => dia.cotservicios);
     });
 
-    const irAServicioAdyacente = (direccion: 1 | -1): void => {
+    const irAServicioAdyacente = async (direccion: 1 | -1): Promise<void> => {
         const lista = serviciosOrdenados.value;
         if (!lista.length || !dataActiva.value) return;
         const idx = lista.findIndex(s => s.id === dataActiva.value.id);
         if (idx === -1) return;
         const nuevoIdx = idx + direccion;
         if (nuevoIdx < 0 || nuevoIdx >= lista.length) return;
-        dataActiva.value = lista[nuevoIdx];
+
+        const destino = lista[nuevoIdx];
+        dataActiva.value = destino;
+        if (destino.servicioMaestroId) {
+            await fetchServicioDetalles(destino.servicioMaestroId);
+        }
     };
 
 
@@ -1506,14 +1734,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return servicioActualDeComponente.value?.cotcomponentes || [];
     });
 
-    const irAComponenteAdyacente = (direccion: 1 | -1): void => {
+    const irAComponenteAdyacente = async (direccion: 1 | -1): Promise<void> => {
         const lista = componentesHermanos.value;
         if (!lista.length || !dataActiva.value) return;
         const idx = lista.findIndex(c => c.id === dataActiva.value.id);
         if (idx === -1) return;
         const nuevoIdx = idx + direccion;
         if (nuevoIdx < 0 || nuevoIdx >= lista.length) return;
-        dataActiva.value = lista[nuevoIdx];
+
+        const destino = lista[nuevoIdx];
+        dataActiva.value = destino;
+        if (destino.componenteMaestroId) {
+            await fetchComponenteDetalles(destino.componenteMaestroId);
+        } else {
+            catalogos.value.tarifas = [];   // componente sin maestro: dropdown limpio
+        }
     };
 
     const agregarComponente = (servicioId: string): void => {
@@ -1590,12 +1825,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 id: crypto.randomUUID(),
                 nombreSnapshot: [{ language: 'es', content: 'Nueva inclusión' }],
                 incluido: true,
-                estado: 'pendiente',
                 modo: 'incluido',
                 modoOriginal: 'incluido',
                 tieneUpsell: false,
+                componenteAdicionalVinculado: null,
                 idComponenteInyectado: null,
                 isInjecting: false,
+                tituloTarifaVisible: false,
+                categoriaTarifaVisible: false,
+                modalidadTarifaVisible: false,
                 sobreescribirTraduccion: false
             });
         }
@@ -1644,7 +1882,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const toggleUpsellComponent = async (item: SnapshotItem, componentePadre: ComponenteCompleto): Promise<void> => {
         if (item.incluido) {
-            item.modo = item.tieneUpsell ? 'upsell_injected' : 'incluido';
+            item.modo = 'incluido';
 
             if (item.tieneUpsell && !item.idComponenteInyectado && !item.isInjecting) {
                 item.isInjecting = true;
@@ -1690,30 +1928,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     };
 
                     if (compMaestro.componenteItems && Array.isArray(compMaestro.componenteItems)) {
-                        nuevoComp.snapshotItems = await Promise.all(compMaestro.componenteItems.map(async (
-                            subItem: components['schemas']['TravelComponenteItem-componente.item.read']
-                        ) => {
-                            let tituloData: I18nContent[] = [];
-
-                            try {
-                                const resDicc = await apiClient.get(subItem.diccionario);
-                                tituloData = resDicc.data.titulo || [];
-                            } catch (err) {
-                                console.error("No se pudo cargar el diccionario inyectado:", subItem.diccionario);
-                            }
-                            return {
-                                id: crypto.randomUUID(),
-                                nombreSnapshot: JSON.parse(JSON.stringify(tituloData)),
-                                modo: subItem.modo || 'incluido',
-                                modoOriginal: subItem.modo || 'incluido',
-                                incluido: subItem.modo === 'incluido' || subItem.modo === 'cortesia',
-                                tieneUpsell: !!subItem.componenteAdicionalVinculado,
-                                componenteAdicionalVinculado: subItem.componenteAdicionalVinculado || null,
-                                idComponenteInyectado: null,
-                                isInjecting: false,
-                                sobreescribirTraduccion: false
-                            };
-                        }));
+                        nuevoComp.snapshotItems = await Promise.all(
+                            compMaestro.componenteItems.map(mapearItemASnapshot)
+                        );
                     }
 
                     let tarifasParaInyectar: any[] = [];
@@ -1760,30 +1977,56 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         if (!componente) return;
 
-        let paxAsignados = 0;
+        const numPax = parseInt(String(cotizacion.value.numPax)) || 1;
         const tarifas = componente.cottarifas || [];
 
-        tarifas.forEach((t: TarifaSnapshot) => {
-            const esGrupal = t.esGrupal !== undefined ? t.esGrupal : false;
-            if (!esGrupal) paxAsignados += parseInt(String(t.cantidad)) || 0;
-        });
+        const agrupables = tarifas.filter(
+            (t: TarifaSnapshot) => t.rolSnapshot !== 'operativo' && t.grupoTarifa != null
+        );
 
-        let pasajerosRestantes = (parseInt(String(cotizacion.value.numPax)) || 1) - paxAsignados;
-        if (pasajerosRestantes <= 0) pasajerosRestantes = 1;
+        const grupoActual = agrupables.length
+            ? Math.max(...agrupables.map((t: TarifaSnapshot) => t.grupoTarifa as number))
+            : 1;
+
+        const enGrupoActual = agrupables.filter((t: TarifaSnapshot) => t.grupoTarifa === grupoActual);
+        const tieneGrupal = enGrupoActual.some((t: TarifaSnapshot) => !!t.esGrupal);
+        const paxAsignados = enGrupoActual
+            .filter((t: TarifaSnapshot) => !t.esGrupal)
+            .reduce((sum: number, t: TarifaSnapshot) => sum + (parseInt(String(t.cantidad)) || 0), 0);
+
+        const grupoCubierto = enGrupoActual.length > 0 && (tieneGrupal || paxAsignados >= numPax);
+
+        let grupoDestino: number;
+        let cantidadInicial: number;
+
+        if (grupoCubierto) {
+            // Capacidad completa: la nueva tarifa arranca una alternativa nueva,
+            // con el cupo total del file (cada grupo cuadra por sí mismo).
+            grupoDestino = grupoActual + 1;
+            cantidadInicial = numPax;
+        } else {
+            grupoDestino = grupoActual;
+            const restantes = numPax - paxAsignados;
+            cantidadInicial = restantes > 0 ? restantes : numPax;
+        }
+
+        const rolInicial: TarifaRolValue = grupoDestino === 1 ? 'estandar' : 'alternativa';
 
         const nuevaTarifa = {
             id: crypto.randomUUID(),
             tarifaMaestraId: null,
-            nombreSnapshot: [{ language: 'es', content: 'Nueva Tarifa' }],
-            cantidad: pasajerosRestantes,
+            tituloSnapshot: [{ language: 'es', content: 'Nueva Tarifa' }],
+            nombreInternoSnapshot: 'Nueva Tarifa',
+            cantidad: cantidadInicial,
             moneda: cotizacion.value.monedaGlobal,
             montoCosto: '0.00',
-            rolSnapshot: 'estandar',
-            grupoTarifa: 1,
+            rolSnapshot: rolInicial,
+            grupoTarifa: grupoDestino,
             comisionOverrideSnapshot: null,
             notaRol: [],
             esGrupal: false,
             modalidadSnapshot: null,
+            categoriaSnapshot: null,
             procedenciaSnapshot: null,
             edadMinimaSnapshot: null,
             edadMaximaSnapshot: null,
@@ -1797,7 +2040,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             proveedorServicioTituloSnapshot: [],
             proveedorServicioUrlSnapshot: null,
             proveedorServicioImagenesSnapshot: [],
-            estadoOperativoSnapshot: 'pendiente',
+            estadoOperativoSnapshot: 'sin-solicitar',   // FIX: 'pendiente' no existe en EstadoOperativoValue
             fechaLimitePago: null,
             proveedorOculto: false,
             sobreescribirTraduccion: false
@@ -1953,6 +2196,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return String(t.modalidad);
     };
 
+    const getCategoriaTarifa = (t: TarifaLike): string | null => {
+        if (!('categoria' in t) || !t.categoria) return null;
+        return String(t.categoria);
+    };
+
     const getEdadMinimaTarifa = (t: TarifaLike): number | null => {
         return 'edadMinima' in t && t.edadMinima !== undefined ? Number(t.edadMinima) : null;
     };
@@ -1986,7 +2234,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return {
             id: crypto.randomUUID(),
             tarifaMaestraId: getIdMaestroTarifa(tarifa),
-            nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
+            tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
+            nombreInternoSnapshot: 'nombreInterno' in tarifa ? (tarifa as any).nombreInterno || null : null,
             cantidad: esGrupal ? 1 : numPax,
             moneda: getMonedaTarifa(tarifa),
             montoCosto: getMontoCostoTarifa(tarifa),
@@ -1994,8 +2243,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             grupoTarifa: rol === 'operativo' ? null : 1,
             comisionOverrideSnapshot: rol === 'operativo' ? '0.00' : getComisionOverrideTarifa(tarifa),
             notaRol: [],
-            esGrupal: false,
+            esGrupal,
             modalidadSnapshot: getModalidadTarifa(tarifa),
+            categoriaSnapshot: getCategoriaTarifa(tarifa),
             procedenciaSnapshot: getProcedenciaTarifa(tarifa),
             edadMinimaSnapshot: getEdadMinimaTarifa(tarifa),
             edadMaximaSnapshot: getEdadMaximaTarifa(tarifa),
@@ -2040,14 +2290,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return [...componente.cottarifas].sort((a, b) => (a.grupoTarifa ?? Infinity) - (b.grupoTarifa ?? Infinity));
     });
 
-    const irATarifaAdyacente = (direccion: 1 | -1): void => {
+    const irATarifaAdyacente = async (direccion: 1 | -1): Promise<void> => {
         const lista = tarifasHermanas.value;
         if (!lista.length || !dataActiva.value) return;
         const idx = lista.findIndex(t => t.id === dataActiva.value.id);
         if (idx === -1) return;
         const nuevoIdx = idx + direccion;
         if (nuevoIdx < 0 || nuevoIdx >= lista.length) return;
-        dataActiva.value = lista[nuevoIdx]; // mismo nivel, no toca historialNavegacion
+
+        const destino = lista[nuevoIdx];
+        dataActiva.value = destino;   // mismo nivel, no toca historialNavegacion
+        if (destino.proveedorMaestroId) {
+            await fetchProveedorServiciosDeProveedor(destino.proveedorMaestroId);
+        } else {
+            catalogos.value.proveedorServicios = [];
+        }
     };
 
     const marcarTarifaComoEstandar = (tarifaId: string): void => {
@@ -2183,40 +2440,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     fHoraFin = calcFin.split('T')[0] + 'T00:00';
                 }
 
-                const snapshotItemsPreparados = await Promise.all((compMaestro.componenteItems || []).map(async (
-                    item: components['schemas']['TravelComponenteItem-componente.item.read']
-                ): Promise<SnapshotItem> => {
-                    let diccData = item.diccionario;
-                    let tituloSnapshot: I18nContent[] = [];
-
-                    if (typeof diccData === 'string') {
-                        try {
-                            const res = await apiClient.get(diccData);
-                            tituloSnapshot = res.data.titulo || [];
-                        } catch (e) {
-                            console.error("No se pudo profundizar el diccionario desde el segmento:", diccData, e);
-                        }
-                    } else if (diccData && typeof diccData === 'object') {
-                        const diccObj = diccData as Record<string, unknown>;
-                        if (Array.isArray(diccObj.titulo)) {
-                            tituloSnapshot = diccObj.titulo as I18nContent[];
-                        }
-                    }
-
-                    const modoBackend = item.modo || 'incluido';
-                    return {
-                        id: crypto.randomUUID(),
-                        nombreSnapshot: JSON.parse(JSON.stringify(tituloSnapshot)),
-                        modo: modoBackend,
-                        modoOriginal: modoBackend,
-                        incluido: modoBackend === 'incluido' || modoBackend === 'cortesia',
-                        tieneUpsell: !!item.componenteAdicionalVinculado,
-                        componenteAdicionalVinculado: item.componenteAdicionalVinculado || null,
-                        idComponenteInyectado: null,
-                        isInjecting: false,
-                        sobreescribirTraduccion: false
-                    };
-                }));
+                const snapshotItemsPreparados = await Promise.all(
+                    (compMaestro.componenteItems || []).map(mapearItemASnapshot)
+                );
 
                 const maestroObj = compMaestro as Record<string, unknown>;
                 const nuevoComp: ComponenteCompleto = {
@@ -2714,11 +2940,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const rol = getRolTarifa(maestro);
 
-            let titulo = getTituloSafe(maestro);
-            if ((!titulo || titulo.length === 0) && maestro.nombreInterno) {
-                titulo = [{ language: 'es', content: maestro.nombreInterno }];
-            }
-            dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(titulo));
+            dataActiva.value.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+            dataActiva.value.nombreInternoSnapshot = maestro.nombreInterno || null;
 
             if (typeof maestro.moneda === 'object' && maestro.moneda !== null) {
                 dataActiva.value.moneda = maestro.moneda.id || maestro.moneda.nombre || 'USD';
@@ -2734,6 +2957,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             dataActiva.value.grupoTarifa = rol === 'operativo' ? null : (dataActiva.value.grupoTarifa ?? 1);
 
             dataActiva.value.modalidadSnapshot = maestro.modalidad || null;
+            dataActiva.value.categoriaSnapshot = maestro.categoria || null;
             dataActiva.value.procedenciaSnapshot = maestro.procedencia || null;
             dataActiva.value.edadMinimaSnapshot = maestro.edadMinima ?? null;
             dataActiva.value.edadMaximaSnapshot = maestro.edadMaxima ?? null;

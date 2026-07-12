@@ -7,7 +7,7 @@ namespace App\Travel\Entity;
 use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Travel\Enum\ComponenteItemModoEnum;
+use App\Travel\Enum\ItemModoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -37,8 +37,8 @@ class TravelComponenteItem
     private ?TravelItemDiccionario $diccionario = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
-    #[ORM\Column(type: 'string', length: 30, enumType: ComponenteItemModoEnum::class)]
-    private ComponenteItemModoEnum $modo = ComponenteItemModoEnum::INCLUIDO;
+    #[ORM\Column(type: 'string', length: 30, enumType: ItemModoEnum::class)]
+    private ItemModoEnum $modo = ItemModoEnum::INCLUIDO;
 
     /**
      * API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -54,6 +54,27 @@ class TravelComponenteItem
     #[ORM\Column(type: 'integer')]
     private int $orden = 1;
 
+    /**
+     * Controla si el título de la tarifa asociada a este ítem es visible públicamente.
+     */
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $tituloTarifaVisible = false;
+
+    /**
+     * Controla si la categoría de la tarifa asociada a este ítem es visible públicamente.
+     */
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $categoriaTarifaVisible = false;
+
+    /**
+     * Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente.
+     */
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $modalidadTarifaVisible = false;
+
     public function __construct()
     {
         $this->initializeId();
@@ -63,6 +84,8 @@ class TravelComponenteItem
      * Representación en texto para EasyAdmin y depuración.
      * Genera una etiqueta visual atractiva que indica el estado del ítem.
      * Ejemplos: "✅ Guiado [INCLUIDO]" o "➕ Seguro Aventura [OPCIONAL] 💰"
+     *
+     * @return string
      */
     public function __toString(): string
     {
@@ -77,8 +100,7 @@ class TravelComponenteItem
         $icono = match ($modoNombre) {
             'INCLUIDO' => '✅',
             'NO_INCLUIDO' => '❌',
-            'OPCIONAL', 'UPSELL' => '➕',
-            'CORTESIA' => '🎁',
+            'OPCIONAL' => '➕',
             default => '▪️'
         };
 
@@ -107,7 +129,7 @@ class TravelComponenteItem
     public function validateVinculacionCosto(ExecutionContextInterface $context): void
     {
         $esOpcionalOUpsell = in_array($this->modo, [
-            ComponenteItemModoEnum::OPCIONAL
+            ItemModoEnum::OPCIONAL
         ], true);
 
         if ($esOpcionalOUpsell && !$this->componenteAdicionalVinculado) {
@@ -117,12 +139,17 @@ class TravelComponenteItem
         }
 
         if (!$esOpcionalOUpsell && $this->componenteAdicionalVinculado) {
-            $context->buildViolation('Solo los ítems en modo OPCIONAL o UPSELL pueden tener un componente adicional vinculado.')
+            $context->buildViolation('Solo los ítems en modo OPCIONAL pueden tener un componente adicional vinculado.')
                 ->atPath('componenteAdicionalVinculado')
                 ->addViolation();
         }
     }
 
+    /**
+     * Obtiene el componente logístico padre.
+     *
+     * @return TravelComponente|null
+     */
     public function getComponente(): ?TravelComponente
     {
         return $this->componente;
@@ -130,6 +157,9 @@ class TravelComponenteItem
 
     /**
      * Establece el componente logístico padre.
+     *
+     * @param TravelComponente|null $componente
+     * @return self
      */
     public function setComponente(?TravelComponente $componente): self
     {
@@ -139,6 +169,8 @@ class TravelComponenteItem
 
     /**
      * Obtiene el objeto del diccionario para traducciones.
+     *
+     * @return TravelItemDiccionario|null
      */
     public function getDiccionario(): ?TravelItemDiccionario
     {
@@ -147,6 +179,9 @@ class TravelComponenteItem
 
     /**
      * Establece el objeto del diccionario.
+     *
+     * @param TravelItemDiccionario|null $diccionario
+     * @return self
      */
     public function setDiccionario(?TravelItemDiccionario $diccionario): self
     {
@@ -154,12 +189,23 @@ class TravelComponenteItem
         return $this;
     }
 
-    public function getModo(): ComponenteItemModoEnum
+    /**
+     * Obtiene la modalidad comercial del ítem descriptivo.
+     *
+     * @return ItemModoEnum
+     */
+    public function getModo(): ItemModoEnum
     {
         return $this->modo;
     }
 
-    public function setModo(ComponenteItemModoEnum $modo): self
+    /**
+     * Establece la modalidad comercial del ítem descriptivo.
+     *
+     * @param ItemModoEnum $modo
+     * @return self
+     */
+    public function setModo(ItemModoEnum $modo): self
     {
         $this->modo = $modo;
         return $this;
@@ -168,6 +214,8 @@ class TravelComponenteItem
     /**
      * Obtiene el componente logístico vinculado para cargos extra (Upsells).
      * Retorna NULL si el ítem no genera un costo independiente.
+     *
+     * @return TravelComponente|null
      */
     public function getComponenteAdicionalVinculado(): ?TravelComponente
     {
@@ -176,6 +224,9 @@ class TravelComponenteItem
 
     /**
      * Vincula un componente logístico para gestionar el costeo de este ítem si es opcional.
+     *
+     * @param TravelComponente|null $componenteAdicionalVinculado
+     * @return self
      */
     public function setComponenteAdicionalVinculado(?TravelComponente $componenteAdicionalVinculado): self
     {
@@ -185,6 +236,8 @@ class TravelComponenteItem
 
     /**
      * Obtiene el orden de aparición.
+     *
+     * @return int
      */
     public function getOrden(): int
     {
@@ -193,10 +246,79 @@ class TravelComponenteItem
 
     /**
      * Establece el orden de aparición.
+     *
+     * @param int $orden
+     * @return self
      */
     public function setOrden(int $orden): self
     {
         $this->orden = $orden;
+        return $this;
+    }
+
+    /**
+     * Determina si el título de la tarifa vinculada se debe mostrar al cliente final.
+     *
+     * @return bool
+     */
+    public function isTituloTarifaVisible(): bool
+    {
+        return $this->tituloTarifaVisible;
+    }
+
+    /**
+     * Establece si el título de la tarifa vinculada se debe mostrar al cliente final.
+     *
+     * @param bool $tituloTarifaVisible
+     * @return self
+     */
+    public function setTituloTarifaVisible(bool $tituloTarifaVisible): self
+    {
+        $this->tituloTarifaVisible = $tituloTarifaVisible;
+        return $this;
+    }
+
+    /**
+     * Determina si la categoría de la tarifa vinculada se debe mostrar al cliente final.
+     *
+     * @return bool
+     */
+    public function isCategoriaTarifaVisible(): bool
+    {
+        return $this->categoriaTarifaVisible;
+    }
+
+    /**
+     * Establece si la categoría de la tarifa vinculada se debe mostrar al cliente final.
+     *
+     * @param bool $categoriaTarifaVisible
+     * @return self
+     */
+    public function setCategoriaTarifaVisible(bool $categoriaTarifaVisible): self
+    {
+        $this->categoriaTarifaVisible = $categoriaTarifaVisible;
+        return $this;
+    }
+
+    /**
+     * Determina si la modalidad de la tarifa vinculada se debe mostrar al cliente final.
+     *
+     * @return bool
+     */
+    public function isModalidadTarifaVisible(): bool
+    {
+        return $this->modalidadTarifaVisible;
+    }
+
+    /**
+     * Establece si la modalidad de la tarifa vinculada se debe mostrar al cliente final.
+     *
+     * @param bool $modalidadTarifaVisible
+     * @return self
+     */
+    public function setModalidadTarifaVisible(bool $modalidadTarifaVisible): self
+    {
+        $this->modalidadTarifaVisible = $modalidadTarifaVisible;
         return $this;
     }
 }

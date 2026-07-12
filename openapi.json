@@ -12023,11 +12023,13 @@
                 "description": "Log\u00edstica inmutable. Congela los \u00edtems biling\u00fces, su estado y horarios precisos.",
                 "properties": {
                     "cotservicio": {
+                        "description": "Obtiene el servicio de cotizaci\u00f3n padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "type": [
                             "string",
                             "null"
@@ -12036,16 +12038,19 @@
                         "example": "https://example.com/"
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "estado": {
+                        "description": "Obtiene el estado del componente.",
                         "default": "pendiente",
                         "type": "string",
                         "enum": [
@@ -12056,17 +12061,18 @@
                         ]
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad del componente en la cotizaci\u00f3n.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12074,6 +12080,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12081,12 +12088,14 @@
                         "format": "date-time"
                     },
                     "snapshotItems": {
+                        "description": "Obtiene los items guardados en el snapshot.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -12095,12 +12104,14 @@
                         }
                     },
                     "componenteMaestroId": {
+                        "description": "Obtiene el ID del componente maestro si lo hubiera.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "detallesOperativos": {
+                        "description": "Obtiene los detalles operativos internos.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -12151,6 +12162,7 @@
                 "type": "object",
                 "properties": {
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "anyOf": [
                             {
                                 "$ref": "#/components/schemas/CotizacionSegmento-cotizacion.read_timestamp.read"
@@ -12161,16 +12173,19 @@
                         ]
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "estado": {
+                        "description": "Obtiene el estado del componente.",
                         "default": "pendiente",
                         "type": "string",
                         "enum": [
@@ -12181,17 +12196,18 @@
                         ]
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad del componente en la cotizaci\u00f3n.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12199,6 +12215,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12206,24 +12223,28 @@
                         "format": "date-time"
                     },
                     "snapshotItems": {
+                        "description": "Obtiene los items guardados en el snapshot.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa-cotizacion.read_timestamp.read"
                         }
                     },
                     "componenteMaestroId": {
+                        "description": "Obtiene el ID del componente maestro si lo hubiera.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "detallesOperativos": {
+                        "description": "Obtiene los detalles operativos internos.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -12269,6 +12290,7 @@
                 "type": "object",
                 "properties": {
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "anyOf": [
                             {
                                 "$ref": "#/components/schemas/CotizacionSegmento-cotizacion.write"
@@ -12279,16 +12301,19 @@
                         ]
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "estado": {
+                        "description": "Obtiene el estado del componente.",
                         "default": "pendiente",
                         "type": "string",
                         "enum": [
@@ -12299,17 +12324,18 @@
                         ]
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad del componente en la cotizaci\u00f3n.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12317,6 +12343,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12324,24 +12351,28 @@
                         "format": "date-time"
                     },
                     "snapshotItems": {
+                        "description": "Obtiene los items guardados en el snapshot.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa-cotizacion.write"
                         }
                     },
                     "componenteMaestroId": {
+                        "description": "Obtiene el ID del componente maestro si lo hubiera.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "detallesOperativos": {
+                        "description": "Obtiene los detalles operativos internos.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -12376,6 +12407,7 @@
                 "type": "object",
                 "properties": {
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "anyOf": [
                             {
                                 "$ref": "#/components/schemas/CotizacionSegmento-pax_cotizacion.read"
@@ -12386,16 +12418,19 @@
                         ]
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12403,6 +12438,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12410,6 +12446,7 @@
                         "format": "date-time"
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa-pax_cotizacion.read"
@@ -12430,11 +12467,13 @@
                 "description": "Log\u00edstica inmutable. Congela los \u00edtems biling\u00fces, su estado y horarios precisos.",
                 "properties": {
                     "cotservicio": {
+                        "description": "Obtiene el servicio de cotizaci\u00f3n padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "type": [
                             "string",
                             "null"
@@ -12443,16 +12482,19 @@
                         "example": "https://example.com/"
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "estado": {
+                        "description": "Obtiene el estado del componente.",
                         "default": "pendiente",
                         "type": "string",
                         "enum": [
@@ -12463,17 +12505,18 @@
                         ]
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad del componente en la cotizaci\u00f3n.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12481,6 +12524,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12488,12 +12532,14 @@
                         "format": "date-time"
                     },
                     "snapshotItems": {
+                        "description": "Obtiene los items guardados en el snapshot.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -12502,12 +12548,14 @@
                         }
                     },
                     "componenteMaestroId": {
+                        "description": "Obtiene el ID del componente maestro si lo hubiera.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "detallesOperativos": {
+                        "description": "Obtiene los detalles operativos internos.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -12558,6 +12606,7 @@
                 "type": "object",
                 "properties": {
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "anyOf": [
                             {
                                 "$ref": "#/components/schemas/CotizacionSegmento.html-cotizacion.read_timestamp.read"
@@ -12568,16 +12617,19 @@
                         ]
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "estado": {
+                        "description": "Obtiene el estado del componente.",
                         "default": "pendiente",
                         "type": "string",
                         "enum": [
@@ -12588,17 +12640,18 @@
                         ]
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad del componente en la cotizaci\u00f3n.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12606,6 +12659,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12613,24 +12667,28 @@
                         "format": "date-time"
                     },
                     "snapshotItems": {
+                        "description": "Obtiene los items guardados en el snapshot.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa.html-cotizacion.read_timestamp.read"
                         }
                     },
                     "componenteMaestroId": {
+                        "description": "Obtiene el ID del componente maestro si lo hubiera.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "detallesOperativos": {
+                        "description": "Obtiene los detalles operativos internos.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -12676,6 +12734,7 @@
                 "type": "object",
                 "properties": {
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "anyOf": [
                             {
                                 "$ref": "#/components/schemas/CotizacionSegmento.html-pax_cotizacion.read"
@@ -12686,16 +12745,19 @@
                         ]
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12703,6 +12765,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -12710,6 +12773,7 @@
                         "format": "date-time"
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa.html-pax_cotizacion.read"
@@ -12734,11 +12798,13 @@
                         "type": "object",
                         "properties": {
                             "cotservicio": {
+                                "description": "Obtiene el servicio de cotizaci\u00f3n padre.",
                                 "type": "string",
                                 "format": "iri-reference",
                                 "example": "https://example.com/"
                             },
                             "cotsegmento": {
+                                "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                                 "type": [
                                     "string",
                                     "null"
@@ -12747,16 +12813,19 @@
                                 "example": "https://example.com/"
                             },
                             "nombreSnapshot": {
+                                "description": "Obtiene el snapshot del nombre del componente.",
                                 "type": "array",
                                 "items": {
                                     "type": "string"
                                 }
                             },
                             "cantidad": {
+                                "description": "Obtiene la cantidad de componentes instanciados.",
                                 "default": 1,
                                 "type": "integer"
                             },
                             "estado": {
+                                "description": "Obtiene el estado del componente.",
                                 "default": "pendiente",
                                 "type": "string",
                                 "enum": [
@@ -12767,17 +12836,18 @@
                                 ]
                             },
                             "modo": {
+                                "description": "Obtiene la modalidad del componente en la cotizaci\u00f3n.",
                                 "default": "incluido",
                                 "type": "string",
                                 "enum": [
                                     "incluido",
-                                    "opcional",
                                     "no_incluido",
                                     "cortesia",
                                     "reemplazado"
                                 ]
                             },
                             "fechaHoraInicio": {
+                                "description": "Obtiene la fecha y hora de inicio de la operativa.",
                                 "type": [
                                     "string",
                                     "null"
@@ -12785,6 +12855,7 @@
                                 "format": "date-time"
                             },
                             "fechaHoraFin": {
+                                "description": "Obtiene la fecha y hora de fin de la operativa.",
                                 "type": [
                                     "string",
                                     "null"
@@ -12792,12 +12863,14 @@
                                 "format": "date-time"
                             },
                             "snapshotItems": {
+                                "description": "Obtiene los items guardados en el snapshot.",
                                 "type": "array",
                                 "items": {
                                     "type": "string"
                                 }
                             },
                             "cottarifas": {
+                                "description": "Obtiene las tarifas vinculadas al componente.",
                                 "type": "array",
                                 "items": {
                                     "type": "string",
@@ -12806,12 +12879,14 @@
                                 }
                             },
                             "componenteMaestroId": {
+                                "description": "Obtiene el ID del componente maestro si lo hubiera.",
                                 "type": [
                                     "string",
                                     "null"
                                 ]
                             },
                             "detallesOperativos": {
+                                "description": "Obtiene los detalles operativos internos.",
                                 "type": "array",
                                 "items": {
                                     "type": "string"
@@ -12870,6 +12945,7 @@
                         "type": "object",
                         "properties": {
                             "cotsegmento": {
+                                "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                                 "anyOf": [
                                     {
                                         "$ref": "#/components/schemas/CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"
@@ -12880,16 +12956,19 @@
                                 ]
                             },
                             "nombreSnapshot": {
+                                "description": "Obtiene el snapshot del nombre del componente.",
                                 "type": "array",
                                 "items": {
                                     "type": "string"
                                 }
                             },
                             "cantidad": {
+                                "description": "Obtiene la cantidad de componentes instanciados.",
                                 "default": 1,
                                 "type": "integer"
                             },
                             "estado": {
+                                "description": "Obtiene el estado del componente.",
                                 "default": "pendiente",
                                 "type": "string",
                                 "enum": [
@@ -12900,17 +12979,18 @@
                                 ]
                             },
                             "modo": {
+                                "description": "Obtiene la modalidad del componente en la cotizaci\u00f3n.",
                                 "default": "incluido",
                                 "type": "string",
                                 "enum": [
                                     "incluido",
-                                    "opcional",
                                     "no_incluido",
                                     "cortesia",
                                     "reemplazado"
                                 ]
                             },
                             "fechaHoraInicio": {
+                                "description": "Obtiene la fecha y hora de inicio de la operativa.",
                                 "type": [
                                     "string",
                                     "null"
@@ -12918,6 +12998,7 @@
                                 "format": "date-time"
                             },
                             "fechaHoraFin": {
+                                "description": "Obtiene la fecha y hora de fin de la operativa.",
                                 "type": [
                                     "string",
                                     "null"
@@ -12925,24 +13006,28 @@
                                 "format": "date-time"
                             },
                             "snapshotItems": {
+                                "description": "Obtiene los items guardados en el snapshot.",
                                 "type": "array",
                                 "items": {
                                     "type": "string"
                                 }
                             },
                             "cottarifas": {
+                                "description": "Obtiene las tarifas vinculadas al componente.",
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/components/schemas/CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read"
                                 }
                             },
                             "componenteMaestroId": {
+                                "description": "Obtiene el ID del componente maestro si lo hubiera.",
                                 "type": [
                                     "string",
                                     "null"
                                 ]
                             },
                             "detallesOperativos": {
+                                "description": "Obtiene los detalles operativos internos.",
                                 "type": "array",
                                 "items": {
                                     "type": "string"
@@ -12996,6 +13081,7 @@
                         "type": "object",
                         "properties": {
                             "cotsegmento": {
+                                "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                                 "anyOf": [
                                     {
                                         "$ref": "#/components/schemas/CotizacionSegmento.jsonld-pax_cotizacion.read"
@@ -13006,16 +13092,19 @@
                                 ]
                             },
                             "nombreSnapshot": {
+                                "description": "Obtiene el snapshot del nombre del componente.",
                                 "type": "array",
                                 "items": {
                                     "type": "string"
                                 }
                             },
                             "cantidad": {
+                                "description": "Obtiene la cantidad de componentes instanciados.",
                                 "default": 1,
                                 "type": "integer"
                             },
                             "fechaHoraInicio": {
+                                "description": "Obtiene la fecha y hora de inicio de la operativa.",
                                 "type": [
                                     "string",
                                     "null"
@@ -13023,6 +13112,7 @@
                                 "format": "date-time"
                             },
                             "fechaHoraFin": {
+                                "description": "Obtiene la fecha y hora de fin de la operativa.",
                                 "type": [
                                     "string",
                                     "null"
@@ -13030,6 +13120,7 @@
                                 "format": "date-time"
                             },
                             "cottarifas": {
+                                "description": "Obtiene las tarifas vinculadas al componente.",
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/components/schemas/CotizacionCottarifa.jsonld-pax_cotizacion.read"
@@ -13053,11 +13144,13 @@
                 "description": "Log\u00edstica inmutable. Congela los \u00edtems biling\u00fces, su estado y horarios precisos.",
                 "properties": {
                     "cotservicio": {
+                        "description": "Obtiene el servicio de cotizaci\u00f3n padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "type": [
                             "string",
                             "null"
@@ -13066,16 +13159,19 @@
                         "example": "https://example.com/"
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "estado": {
+                        "description": "Obtiene el estado del componente.",
                         "default": "pendiente",
                         "type": "string",
                         "enum": [
@@ -13086,17 +13182,18 @@
                         ]
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad del componente en la cotizaci\u00f3n.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -13104,6 +13201,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -13111,12 +13209,14 @@
                         "format": "date-time"
                     },
                     "snapshotItems": {
+                        "description": "Obtiene los items guardados en el snapshot.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -13125,12 +13225,14 @@
                         }
                     },
                     "componenteMaestroId": {
+                        "description": "Obtiene el ID del componente maestro si lo hubiera.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "detallesOperativos": {
+                        "description": "Obtiene los detalles operativos internos.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -13181,6 +13283,7 @@
                 "type": "object",
                 "properties": {
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "anyOf": [
                             {
                                 "$ref": "#/components/schemas/CotizacionSegmento.multipart-cotizacion.read_timestamp.read"
@@ -13191,16 +13294,19 @@
                         ]
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "estado": {
+                        "description": "Obtiene el estado del componente.",
                         "default": "pendiente",
                         "type": "string",
                         "enum": [
@@ -13211,17 +13317,18 @@
                         ]
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad del componente en la cotizaci\u00f3n.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
                         ]
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -13229,6 +13336,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -13236,24 +13344,28 @@
                         "format": "date-time"
                     },
                     "snapshotItems": {
+                        "description": "Obtiene los items guardados en el snapshot.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa.multipart-cotizacion.read_timestamp.read"
                         }
                     },
                     "componenteMaestroId": {
+                        "description": "Obtiene el ID del componente maestro si lo hubiera.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "detallesOperativos": {
+                        "description": "Obtiene los detalles operativos internos.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -13299,6 +13411,7 @@
                 "type": "object",
                 "properties": {
                     "cotsegmento": {
+                        "description": "Obtiene el segmento de la cotizaci\u00f3n vinculado.",
                         "anyOf": [
                             {
                                 "$ref": "#/components/schemas/CotizacionSegmento.multipart-pax_cotizacion.read"
@@ -13309,16 +13422,19 @@
                         ]
                     },
                     "nombreSnapshot": {
+                        "description": "Obtiene el snapshot del nombre del componente.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
                     "cantidad": {
+                        "description": "Obtiene la cantidad de componentes instanciados.",
                         "default": 1,
                         "type": "integer"
                     },
                     "fechaHoraInicio": {
+                        "description": "Obtiene la fecha y hora de inicio de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -13326,6 +13442,7 @@
                         "format": "date-time"
                     },
                     "fechaHoraFin": {
+                        "description": "Obtiene la fecha y hora de fin de la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -13333,6 +13450,7 @@
                         "format": "date-time"
                     },
                     "cottarifas": {
+                        "description": "Obtiene las tarifas vinculadas al componente.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa.multipart-pax_cotizacion.read"
@@ -14252,12 +14370,6 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "nombreParaProveedorSnapshot": {
                         "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
                         "type": [
@@ -14329,7 +14441,15 @@
                             "null"
                         ]
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -14476,18 +14596,18 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
             "CotizacionCottarifa-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "nombreParaProveedorSnapshot": {
                         "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
                         "type": [
@@ -14559,7 +14679,15 @@
                             "null"
                         ]
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -14707,12 +14835,6 @@
             "CotizacionCottarifa-cotizacion.write": {
                 "type": "object",
                 "properties": {
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "nombreParaProveedorSnapshot": {
                         "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
                         "type": [
@@ -14784,7 +14906,15 @@
                             "null"
                         ]
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -14921,12 +15051,6 @@
             "CotizacionCottarifa-pax_cotizacion.read": {
                 "type": "object",
                 "properties": {
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -14963,7 +15087,15 @@
                             "type": "string"
                         }
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -15046,12 +15178,6 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "nombreParaProveedorSnapshot": {
                         "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
                         "type": [
@@ -15123,7 +15249,15 @@
                             "null"
                         ]
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -15270,18 +15404,18 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
             "CotizacionCottarifa.html-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "nombreParaProveedorSnapshot": {
                         "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
                         "type": [
@@ -15353,7 +15487,15 @@
                             "null"
                         ]
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -15501,12 +15643,6 @@
             "CotizacionCottarifa.html-pax_cotizacion.read": {
                 "type": "object",
                 "properties": {
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -15543,7 +15679,15 @@
                             "type": "string"
                         }
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -15631,12 +15775,6 @@
                                 "format": "iri-reference",
                                 "example": "https://example.com/"
                             },
-                            "nombreSnapshot": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
                             "nombreParaProveedorSnapshot": {
                                 "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
                                 "type": [
@@ -15708,7 +15846,15 @@
                                     "null"
                                 ]
                             },
-                            "proveedorServicioNombreSnapshot": {
+                            "tituloSnapshot": {
+                                "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "nombreInternoSnapshot": {
+                                "description": "Obtiene el nombre interno operativo de la tarifa.",
                                 "type": [
                                     "string",
                                     "null"
@@ -15855,6 +16001,12 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "proveedorServicioNombreSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             }
                         }
                     }
@@ -15868,12 +16020,6 @@
                     {
                         "type": "object",
                         "properties": {
-                            "nombreSnapshot": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
                             "nombreParaProveedorSnapshot": {
                                 "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
                                 "type": [
@@ -15945,7 +16091,15 @@
                                     "null"
                                 ]
                             },
-                            "proveedorServicioNombreSnapshot": {
+                            "tituloSnapshot": {
+                                "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "nombreInternoSnapshot": {
+                                "description": "Obtiene el nombre interno operativo de la tarifa.",
                                 "type": [
                                     "string",
                                     "null"
@@ -16100,12 +16254,6 @@
                     {
                         "type": "object",
                         "properties": {
-                            "nombreSnapshot": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
                             "cantidad": {
                                 "default": 1,
                                 "type": "integer"
@@ -16142,7 +16290,15 @@
                                     "type": "string"
                                 }
                             },
-                            "proveedorServicioNombreSnapshot": {
+                            "tituloSnapshot": {
+                                "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "nombreInternoSnapshot": {
+                                "description": "Obtiene el nombre interno operativo de la tarifa.",
                                 "type": [
                                     "string",
                                     "null"
@@ -16227,12 +16383,6 @@
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "nombreParaProveedorSnapshot": {
                         "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
                         "type": [
@@ -16304,7 +16454,15 @@
                             "null"
                         ]
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -16451,18 +16609,18 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "proveedorServicioNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
             "CotizacionCottarifa.multipart-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "nombreParaProveedorSnapshot": {
                         "description": "Obtiene el nombre exclusivo para el requerimiento al proveedor.",
                         "type": [
@@ -16534,7 +16692,15 @@
                             "null"
                         ]
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -16682,12 +16848,6 @@
             "CotizacionCottarifa.multipart-pax_cotizacion.read": {
                 "type": "object",
                 "properties": {
-                    "nombreSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "cantidad": {
                         "default": 1,
                         "type": "integer"
@@ -16724,7 +16884,15 @@
                             "type": "string"
                         }
                     },
-                    "proveedorServicioNombreSnapshot": {
+                    "tituloSnapshot": {
+                        "description": "Obtiene el t\u00edtulo comercial multidioma de la tarifa.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "nombreInternoSnapshot": {
+                        "description": "Obtiene el nombre interno operativo de la tarifa.",
                         "type": [
                             "string",
                             "null"
@@ -29432,6 +29600,20 @@
                             null
                         ]
                     },
+                    "categoria": {
+                        "description": "Categor\u00eda o nivel de confort asociado a la tarifa (ej. Est\u00e1ndar, Econ\u00f3mico, Superior, Premium).",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "estandar",
+                            "economico",
+                            "superior",
+                            "premium",
+                            null
+                        ]
+                    },
                     "procedencia": {
                         "type": [
                             "string",
@@ -29554,6 +29736,20 @@
                             null
                         ]
                     },
+                    "categoria": {
+                        "description": "Categor\u00eda o nivel de confort asociado a la tarifa (ej. Est\u00e1ndar, Econ\u00f3mico, Superior, Premium).",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "estandar",
+                            "economico",
+                            "superior",
+                            "premium",
+                            null
+                        ]
+                    },
                     "procedencia": {
                         "type": [
                             "string",
@@ -29660,6 +29856,20 @@
                         "enum": [
                             "privado",
                             "compartido",
+                            null
+                        ]
+                    },
+                    "categoria": {
+                        "description": "Categor\u00eda o nivel de confort asociado a la tarifa (ej. Est\u00e1ndar, Econ\u00f3mico, Superior, Premium).",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "estandar",
+                            "economico",
+                            "superior",
+                            "premium",
                             null
                         ]
                     },
@@ -29790,6 +30000,20 @@
                                     null
                                 ]
                             },
+                            "categoria": {
+                                "description": "Categor\u00eda o nivel de confort asociado a la tarifa (ej. Est\u00e1ndar, Econ\u00f3mico, Superior, Premium).",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "enum": [
+                                    "estandar",
+                                    "economico",
+                                    "superior",
+                                    "premium",
+                                    null
+                                ]
+                            },
                             "procedencia": {
                                 "type": [
                                     "string",
@@ -29911,6 +30135,20 @@
                         "enum": [
                             "privado",
                             "compartido",
+                            null
+                        ]
+                    },
+                    "categoria": {
+                        "description": "Categor\u00eda o nivel de confort asociado a la tarifa (ej. Est\u00e1ndar, Econ\u00f3mico, Superior, Premium).",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "estandar",
+                            "economico",
+                            "superior",
+                            "premium",
                             null
                         ]
                     },
@@ -30482,7 +30720,7 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "Establece el componente log\u00edstico padre.",
+                        "description": "Obtiene el componente log\u00edstico padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
@@ -30494,14 +30732,13 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad comercial del \u00edtem descriptivo.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
-                            "no_incluido",
-                            "cortesia",
-                            "reemplazado"
+                            "no_incluido"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -30518,6 +30755,18 @@
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
+                    },
+                    "tituloTarifaVisible": {
+                        "description": "Controla si el t\u00edtulo de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "categoriaTarifaVisible": {
+                        "description": "Controla si la categor\u00eda de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "modalidadTarifaVisible": {
+                        "description": "Controla si la modalidad de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
                     },
                     "id": {
                         "readOnly": true,
@@ -30556,14 +30805,13 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad comercial del \u00edtem descriptivo.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
-                            "no_incluido",
-                            "cortesia",
-                            "reemplazado"
+                            "no_incluido"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -30580,6 +30828,18 @@
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
+                    },
+                    "tituloTarifaVisible": {
+                        "description": "Controla si el t\u00edtulo de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "categoriaTarifaVisible": {
+                        "description": "Controla si la categor\u00eda de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "modalidadTarifaVisible": {
+                        "description": "Controla si la modalidad de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -30596,14 +30856,13 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad comercial del \u00edtem descriptivo.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
-                            "no_incluido",
-                            "cortesia",
-                            "reemplazado"
+                            "no_incluido"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -30622,6 +30881,18 @@
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
+                    },
+                    "tituloTarifaVisible": {
+                        "description": "Controla si el t\u00edtulo de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "categoriaTarifaVisible": {
+                        "description": "Controla si la categor\u00eda de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "modalidadTarifaVisible": {
+                        "description": "Controla si la modalidad de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -30629,7 +30900,7 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "Establece el componente log\u00edstico padre.",
+                        "description": "Obtiene el componente log\u00edstico padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
@@ -30641,14 +30912,13 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad comercial del \u00edtem descriptivo.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
-                            "no_incluido",
-                            "cortesia",
-                            "reemplazado"
+                            "no_incluido"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -30665,6 +30935,18 @@
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
+                    },
+                    "tituloTarifaVisible": {
+                        "description": "Controla si el t\u00edtulo de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "categoriaTarifaVisible": {
+                        "description": "Controla si la categor\u00eda de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "modalidadTarifaVisible": {
+                        "description": "Controla si la modalidad de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
                     },
                     "id": {
                         "readOnly": true,
@@ -30703,14 +30985,13 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad comercial del \u00edtem descriptivo.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
-                            "no_incluido",
-                            "cortesia",
-                            "reemplazado"
+                            "no_incluido"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -30727,6 +31008,18 @@
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
+                    },
+                    "tituloTarifaVisible": {
+                        "description": "Controla si el t\u00edtulo de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "categoriaTarifaVisible": {
+                        "description": "Controla si la categor\u00eda de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "modalidadTarifaVisible": {
+                        "description": "Controla si la modalidad de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -30734,7 +31027,7 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "Establece el componente log\u00edstico padre.",
+                        "description": "Obtiene el componente log\u00edstico padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
@@ -30746,14 +31039,13 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad comercial del \u00edtem descriptivo.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
-                            "no_incluido",
-                            "cortesia",
-                            "reemplazado"
+                            "no_incluido"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -30770,6 +31062,18 @@
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
+                    },
+                    "tituloTarifaVisible": {
+                        "description": "Controla si el t\u00edtulo de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "categoriaTarifaVisible": {
+                        "description": "Controla si la categor\u00eda de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "modalidadTarifaVisible": {
+                        "description": "Controla si la modalidad de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
                     },
                     "id": {
                         "readOnly": true,
@@ -30808,14 +31112,13 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad comercial del \u00edtem descriptivo.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
-                            "no_incluido",
-                            "cortesia",
-                            "reemplazado"
+                            "no_incluido"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -30832,6 +31135,18 @@
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
+                    },
+                    "tituloTarifaVisible": {
+                        "description": "Controla si el t\u00edtulo de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "categoriaTarifaVisible": {
+                        "description": "Controla si la categor\u00eda de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "modalidadTarifaVisible": {
+                        "description": "Controla si la modalidad de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -30839,7 +31154,7 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "Establece el componente log\u00edstico padre.",
+                        "description": "Obtiene el componente log\u00edstico padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
@@ -30851,14 +31166,13 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad comercial del \u00edtem descriptivo.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
-                            "no_incluido",
-                            "cortesia",
-                            "reemplazado"
+                            "no_incluido"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -30875,6 +31189,18 @@
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
+                    },
+                    "tituloTarifaVisible": {
+                        "description": "Controla si el t\u00edtulo de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "categoriaTarifaVisible": {
+                        "description": "Controla si la categor\u00eda de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "modalidadTarifaVisible": {
+                        "description": "Controla si la modalidad de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
                     },
                     "id": {
                         "readOnly": true,
@@ -30913,14 +31239,13 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
+                        "description": "Obtiene la modalidad comercial del \u00edtem descriptivo.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
-                            "no_incluido",
-                            "cortesia",
-                            "reemplazado"
+                            "no_incluido"
                         ]
                     },
                     "componenteAdicionalVinculado": {
@@ -30937,6 +31262,18 @@
                         "description": "Obtiene el orden de aparici\u00f3n.",
                         "default": 1,
                         "type": "integer"
+                    },
+                    "tituloTarifaVisible": {
+                        "description": "Controla si el t\u00edtulo de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "categoriaTarifaVisible": {
+                        "description": "Controla si la categor\u00eda de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
+                    },
+                    "modalidadTarifaVisible": {
+                        "description": "Controla si la modalidad de la tarifa asociada a este \u00edtem es visible p\u00fablicamente.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -31220,12 +31557,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -31297,12 +31633,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -31374,12 +31709,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -31451,12 +31785,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -31529,12 +31862,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -31606,12 +31938,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -31683,12 +32014,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -31769,12 +32099,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -31846,12 +32175,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -31923,12 +32251,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -32009,12 +32336,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -32086,12 +32412,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"
@@ -32163,12 +32488,11 @@
                         "format": "date-time"
                     },
                     "modo": {
-                        "description": "Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).",
+                        "description": "Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
-                            "opcional",
                             "no_incluido",
                             "cortesia",
                             "reemplazado"

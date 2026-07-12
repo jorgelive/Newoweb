@@ -33,4 +33,13 @@ enum TarifaRolEnum: string
             default => true,
         };
     }
+
+    /** Se clasifican en rama principal. */
+    public function sumaRamaPrincipal(): bool
+    {
+        return match($this) {
+            self::ESTANDAR, self::OPERATIVO => true,
+            default => false,
+        };
+    }
 }

@@ -7,11 +7,17 @@ namespace App\Travel\Controller\Crud;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Panel\Helper\AdminFieldHelper;
+use App\Security\Roles;
 use App\Travel\Entity\TravelTarifa;
+use App\Travel\Enum\TarifaCategoriaEnum;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
 use App\Travel\Enum\TarifaRolEnum;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
@@ -21,11 +27,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
-use App\Security\Roles;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
@@ -80,7 +81,7 @@ class TravelTarifaCrudController extends BaseCrudController
                 'data-panel--confirm-text-value' => 'Se duplicará esta tarifa para crear una nueva.',
                 'data-panel--confirm-icon-value' => 'question',
                 'data-panel--confirm-confirm-button-text-value' => 'Sí, clonar',
-                'data-panel--confirm-confirm-color-value' => '#0ea5e9'
+                'data-panel--confirm-confirm-color-value' => '#0ea5e9',
             ]);
 
         $actions
@@ -204,7 +205,6 @@ class TravelTarifaCrudController extends BaseCrudController
             ->renderAsHtml();
 
         // Escritura Proveedor (Gatillo AJAX)
-        // Se añade el atributo dinámico modificado para que el JS sepa que debe filtrar por 'proveedor.id' en API Platform
         yield AdminFieldHelper::controlsAjax(
             AssociationField::new('proveedor', 'Proveedor por Defecto'),
             'js-proveedor-servicio-api-target',
@@ -232,7 +232,7 @@ class TravelTarifaCrudController extends BaseCrudController
             ->setColumns(6)
             ->setFormTypeOptions([
                 'attr' => [
-                    'class' => 'js-proveedor-servicio-api-target'
+                    'class' => 'js-proveedor-servicio-api-target',
                 ],
             ]);
 
@@ -245,7 +245,7 @@ class TravelTarifaCrudController extends BaseCrudController
             ->setHelp('Operativo = costo prorrateado que nunca se muestra al cliente (ej. guía acompañante).');
 
         yield ChoiceField::new('rol', 'Rol')
-            ->setChoices(array_reduce(TarifaRolEnum::cases(), fn ($c, $e) => $c + [$e->name => $e], []))
+            ->setChoices(array_reduce(TarifaRolEnum::cases(), fn($c, $e) => $c + [$e->name => $e], []))
             ->setRequired(true)->onlyOnForms()->setColumns(6);
 
         yield NumberField::new('comisionOverride', 'Comisión Propia (%)')
@@ -260,26 +260,35 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('virtualModalidad', 'Modalidad')
             ->hideOnForm()
-            ->formatValue(static fn ($value, $entity) => $entity->getModalidad() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getModalidad()->value) : '<span class="text-muted small">Cualquiera</span>')
+            ->formatValue(static fn($value, $entity) => $entity->getModalidad() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getModalidad()->value) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
         yield ChoiceField::new('modalidad', 'Modalidad')
-            ->setChoices(array_reduce(TarifaModalidadEnum::cases(), fn ($c, $e) => $c + [$e->name => $e], []))
+            ->setChoices(array_reduce(TarifaModalidadEnum::cases(), fn($c, $e) => $c + [$e->name => $e], []))
+            ->setRequired(false)->onlyOnForms()->setColumns(6);
+
+        yield TextField::new('virtualCategoria', 'Categoría')
+            ->hideOnForm()
+            ->formatValue(static fn($value, $entity) => $entity->getCategoria() ? sprintf('<span class="text-dark fw-medium">%s</span>', ucfirst($entity->getCategoria()->value)) : '<span class="text-muted small">Cualquiera</span>')
+            ->renderAsHtml();
+
+        yield ChoiceField::new('categoria', 'Categoría')
+            ->setChoices(array_reduce(TarifaCategoriaEnum::cases(), fn($c, $e) => $c + [$e->name => $e], []))
             ->setRequired(false)->onlyOnForms()->setColumns(6);
 
         yield TextField::new('virtualProcedencia', 'Mercado (Procedencia)')
             ->hideOnForm()
-            ->formatValue(static fn ($value, $entity) => $entity->getProcedencia() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getProcedencia()->value) : '<span class="text-muted small">Cualquiera</span>')
+            ->formatValue(static fn($value, $entity) => $entity->getProcedencia() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getProcedencia()->value) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
         yield ChoiceField::new('procedencia', 'Mercado (Procedencia)')
-            ->setChoices(array_reduce(TarifaProcedenciaEnum::cases(), fn ($c, $e) => $c + [$e->name => $e], []))
+            ->setChoices(array_reduce(TarifaProcedenciaEnum::cases(), fn($c, $e) => $c + [$e->name => $e], []))
             ->setRequired(false)->onlyOnForms()->setColumns(6);
 
-        yield IntegerField::new('edadMinima', 'Edad Mín.')->setRequired(false)->setColumns(3)->formatValue(static fn ($value) => $value ?? '-');
-        yield IntegerField::new('edadMaxima', 'Edad Máx.')->setRequired(false)->setColumns(3)->formatValue(static fn ($value) => $value ?? '-');
-        yield IntegerField::new('capacidadMinima', 'Cap. Mínima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn ($value) => $value ?? '-');
-        yield IntegerField::new('capacidadMaxima', 'Cap. Máxima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn ($value) => $value ?? '-');
+        yield IntegerField::new('edadMinima', 'Edad Mín.')->setRequired(false)->setColumns(3)->formatValue(static fn($value) => $value ?? '-');
+        yield IntegerField::new('edadMaxima', 'Edad Máx.')->setRequired(false)->setColumns(3)->formatValue(static fn($value) => $value ?? '-');
+        yield IntegerField::new('capacidadMinima', 'Cap. Mínima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn($value) => $value ?? '-');
+        yield IntegerField::new('capacidadMaxima', 'Cap. Máxima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn($value) => $value ?? '-');
 
         /* ====================================================================
          * PANEL: TRADUCCIONES

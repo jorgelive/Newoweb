@@ -4,6 +4,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import WysiwygEditor from '@/components/WysiwygEditor.vue';
+import ResumenClasificacion from '@/components/cotizacion/ResumenClasificacion.vue';
 
 // 🔥 IMPORTS DEL DATEPICKER Y MÁSCARAS
 import { VueDatePicker } from '@vuepic/vue-datepicker';
@@ -23,6 +24,8 @@ defineProps<{
   fileId?: string;
   cotizacionId?: string;
 }>();
+
+const isReporteOpen = ref(false);
 
 const route = useRoute();
 const router = useRouter();
@@ -760,6 +763,10 @@ watch(isProveedorOpen, (newVal) => {
                 </div>
               </div>
             </div>
+            <button @click="isReporteOpen = true"
+                    class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
+              <i class="fas fa-file-invoice-dollar mr-2"></i> Reporte financiero completo
+            </button>
 
             <div class="space-y-3">
               <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"><i class="fas fa-users mr-1"></i> Análisis por Perfil de Pasajero</h3>
@@ -1231,10 +1238,9 @@ watch(isProveedorOpen, (newVal) => {
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo Comercial</label>
                   <div class="relative">
                     <select v-model="store.dataActiva.modo"
-                      class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
-                      :class="[getModoItemConfig(store.dataActiva.modo).bg, getModoItemConfig(store.dataActiva.modo).text, getModoItemConfig(store.dataActiva.modo).border]">
+                            class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
+                            :class="[getModoItemConfig(store.dataActiva.modo).bg, getModoItemConfig(store.dataActiva.modo).text, getModoItemConfig(store.dataActiva.modo).border]">
                       <option value="incluido">Incluido</option>
-                      <option value="opcional">Opcional</option>
                       <option value="no_incluido">No incluido</option>
                       <option value="cortesia">Cortesía</option>
                       <option value="reemplazado">Reemplazado</option>
@@ -1533,10 +1539,10 @@ watch(isProveedorOpen, (newVal) => {
 
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2 mt-2">
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre en Recibo *</label>
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre para cliente *</label>
                 <div class="flex gap-2">
-                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
-                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                  <input :value="store.getI18nText(store.dataActiva.tituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm">
 
                   <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
@@ -1544,6 +1550,13 @@ watch(isProveedorOpen, (newVal) => {
                           class="px-4 border rounded-xl transition-colors shadow-sm" title="Forzar traducción">
                     <i class="fas fa-language"></i>
                   </button>
+                </div>
+
+                <div v-if="store.dataActiva.nombreInternoSnapshot" class="mt-2 ml-1">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-[11px] font-medium text-slate-600" title="Nombre Interno / Operativo">
+                  <i class="fas fa-tag text-slate-400 text-[10px]"></i>
+                  {{ store.dataActiva.nombreInternoSnapshot }}
+                </span>
                 </div>
               </div>
 
@@ -1954,54 +1967,6 @@ watch(isProveedorOpen, (newVal) => {
   </div>
 
   <Teleport to="body">
-
-
-    <Transition name="fade-scale">
-      <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-[1400] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalInsercion.isOpen = false">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
-          <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
-            <h3 class="font-black text-sm uppercase tracking-widest"><i class="fas fa-arrows-alt-v mr-2"></i>¿Dónde ubicar el segmento?</h3>
-            <button @click="modalInsercion.isOpen = false" class="hover:opacity-70"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="p-5 space-y-4">
-            <p class="text-xs font-bold text-slate-500">
-              Insertando: <span class="text-indigo-600">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || modalInsercion.segmentoMaestro?.nombreInterno }}</span>
-            </p>
-
-            <div class="space-y-2">
-              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'append' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
-                <input type="radio" value="append" v-model="opcionInsercion" class="accent-indigo-600">
-                <span class="text-xs font-bold text-slate-700">Agregar al final del itinerario</span>
-              </label>
-              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'insert' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
-                <input type="radio" value="insert" v-model="opcionInsercion" class="accent-indigo-600">
-                <span class="text-xs font-bold text-slate-700">Insertar después de un párrafo existente</span>
-              </label>
-              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'replace' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
-                <input type="radio" value="replace" v-model="opcionInsercion" class="accent-indigo-600">
-                <span class="text-xs font-bold text-slate-700">Reemplazar un párrafo existente</span>
-              </label>
-            </div>
-
-            <div v-if="opcionInsercion !== 'append'">
-              <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
-                {{ opcionInsercion === 'insert' ? 'Insertar después de:' : 'Párrafo a reemplazar:' }}
-              </label>
-              <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
-                <option v-for="(cotSeg, idx) in store.dataActiva?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
-                  {{ idx + 1 }}. {{ store.getI18nText(cotSeg.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
-                </option>
-              </select>
-            </div>
-          </div>
-          <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end gap-2">
-            <button @click="modalInsercion.isOpen = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
-            <button @click="confirmarInsercion" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm">Confirmar</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
     <Transition name="fade-scale">
       <div v-if="store.isSegmentEditorOpen && store.cotizacion" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
         <div class="bg-[#F8FAFC] w-full max-w-6xl h-full max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
@@ -2210,6 +2175,10 @@ watch(isProveedorOpen, (newVal) => {
                 </div>
               </div>
             </div>
+            <button @click="isReporteOpen = true"
+                    class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
+              <i class="fas fa-file-invoice-dollar mr-2"></i> Reporte financiero completo
+            </button>
 
             <div class="space-y-3 pt-2">
               <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1"><i class="fas fa-users mr-1"></i> Análisis por Perfil</h3>
@@ -2286,6 +2255,67 @@ watch(isProveedorOpen, (newVal) => {
           </div>
           <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end flex-shrink-0">
             <button @click="modalNota.isOpen = false" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="fade-scale">
+      <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-[1400] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalInsercion.isOpen = false">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
+          <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
+            <h3 class="font-black text-sm uppercase tracking-widest"><i class="fas fa-arrows-alt-v mr-2"></i>¿Dónde ubicar el segmento?</h3>
+            <button @click="modalInsercion.isOpen = false" class="hover:opacity-70"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="p-5 space-y-4">
+            <p class="text-xs font-bold text-slate-500">
+              Insertando: <span class="text-indigo-600">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || modalInsercion.segmentoMaestro?.nombreInterno }}</span>
+            </p>
+
+            <div class="space-y-2">
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'append' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
+                <input type="radio" value="append" v-model="opcionInsercion" class="accent-indigo-600">
+                <span class="text-xs font-bold text-slate-700">Agregar al final del itinerario</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'insert' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
+                <input type="radio" value="insert" v-model="opcionInsercion" class="accent-indigo-600">
+                <span class="text-xs font-bold text-slate-700">Insertar después de un párrafo existente</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'replace' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
+                <input type="radio" value="replace" v-model="opcionInsercion" class="accent-indigo-600">
+                <span class="text-xs font-bold text-slate-700">Reemplazar un párrafo existente</span>
+              </label>
+            </div>
+
+            <div v-if="opcionInsercion !== 'append'">
+              <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                {{ opcionInsercion === 'insert' ? 'Insertar después de:' : 'Párrafo a reemplazar:' }}
+              </label>
+              <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                <option v-for="(cotSeg, idx) in store.dataActiva?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
+                  {{ idx + 1 }}. {{ store.getI18nText(cotSeg.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end gap-2">
+            <button @click="modalInsercion.isOpen = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
+            <button @click="confirmarInsercion" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="fade-scale">
+      <div v-if="isReporteOpen" class="fixed inset-0 z-[1500] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
+           @click.self="isReporteOpen = false">
+        <div class="bg-white w-full max-w-6xl h-full max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+          <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center flex-shrink-0">
+            <h2 class="font-black text-lg"><i class="fas fa-file-invoice-dollar mr-2"></i> Reporte financiero</h2>
+            <button @click="isReporteOpen = false" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center"><i class="fas fa-times"></i></button>
+          </header>
+          <div class="flex-1 overflow-y-auto p-6 md:p-8 bg-[#F8FAFC]">
+            <ResumenClasificacion />
           </div>
         </div>
       </div>

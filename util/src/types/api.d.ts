@@ -2436,34 +2436,52 @@ export interface components {
         CotizacionCotcomponente: {
             /**
              * Format: iri-reference
+             * @description Obtiene el servicio de cotización padre.
              * @example https://example.com/
              */
             cotservicio?: string;
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento de la cotización vinculado.
              * @example https://example.com/
              */
             cotsegmento?: string | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
             /**
+             * @description Obtiene el estado del componente.
              * @default pendiente
              * @enum {string}
              */
             estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
             /**
+             * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
-            /** Format: date-time */
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene los items guardados en el snapshot. */
             snapshotItems?: string[];
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: string[];
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
@@ -2481,27 +2499,44 @@ export interface components {
             readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
+            /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
             /**
+             * @description Obtiene el estado del componente.
              * @default pendiente
              * @enum {string}
              */
             estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
             /**
+             * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
-            /** Format: date-time */
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene los items guardados en el snapshot. */
             snapshotItems?: string[];
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa-cotizacion.read_timestamp.read"][];
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
@@ -2514,27 +2549,44 @@ export interface components {
             readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente-cotizacion.write": {
+            /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
             /**
+             * @description Obtiene el estado del componente.
              * @default pendiente
              * @enum {string}
              */
             estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
             /**
+             * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
-            /** Format: date-time */
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene los items guardados en el snapshot. */
             snapshotItems?: string[];
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa-cotizacion.write"][];
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
@@ -2543,14 +2595,26 @@ export interface components {
             readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente-pax_cotizacion.read": {
+            /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_cotizacion.read"] | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa-pax_cotizacion.read"][];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
@@ -2559,34 +2623,52 @@ export interface components {
         "CotizacionCotcomponente.html": {
             /**
              * Format: iri-reference
+             * @description Obtiene el servicio de cotización padre.
              * @example https://example.com/
              */
             cotservicio?: string;
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento de la cotización vinculado.
              * @example https://example.com/
              */
             cotsegmento?: string | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
             /**
+             * @description Obtiene el estado del componente.
              * @default pendiente
              * @enum {string}
              */
             estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
             /**
+             * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
-            /** Format: date-time */
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene los items guardados en el snapshot. */
             snapshotItems?: string[];
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: string[];
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
@@ -2604,27 +2686,44 @@ export interface components {
             readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
+            /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
             /**
+             * @description Obtiene el estado del componente.
              * @default pendiente
              * @enum {string}
              */
             estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
             /**
+             * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
-            /** Format: date-time */
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene los items guardados en el snapshot. */
             snapshotItems?: string[];
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-cotizacion.read_timestamp.read"][];
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
@@ -2637,14 +2736,26 @@ export interface components {
             readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente.html-pax_cotizacion.read": {
+            /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_cotizacion.read"] | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_cotizacion.read"][];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
@@ -2653,34 +2764,52 @@ export interface components {
         "CotizacionCotcomponente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /**
              * Format: iri-reference
+             * @description Obtiene el servicio de cotización padre.
              * @example https://example.com/
              */
             cotservicio?: string;
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento de la cotización vinculado.
              * @example https://example.com/
              */
             cotsegmento?: string | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
             /**
+             * @description Obtiene el estado del componente.
              * @default pendiente
              * @enum {string}
              */
             estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
             /**
+             * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
-            /** Format: date-time */
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene los items guardados en el snapshot. */
             snapshotItems?: string[];
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: string[];
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
@@ -2699,27 +2828,44 @@ export interface components {
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"] | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
             /**
+             * @description Obtiene el estado del componente.
              * @default pendiente
              * @enum {string}
              */
             estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
             /**
+             * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
-            /** Format: date-time */
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene los items guardados en el snapshot. */
             snapshotItems?: string[];
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read"][];
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
@@ -2733,14 +2879,26 @@ export interface components {
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_cotizacion.read"] | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_cotizacion.read"][];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
@@ -2749,34 +2907,52 @@ export interface components {
         "CotizacionCotcomponente.multipart": {
             /**
              * Format: iri-reference
+             * @description Obtiene el servicio de cotización padre.
              * @example https://example.com/
              */
             cotservicio?: string;
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento de la cotización vinculado.
              * @example https://example.com/
              */
             cotsegmento?: string | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
             /**
+             * @description Obtiene el estado del componente.
              * @default pendiente
              * @enum {string}
              */
             estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
             /**
+             * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
-            /** Format: date-time */
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene los items guardados en el snapshot. */
             snapshotItems?: string[];
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: string[];
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
@@ -2794,27 +2970,44 @@ export interface components {
             readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
+            /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
             /**
+             * @description Obtiene el estado del componente.
              * @default pendiente
              * @enum {string}
              */
             estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
             /**
+             * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
-            /** Format: date-time */
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene los items guardados en el snapshot. */
             snapshotItems?: string[];
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-cotizacion.read_timestamp.read"][];
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
             id?: string;
             /** Format: date-time */
@@ -2827,14 +3020,26 @@ export interface components {
             readonly detallesParaCliente?: string[];
         };
         "CotizacionCotcomponente.multipart-pax_cotizacion.read": {
+            /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_cotizacion.read"] | null;
+            /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
-            /** @default 1 */
+            /**
+             * @description Obtiene la cantidad de componentes instanciados.
+             * @default 1
+             */
             cantidad: number;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de inicio de la operativa.
+             */
             fechaHoraInicio?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Obtiene la fecha y hora de fin de la operativa.
+             */
             fechaHoraFin?: string | null;
+            /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_cotizacion.read"][];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
@@ -3066,7 +3271,6 @@ export interface components {
              * @example https://example.com/
              */
             cotcomponente?: string;
-            nombreSnapshot?: string[];
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
@@ -3090,7 +3294,10 @@ export interface components {
             proveedorServicioImagenesSnapshot?: string[];
             /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
             proveedorServicioMaestroId?: string | null;
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3132,9 +3339,9 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            proveedorServicioNombreSnapshot?: string | null;
         };
         "CotizacionCottarifa-cotizacion.read_timestamp.read": {
-            nombreSnapshot?: string[];
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
@@ -3158,7 +3365,10 @@ export interface components {
             proveedorServicioImagenesSnapshot?: string[];
             /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
             proveedorServicioMaestroId?: string | null;
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3197,7 +3407,6 @@ export interface components {
             sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa-cotizacion.write": {
-            nombreSnapshot?: string[];
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
@@ -3221,7 +3430,10 @@ export interface components {
             proveedorServicioImagenesSnapshot?: string[];
             /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
             proveedorServicioMaestroId?: string | null;
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3256,7 +3468,6 @@ export interface components {
             sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa-pax_cotizacion.read": {
-            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             proveedorNombreSnapshot?: string | null;
@@ -3269,7 +3480,10 @@ export interface components {
              */
             proveedorImagenesSnapshot?: string[];
             proveedorServicioImagenesSnapshot?: string[];
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3290,7 +3504,6 @@ export interface components {
              * @example https://example.com/
              */
             cotcomponente?: string;
-            nombreSnapshot?: string[];
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
@@ -3314,7 +3527,10 @@ export interface components {
             proveedorServicioImagenesSnapshot?: string[];
             /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
             proveedorServicioMaestroId?: string | null;
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3356,9 +3572,9 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            proveedorServicioNombreSnapshot?: string | null;
         };
         "CotizacionCottarifa.html-cotizacion.read_timestamp.read": {
-            nombreSnapshot?: string[];
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
@@ -3382,7 +3598,10 @@ export interface components {
             proveedorServicioImagenesSnapshot?: string[];
             /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
             proveedorServicioMaestroId?: string | null;
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3421,7 +3640,6 @@ export interface components {
             sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa.html-pax_cotizacion.read": {
-            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             proveedorNombreSnapshot?: string | null;
@@ -3434,7 +3652,10 @@ export interface components {
              */
             proveedorImagenesSnapshot?: string[];
             proveedorServicioImagenesSnapshot?: string[];
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3455,7 +3676,6 @@ export interface components {
              * @example https://example.com/
              */
             cotcomponente?: string;
-            nombreSnapshot?: string[];
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
@@ -3479,7 +3699,10 @@ export interface components {
             proveedorServicioImagenesSnapshot?: string[];
             /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
             proveedorServicioMaestroId?: string | null;
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3521,9 +3744,9 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            proveedorServicioNombreSnapshot?: string | null;
         };
         "CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreSnapshot?: string[];
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
@@ -3547,7 +3770,10 @@ export interface components {
             proveedorServicioImagenesSnapshot?: string[];
             /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
             proveedorServicioMaestroId?: string | null;
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3586,7 +3812,6 @@ export interface components {
             sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa.jsonld-pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             proveedorNombreSnapshot?: string | null;
@@ -3599,7 +3824,10 @@ export interface components {
              */
             proveedorImagenesSnapshot?: string[];
             proveedorServicioImagenesSnapshot?: string[];
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3620,7 +3848,6 @@ export interface components {
              * @example https://example.com/
              */
             cotcomponente?: string;
-            nombreSnapshot?: string[];
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
@@ -3644,7 +3871,10 @@ export interface components {
             proveedorServicioImagenesSnapshot?: string[];
             /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
             proveedorServicioMaestroId?: string | null;
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3686,9 +3916,9 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            proveedorServicioNombreSnapshot?: string | null;
         };
         "CotizacionCottarifa.multipart-cotizacion.read_timestamp.read": {
-            nombreSnapshot?: string[];
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
             /** @default 1 */
@@ -3712,7 +3942,10 @@ export interface components {
             proveedorServicioImagenesSnapshot?: string[];
             /** @description SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación). */
             proveedorServicioMaestroId?: string | null;
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -3751,7 +3984,6 @@ export interface components {
             sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa.multipart-pax_cotizacion.read": {
-            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             proveedorNombreSnapshot?: string | null;
@@ -3764,7 +3996,10 @@ export interface components {
              */
             proveedorImagenesSnapshot?: string[];
             proveedorServicioImagenesSnapshot?: string[];
-            proveedorServicioNombreSnapshot?: string | null;
+            /** @description Obtiene el título comercial multidioma de la tarifa. */
+            tituloSnapshot?: string[];
+            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            nombreInternoSnapshot?: string | null;
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
@@ -7907,6 +8142,11 @@ export interface components {
             moneda?: components["schemas"]["MaestroMoneda-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
+            /**
+             * @description Categoría o nivel de confort asociado a la tarifa (ej. Estándar, Económico, Superior, Premium).
+             * @enum {string|null}
+             */
+            categoria?: "estandar" | "economico" | "superior" | "premium" | null;
             /** @enum {string|null} */
             procedencia?: "nacional" | "extranjero" | "can" | null;
             edadMinima?: number | null;
@@ -7939,6 +8179,11 @@ export interface components {
             moneda?: components["schemas"]["MaestroMoneda-componente.write"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
+            /**
+             * @description Categoría o nivel de confort asociado a la tarifa (ej. Estándar, Económico, Superior, Premium).
+             * @enum {string|null}
+             */
+            categoria?: "estandar" | "economico" | "superior" | "premium" | null;
             /** @enum {string|null} */
             procedencia?: "nacional" | "extranjero" | "can" | null;
             edadMinima?: number | null;
@@ -7973,6 +8218,11 @@ export interface components {
             moneda?: components["schemas"]["MaestroMoneda.html-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
+            /**
+             * @description Categoría o nivel de confort asociado a la tarifa (ej. Estándar, Económico, Superior, Premium).
+             * @enum {string|null}
+             */
+            categoria?: "estandar" | "economico" | "superior" | "premium" | null;
             /** @enum {string|null} */
             procedencia?: "nacional" | "extranjero" | "can" | null;
             edadMinima?: number | null;
@@ -8005,6 +8255,11 @@ export interface components {
             moneda?: components["schemas"]["MaestroMoneda.jsonld-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
+            /**
+             * @description Categoría o nivel de confort asociado a la tarifa (ej. Estándar, Económico, Superior, Premium).
+             * @enum {string|null}
+             */
+            categoria?: "estandar" | "economico" | "superior" | "premium" | null;
             /** @enum {string|null} */
             procedencia?: "nacional" | "extranjero" | "can" | null;
             edadMinima?: number | null;
@@ -8037,6 +8292,11 @@ export interface components {
             moneda?: components["schemas"]["MaestroMoneda.multipart-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
+            /**
+             * @description Categoría o nivel de confort asociado a la tarifa (ej. Estándar, Económico, Superior, Premium).
+             * @enum {string|null}
+             */
+            categoria?: "estandar" | "economico" | "superior" | "premium" | null;
             /** @enum {string|null} */
             procedencia?: "nacional" | "extranjero" | "can" | null;
             edadMinima?: number | null;
@@ -8219,7 +8479,7 @@ export interface components {
         TravelComponenteItem: {
             /**
              * Format: iri-reference
-             * @description Establece el componente logístico padre.
+             * @description Obtiene el componente logístico padre.
              * @example https://example.com/
              */
             componente?: string;
@@ -8230,10 +8490,11 @@ export interface components {
              */
             diccionario: string;
             /**
+             * @description Obtiene la modalidad comercial del ítem descriptivo.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -8245,6 +8506,12 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /** @description Controla si el título de la tarifa asociada a este ítem es visible públicamente. */
+            tituloTarifaVisible?: boolean;
+            /** @description Controla si la categoría de la tarifa asociada a este ítem es visible públicamente. */
+            categoriaTarifaVisible?: boolean;
+            /** @description Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente. */
+            modalidadTarifaVisible?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -8260,10 +8527,11 @@ export interface components {
              */
             diccionario: string;
             /**
+             * @description Obtiene la modalidad comercial del ítem descriptivo.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -8275,6 +8543,12 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /** @description Controla si el título de la tarifa asociada a este ítem es visible públicamente. */
+            tituloTarifaVisible?: boolean;
+            /** @description Controla si la categoría de la tarifa asociada a este ítem es visible públicamente. */
+            categoriaTarifaVisible?: boolean;
+            /** @description Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente. */
+            modalidadTarifaVisible?: boolean;
         };
         "TravelComponenteItem-componente.write": {
             /**
@@ -8284,10 +8558,11 @@ export interface components {
              */
             diccionario: string;
             /**
+             * @description Obtiene la modalidad comercial del ítem descriptivo.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "opcional" | "no_incluido";
             /** @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE. */
             componenteAdicionalVinculado?: components["schemas"]["Componente-componente.write"] | null;
             /**
@@ -8295,11 +8570,17 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /** @description Controla si el título de la tarifa asociada a este ítem es visible públicamente. */
+            tituloTarifaVisible?: boolean;
+            /** @description Controla si la categoría de la tarifa asociada a este ítem es visible públicamente. */
+            categoriaTarifaVisible?: boolean;
+            /** @description Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente. */
+            modalidadTarifaVisible?: boolean;
         };
         "TravelComponenteItem.html": {
             /**
              * Format: iri-reference
-             * @description Establece el componente logístico padre.
+             * @description Obtiene el componente logístico padre.
              * @example https://example.com/
              */
             componente?: string;
@@ -8310,10 +8591,11 @@ export interface components {
              */
             diccionario: string;
             /**
+             * @description Obtiene la modalidad comercial del ítem descriptivo.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -8325,6 +8607,12 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /** @description Controla si el título de la tarifa asociada a este ítem es visible públicamente. */
+            tituloTarifaVisible?: boolean;
+            /** @description Controla si la categoría de la tarifa asociada a este ítem es visible públicamente. */
+            categoriaTarifaVisible?: boolean;
+            /** @description Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente. */
+            modalidadTarifaVisible?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -8340,10 +8628,11 @@ export interface components {
              */
             diccionario: string;
             /**
+             * @description Obtiene la modalidad comercial del ítem descriptivo.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -8355,11 +8644,17 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /** @description Controla si el título de la tarifa asociada a este ítem es visible públicamente. */
+            tituloTarifaVisible?: boolean;
+            /** @description Controla si la categoría de la tarifa asociada a este ítem es visible públicamente. */
+            categoriaTarifaVisible?: boolean;
+            /** @description Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente. */
+            modalidadTarifaVisible?: boolean;
         };
         "TravelComponenteItem.jsonld": {
             /**
              * Format: iri-reference
-             * @description Establece el componente logístico padre.
+             * @description Obtiene el componente logístico padre.
              * @example https://example.com/
              */
             componente?: string;
@@ -8370,10 +8665,11 @@ export interface components {
              */
             diccionario: string;
             /**
+             * @description Obtiene la modalidad comercial del ítem descriptivo.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -8385,6 +8681,12 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /** @description Controla si el título de la tarifa asociada a este ítem es visible públicamente. */
+            tituloTarifaVisible?: boolean;
+            /** @description Controla si la categoría de la tarifa asociada a este ítem es visible públicamente. */
+            categoriaTarifaVisible?: boolean;
+            /** @description Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente. */
+            modalidadTarifaVisible?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -8400,10 +8702,11 @@ export interface components {
              */
             diccionario: string;
             /**
+             * @description Obtiene la modalidad comercial del ítem descriptivo.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -8415,11 +8718,17 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /** @description Controla si el título de la tarifa asociada a este ítem es visible públicamente. */
+            tituloTarifaVisible?: boolean;
+            /** @description Controla si la categoría de la tarifa asociada a este ítem es visible públicamente. */
+            categoriaTarifaVisible?: boolean;
+            /** @description Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente. */
+            modalidadTarifaVisible?: boolean;
         };
         "TravelComponenteItem.multipart": {
             /**
              * Format: iri-reference
-             * @description Establece el componente logístico padre.
+             * @description Obtiene el componente logístico padre.
              * @example https://example.com/
              */
             componente?: string;
@@ -8430,10 +8739,11 @@ export interface components {
              */
             diccionario: string;
             /**
+             * @description Obtiene la modalidad comercial del ítem descriptivo.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -8445,6 +8755,12 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /** @description Controla si el título de la tarifa asociada a este ítem es visible públicamente. */
+            tituloTarifaVisible?: boolean;
+            /** @description Controla si la categoría de la tarifa asociada a este ítem es visible públicamente. */
+            categoriaTarifaVisible?: boolean;
+            /** @description Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente. */
+            modalidadTarifaVisible?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -8460,10 +8776,11 @@ export interface components {
              */
             diccionario: string;
             /**
+             * @description Obtiene la modalidad comercial del ítem descriptivo.
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -8475,6 +8792,12 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /** @description Controla si el título de la tarifa asociada a este ítem es visible públicamente. */
+            tituloTarifaVisible?: boolean;
+            /** @description Controla si la categoría de la tarifa asociada a este ítem es visible públicamente. */
+            categoriaTarifaVisible?: boolean;
+            /** @description Controla si la modalidad de la tarifa asociada a este ítem es visible públicamente. */
+            modalidadTarifaVisible?: boolean;
         };
         TravelItinerarioSegmentoRel: {
             /**
@@ -8654,11 +8977,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -8703,11 +9026,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -8752,11 +9075,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -8801,11 +9124,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -8855,11 +9178,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -8904,11 +9227,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -8953,11 +9276,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -9009,11 +9332,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -9058,11 +9381,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -9107,11 +9430,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -9163,11 +9486,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -9212,11 +9535,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1
@@ -9261,11 +9584,11 @@ export interface components {
              */
             horaFin?: string | null;
             /**
-             * @description Define la modalidad comercial del componente (INCLUIDO, OPCIONAL, NO_INCLUIDO).
+             * @description Define la modalidad comercial del componente (INCLUIDO, NO_INCLUIDO, CORTESIA, REEMPLAZADO).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "cortesia" | "reemplazado";
+            modo: "incluido" | "no_incluido" | "cortesia" | "reemplazado";
             /**
              * @description Orden posicional en el que se listará el componente dentro del contenedor del segmento.
              * @default 1

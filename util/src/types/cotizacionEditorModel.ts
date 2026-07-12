@@ -66,6 +66,7 @@ export type Cotizacion = Omit<
     file: { id?: string; '@id'?: string; createdAt?: string; updatedAt?: string; } | string;
     cotservicios: CotServicio[];
     resumen: I18nContent[];
+    clasificacionFinanciera?: ClasificacionFinancieraInterna;
     clasificacionFinancieraCliente?: ClasificacionFinancieraCliente;
     proveedorOculto?: boolean;
 };
@@ -80,6 +81,9 @@ type TarifaProcedenciaValue = NonNullable<TarifaBase['procedencia']>;
 // Solo se copia del maestro a la cotización (modalidadSnapshot) — no se
 // renderiza con label/ícono propio en el editor, por eso no tiene _CONFIG.
 export type TarifaModalidadValue = NonNullable<TarifaBase['modalidad']>;
+
+// Espejo de App\Travel\Enum\TarifaCategoriasEnum
+export type TarifaCategoriaValue = NonNullable<TarifaBase['categoria']>;
 
 export interface ProcedenciaUIConfig {
     icon: string;
@@ -116,6 +120,8 @@ export interface EstadoUIConfig {
 // Espejo de App\Cotizacion\Enum\CotizacionEstadoEnum
 type CotizacionEstadoValue = components['schemas']['Cotizacion-cotizacion.read_timestamp.read']['estado'];
 
+export type Item = components['schemas']['TravelComponenteItem-componente.item.read'];
+
 // Espejo de CotizacionEstadoEnum::badgeColor() + labels de UI
 export const ESTADO_COTIZACION_CONFIG: Record<CotizacionEstadoValue, EstadoUIConfig> = {
     pendiente: { label: 'Pendiente', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: 'fa-clock' },
@@ -127,9 +133,14 @@ export const ESTADO_COTIZACION_CONFIG: Record<CotizacionEstadoValue, EstadoUICon
 };
 
 // Espejo de App\Cotizacion\Enum\ComponenteItemModoEnum (a nivel de CotizacionCotcomponente.modo)
-export type ComponenteItemModoValue = 'incluido' | 'opcional' | 'no_incluido' | 'cortesia' | 'reemplazado';
+// Espejo de App\Travel\Enum\ComponenteModoEnum
+export type ComponenteModoValue = 'incluido' | 'no_incluido' | 'cortesia' | 'reemplazado';
 
-export const MODO_ITEM_CONFIG: Record<ComponenteItemModoValue, EstadoUIConfig> = {
+// Espejo de App\Travel\Enum\ItemModoEnum
+export type ItemModoValue = 'incluido' | 'opcional' | 'no_incluido';
+
+// Diccionario visual unificado para no alterar las llamadas en los templates de Vue
+export const MODO_COMERCIAL_CONFIG: Record<ComponenteModoValue | ItemModoValue | string, EstadoUIConfig> = {
     incluido:    { label: 'Incluido',    bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check-circle' },
     opcional:    { label: 'Opcional',    bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   icon: 'fa-circle-question' },
     no_incluido: { label: 'No incluido', bg: 'bg-slate-100',  text: 'text-slate-500',   border: 'border-slate-200',   icon: 'fa-ban' },
@@ -161,7 +172,7 @@ export const ESTADO_OPERATIVO_CONFIG: Record<EstadoOperativoValue, EstadoUIConfi
 // Helpers de acceso con fallback seguro — reemplazan el patrón `x[val] || default`
 // repetido antes en cada componente Vue.
 export const getModoItemConfig = (modo?: string | null): EstadoUIConfig =>
-    MODO_ITEM_CONFIG[(modo as ComponenteItemModoValue) || 'incluido'] || MODO_ITEM_CONFIG.incluido;
+    MODO_COMERCIAL_CONFIG[modo || 'incluido'] || MODO_COMERCIAL_CONFIG.incluido;
 
 export const getEstadoComponenteConfig = (estado?: string | null): EstadoUIConfig =>
     ESTADO_COMPONENTE_CONFIG[(estado as ComponenteEstadoValue) || 'pendiente'] || ESTADO_COMPONENTE_CONFIG.pendiente;
@@ -276,47 +287,11 @@ export interface Catalogos {
     tiposComponente: ComponenteTipo[];
 }
 
-export interface ClasificacionFinanciera {
-    ganancia: number;
-    montoAdelanto: number;
-    totalCostoNeto: number;
-    totalVentaBruta: number;
-    clasesPasajeros: Array<{
-        tipo: string;
-        tipoPaxNombre: string;
-        cantidad: number;
-        edadMin: number;
-        edadMax: number;
-        conflictos: string[];
-        resumen: {
-            montoDolares: number;
-            ventaDolares: number;
-            gananciaDolares: number;
-        };
-    }>;
-}
-
-// 🔥 NUEVA INTERFAZ: Molde estricto para la data expuesta al cliente
-export interface ClasificacionFinancieraCliente {
-    montoAdelanto: number;
-    totalVentaBruta: number;
-    clasesPasajeros: Array<{
-        tipo: string;
-        tipoPaxNombre: string;
-        cantidad: number;
-        edadMin: number;
-        edadMax: number;
-        conflictos: string[];
-        resumen: {
-            ventaDolares: number;
-        };
-    }>;
-}
-
 export interface TarifaSnapshot {
     id: string;
     tarifaMaestraId: string | null;
-    nombreSnapshot: I18nContent[];
+    tituloSnapshot: I18nContent[];
+    nombreInternoSnapshot: string | null;
     cantidad: number;
     moneda: string;
     montoCosto: number | string;
@@ -326,6 +301,7 @@ export interface TarifaSnapshot {
     comisionOverrideSnapshot: number | string | null;
     notaRol: I18nContent[];
     modalidadSnapshot: string | null; // renombrado de tipoModalidadSnapshot
+    categoriaSnapshot: string | null;
     procedenciaSnapshot: string | null;
     edadMinimaSnapshot: number | null;
     edadMaximaSnapshot: number | null;
@@ -362,6 +338,9 @@ export interface SnapshotItem {
     sobreescribirTraduccion: boolean;
     cantidad?: number;
     montoCosto?: number;
+    tituloTarifaVisible: boolean;
+    categoriaTarifaVisible: boolean;
+    modalidadTarifaVisible: boolean;
 }
 
 export type ComponenteCompleto = Omit<
@@ -417,4 +396,281 @@ export const getRolTarifaUI = (rol?: string | null): EstadoUIConfig =>
     ROL_TARIFA_CONFIG[(rol as TarifaRolValue) || 'estandar'] || ROL_TARIFA_CONFIG.estandar;
 
 export type NivelInspector = 'resumen' | 'servicio' | 'componente' | 'tarifa';
+
+
+export type ModoFinanciero = 'incluido' | 'no_incluido' | 'cortesia';
+
+export interface TotalesVenta {
+    ventaSoles: number;
+    ventaDolares: number;
+}
+
+
+export interface TotalesInternos extends TotalesVenta {
+    costoSoles: number;
+    costoDolares: number;
+    gananciaSoles: number;
+    gananciaDolares: number;
+}
+
+const totalesVentaVacios = (): TotalesVenta => ({ ventaSoles: 0, ventaDolares: 0 });
+export const totalesInternosVacios = (): TotalesInternos =>
+    ({ costoSoles: 0, costoDolares: 0, ventaSoles: 0, ventaDolares: 0, gananciaSoles: 0, gananciaDolares: 0 });
+
+// ── Detalle por clase (montos POR PAX) ──────────────────────────────────────
+
+export interface LineaDetalleClaseCliente {
+    montoCotizado: string;              // "152.00" — original, en su moneda
+    moneda: string;                     // 'PEN' | 'USD'
+    esGrupal: boolean;                  // (P) / (U)
+    cantidad: number;                   // pax de la tarifa (1 si grupal)
+    cantidadComponente: number;         // noches / multiplicador ("2 x ...")
+    modo: ModoFinanciero;
+    fecha: string;                      // YYYY-MM-DD del componente
+    modalidad: string | null;
+    categoria: string | null;
+    rol: TarifaRolValue;
+    notaRol: I18nContent[];
+    tarifaTitulo: I18nContent[];
+    componenteNombre: I18nContent[];    // fallback: nombre del segmento
+    servicioId: string;
+    servicioNombre: I18nContent[];
+    ventaSoles: number;                 // POR PAX (override aplicado; cortesía=0)
+    ventaDolares: number;
+}
+
+export interface LineaDetalleClaseInterna extends LineaDetalleClaseCliente {
+    costoSoles: number;                 // POR PAX
+    costoDolares: number;
+    comisionAplicada: number;           // % efectivo de la línea
+    comisionOverride: string | null;    // override crudo (null = usó global)
+    tarifaMaestraId: string | null;
+    nombreInterno: string | null;       // nombreInternoSnapshot
+}
+
+// ── Clases de pasajero ───────────────────────────────────────────────────────
+
+export interface ClasePasajeroCliente {
+    tipo: string;
+    tipoPaxNombre: string;
+    cantidad: number;
+    edadMin: number;
+    edadMax: number;
+    detalle: LineaDetalleClaseCliente[];
+    resumenPorModo: { normal: TotalesVenta; ctaPax: TotalesVenta; cortesia: TotalesVenta };  // POR PAX
+    resumen: { ventaDolares: number };  // clase completa, solo incluido
+}
+
+export interface ClasePasajeroInterna extends Omit<ClasePasajeroCliente, 'detalle' | 'resumenPorModo' | 'resumen'> {
+    conflictos: string[];
+    detalle: LineaDetalleClaseInterna[];
+    resumenPorModo: { normal: TotalesInternos; ctaPax: TotalesInternos; cortesia: TotalesInternos };
+    resumen: { montoDolares: number; ventaDolares: number; gananciaDolares: number };
+}
+
+// ── Upgrades (alternativas por componente) ───────────────────────────────────
+
+export interface DeltaUpgradePorPerfil {
+    procedencia: string | null;
+    edadMin: number;
+    edadMax: number;
+    deltaVentaPorPax: number;           // USD
+}
+
+export interface OpcionUpgradeCliente {
+    componenteId: string;
+    grupoTarifa: number;
+    componenteNombre: I18nContent[];
+    servicioId: string;
+    servicioNombre: I18nContent[];
+    tarifaTitulo: I18nContent[];
+    notaRol: I18nContent[];
+    modalidad: string | null;
+    categoria: string | null;
+    deltaVentaPorPax: number;           // USD, promedio ponderado (cifra única de UI)
+    deltasPorPerfil: DeltaUpgradePorPerfil[];   // exacto por procedencia/edad (grupos simétricos)
+    deltaVentaTotal: number;            // USD
+}
+
+export interface OpcionUpgradeInterna extends OpcionUpgradeCliente {
+    tarifaMaestraId: string | null;
+    ventaPorPaxEstandar: number;
+    ventaPorPaxAlternativa: number;
+    deltaCostoPorPax: number;
+    comisionAplicada: number;
+    comisionOverride: string | null;
+}
+
+// ── Inclusiones (líneas aplanadas, vista "Incluye / No incluye") ─────────────
+
+export interface InclusionTarifa {
+    tarifaTitulo: I18nContent[];
+    cantidad: number;
+    esGrupal: boolean;
+    modalidad: string | null;
+    categoria: string | null;
+    rol: TarifaRolValue;
+    notaRol: I18nContent[];
+    montoCotizado: string | null;       // interna: siempre; cliente: solo no_incluido
+    moneda: string | null;
+}
+
+export interface InclusionLinea {
+    origen: 'componente' | 'item';
+    modo: ModoFinanciero | 'opcional';  // los items pueden ser opcionales
+    nombre: I18nContent[];
+    fecha: string;
+    cantidadComponente: number;         // "x 2 noches"
+    // Herencia condicional (items: gobernada por flags; componentes: de su tarifa estándar)
+    modalidad: string | null;
+    categoria: string | null;
+    tarifaTitulo: I18nContent[];        // items: solo si tituloTarifaVisible
+    tarifas: InclusionTarifa[];         // items: siempre []
+}
+
+export interface InclusionServicio {
+    servicioId: string;
+    servicioNombre: I18nContent[];
+    incluidos: InclusionLinea[];
+    noIncluidos: InclusionLinea[];
+    cortesias: InclusionLinea[];
+    opcionales: InclusionLinea[];       // items modo 'opcional' (upsells no activados)
+}
+
+// ── Raíz ─────────────────────────────────────────────────────────────────────
+
+export interface ClasificacionFinancieraCliente {
+    schemaVersion: number;
+    generatedAt: string;
+    numPax: number;
+    tipoCambio: number;
+    precioOculto: boolean;
+    totalVentaBruta: number;            // USD, solo incluido
+    montoAdelanto: number;
+    resumenGeneral: { incluido: TotalesVenta; noIncluido: TotalesVenta; cortesia: TotalesVenta };
+    clasesPasajeros: ClasePasajeroCliente[];
+    opcionesUpgrade: OpcionUpgradeCliente[];
+    inclusiones: InclusionServicio[];
+}
+
+export interface ClasificacionFinancieraInterna extends Omit<ClasificacionFinancieraCliente,
+    'resumenGeneral' | 'clasesPasajeros' | 'opcionesUpgrade'> {
+    totalCostoNeto: number;             // USD, solo incluido
+    ganancia: number;                   // ventaIncl − costoIncl − costoCortesía
+    comisionGlobal: number;
+    resumenGeneral: { incluido: TotalesInternos; noIncluido: TotalesInternos; cortesia: TotalesInternos };
+    clasesPasajeros: ClasePasajeroInterna[];
+    opcionesUpgrade: OpcionUpgradeInterna[];
+    advertencias: string[];             // simetría de grupos, pools sin modalidad, etc.
+    publicable: boolean;                // sin conflictos ni advertencias bloqueantes
+}
+
+export const CLASIFICACION_SCHEMA_VERSION = 2;
+
+// ── Expurgador tipado Interna → Cliente ─────────────────────────────────────
+
+const r2 = (v: number): number => Math.round(v * 100) / 100;
+const ventaDe = (t: TotalesVenta): TotalesVenta => ({ ventaSoles: r2(t.ventaSoles), ventaDolares: r2(t.ventaDolares) });
+
+export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): ClasificacionFinancieraCliente {
+    return {
+        schemaVersion: fin.schemaVersion,
+        generatedAt: fin.generatedAt,
+        numPax: fin.numPax,
+        tipoCambio: fin.tipoCambio,
+        precioOculto: fin.precioOculto,
+        totalVentaBruta: r2(fin.totalVentaBruta),
+        montoAdelanto: r2(fin.montoAdelanto),
+        resumenGeneral: {
+            incluido: ventaDe(fin.resumenGeneral.incluido),
+            noIncluido: ventaDe(fin.resumenGeneral.noIncluido),
+            cortesia: ventaDe(fin.resumenGeneral.cortesia)
+        },
+        clasesPasajeros: fin.clasesPasajeros.map((c): ClasePasajeroCliente => ({
+            tipo: c.tipo,
+            tipoPaxNombre: c.tipoPaxNombre,
+            cantidad: c.cantidad,
+            edadMin: c.edadMin,
+            edadMax: c.edadMax,
+            detalle: c.detalle
+                .filter((d) => d.rol !== 'operativo')   // operativas: suman al precio, no se listan
+                .map((d): LineaDetalleClaseCliente => ({
+                    montoCotizado: d.montoCotizado,
+                    moneda: d.moneda,
+                    esGrupal: d.esGrupal,
+                    cantidad: d.cantidad,
+                    cantidadComponente: d.cantidadComponente,
+                    modo: d.modo,
+                    fecha: d.fecha,
+                    modalidad: d.modalidad,
+                    categoria: d.categoria,
+                    rol: d.rol,
+                    notaRol: d.notaRol,
+                    tarifaTitulo: d.tarifaTitulo,
+                    componenteNombre: d.componenteNombre,
+                    servicioId: d.servicioId,
+                    servicioNombre: d.servicioNombre,
+                    ventaSoles: r2(d.ventaSoles),
+                    ventaDolares: r2(d.ventaDolares)
+                })),
+            resumenPorModo: {
+                normal: ventaDe(c.resumenPorModo.normal),
+                ctaPax: ventaDe(c.resumenPorModo.ctaPax),
+                cortesia: ventaDe(c.resumenPorModo.cortesia)
+            },
+            resumen: { ventaDolares: r2(c.resumen.ventaDolares) }
+        })),
+        opcionesUpgrade: fin.opcionesUpgrade.map((o): OpcionUpgradeCliente => ({
+            componenteId: o.componenteId,
+            grupoTarifa: o.grupoTarifa,
+            componenteNombre: o.componenteNombre,
+            servicioId: o.servicioId,
+            servicioNombre: o.servicioNombre,
+            tarifaTitulo: o.tarifaTitulo,
+            notaRol: o.notaRol,
+            modalidad: o.modalidad,
+            categoria: o.categoria,
+            deltaVentaPorPax: r2(o.deltaVentaPorPax),
+            deltasPorPerfil: o.deltasPorPerfil.map(dp => ({ ...dp, deltaVentaPorPax: r2(dp.deltaVentaPorPax) })),
+            deltaVentaTotal: r2(o.deltaVentaTotal)
+        })),
+        inclusiones: fin.inclusiones.map((s): InclusionServicio => ({
+            ...s,
+            incluidos: s.incluidos.map(limpiarMontoInclusion),
+            cortesias: s.cortesias.map(limpiarMontoInclusion),
+            opcionales: s.opcionales.map(limpiarMontoInclusion),
+            noIncluidos: s.noIncluidos          // única fuga monetaria deliberada: "(S/. 152)"
+        }))
+    };
+}
+
+const limpiarMontoInclusion = (l: InclusionLinea): InclusionLinea => ({
+    ...l,
+    tarifas: l.tarifas.map(t => ({ ...t, montoCotizado: null, moneda: null }))
+});
+
+// ── Helpers de vista (puros, para los templates) ─────────────────────────────
+
+/** "2 x 60.00 Dolares (P)" / "152.00 Soles (U)" — columna Monto Cotizado del legacy */
+export const formatMontoCotizado = (l: { montoCotizado: string; moneda: string; esGrupal: boolean; cantidadComponente: number }): string => {
+    const prefijo = l.cantidadComponente > 1 ? `${l.cantidadComponente} x ` : '';
+    const monedaLabel = l.moneda === 'PEN' ? 'Soles' : 'Dolares';
+    return `${prefijo}${parseFloat(l.montoCotizado).toFixed(2)} ${monedaLabel} (${l.esGrupal ? 'P' : 'U'})`;
+};
+
+/** Filas de la tabla "Resumen General" (Incluido / No incluido / Cortesía) */
+export const filasResumenGeneral = (fin: ClasificacionFinancieraInterna) => ([
+    { tipo: 'incluido' as const,    label: 'Incluido',    ...fin.resumenGeneral.incluido },
+    { tipo: 'no_incluido' as const, label: 'No incluido', ...fin.resumenGeneral.noIncluido },
+    { tipo: 'cortesia' as const,    label: 'Cortesía',    ...fin.resumenGeneral.cortesia }
+]);
+
+/** Etiqueta "Mod: Privado · Cat: Superior" (omite nulos) */
+export const formatModCat = (modalidad?: string | null, categoria?: string | null): string => {
+    const partes: string[] = [];
+    if (modalidad) partes.push(`Mod: ${modalidad.charAt(0).toUpperCase()}${modalidad.slice(1)}`);
+    if (categoria) partes.push(`Cat: ${categoria.charAt(0).toUpperCase()}${categoria.slice(1)}`);
+    return partes.join(' · ');
+};
+
 
