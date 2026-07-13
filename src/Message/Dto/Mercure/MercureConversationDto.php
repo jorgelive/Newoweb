@@ -36,17 +36,26 @@ class MercureConversationDto implements JsonSerializable
     private ?float $contextFinancialTotal;
     private bool $contextFinancialIsCleared;
 
-    public function __construct(MessageConversation $conversation, string $eventType = 'conversation_updated')
-    {
+    /**
+     * FIX: el IRI ya no se inventa aquí. Lo inyecta MercureBroadcaster usando
+     * IriConverterInterface (el IRI real de API Platform). El fallback usa la
+     * ruta REST real para que, incluso sin IriConverter, coincida con lo que
+     * consume el frontend y la deduplicación por "@id" funcione.
+     */
+    public function __construct(
+        MessageConversation $conversation,
+        string $eventType = 'conversation_updated',
+        ?string $iri = null
+    ) {
         $this->eventType = $eventType;
-        $this->iri = '/platform/user/util/msg/conversations/' . $conversation->getId();
+        $this->iri = $iri ?? '/platform/message/conversations/' . $conversation->getId();
         $this->id = (string) $conversation->getId();
         $this->status = $conversation->getStatus();
         $this->contextType = $conversation->getContextType();
         $this->contextId = $conversation->getContextId();
+        $this->idioma = $conversation->getIdioma() ? '/platform/public/maestro_idioma/' . $conversation->getIdioma()->getId() : null;
         $this->guestName = $conversation->getGuestName();
         $this->guestPhone = $conversation->getGuestPhone();
-        $this->idioma = $conversation->getIdioma() ? '/platform/public/maestro_idioma/' . $conversation->getIdioma()->getId() : null;
         $this->idiomaFijado = $conversation->isIdiomaFijado();
         $this->lastMessageAt = $conversation->getLastMessageAt() ? $conversation->getLastMessageAt()->format(DateTimeInterface::ATOM) : null;
         $this->unreadCount = $conversation->getUnreadCount();

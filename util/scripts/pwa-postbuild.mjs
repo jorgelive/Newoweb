@@ -50,11 +50,23 @@ const shellHtml = `<!doctype html>
   <meta name="theme-color" content="#ffffff">
   <title>OpenPeru Util</title>
   <link rel="icon" type="image/svg+xml" href="/app_util/favicon.svg">
+  <script>
+    window.OPENPERU_CONFIG = {
+      apiUrl: "https://api.openperu.pe",
+      panelUrl: "https://panel.openperu.pe"
+    };
+  <\\/script>
   ${cssLinks}
 </head>
 <body class="bg-slate-50">
   <div id="app"></div>
   ${jsModule}
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
+        .then(reg => reg.update());
+    }
+  <\\/script>
 </body>
 </html>
 `

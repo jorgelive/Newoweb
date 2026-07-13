@@ -1,17 +1,15 @@
-// src/stores/chatStore.ts
+// src/stores/chatStore.ts — VERSIÓN CORREGIDA
+// Busca "FIX #" para ver cada corrección y su justificación.
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef, watch } from 'vue';
 import { useAttachmentStore } from '../attachmentStore.ts';
 import { useNotificationStore } from '../notificationStore.ts';
-// 👇 Importamos los tipos automáticos de API Platform generados desde OpenAPI
 import type { components } from '@/types/api';
-// 👇 Importamos el cliente centralizado y sus utilidades de sesión
 import { apiClient, getUrls, processQueue, type CustomAxiosRequestConfig } from '@/services/apiClient.ts';
-
 import { isSessionExpired } from '@/services/sessionState.ts';
 
 // ============================================================================
-// TIPOS AUTOGENERADOS (HÍBRIDOS)
+// TIPOS (sin cambios)
 // ============================================================================
 export type ApiMessageQueue = components['schemas']['WhatsappMetaSendQueue.jsonld-message.read'] | components['schemas']['Beds24SendQueue-message.read'];
 export type ApiAttachment = components['schemas']['MessageAttachment.jsonld-message.read'];
@@ -45,11 +43,33 @@ export type ApiMessage = Omit<BaseApiMessage, 'metadata' | 'template' | 'channel
         dispatch_warnings?: string[];
         [key: string]: any;
     };
-    template?: any; // API Platform puede devolver el IRI (string) o el objeto anidado según el grupo
+    template?: any;
     channel?: { id: string; name: string } | string | null;
     whatsappMetaSendQueues?: ApiMessageQueue[] | string[];
     beds24SendQueues?: ApiMessageQueue[] | string[];
     attachments?: ApiAttachment[] | string[];
+};
+
+// ============================================================================
+// FIX #1 — IDENTIDAD CANÓNICA DE ENTIDADES
+// ============================================================================
+// La API REST expone "@id": "/platform/message/conversations/{uuid}"
+// pero Mercure publica "@id": "/platform/user/util/msg/conversations/{uuid}".
+// Comparar por "@id" NUNCA hace match entre ambos orígenes, por eso el
+// findIndex/find fallaba y cada evento de Mercure insertaba un DUPLICADO
+// (de la conversación en el inbox y de cada mensaje en el chat).
+// Solución: comparar SIEMPRE por el UUID (campo `id`, o el último segmento
+// del "@id" como fallback).
+const uuidOf = (entity: any): string | null => {
+    if (!entity) return null;
+    if (typeof entity === 'string') return entity.split('/').pop() || null;
+    if (entity.id) return String(entity.id);
+    if (entity['@id']) return String(entity['@id']).split('/').pop() || null;
+    return null;
+};
+const sameEntity = (a: any, b: any): boolean => {
+    const ua = uuidOf(a);
+    return !!ua && ua === uuidOf(b);
 };
 
 export const useChatStore = defineStore('chatStore', () => {
@@ -63,31 +83,18 @@ export const useChatStore = defineStore('chatStore', () => {
      */
     const getMessageDisplayStatus = (msg: ApiMessage): string => {
         if (msg.status === 'cancelled') return 'cancelled';
-
         const allQueues = [
             ...(msg.whatsappMetaSendQueues || []),
             ...(msg.beds24SendQueues || [])
         ].filter(q => typeof q === 'object') as ApiMessageQueue[];
-
         if (allQueues.length > 0 && allQueues.every(q => q.status === 'cancelled')) {
             return 'cancelled';
         }
-
         return msg.status;
     };
 
     // ============================================================================
-    // ESTADOS Y LÓGICA DE SESIÓN
-    // ============================================================================
-
-    /**
-     * Flag reactivo que detiene la UI y muestra el modal de re-login
-     * cuando `apiClient.ts` detecta una caída de sesión (HTML o 401).
-     */
-
-
-    // ============================================================================
-    // ESTADOS PRINCIPALES DEL CHAT
+    // ESTADOS PRINCIPALES
     // ============================================================================
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
@@ -119,9 +126,35 @@ export const useChatStore = defineStore('chatStore', () => {
     const globalEventSource = shallowRef<EventSource | null>(null);
 
     // ============================================================================
-    // GETTERS (COMPUTED)
+    // FIX #2 — GUARDAS DE RECONEXIÓN (generación + timer único)
     // ============================================================================
+    // Antes: cada onerror programaba un setTimeout de reconexión SIN cancelar
+    // los anteriores, y las llamadas concurrentes a initGlobalMercure /
+    // connectToMercure (renewSession, retry, selección rápida de chats) podían
+    // pasar juntas el `close()` inicial y terminar con 2+ EventSource vivos.
+    // Dos túneles paralelos = cada evento procesado dos veces = mensajes y
+    // conversaciones duplicados, notificaciones dobles.
+    // Solución: contador de generación; solo la llamada más reciente puede
+    // asignar el EventSource y sus handlers ignoran eventos si fueron superados.
+    let globalGen = 0;
+    let globalRetryTimer: ReturnType<typeof setTimeout> | null = null;
+    let convGen = 0;
+    let convRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // ============================================================================
+    // FIX #3 — Last-Event-ID (eventos perdidos = notificaciones que no llegan)
+    // ============================================================================
+    // Antes: al reconectar se creaba un EventSource nuevo "desde cero", así que
+    // todo lo publicado durante la desconexión (≥5s de backoff + tiempo caído)
+    // se PERDÍA para siempre → "a veces las notificaciones no llegan".
+    // Solución: guardar event.lastEventId y reenviarlo como query param
+    // `lastEventID`; el hub de Mercure re-entrega lo que ocurrió en el gap.
+    let globalLastEventId: string | null = null;
+    let convLastEventId: string | null = null;
+
+    // ============================================================================
+    // GETTERS (sin cambios funcionales)
+    // ============================================================================
     const filteredConversations = computed(() => conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()));
 
     /**
@@ -179,9 +212,8 @@ export const useChatStore = defineStore('chatStore', () => {
     });
 
     // ============================================================================
-    // UTILERÍAS INTERNAS API PLATFORM
+    // UTILERÍAS API PLATFORM
     // ============================================================================
-
     const extractData = (response: any) => {
         const data = response.data;
         return data['hydra:member'] || data['member'] || (Array.isArray(data) ? data : []);
@@ -193,7 +225,7 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     // ============================================================================
-    // COMPROBACIÓN DE SESIÓN RESILIENTE A CAÍDAS DE RED
+    // SESIÓN (sin cambios)
     // ============================================================================
 
     /**
@@ -237,7 +269,6 @@ export const useChatStore = defineStore('chatStore', () => {
             // 2. Reconectamos escuchas en tiempo real
             await initGlobalMercure();
             if (currentConversation.value?.id) await connectToMercure(currentConversation.value.id);
-
             return true;
         } catch (err: any) {
             error.value = err.response?.data?.message || 'Error de autenticación.';
@@ -255,9 +286,8 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     // ============================================================================
-    // ACCIONES DE DATOS (CRUD)
+    // ACCIONES DE DATOS
     // ============================================================================
-
     const fetchTemplates = async () => {
         try {
             const response = await apiClient.get('/platform/message/templates');
@@ -283,9 +313,15 @@ export const useChatStore = defineStore('chatStore', () => {
 
         try {
             const response = await apiClient.get(`/platform/message/conversations?order[lastMessageAt]=desc&page=${pageToFetch}`);
-            const data = extractData(response);
-            if (loadMore) conversations.value.push(...data);
-            else conversations.value = data;
+            const data = extractData(response) as ApiConversation[];
+            if (loadMore) {
+                // FIX #4: la paginación + eventos de Mercure entre páginas puede
+                // traer una conversación que ya subió al tope del inbox → dedup.
+                const fresh = data.filter(d => !conversations.value.some(c => sameEntity(c, d)));
+                conversations.value.push(...fresh);
+            } else {
+                conversations.value = data;
+            }
 
             hasMoreConversations.value = hasNextPage(response);
             conversationsPage.value = pageToFetch;
@@ -301,7 +337,7 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     // ============================================================================
-    // CONEXIONES MERCURE (WEBSOCKETS)
+    // MERCURE GLOBAL
     // ============================================================================
 
     /**
@@ -309,93 +345,126 @@ export const useChatStore = defineStore('chatStore', () => {
      * Gestiona las notificaciones push nativas si el chat no está en foco.
      */
     const initGlobalMercure = async () => {
-        if (globalEventSource.value) {
-            globalEventSource.value.close();
-            globalEventSource.value = null;
-        }
+        const gen = ++globalGen;                               // FIX #2
+        if (globalRetryTimer) { clearTimeout(globalRetryTimer); globalRetryTimer = null; }
+        globalEventSource.value?.close();
+        globalEventSource.value = null;
+
+        const scheduleRetry = () => {
+            if (gen !== globalGen || globalRetryTimer) return;
+            globalRetryTimer = setTimeout(async () => {
+                globalRetryTimer = null;
+                if (gen !== globalGen) return;
+                const isAlive = await checkSession();
+                if (!isAlive) isSessionExpired.value = true;
+                else initGlobalMercure();
+            }, 5000);
+        };
+
         try {
             const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
             if (authResponse.headers['content-type']?.includes('text/html')) throw new Error('HTML response');
+            if (gen !== globalGen) return;                     // FIX #2: llamada superada
 
             const { hubUrl, token } = authResponse.data;
             const url = new URL(hubUrl);
             url.searchParams.append('topic', 'https://openperu.pe/host/conversations');
             if (token) url.searchParams.append('authorization', token);
+            if (globalLastEventId) url.searchParams.append('lastEventID', globalLastEventId); // FIX #3
 
-            globalEventSource.value = new EventSource(url.toString(), { withCredentials: true });
+            const es = new EventSource(url.toString(), { withCredentials: true });
+            globalEventSource.value = es;
 
             const notificationStore = useNotificationStore();
 
-            globalEventSource.value.onmessage = (event) => {
+            es.onmessage = (event) => {
+                if (gen !== globalGen) return;                 // FIX #2: túnel viejo → ignorar
+                if (event.lastEventId) globalLastEventId = event.lastEventId; // FIX #3
+
                 const data = JSON.parse(event.data);
-                if (data.type === 'conversation_updated' || data.type === 'conversation_created') {
-                    const convData = data.conversation;
-                    // Búsqueda tolerante a IRIs o UUIDs
-                    const existingConv = conversations.value.find(c => (c['@id'] || c.id) === (convData['@id'] || convData.id));
+                if (data.type !== 'conversation_updated' && data.type !== 'conversation_created') return;
 
-                    // Lógica para disparar Notificación Push
-                    if (convData.unreadCount > (existingConv?.unreadCount || 0) && ((currentConversation.value as any)?.['@id'] !== convData['@id'] || !isChatVisible.value)) {
-                        newNotification.value = { show: true, conversationId: convData.id, title: convData.guestName || 'Huésped' };
-                        setTimeout(() => { newNotification.value = null; }, 5000);
+                const convData = data.conversation;
+                // FIX #1: match por UUID, no por "@id" (los IRIs difieren entre REST y Mercure)
+                const existingConv = conversations.value.find(c => sameEntity(c, convData));
+                const isCurrentOpen = sameEntity(currentConversation.value, convData); // FIX #1
 
-                        const safeId = convData.id || convData['@id'].split('/').pop();
-                        notificationStore.addNotification({
-                            title: `Mensaje de ${convData.guestName || 'Huésped'}`,
-                            body: 'Tienes un nuevo mensaje sin leer.',
-                            type: 'info',
-                            actionUrl: `/chat?id=${safeId}`
-                        });
-                    }
+                if (convData.unreadCount > (existingConv?.unreadCount || 0) && (!isCurrentOpen || !isChatVisible.value)) {
+                    const safeId = uuidOf(convData);
+                    newNotification.value = { show: true, conversationId: safeId || '', title: convData.guestName || 'Huésped' };
+                    setTimeout(() => { newNotification.value = null; }, 5000);
 
-                    if (existingConv) Object.assign(existingConv, convData);
-                    else conversations.value.unshift(convData);
-
-                    // Reordenamos el inbox para subir los mensajes recientes
-                    conversations.value.sort((a, b) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
+                    notificationStore.addNotification({
+                        title: `Mensaje de ${convData.guestName || 'Huésped'}`,
+                        body: 'Tienes un nuevo mensaje sin leer.',
+                        type: 'info',
+                        actionUrl: safeId ? `/chat?id=${safeId}` : '/chat'
+                    });
                 }
+
+                if (existingConv) {
+                    // FIX #5: NO sobrescribir el "@id" original con el IRI de Mercure;
+                    // otras partes del código (sendMessage) construyen URLs con él.
+                    const { '@id': _mercureIri, '@type': _t, ...rest } = convData;
+                    Object.assign(existingConv, rest);
+                } else {
+                    conversations.value.unshift(convData);
+                }
+
+                conversations.value.sort((a, b) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
             };
 
-            globalEventSource.value.onerror = async () => {
-                console.error('❌ Desconexión del túnel Global de Mercure...');
-                globalEventSource.value?.close();
-                const isAlive = await checkSession();
-                if (!isAlive) isSessionExpired.value = true;
-                else setTimeout(() => initGlobalMercure(), 5000); // Backoff retry
+            es.onerror = () => {
+                if (gen !== globalGen) return;                 // FIX #2
+                es.close();
+                scheduleRetry();
             };
-        } catch (err) {}
+        } catch (err) {
+            scheduleRetry();                                    // FIX #3: antes un fallo de auth
+                                                                // dejaba el túnel muerto sin retry
+        }
     };
 
-    /**
-     * Inicializa el túnel dedicado a una conversación específica.
-     * Escucha la confirmación de lectura, entrega y contenido en vivo del chat abierto.
-     *
-     * @param {string} conversationId UUID de la conversación.
-     */
+    // ============================================================================
+    // MERCURE POR CONVERSACIÓN
+    // ============================================================================
     const connectToMercure = async (conversationId: string) => {
-        if (eventSource.value) {
-            eventSource.value.close();
-            eventSource.value = null;
-        }
+        const gen = ++convGen;                                  // FIX #2
+        if (convRetryTimer) { clearTimeout(convRetryTimer); convRetryTimer = null; }
+        eventSource.value?.close();
+        eventSource.value = null;
+        convLastEventId = null; // el historial se recarga completo al seleccionar; empezamos limpio
 
         try {
             const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
             if (authResponse.headers['content-type']?.includes('text/html')) throw new Error('HTML response');
+            if (gen !== convGen) return;                        // FIX #2: el usuario ya cambió de chat
 
             const { hubUrl, token } = authResponse.data;
             const url = new URL(hubUrl);
             url.searchParams.append('topic', `https://openperu.pe/conversations/${conversationId}`);
             if (token) url.searchParams.append('authorization', token);
+            if (convLastEventId) url.searchParams.append('lastEventID', convLastEventId); // FIX #3 (reconexiones)
 
-            eventSource.value = new EventSource(url.toString(), { withCredentials: true });
+            const es = new EventSource(url.toString(), { withCredentials: true });
+            eventSource.value = es;
 
-            eventSource.value.onmessage = (event) => {
+            es.onmessage = (event) => {
+                if (gen !== convGen) return;                    // FIX #2
+                if (event.lastEventId) convLastEventId = event.lastEventId;
+
+                // FIX #6: si por carrera el chat visible ya no es este, no tocar `messages`
+                if (uuidOf(currentConversation.value) !== conversationId) return;
+
                 const incomingData = JSON.parse(event.data);
 
-                const index = messages.value.findIndex(m => (m['@id'] || m.id) === (incomingData['@id'] || incomingData.id));
+                // FIX #1: dedupe por UUID. Antes, un "message_updated" de Mercure
+                // (ej. sent → delivered) traía otro IRI, no hacía match y se
+                // insertaba como mensaje NUEVO → mensajes duplicados en pantalla.
+                const index = messages.value.findIndex(m => sameEntity(m, incomingData));
 
                 if (index !== -1) {
-                    // Actualiza estado de un mensaje existente (ej. pasó de "sent" a "delivered")
-                    messages.value.splice(index, 1, { ...messages.value[index], ...incomingData });
+                    messages.value.splice(index, 1, { ...messages.value[index], ...incomingData, '@id': messages.value[index]['@id'] || incomingData['@id'] }); // FIX #5
                 } else {
                     // Es un mensaje nuevo entrante
                     messages.value.push(incomingData);
@@ -412,26 +481,29 @@ export const useChatStore = defineStore('chatStore', () => {
                 }
             };
 
-            eventSource.value.onerror = async () => {
-                eventSource.value?.close();
-                const isAlive = await checkSession();
-                if (!isAlive) isSessionExpired.value = true;
-                else if (currentConversation.value?.id === conversationId) setTimeout(() => connectToMercure(conversationId), 5000);
+            es.onerror = () => {
+                if (gen !== convGen) return;                    // FIX #2
+                es.close();
+                if (convRetryTimer) return;
+                convRetryTimer = setTimeout(async () => {
+                    convRetryTimer = null;
+                    if (gen !== convGen) return;
+                    const isAlive = await checkSession();
+                    if (!isAlive) isSessionExpired.value = true;
+                    else if (uuidOf(currentConversation.value) === conversationId) connectToMercure(conversationId);
+                }, 5000);
             };
         } catch (err) {}
     };
 
-    /**
-     * Carga el historial de una conversación y la establece como la ventana principal.
-     * Emite la llamada de lectura si el chat tenía notificaciones pendientes.
-     *
-     * @param {string} id UUID de la conversación.
-     */
+    // ============================================================================
+    // SELECCIÓN / HISTORIAL
+    // ============================================================================
     const selectConversation = async (id: string) => {
         error.value = null;
 
-        // 1. Buscamos en caché local (Inbox)
-        let found = conversations.value.find(c => c.id === id);
+        // FIX #1: buscar por UUID canónico (el item puede haber entrado vía Mercure)
+        let found = conversations.value.find(c => uuidOf(c) === id);
 
         // 2. Si es un enlace directo o un chat muy antiguo, buscamos en BD
         if (!found) {
@@ -439,7 +511,10 @@ export const useChatStore = defineStore('chatStore', () => {
             try {
                 const response = await apiClient.get(`/platform/message/conversations/${id}`);
                 found = response.data;
-                if (found) conversations.value.unshift(found);
+                // FIX #4: revalidar que Mercure no la insertó mientras esperábamos el GET
+                if (found && !conversations.value.some(c => sameEntity(c, found))) {
+                    conversations.value.unshift(found);
+                }
             } catch (err: any) {
                 loadingMessages.value = false;
                 error.value = 'Conversación no encontrada.';
@@ -459,6 +534,9 @@ export const useChatStore = defineStore('chatStore', () => {
             }
 
             const response = await apiClient.get(`/platform/message/conversations/${id}/messages?order[createdAt]=desc&page=1`);
+            // FIX #6: si el usuario cambió de chat mientras cargaba, descartar
+            if (uuidOf(currentConversation.value) !== id) return;
+
             messages.value = extractData(response).reverse();
             hasMoreMessages.value = hasNextPage(response);
 
@@ -478,7 +556,11 @@ export const useChatStore = defineStore('chatStore', () => {
 
         try {
             const response = await apiClient.get(`/platform/message/conversations/${currentConversation.value.id}/messages?order[createdAt]=desc&page=${nextPage}`);
-            const olderMessages = extractData(response).reverse();
+            // FIX #4: un mensaje nuevo llegado por Mercure desplaza la paginación
+            // (page 2 puede repetir el último de page 1) → dedup por UUID.
+            const olderMessages = (extractData(response) as ApiMessage[])
+                .filter(om => !messages.value.some(m => sameEntity(m, om)))
+                .reverse();
 
             messages.value = [...olderMessages, ...messages.value];
             hasMoreMessages.value = hasNextPage(response);
@@ -506,14 +588,15 @@ export const useChatStore = defineStore('chatStore', () => {
 
         try {
             const form = new FormData();
-
-            // Flexibilidad IRI vs UUID
-            const convId = (currentConversation.value as any)['@id'] || `/platform/message/conversations/${currentConversation.value.id}`;
+            // FIX #5: construir el IRI SIEMPRE desde el UUID canónico. Antes, si la
+            // conversación entró vía Mercure, su "@id" era /platform/user/util/msg/...
+            // y el POST a /platform/message/messages podía rechazar la referencia.
+            const convId = `/platform/message/conversations/${uuidOf(currentConversation.value)}`;
 
             form.append('conversation', convId);
             form.append('direction', 'outgoing');
             form.append('senderType', 'host');
-            form.append('status', 'pending'); // Backend asume el control del pipeline
+            form.append('status', 'pending');
 
             channels.forEach(channel => form.append('transientChannels[]', channel));
 
@@ -523,7 +606,7 @@ export const useChatStore = defineStore('chatStore', () => {
             if (attachmentStore.file) form.append('file', attachmentStore.file);
 
             await apiClient.post('/platform/message/messages', form, { headers: { 'Content-Type': 'multipart/form-data' } });
-            attachmentStore.clear(); // Limpia RAM del navegador
+            attachmentStore.clear();
         } catch (err) {
             error.value = 'Fallo al enviar el mensaje. Intente de nuevo.';
         } finally {
@@ -554,7 +637,7 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     // ============================================================================
-    // MANEJO DE BADGE NATIVO DEL NAVEGADOR
+    // BADGE NATIVO (sin cambios)
     // ============================================================================
     watch(() => conversations.value.filter(c => (c.unreadCount ?? 0) > 0).length, (unreadCount) => {
         if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {

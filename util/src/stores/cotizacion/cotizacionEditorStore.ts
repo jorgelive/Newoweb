@@ -1365,6 +1365,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         } as Cotizacion;
     };
 
+    /**
+     * Sincroniza el estado local de la cotización con el backend (API Platform).
+     *
+     * ¿Por qué existe?: Se encarga de transformar y persistir todo el árbol relacional de la
+     * cotización (servicios, segmentos, componentes y tarifas) hacia la base de datos, validando
+     * reglas de negocio (como conflictos financieros) antes del envío.
+     *
+     * Relaciones críticas y efectos secundarios:
+     * - Al recibir el payload de respuesta (`savedData`), realiza un cruce con el estado reactivo actual
+     *   para rescatar propiedades relacionales (como `cotsegmentoId`) que la API suele omitir en
+     *   el proceso de serialización, evitando que la UI desbloquee componentes accidentalmente.
+     * - Muta el `inspectorActivo` y reconecta el foco de edición (`dataActiva`) al nuevo
+     *   nodo referenciado si el usuario estaba editando un sub-ítem durante el guardado.
+     *
+     * @returns Promesa vacía que se resuelve al finalizar el proceso de guardado y reconexión de UI.
+     */
     const guardarCotizacion = async (): Promise<void> => {
         if (!cotizacion.value) return;
         if (isLoading.value) return;
@@ -1404,8 +1420,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             payload.totalCosto = String(fin?.totalCostoNeto ?? '0');
             payload.totalVenta = String(fin?.totalVentaBruta ?? '0');
-            payload.clasificacionFinanciera = fin ?? null;                                // interna completa
-            payload.clasificacionFinancieraCliente = fin ? expurgarParaCliente(fin) : null; // masticada
+            payload.clasificacionFinanciera = fin ?? null;
+            payload.clasificacionFinancieraCliente = fin ? expurgarParaCliente(fin) : null;
 
             delete payload.idiomaEdicion;
 
@@ -1507,16 +1523,33 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         }
                     });
 
-                    if (c.cotsegmento) {
-                        c.cotsegmentoId = typeof c.cotsegmento === 'string'
+                    // 🔥 MECANISMO DE RESCATE LOCAL
+                    // Extraemos el identificador base del segmento en el payload recibido
+                    const parsedSegId = c.cotsegmento
+                        ? (typeof c.cotsegmento === 'string'
                             ? extractIdStr(c.cotsegmento)
-                            : extractIdStr(c.cotsegmento?.id || c.cotsegmento?.['@id'] || null);
+                            : extractIdStr(c.cotsegmento?.id || c.cotsegmento?.['@id'] || null))
+                        : null;
+
+                    if (parsedSegId) {
+                        c.cotsegmentoId = parsedSegId;
+                    } else {
+                        // Si la API lo omitió, buscamos su equivalente en el estado histórico (cotizacion.value)
+                        const currentServicio = cotizacion.value?.cotservicios?.find((currS: CotServicio) => currS.id === s.id);
+                        const currentComp = currentServicio?.cotcomponentes?.find((currC: ComponenteCompleto) => currC.id === c.id);
+
+                        if (currentComp && currentComp.cotsegmentoId) {
+                            c.cotsegmentoId = currentComp.cotsegmentoId;
+                            // Restauramos el IRI para la futura validación y persistencia
+                            c.cotsegmento = `/platform/sales/cotizacion_segmentos/${currentComp.cotsegmentoId}`;
+                        }
                     }
                 });
 
                 ordenarComponentesCronologicamente(s.cotcomponentes || []);
             });
 
+            // Asignación final con el árbol relacional completo y blindado
             cotizacion.value = savedData;
 
             if (inspectorActivo.value !== 'resumen' && dataActiva.value) {

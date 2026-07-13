@@ -11,6 +11,28 @@ export interface AppNotification {
     actionUrl?: string;
 }
 
+// ====================================================================
+// FIX: WHITELIST POR UUID (mismo criterio que push-sw.js)
+// ====================================================================
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function buildChatUrl(raw: unknown): string {
+    if (!raw) return '/chat';
+    const str = String(raw).trim();
+
+    if (UUID_RE.test(str)) return `/chat?id=${str}`;
+
+    try {
+        const url = new URL(str, window.location.origin);
+        const idParam = url.searchParams.get('id');
+        if (idParam && UUID_RE.test(idParam)) return `/chat?id=${idParam}`;
+        const lastSegment = url.pathname.split('/').pop() || '';
+        if (UUID_RE.test(lastSegment)) return `/chat?id=${lastSegment}`;
+    } catch (e) { /* cae al fallback */ }
+
+    return '/chat';
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -48,40 +70,9 @@ export const useNotificationStore = defineStore('notificationStore', () => {
 
     const addNotification = (payload: Omit<AppNotification, 'id'>): void => {
 
-        // ====================================================================
-        // ESCUDO ANTI-BASURA TOTAL PARA EL TOAST
-        // ====================================================================
-        if (payload.actionUrl) {
-            let url = String(payload.actionUrl);
-
-            // 1. Si la ruta incluye literalmente la palabra 'undefined' o 'unknown'
-            if (url.includes('undefined') || url.includes('unknown')) {
-                console.warn('[notificationStore] ⚠️ URL corrupta detectada desde el origen:', url, 'Payload completo:', payload);
-                payload.actionUrl = '/chat';
-            }
-            // 2. Si el Service Worker manda el dominio pegado (ej: http://util.openperu.pe019d4...)
-            else if (url.includes('openperu.pe') && !url.includes('/chat')) {
-                const parts = url.split('openperu.pe');
-                let dirtyId = parts[1] ? parts[1].replace(/^\//, '') : '';
-
-                if (dirtyId && dirtyId.length > 10) {
-                    payload.actionUrl = `/chat?id=${dirtyId}`;
-                } else {
-                    payload.actionUrl = '/chat';
-                }
-            }
-            // 3. Fallback: Si es una URL absoluta sana, extraemos la ruta relativa
-            else if (url.startsWith('http')) {
-                try {
-                    const obj = new URL(url);
-                    payload.actionUrl = obj.pathname + obj.search;
-                } catch(e) {
-                    payload.actionUrl = '/chat';
-                }
-            }
-        } else {
-            payload.actionUrl = '/chat'; // Si viene vacío, lo mandamos al inbox
-        }
+        // FIX: los tres "escudos anti-basura" blacklist se reemplazan por
+        // una sola línea whitelist: o hay UUID válido, o va al inbox.
+        payload.actionUrl = buildChatUrl(payload.actionUrl);
 
         // Filtro anti-spam: Evita toasts idénticos al mismo tiempo
         const isDuplicate = notifications.value.some(
