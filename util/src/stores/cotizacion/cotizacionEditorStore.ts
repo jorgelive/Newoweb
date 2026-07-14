@@ -1114,13 +1114,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    const fetchServicioDetalles = async (servicioIriOrId: string) => {
+    const fetchServicioDetalles = async (servicioIriOrId: string, gen?: number) => {
         try {
             const id = extractIdStr(servicioIriOrId);
             const response = await apiClient.get(`/platform/travel/servicios/${id}`);
+            if (gen !== undefined && gen !== navGen) return;
             const data = response.data as Servicio;
 
             if (data.componentes && data.componentes.length > 0) {
+                if (gen !== undefined && gen !== navGen) return;
                 const hydratedComps = await hydrateRelations(data.componentes);
                 catalogos.value.componentes = hydratedComps;
 
@@ -1138,6 +1140,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const idsParam = idsParaDetalle.map(cid => `id[]=${cid}`).join('&');
                     try {
                         const resDetalle = await apiClient.get(`/platform/travel/componentes/batch?${idsParam}&pagination=false`);
+                        if (gen !== undefined && gen !== navGen) return;
                         const detalles = resDetalle.data['hydra:member'] || resDetalle.data['member'] || [];
 
                         detalles.forEach((detalle: any) => {
@@ -1164,12 +1167,17 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 catalogos.value.componentes = [];
             }
 
-            catalogos.value.plantillasItinerario = await hydrateRelations(data.itinerarios || []);
-            catalogos.value.poolSegmentos = await hydrateRelations(data.segmentos || []);
+            const [plantillas, pool] = await Promise.all([
+               hydrateRelations(data.itinerarios || []),
+               hydrateRelations(data.segmentos || [])
+            ]);
+           if (gen !== undefined && gen !== navGen) return;
+           catalogos.value.plantillasItinerario = plantillas;
+           catalogos.value.poolSegmentos = pool;
         } catch (e) {}
     };
 
-    const fetchComponenteDetalles = async (componenteIriOrId: string) => {
+    const fetchComponenteDetalles = async (componenteIriOrId: string, gen?: number) => {
         const id = extractIdStr(componenteIriOrId);
         const existing = catalogos.value.allComponentes.find(c => extractIdStr(c.id || (c as any)['@id']) === id);
 
@@ -1191,6 +1199,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (dataActiva.value && inspectorActivo.value === 'componente') {
                 const itemsRaw: Item[] = detalle.componenteItems ?? [];   // ó fetchedComp.componenteItems
                 if (!dataActiva.value.snapshotItems || dataActiva.value.snapshotItems.length === 0) {
+                    if (gen !== undefined && gen !== navGen) return;
                     dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
                 }
             }
@@ -1199,6 +1208,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         try {
             const response = await apiClient.get(`/platform/travel/componentes/${id}`);
+            if (gen !== undefined && gen !== navGen) return;
             const fetchedComp = response.data;
 
             const targetId = extractIdStr(fetchedComp.id);
@@ -1212,6 +1222,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             catalogos.value.tarifas = await hydrateRelations(fetchedComp.tarifas || []);
+            if (gen !== undefined && gen !== navGen) return;
 
             catalogos.value.tarifas.forEach((t: any) => {
                 const tId = extractIdStr(t.id || t['@id']);
@@ -1223,9 +1234,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (dataActiva.value && inspectorActivo.value === 'componente') {
                 const itemsRaw = fetchedComp.componenteItems || [];
                 if (!dataActiva.value.snapshotItems || dataActiva.value.snapshotItems.length === 0) {
-                    dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(async (item: any) => {
-                        // ... (igual que antes, sin cambios)
-                    }));
+                   dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
                 }
             }
         } catch (e) {}
@@ -1601,7 +1610,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const isMobileOpen = ref<boolean>(false);
     const isSegmentEditorOpen = ref<boolean>(false);
 
+    let navGen = 0;
+
     const abrirNivel = async (nivel: NivelInspector, data: any = null): Promise<void> => {
+        const gen = ++navGen;
         if (nivel === 'servicio' || nivel === 'resumen') historialNavegacion.value = [];
         else historialNavegacion.value.push({ nivel: inspectorActivo.value, data: dataActiva.value });
 
@@ -1611,14 +1623,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         // 🔥 Precarga ANTES de asignar dataActiva, para que el template
         // encuentre los componentes ya listos en el primer render.
         if (nivel === 'servicio' && data?.servicioMaestroId) {
-            await fetchServicioDetalles(data.servicioMaestroId);
+            await fetchServicioDetalles(data.servicioMaestroId, gen);
         }
         if (nivel === 'componente' && data?.componenteMaestroId) {
-            await fetchComponenteDetalles(data.componenteMaestroId);
+            await fetchComponenteDetalles(data.componenteMaestroId, gen);
         }
         if (nivel === 'tarifa' && data?.proveedorMaestroId) {
             await fetchProveedorServiciosDeProveedor(data.proveedorMaestroId);
         }
+
+        if (gen !== navGen) return;
 
         dataActiva.value = data; // 🔥 ahora sí, con el catálogo ya poblado
     };
@@ -1750,10 +1764,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const nuevoIdx = idx + direccion;
         if (nuevoIdx < 0 || nuevoIdx >= lista.length) return;
 
+        const gen = ++navGen;
+
         const destino = lista[nuevoIdx];
         dataActiva.value = destino;
         if (destino.servicioMaestroId) {
-            await fetchServicioDetalles(destino.servicioMaestroId);
+            await fetchServicioDetalles(destino.servicioMaestroId, gen);
         }
     };
 
@@ -1775,12 +1791,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const nuevoIdx = idx + direccion;
         if (nuevoIdx < 0 || nuevoIdx >= lista.length) return;
 
+        const gen = ++navGen;
+
         const destino = lista[nuevoIdx];
         dataActiva.value = destino;
         if (destino.componenteMaestroId) {
-            await fetchComponenteDetalles(destino.componenteMaestroId);
+            await fetchComponenteDetalles(destino.componenteMaestroId, gen);
         } else {
-            catalogos.value.tarifas = [];   // componente sin maestro: dropdown limpio
+            if (gen === navGen) catalogos.value.tarifas = [];   // componente sin maestro: dropdown limpio
         }
     };
 
@@ -2331,12 +2349,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const nuevoIdx = idx + direccion;
         if (nuevoIdx < 0 || nuevoIdx >= lista.length) return;
 
+        const gen = ++navGen;
+
         const destino = lista[nuevoIdx];
         dataActiva.value = destino;   // mismo nivel, no toca historialNavegacion
         if (destino.proveedorMaestroId) {
-            await fetchProveedorServiciosDeProveedor(destino.proveedorMaestroId);
+            await fetchProveedorServiciosDeProveedor(destino.proveedorMaestroId, gen);
         } else {
-            catalogos.value.proveedorServicios = [];
+            if (gen === navGen) catalogos.value.proveedorServicios = [];
         }
     };
 
@@ -3080,13 +3100,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * Se dispara cada vez que cambia el proveedor elegido en la tarifa, para alimentar
      * el dropdown filtrado de ProveedorServicio.
      */
-    const fetchProveedorServiciosDeProveedor = async (proveedorId: string | null) => {
+    const fetchProveedorServiciosDeProveedor = async (proveedorId: string | null, gen?: number) => {
         if (!proveedorId) {
             catalogos.value.proveedorServicios = [];
             return;
         }
         try {
             const res = await apiClient.get(`/platform/travel/proveedor-servicios?proveedor_id=${proveedorId}&pagination=false`);
+            if (gen !== undefined && gen !== navGen) return;
             const raw = res.data['hydra:member'] || res.data['member'] || [];
             catalogos.value.proveedorServicios = raw.map((ps: any) => ({
                 id: extractIdStr(ps.id || ps['@id']),
@@ -3199,6 +3220,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         actualizarInicioManteniendoRango, onProveedorChange, agregarDetalleOperativo, eliminarDetalleOperativo,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         componenteActualDeTarifa, tarifasHermanas, irATarifaAdyacente,
-        servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente
+        servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion
     };
 });

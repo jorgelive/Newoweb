@@ -1091,69 +1091,6 @@ const getDirectChannelId = (channel?: any): string | null => {
     </Transition>
 
     <Transition name="fade-slide">
-      <div v-if="store.isSessionExpired" class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200">
-          <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-              <i class="fas fa-lock text-[#E07845]"></i> Sesión Expirada
-            </h3>
-            <button @click="store.cancelRenewal()" class="text-slate-400 hover:text-slate-600 transition-colors">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <form @submit.prevent="handleSessionRenewal" class="p-6">
-            <p class="text-sm text-slate-500 mb-6 leading-relaxed">
-              Por seguridad, tu sesión ha caducado. Ingresa tus credenciales para reanudar el trabajo exactamente donde te quedaste.
-            </p>
-
-            <div class="space-y-4">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Usuario</label>
-                <div class="relative">
-                  <i class="fas fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                  <input v-model="loginUsername" type="text" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#376875]/50 focus:border-[#376875] transition-all text-sm font-medium" placeholder="tu_usuario">
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Contraseña</label>
-                <div class="relative">
-                  <i class="fas fa-key absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                  <input v-model="loginPassword" type="password" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#376875]/50 focus:border-[#376875] transition-all text-sm font-medium" placeholder="••••••••">
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center mt-4">
-              <input
-                  type="checkbox"
-                  id="renewRememberMe"
-                  v-model="loginRemember"
-                  class="w-4 h-4 text-[#376875] bg-slate-50 border-slate-300 rounded focus:ring-[#376875] focus:ring-2 cursor-pointer transition-colors"
-              >
-              <label for="renewRememberMe" class="ml-2 text-xs font-bold text-slate-600 cursor-pointer select-none">
-                Mantener sesión iniciada
-              </label>
-            </div>
-            <div v-if="store.error && store.isSessionExpired" class="mt-4 text-xs font-bold text-red-500 bg-red-50 p-3 rounded-lg flex items-center gap-2">
-              <i class="fas fa-exclamation-circle shrink-0"></i>
-              <span>{{ store.error }}</span>
-            </div>
-
-            <div class="mt-8 flex gap-3">
-              <button type="button" @click="store.cancelRenewal()" class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-xl text-sm transition-colors">
-                Cancelar
-              </button>
-              <button type="submit" :disabled="isLoggingIn || !loginUsername || !loginPassword" class="flex-1 px-4 py-2.5 bg-[#376875] text-white hover:bg-[#2c535d] font-bold rounded-xl text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md">
-                <i v-if="isLoggingIn" class="fas fa-circle-notch fa-spin"></i>
-                <span v-else>Entrar</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </Transition>
-
-    <Transition name="fade-slide">
       <div v-if="store.error && !store.isSessionExpired" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-xl border border-white/10 max-w-[90vw] text-center">
         <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0"></div>
         <span class="text-xs font-black uppercase tracking-wide leading-tight">{{ store.error }}</span>
@@ -1165,9 +1102,15 @@ const getDirectChannelId = (channel?: any): string | null => {
         <div class="flex justify-between items-center mb-6">
           <h1 class="font-black text-2xl tracking-tight text-slate-800">Inbox</h1>
           <div class="flex items-center gap-2">
+
+            <button @click="router.push('/dashboard')" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-[#376875] group transition-all shadow-sm" title="Volver al Inicio">
+              <i class="fas fa-home text-slate-400 group-hover:text-white text-xs"></i>
+            </button>
+
             <button @click="store.fetchConversations()" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-900 group transition-all shadow-sm" title="Actualizar chats">
               <i class="fas fa-sync-alt text-slate-400 group-hover:text-white text-xs" :class="{'fa-spin': store.loadingConversations}"></i>
             </button>
+
             <button @click="handleLogout" :disabled="isLoggingOut" class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center hover:bg-red-600 group transition-all shadow-sm disabled:opacity-50" title="Cerrar sesión">
               <i class="fas" :class="isLoggingOut ? 'fa-circle-notch fa-spin text-red-400' : 'fa-power-off text-red-400 group-hover:text-white text-xs'"></i>
             </button>

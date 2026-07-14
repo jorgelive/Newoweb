@@ -76,7 +76,9 @@ apiClient.interceptors.response.use(
                     failedQueue.push({ resolve, reject, config: originalRequest });
                 });
             }
-            return Promise.reject(new Error('Sesión expirada (HTML detectado)'));
+            const sessionDeadError = new Error('Sesión expirada (HTML detectado)');
+            (sessionDeadError as any).isSessionDead = true;
+            return Promise.reject(sessionDeadError);
         }
         return response;
     },

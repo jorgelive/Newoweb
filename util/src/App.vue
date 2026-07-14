@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { RouterView } from 'vue-router';
 import NotificationToast from '@/components/NotificationToast.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
+import GlobalLoginModal from "@/components/GlobalLoginModal.vue";
 
 const notificationStore = useNotificationStore();
 const showManualSubscriptionButton = ref(false);
@@ -67,7 +68,7 @@ onMounted(() => {
       </div>
     </div>
   </Transition>
-
+  <GlobalLoginModal />
   <RouterView />
 </template>
 

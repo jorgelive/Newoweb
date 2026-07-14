@@ -6,7 +6,7 @@ import { useAttachmentStore } from '../attachmentStore.ts';
 import { useNotificationStore } from '../notificationStore.ts';
 import type { components } from '@/types/api';
 import { apiClient, getUrls, processQueue, type CustomAxiosRequestConfig } from '@/services/apiClient.ts';
-import { isSessionExpired } from '@/services/sessionState.ts';
+import { isSessionExpired, checkSession } from '@/services/sessionAuth.ts';
 
 // ============================================================================
 // TIPOS (sin cambios)
@@ -228,62 +228,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // SESIÓN (sin cambios)
     // ============================================================================
 
-    /**
-     * Verifica la vigencia de la sesión sin disparar errores visuales.
-     * Utiliza un endpoint protegido. Si devuelve HTML (Firewall atrapado) o 401, la sesión murió.
-     * Tolera fallas de conexión (timeout) para no cerrar la sesión si solo se cortó el WiFi.
-     *
-     * @returns {Promise<boolean>} True si la sesión está viva, False si expiró.
-     */
-    const checkSession = async (): Promise<boolean> => {
-        try {
-            const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
-            if (authResponse.headers['content-type']?.includes('text/html')) {
-                return false;
-            }
-            return true;
-        } catch (e: any) {
-            if (e.response?.status === 401) {
-                return false;
-            }
-            return true;
-        }
-    };
-
-    /**
-     * Ejecuta el login AJAX contra Symfony. Si es exitoso, purga la cola centralizada
-     * de peticiones fallidas (en apiClient) y reinicia los túneles WebSockets.
-     *
-     * @param {Object} credentials Credenciales (_username, _password, _remember_me).
-     * @returns {Promise<boolean>}
-     */
-    const renewSession = async (credentials: { _username: string, _password: string, _remember_me?: boolean }): Promise<boolean> => {
-        try {
-            await apiClient.post('/ajax_login', credentials);
-            isSessionExpired.value = false;
-            error.value = null;
-
-            // 1. Liberamos cualquier petición pendiente pausada en el interceptor global
-            processQueue(null);
-
-            // 2. Reconectamos escuchas en tiempo real
-            await initGlobalMercure();
-            if (currentConversation.value?.id) await connectToMercure(currentConversation.value.id);
-            return true;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Error de autenticación.';
-            processQueue(err);
-            return false;
-        }
-    };
-
-    /**
-     * Aborta el proceso de re-login vaciando la cola de promesas con un error.
-     */
-    const cancelRenewal = () => {
-        isSessionExpired.value = false;
-        processQueue(new Error('Cancelado por el usuario.'));
-    };
 
     // ============================================================================
     // ACCIONES DE DATOS
@@ -497,6 +441,29 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     // ============================================================================
+    // FIX #7 — REANUDAR MERCURE TRAS RE-LOGIN
+    // ============================================================================
+    // Antes: cuando initGlobalMercure/connectToMercure detectaban sesión muerta,
+    // marcaban isSessionExpired = true y dejaban de reintentar (correcto, para no
+    // seguir pegándole a una sesión caída). Pero una vez el usuario re-loguea desde
+    // el GlobalLoginModal, NADA volvía a llamar a estas funciones: los túneles
+    // quedaban cerrados para siempre y el usuario dejaba de recibir mensajes y
+    // notificaciones en tiempo real hasta recargar la página a mano.
+    // Solución: escuchar el mismo flag compartido (isSessionExpired) y, apenas
+    // pasa de true a false (o sea: el modal se cerró porque el login funcionó),
+    // reabrir el túnel global y, si había una conversación abierta, su túnel también.
+    watch(isSessionExpired, (expired, wasExpired) => {
+        if (!wasExpired || expired) return; // solo nos interesa la transición true -> false
+
+        initGlobalMercure();
+
+        const openConversationId = uuidOf(currentConversation.value);
+        if (openConversationId) {
+            connectToMercure(openConversationId);
+        }
+    });
+
+    // ============================================================================
     // SELECCIÓN / HISTORIAL
     // ============================================================================
     const selectConversation = async (id: string) => {
@@ -651,6 +618,6 @@ export const useChatStore = defineStore('chatStore', () => {
     });
 
     return {
-        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, renewSession, cancelRenewal, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk
+        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk
     };
 });

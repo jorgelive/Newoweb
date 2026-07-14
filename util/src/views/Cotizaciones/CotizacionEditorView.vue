@@ -20,6 +20,29 @@ import {
   getRolTarifaUI, Servicio, TarifaSnapshot, formatRangoEdad,
 } from '@/types/cotizacionEditorModel';
 
+// 1. Importa el estado y lógica compartida
+import { isSessionExpired, renewSession } from '@/services/sessionAuth';
+
+// 2. Variables para el formulario de login (idénticas a las del chat)
+const loginUsername = ref('');
+const loginPassword = ref('');
+const isLoggingIn = ref(false);
+
+// 3. Función de re-login
+const handleSessionRenewal = async () => {
+  isLoggingIn.value = true;
+  try {
+    await renewSession({
+      _username: loginUsername.value,
+      _password: loginPassword.value
+    });
+    // Si tienes una función para recargar datos, ejecútala aquí
+    // await store.inicializarEditor(...)
+  } finally {
+    isLoggingIn.value = false;
+  }
+};
+
 defineProps<{
   fileId?: string;
   cotizacionId?: string;
@@ -92,15 +115,51 @@ watch(() => store.cotizacion, () => {
 }, { deep: true });
 
 onBeforeRouteLeave((to, from, next) => {
+  // 1. Si el acordeón del Pool en móvil está abierto, lo cerramos primero
+  if (store.isSegmentEditorOpen && isMobilePoolOpen.value) {
+    isMobilePoolOpen.value = false;
+    next(false); // Aborta la navegación y solo actualiza la UI
+    return;
+  }
+
+  // 2. Si el modal del Constructor de Storytelling está abierto
+  if (store.isSegmentEditorOpen) {
+    store.cerrarEditorSegmentos();
+    next(false);
+    return;
+  }
+
+  // 3. Si el modal del Reporte Financiero está abierto
+  if (isReporteOpen.value) {
+    isReporteOpen.value = false;
+    next(false);
+    return;
+  }
+
+  // 4. Si estamos en niveles profundos del panel lateral (Servicio > Componente > Tarifa)
+  if (store.historialNavegacion.length > 0) {
+    store.retrocederNivel();
+    next(false);
+    return;
+  }
+
+  // 5. Si estamos en la raíz del panel lateral en un dispositivo móvil
+  if (store.isMobileOpen && window.innerWidth < 768) {
+    store.cerrarInspectorMobile();
+    next(false);
+    return;
+  }
+
+  // 6. Si no hay nada abierto, evaluamos si hay cambios sin guardar antes de salir
   if (isDirty.value) {
     const confirmacion = window.confirm('Tienes cambios sin guardar. ¿Estás seguro de que deseas salir y perder los cambios?');
     if (confirmacion) {
-      next();
+      next(); // Permite salir
     } else {
-      next(false);
+      next(false); // Se queda en la página
     }
   } else {
-    next();
+    next(); // Sale de la página normalmente
   }
 });
 
@@ -1135,9 +1194,11 @@ watch(isProveedorOpen, (newVal) => {
                     <div v-for="tarifa in comp.cottarifas" :key="tarifa.id"
                          class="flex items-center justify-between bg-slate-50 hover:bg-orange-50 p-2 rounded-lg border border-slate-200 transition-colors">
                       <div class="flex flex-col min-w-0 pr-2">
-                        <span class="text-[9px] font-black text-slate-500 uppercase truncate leading-none mb-1">
-                          {{ store.getI18nText(tarifa.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
+                        <!-- 🔥 CAMBIO: Renderizar el nombre interno o el título público -->
+                        <span class="text-[10px] font-black text-slate-700 uppercase truncate leading-none mb-1">
+                          {{ tarifa.nombreInternoSnapshot || store.getI18nText(tarifa.tituloSnapshot as any, store.cotizacion.idiomaEdicion) || 'Tarifa Manual' }}
                         </span>
+
                         <span class="text-[9px] font-bold text-slate-400 flex items-center gap-1 leading-none">
                           <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
                           {{ tarifa.esGrupal ? '1 GRUPO' : `${tarifa.cantidad} Pax` }}
@@ -1471,9 +1532,11 @@ watch(isProveedorOpen, (newVal) => {
                     <i class="fas fa-trash-alt text-xs"></i>
                   </button>
 
-                  <div class="flex justify-between items-center pr-6">
+                  <div class="flex justify-between items-start pr-8">
                     <div>
-                      <h4 class="font-bold text-sm text-slate-800">{{ store.getI18nText(tarifa.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h4>
+                      <span class="text-[10px] font-black text-slate-500 uppercase mb-0.5 block">
+                        {{ tarifa.nombreInternoSnapshot || 'Tarifa Manual' }}
+                      </span>
                       <div class="flex gap-2 mt-1 flex-wrap">
                         <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
                            <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
@@ -1567,13 +1630,24 @@ watch(isProveedorOpen, (newVal) => {
 
             <div class="bg-white border border-slate-200 shadow-sm p-4 rounded-xl">
               <label class="block text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2"><i class="fas fa-tags mr-1"></i> Tarifa Maestra</label>
-              <SearchableSelect
-                  v-model="store.dataActiva.tarifaMaestraId"
-                  :options="opcionesTarifas"
-                  placeholder="Precio manual..."
-                  :darkMode="false"
-                  @update:model-value="val => store.onTarifaMaestraChange(val)"
-              />
+
+              <div class="flex gap-2 items-center">
+                <SearchableSelect
+                    v-model="store.dataActiva.tarifaMaestraId"
+                    :options="opcionesTarifas"
+                    placeholder="Precio manual..."
+                    :darkMode="false"
+                    @update:model-value="val => store.onTarifaMaestraChange(val)"
+                    class="flex-1"
+                />
+                <!-- NUEVO BOTÓN (X) PARA LIMPIAR -->
+                <button v-if="store.dataActiva.tarifaMaestraId"
+                        @click="store.dataActiva.tarifaMaestraId = null"
+                        class="w-9 h-9 flex-shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
+                        title="Desvincular tarifa maestra">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
 
               <div v-if="store.dataActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
                 <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t) === store.extractIdStr(store.dataActiva.tarifaMaestraId))]">
@@ -1623,6 +1697,13 @@ watch(isProveedorOpen, (newVal) => {
 
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2 mt-2">
+                <!-- NUEVO INPUT PARA NOMBRE INTERNO -->
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Interno (Operativo) *</label>
+                <input v-model="store.dataActiva.nombreInternoSnapshot"
+                       type="text" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-inner mb-4"
+                       placeholder="Ej: Adulto Extranjero...">
+
+                <!-- INPUT ORIGINAL PARA CLIENTE -->
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre para cliente *</label>
                 <div class="flex gap-2">
                   <input :value="store.getI18nText(store.dataActiva.tituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
@@ -1634,13 +1715,6 @@ watch(isProveedorOpen, (newVal) => {
                           class="px-4 border rounded-xl transition-colors shadow-sm" title="Forzar traducción">
                     <i class="fas fa-language"></i>
                   </button>
-                </div>
-
-                <div v-if="store.dataActiva.nombreInternoSnapshot" class="mt-2 ml-1">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-[11px] font-medium text-slate-600" title="Nombre Interno / Operativo">
-                  <i class="fas fa-tag text-slate-400 text-[10px]"></i>
-                  {{ store.dataActiva.nombreInternoSnapshot }}
-                </span>
                 </div>
               </div>
 
