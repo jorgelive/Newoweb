@@ -119,7 +119,7 @@ const handleGuardar = async () => {
 };
 
 // ============================================================================
-// 🔥 1. MÁSCARA ESTRICTA PARA FECHA Y HORA (Componentes Logísticos / Vuelos)
+// 🔥 1. MÁSCARA ESTRICTA PARA FECHA Y HORA
 // ============================================================================
 const formatParaMascara = (isoString?: string) => {
   if (!isoString) return '';
@@ -165,7 +165,7 @@ const vStrictMask = {
 };
 
 // ============================================================================
-// 🔥 2. MÁSCARA ESTRICTA SÓLO FECHA (Alojamientos, Tickets, Alimentación)
+// 🔥 2. MÁSCARA ESTRICTA SÓLO FECHA
 // ============================================================================
 const formatFechaCortaParaMascara = (isoString?: string) => {
   if (!isoString) return '';
@@ -395,6 +395,10 @@ const getNombreMaestroRef = (comp: any) => {
 };
 
 const filtroSegmentos = ref('');
+// ESTADO DEL ACORDEÓN (Móvil) Y EDITORES
+const activeAccordion = ref<'pool' | 'parrafos'>('parrafos');
+const expandirEditores = ref(false); // <--- Editores colapsados por defecto
+
 
 const poolFiltrado = computed(() => {
   if (!filtroSegmentos.value) return store.catalogos.poolSegmentos;
@@ -407,7 +411,88 @@ const poolFiltrado = computed(() => {
 });
 
 // ============================================================================
-// 🔥 REORDENAMIENTO DE ITEMS (Inclusiones / Upsells) — Drag & Drop + Long Press
+// 🔥 ORDENAMIENTO DE SEGMENTOS AGRUPADOS (Vista Storytelling)
+// ============================================================================
+const segmentosOrdenadosVisualmente = computed(() => {
+  if (!store.dataActiva?.cotsegmentos) return [];
+  return [...store.dataActiva.cotsegmentos].sort((a, b) => {
+    if (a.dia !== b.dia) return a.dia - b.dia;
+    return (a.orden || 0) - (b.orden || 0);
+  });
+});
+
+const dragSegId = ref<string | null>(null);
+const dragOverSegId = ref<string | null>(null);
+let segLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+let segPointerIsDown = false;
+let segDragActivated = false;
+let segPointerStartY = 0;
+
+const reordenarSegmentosVisual = (fromId: string, toId: string) => {
+  if (!store.dataActiva?.id) return;
+  store.reordenarSegmentos(store.dataActiva.id, fromId, toId);
+};
+
+const onSegmentPointerDown = (e: PointerEvent, seg: any) => {
+  segPointerIsDown = true;
+  segDragActivated = false;
+  segPointerStartY = e.clientY;
+  (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+
+  if (e.pointerType === 'touch') {
+    segLongPressTimer = setTimeout(() => {
+      if (segPointerIsDown) {
+        segDragActivated = true;
+        dragSegId.value = seg.id;
+        if (navigator.vibrate) navigator.vibrate(15);
+      }
+    }, LONG_PRESS_MS);
+  } else {
+    segDragActivated = true;
+    dragSegId.value = seg.id;
+  }
+};
+
+const onSegmentPointerMove = (e: PointerEvent) => {
+  if (!segPointerIsDown) return;
+
+  if (!segDragActivated) {
+    if (Math.abs(e.clientY - segPointerStartY) > MOVE_CANCEL_THRESHOLD && segLongPressTimer) {
+      clearTimeout(segLongPressTimer);
+      segLongPressTimer = null;
+    }
+    return;
+  }
+
+  e.preventDefault();
+  const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-segment-id]') as HTMLElement | null;
+  if (el && dragSegId.value) {
+    const overId = el.getAttribute('data-segment-id');
+    if (overId && overId !== dragSegId.value) {
+      dragOverSegId.value = overId;
+      reordenarSegmentosVisual(dragSegId.value, overId); // <--- Actualizado aquí
+    }
+  }
+};
+
+const handleAplicarPlantilla = async () => {
+  if(plantillaSeleccionada.value && puedeAplicarPlantilla.value) {
+    await store.aplicarPlantilla(plantillaSeleccionada.value);
+    activeAccordion.value = 'parrafos'; // Cambia al acordeón de párrafos
+  }
+};
+
+const onSegmentPointerUp = () => {
+  segPointerIsDown = false;
+  segDragActivated = false;
+  dragSegId.value = null;
+  dragOverSegId.value = null;
+  if (segLongPressTimer) { clearTimeout(segLongPressTimer); segLongPressTimer = null; }
+};
+
+
+// ============================================================================
+// 🔥 REORDENAMIENTO DE ITEMS (Inclusiones / Upsells)
 // ============================================================================
 const dragItemId = ref<string | null>(null);
 const dragOverItemId = ref<string | null>(null);
@@ -450,7 +535,6 @@ const onItemPointerDown = (e: PointerEvent, item: any) => {
   (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
 
   if (e.pointerType === 'touch') {
-    // 🔥 Long-tap: solo activamos el drag si sostiene sin soltar
     longPressTimer = setTimeout(() => {
       if (pointerIsDown) {
         dragActivated = true;
@@ -469,7 +553,6 @@ const onItemPointerMove = (e: PointerEvent) => {
   if (!pointerIsDown) return;
 
   if (!dragActivated) {
-    // Si se mueve antes de activarse (probable scroll en touch), cancelamos el long-press
     if (Math.abs(e.clientY - pointerStartY) > MOVE_CANCEL_THRESHOLD && longPressTimer) {
       clearTimeout(longPressTimer);
       longPressTimer = null;
@@ -520,6 +603,7 @@ const agruparNotasPorTipo = (notas: any[]): Map<string, any[]> => {
 const prepararInsercion = async (seg: any) => {
   if (!store.dataActiva?.cotsegmentos?.length) {
     await store.procesarInsercionSegmento(seg, plantillaSeleccionada.value, 'append');
+    activeAccordion.value = 'parrafos'; // Cambia al acordeón de párrafos
     return;
   }
   modalInsercion.value.segmentoMaestro = seg;
@@ -539,6 +623,7 @@ const confirmarInsercion = async () => {
   }
   modalInsercion.value.isOpen = false;
   modalInsercion.value.segmentoMaestro = null;
+  activeAccordion.value = 'parrafos'; // Cambia al acordeón de párrafos
 };
 
 const isProveedorOpen = ref(false);
@@ -561,7 +646,6 @@ const onPoolPointerUp = () => {
 
 const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.length);
 
-// 🔥 NUEVO: Lazy loading de servicios del proveedor para cuando el panel se expanda
 watch(isProveedorOpen, (newVal) => {
   if (newVal && store.dataActiva?.proveedorMaestroId && store.catalogos.proveedorServicios.length === 0) {
     store.fetchProveedorServiciosDeProveedor(store.dataActiva.proveedorMaestroId);
@@ -687,8 +771,8 @@ watch(isProveedorOpen, (newVal) => {
                     </p>
 
                     <div class="flex flex-wrap items-center gap-2 mt-4">
-                        <span class="text-[9px] font-black bg-indigo-600 text-white px-2 py-1.5 rounded uppercase tracking-widest shadow-sm">
-                            <i class="far fa-clock mr-1 text-indigo-200"></i> Programación
+                        <span class="text-[9px] font-black bg-teal-600 text-white px-2 py-1.5 rounded uppercase tracking-widest shadow-sm">
+                            <i class="far fa-clock mr-1 text-teal-200"></i> Programación
                         </span>
                       <span class="text-[11px] font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-md border border-slate-200 shadow-sm whitespace-nowrap">
                             {{ formatRangoServicio(servicio) }}
@@ -700,7 +784,7 @@ watch(isProveedorOpen, (newVal) => {
                         <i class="fas fa-box-open mr-1 text-[#E07845]"></i> {{ servicio.cotcomponentes?.length ?? 0 }} COMPONENTES
                       </p>
                       <p v-if="servicio.cotsegmentos?.length" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200">
-                        <i class="fas fa-feather-alt mr-1 text-indigo-500"></i> STORYTELLING ACTIVO
+                        <i class="fas fa-feather-alt mr-1 text-teal-500"></i> STORYTELLING ACTIVO
                       </p>
                     </div>
                   </div>
@@ -731,15 +815,15 @@ watch(isProveedorOpen, (newVal) => {
           </div>
           <div class="p-6 flex-1 overflow-y-auto space-y-6 pb-32">
 
-            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
+            <div class="bg-teal-50 border border-teal-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
               <div>
-                <h3 class="text-[10px] font-black text-indigo-700 uppercase tracking-widest"><i class="fas fa-user-secret mr-1"></i> Anonimato Logístico</h3>
-                <p class="text-[9px] text-indigo-500 mt-1 font-medium leading-tight pr-4">Ocultar todos los proveedores y servicios logísticos al generar vistas públicas o vouchers.</p>
+                <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest"><i class="fas fa-user-secret mr-1"></i> Anonimato Logístico</h3>
+                <p class="text-[9px] text-teal-500 mt-1 font-medium leading-tight pr-4">Ocultar todos los proveedores y servicios logísticos al generar vistas públicas o vouchers.</p>
               </div>
               <button @click="store.cotizacion.proveedorOculto = !store.cotizacion.proveedorOculto"
                       :class="[
                            'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none flex-shrink-0',
-                           store.cotizacion.proveedorOculto ? 'bg-indigo-600' : 'bg-slate-300'
+                           store.cotizacion.proveedorOculto ? 'bg-teal-600' : 'bg-slate-300'
                        ]">
                  <span :class="store.cotizacion.proveedorOculto ? 'translate-x-6' : 'translate-x-1'"
                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
@@ -772,11 +856,11 @@ watch(isProveedorOpen, (newVal) => {
               <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"><i class="fas fa-users mr-1"></i> Análisis por Perfil de Pasajero</h3>
 
               <div v-for="clase in store.resumenFinanciero?.clasesPasajeros" :key="clase.tipo"
-                   class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm group hover:border-indigo-300 transition-all"
+                   class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm group hover:border-teal-300 transition-all"
                    :class="clase.tipo.includes('anomalo') ? 'border-red-300' : ''">
                 <div class="flex justify-between items-start mb-3">
                   <div>
-                    <span :class="clase.tipo.includes('anomalo') ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'" class="px-2 py-0.5 rounded text-[10px] font-black uppercase">
+                    <span :class="clase.tipo.includes('anomalo') ? 'bg-red-100 text-red-700' : 'bg-teal-100 text-teal-700'" class="px-2 py-0.5 rounded text-[10px] font-black uppercase">
                       {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
                     </span>
 
@@ -950,15 +1034,15 @@ watch(isProveedorOpen, (newVal) => {
               </div>
             </div>
 
-            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+            <div class="bg-teal-50 border border-teal-100 rounded-xl p-4">
               <div class="flex items-start justify-between gap-2 mb-2">
                 <div>
-                  <h3 class="text-[10px] font-black text-indigo-700 uppercase tracking-widest"><i class="fas fa-align-left mr-1"></i> Storytelling</h3>
-                  <p class="text-[10px] text-indigo-500 mt-1 font-medium">{{ store.getI18nText(store.dataActiva.itinerarioNombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</p>
+                  <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest"><i class="fas fa-align-left mr-1"></i> Storytelling</h3>
+                  <p class="text-[10px] text-teal-500 mt-1 font-medium">{{ store.getI18nText(store.dataActiva.itinerarioNombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</p>
                 </div>
                 <button @click="store.dataActiva.servicioMaestroId && store.abrirEditorSegmentos()"
                         :disabled="!store.dataActiva.servicioMaestroId"
-                        :class="!store.dataActiva.servicioMaestroId ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 text-white'"
+                        :class="!store.dataActiva.servicioMaestroId ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' : 'bg-teal-600 hover:bg-teal-700 text-white'"
                         class="px-3 py-2 rounded-lg text-[10px] font-bold shadow-sm whitespace-nowrap transition-colors">
                   <i class="fas fa-pencil-alt mr-1"></i> Configurar
                 </button>
@@ -1003,8 +1087,8 @@ watch(isProveedorOpen, (newVal) => {
                             <i class="fas text-[9px]" :class="getModoItemConfig(comp.modo).icon"></i>
                             {{ getModoItemConfig(comp.modo).label.toUpperCase() }}
                       </span>
-                       <span class="text-[9px] font-black px-2 py-0.5 rounded border shadow-sm whitespace-nowrap flex items-center gap-1"
-                             :class="[getEstadoComponenteConfig(comp.estado).bg, getEstadoComponenteConfig(comp.estado).text, getEstadoComponenteConfig(comp.estado).border]">
+                      <span class="text-[9px] font-black px-2 py-0.5 rounded border shadow-sm whitespace-nowrap flex items-center gap-1"
+                            :class="[getEstadoComponenteConfig(comp.estado).bg, getEstadoComponenteConfig(comp.estado).text, getEstadoComponenteConfig(comp.estado).border]">
                         <i class="fas text-[8px]" :class="getEstadoComponenteConfig(comp.estado).icon"></i>
                         {{ getEstadoComponenteConfig(comp.estado).label.toUpperCase() }}
                       </span>
@@ -1021,7 +1105,7 @@ watch(isProveedorOpen, (newVal) => {
                       {{ store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'FIN: ' + formatDateTimeFromISO(comp.fechaHoraFin) : 'HASTA: ' + formatDateOnlyFromISO(comp.fechaHoraFin) }}
                     </span>
 
-                    <span v-if="store.isComponenteBloqueado(comp)" class="mt-1 text-[9px] font-bold text-indigo-400 flex items-center gap-1">
+                    <span v-if="store.isComponenteBloqueado(comp)" class="mt-1 text-[9px] font-bold text-teal-500 flex items-center gap-1">
                       <i class="fas fa-link"></i> Insumo Autogenerado (Vinculado)
                     </span>
                   </div>
@@ -1119,15 +1203,15 @@ watch(isProveedorOpen, (newVal) => {
                   placeholder="Buscar insumo..."
                   @change="val => store.onComponenteMaestroChange(val)"
               />
-              <div v-else class="flex flex-col gap-2 bg-indigo-50/60 p-4 rounded-xl border border-indigo-100 shadow-sm mt-1">
+              <div v-else class="flex flex-col gap-2 bg-teal-50/60 p-4 rounded-xl border border-teal-100 shadow-sm mt-1">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center shadow-inner">
+                    <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center shadow-inner">
                       <i class="fas fa-link text-sm"></i>
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Insumo Maestro (Inyectado / Bloqueado)</span>
-                      <span class="text-sm font-black text-indigo-900 mt-0.5">{{ getNombreMaestroRef(store.dataActiva) }}</span>
+                      <span class="text-[9px] font-black text-teal-500 uppercase tracking-widest">Insumo Maestro (Inyectado / Bloqueado)</span>
+                      <span class="text-sm font-black text-teal-900 mt-0.5">{{ getNombreMaestroRef(store.dataActiva) }}</span>
                     </div>
                   </div>
                 </div>
@@ -1392,7 +1476,7 @@ watch(isProveedorOpen, (newVal) => {
                       <h4 class="font-bold text-sm text-slate-800">{{ store.getI18nText(tarifa.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h4>
                       <div class="flex gap-2 mt-1 flex-wrap">
                         <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
-                           <i :class="tarifa.esGrupal ? 'fas fa-users' : 'fas fa-user'"></i>
+                           <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
                            {{ tarifa.esGrupal ? 'Costo Grupal (Fijo)' : `${tarifa.cantidad} Pax` }}
                         </span>
                         <span class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
@@ -1401,7 +1485,7 @@ watch(isProveedorOpen, (newVal) => {
                           {{ getRolTarifaUI(tarifa.rolSnapshot).label }}
                         </span>
 
-                        <span v-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase">
+                        <span v-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100 uppercase">
                           Grupo {{ tarifa.grupoTarifa }}
                         </span>
 
@@ -1595,10 +1679,10 @@ watch(isProveedorOpen, (newVal) => {
                 </div>
               </div>
 
-              <div class="col-span-2 bg-white border border-purple-200 rounded-2xl p-4 shadow-sm">
+              <div class="col-span-2 bg-white border border-teal-200 rounded-2xl p-4 shadow-sm">
                 <div class="flex items-center justify-between mb-3">
                   <p class="text-xs font-black text-slate-800 flex items-center gap-2">
-                    <i class="fas fa-layer-group text-purple-500"></i> Rol y Agrupamiento
+                    <i class="fas fa-layer-group text-teal-500"></i> Rol y Agrupamiento
                   </p>
                   <span class="text-[9px] font-black px-2 py-1 rounded border uppercase"
                         :class="[getRolTarifaUI(store.dataActiva.rolSnapshot).bg, getRolTarifaUI(store.dataActiva.rolSnapshot).text, getRolTarifaUI(store.dataActiva.rolSnapshot).border]">
@@ -1623,7 +1707,7 @@ watch(isProveedorOpen, (newVal) => {
                     <i class="fas fa-star mr-1"></i> Estándar
                   </button>
                   <button @click="store.dataActiva.rolSnapshot = 'alternativa'"
-                          :class="store.dataActiva.rolSnapshot === 'alternativa' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-purple-50'"
+                          :class="store.dataActiva.rolSnapshot === 'alternativa' ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-teal-50'"
                           class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
                     <i class="fas fa-right-left mr-1"></i> Alternativa
                   </button>
@@ -1639,7 +1723,7 @@ watch(isProveedorOpen, (newVal) => {
                     <div v-if="store.dataActiva.rolSnapshot !== 'operativo'">
                       <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Grupo (Opción Comercial)</label>
                       <input v-model.number="store.dataActiva.grupoTarifa" type="number" min="1" placeholder="Ej: 1"
-                             class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
+                             class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-teal-500 shadow-sm">
                     </div>
                     <div v-else class="flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg py-2">
                       <span class="text-[9px] font-black text-slate-400 uppercase">Sin grupo</span>
@@ -1659,7 +1743,7 @@ watch(isProveedorOpen, (newVal) => {
                   <textarea :value="store.getI18nText(store.dataActiva.notaRol as any, store.cotizacion?.idiomaEdicion || 'es')"
                             @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.notaRol, store.cotizacion.idiomaEdicion, (e.target as HTMLTextAreaElement).value) }"
                             rows="2"
-                            class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-purple-500 shadow-sm resize-none"
+                            class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500 shadow-sm resize-none"
                             placeholder="Ej: Sale 06:00am, llega 10:00am..."></textarea>
                 </div>
               </div>
@@ -1774,11 +1858,10 @@ watch(isProveedorOpen, (newVal) => {
                     <legend class="text-[10px] font-black text-slate-500 uppercase px-2 bg-white rounded border border-slate-100">2. Servicio Contratado</legend>
 
                     <label class="block text-[9px] font-bold text-slate-500 uppercase mb-2 ml-1 flex items-center gap-1">
-                      <i class="fas fa-concierge-bell text-indigo-500"></i> Buscar en el catálogo del proveedor (Opcional)
+                      <i class="fas fa-concierge-bell text-teal-500"></i> Buscar en el catálogo del proveedor (Opcional)
                     </label>
 
                     <div class="flex gap-2 items-center">
-                      <!-- 1. El v-if original -->
                       <SearchableSelect
                           v-if="store.dataActiva.proveedorMaestroId"
                           v-model="store.dataActiva.proveedorServicioMaestroId"
@@ -1789,12 +1872,10 @@ watch(isProveedorOpen, (newVal) => {
                           class="flex-1"
                       />
 
-                      <!-- 2. El v-else, justo a continuación -->
                       <div v-else class="flex-1 bg-slate-50 border border-slate-200 text-slate-400 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center gap-2 shadow-inner">
                         <i class="fas fa-info-circle"></i> Selecciona un proveedor arriba para ver sus servicios
                       </div>
 
-                      <!-- 3. Botón fuera de la cadena v-if/v-else para evitar conflictos -->
                       <button v-if="store.dataActiva.proveedorServicioMaestroId"
                               @click="store.onProveedorServicioChange(null)"
                               class="w-9 h-9 flex-shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm"
@@ -1814,7 +1895,7 @@ watch(isProveedorOpen, (newVal) => {
                       </label>
                       <input v-model="store.dataActiva.proveedorServicioNombreSnapshot"
                              type="text"
-                             class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+                             class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-teal-500 outline-none shadow-sm"
                              placeholder="Ej: Habitación Matrimonial Standard..." />
                     </div>
 
@@ -1826,7 +1907,7 @@ watch(isProveedorOpen, (newVal) => {
                         <input :value="store.getI18nText(store.dataActiva.proveedorServicioTituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
                                @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.proveedorServicioTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                                type="text"
-                               class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+                               class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-teal-500 outline-none shadow-sm"
                                placeholder="Título público del servicio..." />
                         <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
                                 :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200'"
@@ -1837,10 +1918,10 @@ watch(isProveedorOpen, (newVal) => {
                     </div>
 
                     <div class="flex items-center gap-2 mt-3">
-                      <i class="fas fa-door-open text-indigo-400 text-xs w-4 flex-shrink-0 text-center" title="URL a nivel Servicio del Proveedor"></i>
+                      <i class="fas fa-door-open text-teal-400 text-xs w-4 flex-shrink-0 text-center" title="URL a nivel Servicio del Proveedor"></i>
                       <input v-model="store.dataActiva.proveedorServicioUrlSnapshot"
                              type="url"
-                             class="flex-1 bg-white border border-slate-300 text-sky-600 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+                             class="flex-1 bg-white border border-slate-300 text-sky-600 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-teal-500 outline-none shadow-sm"
                              placeholder="URL del servicio (ej: ficha de la habitación)..." />
                     </div>
                   </fieldset>
@@ -1920,9 +2001,9 @@ watch(isProveedorOpen, (newVal) => {
           </div>
         </div>
 
-        <<div v-if="store.inspectorActivo !== 'resumen' && store.cotizacion"
-              @click="isTotalsDrawerOpen = true"
-              class="absolute bottom-0 w-full bg-slate-900 border-t border-slate-700/50 px-6 py-4 flex justify-between items-center flex-shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.4)] z-40 cursor-pointer hover:bg-slate-800 active:bg-slate-950 transition-colors">
+        <div v-if="store.inspectorActivo !== 'resumen' && store.cotizacion"
+             @click="isTotalsDrawerOpen = true"
+             class="absolute bottom-0 w-full bg-slate-900 border-t border-slate-700/50 px-6 py-4 flex justify-between items-center flex-shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.4)] z-40 cursor-pointer hover:bg-slate-800 active:bg-slate-950 transition-colors">
 
           <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 px-4 py-0.5 rounded-t-lg border-t border-x border-slate-700/50 text-slate-400 shadow-sm flex flex-col items-center justify-center">
             <i class="fas fa-chevron-up text-[10px]"></i>
@@ -1968,175 +2049,216 @@ watch(isProveedorOpen, (newVal) => {
 
   <Teleport to="body">
     <Transition name="fade-scale">
-      <div v-if="store.isSegmentEditorOpen && store.cotizacion" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
-        <div class="bg-[#F8FAFC] w-full max-w-6xl h-full max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
-          <header class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+      <div v-if="store.isSegmentEditorOpen && store.cotizacion" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center md:p-8">
+        <div class="bg-[#F8FAFC] w-full h-full md:max-w-6xl md:max-h-[90vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+          <header class="bg-teal-600 text-white px-6 py-4 flex justify-between items-center">
             <div>
               <h2 class="font-black text-lg flex items-center gap-2"><i class="fas fa-book-open"></i> Constructor de Storytelling</h2>
-              <p class="text-[11px] font-bold text-indigo-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</p>
+              <p class="text-[11px] font-bold text-teal-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</p>
             </div>
-            <button @click="store.cerrarEditorSegmentos()" class="w-8 h-8 rounded-full bg-indigo-500 hover:bg-indigo-400 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            <button @click="store.cerrarEditorSegmentos()" class="w-8 h-8 rounded-full bg-teal-500 hover:bg-teal-400 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
           </header>
 
           <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
-            <aside class="w-full md:w-1/3 bg-white border-b md:border-r border-slate-200 flex flex-col h-[40vh] md:h-full shadow-sm z-10 flex-shrink-0">
 
-              <div class="p-3 md:p-5 border-b border-slate-100 bg-slate-50">
-                <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">1. Cargar Plantilla</label>
-                <div class="flex gap-2">
-                  <SearchableSelect
-                      v-model="plantillaSeleccionada"
-                      :options="opcionesPlantillas"
-                      placeholder="Elegir itinerario..."
-                  />
-                  <button @click="plantillaSeleccionada && puedeAplicarPlantilla && store.aplicarPlantilla(plantillaSeleccionada)"
-                          :disabled="store.isLoading || !puedeAplicarPlantilla"
-                          :title="!puedeAplicarPlantilla ? 'Ya hay párrafos en este servicio. Vacía el panel para aplicar una plantilla.' : ''"
-                          class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
-                          :class="(store.isLoading || !puedeAplicarPlantilla) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'">
+            <aside class="w-full md:w-1/3 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shadow-sm z-20 flex-shrink-0 transition-all duration-300"
+                   :class="activeAccordion === 'pool' ? 'flex-1 md:flex-none min-h-0' : 'h-auto md:h-full'">
 
-                    <i v-if="store.isLoading" class="fas fa-spinner fa-spin"></i>
-                    Aplicar
-                  </button>
-                </div>
+              <div class="md:hidden flex justify-between items-center px-4 py-4 bg-teal-50 hover:bg-teal-100 cursor-pointer transition-colors border-b border-teal-200"
+                   @click="activeAccordion = 'pool'">
+                <span class="text-xs font-black text-teal-700 uppercase tracking-widest"><i class="fas fa-layer-group mr-2"></i> Pool de Segmentos / Plantillas</span>
+                <i class="fas text-teal-600 transition-transform" :class="activeAccordion === 'pool' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
               </div>
 
-              <div class="p-3 md:p-5 flex-1 overflow-y-auto bg-white flex flex-col">
-                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 md:mb-3">2. Pool de Segmentos Libres</label>
-
-                <div class="mb-3 md:mb-4 flex-shrink-0">
-                  <input v-model="filtroSegmentos" type="text" placeholder="🔍 Buscar por ID o Título..."
-                         class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner">
+              <div class="flex-1 flex flex-col min-h-0 overflow-hidden" :class="{'hidden md:flex': activeAccordion !== 'pool'}">
+                <div class="p-3 md:p-5 border-b border-slate-100 bg-slate-50 flex-shrink-0">
+                  <label class="block text-[10px] font-black text-teal-600 uppercase tracking-widest mb-2">1. Cargar Plantilla</label>
+                  <div class="flex gap-2">
+                    <SearchableSelect
+                        v-model="plantillaSeleccionada"
+                        :options="opcionesPlantillas"
+                        placeholder="Elegir itinerario..."
+                    />
+                    <button @click="handleAplicarPlantilla"
+                            :disabled="store.isLoading || !puedeAplicarPlantilla"
+                            :title="!puedeAplicarPlantilla ? 'Ya hay párrafos en este servicio. Vacía el panel para aplicar una plantilla.' : ''"
+                            class="bg-teal-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
+                            :class="(store.isLoading || !puedeAplicarPlantilla) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-teal-700'">
+                      <i v-if="store.isLoading" class="fas fa-spinner fa-spin"></i> Aplicar
+                    </button>
+                  </div>
                 </div>
 
-                <div class="space-y-2 md:space-y-3 overflow-y-auto flex-1 pb-2">
-
-                  <div v-for="(seg, idx) in poolFiltrado"
-                       :key="store.extractIdStr(seg) || idx"
-                       class="relative bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start"
-                       @mouseenter="tooltipPoolActivo = store.extractIdStr(seg) || String(idx)"
-                       @mouseleave="tooltipPoolActivo = null"
-                       @pointerdown="onPoolPointerDown($event, store.extractIdStr(seg) || String(idx))"
-                       @pointerup="onPoolPointerUp"
-                       @pointercancel="onPoolPointerUp"
-                  >
-                    <div class="flex-1 min-w-0">
-                      <div class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
-                      <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
-                      <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido as any, store.cotizacion?.idiomaEdicion || 'es')"></div>
+                <div class="p-3 md:p-5 flex-1 overflow-y-auto bg-white flex flex-col">
+                  <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 md:mb-3">2. Pool de Segmentos Libres</label>
+                  <div class="mb-3 md:mb-4 flex-shrink-0">
+                    <input v-model="filtroSegmentos" type="text" placeholder="🔍 Buscar por ID o Título..."
+                           class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-teal-500 outline-none shadow-inner">
+                  </div>
+                  <div class="space-y-2 md:space-y-3 overflow-y-auto flex-1 pb-2">
+                    <div v-for="(seg, idx) in poolFiltrado"
+                         :key="store.extractIdStr(seg) || idx"
+                         class="relative bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl hover:border-teal-300 hover:bg-teal-50 transition-all flex gap-3 shadow-sm group items-center md:items-start"
+                         @mouseenter="tooltipPoolActivo = store.extractIdStr(seg) || String(idx)"
+                         @mouseleave="tooltipPoolActivo = null"
+                         @pointerdown="onPoolPointerDown($event, store.extractIdStr(seg) || String(idx))"
+                         @pointerup="onPoolPointerUp"
+                         @pointercancel="onPoolPointerUp">
+                      <div class="flex-1 min-w-0">
+                        <div class="text-[9px] font-black text-teal-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
+                        <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
+                        <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido as any, store.cotizacion?.idiomaEdicion || 'es')"></div>
+                      </div>
+                      <button @click="prepararInsercion(seg)" class="text-teal-600 hover:bg-teal-200 bg-teal-50 md:bg-transparent md:hover:bg-teal-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors flex-shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-teal-100"><i class="fas fa-plus"></i></button>
                     </div>
-
-                    <button @click="prepararInsercion(seg)" class="text-indigo-600 hover:bg-indigo-200 bg-indigo-50 md:bg-transparent md:hover:bg-indigo-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors flex-shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-indigo-100"><i class="fas fa-plus"></i></button>
-                    <div v-if="tooltipPoolActivo === (store.extractIdStr(seg) || String(idx))" class="absolute z-30 bottom-full left-2 mb-2 w-64 bg-slate-900 text-white text-[10px] font-medium p-2.5 rounded-lg shadow-xl leading-snug">
-                      <p class="font-black text-indigo-300 uppercase tracking-widest text-[9px] mb-1">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</p>
-                      <p>{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
-                    </div>
-
                   </div>
                 </div>
               </div>
             </aside>
-            <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-[#F8FAFC]">
-              <div class="max-w-3xl mx-auto space-y-6 pb-20">
-                <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest"><i class="fas fa-stream mr-2"></i> Párrafos en la Cotización</h3>
 
-                <div v-if="!store.dataActiva?.cotsegmentos?.length" class="border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center">
-                  <i class="fas fa-align-center text-4xl mb-4 opacity-50"></i>
-                  <p class="text-sm font-bold uppercase tracking-widest">El servicio no tiene textos</p>
-                </div>
+            <main class="w-full md:flex-1 bg-[#F8FAFC] flex flex-col flex-shrink-0 transition-all duration-300"
+                  :class="activeAccordion === 'parrafos' ? 'flex-1 md:flex-none min-h-0' : 'h-auto md:h-full'">
 
-                <div v-else class="space-y-4 relative">
-                  <div class="absolute left-[15px] top-4 bottom-4 w-0.5 bg-slate-200 z-0"></div>
-                  <div v-for="(cotSeg, idx) in store.dataActiva.cotsegmentos" :key="cotSeg.id" class="relative z-10 flex gap-4 items-start group">
-                    <div class="w-8 h-8 rounded-full bg-white border-4 border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-sm flex-shrink-0 mt-1">{{ idx + 1 }}</div>
+              <div class="md:hidden flex justify-between items-center px-4 py-4 bg-slate-200 hover:bg-slate-300 cursor-pointer transition-colors border-b border-slate-300"
+                   @click="activeAccordion = 'parrafos'">
+                <span class="text-xs font-black text-slate-700 uppercase tracking-widest"><i class="fas fa-stream mr-2"></i> Párrafos de la Cotización</span>
+                <i class="fas text-slate-600 transition-transform" :class="activeAccordion === 'parrafos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+              </div>
 
-                    <div class="flex-1 bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
+              <div class="flex-1 overflow-y-auto p-4 md:p-8" :class="{'hidden md:block': activeAccordion !== 'parrafos'}">
+                <div class="max-w-3xl mx-auto pb-20 relative">
 
-                      <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                        <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-                          <label class="text-[10px] font-black text-indigo-600 uppercase tracking-widest whitespace-nowrap">Día Relativo</label>
-                          <input type="number" min="1"
-                                 v-model="cotSeg.dia"
-                                 @change="store.onSegmentoDiaChange(store.dataActiva.id, cotSeg.id, cotSeg.dia)"
-                                 class="w-12 md:w-16 bg-slate-50 border border-slate-300 rounded px-1 md:px-2 py-1 text-xs md:text-sm font-black text-center outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800">
-                          <div class="flex flex-col border-l border-slate-200 pl-2">
-                            <span class="text-[9px] text-slate-400 font-bold uppercase leading-none">Fecha Real</span>
-                            <span class="text-[11px] text-indigo-500 font-black tracking-tight leading-none mt-0.5">{{ formatFecha(cotSeg.fechaAbsoluta) }}</span>
+                  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest hidden md:flex items-center"><i class="fas fa-stream mr-2"></i> Párrafos en la Cotización</h3>
+                    <div class="flex items-center gap-3 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm w-fit ml-auto">
+                      <label class="text-[10px] font-black text-slate-600 uppercase tracking-widest cursor-pointer select-none" @click="expandirEditores = !expandirEditores">Expandir Textos</label>
+                      <button @click="expandirEditores = !expandirEditores"
+                              :class="expandirEditores ? 'bg-teal-500' : 'bg-slate-300'"
+                              class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none shadow-inner">
+                        <span :class="expandirEditores ? 'translate-x-4' : 'translate-x-1'"
+                              class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm"></span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div v-if="!store.dataActiva?.cotsegmentos?.length" class="border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center">
+                    <i class="fas fa-align-center text-4xl mb-4 opacity-50"></i>
+                    <p class="text-sm font-bold uppercase tracking-widest">El servicio no tiene textos</p>
+                  </div>
+
+                  <div v-else class="space-y-0 relative">
+                    <div class="absolute left-[15px] top-4 bottom-4 w-0.5 bg-slate-200 z-0 hidden md:block"></div>
+
+                    <template v-for="(cotSeg, idx) in segmentosOrdenadosVisualmente" :key="cotSeg.id">
+                      <div v-if="idx === 0 || cotSeg.dia !== segmentosOrdenadosVisualmente[idx-1].dia" class="mb-4 mt-6 first:mt-2 text-teal-700 font-black text-sm border-b border-teal-200 pb-1 flex items-center justify-between">
+                        <span><i class="far fa-calendar-alt mr-1"></i> DÍA RELATIVO {{ cotSeg.dia }}</span>
+                        <span class="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded">{{ formatFecha(cotSeg.fechaAbsoluta) }}</span>
+                      </div>
+
+                      <div :data-segment-id="cotSeg.id"
+                           class="relative z-10 flex gap-2 md:gap-4 items-start group mb-4 transition-all"
+                           :class="[
+                             dragSegId === cotSeg.id ? 'opacity-40 scale-[0.98]' : '',
+                             dragOverSegId === cotSeg.id && dragSegId !== cotSeg.id ? 'ring-2 ring-teal-400 rounded-2xl' : ''
+                           ]">
+
+                        <div class="flex flex-col items-center gap-1 mt-1 flex-shrink-0 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                          <div class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center font-black text-[10px] md:text-xs">{{ cotSeg.orden }}</div>
+                          <div class="text-slate-300 hover:text-teal-500 cursor-grab active:cursor-grabbing select-none px-2 py-1"
+                               style="touch-action: none;"
+                               @pointerdown="onSegmentPointerDown($event, cotSeg)"
+                               @pointermove="onSegmentPointerMove"
+                               @pointerup="onSegmentPointerUp"
+                               @pointercancel="onSegmentPointerUp">
+                            <i class="fas fa-grip-vertical"></i>
                           </div>
                         </div>
 
-                        <div class="flex items-center gap-2 w-full md:w-auto">
-                          <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
-                                 @input="e => { if(store.cotizacion) store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
-                                 class="bg-transparent text-xs font-black text-slate-700 uppercase outline-none flex-1 min-w-[150px]" placeholder="Título..." />
+                        <div class="flex-1 bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden min-w-0">
 
-                          <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
-                                  class="transition-colors px-2 py-1.5 rounded text-[10px] font-bold border flex items-center gap-1 shadow-sm"
-                                  :class="cotSeg.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'" title="Forzar traducción del párrafo al guardar">
-                            <i class="fas fa-language"></i> <span class="hidden md:inline" v-if="cotSeg.sobreescribirTraduccion">Auto-Traducir</span>
-                          </button>
+                          <div class="bg-slate-50 px-3 md:px-4 py-3 border-b border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+                            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm flex-shrink-0">
+                              <label class="text-[9px] md:text-[10px] font-black text-teal-600 uppercase tracking-widest whitespace-nowrap">Día Relativo</label>
+                              <input type="number" min="1"
+                                     v-model="cotSeg.dia"
+                                     @change="store.onSegmentoDiaChange(store.dataActiva.id, cotSeg.id, cotSeg.dia)"
+                                     class="w-12 bg-slate-50 border border-slate-300 rounded px-1 py-1 text-xs font-black text-center outline-none focus:ring-2 focus:ring-teal-500 text-slate-800">
+                            </div>
 
-                          <button @click="store.removerCotSegmento(cotSeg.id)" class="bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors ml-1 p-1.5 rounded shadow-sm">
-                            <i class="fas fa-trash-alt text-sm"></i>
-                          </button>
-                        </div>
-                      </div>
+                            <div class="flex items-center gap-2 w-full lg:w-auto min-w-0">
+                              <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                                     @input="e => { if(store.cotizacion) store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                                     class="bg-transparent text-[11px] md:text-xs font-black text-slate-700 uppercase outline-none flex-1 w-full truncate" placeholder="Título..." />
 
-                      <div class="p-4 bg-white">
-                        <WysiwygEditor
-                            :model-value="store.getI18nText(cotSeg.contenidoSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
-                            @update:model-value="(event) => { if(store.cotizacion) store.setI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion, event) }"
-                        />
+                              <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
+                                      class="transition-colors px-2 py-1.5 rounded text-[10px] font-bold border flex items-center gap-1 shadow-sm flex-shrink-0"
+                                      :class="cotSeg.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'" title="Forzar traducción del párrafo al guardar">
+                                <i class="fas fa-language"></i> <span class="hidden xl:inline" v-if="cotSeg.sobreescribirTraduccion">Auto-Traducir</span>
+                              </button>
 
-                        <div v-if="(cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0) || (cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0)" class="mt-8 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div v-if="cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0">
-                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-clipboard-list mr-1"></i> Recomendaciones del Segmento</h4>
-                            <div class="flex flex-col gap-4">
-                              <div v-for="[tipo, notasGrupo] in agruparNotasPorTipo(cotSeg.notasSnapshot)" :key="tipo">
-                                <div class="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                                  <i class="fas" :class="getTipoNotaUI(tipo).icon"></i> {{ tipo }}
+                              <button @click="store.removerCotSegmento(cotSeg.id)" class="bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors ml-1 p-1.5 rounded shadow-sm flex-shrink-0">
+                                <i class="fas fa-trash-alt text-sm"></i>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div v-show="expandirEditores" class="p-3 md:p-4 bg-white">
+                            <WysiwygEditor
+                                :model-value="store.getI18nText(cotSeg.contenidoSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                                @update:model-value="(event) => { if(store.cotizacion) store.setI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion, event) }"
+                            />
+
+                            <div v-if="(cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0) || (cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0)" class="mt-6 pt-4 md:mt-8 md:pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                              <div v-if="cotSeg.notasSnapshot && cotSeg.notasSnapshot.length > 0">
+                                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-clipboard-list mr-1"></i> Recomendaciones</h4>
+                                <div class="flex flex-col gap-3">
+                                  <div v-for="[tipo, notasGrupo] in agruparNotasPorTipo(cotSeg.notasSnapshot)" :key="tipo">
+                                    <div class="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                      <i class="fas" :class="getTipoNotaUI(tipo).icon"></i> {{ tipo }}
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                      <div v-for="nota in notasGrupo" :key="nota.id"
+                                           @click="abrirModalNota(nota)"
+                                           class="bg-white border border-slate-200 rounded-lg shadow-sm flex items-stretch overflow-hidden hover:border-teal-400 transition-all cursor-pointer group max-w-full">
+                                        <div :class="[getTipoNotaUI(tipo).bg, getTipoNotaUI(tipo).text]" class="px-2 py-1 md:px-2.5 md:py-1.5 flex items-center justify-center">
+                                          <i class="fas text-[10px] md:text-xs" :class="getTipoNotaUI(tipo).icon"></i>
+                                        </div>
+                                        <div class="px-2 py-1 md:px-2.5 md:py-1.5 flex-1 min-w-0 flex flex-col justify-center">
+                                          <span class="text-[9px] md:text-[10px] font-bold text-slate-700 block truncate w-full max-w-[120px] md:max-w-[160px]">
+                                            {{ store.getI18nText(nota.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || nota.nombreInterno }}
+                                          </span>
+                                        </div>
+                                        <button @click.stop="cotSeg.notasSnapshot.splice(cotSeg.notasSnapshot.indexOf(nota), 1)"
+                                                class="px-2 bg-slate-50 border-l border-slate-100 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                          <i class="fas fa-times text-[10px]"></i>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div class="flex flex-wrap gap-2">
-                                  <div v-for="nota in notasGrupo" :key="nota.id"
-                                       @click="abrirModalNota(nota)"
-                                       class="bg-white border border-slate-200 rounded-lg shadow-sm flex items-stretch overflow-hidden hover:border-indigo-400 transition-all cursor-pointer group max-w-full">
-                                    <div :class="[getTipoNotaUI(tipo).bg, getTipoNotaUI(tipo).text]" class="px-2.5 py-1.5 flex items-center justify-center">
-                                      <i class="fas text-xs" :class="getTipoNotaUI(tipo).icon"></i>
-                                    </div>
-                                    <div class="px-2.5 py-1.5 flex-1 min-w-0 flex flex-col justify-center">
-                                    <span class="text-[10px] font-bold text-slate-700 block truncate w-full max-w-[160px]">
-                                      {{ store.getI18nText(nota.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || nota.nombreInterno }}
-                                    </span>
-                                    </div>
-                                    <button @click.stop="cotSeg.notasSnapshot.splice(cotSeg.notasSnapshot.indexOf(nota), 1)"
-                                            class="px-2.5 bg-slate-50 border-l border-slate-100 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                                      <i class="fas fa-times text-[10px]"></i>
+                              </div>
+
+                              <div v-if="cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0">
+                                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-images mr-1"></i> Galería</h4>
+                                <div class="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                  <div v-for="(img, iIdx) in cotSeg.imagenesSnapshot" :key="iIdx" class="relative w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden border border-slate-200 flex-shrink-0 group shadow-sm">
+                                    <img :src="img.imageUrl || '/images/placeholder.jpg'" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                    <button @click="cotSeg.imagenesSnapshot.splice(iIdx, 1)" class="absolute top-1 right-1 bg-white/90 hover:bg-red-500 hover:text-white w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[9px] md:text-[10px] text-slate-600 transition-colors md:opacity-0 group-hover:opacity-100 shadow-sm" title="Quitar imagen">
+                                      <i class="fas fa-times"></i>
                                     </button>
                                   </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-
-                          <div v-if="cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0">
-                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-images mr-1"></i> Galería Adjunta</h4>
-                            <div class="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                              <div v-for="(img, iIdx) in cotSeg.imagenesSnapshot" :key="iIdx" class="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 flex-shrink-0 group shadow-sm">
-                                <img :src="img.imageUrl || '/images/placeholder.jpg'" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                                <button @click="cotSeg.imagenesSnapshot.splice(iIdx, 1)" class="absolute top-1 right-1 bg-white/90 hover:bg-red-500 hover:text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-slate-600 transition-colors opacity-0 group-hover:opacity-100 shadow-sm" title="Quitar imagen">
-                                  <i class="fas fa-times"></i>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
                         </div>
-
                       </div>
-                    </div>
+                    </template>
                   </div>
                 </div>
               </div>
             </main>
+
           </div>
         </div>
       </div>
@@ -2188,7 +2310,7 @@ watch(isProveedorOpen, (newVal) => {
                    :class="clase.tipo.includes('anomalo') ? 'border-red-300' : ''">
                 <div class="flex justify-between items-start mb-3">
                   <div>
-                    <span :class="clase.tipo.includes('anomalo') ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'" class="px-2 py-0.5 rounded text-[10px] font-black uppercase">
+                    <span :class="clase.tipo.includes('anomalo') ? 'bg-red-100 text-red-700' : 'bg-teal-100 text-teal-700'" class="px-2 py-0.5 rounded text-[10px] font-black uppercase">
                       {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
                     </span>
 
@@ -2263,26 +2385,26 @@ watch(isProveedorOpen, (newVal) => {
     <Transition name="fade-scale">
       <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-[1400] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalInsercion.isOpen = false">
         <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
-          <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
+          <div class="bg-teal-600 text-white px-5 py-4 flex justify-between items-center">
             <h3 class="font-black text-sm uppercase tracking-widest"><i class="fas fa-arrows-alt-v mr-2"></i>¿Dónde ubicar el segmento?</h3>
             <button @click="modalInsercion.isOpen = false" class="hover:opacity-70"><i class="fas fa-times"></i></button>
           </div>
           <div class="p-5 space-y-4">
             <p class="text-xs font-bold text-slate-500">
-              Insertando: <span class="text-indigo-600">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || modalInsercion.segmentoMaestro?.nombreInterno }}</span>
+              Insertando: <span class="text-teal-600">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || modalInsercion.segmentoMaestro?.nombreInterno }}</span>
             </p>
 
             <div class="space-y-2">
-              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'append' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
-                <input type="radio" value="append" v-model="opcionInsercion" class="accent-indigo-600">
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'append' ? 'border-teal-400 bg-teal-50' : 'border-slate-200'">
+                <input type="radio" value="append" v-model="opcionInsercion" class="accent-teal-600">
                 <span class="text-xs font-bold text-slate-700">Agregar al final del itinerario</span>
               </label>
-              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'insert' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
-                <input type="radio" value="insert" v-model="opcionInsercion" class="accent-indigo-600">
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'insert' ? 'border-teal-400 bg-teal-50' : 'border-slate-200'">
+                <input type="radio" value="insert" v-model="opcionInsercion" class="accent-teal-600">
                 <span class="text-xs font-bold text-slate-700">Insertar después de un párrafo existente</span>
               </label>
-              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'replace' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
-                <input type="radio" value="replace" v-model="opcionInsercion" class="accent-indigo-600">
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'replace' ? 'border-teal-400 bg-teal-50' : 'border-slate-200'">
+                <input type="radio" value="replace" v-model="opcionInsercion" class="accent-teal-600">
                 <span class="text-xs font-bold text-slate-700">Reemplazar un párrafo existente</span>
               </label>
             </div>
@@ -2291,7 +2413,7 @@ watch(isProveedorOpen, (newVal) => {
               <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
                 {{ opcionInsercion === 'insert' ? 'Insertar después de:' : 'Párrafo a reemplazar:' }}
               </label>
-              <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+              <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500">
                 <option v-for="(cotSeg, idx) in store.dataActiva?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
                   {{ idx + 1 }}. {{ store.getI18nText(cotSeg.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
                 </option>
@@ -2300,7 +2422,7 @@ watch(isProveedorOpen, (newVal) => {
           </div>
           <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end gap-2">
             <button @click="modalInsercion.isOpen = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
-            <button @click="confirmarInsercion" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm">Confirmar</button>
+            <button @click="confirmarInsercion" class="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-sm">Confirmar</button>
           </div>
         </div>
       </div>
@@ -2341,7 +2463,7 @@ watch(isProveedorOpen, (newVal) => {
 <style>
 :root {
   --dp-border-radius: 0.5rem;
-  --dp-primary-color: #0ea5e9;
+  --dp-primary-color: #0d9488; /* Teal 600 */
   --dp-font-family: inherit;
   --dp-font-size: 0.75rem;
 }

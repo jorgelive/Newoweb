@@ -2631,6 +2631,40 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         await inyectarComponentesDeSegmento(segmentoMaestro, 1, nuevoIdSeg, itinerarioId);
     };
 
+    /**
+     * Reordena los segmentos (párrafos) de un servicio, restringiendo el movimiento
+     * para que no se crucen segmentos de días diferentes. Recalcula la propiedad 'orden'.
+     */
+    const reordenarSegmentos = (servicioId: string, fromId: string, toId: string): void => {
+        if (!cotizacion.value || !cotizacion.value.cotservicios) return;
+
+        const servicio = cotizacion.value.cotservicios.find((s: CotServicio) => s.id === servicioId);
+        if (!servicio || !servicio.cotsegmentos) return;
+
+        const fromIdx = servicio.cotsegmentos.findIndex((s: CotSegmento) => s.id === fromId);
+        const toIdx = servicio.cotsegmentos.findIndex((s: CotSegmento) => s.id === toId);
+
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+
+        const fromSeg = servicio.cotsegmentos[fromIdx];
+        const toSeg = servicio.cotsegmentos[toIdx];
+
+        // Regla estricta: No se permite arrastrar un segmento a un día distinto
+        if (fromSeg.dia !== toSeg.dia) return;
+
+        // Extraer y reubicar
+        const [moved] = servicio.cotsegmentos.splice(fromIdx, 1);
+        servicio.cotsegmentos.splice(toIdx, 0, moved);
+
+        // Recalcular la propiedad 'orden' solo para el día afectado
+        let currentOrden = 1;
+        servicio.cotsegmentos.forEach((seg: CotSegmento) => {
+            if (seg.dia === fromSeg.dia) {
+                seg.orden = currentOrden++;
+            }
+        });
+    };
+
     const procesarInsercionSegmento = async (segmentoMaestroRaw: any, itinerarioId: string | null, accion: 'append' | 'replace' | 'insert', targetId?: string) => {
         if (!dataActiva.value) return;
         if (!dataActiva.value.cotsegmentos) dataActiva.value.cotsegmentos = [];
@@ -3159,7 +3193,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent, isComponenteBloqueado,
         agregarTarifa, eliminarTarifa, fetchComponenteMaestroSilencioso,
         abrirEditorSegmentos, cerrarEditorSegmentos, aplicarPlantilla,
-        agregarSegmentoIndividual, procesarInsercionSegmento, removerCotSegmento,
+        agregarSegmentoIndividual, reordenarSegmentos, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange,
         actualizarInicioManteniendoRango, onProveedorChange, agregarDetalleOperativo, eliminarDetalleOperativo,

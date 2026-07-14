@@ -38,56 +38,51 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
 
     public function denormalize(mixed $data, string $type, ?string $format = null, array $context = []): mixed
     {
-        // En POST api_allow_update es false: ItemNormalizer lanza
-        // "Update is not allowed" ante CUALQUIER id presente en los datos.
         $permiteUpdate = true === ($context['api_allow_update'] ?? false);
 
-        $idsNuevos = []; // path => uuid string
-
-        // Id raíz: en POST hay que quitarlo y reasignarlo después
         $rootId = null;
         if (!$permiteUpdate && isset($data['id'])) {
             $rootId = $data['id'];
             unset($data['id'], $data['@id']);
         }
 
-        if (isset($data['cotservicios']) && is_array($data['cotservicios'])) {
-            foreach ($data['cotservicios'] as $i => &$servicio) {
+        // Mapa estricto para reconstruir la relación Componente -> Segmento aislando los índices.
+        $componentToSegmentMap = [];
 
-                $this->prepararId($servicio, CotizacionCotservicio::class, "s$i", $idsNuevos, $permiteUpdate);
+        if (isset($data['cotservicios']) && is_array($data['cotservicios'])) {
+            foreach ($data['cotservicios'] as &$servicio) {
+                $this->embedIdInJson($servicio, CotizacionCotservicio::class, 'nombreSnapshot', $permiteUpdate);
 
                 if (isset($servicio['cotsegmentos']) && is_array($servicio['cotsegmentos'])) {
-                    foreach ($servicio['cotsegmentos'] as $j => &$segData) {
-                        $this->prepararId($segData, CotizacionSegmento::class, "s$i.g$j", $idsNuevos, $permiteUpdate);
+                    foreach ($servicio['cotsegmentos'] as &$segData) {
+                        $this->embedIdInJson($segData, CotizacionSegmento::class, 'nombreSnapshot', $permiteUpdate);
                     }
-                    unset($segData);
                 }
 
                 if (isset($servicio['cotcomponentes']) && is_array($servicio['cotcomponentes'])) {
-                    foreach ($servicio['cotcomponentes'] as $k => &$comp) {
-                        $this->prepararId($comp, CotizacionCotcomponente::class, "s$i.c$k", $idsNuevos, $permiteUpdate);
+                    foreach ($servicio['cotcomponentes'] as &$comp) {
+                        $frontendCompId = $comp['id'] ?? null;
+
+                        // Guardamos la relación en un mapa local antes de que el normalizador elimine la clave.
+                        if (!empty($comp['cotsegmento']) && $frontendCompId && Uuid::isValid($frontendCompId)) {
+                            $componentToSegmentMap[$frontendCompId] = basename($comp['cotsegmento']);
+                        }
+
+                        // Desenlazamos el IRI para evitar errores 404 de API Platform con segmentos no creados.
+                        unset($comp['cotsegmento']);
+
+                        $this->embedIdInJson($comp, CotizacionCotcomponente::class, 'nombreSnapshot', $permiteUpdate);
 
                         if (isset($comp['cottarifas']) && is_array($comp['cottarifas'])) {
-                            foreach ($comp['cottarifas'] as $t => &$tar) {
-                                $this->prepararId($tar, CotizacionCottarifa::class, "s$i.c$k.t$t", $idsNuevos, $permiteUpdate);
+                            foreach ($comp['cottarifas'] as &$tar) {
+                                $this->embedIdInJson($tar, CotizacionCottarifa::class, 'tituloSnapshot', $permiteUpdate);
                             }
-                            unset($tar);
-                        }
-
-                        // Desconectar el IRI del cotsegmento; se reconecta al final
-                        // usando el mapa en memoria (el segmento puede no existir aún en BD).
-                        if (!empty($comp['cotsegmento'])) {
-                            $comp['_cotsegmentoUuid'] = basename($comp['cotsegmento']);
-                            $comp['cotsegmento'] = null;
                         }
                     }
-                    unset($comp);
                 }
             }
-            unset($servicio);
         }
 
-        // Denormalización estándar
         $context[self::ALREADY_CALLED] = true;
         /** @var Cotizacion $cotizacion */
         $cotizacion = $this->denormalizer->denormalize($data, $type, $format, $context);
@@ -97,39 +92,40 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
             $cotizacion->setId($rootId);
         }
 
-        foreach ($cotizacion->getCotservicios() as $i => $servicio) {
-            if (isset($idsNuevos["s$i"])) {
-                $servicio->setId($idsNuevos["s$i"]);
-            }
-            foreach ($servicio->getCotsegmentos() as $j => $segmento) {
-                if (isset($idsNuevos["s$i.g$j"])) {
-                    $segmento->setId($idsNuevos["s$i.g$j"]);
-                }
-            }
-            foreach ($servicio->getCotcomponentes() as $k => $componente) {
-                if (isset($idsNuevos["s$i.c$k"])) {
-                    $componente->setId($idsNuevos["s$i.c$k"]);
-                }
-                foreach ($componente->getCottarifas() as $t => $tarifa) {
-                    if (isset($idsNuevos["s$i.c$k.t$t"])) {
-                        $tarifa->setId($idsNuevos["s$i.c$k.t$t"]);
-                    }
-                }
+        $segmentoObjMap = [];
+
+        // 1. Extraemos las marcas inyectadas, restauramos los UUIDs exactos 1 a 1 en las entidades
+        // y poblamos el mapa de objetos Segmento.
+        foreach ($cotizacion->getCotservicios() as $servicio) {
+            $this->extractAndSetId($servicio, 'NombreSnapshot');
+
+            foreach ($servicio->getCotsegmentos() as $segmento) {
+                $this->extractAndSetId($segmento, 'NombreSnapshot');
+                $segmentoObjMap[(string) $segmento->getId()] = $segmento;
             }
         }
 
-        // Reconectar los componentes a sus segmentos usando el mapa
-        foreach ($cotizacion->getCotservicios() as $srvIdx => $servicio) {
-            $segmentoMap = [];
-            foreach ($servicio->getCotsegmentos() as $segmento) {
-                $segmentoMap[(string) $segmento->getId()] = $segmento;
-            }
+        // 2. Reconectamos los componentes con los segmentos usando los UUIDs restaurados.
+        foreach ($cotizacion->getCotservicios() as $servicio) {
+            foreach ($servicio->getCotcomponentes() as $componente) {
+                $this->extractAndSetId($componente, 'NombreSnapshot');
 
-            $rawComps = $data['cotservicios'][$srvIdx]['cotcomponentes'] ?? [];
-            foreach ($servicio->getCotcomponentes() as $compIdx => $componente) {
-                $uuid = $rawComps[$compIdx]['_cotsegmentoUuid'] ?? null;
-                if ($uuid && isset($segmentoMap[$uuid])) {
-                    $componente->setCotsegmento($segmentoMap[$uuid]);
+                // Reconstruimos la relación a nivel de objetos Doctrine (bidireccional).
+                $compId = (string) $componente->getId();
+                if (isset($componentToSegmentMap[$compId])) {
+                    $segId = $componentToSegmentMap[$compId];
+                    if (isset($segmentoObjMap[$segId])) {
+                        $segmento = $segmentoObjMap[$segId];
+
+                        $componente->setCotsegmento($segmento);
+                        if (!$segmento->getCotcomponentes()->contains($componente)) {
+                            $segmento->addCotcomponente($componente);
+                        }
+                    }
+                }
+
+                foreach ($componente->getCottarifas() as $tarifa) {
+                    $this->extractAndSetId($tarifa, 'TituloSnapshot');
                 }
             }
         }
@@ -140,22 +136,49 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
     /**
      * POST: quita SIEMPRE el id (crear, ItemNormalizer no permite ids).
      * PUT/PATCH: quita el id solo si no existe en BD (upsert).
-     * En ambos casos guarda el UUID para reasignarlo a la entidad nueva.
+     * Inyecta el UUID temporalmente en el campo JSON.
      */
-    private function prepararId(array &$item, string $class, string $path, array &$idsNuevos, bool $permiteUpdate): void
+    private function embedIdInJson(array &$item, string $class, string $jsonField, bool $permiteUpdate): void
     {
-        if (!isset($item['id']) || !is_string($item['id'])) {
-            return;
-        }
-
-        if (!Uuid::isValid($item['id'])) {
+        if (!isset($item['id']) || !is_string($item['id']) || !Uuid::isValid($item['id'])) {
             unset($item['id'], $item['@id']);
             return;
         }
 
-        if (!$permiteUpdate || null === $this->em->find($class, Uuid::fromString($item['id']))) {
-            $idsNuevos[$path] = $item['id'];
+        $id = $item['id'];
+
+        if (!$permiteUpdate || null === $this->em->find($class, Uuid::fromString($id))) {
             unset($item['id'], $item['@id']);
+
+            if (!isset($item[$jsonField]) || !is_array($item[$jsonField])) {
+                $item[$jsonField] = [];
+            }
+            $item[$jsonField]['_frontend_uuid'] = $id;
+        }
+    }
+
+    /**
+     * Extrae el UUID inyectado en el campo JSON y lo restaura en la entidad.
+     */
+    private function extractAndSetId(object $entity, string $methodSuffix): void
+    {
+        $getter = 'get' . $methodSuffix;
+        $setter = 'set' . $methodSuffix;
+
+        if (method_exists($entity, $getter) && method_exists($entity, $setter)) {
+            $data = $entity->$getter();
+
+            // Si el objeto fue instanciado desde un payload nuevo, traerá la marca
+            if (is_array($data) && isset($data['_frontend_uuid'])) {
+                $frontendId = $data['_frontend_uuid'];
+                unset($data['_frontend_uuid']); // Limpiamos la marca para no guardar basura en BD
+
+                $entity->$setter($data);
+
+                if (method_exists($entity, 'setId')) {
+                    $entity->setId($frontendId);
+                }
+            }
         }
     }
 }

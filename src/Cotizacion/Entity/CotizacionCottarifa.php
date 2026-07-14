@@ -183,8 +183,8 @@ class CotizacionCottarifa
 
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
-    #[ORM\Column(type: 'json')]
-    private array $notaRol = [];
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $notaRol = [];
 
 
     public function __construct()
@@ -439,7 +439,14 @@ class CotizacionCottarifa
     public function setGrupoTarifa(?int $grupoTarifa): self { $this->grupoTarifa = $grupoTarifa; return $this; }
     public function getComisionOverrideSnapshot(): ?string { return $this->comisionOverrideSnapshot; }
     public function setComisionOverrideSnapshot(?string $comisionOverrideSnapshot): self { $this->comisionOverrideSnapshot = $comisionOverrideSnapshot; return $this; }
-    public function getNotaRol(): array { return $this->notaRol; }
-    public function setNotaRol(array $notaRol): self { $this->notaRol = $notaRol; return $this; }
+    public function getNotaRol(): array
+    {
+        return $this->notaRol ?? [];
+    }
 
+    public function setNotaRol(?array $notaRol): self
+    {
+        $this->notaRol = $notaRol ?? [];
+        return $this;
+    }
 }
