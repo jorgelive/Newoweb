@@ -437,4 +437,9 @@ class TravelTarifa
     {
         return '';
     }
+
+    public function getVirtualCategoria(): string
+    {
+        return '';
+    }
 }
