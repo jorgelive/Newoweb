@@ -3326,7 +3326,7 @@ export interface components {
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3397,7 +3397,7 @@ export interface components {
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3462,7 +3462,7 @@ export interface components {
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -3495,7 +3495,7 @@ export interface components {
             /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
             proveedorOculto?: boolean;
             rolSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
         };
         "CotizacionCottarifa.html": {
@@ -3559,7 +3559,7 @@ export interface components {
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3630,7 +3630,7 @@ export interface components {
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3667,7 +3667,7 @@ export interface components {
             /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
             proveedorOculto?: boolean;
             rolSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
         };
         "CotizacionCottarifa.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -3731,7 +3731,7 @@ export interface components {
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3802,7 +3802,7 @@ export interface components {
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3839,7 +3839,7 @@ export interface components {
             /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
             proveedorOculto?: boolean;
             rolSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
         };
         "CotizacionCottarifa.multipart": {
@@ -3903,7 +3903,7 @@ export interface components {
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3974,7 +3974,7 @@ export interface components {
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4011,7 +4011,7 @@ export interface components {
             /** @description Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente. */
             proveedorOculto?: boolean;
             rolSnapshot?: string | null;
-            notaRol?: string[];
+            notaRol?: string[] | null;
             id?: string;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */

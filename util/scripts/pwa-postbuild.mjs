@@ -55,7 +55,7 @@ const shellHtml = `<!doctype html>
       apiUrl: "https://api.openperu.pe",
       panelUrl: "https://panel.openperu.pe"
     };
-  <\\/script>
+  <\/script>
   ${cssLinks}
 </head>
 <body class="bg-slate-50">
@@ -66,7 +66,7 @@ const shellHtml = `<!doctype html>
       navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
         .then(reg => reg.update());
     }
-  <\\/script>
+  <\/script>
 </body>
 </html>
 `

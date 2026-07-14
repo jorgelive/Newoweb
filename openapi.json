@@ -14561,7 +14561,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
@@ -14799,7 +14802,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
@@ -15026,7 +15032,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
@@ -15152,7 +15161,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
@@ -15369,7 +15381,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
@@ -15607,7 +15622,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
@@ -15744,7 +15762,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
@@ -15966,7 +15987,10 @@
                                 ]
                             },
                             "notaRol": {
-                                "type": "array",
+                                "type": [
+                                    "array",
+                                    "null"
+                                ],
                                 "items": {
                                     "type": "string"
                                 }
@@ -16211,7 +16235,10 @@
                                 ]
                             },
                             "notaRol": {
-                                "type": "array",
+                                "type": [
+                                    "array",
+                                    "null"
+                                ],
                                 "items": {
                                     "type": "string"
                                 }
@@ -16355,7 +16382,10 @@
                                 ]
                             },
                             "notaRol": {
-                                "type": "array",
+                                "type": [
+                                    "array",
+                                    "null"
+                                ],
                                 "items": {
                                     "type": "string"
                                 }
@@ -16574,7 +16604,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
@@ -16812,7 +16845,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
@@ -16949,7 +16985,10 @@
                         ]
                     },
                     "notaRol": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "string"
                         }
