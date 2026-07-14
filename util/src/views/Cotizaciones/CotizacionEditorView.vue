@@ -711,6 +711,28 @@ watch(isProveedorOpen, (newVal) => {
   }
 });
 
+const normalizarUrl = (raw: string): string => {
+  const val = raw.trim();
+  if (!val) return '';
+  if (!/^https?:\/\//i.test(val)) return `https://${val}`;
+  return val;
+};
+
+const esUrlValida = (raw: string | null | undefined): boolean => {
+  if (!raw) return true; // vacío no es error, el campo es opcional
+  try {
+    new URL(raw);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot') => {
+  const valor = store.dataActiva?.[campo];
+  if (valor) store.dataActiva[campo] = normalizarUrl(valor);
+};
+
 </script>
 
 <template>
@@ -1640,7 +1662,6 @@ watch(isProveedorOpen, (newVal) => {
                     @update:model-value="val => store.onTarifaMaestraChange(val)"
                     class="flex-1"
                 />
-                <!-- NUEVO BOTÓN (X) PARA LIMPIAR -->
                 <button v-if="store.dataActiva.tarifaMaestraId"
                         @click="store.dataActiva.tarifaMaestraId = null"
                         class="w-9 h-9 flex-shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
@@ -1651,27 +1672,32 @@ watch(isProveedorOpen, (newVal) => {
 
               <div v-if="store.dataActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
                 <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t) === store.extractIdStr(store.dataActiva.tarifaMaestraId))]">
-                  <span v-if="catT" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
-                    <span class="mr-1">{{ getProcedenciaUI((catT as any).procedencia).icon }}</span>
-                      {{ getProcedenciaUI((catT as any).procedencia).label }}
-                    </span>
+              <span v-if="catT" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
+                <span class="mr-1">{{ getProcedenciaUI((catT as any).procedencia).icon }}</span>
+                  {{ getProcedenciaUI((catT as any).procedencia).label }}
+                </span>
                   <span v-if="catT && formatRangoEdad((catT as any).edadMinima, (catT as any).edadMaxima)" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
-                    <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
-                    {{ formatRangoEdad((catT as any).edadMinima, (catT as any).edadMaxima) }}
-                  </span>
+                <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
+                {{ formatRangoEdad((catT as any).edadMinima, (catT as any).edadMaxima) }}
+              </span>
                 </template>
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-3 gap-4 items-start">
               <div>
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Cant (Pax) *</label>
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">Cant (Pax) *</label>
                 <input v-model="store.dataActiva.cantidad"
                        type="number"
                        :readonly="store.dataActiva.esGrupal"
                        :class="store.dataActiva.esGrupal ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' : 'bg-white text-slate-800 border-slate-300 focus:ring-2 focus:ring-orange-500'"
-                       class="w-full rounded-xl px-4 py-3 text-sm font-bold text-center outline-none shadow-sm border h-[50px]">
+                       class="w-full rounded-xl px-4 py-2 text-sm font-bold text-center outline-none shadow-sm border">
                 <p v-if="store.dataActiva.esGrupal" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo</p>
+
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1 mt-3">Comisión Propia (%)</label>
+                <input v-model.number="store.dataActiva.comisionOverrideSnapshot" type="number" step="0.1" placeholder="Usa la global"
+                       class="w-full bg-amber-50 border border-amber-300 text-amber-700 rounded-xl px-4 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-amber-500 shadow-sm">
+                <p class="text-[10px] text-slate-600 mt-1 ml-1">Vacío = usa la global.</p>
               </div>
 
               <div class="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
@@ -1697,13 +1723,11 @@ watch(isProveedorOpen, (newVal) => {
 
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2 mt-2">
-                <!-- NUEVO INPUT PARA NOMBRE INTERNO -->
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Interno (Operativo) *</label>
                 <input v-model="store.dataActiva.nombreInternoSnapshot"
                        type="text" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-inner mb-4"
                        placeholder="Ej: Adulto Extranjero...">
 
-                <!-- INPUT ORIGINAL PARA CLIENTE -->
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre para cliente *</label>
                 <div class="flex gap-2">
                   <input :value="store.getI18nText(store.dataActiva.tituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
@@ -1719,37 +1743,38 @@ watch(isProveedorOpen, (newVal) => {
               </div>
 
               <div class="col-span-2 bg-white border border-slate-200 p-4 rounded-2xl mb-2 shadow-sm">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-xs font-black text-slate-800 flex items-center gap-2">
-                      <i class="fas fa-calculator text-emerald-500"></i> Modalidad de Cálculo
-                    </p>
-                    <p class="text-[10px] text-slate-500 mt-1">
-                      {{ store.dataActiva.tarifaMaestraId ? 'Bloqueado por Catálogo Maestro' : 'Define si el costo es por persona o por el total' }}
-                    </p>
-                  </div>
-
-                  <button @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = !store.dataActiva.esGrupal)"
-                          :disabled="!!store.dataActiva.tarifaMaestraId"
-                          :class="[
-                              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shadow-sm flex-shrink-0',
-                              store.dataActiva.esGrupal ? 'bg-orange-500' : 'bg-slate-300',
-                              store.dataActiva.tarifaMaestraId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                          ]">
-                    <span :class="store.dataActiva.esGrupal ? 'translate-x-6' : 'translate-x-1'"
-                          class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
-                  </button>
+                <div>
+                  <p class="text-xs font-black text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-calculator text-emerald-500"></i> Modalidad de Cálculo
+                  </p>
+                  <p class="text-[10px] text-slate-500 mt-1">
+                    {{ store.dataActiva.tarifaMaestraId ? 'Bloqueado por Catálogo Maestro' : 'Define si el costo es por persona o por el total' }}
+                  </p>
                 </div>
 
                 <div class="flex gap-4 mt-4">
-                  <div :class="store.dataActiva.esGrupal ? 'opacity-50 bg-slate-50 border-slate-200' : 'opacity-100 bg-orange-50 border-orange-300 text-orange-600 shadow-sm'" class="flex-1 text-center p-2 rounded-xl border transition-all text-slate-500">
+                  <button type="button"
+                          @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = false)"
+                          :disabled="!!store.dataActiva.tarifaMaestraId"
+                          :class="[
+                          !store.dataActiva.esGrupal ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
+                          store.dataActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
+                      ]"
+                          class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-user text-xs mb-1"></i>
                     <p class="text-[8px] font-black uppercase">Unitario (Pax)</p>
-                  </div>
-                  <div :class="!store.dataActiva.esGrupal ? 'opacity-50 bg-slate-50 border-slate-200' : 'opacity-100 bg-orange-50 border-orange-300 text-orange-600 shadow-sm'" class="flex-1 text-center p-2 rounded-xl border transition-all text-slate-500">
+                  </button>
+                  <button type="button"
+                          @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = true)"
+                          :disabled="!!store.dataActiva.tarifaMaestraId"
+                          :class="[
+                          store.dataActiva.esGrupal ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
+                          store.dataActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
+                      ]"
+                          class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-users text-xs mb-1"></i>
                     <p class="text-[8px] font-black uppercase">Grupal (Flat)</p>
-                  </div>
+                  </button>
                 </div>
               </div>
 
@@ -1760,9 +1785,9 @@ watch(isProveedorOpen, (newVal) => {
                   </p>
                   <span class="text-[9px] font-black px-2 py-1 rounded border uppercase"
                         :class="[getRolTarifaUI(store.dataActiva.rolSnapshot).bg, getRolTarifaUI(store.dataActiva.rolSnapshot).text, getRolTarifaUI(store.dataActiva.rolSnapshot).border]">
-      <i class="fas" :class="getRolTarifaUI(store.dataActiva.rolSnapshot).icon"></i>
-      {{ getRolTarifaUI(store.dataActiva.rolSnapshot).label }}
-    </span>
+                <i class="fas" :class="getRolTarifaUI(store.dataActiva.rolSnapshot).icon"></i>
+                {{ getRolTarifaUI(store.dataActiva.rolSnapshot).label }}
+              </span>
                 </div>
 
                 <div v-if="store.dataActiva.rolSnapshot === 'operativo'" class="mb-3 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
@@ -1770,47 +1795,37 @@ watch(isProveedorOpen, (newVal) => {
                   <span class="text-[10px] font-bold text-slate-500 leading-tight">Rol Operativo — heredado del catálogo maestro. No se elige a mano ni participa del selector de opciones del cliente.</span>
                 </div>
 
-                <div v-else class="flex gap-2 mb-3">
-                  <button @click="store.dataActiva.grupoTarifa != null && store.marcarTarifaComoEstandar(store.dataActiva.id)"
-                          :disabled="store.dataActiva.grupoTarifa == null"
-                          :class="[
-            store.dataActiva.rolSnapshot === 'estandar' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-blue-50',
-            store.dataActiva.grupoTarifa == null ? 'opacity-40 cursor-not-allowed' : ''
-          ]"
-                          class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
-                    <i class="fas fa-star mr-1"></i> Estándar
-                  </button>
-                  <button @click="store.dataActiva.rolSnapshot = 'alternativa'"
-                          :class="store.dataActiva.rolSnapshot === 'alternativa' ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-teal-50'"
-                          class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
-                    <i class="fas fa-right-left mr-1"></i> Alternativa
-                  </button>
+                <div v-else class="flex gap-2 mb-3 items-end">
+                  <div class="flex-1">
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Rol Comercial</label>
+                    <div class="flex gap-2">
+                      <button @click="store.dataActiva.grupoTarifa != null && store.marcarTarifaComoEstandar(store.dataActiva.id)"
+                              :disabled="store.dataActiva.grupoTarifa == null"
+                              :class="[
+                              store.dataActiva.rolSnapshot === 'estandar' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-blue-50',
+                              store.dataActiva.grupoTarifa == null ? 'opacity-40 cursor-not-allowed' : ''
+                          ]"
+                              class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
+                        <i class="fas fa-star mr-1"></i> Estándar
+                      </button>
+                      <button @click="store.dataActiva.rolSnapshot = 'alternativa'"
+                              :class="store.dataActiva.rolSnapshot === 'alternativa' ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-teal-50'"
+                              class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
+                        <i class="fas fa-right-left mr-1"></i> Alternativa
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="w-24 flex-shrink-0">
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Grupo</label>
+                    <input v-model.number="store.dataActiva.grupoTarifa" type="number" min="1" placeholder="Ej: 1"
+                           class="w-full bg-white border border-slate-300 rounded-lg px-2 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-teal-500 shadow-sm">
+                  </div>
                 </div>
 
-                <p v-if="store.dataActiva.grupoTarifa == null" class="text-[9px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-3">
+                <p v-if="store.dataActiva.rolSnapshot !== 'operativo' && store.dataActiva.grupoTarifa == null" class="text-[9px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-3">
                   <i class="fas fa-exclamation-triangle mr-1"></i> Sin grupo asignado — no se puede marcar como estándar hasta definir un grupo.
                 </p>
-
-                <div class="grid grid-cols-2 gap-3">
-
-                  <div>
-                    <div v-if="store.dataActiva.rolSnapshot !== 'operativo'">
-                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Grupo (Opción Comercial)</label>
-                      <input v-model.number="store.dataActiva.grupoTarifa" type="number" min="1" placeholder="Ej: 1"
-                             class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-teal-500 shadow-sm">
-                    </div>
-                    <div v-else class="flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg py-2">
-                      <span class="text-[9px] font-black text-slate-400 uppercase">Sin grupo</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Comisión Propia (%)</label>
-                    <input v-model.number="store.dataActiva.comisionOverrideSnapshot" type="number" step="0.1" placeholder="Usa la global"
-                           class="w-full bg-white border border-slate-300 text-emerald-600 rounded-lg px-3 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
-                    <p class="text-[8px] text-slate-400 mt-1 ml-1">Vacío = usa la comisión global de la cotización.</p>
-                  </div>
-                </div>
 
                 <div class="mt-3">
                   <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nota Aclaratoria (horarios, condiciones...)</label>
@@ -1833,13 +1848,13 @@ watch(isProveedorOpen, (newVal) => {
                       <span v-if="store.dataActiva.estadoOperativoSnapshot && store.dataActiva.estadoOperativoSnapshot !== 'sin-solicitar'"
                             class="inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded border uppercase font-black tracking-tighter ml-2"
                             :class="[
-                              getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).bg,
-                              getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).text,
-                              getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).border
-                            ]">
-                        <i class="fas" :class="getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).icon"></i>
-                        {{ getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).label }}
-                      </span>
+                          getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).bg,
+                          getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).text,
+                          getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).border
+                        ]">
+                    <i class="fas" :class="getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).icon"></i>
+                    {{ getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).label }}
+                  </span>
                     </label>
                     <p class="text-sm font-bold flex items-center gap-2" :class="store.dataActiva.proveedorNombreSnapshot ? 'text-slate-800' : 'text-slate-400 italic'">
                       {{ store.dataActiva.proveedorNombreSnapshot || 'Sin proveedor asignado' }}
@@ -1848,12 +1863,12 @@ watch(isProveedorOpen, (newVal) => {
                   </div>
 
                   <div class="flex items-center gap-3">
-                    <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded border border-emerald-200 uppercase font-black hidden sm:inline-block">
-                      Catálogo
-                    </span>
+                <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded border border-emerald-200 uppercase font-black hidden sm:inline-block">
+                  Catálogo
+                </span>
                     <span v-else-if="store.dataActiva.proveedorNombreSnapshot" class="text-[8px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded border border-sky-200 uppercase font-black hidden sm:inline-block">
-                      Libre
-                    </span>
+                  Libre
+                </span>
                     <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0 border border-slate-200">
                       <i class="fas transition-transform" :class="isProveedorOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                     </div>
@@ -1908,10 +1923,17 @@ watch(isProveedorOpen, (newVal) => {
 
                       <div class="flex items-center gap-2 mt-3">
                         <i class="fas fa-building text-slate-400 text-xs w-4 flex-shrink-0 text-center" title="URL a nivel Proveedor"></i>
-                        <input v-model="store.dataActiva.proveedorUrlSnapshot"
-                               type="url"
-                               class="flex-1 bg-white border border-slate-300 text-sky-600 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
-                               placeholder="URL del proveedor (sitio, microsite, doc)..." />
+                        <div class="flex-1">
+                          <input v-model="store.dataActiva.proveedorUrlSnapshot"
+                                 @blur="onUrlBlur('proveedorUrlSnapshot')"
+                                 type="url"
+                                 :class="!esUrlValida(store.dataActiva.proveedorUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-orange-500'"
+                                 class="w-full bg-white border rounded-lg px-3 py-2 text-xs focus:ring-2 outline-none shadow-sm"
+                                 placeholder="URL del proveedor (sitio, microsite, doc)..." />
+                          <p v-if="!esUrlValida(store.dataActiva.proveedorUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
+                            <i class="fas fa-exclamation-circle mr-1"></i> URL inválida.
+                          </p>
+                        </div>
                       </div>
                     </div>
 
@@ -1993,10 +2015,17 @@ watch(isProveedorOpen, (newVal) => {
 
                     <div class="flex items-center gap-2 mt-3">
                       <i class="fas fa-door-open text-teal-400 text-xs w-4 flex-shrink-0 text-center" title="URL a nivel Servicio del Proveedor"></i>
-                      <input v-model="store.dataActiva.proveedorServicioUrlSnapshot"
-                             type="url"
-                             class="flex-1 bg-white border border-slate-300 text-sky-600 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-teal-500 outline-none shadow-sm"
-                             placeholder="URL del servicio (ej: ficha de la habitación)..." />
+                      <div class="flex-1">
+                        <input v-model="store.dataActiva.proveedorServicioUrlSnapshot"
+                               @blur="onUrlBlur('proveedorServicioUrlSnapshot')"
+                               type="url"
+                               :class="!esUrlValida(store.dataActiva.proveedorServicioUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-teal-500'"
+                               class="w-full bg-white border rounded-lg px-3 py-2 text-xs focus:ring-2 outline-none shadow-sm"
+                               placeholder="URL del servicio (ej: ficha de la habitación)..." />
+                        <p v-if="!esUrlValida(store.dataActiva.proveedorServicioUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
+                          <i class="fas fa-exclamation-circle mr-1"></i> URL inválida.
+                        </p>
+                      </div>
                     </div>
                   </fieldset>
 
