@@ -26,7 +26,7 @@ import {
     getProcedenciaUI, TarifaRolValue, formatRangoEdad, Item, OpcionUpgradeInterna, ModoFinanciero,
     LineaDetalleClaseInterna, TotalesInternos, ClasePasajeroInterna, CLASIFICACION_SCHEMA_VERSION,
     DeltaUpgradePorPerfil, InclusionTarifa, InclusionLinea, InclusionServicio, totalesInternosVacios,
-    expurgarParaCliente, Segmento,
+    expurgarParaCliente, Segmento, TarifaModalidadValue, TarifaCategoriaValue, TarifaProcedenciaValue
 } from '@/types/cotizacionEditorModel.ts';
 
 import {ApiIdioma} from '@/types/maestroModel';
@@ -2264,14 +2264,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     /**
      * Resuelve la modalidad comercial u operativa (ej. Privado, Compartido) de la tarifa.
      */
-    const getModalidadTarifa = (t: TarifaLike): string | null => {
+    const getModalidadTarifa = (t: TarifaLike): TarifaModalidadValue | null => {
         if (!('modalidad' in t) || !t.modalidad) return null;
-        return String(t.modalidad);
+        return t.modalidad as TarifaModalidadValue;
     };
 
-    const getCategoriaTarifa = (t: TarifaLike): string | null => {
+    const getCategoriaTarifa = (t: TarifaLike): TarifaCategoriaValue | null => {
         if (!('categoria' in t) || !t.categoria) return null;
-        return String(t.categoria);
+        return t.categoria as TarifaCategoriaValue;
     };
 
     const getEdadMinimaTarifa = (t: TarifaLike): number | null => {
@@ -2280,10 +2280,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const getEdadMaximaTarifa = (t: TarifaLike): number | null => {
         return 'edadMaxima' in t && t.edadMaxima !== undefined ? Number(t.edadMaxima) : null;
     };
-    const getProcedenciaTarifa = (t: TarifaLike): string | null => {
-        return 'procedencia' in t ? (t.procedencia as string) || null : null;
+    const getProcedenciaTarifa = (t: TarifaLike): TarifaProcedenciaValue | null => {
+        return 'procedencia' in t ? (t.procedencia as TarifaProcedenciaValue) || null : null;
     };
-
     const getRolTarifa = (t: TarifaLike): TarifaRolValue =>
         ('rol' in t && t.rol ? t.rol as TarifaRolValue : 'estandar');
     const getComisionOverrideTarifa = (t: TarifaLike): number | string | null =>

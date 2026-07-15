@@ -15,8 +15,9 @@
 import { ref, computed } from 'vue';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
 import {
-  filasResumenGeneral, formatModCat,
-  LineaDetalleClaseInterna, InclusionLinea
+  filasResumenGeneral,
+  LineaDetalleClaseInterna, InclusionLinea,
+  MODALIDAD_CONFIG, CATEGORIA_CONFIG, TarifaModalidadValue, TarifaCategoriaValue
 } from '@/types/cotizacionEditorModel';
 
 const store = useCotizacionEditorStore();
@@ -54,6 +55,17 @@ const rangoEdadLabel = (clase: any) => {
   if (clase.edadMin > 0 && clase.edadMax < 120) return `${clase.edadMin} - ${clase.edadMax} años`;
   if (clase.edadMin > 0) return `desde ${clase.edadMin} años`;
   return `hasta ${clase.edadMax} años`;
+};
+
+/** Modalidad/categoría como badges inline con el mismo icono del dropdown de edición */
+const modCatBadges = (
+    modalidad?: TarifaModalidadValue | null,
+    categoria?: TarifaCategoriaValue | null
+): { icon: string; label: string; type: 'modalidad' | 'categoria' }[] => {
+  const badges: { icon: string; label: string; type: 'modalidad' | 'categoria' }[] = [];
+  if (modalidad && MODALIDAD_CONFIG[modalidad]) badges.push({ ...MODALIDAD_CONFIG[modalidad], type: 'modalidad' });
+  if (categoria && CATEGORIA_CONFIG[categoria]) badges.push({ ...CATEGORIA_CONFIG[categoria], type: 'categoria' });
+  return badges;
 };
 
 /** "2 x 60.00" — la moneda y (P)/(U) van en badges, no en el texto */
@@ -178,9 +190,9 @@ const totalesInclusiones = computed(() => {
             <table class="w-full text-[13px] min-w-[560px]">
               <thead>
               <tr class="text-[10px] font-black text-slate-400 uppercase tracking-wide border-b border-slate-100">
-                <th class="text-left px-3 sm:px-5 py-2.5 sm:py-3 w-24 sm:w-32">Monto Cotizado</th>
-                <th class="text-left px-3 sm:px-5 py-2.5 sm:py-3">Detalle</th>
-                <th class="text-right px-3 sm:px-5 py-2.5 sm:py-3 w-20 sm:w-28">Venta/pax</th>
+                <th class="text-left px-2.5 sm:px-3 py-2 w-24 sm:w-28">Monto Cotizado</th>
+                <th class="text-left px-2.5 sm:px-3 py-2">Detalle</th>
+                <th class="text-right px-2.5 sm:px-3 py-2 w-20 sm:w-24">Venta/pax</th>
               </tr>
               </thead>
               <tbody>
@@ -189,8 +201,8 @@ const totalesInclusiones = computed(() => {
                   :class="d.rol === 'operativo' ? 'opacity-50' : ''">
 
                 <!-- Celda única: badges arriba, monto neutro debajo -->
-                <td class="px-3 sm:px-5 py-2.5 sm:py-3">
-                  <div class="flex flex-wrap gap-1 mb-1">
+                <td class="px-2.5 sm:px-3 py-2">
+                  <div class="flex flex-wrap gap-1 mb-0.5">
                       <span class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase" :class="MODO_UI[d.modo].badge">
                         {{ MODO_UI[d.modo].label }}
                       </span>
@@ -207,7 +219,7 @@ const totalesInclusiones = computed(() => {
                 </td>
 
                 <!-- Celda única: servicio (azul acero) arriba, componente (gris) debajo -->
-                <td class="px-3 sm:px-5 py-2.5 sm:py-3">
+                <td class="px-2.5 sm:px-3 py-2">
                   <p class="text-[11px] font-black uppercase tracking-tight" style="color:#376875">
                     {{ store.getI18nText(d.servicioNombre as any, lang) }}
                   </p>
@@ -215,13 +227,17 @@ const totalesInclusiones = computed(() => {
                     {{ store.getI18nText(d.componenteNombre as any, lang) }}
                     <span v-if="labelTarifa(d)" class="text-slate-400">({{ labelTarifa(d) }})</span>
                   </p>
-                  <p v-if="formatModCat(d.modalidad, d.categoria) || d.comisionOverride" class="text-[10px] font-bold mt-0.5">
-                    <span class="text-sky-700">{{ formatModCat(d.modalidad, d.categoria) }}</span>
-                    <span v-if="d.comisionOverride" class="text-purple-600 ml-2">com. {{ d.comisionOverride }}%</span>
+                  <p v-if="modCatBadges(d.modalidad, d.categoria).length || d.comisionOverride" class="flex flex-wrap items-center gap-1 mt-1">
+                    <span v-for="b in modCatBadges(d.modalidad, d.categoria)" :key="b.type"
+                          class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
+                          :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
+                      {{ b.icon }} {{ b.label }}
+                    </span>
+                    <span v-if="d.comisionOverride" class="text-[10px] font-bold text-purple-600">com. {{ d.comisionOverride }}%</span>
                   </p>
                 </td>
 
-                <td class="text-right px-3 sm:px-5 py-2.5 sm:py-3 font-black text-slate-800">{{ mv(d.ventaSoles, d.ventaDolares) }}</td>
+                <td class="text-right px-2.5 sm:px-3 py-2 font-black text-slate-800">{{ mv(d.ventaSoles, d.ventaDolares) }}</td>
               </tr>
               </tbody>
             </table>
@@ -290,18 +306,24 @@ const totalesInclusiones = computed(() => {
                     </p>
 
                     <!-- Sin precio: solo referencia de tarifa/modalidad heredada (los items no heredan monto) -->
-                    <div v-if="l.tarifas.length === 0 && (l.tarifaTitulo.length || formatModCat(l.modalidad, l.categoria))"
-                         class="ml-6 mt-0.5 text-[12px] text-slate-500">
+                    <div v-if="l.tarifas.length === 0 && (l.tarifaTitulo.length || modCatBadges(l.modalidad, l.categoria).length)"
+                         class="ml-6 mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-500">
                       <span v-if="l.tarifaTitulo.length">- {{ store.getI18nText(l.tarifaTitulo as any, lang) }}</span>
-                      <span v-if="formatModCat(l.modalidad, l.categoria)" class="text-sky-700 font-bold ml-1">
-                        {{ formatModCat(l.modalidad, l.categoria) }}
+                      <span v-for="b in modCatBadges(l.modalidad, l.categoria)" :key="b.type"
+                            class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
+                            :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
+                        {{ b.icon }} {{ b.label }}
                       </span>
                     </div>
-                    <div v-for="(t, ti) in l.tarifas" :key="ti" class="ml-6 mt-0.5 text-[12px] text-slate-500">
+                    <div v-for="(t, ti) in l.tarifas" :key="ti" class="ml-6 mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-500">
                       - {{ store.getI18nText(t.tarifaTitulo as any, lang) }}
-                      <span v-if="formatModCat(t.modalidad, t.categoria)" class="text-sky-700 font-bold">{{ formatModCat(t.modalidad, t.categoria) }}</span>
+                      <span v-for="b in modCatBadges(t.modalidad, t.categoria)" :key="b.type"
+                            class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
+                            :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
+                        {{ b.icon }} {{ b.label }}
+                      </span>
                       <b v-if="!t.esGrupal && t.cantidad > 1" class="text-slate-600">x {{ t.cantidad }}</b>
-                      <span v-if="t.notaRol.length" class="block ml-2 text-[11px] text-slate-400 italic">
+                      <span v-if="t.notaRol.length" class="block w-full ml-2 text-[11px] text-slate-400 italic">
                         {{ store.getI18nText(t.notaRol as any, lang) }}
                       </span>
                     </div>
@@ -330,9 +352,13 @@ const totalesInclusiones = computed(() => {
               {{ store.getI18nText(o.servicioNombre as any, lang) }}
             </p>
             <p class="text-[13px] font-bold text-slate-600">{{ store.getI18nText(o.componenteNombre as any, lang) }}</p>
-            <p class="text-sm font-black text-slate-800 mt-1">
+            <p class="text-sm font-black text-slate-800 mt-1 flex flex-wrap items-center gap-1.5">
               {{ store.getI18nText(o.tarifaTitulo as any, lang) }}
-              <span v-if="formatModCat(o.modalidad, o.categoria)" class="text-[10px] text-sky-700 font-bold ml-1">{{ formatModCat(o.modalidad, o.categoria) }}</span>
+              <span v-for="b in modCatBadges(o.modalidad, o.categoria)" :key="b.type"
+                    class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
+                    :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
+                {{ b.icon }} {{ b.label }}
+              </span>
             </p>
             <p v-if="o.notaRol.length" class="text-[11px] text-slate-500 italic">{{ store.getI18nText(o.notaRol as any, lang) }}</p>
             <div class="mt-2 pt-2 border-t border-slate-200 flex justify-between items-center">

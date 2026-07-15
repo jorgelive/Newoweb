@@ -18,6 +18,7 @@ import {
   getProcedenciaUI,
   getTipoNotaUI,
   getRolTarifaUI, Servicio, TarifaSnapshot, formatRangoEdad,
+  MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions,
 } from '@/types/cotizacionEditorModel';
 
 // 1. Importa el estado y lógica compartida
@@ -752,7 +753,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
     <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md flex-shrink-0">
       <div class="flex items-center gap-3">
-        <button @click="handleVolver" class="w-8 h-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+        <button @click="handleVolver" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
           <i class="fas fa-arrow-left text-sm"></i>
         </button>
         <div class="overflow-hidden">
@@ -1797,6 +1798,34 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                     <i class="fas fa-users text-xs mb-1"></i>
                     <p class="text-[8px] font-black uppercase">Grupal (Flat)</p>
                   </button>
+                </div>
+              </div>
+
+              <div class="col-span-2 bg-white border border-slate-200 p-4 rounded-2xl mb-2 shadow-sm">
+                <p class="text-xs font-black text-slate-800 flex items-center gap-2 mb-3">
+                  <i class="fas fa-sliders-h text-emerald-500"></i> Restricciones de Tarifa
+                </p>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Modalidad</label>
+                    <select v-model="store.dataActiva.modalidadSnapshot"
+                            class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
+                      <option :value="null">Sin modalidad</option>
+                      <option v-for="opt in enumOptions(MODALIDAD_CONFIG)" :key="opt.value" :value="opt.value">
+                        {{ opt.icon }} {{ opt.label }}
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Categoría</label>
+                    <select v-model="store.dataActiva.categoriaSnapshot"
+                            class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
+                      <option :value="null">Sin categoria</option>
+                      <option v-for="opt in enumOptions(CATEGORIA_CONFIG)" :key="opt.value" :value="opt.value">
+                        {{ opt.icon }} {{ opt.label }}
+                      </option>
+                    </select>
+                  </div>
                 </div>
               </div>
 

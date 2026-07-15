@@ -72,7 +72,7 @@ export type Cotizacion = Omit<
 };
 
 
-type TarifaProcedenciaValue = NonNullable<TarifaBase['procedencia']>;
+export type TarifaProcedenciaValue = NonNullable<TarifaBase['procedencia']>;
 
 // Espejo de App\Travel\Enum\TarifaModalidadEnum
 // Derivado directamente del schema OpenAPI (no a mano) para heredar la
@@ -89,6 +89,23 @@ export interface ProcedenciaUIConfig {
     icon: string;
     label: string;
 }
+
+export const MODALIDAD_CONFIG: Record<TarifaModalidadValue, ProcedenciaUIConfig> = {
+    privado:    { icon: '🔒', label: 'Privado' },
+    compartido: { icon: '👥', label: 'Compartido' },
+};
+
+export const CATEGORIA_CONFIG: Record<TarifaCategoriaValue, ProcedenciaUIConfig> = {
+    economico: { icon: '💵', label: 'Económico' },
+    estandar:  { icon: '⭐', label: 'Estándar' },
+    superior:  { icon: '✨', label: 'Superior' },
+    premium:   { icon: '👑', label: 'Premium' },
+};
+
+export const enumOptions = <T extends string>(
+    config: Record<T, ProcedenciaUIConfig>
+): { value: T; label: string; icon: string }[] =>
+    (Object.keys(config) as T[]).map((value) => ({ value, ...config[value] }));
 
 export const PROCEDENCIA_CONFIG: Record<TarifaProcedenciaValue, ProcedenciaUIConfig> = {
     nacional: { icon: '🇵🇪', label: 'Nacional' },
@@ -300,9 +317,9 @@ export interface TarifaSnapshot {
     grupoTarifa: number | null;
     comisionOverrideSnapshot: number | string | null;
     notaRol: I18nContent[];
-    modalidadSnapshot: string | null; // renombrado de tipoModalidadSnapshot
-    categoriaSnapshot: string | null;
-    procedenciaSnapshot: string | null;
+    modalidadSnapshot: TarifaModalidadValue | null;
+    categoriaSnapshot: TarifaCategoriaValue | null;
+    procedenciaSnapshot: TarifaProcedenciaValue | null;
     edadMinimaSnapshot: number | null;
     edadMaximaSnapshot: number | null;
     capacidadMinimaSnapshot?: number | null;
@@ -427,8 +444,8 @@ export interface LineaDetalleClaseCliente {
     cantidadComponente: number;         // noches / multiplicador ("2 x ...")
     modo: ModoFinanciero;
     fecha: string;                      // YYYY-MM-DD del componente
-    modalidad: string | null;
-    categoria: string | null;
+    modalidad: TarifaModalidadValue | null;
+    categoria: TarifaCategoriaValue | null;
     rol: TarifaRolValue;
     notaRol: I18nContent[];
     tarifaTitulo: I18nContent[];
@@ -471,7 +488,7 @@ export interface ClasePasajeroInterna extends Omit<ClasePasajeroCliente, 'detall
 // ── Upgrades (alternativas por componente) ───────────────────────────────────
 
 export interface DeltaUpgradePorPerfil {
-    procedencia: string | null;
+    procedencia: TarifaProcedenciaValue | null;
     edadMin: number;
     edadMax: number;
     deltaVentaPorPax: number;           // USD
@@ -485,8 +502,8 @@ export interface OpcionUpgradeCliente {
     servicioNombre: I18nContent[];
     tarifaTitulo: I18nContent[];
     notaRol: I18nContent[];
-    modalidad: string | null;
-    categoria: string | null;
+    modalidad: TarifaModalidadValue | null;
+    categoria: TarifaCategoriaValue | null;
     deltaVentaPorPax: number;           // USD, promedio ponderado (cifra única de UI)
     deltasPorPerfil: DeltaUpgradePorPerfil[];   // exacto por procedencia/edad (grupos simétricos)
     deltaVentaTotal: number;            // USD
@@ -507,8 +524,8 @@ export interface InclusionTarifa {
     tarifaTitulo: I18nContent[];
     cantidad: number;
     esGrupal: boolean;
-    modalidad: string | null;
-    categoria: string | null;
+    modalidad: TarifaModalidadValue | null;
+    categoria: TarifaCategoriaValue | null;
     rol: TarifaRolValue;
     notaRol: I18nContent[];
     montoCotizado: string | null;       // interna: siempre; cliente: solo no_incluido
@@ -522,8 +539,8 @@ export interface InclusionLinea {
     fecha: string;
     cantidadComponente: number;         // "x 2 noches"
     // Herencia condicional (items: gobernada por flags; componentes: de su tarifa estándar)
-    modalidad: string | null;
-    categoria: string | null;
+    modalidad: TarifaModalidadValue | null;
+    categoria: TarifaCategoriaValue | null;
     tarifaTitulo: I18nContent[];        // items: solo si tituloTarifaVisible
     tarifas: InclusionTarifa[];         // items: siempre []
 }
@@ -666,11 +683,12 @@ export const filasResumenGeneral = (fin: ClasificacionFinancieraInterna) => ([
 ]);
 
 /** Etiqueta "Mod: Privado · Cat: Superior" (omite nulos) */
-export const formatModCat = (modalidad?: string | null, categoria?: string | null): string => {
+export const formatModCat = (modalidad?: TarifaModalidadValue | null, categoria?: TarifaCategoriaValue | null): string => {
     const partes: string[] = [];
-    if (modalidad) partes.push(`Mod: ${modalidad.charAt(0).toUpperCase()}${modalidad.slice(1)}`);
-    if (categoria) partes.push(`Cat: ${categoria.charAt(0).toUpperCase()}${categoria.slice(1)}`);
+    if (modalidad) partes.push(`Mod: ${MODALIDAD_CONFIG[modalidad]?.label || modalidad}`);
+    if (categoria) partes.push(`Cat: ${CATEGORIA_CONFIG[categoria]?.label || categoria}`);
     return partes.join(' · ');
 };
+
 
 

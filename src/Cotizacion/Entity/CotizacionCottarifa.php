@@ -140,6 +140,11 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $modalidadSnapshot = null;
 
+// 👇 agregar esto
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    private ?string $categoriaSnapshot = null;
+
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $procedenciaSnapshot = null;
@@ -391,6 +396,9 @@ class CotizacionCottarifa
 
     public function getProcedenciaSnapshot(): ?string { return $this->procedenciaSnapshot; }
     public function setProcedenciaSnapshot(?string $procedenciaSnapshot): self { $this->procedenciaSnapshot = $procedenciaSnapshot; return $this; }
+
+    public function getCategoriaSnapshot(): ?string { return $this->categoriaSnapshot; }
+    public function setCategoriaSnapshot(?string $categoriaSnapshot): self { $this->categoriaSnapshot = $categoriaSnapshot; return $this; }
 
     public function getEdadMinimaSnapshot(): ?int { return $this->edadMinimaSnapshot; }
     public function setEdadMinimaSnapshot(?int $edadMinimaSnapshot): self { $this->edadMinimaSnapshot = $edadMinimaSnapshot; return $this; }

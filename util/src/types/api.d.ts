@@ -3315,6 +3315,7 @@ export interface components {
             /** @description Obtiene las condiciones o notas de pago del proveedor. */
             condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3386,6 +3387,7 @@ export interface components {
             /** @description Obtiene las condiciones o notas de pago del proveedor. */
             condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3451,6 +3453,7 @@ export interface components {
             /** @description Obtiene las condiciones o notas de pago del proveedor. */
             condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3488,6 +3491,7 @@ export interface components {
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3548,6 +3552,7 @@ export interface components {
             /** @description Obtiene las condiciones o notas de pago del proveedor. */
             condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3619,6 +3624,7 @@ export interface components {
             /** @description Obtiene las condiciones o notas de pago del proveedor. */
             condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3660,6 +3666,7 @@ export interface components {
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3720,6 +3727,7 @@ export interface components {
             /** @description Obtiene las condiciones o notas de pago del proveedor. */
             condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3791,6 +3799,7 @@ export interface components {
             /** @description Obtiene las condiciones o notas de pago del proveedor. */
             condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3832,6 +3841,7 @@ export interface components {
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3892,6 +3902,7 @@ export interface components {
             /** @description Obtiene las condiciones o notas de pago del proveedor. */
             condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -3963,6 +3974,7 @@ export interface components {
             /** @description Obtiene las condiciones o notas de pago del proveedor. */
             condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
@@ -4004,6 +4016,7 @@ export interface components {
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
             modalidadSnapshot?: string | null;
+            categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;

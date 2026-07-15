@@ -14505,6 +14505,12 @@
                             "null"
                         ]
                     },
+                    "categoriaSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "procedenciaSnapshot": {
                         "type": [
                             "string",
@@ -14746,6 +14752,12 @@
                             "null"
                         ]
                     },
+                    "categoriaSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "procedenciaSnapshot": {
                         "type": [
                             "string",
@@ -14976,6 +14988,12 @@
                             "null"
                         ]
                     },
+                    "categoriaSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "procedenciaSnapshot": {
                         "type": [
                             "string",
@@ -15124,6 +15142,12 @@
                         ]
                     },
                     "modalidadSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "categoriaSnapshot": {
                         "type": [
                             "string",
                             "null"
@@ -15320,6 +15344,12 @@
                         ]
                     },
                     "modalidadSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "categoriaSnapshot": {
                         "type": [
                             "string",
                             "null"
@@ -15566,6 +15596,12 @@
                             "null"
                         ]
                     },
+                    "categoriaSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "procedenciaSnapshot": {
                         "type": [
                             "string",
@@ -15725,6 +15761,12 @@
                         ]
                     },
                     "modalidadSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "categoriaSnapshot": {
                         "type": [
                             "string",
                             "null"
@@ -15926,6 +15968,12 @@
                                 ]
                             },
                             "modalidadSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "categoriaSnapshot": {
                                 "type": [
                                     "string",
                                     "null"
@@ -16179,6 +16227,12 @@
                                     "null"
                                 ]
                             },
+                            "categoriaSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "procedenciaSnapshot": {
                                 "type": [
                                     "string",
@@ -16345,6 +16399,12 @@
                                 ]
                             },
                             "modalidadSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "categoriaSnapshot": {
                                 "type": [
                                     "string",
                                     "null"
@@ -16543,6 +16603,12 @@
                         ]
                     },
                     "modalidadSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "categoriaSnapshot": {
                         "type": [
                             "string",
                             "null"
@@ -16789,6 +16855,12 @@
                             "null"
                         ]
                     },
+                    "categoriaSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "procedenciaSnapshot": {
                         "type": [
                             "string",
@@ -16948,6 +17020,12 @@
                         ]
                     },
                     "modalidadSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "categoriaSnapshot": {
                         "type": [
                             "string",
                             "null"
