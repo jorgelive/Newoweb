@@ -305,25 +305,31 @@ const totalesInclusiones = computed(() => {
                       </span>
                     </p>
 
-                    <!-- Sin precio: solo referencia de tarifa/modalidad heredada (los items no heredan monto) -->
+                    <!-- Sin precio: solo referencia de tarifa/modalidad heredada (los items no heredan monto), como fila de chips -->
                     <div v-if="l.tarifas.length === 0 && (l.tarifaTitulo.length || modCatBadges(l.modalidad, l.categoria).length)"
-                         class="ml-6 mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-500">
-                      <span v-if="l.tarifaTitulo.length">- {{ store.getI18nText(l.tarifaTitulo as any, lang) }}</span>
+                         class="ml-6 mt-1 flex flex-wrap items-center gap-1.5">
+                      <span v-if="l.tarifaTitulo.length"
+                            class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
+                        {{ store.getI18nText(l.tarifaTitulo as any, lang) }}
+                      </span>
                       <span v-for="b in modCatBadges(l.modalidad, l.categoria)" :key="b.type"
                             class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
                             :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
                         {{ b.icon }} {{ b.label }}
                       </span>
                     </div>
-                    <div v-for="(t, ti) in l.tarifas" :key="ti" class="ml-6 mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-500">
-                      - {{ store.getI18nText(t.tarifaTitulo as any, lang) }}
+                    <div v-for="(t, ti) in l.tarifas" :key="ti" class="ml-6 mt-1 flex flex-wrap items-center gap-1.5">
+                      <span v-if="store.getI18nText(t.tarifaTitulo as any, lang)"
+                            class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
+                        {{ store.getI18nText(t.tarifaTitulo as any, lang) }}
+                      </span>
                       <span v-for="b in modCatBadges(t.modalidad, t.categoria)" :key="b.type"
                             class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
                             :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
                         {{ b.icon }} {{ b.label }}
                       </span>
-                      <b v-if="!t.esGrupal && t.cantidad > 1" class="text-slate-600">x {{ t.cantidad }}</b>
-                      <span v-if="t.notaRol.length" class="block w-full ml-2 text-[11px] text-slate-400 italic">
+                      <span v-if="!t.esGrupal && t.cantidad > 1" class="text-[10px] font-bold text-slate-400">x {{ t.cantidad }}</span>
+                      <span v-if="t.notaRol.length" class="w-full text-[11px] text-slate-400 italic mt-0.5">
                         {{ store.getI18nText(t.notaRol as any, lang) }}
                       </span>
                     </div>
