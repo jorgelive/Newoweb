@@ -1193,6 +1193,15 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                       <i class="far fa-calendar-alt text-sky-500"></i>
                       {{ store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'INICIO: ' + formatDateTimeFromISO(comp.fechaHoraInicio) : 'FECHA: ' + formatDateOnlyFromISO(comp.fechaHoraInicio) }}
                     </span>
+
+                    <div v-if="comp.cantidad && comp.cantidad !== 1"
+                         class="flex items-center gap-2 pl-4">
+                      <div class="w-px h-3 bg-slate-300"></div>
+                      <span class="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                        <i class="fas fa-moon text-[8px]"></i> {{ comp.cantidad }} noches
+                      </span>
+                    </div>
+
                     <span v-if="store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) || store.calcularPernoctes(comp.fechaHoraInicio, comp.fechaHoraFin) > 1" class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
                       <i class="far fa-flag text-slate-400"></i>
                       {{ store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'FIN: ' + formatDateTimeFromISO(comp.fechaHoraFin) : 'HASTA: ' + formatDateOnlyFromISO(comp.fechaHoraFin) }}
