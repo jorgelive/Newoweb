@@ -161,12 +161,18 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 // Helper compartido por ambas ramas
     const batchFetchByIds = async (iris: string[], endpointBase?: string): Promise<any[]> => {
         const base = endpointBase || iris[0].substring(0, iris[0].lastIndexOf('/'));
-        const ids = iris.map(iri => iri.split('/').pop());
+        const ids = iris.map(iri => iri.split('/').pop()!);
 
         try {
             const idsParam = ids.map(id => `id[]=${id}`).join('&');
             const res = await apiClient.get(`${base}?${idsParam}&pagination=false`);
-            return res.data['hydra:member'] || res.data['member'] || [];
+            const items = res.data['hydra:member'] || res.data['member'] || [];
+
+            // Mapeo O(n) para indexación rápida
+            const porId = new Map(items.map((item: any) => [extractIdStr(item.id || item['@id']), item]));
+
+            // Retorna respetando estrictamente el orden de entrada de los IRIs originales
+            return ids.map(id => porId.get(id)).filter(Boolean);
         } catch (e) {
             // Fallback individual si el batch falla
             const promises = iris.map(iri => apiClient.get(iri).then(r => r.data).catch(() => iri));
