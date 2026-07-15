@@ -116,8 +116,8 @@ watch(() => store.cotizacion, () => {
 
 onBeforeRouteLeave((to, from, next) => {
   // 1. Si el acordeón del Pool en móvil está abierto, lo cerramos primero
-  if (store.isSegmentEditorOpen && isMobilePoolOpen.value) {
-    isMobilePoolOpen.value = false;
+  if (store.isSegmentEditorOpen && activeAccordion.value === 'pool') {
+    activeAccordion.value = 'parrafos';
     next(false); // Aborta la navegación y solo actualiza la UI
     return;
   }
@@ -458,6 +458,11 @@ const filtroSegmentos = ref('');
 const activeAccordion = ref<'pool' | 'parrafos'>('parrafos');
 const expandirEditores = ref(false); // <--- Editores colapsados por defecto
 
+watch(() => store.isSegmentEditorOpen, (open) => {
+  if (open) {
+    activeAccordion.value = store.dataActiva?.cotsegmentos?.length ? 'parrafos' : 'pool';
+  }
+});
 
 const poolFiltrado = computed(() => {
   if (!filtroSegmentos.value) return store.catalogos.poolSegmentos;
@@ -686,6 +691,13 @@ const confirmarInsercion = async () => {
 };
 
 const isProveedorOpen = ref(false);
+
+const finPickerKey = ref(0);
+
+const onInicioChange = (val: string | null) => {
+  store.actualizarInicioManteniendoRango(val || '');
+  finPickerKey.value++;
+};
 
 const detallesOperativosAbierto = ref(true);
 
@@ -1330,7 +1342,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Inicio Exacto *</label>
                   <VueDatePicker
                       :model-value="store.dataActiva.fechaHoraInicio"
-                      @update:model-value="val => store.actualizarInicioManteniendoRango(val || '')"
+                      @update:model-value="onInicioChange"
                       :is-24="true"
                       :enable-time-picker="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
                       :format="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId)) ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
@@ -1363,6 +1375,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Fin Exacto *</label>
                   <VueDatePicker
+                      :key="finPickerKey"
                       v-model="store.dataActiva.fechaHoraFin"
                       @update:model-value="store.onComponenteFechasChange(false)"
                       :is-24="true"
@@ -2165,7 +2178,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
           <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
 
             <aside class="w-full md:w-1/3 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shadow-sm z-20 flex-shrink-0 transition-all duration-300"
-                   :class="activeAccordion === 'pool' ? 'flex-1 md:flex-none min-h-0' : 'h-auto md:h-full'">
+                   :class="activeAccordion === 'pool' ? 'flex-1 min-h-0' : 'h-auto'">
 
               <div class="md:hidden flex justify-between items-center px-4 py-4 bg-teal-50 hover:bg-teal-100 cursor-pointer transition-colors border-b border-teal-200"
                    @click="activeAccordion = 'pool'">
@@ -2220,7 +2233,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
             </aside>
 
             <main class="w-full md:flex-1 bg-[#F8FAFC] flex flex-col flex-shrink-0 transition-all duration-300"
-                  :class="activeAccordion === 'parrafos' ? 'flex-1 md:flex-none min-h-0' : 'h-auto md:h-full'">
+                  :class="activeAccordion === 'parrafos' ? 'flex-1 min-h-0' : 'h-auto'">
 
               <div class="md:hidden flex justify-between items-center px-4 py-4 bg-slate-200 hover:bg-slate-300 cursor-pointer transition-colors border-b border-slate-300"
                    @click="activeAccordion = 'parrafos'">

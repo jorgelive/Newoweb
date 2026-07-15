@@ -209,7 +209,7 @@ export type CotizacionFileExtended = Omit<CotizacionFileBase, 'cotizaciones'> & 
     cotizaciones?: Cotizacion[];
 };
 
-export type Segmento = components['schemas']['Segmento-segmento.read'];
+export type Segmento = components['schemas']['Segmento-segmento.item.read'];
 export type TarifaBase = components['schemas']['Tarifa-componente.item.read'];
 
 export type ComponenteCatalogo = Componente | ComponentePlaceholder;

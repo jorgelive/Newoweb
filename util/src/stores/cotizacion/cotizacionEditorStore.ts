@@ -26,7 +26,7 @@ import {
     getProcedenciaUI, TarifaRolValue, formatRangoEdad, Item, OpcionUpgradeInterna, ModoFinanciero,
     LineaDetalleClaseInterna, TotalesInternos, ClasePasajeroInterna, CLASIFICACION_SCHEMA_VERSION,
     DeltaUpgradePorPerfil, InclusionTarifa, InclusionLinea, InclusionServicio, totalesInternosVacios,
-    expurgarParaCliente,
+    expurgarParaCliente, Segmento,
 } from '@/types/cotizacionEditorModel.ts';
 
 import {ApiIdioma} from '@/types/maestroModel';
@@ -103,6 +103,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (!val) return null;
         const match = String(val).match(/(?:T|\s|^)([01]\d|2[0-3]):([0-5]\d)/);
         return match ? `${match[1]}:${match[2]}` : null;
+    };
+
+    const formatLocalDateTime = (date: Date): string => {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    };
+
+    const toDateTimeString = (fecha: string, hora: string = '00:00'): string => {
+        const horaConSegundos = hora.length === 5 ? `${hora}:00` : hora;
+        return `${fecha}T${horaConSegundos}`;
     };
 
     const replaceDateKeepTime = (isoDateTime: string, newDate: string): string => {
@@ -253,8 +263,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (isNaN(date.getTime())) return '';
         const hoursToAdd = typeof durationDecimal === 'string' ? parseFloat(durationDecimal) : durationDecimal;
         date.setMinutes(date.getMinutes() + Math.round(hoursToAdd * 60));
-        const offset = date.getTimezoneOffset() * 60000;
-        return (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
+        return formatLocalDateTime(date);
     };
 
     const calcularPernoctes = (inicioStr: string, finStr: string): number => {
@@ -2375,7 +2384,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const inyectarComponentesDeSegmento = async (
-        segmentoMaestro: components['schemas']['Segmento-segmento.item.read'],
+        segmentoMaestro: Segmento,
         diaDelSegmento: number = 1,
         idSegmentoGenerado: string,
         itinerarioId: string | null = null
@@ -2384,7 +2393,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         if (segmentoMaestro.segmentoComponentes && Array.isArray(segmentoMaestro.segmentoComponentes)) {
 
-            // Mapa acumulador tipado de manera estricta para resolver matches prioritarios
             const mejoresMatches = new Map<string, SegmentoComponenteProcesado>();
 
             segmentoMaestro.segmentoComponentes.forEach((rawSegComp) => {
@@ -2435,14 +2443,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 const compHidratado = catalogos.value.allComponentes.find((c) => {
                     if (!c || typeof c !== 'object') return false;
-
-                    // Evaluamos de forma segura si el identificador coincide con el que estamos iterando
                     const currentId = String(extractIdStr((c as any).id || (c as any)['@id'] || ''));
                     return currentId === compId && 'tarifas' in c;
                 });
 
                 if (compHidratado) {
-                    // Hacemos el cast seguro al contrato extendido únicamente si hubo un match exitoso
                     compMaestro = compHidratado as unknown as ComponenteCompleto;
                 }
 
@@ -2458,7 +2463,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const reqHora = requiereHoraExacta(tipoComp);
 
                 const hInicio = reqHora ? (getHoraLimpia(segComp.hora) || '08:00') : '00:00';
-                const fHoraInicio = `${fechaBase}T${hInicio}`;
+                const fHoraInicio = toDateTimeString(fechaBase, hInicio);
 
                 const duracionComp = parseFloat(String(compMaestro.duracion || 0));
 
@@ -2466,10 +2471,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 if (reqHora) {
                     const hFin = getHoraLimpia(segComp.horaFin);
                     if (hFin) {
-                        // Días completos que ya aporta la duración del maestro (24h -> +1, 48h -> +2, etc.)
                         let extraDias = Math.floor(duracionComp / 24);
 
-                        // Si la hora de fin es <= hora de inicio, asumimos que cruzó medianoche al menos una vez
                         if (hFin <= hInicio) {
                             extraDias = Math.max(extraDias, 1);
                         }
@@ -2481,16 +2484,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             fechaFin = dNext.toISOString().split('T')[0];
                         }
 
-                        fHoraFin = `${fechaFin}T${hFin}`;
+                        fHoraFin = toDateTimeString(fechaFin, hFin);
                     } else {
-                        // Fallback: duracion pura, addDurationToDate resuelve el rollover de días
                         fHoraFin = addDurationToDate(fHoraInicio, duracionComp);
                     }
                 } else {
-                    // Alojamiento y similares: SOLO duracion decide, hora siempre 00:00,
-                    // se ignora segComp.horaFin por completo
                     const calcFin = addDurationToDate(fHoraInicio, duracionComp);
-                    fHoraFin = calcFin.split('T')[0] + 'T00:00';
+                    fHoraFin = toDateTimeString(calcFin.split('T')[0]);
                 }
 
                 const snapshotItemsPreparados = await Promise.all(
@@ -2829,12 +2829,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     dateObj.setUTCDate(dateObj.getUTCDate() + diffDays);
                     const nuevaFechaCompStr = dateObj.toISOString().split('T')[0];
 
-                    comp.fechaHoraInicio = `${nuevaFechaCompStr}T${horaActual}`;
+                    comp.fechaHoraInicio = toDateTimeString(nuevaFechaCompStr, horaActual);
 
                     const nS = new Date(comp.fechaHoraInicio).getTime();
                     const nE = new Date(nS + duracionMs);
-                    const offH = nE.getTimezoneOffset() * 60000;
-                    comp.fechaHoraFin = (new Date(nE.getTime() - offH)).toISOString().slice(0, 16);
+                    comp.fechaHoraFin = formatLocalDateTime(nE);
                 }
             });
         }
@@ -2856,7 +2855,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             ordenarComponentesCronologicamente(dataActiva.value.cotcomponentes);
         }
     };
-
     const onComponenteMaestroChange = async (val: string | null): Promise<void> => {
         if (!val || val === 'null') {
             catalogos.value.tarifas = [];
@@ -2875,12 +2873,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const fechaDate = dataActiva.value.fechaHoraInicio.split('T')[0];
 
             if (reqHora) {
-                dataActiva.value.fechaHoraInicio = `${fechaDate}T08:00`;
+                dataActiva.value.fechaHoraInicio = toDateTimeString(fechaDate, '08:00');
                 dataActiva.value.fechaHoraFin = addDurationToDate(dataActiva.value.fechaHoraInicio, maestro.duracion || 0);
             } else {
-                dataActiva.value.fechaHoraInicio = `${fechaDate}T00:00`;
+                dataActiva.value.fechaHoraInicio = toDateTimeString(fechaDate);
                 const endStr = addDurationToDate(dataActiva.value.fechaHoraInicio, maestro.duracion || 0);
-                dataActiva.value.fechaHoraFin = `${endStr.split('T')[0]}T00:00`;
+                dataActiva.value.fechaHoraFin = toDateTimeString(endStr.split('T')[0]);
             }
 
             if (dataActiva.value.fechaHoraInicio && dataActiva.value.fechaHoraFin) {
@@ -2896,7 +2894,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             await fetchComponenteDetalles(val);
         }
     };
-
     const onSegmentoDiaChange = (servicioId: string, segmentoId: string, nuevoDiaStr: string | number) => {
         const nuevoDia = parseInt(String(nuevoDiaStr)) || 1;
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
@@ -2926,8 +2923,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if(comp.fechaHoraInicio) {
                         const nS = new Date(comp.fechaHoraInicio).getTime();
                         const nE = new Date(nS + duracionMs);
-                        const off = nE.getTimezoneOffset() * 60000;
-                        comp.fechaHoraFin = (new Date(nE.getTime() - off)).toISOString().slice(0, 16);
+                        comp.fechaHoraFin = formatLocalDateTime(nE);
                     }
                 }
             });
@@ -2935,7 +2931,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             sincronizarFechaServicio(servicio);
         }
     };
-
     const actualizarInicioManteniendoRango = (nuevoInicioStr: string): void => {
         if (!dataActiva.value || !nuevoInicioStr) return;
 
@@ -2944,8 +2939,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         const newStartMs = new Date(nuevoInicioStr).getTime();
         const newEndObj = new Date(newStartMs + duracionMs);
-        const offset = newEndObj.getTimezoneOffset() * 60000;
-        dataActiva.value.fechaHoraFin = (new Date(newEndObj.getTime() - offset)).toISOString().slice(0, 16);
+        dataActiva.value.fechaHoraFin = formatLocalDateTime(newEndObj);
 
         onComponenteFechasChange(false);
     };
@@ -2985,8 +2979,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                             const nS = new Date(comp.fechaHoraInicio).getTime();
                             const nE = new Date(nS + duracionMs);
-                            const offH = nE.getTimezoneOffset() * 60000;
-                            comp.fechaHoraFin = (new Date(nE.getTime() - offH)).toISOString().slice(0, 16);
+                            comp.fechaHoraFin = formatLocalDateTime(nE);
                         }
                     });
                 }
