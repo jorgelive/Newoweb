@@ -1623,14 +1623,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const abrirNivel = async (nivel: NivelInspector, data: any = null): Promise<void> => {
         const gen = ++navGen;
+
         if (nivel === 'servicio' || nivel === 'resumen') historialNavegacion.value = [];
         else historialNavegacion.value.push({ nivel: inspectorActivo.value, data: dataActiva.value });
 
+        // inspectorActivo y dataActiva cambian juntos, siempre — nunca debe haber
+        // un render con inspectorActivo apuntando a una vista cuyo dataActiva
+        // todavía no corresponde (eso generaba el "Cannot read properties of
+        // null (reading 'id')" en los findIndex del header).
         inspectorActivo.value = nivel;
         isMobileOpen.value = true;
+        dataActiva.value = data;
 
-        // 🔥 Precarga ANTES de asignar dataActiva, para que el template
-        // encuentre los componentes ya listos en el primer render.
+        // La hidratación del catálogo (tarifas, snapshotItems, etc.) sigue en
+        // segundo plano; si para cuando termina el usuario ya navegó a otro
+        // lado (gen distinto), esas funciones ya se frenan solas.
         if (nivel === 'servicio' && data?.servicioMaestroId) {
             await fetchServicioDetalles(data.servicioMaestroId, gen);
         }
@@ -1640,10 +1647,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (nivel === 'tarifa' && data?.proveedorMaestroId) {
             await fetchProveedorServiciosDeProveedor(data.proveedorMaestroId);
         }
-
-        if (gen !== navGen) return;
-
-        dataActiva.value = data; // 🔥 ahora sí, con el catálogo ya poblado
     };
 
     const limpiarServicioProveedor = () => {
