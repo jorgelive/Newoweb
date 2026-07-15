@@ -844,6 +844,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         };
     });
 
+
+    const nombreComponenteInterno = (componente: ComponenteCompleto): I18nContent[] => {
+        if (componente.nombreSnapshot?.length) return componente.nombreSnapshot;
+        const maestroId = componente.componenteMaestroId ? extractIdStr(componente.componenteMaestroId) : null;
+        if (maestroId) {
+            const maestro = catalogos.value.allComponentes.find(
+                (c) => extractIdStr(c.id || (c as any)['@id'] || '') === maestroId
+            );
+            if (maestro && isComponenteCompleto(maestro)) {
+                const tituloMaestro = (maestro as any).titulo as I18nContent[] | undefined;
+                if (tituloMaestro?.length) return tituloMaestro;
+            }
+        }
+        return [];
+    };
     // ────────────────────────────────────────────────────────────────────────────
 // Builder de inclusiones (agregar al store; lo consume el computed de arriba)
 // Recorre servicios→componentes directamente (no el voter): cubre componentes
@@ -889,14 +904,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const tarifaRef = estandares[0] || null;
 
                 if (items.length > 0 && tarifaRef && !tarifaRef.modalidadSnapshot) {
-                    const etiqueta = getI18nText(
-                        componente.nombreSnapshot?.length
-                            ? componente.nombreSnapshot
-                            : ((componente.cotsegmento as CotSegmento)?.nombreSnapshot || []),
-                        idiomaEdicion
-                    ) || 'Pool sin nombre';
+                    const etiqueta = getI18nText(nombreComponenteInterno(componente), idiomaEdicion) || 'Componente sin nombre';
                     advertencias.push(
-                        `El pool "${etiqueta}" tiene items pero su tarifa estándar no define modalidad — los items heredarán vacío.`
+                        `El componente "${etiqueta}" tiene items pero su tarifa estándar no define modalidad — los items heredarán vacío.`
                     );
                 }
 
