@@ -47,6 +47,7 @@ when@prod:
                 action_level: error
                 handler: file_stream
                 excluded_http_codes: [404, 405]
+                channels: ["!deprecation"] # Se agregó esta exclusión para que el buffer ignore las depreciaciones
 
             file_stream:                   # ← reemplaza 'file' rotating_file
                 type: stream
@@ -68,4 +69,3 @@ when@prod:
                 level: info
                 channels: [deprecation]
                 bubble: false
-

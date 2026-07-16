@@ -73,6 +73,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_file')]
+#[ORM\Index(columns: ['created_at'], name: 'idx_cotizacion_file_created_at')]
 #[ORM\HasLifecycleCallbacks]
 class CotizacionFile
 {
