@@ -55,6 +55,7 @@ use Symfony\Component\Uid\Uuid;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_cotizacion')]
+#[ORM\Index(columns: ['file_id', 'version'], name: 'idx_cotizacion_file_version')]
 #[ORM\HasLifecycleCallbacks]
 class Cotizacion
 {

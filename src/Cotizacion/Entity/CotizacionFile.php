@@ -115,7 +115,7 @@ class CotizacionFile
      * @var Collection<int, Cotizacion>
      */
     #[ApiProperty(fetchEager: false)]
-    #[Groups(['file:item:read', 'file:read'])]
+    #[Groups(['file:item:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: Cotizacion::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['version' => 'DESC'])]
     private Collection $cotizaciones;
