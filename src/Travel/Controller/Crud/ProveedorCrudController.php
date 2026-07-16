@@ -94,7 +94,7 @@ class ProveedorCrudController extends BaseCrudController
             ->setHelp('Enlace directo corporativo o sitio web del proveedor.')
             ->setColumns(12);
 
-        yield UrlField::new('direccion', 'Dirección')
+        yield TextField::new('direccion', 'Dirección')
             ->setHelp('Dirección del proveedor.')
             ->setColumns(12);
 
