@@ -56,12 +56,12 @@ class CotizacionFiledocumento
     use TimestampTrait;
     use MediaTrait;
 
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'date', nullable: true)]
     private ?DateTimeInterface $vencimiento = null;
 
     // 🔥 Reemplazado por el nuevo Enum dentro del módulo Cotizacion
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'string', length: 20, enumType: ArchivoTipoEnum::class)]
     private ?ArchivoTipoEnum $tipodocumento = null;
 
@@ -88,7 +88,7 @@ class CotizacionFiledocumento
      * Propiedad virtual para exponer la URL pública.
      * Es inyectada dinámicamente por el AssetListener.
      */
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     private ?string $imageUrl = null;
 
     public function __construct()

@@ -581,8 +581,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             cantidadComponente: cCant,
                             modo: modoFin,
                             fecha,
-                            modalidad: t.modalidadSnapshot || null,
-                            categoria: t.categoriaSnapshot || null,
+                            modalidad: t.modalidadSnapshot || null, // Se extrae pacíficamente, no es estrictamente obligatorio
+                            categoria: t.categoriaSnapshot || null, // Se extrae pacíficamente, no es estrictamente obligatorio
                             rol,
                             notaRol: t.notaRol || [],
                             tarifaTitulo: t.tituloSnapshot || [],
@@ -635,7 +635,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         return esGrupal ? usd / numPaxGlobal : usd;
                     };
 
-                    // Base ponderada (cifra única) + firma para matching exacto por perfil
+                    // Base ponderada (cifra única) por si la alternativa no tiene un espejo exacto
                     let sumaVenta = 0, sumaPax = 0;
                     estandares.forEach((t) => {
                         const pax = resolverGrupal(t) ? numPaxGlobal : (parseInt(String(t.cantidad)) || 1);
@@ -648,7 +648,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         `${t.procedenciaSnapshot || '0'}|${t.edadMinimaSnapshot ?? 0}|${t.edadMaximaSnapshot ?? 120}`;
                     const estandarPorFirma = new Map(estandares.map(t => [firma(t), t]));
 
-                    // Validación de simetría: cada alternativa debe espejar una estándar
                     const grupos = new Map<number, TarifaSnapshot[]>();
                     alternativas.forEach((t) => {
                         const g = t.grupoTarifa ?? 0;
@@ -657,27 +656,40 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     });
 
                     grupos.forEach((tarifasGrupo, grupo) => {
-                        const firmasAlt = tarifasGrupo.map(firma).sort().join('||');
-                        const firmasStd = estandares.filter(t => !resolverGrupal(t) || tarifasGrupo.some(a => resolverGrupal(a)))
-                            .map(firma).sort().join('||');
-                        if (firmasAlt !== firmasStd) {
+                        // Validación matemática de volumen en lugar de simetría estricta.
+                        // Si el grupo de upgrades cubre la totalidad de pasajeros esperados, es válido.
+                        let sumaPaxAlt = 0;
+                        let esGrupalAlt = false;
+
+                        tarifasGrupo.forEach(t => {
+                            if (resolverGrupal(t)) {
+                                esGrupalAlt = true;
+                                sumaPaxAlt = numPaxGlobal; // Si hay una grupal, asume la cobertura total.
+                            } else {
+                                sumaPaxAlt += parseInt(String(t.cantidad)) || 1;
+                            }
+                        });
+
+                        // Si no cuadra matemáticamente con el global o la sumatoria del bloque estándar, advertimos.
+                        if (!esGrupalAlt && sumaPaxAlt !== numPaxGlobal && sumaPaxAlt !== sumaPax) {
                             advertencias.push(
-                                `Grupo ${grupo} de "${compLabel}" no espeja la partición del grupo estándar (procedencia/edades). Corrige antes de enviar.`
+                                `El grupo alternativo ${grupo} de "${compLabel}" suma ${sumaPaxAlt} pasajeros, pero debe cuadrar con los ${numPaxGlobal} del expediente (o los ${sumaPax} de la base).`
                             );
                         }
 
                         tarifasGrupo.forEach((t) => {
                             const std = estandarPorFirma.get(firma(t));
                             const altPP = ventaPPde(t);
+                            // Si existe un espejo exacto, comparamos 1 a 1, si no, usamos el promedio ponderado base
                             const stdPP = std ? ventaPPde(std) : basePP;
-                            const deltasPorPerfil: DeltaUpgradePorPerfil[] = std
-                                ? [{
-                                    procedencia: t.procedenciaSnapshot || null,
-                                    edadMin: t.edadMinimaSnapshot ?? 0,
-                                    edadMax: t.edadMaximaSnapshot ?? 120,
-                                    deltaVentaPorPax: altPP - stdPP
-                                }]
-                                : [];
+
+                            const deltasPorPerfil: DeltaUpgradePorPerfil[] = [{
+                                procedencia: t.procedenciaSnapshot || null,
+                                edadMin: t.edadMinimaSnapshot ?? 0,
+                                edadMax: t.edadMaximaSnapshot ?? 120,
+                                // Delta financiero confiable incluso si no hubo match de firma
+                                deltaVentaPorPax: altPP - stdPP
+                            }];
 
                             opcionesUpgrade.push({
                                 componenteId: extractIdStr(componente.id),
@@ -689,7 +701,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 notaRol: t.notaRol || [],
                                 modalidad: t.modalidadSnapshot || null,
                                 categoria: t.categoriaSnapshot || null,
-                                deltaVentaPorPax: altPP - basePP,
+                                deltaVentaPorPax: altPP - basePP, // Diferencia general vs promedio
                                 deltasPorPerfil,
                                 deltaVentaTotal: (altPP - basePP) * numPaxGlobal,
                                 tarifaMaestraId: t.tarifaMaestraId ? extractIdStr(t.tarifaMaestraId) : null,
@@ -851,25 +863,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
 
-    const nombreComponenteInterno = (componente: ComponenteCompleto): I18nContent[] => {
-        if (componente.nombreSnapshot?.length) return componente.nombreSnapshot;
-        const maestroId = componente.componenteMaestroId ? extractIdStr(componente.componenteMaestroId) : null;
-        if (maestroId) {
-            const maestro = catalogos.value.allComponentes.find(
-                (c) => extractIdStr(c.id || (c as any)['@id'] || '') === maestroId
-            );
-            if (maestro && isComponenteCompleto(maestro)) {
-                const tituloMaestro = (maestro as any).titulo as I18nContent[] | undefined;
-                if (tituloMaestro?.length) return tituloMaestro;
-            }
-        }
-        return [];
-    };
     // ────────────────────────────────────────────────────────────────────────────
-// Builder de inclusiones (agregar al store; lo consume el computed de arriba)
-// Recorre servicios→componentes directamente (no el voter): cubre componentes
-// sin tarifas y aplana los items con herencia condicional por flags.
-// ────────────────────────────────────────────────────────────────────────────
+    // Builder de inclusiones (agregar al store; lo consume el computed de arriba)
+    // Recorre servicios→componentes directamente (no el voter): cubre componentes
+    // sin tarifas y aplana los items con herencia condicional por flags.
+    // ────────────────────────────────────────────────────────────────────────────
     const construirInclusiones = (advertencias: string[]): InclusionServicio[] => {
         if (!cotizacion.value?.cotservicios) return [];
         const idiomaEdicion = cotizacion.value.idiomaEdicion || 'es';
@@ -908,13 +906,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     (t: TarifaSnapshot) => (t.rolSnapshot || 'estandar') === 'estandar'
                 );
                 const tarifaRef = estandares[0] || null;
-
-                if (items.length > 0 && tarifaRef && !tarifaRef.modalidadSnapshot) {
-                    const etiqueta = getI18nText(nombreComponenteInterno(componente), idiomaEdicion) || 'Componente sin nombre';
-                    advertencias.push(
-                        `El componente "${etiqueta}" tiene items pero su tarifa estándar no define modalidad — los items heredarán vacío.`
-                    );
-                }
 
                 // Línea del COMPONENTE (casos 2 y 3): solo si tiene nombre propio
                 if (tieneNombre) {
@@ -1427,12 +1418,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const payload = JSON.parse(JSON.stringify(cotizacion.value));
 
+            // Formateo del archivo adjunto
             if (payload.file && typeof payload.file === 'object') {
                 payload.file = payload.file['@id'] || payload.file.id;
             } else if (payload.file && !payload.file.includes('/platform/')) {
                 payload.file = `/platform/sales/cotizacion_files/${payload.file}`;
             }
 
+            // Parseo seguro de métricas base
             payload.comision = String(payload.comision || '0');
             payload.adelanto = String(payload.adelanto || '0');
             payload.totalCosto = String(resumenFinanciero.value?.totalCostoNeto || '0');
@@ -1442,16 +1435,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const fin = resumenFinanciero.value;
 
-            if (payload.estado === 'enviado' && fin && !fin.publicable) {
+            // 🔥 VALIDACIÓN ESTRICTA DE ESTADOS PROTEGIDOS
+            // Evita guardar si la cotización está en un estado avanzado y tiene conflictos financieros.
+            const estadosProtegidos = ['enviado', 'confirmado', 'operado'];
+
+            if (estadosProtegidos.includes(payload.estado) && fin && !fin.publicable) {
+                const estadoLabel = payload.estado.charAt(0).toUpperCase() + payload.estado.slice(1);
                 alert(
-                    'La cotización no puede marcarse como Enviada:\n\n' +
+                    `No se puede guardar la cotización en estado "${estadoLabel}" debido a los siguientes conflictos financieros:\n\n` +
                     (fin.advertencias.length
                         ? fin.advertencias.map(a => `• ${a}`).join('\n')
-                        : '• Hay perfiles de pasajero en conflicto (revisa el panel de resumen).')
+                        : '• Hay perfiles de pasajero en conflicto (revisa el panel de resumen para asignar las tarifas correctamente).')
                 );
                 return;
             }
 
+            // Inyección de la estructura financiera al payload
             payload.totalCosto = String(fin?.totalCostoNeto ?? '0');
             payload.totalVenta = String(fin?.totalVentaBruta ?? '0');
             payload.clasificacionFinanciera = fin ?? null;
@@ -1459,6 +1458,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             delete payload.idiomaEdicion;
 
+            // Limpieza y formateo del árbol relacional
             if (payload.cotservicios && Array.isArray(payload.cotservicios)) {
                 payload.cotservicios.forEach((servicio: any) => {
 
@@ -1534,6 +1534,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (!savedData.cotservicios) savedData.cotservicios = [];
             savedData.idiomaEdicion = 'es';
 
+            // Rehidratación local post-guardado
             savedData.cotservicios.forEach((s: CotServicio) => {
                 s.sobreescribirTraduccion = false;
                 s.fechaInicioAbsoluta = getFechaLimpia(s.fechaInicioAbsoluta);
@@ -1586,6 +1587,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // Asignación final con el árbol relacional completo y blindado
             cotizacion.value = savedData;
 
+            // Restauración del foco de inspección si es necesario
             if (inspectorActivo.value !== 'resumen' && dataActiva.value) {
                 const oldId = dataActiva.value.id;
                 let relinked: CotServicio | ComponenteCompleto | TarifaSnapshot | undefined = undefined;

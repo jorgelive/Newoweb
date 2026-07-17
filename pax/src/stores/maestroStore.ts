@@ -1,9 +1,9 @@
 // src/stores/maestroStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { paxService } from '@/services/paxService';
+import { paxCommonService } from '@/services/paxCommonService.ts';
 import type { MaestroIdioma } from '@/types/maestroModel.ts';
-import type { PmsContenidoTraducible } from '@/types/pmsModel.ts';
+import type { PmsContenidoTraducible } from '@/types/paxHuespedModel.ts';
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
 
 export const useMaestroStore = defineStore('maestroStore', () => {
@@ -61,8 +61,8 @@ export const useMaestroStore = defineStore('maestroStore', () => {
             loadPromise = (async () => {
                 try {
                     const [dataIdiomas, dataTextos] = await Promise.all([
-                        paxService.getIdiomasPrioritarios(),
-                        paxService.getPaxUiTextos()
+                        paxCommonService.getIdiomasPrioritarios(),
+                        paxCommonService.getPaxUiTextos()
                     ]);
 
                     idiomas.value = dataIdiomas;

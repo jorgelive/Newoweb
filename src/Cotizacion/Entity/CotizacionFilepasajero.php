@@ -47,34 +47,34 @@ class CotizacionFilepasajero
     use IdTrait;
     use TimestampTrait;
 
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre = null;
 
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $apellido = null;
 
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\ManyToOne(targetEntity: MaestroPais::class)]
     #[ORM\JoinColumn(name: 'pais_id', referencedColumnName: 'id', nullable: false)]
     private ?MaestroPais $pais = null;
 
 
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'string', length: 1, enumType: SexoEnum::class)]
     private ?SexoEnum $sexo = null;
 
     // 🔥 Reemplazado por Enum
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'string', length: 20, enumType: DocumentoTipoEnum::class)]
     private ?DocumentoTipoEnum $tipodocumento = null;
 
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'date', nullable: true)]
     private ?DateTimeInterface $fechanacimiento = null;
 
-    #[Groups(['file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $numerodocumento = null;
 

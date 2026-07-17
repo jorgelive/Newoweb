@@ -28,6 +28,10 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 
 /**
  * El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo.
+ *
+ * Vista pública (por localizador) en dos niveles:
+ *   - pax_file:read→ PORTADA: datos del File + resúmenes de propuestas.
+ *   - pax_cotizacion:read → DETALLE: agrega la cotización completa de UNA versión.
  */
 #[ApiResource(
     shortName: 'CotizacionFile',
@@ -40,12 +44,24 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             normalizationContext: ['groups' => ['file:read', 'file:item:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
         ),
+        // PORTADA pública: File + cards de propuestas (liviano)
         new Get(
             uriTemplate: '/client/cotizacion/cotizacion_file/{localizador}',
             uriVariables: [
                 'localizador' => new Link(fromClass: CotizacionFile::class, identifiers: ['localizador']),
             ],
-            normalizationContext: ['groups' => ['pax_cotizacion:read']],
+            normalizationContext: ['groups' => ['pax_file:read']],
+            security: "is_granted('PUBLIC_ACCESS')",
+            provider: CotizacionFilePublicProvider::class,
+        ),
+        // DETALLE público: File + cotización completa de una versión
+        new Get(
+            uriTemplate: '/client/cotizacion/cotizacion_file/{localizador}/{version}',
+            uriVariables: [
+                'localizador' => new Link(fromClass: CotizacionFile::class, identifiers: ['localizador']),
+                'version'     => new Link(fromClass: CotizacionFile::class, identifiers: ['version']),
+            ],
+            normalizationContext: ['groups' => ['pax_file:read', 'pax_cotizacion:read']],
             security: "is_granted('PUBLIC_ACCESS')",
             provider: CotizacionFilePublicProvider::class,
         ),
@@ -81,11 +97,11 @@ class CotizacionFile
     use TimestampTrait;
     use LocatorTrait;
 
-    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreGrupo = null;
 
-    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_cotizacion:read'])]
+    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $pasajeroPrincipal = null;
 
@@ -113,10 +129,12 @@ class CotizacionFile
 
     /**
      * @var Collection<int, Cotizacion>
+     * EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+     * usa queries escalares); el editor la sigue usando con file:item:read.
      */
     #[ApiProperty(fetchEager: false)]
     #[Groups(['file:item:read'])]
-    #[ORM\OneToMany(mappedBy: 'file', targetEntity: Cotizacion::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: Cotizacion::class, cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EXTRA_LAZY')]
     #[ORM\OrderBy(['version' => 'DESC'])]
     private Collection $cotizaciones;
 
@@ -124,7 +142,7 @@ class CotizacionFile
      * @var Collection<int, CotizacionFilepasajero>
      */
     #[ApiProperty(fetchEager: false)]
-    #[Groups(['file:item:read', 'pax_cotizacion:read'])]
+    #[Groups(['file:item:read', 'pax_file:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFilepasajero::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $filepasajeros;
 
@@ -135,6 +153,22 @@ class CotizacionFile
     #[Groups(['file:item:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFiledocumento::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $filedocumentos;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // PROPIEDADES VIRTUALES DE LA VISTA PÚBLICA (no persistidas)
+    // Las llena CotizacionFilePublicProvider; la entity no hace queries.
+    // ══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Resúmenes livianos de las propuestas públicas vigentes (portada).
+     * Calculados por el provider con un query escalar (no hidrata entidades).
+     *
+     * @var array<int, array<string, mixed>>
+     */
+    private array $versionesParaCliente = [];
+
+    /** Cotización completa de la versión solicitada en la URL (solo detalle). */
+    private ?Cotizacion $cotizacionParaCliente = null;
 
     public function __construct()
     {
@@ -151,10 +185,10 @@ class CotizacionFile
     }
 
     /* ======================================================
-     * GETTERS Y SETTERS
+     * VISTA PÚBLICA (pax)
      * ====================================================== */
 
-    #[Groups(['file:read', 'file:item:read', 'pax_cotizacion:read'])]
+    #[Groups(['file:read', 'file:item:read', 'pax_file:read'])]
     #[SerializedName('localizador')]
     public function getLocalizadorPublico(): ?string
     {
@@ -162,18 +196,39 @@ class CotizacionFile
         return $this->localizador;
     }
 
+    public function setVersionesParaCliente(array $versiones): self
+    {
+        $this->versionesParaCliente = $versiones;
+        return $this;
+    }
+
     /**
-     * Cotización activa expuesta al cliente vía el visor público.
-     * Se resuelve aquí (no en el provider) para que la serialización
-     * la incluya embebida en la misma respuesta, sin exponer un id
-     * de Cotizacion consultable de forma independiente.
+     * Cards de propuestas para la portada: resumen comercial i18n, precio de
+     * venta, pax, vigencia y fecha de inicio del viaje. Puede haber varias
+     * propuestas activas simultáneas (núcleos turísticos independientes).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    #[Groups(['pax_file:read'])]
+    public function getVersionesParaCliente(): array
+    {
+        return $this->versionesParaCliente;
+    }
+
+    public function setCotizacionParaCliente(?Cotizacion $cotizacion): self
+    {
+        $this->cotizacionParaCliente = $cotizacion;
+        return $this;
+    }
+
+    /**
+     * Cotización completa expuesta al cliente. Solo la llena el provider en
+     * la operación de detalle; en portada es null y su grupo no se serializa.
      */
     #[Groups(['pax_cotizacion:read'])]
-    public function getCotizacionActiva(): ?Cotizacion
+    public function getCotizacionParaCliente(): ?Cotizacion
     {
-        return $this->cotizaciones
-            ->filter(fn(Cotizacion $c) => $c->getEstado()->esPublico())
-            ->first() ?: null;
+        return $this->cotizacionParaCliente;
     }
 
     /**
@@ -181,13 +236,17 @@ class CotizacionFile
      * Filtra por ArchivoTipoEnum::esPublico() en vez de una lista de
      * strings hardcodeada, para mantener la regla en un solo sitio.
      */
-    #[Groups(['pax_cotizacion:read'])]
+    #[Groups(['pax_file:read'])]
     public function getDocumentosParaCliente(): array
     {
         return $this->filedocumentos->filter(
             fn(CotizacionFiledocumento $doc) => $doc->getTipodocumento()?->esPublico() === true
         )->getValues();
     }
+
+    /* ======================================================
+     * GETTERS Y SETTERS
+     * ====================================================== */
 
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }

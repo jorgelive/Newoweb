@@ -1,9 +1,9 @@
-// src/stores/pmsGuiaStore.ts
+// src/stores/paxHuespedGuiaStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { paxService } from '@/services/paxService.ts';
+import { paxHuespedService } from '@/services/paxHuespedService.ts';
 import { useMaestroStore } from '../maestroStore.ts';
-import type { PmsGuia, GuiaHelperContext, PmsContenidoTraducible } from '@/types/pmsModel.ts';
+import type { PmsGuia, GuiaHelperContext, PmsContenidoTraducible } from '@/types/paxHuespedModel.ts';
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
 
 export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
@@ -68,9 +68,9 @@ export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
             if (!contextoExiste || !contextoFresco) {
                 let contextData;
                 if (mode === 'guest') {
-                    contextData = await paxService.getGuiaGuestContext(uuid);
+                    contextData = await paxHuespedService.getGuiaGuestContext(uuid);
                 } else {
-                    contextData = await paxService.getGuiaPublicContext(uuid);
+                    contextData = await paxHuespedService.getGuiaPublicContext(uuid);
                 }
 
                 helperContext.value = contextData;
@@ -88,7 +88,7 @@ export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
             // 2. ACTUALIZACIÓN DE LA GUÍA VISUAL (getPmsGuia)
             // Actualiza si: no existe, cambió de unidad, o el caché de 30s expiró
             if (!guiaExiste || guia.value?.unidad?.id !== unidadRealId || !guiaFresca) {
-                const guiaData = await paxService.getPmsGuia(unidadRealId);
+                const guiaData = await paxHuespedService.getPmsGuia(unidadRealId);
                 guia.value = guiaData;
                 lastUpdateGuia.value = Date.now();
             } else {

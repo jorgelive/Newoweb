@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { paxService } from '@/services/paxService.ts';
-import type { PmsReserva } from '@/types/pmsModel.ts';
+import { paxHuespedService } from '@/services/paxHuespedService.ts';
+import type { PmsReserva } from '@/types/paxHuespedModel.ts';
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
 
 export const usePmsReservaStore = defineStore('pmsReservaStore', () => {
@@ -39,7 +39,7 @@ export const usePmsReservaStore = defineStore('pmsReservaStore', () => {
             // mientras descarga la actualización.
 
             try {
-                const data = await paxService.getPmsReserva(localizador);
+                const data = await paxHuespedService.getPmsReserva(localizador);
                 let reservaData;
 
                 if (data && data['hydra:member']) {

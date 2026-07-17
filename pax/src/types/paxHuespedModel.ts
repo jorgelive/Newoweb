@@ -1,4 +1,4 @@
-// src/types/pmsModel.ts
+// src/types/paxHuespedModel.ts
 
 // --- COMUNES ---
 export interface PmsContenidoTraducible {

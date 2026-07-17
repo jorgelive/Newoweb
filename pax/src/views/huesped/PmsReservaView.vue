@@ -2,9 +2,9 @@
 /**
  * src/views/huesped/PmsReservaView.vue
  */
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { usePmsReservaStore } from '@/stores/huesped/pmsReservaStore.ts';
+import { usePmsReservaStore } from '@/stores/huesped/paxHuespedReservaStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
 
 const props = defineProps<{
@@ -17,7 +17,18 @@ const router = useRouter();
 
 const isReady = ref(false);
 
-onMounted(async () => {
+// --- BUSCADOR ---
+const codigoBusqueda = ref('');
+
+const buscarReserva = () => {
+  const loc = codigoBusqueda.value.trim().toUpperCase();
+  if (loc) {
+    router.push({ name: 'pms_reserva', params: { localizador: loc } });
+  }
+};
+
+const cargar = async () => {
+  isReady.value = false;
   try {
     await maestroStore.cargarConfiguracion();
     if (props.localizador) {
@@ -28,7 +39,11 @@ onMounted(async () => {
   } finally {
     isReady.value = true;
   }
-});
+};
+
+onMounted(cargar);
+// 🔥 Recarga al cambiar el localizador (el buscador hace push sobre la misma ruta)
+watch(() => props.localizador, cargar);
 
 const formatearOcupacion = (adultos: number, ninos: number) => {
   const labelAdultos = adultos === 1
@@ -87,7 +102,37 @@ const verGuiaEvento = (eventoId: string | number) => {
 <template>
   <div class="min-h-screen p-4 md:p-8 bg-[#F8FAFC] font-sans selection:bg-[#376875]/20 selection:text-[#376875]">
 
-    <div v-if="!isReady || pmsStore.loading" class="flex flex-col items-center justify-center py-20 min-h-[60vh]">
+    <!-- ═══ BUSCADOR: sin localizador en la URL ═══ -->
+    <div v-if="!localizador" class="max-w-md mx-auto text-center py-16 px-6 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 mt-10 border border-slate-50">
+      <div class="w-20 h-20 bg-[#376875]/5 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-key text-[#376875] text-2xl"></i>
+      </div>
+      <h3 class="text-gray-900 font-black text-lg mb-2">
+        {{ maestroStore.t('res_buscar_titulo') || 'Encuentra tu reserva' }}
+      </h3>
+      <p class="text-slate-500 text-sm mb-6 leading-relaxed">
+        {{ maestroStore.t('res_buscar_sub') || 'Ingresa el código de reserva que te enviamos por correo' }}
+      </p>
+      <form @submit.prevent="buscarReserva" class="flex gap-2">
+        <input
+            v-model="codigoBusqueda"
+            :placeholder="maestroStore.t('res_buscar_placeholder') || 'Ej. AB12CD'"
+            maxlength="10"
+            autocomplete="off"
+            class="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono font-black uppercase tracking-widest text-center text-gray-800 focus:outline-none focus:border-[#E07845] focus:bg-white transition-colors"
+        />
+        <button
+            type="submit"
+            :disabled="!codigoBusqueda.trim()"
+            class="bg-[#E07845] hover:bg-[#D06535] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black px-6 rounded-xl transition-all active:scale-[0.97] shadow-lg shadow-orange-100"
+        >
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+
+    <!-- ═══ CARGANDO ═══ -->
+    <div v-else-if="!isReady || pmsStore.loading" class="flex flex-col items-center justify-center py-20 min-h-[60vh]">
       <div class="relative w-16 h-16 mb-6">
         <div class="absolute inset-0 rounded-full border-4 border-slate-100"></div>
         <div class="absolute inset-0 rounded-full border-4 border-[#E07845] border-t-transparent animate-spin"></div>
@@ -97,6 +142,7 @@ const verGuiaEvento = (eventoId: string | number) => {
       </p>
     </div>
 
+    <!-- ═══ RESERVA ENCONTRADA ═══ -->
     <div v-else-if="pmsStore.reserva && pmsStore.reserva.nombreCliente" class="max-w-4xl mx-auto">
 
       <header class="bg-[#376875] p-6 md:p-10 rounded-[2.5rem] shadow-xl shadow-[#376875]/20 mb-8 relative overflow-hidden text-white">
@@ -236,6 +282,7 @@ const verGuiaEvento = (eventoId: string | number) => {
 
     </div>
 
+    <!-- ═══ NO ENCONTRADA ═══ -->
     <div v-else class="max-w-md mx-auto text-center py-16 px-6 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 mt-10 border border-slate-50">
       <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
         <i class="fas fa-search text-red-400 text-2xl"></i>
@@ -246,9 +293,27 @@ const verGuiaEvento = (eventoId: string | number) => {
       <p class="text-slate-500 text-sm mb-6 leading-relaxed">
         {{ pmsStore.error || 'No pudimos encontrar una reserva con el código proporcionado.' }}
       </p>
-      <div class="bg-slate-50 py-3 px-6 rounded-xl inline-block border border-slate-100">
+      <div class="bg-slate-50 py-3 px-6 rounded-xl inline-block border border-slate-100 mb-6">
         <p class="text-slate-400 text-[10px] font-mono font-bold uppercase tracking-widest">ID: {{ localizador }}</p>
       </div>
+
+      <!-- Reintentar con otro código -->
+      <form @submit.prevent="buscarReserva" class="flex gap-2">
+        <input
+            v-model="codigoBusqueda"
+            :placeholder="maestroStore.t('res_buscar_placeholder') || 'Ej. AB12CD'"
+            maxlength="10"
+            autocomplete="off"
+            class="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono font-black uppercase tracking-widest text-center text-gray-800 focus:outline-none focus:border-[#E07845] focus:bg-white transition-colors"
+        />
+        <button
+            type="submit"
+            :disabled="!codigoBusqueda.trim()"
+            class="bg-[#E07845] hover:bg-[#D06535] disabled:opacity-40 text-white font-black px-6 rounded-xl transition-all active:scale-[0.97]"
+        >
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </form>
     </div>
   </div>
 </template>

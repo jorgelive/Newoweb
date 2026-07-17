@@ -4,10 +4,24 @@ import { createRouter, createWebHistory } from 'vue-router'
 const router = createRouter({
     history: createWebHistory('/'),
     routes: [
+        // -----------------------------------------------------------------
+        // COTIZACIÓN — Portada del expediente (por localizador)
+        // El "?" lo hace opcional. Si no está, muestra el buscador
+        // -----------------------------------------------------------------
         {
-            path: '/file/:localizador?', // El "?" lo hace opcional. Si no está, muestra el buscador
+            path: '/file/:localizador?',
             name: 'file_publica',
-            component: () => import('@/views/cotizacion/CotizacionClientView.vue'),
+            component: () => import('@/views/cotizacion/PaxFilePortadaView.vue'),
+            props: true
+        },
+
+        // -----------------------------------------------------------------
+        // COTIZACIÓN — Guía día a día de una propuesta (versión)
+        // -----------------------------------------------------------------
+        {
+            path: '/file/:localizador/v/:version',
+            name: 'cotizacion_guia',
+            component: () => import('@/views/cotizacion/PaxCotizacionGuiaView.vue'),
             props: true
         },
 
@@ -17,7 +31,7 @@ const router = createRouter({
         {
             path: '/huesped/reserva/:localizador',
             name: 'pms_reserva',
-            component: () => import('../views/huesped/PmsReservaView.vue'),
+            component: () => import('@/views/huesped/PmsReservaView.vue'),
             props: true
         },
 
@@ -29,7 +43,7 @@ const router = createRouter({
         {
             path: '/huesped/unidad/:uuidUnidad',
             name: 'guia_publica',
-            component: () => import('../views/huesped/GuiaUnidadView.vue'),
+            component: () => import('@/views/huesped/GuiaUnidadView.vue'),
             props: { mode: 'public' }
         },
 
@@ -41,7 +55,7 @@ const router = createRouter({
         {
             path: '/huesped/evento/:uuidEvento',
             name: 'guia_evento',
-            component: () => import('../views/huesped/GuiaUnidadView.vue'),
+            component: () => import('@/views/huesped/GuiaUnidadView.vue'),
             props: { mode: 'guest' }
         },
 
@@ -51,7 +65,7 @@ const router = createRouter({
         {
             path: '/:pathMatch(.*)*',
             name: 'home',
-            component: () => import('../views/HomeView.vue')
+            component: () => import('@/views/HomeView.vue')
         }
     ]
 })
