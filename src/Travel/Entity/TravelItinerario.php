@@ -50,7 +50,7 @@ class TravelItinerario
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelServicio $servicio = null;
 
-    #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write', 'servicio:item:read', 'segmento:item:read'])]
+    #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
@@ -91,7 +91,7 @@ class TravelItinerario
         }
     }
 
-    #[Groups(['itinerario:read', 'itinerario:item:read', 'servicio:item:read', 'cotizacion:read', 'segmento:item:read'])]
+    #[Groups(['itinerario:read', 'itinerario:item:read', 'servicio:item:read', 'cotizacion:read', 'segmento:read', 'segmento:item:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;

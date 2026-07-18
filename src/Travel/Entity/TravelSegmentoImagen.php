@@ -30,19 +30,19 @@ class TravelSegmentoImagen
     #[Vich\UploadableField(mapping: 'travel_segmento_imagenes', fileNameProperty: 'imageName', size: 'imageSize')]
     private ?File $imageFile = null;
 
-    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'string', nullable: true)]
     private ?string $imageName = null;
 
-    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $imageSize = null;
 
-    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 0;
 
-    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'boolean')]
     private bool $isPortada = false;
 
@@ -50,7 +50,7 @@ class TravelSegmentoImagen
      * Propiedad virtual para exponer la URL completa de la imagen.
      * Es inyectada dinámicamente por el AssetListener de la entidad.
      */
-    #[Groups(['segmento:item:read'])]
+    #[Groups(['segmento:read', 'segmento:item:read'])]
     private ?string $imageUrl = null;
 
     public function __construct()

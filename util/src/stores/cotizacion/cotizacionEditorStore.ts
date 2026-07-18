@@ -2610,6 +2610,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if (!dataActiva.value.cotsegmentos) dataActiva.value.cotsegmentos = [];
                     dataActiva.value.cotsegmentos.push({
                         id: nuevoIdSeg,
+                        segmentoMaestroId: extractIdStr(seg.id || seg['@id']),
                         dia: diaDelSegmento,
                         orden: ordenMaximo,
                         fechaAbsoluta: fechaCalculada,
@@ -2658,6 +2659,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (!dataActiva.value.cotsegmentos) dataActiva.value.cotsegmentos = [];
         dataActiva.value.cotsegmentos.push({
             id: nuevoIdSeg,
+            segmentoMaestroId: extractIdStr(segmentoMaestro.id || segmentoMaestro['@id']),
             dia: 1,
             orden: ordenNuevo,
             fechaAbsoluta: fechaCalculada,
@@ -2769,6 +2771,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const nuevoSeg = {
                 id: nuevoIdSeg,
+                segmentoMaestroId: extractIdStr(segmentoMaestro.id || segmentoMaestro['@id']),
                 dia: diaDelSegmento,
                 orden: 0,
                 fechaAbsoluta: fechaCalculada,
@@ -3215,6 +3218,53 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         fetchProveedorServiciosDeProveedor(targetId);
     };
 
+    const actualizarTextosSegmentos = async (): Promise<void> => {
+        if (!dataActiva.value || !dataActiva.value.cotsegmentos || dataActiva.value.cotsegmentos.length === 0) return;
+
+        // Extraer IDs maestros únicos de los segmentos actuales en la vista
+        const idsToFetch = Array.from(new Set(
+            dataActiva.value.cotsegmentos
+                .map((s: any) => s.segmentoMaestroId)
+                .filter(Boolean)
+        ));
+
+        if (idsToFetch.length === 0) {
+            alert("Los segmentos actuales no tienen vinculación con un maestro. Aplica la plantilla de nuevo para vincularlos.");
+            return;
+        }
+
+        isLoading.value = true;
+        try {
+            // Petición al endpoint en formato id[]=...&id[]=...
+            const idsParam = (idsToFetch as string[]).map((id: string) => `id[]=${id}`).join('&');
+            const res = await apiClient.get(`/platform/travel/segmentos?${idsParam}&pagination=false`);
+            const segmentosMaestros = res.data['hydra:member'] || res.data['member'] || [];
+
+            // Crear diccionario de maestros para búsqueda O(1)
+            const mapaMaestros = new Map();
+            segmentosMaestros.forEach((seg: any) => {
+                mapaMaestros.set(extractIdStr(seg.id || seg['@id']), seg);
+            });
+
+            // Actualizar estrictamente solo los textos e imágenes
+            dataActiva.value.cotsegmentos.forEach((cotSeg: any) => {
+                if (cotSeg.segmentoMaestroId && mapaMaestros.has(cotSeg.segmentoMaestroId)) {
+                    const maestro = mapaMaestros.get(cotSeg.segmentoMaestroId);
+                    cotSeg.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+                    cotSeg.contenidoSnapshot = JSON.parse(JSON.stringify(maestro.contenido || []));
+                    cotSeg.notasSnapshot = extraerNotasSnapshot(maestro);
+                    cotSeg.imagenesSnapshot = extraerImagenesSnapshot(maestro);
+                }
+            });
+
+        } catch (error) {
+            console.error("Error al actualizar textos de los segmentos:", error);
+            alert("Ocurrió un error al actualizar los textos del storytelling.");
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
 
     return {
         catalogos, cotizacion, fileActual, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
@@ -3227,6 +3277,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent, isComponenteBloqueado,
         agregarTarifa, eliminarTarifa, fetchComponenteMaestroSilencioso,
         abrirEditorSegmentos, cerrarEditorSegmentos, aplicarPlantilla,
+        actualizarTextosSegmentos,
         agregarSegmentoIndividual, reordenarSegmentos, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange,

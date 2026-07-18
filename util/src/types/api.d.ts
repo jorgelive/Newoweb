@@ -272,6 +272,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/sales/client/cotizacion/cotizacion_file/{localizador}/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a CotizacionFile resource.
+         * @description Retrieves a CotizacionFile resource.
+         */
+        get: operations["api_salesclientcotizacioncotizacion_file_localizador_version_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/sales/cotizacion_files": {
         parameters: {
             query?: never;
@@ -2041,13 +2061,7 @@ export interface components {
              */
             readonly ganancia?: string;
         };
-        "Cotizacion-file.read_timestamp.read": {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        "Cotizacion-pax_cotizacion.read": {
+        "Cotizacion-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             version: number;
             /**
@@ -2073,7 +2087,7 @@ export interface components {
             totalVenta: string;
             /** @description Obtiene el resumen financiero apto para vistas de cliente. */
             clasificacionFinancieraCliente?: string[] | null;
-            cotservicios?: components["schemas"]["CotizacionCotservicio-pax_cotizacion.read"][];
+            cotservicios?: components["schemas"]["CotizacionCotservicio-pax_file.read_pax_cotizacion.read"][];
         };
         "Cotizacion.html-cotizacion.read_timestamp.read": {
             file?: components["schemas"]["CotizacionFile.html-cotizacion.read_timestamp.read"];
@@ -2160,13 +2174,7 @@ export interface components {
              */
             readonly ganancia?: string;
         };
-        "Cotizacion.html-file.read_timestamp.read": {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        "Cotizacion.html-pax_cotizacion.read": {
+        "Cotizacion.html-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             version: number;
             /**
@@ -2192,7 +2200,7 @@ export interface components {
             totalVenta: string;
             /** @description Obtiene el resumen financiero apto para vistas de cliente. */
             clasificacionFinancieraCliente?: string[] | null;
-            cotservicios?: components["schemas"]["CotizacionCotservicio.html-pax_cotizacion.read"][];
+            cotservicios?: components["schemas"]["CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read"][];
         };
         "Cotizacion.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             file?: components["schemas"]["CotizacionFile.jsonld-cotizacion.read_timestamp.read"];
@@ -2279,13 +2287,7 @@ export interface components {
              */
             readonly ganancia?: string;
         };
-        "Cotizacion.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        "Cotizacion.jsonld-pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "Cotizacion.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default 1 */
             version: number;
             /**
@@ -2311,7 +2313,7 @@ export interface components {
             totalVenta: string;
             /** @description Obtiene el resumen financiero apto para vistas de cliente. */
             clasificacionFinancieraCliente?: string[] | null;
-            cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-pax_cotizacion.read"][];
+            cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
         "Cotizacion.multipart-cotizacion.read_timestamp.read": {
             file?: components["schemas"]["CotizacionFile.multipart-cotizacion.read_timestamp.read"];
@@ -2398,13 +2400,7 @@ export interface components {
              */
             readonly ganancia?: string;
         };
-        "Cotizacion.multipart-file.read_timestamp.read": {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        "Cotizacion.multipart-pax_cotizacion.read": {
+        "Cotizacion.multipart-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             version: number;
             /**
@@ -2430,7 +2426,7 @@ export interface components {
             totalVenta: string;
             /** @description Obtiene el resumen financiero apto para vistas de cliente. */
             clasificacionFinancieraCliente?: string[] | null;
-            cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-pax_cotizacion.read"][];
+            cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-pax_file.read_pax_cotizacion.read"][];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         CotizacionCotcomponente: {
@@ -2594,9 +2590,9 @@ export interface components {
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
-        "CotizacionCotcomponente-pax_cotizacion.read": {
+        "CotizacionCotcomponente-pax_file.read_pax_cotizacion.read": {
             /** @description Obtiene el segmento de la cotización vinculado. */
-            cotsegmento?: components["schemas"]["CotizacionSegmento-pax_cotizacion.read"] | null;
+            cotsegmento?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"] | null;
             /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
             /**
@@ -2615,7 +2611,7 @@ export interface components {
              */
             fechaHoraFin?: string | null;
             /** @description Obtiene las tarifas vinculadas al componente. */
-            cottarifas?: components["schemas"]["CotizacionCottarifa-pax_cotizacion.read"][];
+            cottarifas?: components["schemas"]["CotizacionCottarifa-pax_file.read_pax_cotizacion.read"][];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -2735,9 +2731,9 @@ export interface components {
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
-        "CotizacionCotcomponente.html-pax_cotizacion.read": {
+        "CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read": {
             /** @description Obtiene el segmento de la cotización vinculado. */
-            cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_cotizacion.read"] | null;
+            cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"] | null;
             /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
             /**
@@ -2756,7 +2752,7 @@ export interface components {
              */
             fechaHoraFin?: string | null;
             /** @description Obtiene las tarifas vinculadas al componente. */
-            cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_cotizacion.read"][];
+            cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_file.read_pax_cotizacion.read"][];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -2878,9 +2874,9 @@ export interface components {
             readonly detallesParaCliente?: string[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
-        "CotizacionCotcomponente.jsonld-pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el segmento de la cotización vinculado. */
-            cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_cotizacion.read"] | null;
+            cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"] | null;
             /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
             /**
@@ -2899,7 +2895,7 @@ export interface components {
              */
             fechaHoraFin?: string | null;
             /** @description Obtiene las tarifas vinculadas al componente. */
-            cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_cotizacion.read"][];
+            cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_file.read_pax_cotizacion.read"][];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -3019,9 +3015,9 @@ export interface components {
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
-        "CotizacionCotcomponente.multipart-pax_cotizacion.read": {
+        "CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read": {
             /** @description Obtiene el segmento de la cotización vinculado. */
-            cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_cotizacion.read"] | null;
+            cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"] | null;
             /** @description Obtiene el snapshot del nombre del componente. */
             nombreSnapshot?: string[];
             /**
@@ -3040,7 +3036,7 @@ export interface components {
              */
             fechaHoraFin?: string | null;
             /** @description Obtiene las tarifas vinculadas al componente. */
-            cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_cotizacion.read"][];
+            cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_file.read_pax_cotizacion.read"][];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -3101,12 +3097,12 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionCotservicio-pax_cotizacion.read": {
+        "CotizacionCotservicio-pax_file.read_pax_cotizacion.read": {
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_cotizacion.read"][];
-            cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_cotizacion.read"][];
+            cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_file.read_pax_cotizacion.read"][];
+            cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"][];
             id?: string;
         };
         "CotizacionCotservicio.html": {
@@ -3153,12 +3149,12 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionCotservicio.html-pax_cotizacion.read": {
+        "CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read": {
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_cotizacion.read"][];
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_cotizacion.read"][];
+            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read"][];
+            cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"][];
             id?: string;
         };
         "CotizacionCotservicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -3205,12 +3201,12 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionCotservicio.jsonld-pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_cotizacion.read"][];
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_cotizacion.read"][];
+            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read"][];
+            cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"][];
             id?: string;
         };
         "CotizacionCotservicio.multipart": {
@@ -3257,12 +3253,12 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionCotservicio.multipart-pax_cotizacion.read": {
+        "CotizacionCotservicio.multipart-pax_file.read_pax_cotizacion.read": {
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_cotizacion.read"][];
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_cotizacion.read"][];
+            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read"][];
+            cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"][];
             id?: string;
         };
         CotizacionCottarifa: {
@@ -3470,7 +3466,7 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionCottarifa-pax_cotizacion.read": {
+        "CotizacionCottarifa-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
             proveedorNombreSnapshot?: string | null;
@@ -3645,7 +3641,7 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionCottarifa.html-pax_cotizacion.read": {
+        "CotizacionCottarifa.html-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
             proveedorNombreSnapshot?: string | null;
@@ -3820,7 +3816,7 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionCottarifa.jsonld-pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "CotizacionCottarifa.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default 1 */
             cantidad: number;
             proveedorNombreSnapshot?: string | null;
@@ -3995,7 +3991,7 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionCottarifa.multipart-pax_cotizacion.read": {
+        "CotizacionCottarifa.multipart-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
             proveedorNombreSnapshot?: string | null;
@@ -4045,9 +4041,23 @@ export interface components {
             idioma?: string | null;
             /** @default abierto */
             estado: string;
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
             cotizaciones?: string[];
             filepasajeros?: string[];
             filedocumentos?: string[];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
+            /**
+             * Format: iri-reference
+             * @description Cotización completa de la versión solicitada en la URL (solo detalle).
+             * @example https://example.com/
+             */
+            cotizacionParaCliente?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4055,12 +4065,6 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Cotización activa expuesta al cliente vía el visor público.
-             * @example https://example.com/
-             */
-            readonly cotizacionActiva?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
         };
@@ -4080,6 +4084,10 @@ export interface components {
             idioma?: components["schemas"]["Idioma-file.read_file.item.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
             cotizaciones?: components["schemas"]["Cotizacion-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"][];
             filedocumentos?: components["schemas"]["CotizacionFiledocumento-file.read_file.item.read_timestamp.read"][];
@@ -4099,7 +4107,6 @@ export interface components {
             idioma?: components["schemas"]["Idioma-file.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
-            cotizaciones?: components["schemas"]["Cotizacion-file.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -4145,13 +4152,30 @@ export interface components {
             estado: string;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
-        "CotizacionFile-pax_cotizacion.read": {
+        "CotizacionFile-pax_file.read": {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero-pax_cotizacion.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero-pax_file.read"][];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
             readonly localizador?: string | null;
-            /** @description Cotización activa expuesta al cliente vía el visor público. */
-            readonly cotizacionActiva?: components["schemas"]["Cotizacion-pax_cotizacion.read"] | null;
+            /** @description Documentos visibles para el cliente en el visor público. */
+            readonly documentosParaCliente?: string[];
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile-pax_file.read_pax_cotizacion.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero-pax_file.read_pax_cotizacion.read"][];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
+            /** @description Cotización completa de la versión solicitada en la URL (solo detalle). */
+            cotizacionParaCliente?: components["schemas"]["Cotizacion-pax_file.read_pax_cotizacion.read"] | null;
+            readonly localizador?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
         };
@@ -4173,9 +4197,23 @@ export interface components {
             idioma?: string | null;
             /** @default abierto */
             estado: string;
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
             cotizaciones?: string[];
             filepasajeros?: string[];
             filedocumentos?: string[];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
+            /**
+             * Format: iri-reference
+             * @description Cotización completa de la versión solicitada en la URL (solo detalle).
+             * @example https://example.com/
+             */
+            cotizacionParaCliente?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4183,12 +4221,6 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Cotización activa expuesta al cliente vía el visor público.
-             * @example https://example.com/
-             */
-            readonly cotizacionActiva?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
         };
@@ -4208,6 +4240,10 @@ export interface components {
             idioma?: components["schemas"]["Idioma.html-file.read_file.item.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
             cotizaciones?: components["schemas"]["Cotizacion.html-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"][];
             filedocumentos?: components["schemas"]["CotizacionFiledocumento.html-file.read_file.item.read_timestamp.read"][];
@@ -4227,7 +4263,6 @@ export interface components {
             idioma?: components["schemas"]["Idioma.html-file.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
-            cotizaciones?: components["schemas"]["Cotizacion.html-file.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -4235,13 +4270,30 @@ export interface components {
             readonly localizador?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
-        "CotizacionFile.html-pax_cotizacion.read": {
+        "CotizacionFile.html-pax_file.read": {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-pax_cotizacion.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-pax_file.read"][];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
             readonly localizador?: string | null;
-            /** @description Cotización activa expuesta al cliente vía el visor público. */
-            readonly cotizacionActiva?: components["schemas"]["Cotizacion.html-pax_cotizacion.read"] | null;
+            /** @description Documentos visibles para el cliente en el visor público. */
+            readonly documentosParaCliente?: string[];
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.html-pax_file.read_pax_cotizacion.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-pax_file.read_pax_cotizacion.read"][];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
+            /** @description Cotización completa de la versión solicitada en la URL (solo detalle). */
+            cotizacionParaCliente?: components["schemas"]["Cotizacion.html-pax_file.read_pax_cotizacion.read"] | null;
+            readonly localizador?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
         };
@@ -4263,9 +4315,23 @@ export interface components {
             idioma?: string | null;
             /** @default abierto */
             estado: string;
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
             cotizaciones?: string[];
             filepasajeros?: string[];
             filedocumentos?: string[];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
+            /**
+             * Format: iri-reference
+             * @description Cotización completa de la versión solicitada en la URL (solo detalle).
+             * @example https://example.com/
+             */
+            cotizacionParaCliente?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4273,12 +4339,6 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Cotización activa expuesta al cliente vía el visor público.
-             * @example https://example.com/
-             */
-            readonly cotizacionActiva?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
         };
@@ -4307,6 +4367,10 @@ export interface components {
             idioma?: components["schemas"]["Idioma.jsonld-file.read_file.item.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
             cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.read_file.item.read_timestamp.read"][];
         });
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
@@ -4319,7 +4383,6 @@ export interface components {
             idioma?: components["schemas"]["Idioma.jsonld-file.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
-            cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -4327,13 +4390,30 @@ export interface components {
             readonly localizador?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
-        "CotizacionFile.jsonld-pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "CotizacionFile.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-pax_cotizacion.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-pax_file.read"][];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
             readonly localizador?: string | null;
-            /** @description Cotización activa expuesta al cliente vía el visor público. */
-            readonly cotizacionActiva?: components["schemas"]["Cotizacion.jsonld-pax_cotizacion.read"] | null;
+            /** @description Documentos visibles para el cliente en el visor público. */
+            readonly documentosParaCliente?: string[];
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-pax_file.read_pax_cotizacion.read"][];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
+            /** @description Cotización completa de la versión solicitada en la URL (solo detalle). */
+            cotizacionParaCliente?: components["schemas"]["Cotizacion.jsonld-pax_file.read_pax_cotizacion.read"] | null;
+            readonly localizador?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
         };
@@ -4355,9 +4435,23 @@ export interface components {
             idioma?: string | null;
             /** @default abierto */
             estado: string;
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
             cotizaciones?: string[];
             filepasajeros?: string[];
             filedocumentos?: string[];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
+            /**
+             * Format: iri-reference
+             * @description Cotización completa de la versión solicitada en la URL (solo detalle).
+             * @example https://example.com/
+             */
+            cotizacionParaCliente?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4365,12 +4459,6 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Cotización activa expuesta al cliente vía el visor público.
-             * @example https://example.com/
-             */
-            readonly cotizacionActiva?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
         };
@@ -4390,6 +4478,10 @@ export interface components {
             idioma?: components["schemas"]["Idioma.multipart-file.read_file.item.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
             cotizaciones?: components["schemas"]["Cotizacion.multipart-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"][];
             filedocumentos?: components["schemas"]["CotizacionFiledocumento.multipart-file.read_file.item.read_timestamp.read"][];
@@ -4409,7 +4501,6 @@ export interface components {
             idioma?: components["schemas"]["Idioma.multipart-file.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
-            cotizaciones?: components["schemas"]["Cotizacion.multipart-file.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -4417,13 +4508,30 @@ export interface components {
             readonly localizador?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
-        "CotizacionFile.multipart-pax_cotizacion.read": {
+        "CotizacionFile.multipart-pax_file.read": {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_cotizacion.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_file.read"][];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
             readonly localizador?: string | null;
-            /** @description Cotización activa expuesta al cliente vía el visor público. */
-            readonly cotizacionActiva?: components["schemas"]["Cotizacion.multipart-pax_cotizacion.read"] | null;
+            /** @description Documentos visibles para el cliente en el visor público. */
+            readonly documentosParaCliente?: string[];
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.multipart-pax_file.read_pax_cotizacion.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_file.read_pax_cotizacion.read"][];
+            /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
+            versionesParaCliente?: {
+                [key: string]: string;
+            }[];
+            /** @description Cotización completa de la versión solicitada en la URL (solo detalle). */
+            cotizacionParaCliente?: components["schemas"]["Cotizacion.multipart-pax_file.read_pax_cotizacion.read"] | null;
+            readonly localizador?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
         };
@@ -4694,7 +4802,23 @@ export interface components {
             numerodocumento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.write"];
         };
-        "CotizacionFilepasajero-pax_cotizacion.read": {
+        "CotizacionFilepasajero-pax_file.read": {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+        };
+        "CotizacionFilepasajero-pax_file.read_pax_cotizacion.read": {
             nombre?: string;
             apellido?: string;
             /**
@@ -4774,7 +4898,23 @@ export interface components {
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
         };
-        "CotizacionFilepasajero.html-pax_cotizacion.read": {
+        "CotizacionFilepasajero.html-pax_file.read": {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+        };
+        "CotizacionFilepasajero.html-pax_file.read_pax_cotizacion.read": {
             nombre?: string;
             apellido?: string;
             /**
@@ -4854,7 +4994,23 @@ export interface components {
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
         };
-        "CotizacionFilepasajero.jsonld-pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "CotizacionFilepasajero.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+        };
+        "CotizacionFilepasajero.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
             /**
@@ -4934,7 +5090,23 @@ export interface components {
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
         };
-        "CotizacionFilepasajero.multipart-pax_cotizacion.read": {
+        "CotizacionFilepasajero.multipart-pax_file.read": {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+        };
+        "CotizacionFilepasajero.multipart-pax_file.read_pax_cotizacion.read": {
             nombre?: string;
             apellido?: string;
             /**
@@ -5017,7 +5189,7 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionSegmento-pax_cotizacion.read": {
+        "CotizacionSegmento-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             dia: number;
             /** @default 1 */
@@ -5082,7 +5254,7 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionSegmento.html-pax_cotizacion.read": {
+        "CotizacionSegmento.html-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             dia: number;
             /** @default 1 */
@@ -5147,7 +5319,7 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionSegmento.jsonld-pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default 1 */
             dia: number;
             /** @default 1 */
@@ -5212,7 +5384,7 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        "CotizacionSegmento.multipart-pax_cotizacion.read": {
+        "CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             dia: number;
             /** @default 1 */
@@ -7775,6 +7947,7 @@ export interface components {
             titulo?: string[];
             contenido?: string[];
             notas?: components["schemas"]["Nota-segmento.read"][];
+            imagenes?: components["schemas"]["TravelSegmentoImagen-segmento.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente-segmento.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -7844,6 +8017,7 @@ export interface components {
             titulo?: string[];
             contenido?: string[];
             notas?: components["schemas"]["Nota.html-segmento.read"][];
+            imagenes?: components["schemas"]["TravelSegmentoImagen.html-segmento.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html-segmento.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -7905,6 +8079,7 @@ export interface components {
             titulo?: string[];
             contenido?: string[];
             notas?: components["schemas"]["Nota.jsonld-segmento.read"][];
+            imagenes?: components["schemas"]["TravelSegmentoImagen.jsonld-segmento.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld-segmento.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -7966,6 +8141,7 @@ export interface components {
             titulo?: string[];
             contenido?: string[];
             notas?: components["schemas"]["Nota.multipart-segmento.read"][];
+            imagenes?: components["schemas"]["TravelSegmentoImagen.multipart-segmento.read"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart-segmento.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -9659,6 +9835,18 @@ export interface components {
             /** @description Propiedad virtual para exponer la URL completa de la imagen. */
             imageUrl?: string | null;
         };
+        "TravelSegmentoImagen-segmento.read": {
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
+            imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
+        };
         "TravelSegmentoImagen-segmento.write": {
             /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
@@ -9706,6 +9894,18 @@ export interface components {
             readonly image?: boolean;
         };
         "TravelSegmentoImagen.html-segmento.item.read": {
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
+            imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
+        };
+        "TravelSegmentoImagen.html-segmento.read": {
             /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
             /** @description Obtiene el tamaño de la imagen en bytes. */
@@ -9765,6 +9965,18 @@ export interface components {
             /** @description Propiedad virtual para exponer la URL completa de la imagen. */
             imageUrl?: string | null;
         };
+        "TravelSegmentoImagen.jsonld-segmento.read": {
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
+            imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
+        };
         "TravelSegmentoImagen.multipart": {
             /**
              * Format: iri-reference
@@ -9802,6 +10014,18 @@ export interface components {
             readonly image?: boolean;
         };
         "TravelSegmentoImagen.multipart-segmento.item.read": {
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
+            imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
+        };
+        "TravelSegmentoImagen.multipart-segmento.read": {
             /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
             /** @description Obtiene el tamaño de la imagen en bytes. */
@@ -10840,10 +11064,60 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld-pax_cotizacion.read"];
-                    "application/json": components["schemas"]["CotizacionFile-pax_cotizacion.read"];
-                    "text/html": components["schemas"]["CotizacionFile.html-pax_cotizacion.read"];
-                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart-pax_cotizacion.read"];
+                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld-pax_file.read"];
+                    "application/json": components["schemas"]["CotizacionFile-pax_file.read"];
+                    "text/html": components["schemas"]["CotizacionFile.html-pax_file.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart-pax_file.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salesclientcotizacioncotizacion_file_localizador_version_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFile identifier */
+                localizador: string;
+                /** @description CotizacionFile identifier */
+                version: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionFile resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld-pax_file.read_pax_cotizacion.read"];
+                    "application/json": components["schemas"]["CotizacionFile-pax_file.read_pax_cotizacion.read"];
+                    "text/html": components["schemas"]["CotizacionFile.html-pax_file.read_pax_cotizacion.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart-pax_file.read_pax_cotizacion.read"];
                 };
             };
             /** @description Forbidden */

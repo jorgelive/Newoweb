@@ -457,7 +457,15 @@ const getNombreMaestroRef = (comp: any) => {
 const filtroSegmentos = ref('');
 // ESTADO DEL ACORDEÓN (Móvil) Y EDITORES
 const activeAccordion = ref<'pool' | 'parrafos'>('parrafos');
-const expandirEditores = ref(false); // <--- Editores colapsados por defecto
+const expandirEditores = ref(false);
+
+const isActualizandoTextos = ref(false);
+
+const handleActualizarTextos = async () => {
+  isActualizandoTextos.value = true;
+  await store.actualizarTextosSegmentos();
+  isActualizandoTextos.value = false;
+};
 
 watch(() => store.isSegmentEditorOpen, (open) => {
   if (open) {
@@ -2285,6 +2293,13 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest hidden md:flex items-center"><i class="fas fa-stream mr-2"></i> Párrafos en la Cotización</h3>
                     <div class="flex items-center gap-3 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm w-fit ml-auto">
+
+                      <button @click="handleActualizarTextos"
+                              :disabled="isActualizandoTextos"
+                              class="flex items-center gap-2 text-[10px] font-black text-teal-600 uppercase tracking-widest hover:text-teal-700 transition-colors pr-3 border-r border-slate-200 disabled:opacity-50"
+                              title="Actualizar textos, notas y fotos desde el catálogo maestro">
+                        <i class="fas fa-sync-alt" :class="{'fa-spin': isActualizandoTextos}"></i> Actualizar
+                      </button>
                       <label class="text-[10px] font-black text-slate-600 uppercase tracking-widest cursor-pointer select-none" @click="expandirEditores = !expandirEditores">Expandir Textos</label>
                       <button @click="expandirEditores = !expandirEditores"
                               :class="expandirEditores ? 'bg-teal-500' : 'bg-slate-300'"

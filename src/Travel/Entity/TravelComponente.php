@@ -83,24 +83,24 @@ class TravelComponente
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'string', length: 50, enumType: ComponenteTipoEnum::class)]
     private ComponenteTipoEnum $tipo = ComponenteTipoEnum::EXTRAS;
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'decimal', precision: 4, scale: 1, nullable: true)]
     private ?string $duracion = null;
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $anticipacionalerta = null;
 
@@ -187,7 +187,7 @@ class TravelComponente
         return $this->nombre ?? 'Componente sin nombre';
     }
 
-    #[Groups(['componente:read', 'componente:item:read', 'servicio:item:read', 'segmento:item:read', 'cotizacion:read'])]
+    #[Groups(['componente:read', 'componente:item:read', 'servicio:item:read', 'segmento:read', 'segmento:item:read', 'cotizacion:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;

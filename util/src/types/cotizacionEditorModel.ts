@@ -689,6 +689,3 @@ export const formatModCat = (modalidad?: TarifaModalidadValue | null, categoria?
     if (categoria) partes.push(`Cat: ${CATEGORIA_CONFIG[categoria]?.label || categoria}`);
     return partes.join(' · ');
 };
-
-
-

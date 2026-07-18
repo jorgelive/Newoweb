@@ -66,7 +66,7 @@ class TravelSegmento
     #[ORM\JoinTable(name: 'travel_segmento_notas_rel')]
     private Collection $notas;
 
-    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoImagen::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $imagenes;
 
