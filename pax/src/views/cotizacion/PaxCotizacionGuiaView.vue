@@ -11,6 +11,7 @@
  *  - Los números de día son calendario: si un día no tiene nada, se salta (Día 1, 2, 4...).
  *  - Inclusiones: estadías → primer día; resto → último segmento del servicio.
  *  - Tarifas con proveedor visible (proveedorTituloSnapshot) → botón "ver más" con modal.
+ *  - Resumen financiero: colapsado en el header; expandido divide header y menú de días.
  */
 import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue';
 import { useRouter } from 'vue-router';
@@ -258,7 +259,8 @@ const compsConHora = (b: BloqueVista) =>
 const horaRango = (c: any) => {
   const hi = horaDe(c.fechaHoraInicio);
   const hf = horaDe(c.fechaHoraFin);
-  return hf ? `${hi} – ${hf}` : hi;
+  // Si inicio y fin coinciden, mostrar una sola hora
+  return hf && hf !== hi ? `${hi} – ${hf}` : hi;
 };
 
 // ── Imágenes de segmento (galería) ───────────────────────────────────────────
@@ -275,7 +277,7 @@ const desplazarGaleria = (ev: Event, dir: number) => {
 const navDias = ref<HTMLElement | null>(null);
 const desplazarNav = (dir: number) => navDias.value?.scrollBy({ left: dir * 160, behavior: 'smooth' });
 
-// ── Expandir / colapsar (descripciones e inclusiones) ────────────────────────
+// ── Expandir / colapsar (descripciones, inclusiones y finanzas) ──────────────
 const descExpandida = ref(new Set<string>());
 const incExpandida = ref(new Set<string>());
 const finanzasAbiertas = ref(false);
@@ -323,25 +325,31 @@ const abrirProveedor = (p: ProveedorInfo) => { modalProveedor.value = p; };
 
 const galeriaProveedor = (p: ProveedorInfo) => [...p.servicioImagenes, ...p.imagenes];
 
-// ── Badges de modalidad / categoría ──────────────────────────────────────────
-const MODALIDAD_UI: Record<string, { icon: string; label: string }> = {
-  privado:    { icon: '🔒', label: 'Privado' },
-  compartido: { icon: '👥', label: 'Compartido' },
+// ── Badges de modalidad / categoría (traducibles) ────────────────────────────
+const MODALIDAD_UI: Record<string, { icon: string; i18nKey: string; fallback: string }> = {
+  privado:    { icon: '🔒', i18nKey: 'cot_privado',    fallback: 'Privado' },
+  compartido: { icon: '👥', i18nKey: 'cot_compartido', fallback: 'Compartido' },
 };
-const CATEGORIA_UI: Record<string, { icon: string; label: string }> = {
-  superior: { icon: '✨', label: 'Superior' },
-  estandar: { icon: '🏷️', label: 'Estándar' },
-  lujo:     { icon: '👑', label: 'Lujo' },
+const CATEGORIA_UI: Record<string, { icon: string; i18nKey: string; fallback: string }> = {
+  superior: { icon: '✨', i18nKey: 'cot_superior', fallback: 'Superior' },
+  estandar: { icon: '🏷️', i18nKey: 'cot_estandar', fallback: 'Estándar' },
+  lujo:     { icon: '👑', i18nKey: 'cot_lujo',     fallback: 'Lujo' },
 };
 
 const modCatBadges = (modalidad?: string | null, categoria?: string | null) => {
   const b: { key: string; icon: string; label: string; cls: string }[] = [];
   if (modalidad && MODALIDAD_UI[modalidad]) {
-    b.push({ key: 'mod', ...MODALIDAD_UI[modalidad], cls: 'bg-sky-50 text-sky-700 border-sky-200' });
+    const m = MODALIDAD_UI[modalidad];
+    b.push({ key: 'mod', icon: m.icon, label: maestroStore.t(m.i18nKey) || m.fallback, cls: 'bg-sky-50 text-sky-700 border-sky-200' });
   }
   if (categoria) {
-    const c = CATEGORIA_UI[categoria] ?? { icon: '✨', label: categoria };
-    b.push({ key: 'cat', ...c, cls: 'bg-purple-50 text-purple-700 border-purple-200' });
+    const c = CATEGORIA_UI[categoria];
+    b.push({
+      key: 'cat',
+      icon: c?.icon ?? '✨',
+      label: c ? (maestroStore.t(c.i18nKey) || c.fallback) : categoria,
+      cls: 'bg-purple-50 text-purple-700 border-purple-200',
+    });
   }
   return b;
 };
@@ -382,7 +390,7 @@ const chipsDeLinea = (l: PaxInclusionItem, servicioId: string) => {
   return chips;
 };
 
-// ── Perfiles de pasajero (totales por grupo, solo venta) ─────────────────────
+// ── Perfiles de pasajero (solo venta) ────────────────────────────────────────
 const rangoEdadLabel = (clase: PaxClasePasajero) => {
   if (clase.edadMin <= 0 && clase.edadMax >= 120) return maestroStore.t('cot_sin_edad') || 'Sin restricción de edad';
   if (clase.edadMin > 0 && clase.edadMax < 120) return `${clase.edadMin} - ${clase.edadMax} ${maestroStore.t('cot_anios') || 'años'}`;
@@ -469,15 +477,207 @@ const mvDelta = (deltaUsd: number) => {
             </div>
           </div>
 
-          <h1 class="text-2xl md:text-4xl font-black tracking-tight leading-tight">
-            {{ maestroStore.t('cot_tu_itinerario') || 'Tu itinerario' }}
-          </h1>
-          <p class="text-white/70 text-xs font-bold mt-1 uppercase tracking-widest">
-            {{ totalDiasViaje }} {{ maestroStore.t('cot_dias') || 'días' }}
-            · {{ store.cotizacion.numPax }} pax
-          </p>
+          <div class="flex items-end justify-between gap-4">
+            <div class="min-w-0">
+              <h1 class="text-2xl md:text-4xl font-black tracking-tight leading-tight">
+                {{ maestroStore.t('cot_tu_itinerario') || 'Tu itinerario' }}
+              </h1>
+              <p class="text-white/70 text-xs font-bold mt-1 uppercase tracking-widest">
+                {{ totalDiasViaje }} {{ maestroStore.t('cot_dias') || 'días' }}
+                · {{ store.cotizacion.numPax }} {{ maestroStore.t('cot_pax') || 'pax' }}
+              </p>
+            </div>
+
+            <!-- Resumen financiero colapsado: vive en el header -->
+            <button
+                v-if="store.precioVisible && totalViaje"
+                @click="finanzasAbiertas = !finanzasAbiertas"
+                class="flex-shrink-0 bg-white/5 hover:bg-white/10 backdrop-blur-sm border rounded-2xl px-4 py-2.5 text-right transition-all"
+                :class="finanzasAbiertas ? 'border-emerald-300/60 bg-white/20' : 'border-white/20'"
+            >
+              <p class="text-[8px] font-black text-white/60 uppercase tracking-widest flex items-center justify-end gap-1.5">
+                <i class="fas fa-sack-dollar text-emerald-300"></i>
+                {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
+              </p>
+              <p class="text-lg md:text-2xl font-black tabular-nums leading-tight flex items-center justify-end gap-2">
+                {{ mv(totalViaje.soles, totalViaje.dolares) }}
+                <i
+                    class="fas fa-chevron-down text-xs text-emerald-300 transition-transform"
+                    :class="finanzasAbiertas ? 'rotate-180' : ''"
+                ></i>
+              </p>
+            </button>
+          </div>
         </div>
       </header>
+
+      <!-- ══ RESUMEN FINANCIERO EXPANDIDO: divide el header y el menú de días ══ -->
+      <section
+          v-if="finanzasAbiertas && store.precioVisible"
+          class="bg-emerald-50 border-b border-emerald-200 shadow-inner"
+      >
+        <div class="max-w-3xl mx-auto px-4 py-6">
+
+          <!-- Switch de moneda -->
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <h2 class="text-emerald-700/80 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2">
+              <i class="fas fa-users"></i>
+              {{ maestroStore.t('cot_perfil_pasajero') || 'Análisis por perfil de pasajero' }}
+            </h2>
+            <div class="flex items-center bg-white border border-emerald-200 rounded-xl p-1 gap-1 shadow-sm flex-shrink-0">
+              <button
+                  @click="monedaVista = 'PEN'"
+                  :class="monedaVista === 'PEN' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'"
+                  class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
+              >S/</button>
+              <button
+                  @click="monedaVista = 'USD'"
+                  :class="monedaVista === 'USD' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'"
+                  class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
+              >$</button>
+            </div>
+          </div>
+
+          <!-- Perfiles de pasajero (venta unitaria; el total está en el header) -->
+          <div class="space-y-3">
+            <div
+                v-for="clase in clasesPasajeros"
+                :key="clase.tipo"
+                class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-4 md:p-5"
+            >
+              <div class="flex items-center justify-between gap-4">
+                <div>
+                  <span class="inline-block px-3 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[11px] font-black uppercase tracking-widest mb-1.5">
+                    {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
+                  </span>
+                  <p class="text-xs font-black text-[#376875] bg-[#376875]/[0.06] border border-[#376875]/10 rounded-lg px-2.5 py-1 inline-block">
+                    <i class="fas fa-user-clock mr-1 text-[#E07845]"></i>{{ rangoEdadLabel(clase) }}
+                  </p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    {{ maestroStore.t('cot_venta_unit') || 'Venta unit.' }}
+                  </p>
+                  <p class="text-xl md:text-2xl font-black text-gray-800 tabular-nums leading-none">
+                    {{ mv(clase.resumenPorModo.normal.ventaSoles, clase.resumenPorModo.normal.ventaDolares) }}
+                  </p>
+                  <p class="text-[10px] font-bold text-slate-400 mt-1 tabular-nums">
+                    × {{ clase.cantidad }} {{ maestroStore.t('cot_pax') || 'pax' }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Cortesías del perfil (si las hay) -->
+              <p
+                  v-if="clase.resumenPorModo.cortesia.ventaDolares > 0"
+                  class="mt-3 text-[11px] font-bold text-sky-600 bg-sky-50 border border-sky-100 rounded-xl px-3 py-2 inline-block"
+              >
+                <i class="fas fa-gift mr-1"></i>
+                {{ maestroStore.t('cot_incluye_cortesias') || 'Incluye cortesías valorizadas en' }}
+                {{ mv(clase.resumenPorModo.cortesia.ventaSoles * clase.cantidad, clase.resumenPorModo.cortesia.ventaDolares * clase.cantidad) }}
+              </p>
+            </div>
+          </div>
+
+          <!-- ── Opciones alternativas (upgrades / downgrades) ── -->
+          <div v-if="upgrades.length" class="mt-6">
+            <h2 class="text-emerald-700/80 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2 mb-3">
+              <i class="fas fa-shuffle"></i>
+              {{ maestroStore.t('cot_opciones_alternativas') || 'Opciones alternativas' }}
+            </h2>
+
+            <div class="space-y-3">
+              <div
+                  v-for="(up, ui) in upgrades"
+                  :key="ui"
+                  class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-4 md:p-5"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                      {{ store.traducir(up.servicioNombre) }}
+                    </p>
+                    <p class="text-sm font-black text-gray-800 leading-snug">
+                      {{ store.traducir(up.componenteNombre) }}
+                    </p>
+                    <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <span class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5">
+                        {{ store.traducir(up.tarifaTitulo) }}
+                      </span>
+                      <span
+                          v-for="b in modCatBadges(up.modalidad, up.categoria)"
+                          :key="b.key"
+                          class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider"
+                          :class="b.cls"
+                      >
+                        {{ b.icon }} {{ b.label }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Delta de venta (negativo = descuento, positivo = adicional) -->
+                  <div class="text-right flex-shrink-0">
+                    <span
+                        class="inline-flex flex-col items-end rounded-xl px-3 py-1.5"
+                        :class="up.deltaVentaTotal < 0
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-[#E07845]/10 text-[#E07845]'"
+                    >
+                      <span class="text-[8px] font-black uppercase tracking-widest opacity-80">
+                        <i class="fas mr-0.5" :class="up.deltaVentaTotal < 0 ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'"></i>
+                        {{ up.deltaVentaTotal < 0
+                          ? (maestroStore.t('cot_descuento') || 'Descuento')
+                          : (maestroStore.t('cot_adicional') || 'Adicional') }}
+                      </span>
+                      <span class="text-sm font-black tabular-nums leading-tight">{{ mvDelta(up.deltaVentaTotal) }}</span>
+                    </span>
+                    <p class="text-[9px] font-bold text-slate-400 mt-1 tabular-nums">
+                      {{ mvDelta(up.deltaVentaPorPax) }} {{ maestroStore.t('cot_por_persona') || 'c/u' }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Nota de la alternativa -->
+                <p
+                    v-if="up.notaRol?.length"
+                    class="mt-2.5 text-[11px] font-medium text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 italic"
+                >
+                  <i class="fas fa-circle-info mr-1 text-slate-400 not-italic"></i>
+                  {{ store.traducir(up.notaRol) }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pie: pax/días + adelanto + cerrar -->
+          <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <p class="text-emerald-700/70 text-[11px] font-bold">
+              {{ store.cotizacion.numPax }} {{ maestroStore.t('cot_pasajeros') || 'pasajeros' }}
+              · {{ totalDiasViaje }} {{ maestroStore.t('cot_dias') || 'días' }}
+            </p>
+            <div class="flex items-center gap-3">
+              <div
+                  v-if="Number(store.cotizacion.adelanto) > 0"
+                  class="bg-white rounded-2xl border border-emerald-100 shadow-sm px-4 py-2.5"
+              >
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                  {{ maestroStore.t('cot_adelanto') || 'Adelanto' }}
+                </p>
+                <p class="text-base font-black text-gray-800 tabular-nums leading-none">
+                  {{ store.cotizacion.monedaGlobal }} {{ store.cotizacion.adelanto }}
+                </p>
+              </div>
+              <button
+                  @click="finanzasAbiertas = false"
+                  class="w-9 h-9 rounded-full bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center shadow-sm transition-colors"
+                  :aria-label="maestroStore.t('cot_cerrar') || 'Cerrar'"
+              >
+                <i class="fas fa-chevron-up text-sm"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- Day-nav sticky con flechas -->
       <nav class="sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200/60 shadow-sm">
@@ -485,7 +685,7 @@ const mvDelta = (deltaUsd: number) => {
           <button
               @click="desplazarNav(-1)"
               class="flex-shrink-0 w-7 h-7 rounded-lg bg-white border border-slate-200 text-[#376875]/60 hover:text-[#376875] hover:border-[#376875]/40 transition-colors flex items-center justify-center"
-              aria-label="Días anteriores"
+              :aria-label="maestroStore.t('cot_dias_anteriores') || 'Días anteriores'"
           >
             <i class="fas fa-chevron-left text-[10px]"></i>
           </button>
@@ -508,7 +708,7 @@ const mvDelta = (deltaUsd: number) => {
           <button
               @click="desplazarNav(1)"
               class="flex-shrink-0 w-7 h-7 rounded-lg bg-white border border-slate-200 text-[#376875]/60 hover:text-[#376875] hover:border-[#376875]/40 transition-colors flex items-center justify-center"
-              aria-label="Días siguientes"
+              :aria-label="maestroStore.t('cot_dias_siguientes') || 'Días siguientes'"
           >
             <i class="fas fa-chevron-right text-[10px]"></i>
           </button>
@@ -564,14 +764,12 @@ const mvDelta = (deltaUsd: number) => {
               <div class="min-w-0 flex-1">
                 <p class="text-[9px] font-black text-[#376875]/50 uppercase tracking-widest">
                   {{ store.traducir(item.servicio.nombrePublicoSnapshot) }}
+                  <span class="normal-case text-slate-400 font-bold">· {{ maestroStore.t('cot_noche') || 'Noche' }} {{ item.noche }}/{{ item.totalNoches }}</span>
                 </p>
-                <p class="font-black text-gray-800 text-sm leading-snug truncate">
+                <p class="font-black text-gray-800 text-sm leading-snug">
                   {{ store.traducir(item.segmento.nombreSnapshot) }}
                 </p>
               </div>
-              <span class="flex-shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 whitespace-nowrap">
-                {{ maestroStore.t('cot_noche') || 'Noche' }} {{ item.noche }}/{{ item.totalNoches }}
-              </span>
             </article>
 
             <!-- ── Card completa ── -->
@@ -632,7 +830,7 @@ const mvDelta = (deltaUsd: number) => {
                       class="flex-shrink-0 inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30"
                   >
                     <i class="far fa-clock"></i>
-                    {{ item.horaInicio }}<template v-if="item.horaFin"> – {{ item.horaFin }}</template>
+                    {{ item.horaInicio }}<template v-if="item.horaFin && item.horaFin !== item.horaInicio"> – {{ item.horaFin }}</template>
                   </span>
                 </div>
                 <!-- Hora cuando sí hay galería -->
@@ -641,7 +839,7 @@ const mvDelta = (deltaUsd: number) => {
                     class="inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums mb-3 shadow-md shadow-[#E07845]/30"
                 >
                   <i class="far fa-clock"></i>
-                  {{ item.horaInicio }}<template v-if="item.horaFin"> – {{ item.horaFin }}</template>
+                  {{ item.horaInicio }}<template v-if="item.horaFin && item.horaFin !== item.horaInicio"> – {{ item.horaFin }}</template>
                 </span>
 
                 <!-- Contenido narrativo (truncable) -->
@@ -813,187 +1011,6 @@ const mvDelta = (deltaUsd: number) => {
             >
               {{ maestroStore.t('cot_dia') || 'Día' }} {{ itinerarioVista[di + 1].numeroDia }} →
             </button>
-          </div>
-        </section>
-
-        <!-- ══ RESUMEN FINANCIERO (panel expansible) ══ -->
-        <section v-if="store.precioVisible && (clasesPasajeros.length || totalViaje)" class="pt-12">
-          <div class="bg-emerald-50 border border-emerald-200 rounded-[2rem] shadow-lg shadow-emerald-100/60 overflow-hidden">
-
-            <!-- Cabecera: siempre visible, total a la vista + flecha -->
-            <button
-                @click="finanzasAbiertas = !finanzasAbiertas"
-                class="w-full flex items-center justify-between gap-3 px-5 md:px-7 py-5 text-left hover:bg-emerald-100/40 transition-colors"
-            >
-              <div class="flex items-center gap-3 min-w-0">
-                <span class="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-600/30">
-                  <i class="fas fa-sack-dollar"></i>
-                </span>
-                <div class="min-w-0">
-                  <p class="text-[10px] font-black text-emerald-700/70 uppercase tracking-[0.2em]">
-                    {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
-                  </p>
-                  <p v-if="totalViaje" class="text-2xl md:text-3xl font-black text-emerald-900 tabular-nums leading-tight">
-                    {{ mv(totalViaje.soles, totalViaje.dolares) }}
-                  </p>
-                </div>
-              </div>
-              <span
-                  class="w-9 h-9 rounded-full bg-white border border-emerald-200 text-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm transition-transform"
-                  :class="finanzasAbiertas ? 'rotate-180' : ''"
-              >
-                <i class="fas fa-chevron-down text-sm"></i>
-              </span>
-            </button>
-
-            <!-- Detalle expansible -->
-            <div v-if="finanzasAbiertas" class="px-5 md:px-7 pb-6 border-t border-emerald-200/60">
-
-              <!-- Switch de moneda -->
-              <div class="flex items-center justify-between gap-3 pt-5 mb-4">
-                <h2 class="text-emerald-700/70 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2">
-                  <i class="fas fa-users"></i>
-                  {{ maestroStore.t('cot_perfil_pasajero') || 'Análisis por perfil de pasajero' }}
-                </h2>
-                <div class="flex items-center bg-white border border-emerald-200 rounded-xl p-1 gap-1 shadow-sm flex-shrink-0">
-                  <button
-                      @click="monedaVista = 'PEN'"
-                      :class="monedaVista === 'PEN' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'"
-                      class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
-                  >S/</button>
-                  <button
-                      @click="monedaVista = 'USD'"
-                      :class="monedaVista === 'USD' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'"
-                      class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
-                  >$</button>
-                </div>
-              </div>
-
-              <!-- Perfiles de pasajero (venta unitaria; el total ya está en la cabecera) -->
-              <div class="space-y-3">
-                <div
-                    v-for="clase in clasesPasajeros"
-                    :key="clase.tipo"
-                    class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-4 md:p-5"
-                >
-                  <div class="flex items-center justify-between gap-4">
-                    <div>
-                      <span class="inline-block px-3 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[11px] font-black uppercase tracking-widest mb-1.5">
-                        {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
-                      </span>
-                      <p class="text-xs font-black text-[#376875] bg-[#376875]/[0.06] border border-[#376875]/10 rounded-lg px-2.5 py-1 inline-block">
-                        <i class="fas fa-user-clock mr-1 text-[#E07845]"></i>{{ rangoEdadLabel(clase) }}
-                      </p>
-                    </div>
-                    <div class="text-right flex-shrink-0">
-                      <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                        {{ maestroStore.t('cot_venta_unit') || 'Venta unit.' }}
-                      </p>
-                      <p class="text-xl md:text-2xl font-black text-gray-800 tabular-nums leading-none">
-                        {{ mv(clase.resumenPorModo.normal.ventaSoles, clase.resumenPorModo.normal.ventaDolares) }}
-                      </p>
-                      <p class="text-[10px] font-bold text-slate-400 mt-1 tabular-nums">
-                        × {{ clase.cantidad }} {{ maestroStore.t('cot_pasajeros') || 'pax' }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <!-- Cortesías del perfil (si las hay) -->
-                  <p
-                      v-if="clase.resumenPorModo.cortesia.ventaDolares > 0"
-                      class="mt-3 text-[11px] font-bold text-sky-600 bg-sky-50 border border-sky-100 rounded-xl px-3 py-2 inline-block"
-                  >
-                    <i class="fas fa-gift mr-1"></i>
-                    {{ maestroStore.t('cot_incluye_cortesias') || 'Incluye cortesías valorizadas en' }}
-                    {{ mv(clase.resumenPorModo.cortesia.ventaSoles * clase.cantidad, clase.resumenPorModo.cortesia.ventaDolares * clase.cantidad) }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- ── Opciones alternativas (upgrades / downgrades) ── -->
-              <div v-if="upgrades.length" class="mt-6">
-                <h2 class="text-emerald-700/70 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2 mb-3">
-                  <i class="fas fa-shuffle"></i>
-                  {{ maestroStore.t('cot_opciones_alternativas') || 'Opciones alternativas' }}
-                </h2>
-
-                <div class="space-y-3">
-                  <div
-                      v-for="(up, ui) in upgrades"
-                      :key="ui"
-                      class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-4 md:p-5"
-                  >
-                    <div class="flex items-start justify-between gap-4">
-                      <div class="min-w-0">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                          {{ store.traducir(up.servicioNombre) }}
-                        </p>
-                        <p class="text-sm font-black text-gray-800 leading-snug">
-                          {{ store.traducir(up.componenteNombre) }}
-                        </p>
-                        <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                          <span class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5">
-                            {{ store.traducir(up.tarifaTitulo) }}
-                          </span>
-                          <span
-                              v-for="b in modCatBadges(up.modalidad, up.categoria)"
-                              :key="b.key"
-                              class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider"
-                              :class="b.cls"
-                          >
-                            {{ b.icon }} {{ b.label }}
-                          </span>
-                        </div>
-                      </div>
-
-                      <!-- Delta de venta (negativo = ahorro, positivo = adicional) -->
-                      <div class="text-right flex-shrink-0">
-                        <span
-                            class="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-black tabular-nums"
-                            :class="up.deltaVentaTotal < 0
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-[#E07845]/10 text-[#E07845]'"
-                        >
-                          <i class="fas" :class="up.deltaVentaTotal < 0 ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'"></i>
-                          {{ up.deltaVentaTotal < 0 ? '−' : '+' }} {{ mvDelta(up.deltaVentaTotal) }}
-                        </span>
-                        <p class="text-[9px] font-bold text-slate-400 mt-1 tabular-nums">
-                          {{ up.deltaVentaTotal < 0 ? '−' : '+' }} {{ mvDelta(up.deltaVentaPorPax) }} {{ maestroStore.t('cot_por_persona') || 'c/u' }}
-                        </p>
-                      </div>
-                    </div>
-
-                    <!-- Nota de la alternativa -->
-                    <p
-                        v-if="up.notaRol?.length"
-                        class="mt-2.5 text-[11px] font-medium text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 italic"
-                    >
-                      <i class="fas fa-circle-info mr-1 text-slate-400 not-italic"></i>
-                      {{ store.traducir(up.notaRol) }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Pie: pax/días + adelanto -->
-              <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <p class="text-emerald-700/70 text-[11px] font-bold">
-                  {{ store.cotizacion.numPax }} {{ maestroStore.t('cot_pasajeros') || 'pasajeros' }}
-                  · {{ totalDiasViaje }} {{ maestroStore.t('cot_dias') || 'días' }}
-                </p>
-                <div
-                    v-if="Number(store.cotizacion.adelanto) > 0"
-                    class="bg-white rounded-2xl border border-emerald-100 shadow-sm px-4 py-3"
-                >
-                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                    {{ maestroStore.t('cot_adelanto') || 'Adelanto' }}
-                  </p>
-                  <p class="text-lg font-black text-gray-800 tabular-nums leading-none">
-                    {{ store.cotizacion.monedaGlobal }} {{ store.cotizacion.adelanto }}
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
