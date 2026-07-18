@@ -1531,7 +1531,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const response = await (isUpdate ? apiClient.put : apiClient.post)(endpoint, payload);
             let savedData = response.data;
 
-            if (!savedData.cotservicios) savedData.cotservicios = [];
+
+            if (savedData.cotservicios && !Array.isArray(savedData.cotservicios)) {
+                savedData.cotservicios = Object.values(savedData.cotservicios);
+            } else if (!savedData.cotservicios) {
+                savedData.cotservicios = [];
+            }
+
             savedData.idiomaEdicion = 'es';
 
             // Rehidratación local post-guardado
@@ -1539,13 +1545,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 s.sobreescribirTraduccion = false;
                 s.fechaInicioAbsoluta = getFechaLimpia(s.fechaInicioAbsoluta);
 
+                if (s.cotsegmentos && !Array.isArray(s.cotsegmentos)) {
+                    s.cotsegmentos = Object.values(s.cotsegmentos);
+                }
+
                 s.cotsegmentos?.forEach((seg: CotSegmento) => {
                     seg.sobreescribirTraduccion = false;
                     seg.fechaAbsoluta = getFechaLimpia(seg.fechaAbsoluta);
                 });
 
+                if (s.cotcomponentes && !Array.isArray(s.cotcomponentes)) {
+                    s.cotcomponentes = Object.values(s.cotcomponentes);
+                }
+
                 s.cotcomponentes?.forEach((c: ComponenteCompleto) => {
                     c.sobreescribirTraduccion = false;
+
+                    if (c.snapshotItems && !Array.isArray(c.snapshotItems)) {
+                        c.snapshotItems = Object.values(c.snapshotItems);
+                    }
 
                     c.snapshotItems?.forEach((i: SnapshotItem) => {
                         i.sobreescribirTraduccion = false;
