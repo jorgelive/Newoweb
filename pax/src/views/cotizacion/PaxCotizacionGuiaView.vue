@@ -3,13 +3,14 @@
  * src/views/cotizacion/PaxCotizacionGuiaView.vue
  * Ruta: /file/:localizador/v/:version — guía visual día a día de una propuesta.
  *
- * Mobile-first. Estructura:
- *   1. Header compacto (volver, chip versión, idioma)
- *   2. Day-nav sticky (chips Día 1..N con scroll-spy)
- *   3. Capítulos por día (cover, contenido prose, detalles de vuelo, notas)
- *   4. Incluye / No incluye por excursión (estilo checklist)
- *   5. Análisis por perfil de pasajero (versión cliente: solo venta)
- *   6. Total del viaje
+ * Reglas de armado del itinerario (vista):
+ *  - La hora de un segmento se deriva de sus componentes (min inicio / max fin con hora real).
+ *  - Dentro del día: primero lo que tiene hora (cronológico), luego lo sin hora, al final las estadías.
+ *  - Estadías (componentes sin hora que abarcan varios días, ej. hoteles) se repiten al final
+ *    de cada día de su periodo [checkin .. checkout), con sus inclusiones solo el primer día.
+ *  - Los números de día son calendario: si un día no tiene nada, se salta (Día 1, 2, 4...).
+ *  - Inclusiones: estadías → primer día; resto → último segmento del servicio.
+ *  - Tarifas con proveedor visible (proveedorTituloSnapshot) → botón "ver más" con modal.
  */
 import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue';
 import { useRouter } from 'vue-router';
@@ -85,9 +86,28 @@ const n2 = (v: number) => (Math.round(v * 100) / 100).toLocaleString(maestroStor
 const mv = (soles: number, dolares: number) =>
     monedaVista.value === 'PEN' ? `S/ ${n2(soles)}` : `$ ${n2(dolares)}`;
 
-// ── Helpers de formato ───────────────────────────────────────────────────────
-const formatearFecha = (iso: string) =>
-    new Date(iso.substring(0, 10) + 'T00:00:00').toLocaleDateString(maestroStore.idiomaActual, {
+// ── Helpers de fecha/hora ────────────────────────────────────────────────────
+const dateOf = (iso: string) => iso.substring(0, 10);
+
+/** Hora 'HH:mm' solo si es una hora real (≠ medianoche) */
+const horaDe = (iso?: string | null): string | null => {
+  if (!iso || iso.length < 16) return null;
+  const t = iso.substring(11, 16);
+  return t && t !== '00:00' ? t : null;
+};
+
+const addDays = (ymd: string, n: number) => {
+  const d = new Date(ymd + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  const p = (x: number) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+const diffDays = (a: string, b: string) =>
+    Math.round((new Date(b + 'T00:00:00').getTime() - new Date(a + 'T00:00:00').getTime()) / 86400000);
+
+const formatearFecha = (ymd: string) =>
+    new Date(ymd.substring(0, 10) + 'T00:00:00').toLocaleDateString(maestroStore.idiomaActual, {
       weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Lima',
     });
 
@@ -96,10 +116,205 @@ const fechaChip = (iso: string) =>
       day: '2-digit', month: 'short', timeZone: 'America/Lima',
     });
 
-const portadaDe = (imgs: { imageUrl: string; isPortada: boolean }[]) =>
-    imgs.find(i => i.isPortada)?.imageUrl ?? imgs[0]?.imageUrl ?? null;
+// ── Itinerario de vista (segmentos → bloques por día) ────────────────────────
+interface BloqueVista {
+  key: string;
+  servicio: any;
+  segmento: any;
+  componentes: any[];
+  horaInicio: string | null;   // derivada del primer componente con hora
+  horaFin: string | null;      // derivada del último componente con hora
+  esEstadia: boolean;          // alojamiento / periodo multi-día sin horas
+  esRepeticion: boolean;       // repetición de la estadía en días siguientes
+  noche: number;               // 1..totalNoches (solo estadías)
+  totalNoches: number;
+  totalSegmentosServicio: number;
+  mostrarTituloServicio: boolean; // título grande: 1er segmento de servicio multi-segmento en el día
+  mostrarInclusiones: boolean;
+}
 
-// ── Badges de modalidad / categoría (espejo capado del reporte interno) ──────
+interface DiaVista {
+  fecha: string;      // YYYY-MM-DD
+  numeroDia: number;  // basado en calendario (salta días vacíos)
+  bloques: BloqueVista[];
+}
+
+const itinerarioVista = computed<DiaVista[]>(() => {
+  const cot: any = store.cotizacion;
+  if (!cot?.cotservicios?.length) return [];
+
+  const porFecha = new Map<string, BloqueVista[]>();
+  const push = (fecha: string, b: BloqueVista) => {
+    if (!porFecha.has(fecha)) porFecha.set(fecha, []);
+    porFecha.get(fecha)!.push(b);
+  };
+
+  for (const servicio of cot.cotservicios) {
+    const segs = [...(servicio.cotsegmentos ?? [])].sort((a: any, b: any) => (a.dia - b.dia) || (a.orden - b.orden));
+
+    for (const segmento of segs) {
+      const comps = (servicio.cotcomponentes ?? []).filter((c: any) => c.cotsegmento?.id === segmento.id);
+
+      // Hora dinámica del segmento: min inicio / max fin de componentes con hora real
+      const inicios = comps.map((c: any) => (horaDe(c.fechaHoraInicio) ? c.fechaHoraInicio : null)).filter(Boolean) as string[];
+      const fines   = comps.map((c: any) => (horaDe(c.fechaHoraFin)    ? c.fechaHoraFin    : null)).filter(Boolean) as string[];
+      const horaInicio = inicios.length ? inicios.sort()[0].substring(11, 16) : null;
+      const horaFin    = fines.length   ? fines.sort()[fines.length - 1].substring(11, 16) : null;
+
+      const base = dateOf(segmento.fechaAbsoluta);
+
+      // Estadía: sin horas reales y con componentes que terminan en fecha posterior (hoteles)
+      let finPeriodo = base;
+      for (const c of comps) {
+        if (c.fechaHoraFin && dateOf(c.fechaHoraFin) > finPeriodo) finPeriodo = dateOf(c.fechaHoraFin);
+      }
+      const esEstadia = !horaInicio && !horaFin && finPeriodo > base;
+      const totalNoches = esEstadia ? diffDays(base, finPeriodo) : 1;
+
+      // Estadías: se pintan cada día del periodo [checkin .. checkout)
+      const fechas = esEstadia
+          ? Array.from({ length: totalNoches }, (_, i) => addDays(base, i))
+          : [base];
+
+      fechas.forEach((fecha, rep) => {
+        push(fecha, {
+          key: `${segmento.id}-${fecha}`,
+          servicio, segmento, componentes: comps,
+          horaInicio, horaFin,
+          esEstadia, esRepeticion: rep > 0,
+          noche: rep + 1, totalNoches,
+          totalSegmentosServicio: segs.length,
+          mostrarTituloServicio: false,
+          mostrarInclusiones: false,
+        });
+      });
+    }
+  }
+
+  const fechasOrdenadas = [...porFecha.keys()].sort();
+  if (!fechasOrdenadas.length) return [];
+  const fechaBase = fechasOrdenadas[0];
+
+  const dias: DiaVista[] = fechasOrdenadas.map((fecha) => {
+    const bloques = porFecha.get(fecha)!;
+    // Orden del día: con hora (cronológico) → sin hora → estadías
+    bloques.sort((a, b) => {
+      const ka = a.horaInicio ? 0 : (a.esEstadia ? 2 : 1);
+      const kb = b.horaInicio ? 0 : (b.esEstadia ? 2 : 1);
+      if (ka !== kb) return ka - kb;
+      if (a.horaInicio && b.horaInicio) return a.horaInicio.localeCompare(b.horaInicio);
+      return 0;
+    });
+    // Título de servicio grande en el 1er segmento (por día) de servicios multi-segmento
+    const vistos = new Set<string>();
+    for (const b of bloques) {
+      b.mostrarTituloServicio = b.totalSegmentosServicio > 1 && !vistos.has(b.servicio.id);
+      vistos.add(b.servicio.id);
+    }
+    return { fecha, numeroDia: diffDays(fechaBase, fecha) + 1, bloques };
+  });
+
+  // Ancla de inclusiones por servicio: estadías → 1er bloque; resto → último bloque
+  const primera = new Map<string, string>();
+  const ultima = new Map<string, string>();
+  const tieneEstadia = new Set<string>();
+  for (const dia of dias) {
+    for (const b of dia.bloques) {
+      const sid = b.servicio.id;
+      if (!primera.has(sid)) primera.set(sid, b.key);
+      ultima.set(sid, b.key);
+      if (b.esEstadia) tieneEstadia.add(sid);
+    }
+  }
+  for (const dia of dias) {
+    for (const b of dia.bloques) {
+      const sid = b.servicio.id;
+      const ancla = tieneEstadia.has(sid) ? primera.get(sid) : ultima.get(sid);
+      b.mostrarInclusiones = b.key === ancla && !!inclusionPorServicio.value.get(sid);
+    }
+  }
+
+  return dias;
+});
+
+const totalDiasViaje = computed(() =>
+    itinerarioVista.value.length ? itinerarioVista.value[itinerarioVista.value.length - 1].numeroDia : 0);
+
+// ── Horarios de componentes ──────────────────────────────────────────────────
+const compsConHora = (b: BloqueVista) =>
+    b.componentes
+        .filter((c: any) => horaDe(c.fechaHoraInicio))
+        .sort((a: any, b2: any) => a.fechaHoraInicio.localeCompare(b2.fechaHoraInicio));
+
+const horaRango = (c: any) => {
+  const hi = horaDe(c.fechaHoraInicio);
+  const hf = horaDe(c.fechaHoraFin);
+  return hf ? `${hi} – ${hf}` : hi;
+};
+
+// ── Imágenes de segmento (galería) ───────────────────────────────────────────
+const imagenesDe = (segmento: any): { imageUrl: string }[] =>
+    (segmento.imagenesSnapshot ?? []).filter((i: any) => i.imageUrl);
+
+const desplazarGaleria = (ev: Event, dir: number) => {
+  const wrap = (ev.currentTarget as HTMLElement).closest('[data-galeria]');
+  const track = wrap?.querySelector('.galeria-track') as HTMLElement | null;
+  track?.scrollBy({ left: dir * track.clientWidth, behavior: 'smooth' });
+};
+
+// ── Day-nav: flechas de desplazamiento ───────────────────────────────────────
+const navDias = ref<HTMLElement | null>(null);
+const desplazarNav = (dir: number) => navDias.value?.scrollBy({ left: dir * 160, behavior: 'smooth' });
+
+// ── Expandir / colapsar (descripciones e inclusiones) ────────────────────────
+const descExpandida = ref(new Set<string>());
+const incExpandida = ref(new Set<string>());
+const finanzasAbiertas = ref(false);
+const toggle = (set: Set<string>, key: string) => { set.has(key) ? set.delete(key) : set.add(key); };
+
+/** ¿La descripción es lo bastante larga como para truncarla? */
+const descEsLarga = (segmento: any) => (store.traducir(segmento.contenidoSnapshot) || '').length > 450;
+
+// ── i18n helper (clave estable para lookups) ─────────────────────────────────
+const contenidoEs = (i18n: any[] | undefined): string =>
+    i18n?.find((c: any) => c.language === 'es')?.content ?? i18n?.[0]?.content ?? '';
+
+// ── Proveedores visibles (modal "ver más") ───────────────────────────────────
+interface ProveedorInfo {
+  titulo: any[];
+  url: string | null;
+  imagenes: { imageUrl: string }[];
+  servicioTitulo: any[];
+  servicioImagenes: { imageUrl: string }[];
+}
+
+const proveedorPorTarifa = computed(() => {
+  const m = new Map<string, ProveedorInfo>();
+  const cot: any = store.cotizacion;
+  for (const srv of cot?.cotservicios ?? []) {
+    for (const comp of srv.cotcomponentes ?? []) {
+      for (const t of comp.cottarifas ?? []) {
+        if (t.proveedorTituloSnapshot?.length && !t.proveedorOculto) {
+          m.set(`${srv.id}::${contenidoEs(t.tituloSnapshot)}`, {
+            titulo: t.proveedorTituloSnapshot,
+            url: t.proveedorUrlSnapshot ?? null,
+            imagenes: (t.proveedorImagenesSnapshot ?? []).filter((i: any) => i.imageUrl),
+            servicioTitulo: t.proveedorServicioTituloSnapshot ?? [],
+            servicioImagenes: (t.proveedorServicioImagenesSnapshot ?? []).filter((i: any) => i.imageUrl),
+          });
+        }
+      }
+    }
+  }
+  return m;
+});
+
+const modalProveedor = ref<ProveedorInfo | null>(null);
+const abrirProveedor = (p: ProveedorInfo) => { modalProveedor.value = p; };
+
+const galeriaProveedor = (p: ProveedorInfo) => [...p.servicioImagenes, ...p.imagenes];
+
+// ── Badges de modalidad / categoría ──────────────────────────────────────────
 const MODALIDAD_UI: Record<string, { icon: string; label: string }> = {
   privado:    { icon: '🔒', label: 'Privado' },
   compartido: { icon: '👥', label: 'Compartido' },
@@ -122,7 +337,13 @@ const modCatBadges = (modalidad?: string | null, categoria?: string | null) => {
   return b;
 };
 
-// ── Inclusiones por excursión (versión cliente: sin montos) ─────────────────
+// ── Inclusiones (versión cliente: sin montos) ────────────────────────────────
+const inclusionPorServicio = computed(() => {
+  const m = new Map<string, any>();
+  for (const srv of store.inclusiones) m.set(srv.servicioId, srv);
+  return m;
+});
+
 const seccionesInclusion = (srv: { incluidos: PaxInclusionItem[]; noIncluidos: PaxInclusionItem[]; cortesias: PaxInclusionItem[]; opcionales: PaxInclusionItem[] }) => ([
   { key: 'incluidos',   titulo: maestroStore.t('cot_incluye')    || 'Incluye',     icono: 'fa-check-circle text-emerald-500', lineas: srv.incluidos },
   { key: 'noIncluidos', titulo: maestroStore.t('cot_no_incluye') || 'No incluye',  icono: 'fa-times-circle text-red-400',     lineas: srv.noIncluidos },
@@ -130,50 +351,29 @@ const seccionesInclusion = (srv: { incluidos: PaxInclusionItem[]; noIncluidos: P
   { key: 'opcionales',  titulo: maestroStore.t('cot_opcional')   || 'Opcional',    icono: 'fa-circle-question text-amber-500', lineas: srv.opcionales },
 ].filter(s => s.lineas.length > 0));
 
-/** Chips de tarifa de una línea de inclusión (título + modalidad/categoría, sin precios) */
-const chipsDeLinea = (l: PaxInclusionItem) => {
-  const chips: { titulo: string; badges: ReturnType<typeof modCatBadges> }[] = [];
+/** Chips de tarifa de una línea (título + badges + proveedor si es visible) */
+const chipsDeLinea = (l: PaxInclusionItem, servicioId: string) => {
+  const chips: { titulo: string; badges: ReturnType<typeof modCatBadges>; proveedor: ProveedorInfo | null }[] = [];
+  const conProveedor = (tarifaTitulo: any) =>
+      proveedorPorTarifa.value.get(`${servicioId}::${contenidoEs(tarifaTitulo)}`) ?? null;
+
   if (l.tarifas.length) {
     for (const t of l.tarifas as PaxTarifaFinanciera[]) {
       const titulo = store.traducir(t.tarifaTitulo);
       const badges = modCatBadges(t.modalidad, t.categoria);
-      if (titulo || badges.length) chips.push({ titulo, badges });
+      const proveedor = conProveedor(t.tarifaTitulo);
+      if (titulo || badges.length || proveedor) chips.push({ titulo, badges, proveedor });
     }
   } else {
     const badges = modCatBadges(l.modalidad, l.categoria);
     const titulo = store.traducir(l.tarifaTitulo);
-    if (titulo || badges.length) chips.push({ titulo, badges });
+    const proveedor = conProveedor(l.tarifaTitulo);
+    if (titulo || badges.length || proveedor) chips.push({ titulo, badges, proveedor });
   }
   return chips;
 };
 
-// ── Anclar inclusiones a su servicio dentro del itinerario ──────────────────
-/** Inclusiones indexadas por servicioId */
-const inclusionPorServicio = computed(() => {
-  const m = new Map<string, (typeof store.inclusiones)[number]>();
-  for (const srv of store.inclusiones) m.set(srv.servicioId, srv);
-  return m;
-});
-
-/** Último segmento (en orden del itinerario) de cada servicio: ahí se muestra su bloque */
-const ultimoSegmentoPorServicio = computed(() => {
-  const m = new Map<string, string>();
-  for (const dia of store.itinerario) {
-    for (const item of dia.segmentos) {
-      m.set(item.servicio.id, item.segmento.id);
-    }
-  }
-  return m;
-});
-
-/** Devuelve el bloque de inclusiones si este item es el último segmento de su servicio */
-const inclusionDeItem = (item: { servicio: { id: string }; segmento: { id: string } }) => {
-  if (ultimoSegmentoPorServicio.value.get(item.servicio.id) !== item.segmento.id) return null;
-  const srv = inclusionPorServicio.value.get(item.servicio.id);
-  return srv && seccionesInclusion(srv).length ? srv : null;
-};
-
-// ── Perfiles de pasajero (solo venta) ────────────────────────────────────────
+// ── Perfiles de pasajero (totales por grupo, solo venta) ─────────────────────
 const rangoEdadLabel = (clase: PaxClasePasajero) => {
   if (clase.edadMin <= 0 && clase.edadMax >= 120) return maestroStore.t('cot_sin_edad') || 'Sin restricción de edad';
   if (clase.edadMin > 0 && clase.edadMax < 120) return `${clase.edadMin} - ${clase.edadMax} ${maestroStore.t('cot_anios') || 'años'}`;
@@ -252,25 +452,43 @@ const totalViaje = computed(() => {
             {{ maestroStore.t('cot_tu_itinerario') || 'Tu itinerario' }}
           </h1>
           <p class="text-white/70 text-xs font-bold mt-1 uppercase tracking-widest">
-            {{ store.itinerario.length }} {{ maestroStore.t('cot_dias') || 'días' }}
+            {{ totalDiasViaje }} {{ maestroStore.t('cot_dias') || 'días' }}
             · {{ store.cotizacion.numPax }} pax
           </p>
         </div>
       </header>
 
-      <!-- Day-nav sticky -->
+      <!-- Day-nav sticky con flechas -->
       <nav class="sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200/60 shadow-sm">
-        <div class="max-w-3xl mx-auto px-4 py-2.5 flex gap-2 overflow-x-auto no-scrollbar">
+        <div class="max-w-3xl mx-auto px-2 py-2.5 flex items-center gap-1">
           <button
-              v-for="dia in store.itinerario"
-              :key="dia.fecha"
-              @click="irADia(dia.numeroDia)"
-              class="flex-shrink-0 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all"
-              :class="diaActivo === dia.numeroDia
-                ? 'bg-[#376875] text-white shadow-md shadow-[#376875]/20'
-                : 'bg-white text-[#376875]/60 border border-slate-200 hover:border-[#376875]/40'"
+              @click="desplazarNav(-1)"
+              class="flex-shrink-0 w-7 h-7 rounded-lg bg-white border border-slate-200 text-[#376875]/60 hover:text-[#376875] hover:border-[#376875]/40 transition-colors flex items-center justify-center"
+              aria-label="Días anteriores"
           >
-            {{ maestroStore.t('cot_dia') || 'Día' }} {{ dia.numeroDia }}
+            <i class="fas fa-chevron-left text-[10px]"></i>
+          </button>
+
+          <div ref="navDias" class="flex-1 flex gap-2 overflow-x-auto no-scrollbar px-1">
+            <button
+                v-for="dia in itinerarioVista"
+                :key="dia.fecha"
+                @click="irADia(dia.numeroDia)"
+                class="flex-shrink-0 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all"
+                :class="diaActivo === dia.numeroDia
+                  ? 'bg-[#376875] text-white shadow-md shadow-[#376875]/20'
+                  : 'bg-white text-[#376875]/60 border border-slate-200 hover:border-[#376875]/40'"
+            >
+              {{ maestroStore.t('cot_dia') || 'Día' }} {{ dia.numeroDia }}
+            </button>
+          </div>
+
+          <button
+              @click="desplazarNav(1)"
+              class="flex-shrink-0 w-7 h-7 rounded-lg bg-white border border-slate-200 text-[#376875]/60 hover:text-[#376875] hover:border-[#376875]/40 transition-colors flex items-center justify-center"
+              aria-label="Días siguientes"
+          >
+            <i class="fas fa-chevron-right text-[10px]"></i>
           </button>
         </div>
       </nav>
@@ -279,7 +497,7 @@ const totalViaje = computed(() => {
 
         <!-- ══ CAPÍTULOS POR DÍA ══ -->
         <section
-            v-for="dia in store.itinerario"
+            v-for="(dia, di) in itinerarioVista"
             :key="dia.fecha"
             :id="`dia-${dia.numeroDia}`"
             :data-dia="dia.numeroDia"
@@ -296,241 +514,396 @@ const totalViaje = computed(() => {
                 {{ formatearFecha(dia.fecha) }}
               </h2>
               <p class="text-[10px] font-bold text-[#376875]/50 uppercase tracking-widest">
-                {{ dia.segmentos.length }} {{ dia.segmentos.length === 1 ? (maestroStore.t('cot_actividad') || 'actividad') : (maestroStore.t('cot_actividades') || 'actividades') }}
+                {{ dia.bloques.length }} {{ dia.bloques.length === 1 ? (maestroStore.t('cot_actividad') || 'actividad') : (maestroStore.t('cot_actividades') || 'actividades') }}
               </p>
             </div>
           </div>
 
-          <!-- Segmentos del día -->
-          <article
-              v-for="item in dia.segmentos"
-              :key="item.segmento.id"
-              class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-6"
-          >
-            <!-- Cover -->
-            <div v-if="portadaDe(item.segmento.imagenesSnapshot)" class="h-48 md:h-64 relative overflow-hidden">
-              <img
-                  :src="portadaDe(item.segmento.imagenesSnapshot)!"
-                  class="w-full h-full object-cover"
-                  loading="lazy"
-              />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-              <div class="absolute bottom-0 left-0 p-5 md:p-6">
-                <p class="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow">
+          <!-- Bloques del día -->
+          <template v-for="item in dia.bloques" :key="item.key">
+
+            <!-- Título grande del servicio (1er segmento de servicios multi-segmento) -->
+            <h3
+                v-if="item.mostrarTituloServicio && !item.esRepeticion"
+                class="text-xl md:text-2xl font-black text-[#376875] leading-tight mb-3 mt-2 flex items-start gap-2.5"
+            >
+              <i class="fas fa-route text-[#E07845] text-sm mt-2 flex-shrink-0"></i>
+              <span>{{ store.traducir(item.servicio.nombrePublicoSnapshot) }}</span>
+            </h3>
+
+            <!-- ── Card compacta: repetición de estadía (noche 2+) ── -->
+            <article
+                v-if="item.esRepeticion"
+                class="bg-white rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 px-5 py-4 mb-6 flex items-center gap-4"
+            >
+              <span class="w-10 h-10 rounded-xl bg-[#376875]/[0.06] text-[#376875] flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-moon"></i>
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="text-[9px] font-black text-[#376875]/50 uppercase tracking-widest">
                   {{ store.traducir(item.servicio.nombrePublicoSnapshot) }}
                 </p>
-                <h3 class="text-white text-xl md:text-2xl font-black leading-tight drop-shadow-md">
+                <p class="font-black text-gray-800 text-sm leading-snug truncate">
                   {{ store.traducir(item.segmento.nombreSnapshot) }}
-                </h3>
+                </p>
               </div>
-            </div>
+              <span class="flex-shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 whitespace-nowrap">
+                {{ maestroStore.t('cot_noche') || 'Noche' }} {{ item.noche }}/{{ item.totalNoches }}
+              </span>
+            </article>
 
-            <div class="p-5 md:p-7">
-              <!-- Título (solo si no hubo cover) -->
-              <template v-if="!portadaDe(item.segmento.imagenesSnapshot)">
-                <p class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
-                  {{ store.traducir(item.servicio.nombrePublicoSnapshot) }}
-                </p>
-                <h3 class="text-gray-800 text-lg md:text-xl font-black leading-tight mb-3">
-                  {{ store.traducir(item.segmento.nombreSnapshot) }}
-                </h3>
-              </template>
+            <!-- ── Card completa ── -->
+            <article
+                v-else
+                class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-6"
+            >
+              <!-- Galería de imágenes (desplazable) -->
+              <div v-if="imagenesDe(item.segmento).length" class="h-48 md:h-64 relative overflow-hidden" data-galeria>
+                <div class="galeria-track flex h-full overflow-x-auto snap-x snap-mandatory no-scrollbar">
+                  <img
+                      v-for="(img, ii) in imagenesDe(item.segmento)"
+                      :key="ii"
+                      :src="img.imageUrl"
+                      class="w-full h-full flex-shrink-0 snap-center object-cover"
+                      loading="lazy"
+                  />
+                </div>
+                <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
 
-              <!-- Contenido narrativo -->
-              <div
-                  class="prose prose-sm max-w-none text-slate-600 prose-strong:text-[#376875] prose-a:text-[#E07845] prose-p:leading-relaxed"
-                  v-html="store.traducir(item.segmento.contenidoSnapshot)"
-              />
+                <!-- Flechas de galería -->
+                <template v-if="imagenesDe(item.segmento).length > 1">
+                  <button @click="desplazarGaleria($event, -1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm flex items-center justify-center transition-colors">
+                    <i class="fas fa-chevron-left text-xs"></i>
+                  </button>
+                  <button @click="desplazarGaleria($event, 1)" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm flex items-center justify-center transition-colors">
+                    <i class="fas fa-chevron-right text-xs"></i>
+                  </button>
+                  <span class="absolute top-3 right-3 text-[9px] font-black text-white bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 uppercase tracking-wider">
+                    <i class="fas fa-images mr-1"></i>{{ imagenesDe(item.segmento).length }}
+                  </span>
+                </template>
 
-              <!-- Detalles operativos para el cliente (vuelos, recojos) -->
-              <template v-for="comp in item.componentes" :key="comp.id">
-                <div
-                    v-for="det in comp.detallesParaCliente"
-                    :key="det.id"
-                    class="mt-4 flex items-start gap-3 bg-[#376875]/[0.04] border border-[#376875]/10 rounded-2xl px-4 py-3"
+                <div class="absolute bottom-0 left-0 p-5 md:p-6 pointer-events-none">
+                  <p v-if="!item.mostrarTituloServicio" class="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow">
+                    {{ store.traducir(item.servicio.nombrePublicoSnapshot) }}
+                  </p>
+                  <h4 class="text-white text-lg md:text-xl font-black leading-tight drop-shadow-md">
+                    {{ store.traducir(item.segmento.nombreSnapshot) }}
+                  </h4>
+                </div>
+              </div>
+
+              <div class="p-5 md:p-7">
+                <!-- Encabezado (solo si no hubo galería) -->
+                <div v-if="!imagenesDe(item.segmento).length" class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p v-if="!item.mostrarTituloServicio" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
+                      {{ store.traducir(item.servicio.nombrePublicoSnapshot) }}
+                    </p>
+                    <h4 class="text-gray-800 text-base md:text-lg font-black leading-tight mb-3">
+                      {{ store.traducir(item.segmento.nombreSnapshot) }}
+                    </h4>
+                  </div>
+                  <!-- Rango horario del segmento (derivado de componentes) -->
+                  <span
+                      v-if="item.horaInicio"
+                      class="flex-shrink-0 inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30"
+                  >
+                    <i class="far fa-clock"></i>
+                    {{ item.horaInicio }}<template v-if="item.horaFin"> – {{ item.horaFin }}</template>
+                  </span>
+                </div>
+                <!-- Hora cuando sí hay galería -->
+                <span
+                    v-else-if="item.horaInicio"
+                    class="inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums mb-3 shadow-md shadow-[#E07845]/30"
                 >
-                  <i class="fas fa-circle-info text-[#E07845] mt-0.5 flex-shrink-0"></i>
-                  <p class="text-sm font-bold text-[#376875] leading-snug">{{ store.traducir(det.detalle) }}</p>
+                  <i class="far fa-clock"></i>
+                  {{ item.horaInicio }}<template v-if="item.horaFin"> – {{ item.horaFin }}</template>
+                </span>
+
+                <!-- Contenido narrativo (truncable) -->
+                <div class="relative">
+                  <div
+                      class="prose prose-sm max-w-none text-slate-600 prose-strong:text-[#376875] prose-a:text-[#E07845] prose-p:leading-relaxed transition-all"
+                      :class="descEsLarga(item.segmento) && !descExpandida.has(item.key) ? 'max-h-36 overflow-hidden' : ''"
+                      v-html="store.traducir(item.segmento.contenidoSnapshot)"
+                  />
+                  <div
+                      v-if="descEsLarga(item.segmento) && !descExpandida.has(item.key)"
+                      class="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent pointer-events-none"
+                  ></div>
                 </div>
-              </template>
+                <button
+                    v-if="descEsLarga(item.segmento)"
+                    @click="toggle(descExpandida, item.key)"
+                    class="mt-1 text-[10px] font-black uppercase tracking-widest text-[#E07845] hover:text-[#D06535] transition-colors"
+                >
+                  <i class="fas mr-1" :class="descExpandida.has(item.key) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                  {{ descExpandida.has(item.key) ? (maestroStore.t('cot_leer_menos') || 'Leer menos') : (maestroStore.t('cot_leer_mas') || 'Leer más') }}
+                </button>
 
-              <!-- Notas / recomendaciones -->
-              <details
-                  v-for="nota in item.segmento.notasSnapshot"
-                  :key="nota.id"
-                  class="mt-4 group/nota bg-amber-50/60 border border-amber-100 rounded-2xl overflow-hidden"
-              >
-                <summary class="px-4 py-3 cursor-pointer list-none flex items-center justify-between gap-2 text-amber-800 font-black text-xs uppercase tracking-wider hover:bg-amber-50 transition-colors">
-                  <span><i class="fas fa-lightbulb mr-2"></i>{{ store.traducir(nota.titulo) }}</span>
-                  <i class="fas fa-chevron-down text-amber-400 transition-transform group-open/nota:rotate-180"></i>
-                </summary>
+                <!-- Horarios de componentes (con hora real) -->
+                <div v-if="compsConHora(item).length > 1" class="mt-4 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 space-y-2">
+                  <p
+                      v-for="c in compsConHora(item)"
+                      :key="c.id"
+                      class="flex items-center gap-2.5 text-xs font-bold text-slate-500"
+                  >
+                    <i class="far fa-clock text-[#E07845] flex-shrink-0"></i>
+                    <span class="tabular-nums text-[#376875] font-black text-sm flex-shrink-0 whitespace-nowrap">{{ horaRango(c) }}</span>
+                    <span class="truncate">{{ store.traducir(c.nombreSnapshot) || store.traducir(item.segmento.nombreSnapshot) }}</span>
+                  </p>
+                </div>
+
+                <!-- Detalles operativos para el cliente (vuelos, recojos) -->
+                <template v-for="comp in item.componentes" :key="comp.id">
+                  <div
+                      v-for="det in comp.detallesParaCliente"
+                      :key="det.id"
+                      class="mt-4 flex items-start gap-3 bg-[#376875]/[0.04] border border-[#376875]/10 rounded-2xl px-4 py-3"
+                  >
+                    <i class="fas fa-circle-info text-[#E07845] mt-0.5 flex-shrink-0"></i>
+                    <p class="text-sm font-bold text-[#376875] leading-snug">{{ store.traducir(det.detalle) }}</p>
+                  </div>
+                </template>
+
+                <!-- Notas / recomendaciones -->
+                <details
+                    v-for="nota in item.segmento.notasSnapshot"
+                    :key="nota.id"
+                    class="mt-4 group/nota bg-amber-50/60 border border-amber-100 rounded-2xl overflow-hidden"
+                >
+                  <summary class="px-4 py-3 cursor-pointer list-none flex items-center justify-between gap-2 text-amber-800 font-black text-xs uppercase tracking-wider hover:bg-amber-50 transition-colors">
+                    <span><i class="fas fa-lightbulb mr-2"></i>{{ store.traducir(nota.titulo) }}</span>
+                    <i class="fas fa-chevron-down text-amber-400 transition-transform group-open/nota:rotate-180"></i>
+                  </summary>
+                  <div
+                      class="px-4 pb-4 prose prose-sm max-w-none text-amber-900/80 prose-p:my-1 prose-p:leading-relaxed"
+                      v-html="store.traducir(nota.contenido)"
+                  />
+                </details>
+
+                <!-- ── Incluye / No incluye (colapsable, anclado según regla) ── -->
                 <div
-                    class="px-4 pb-4 prose prose-sm max-w-none text-amber-900/80 prose-p:my-1 prose-p:leading-relaxed"
-                    v-html="store.traducir(nota.contenido)"
-                />
-              </details>
+                    v-if="item.mostrarInclusiones"
+                    class="mt-6 pt-5 border-t border-dashed border-slate-200"
+                >
+                  <button
+                      @click="toggle(incExpandida, item.key)"
+                      class="w-full flex items-center justify-between gap-2 text-left"
+                  >
+                    <p class="text-[10px] font-black text-[#376875]/50 uppercase tracking-[0.2em] flex items-center gap-2">
+                      <i class="fas fa-list-check"></i>
+                      {{ maestroStore.t('cot_detalle_servicio') || 'Detalle del servicio' }}
+                    </p>
+                    <i
+                        class="fas fa-chevron-down text-[#E07845] text-xs transition-transform"
+                        :class="incExpandida.has(item.key) ? 'rotate-180' : ''"
+                    ></i>
+                  </button>
 
-              <!-- ── Incluye / No incluye de la excursión (se ancla al último segmento del servicio) ── -->
-              <div
-                  v-if="inclusionDeItem(item)"
-                  class="mt-6 pt-5 border-t border-dashed border-slate-200 space-y-5"
-              >
-                <p class="text-[10px] font-black text-[#376875]/50 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <i class="fas fa-list-check"></i>
-                  {{ maestroStore.t('cot_detalle_servicio') || 'Detalle del servicio' }}
-                </p>
+                  <div class="relative">
+                    <div
+                        class="space-y-5 mt-4 transition-all"
+                        :class="incExpandida.has(item.key) ? '' : 'max-h-[60px] overflow-hidden'"
+                    >
+                      <div v-for="sec in seccionesInclusion(inclusionPorServicio.get(item.servicio.id))" :key="sec.key">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5">{{ sec.titulo }}</p>
+                        <ul class="space-y-2.5">
+                          <li v-for="(l, i) in sec.lineas" :key="i">
+                            <p class="flex items-start gap-2.5">
+                              <i class="fas mt-1 flex-shrink-0" :class="sec.icono"></i>
+                              <span class="text-[15px] font-bold text-gray-800 leading-snug">
+                                {{ store.traducir(l.nombre) }}
+                                <b v-if="l.cantidadComponente > 1" class="text-[#376875]">x {{ l.cantidadComponente }}</b>
+                                <span class="inline-block text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 ml-1.5 align-middle whitespace-nowrap capitalize">
+                                  {{ fechaChip(l.fecha) }}
+                                </span>
+                              </span>
+                            </p>
 
-                <div v-for="sec in seccionesInclusion(inclusionDeItem(item)!)" :key="sec.key">
-                  <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5">{{ sec.titulo }}</p>
-                  <ul class="space-y-2.5">
-                    <li v-for="(l, i) in sec.lineas" :key="i">
-                      <!-- Línea principal: icono + nombre + xN + fecha chip -->
-                      <p class="flex items-start gap-2.5">
-                        <i class="fas mt-1 flex-shrink-0" :class="sec.icono"></i>
-                        <span class="text-[15px] font-bold text-gray-800 leading-snug">
-                          {{ store.traducir(l.nombre) }}
-                          <b v-if="l.cantidadComponente > 1" class="text-[#376875]">x {{ l.cantidadComponente }}</b>
-                          <span class="inline-block text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 ml-1.5 align-middle whitespace-nowrap capitalize">
-                            {{ fechaChip(l.fecha) }}
-                          </span>
-                        </span>
-                      </p>
-
-                      <!-- Chips: título de tarifa + modalidad/categoría (sin montos) -->
-                      <div
-                          v-for="(chip, ci) in chipsDeLinea(l)"
-                          :key="ci"
-                          class="ml-7 mt-1.5 flex flex-wrap items-center gap-1.5"
-                      >
-                        <span
-                            v-if="chip.titulo"
-                            class="text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1"
-                        >
-                          {{ chip.titulo }}
-                        </span>
-                        <span
-                            v-for="b in chip.badges"
-                            :key="b.key"
-                            class="inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg border uppercase tracking-wider"
-                            :class="b.cls"
-                        >
-                          {{ b.icon }} {{ b.label }}
-                        </span>
+                            <!-- Chips: tarifa + badges + proveedor -->
+                            <div
+                                v-for="(chip, ci) in chipsDeLinea(l, item.servicio.id)"
+                                :key="ci"
+                                class="ml-7 mt-1.5 flex flex-wrap items-center gap-1.5"
+                            >
+                              <span
+                                  v-if="chip.titulo"
+                                  class="text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1"
+                              >
+                                {{ chip.titulo }}
+                              </span>
+                              <span
+                                  v-for="b in chip.badges"
+                                  :key="b.key"
+                                  class="inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg border uppercase tracking-wider"
+                                  :class="b.cls"
+                              >
+                                {{ b.icon }} {{ b.label }}
+                              </span>
+                              <!-- Proveedor visible → ver más -->
+                              <button
+                                  v-if="chip.proveedor"
+                                  @click="abrirProveedor(chip.proveedor)"
+                                  class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-white bg-[#E07845] hover:bg-[#D06535] rounded-lg px-2.5 py-1 shadow-sm shadow-[#E07845]/30 transition-colors"
+                              >
+                                <i class="fas fa-hotel text-[9px]"></i>
+                                {{ store.traducir(chip.proveedor.titulo) }}
+                                <i class="fas fa-circle-arrow-right text-[9px]"></i>
+                              </button>
+                            </div>
+                          </li>
+                        </ul>
                       </div>
-                    </li>
-                  </ul>
+                    </div>
+                    <!-- Fade cuando está colapsado -->
+                    <button
+                        v-if="!incExpandida.has(item.key)"
+                        @click="toggle(incExpandida, item.key)"
+                        class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/80 to-transparent flex items-end justify-center pb-0.5"
+                    >
+                      <span class="text-[10px] font-black uppercase tracking-widest text-[#E07845]">
+                        <i class="fas fa-chevron-down mr-1"></i>{{ maestroStore.t('cot_ver_todo') || 'Ver todo' }}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </article>
+            </article>
+          </template>
 
           <!-- Pie tipo libro -->
           <div class="flex justify-between gap-2 mb-2">
             <button
-                v-if="dia.numeroDia > 1"
-                @click="irADia(dia.numeroDia - 1)"
+                v-if="di > 0"
+                @click="irADia(itinerarioVista[di - 1].numeroDia)"
                 class="text-[11px] font-black uppercase tracking-widest text-[#376875]/50 hover:text-[#376875] transition-colors"
             >
-              ← {{ maestroStore.t('cot_dia') || 'Día' }} {{ dia.numeroDia - 1 }}
+              ← {{ maestroStore.t('cot_dia') || 'Día' }} {{ itinerarioVista[di - 1].numeroDia }}
             </button>
             <span v-else></span>
             <button
-                v-if="dia.numeroDia < store.itinerario.length"
-                @click="irADia(dia.numeroDia + 1)"
+                v-if="di < itinerarioVista.length - 1"
+                @click="irADia(itinerarioVista[di + 1].numeroDia)"
                 class="text-[11px] font-black uppercase tracking-widest text-[#E07845] hover:text-[#D06535] transition-colors"
             >
-              {{ maestroStore.t('cot_dia') || 'Día' }} {{ dia.numeroDia + 1 }} →
+              {{ maestroStore.t('cot_dia') || 'Día' }} {{ itinerarioVista[di + 1].numeroDia }} →
             </button>
           </div>
         </section>
 
-        <!-- ══ ANÁLISIS POR PERFIL DE PASAJERO (versión cliente) ══ -->
-        <section v-if="store.precioVisible && clasesPasajeros.length" class="pt-12">
-          <div class="flex items-center justify-between gap-3 mb-6">
-            <h2 class="text-[#376875]/60 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2">
-              <i class="fas fa-users"></i>
-              {{ maestroStore.t('cot_perfil_pasajero') || 'Análisis por perfil de pasajero' }}
-            </h2>
+        <!-- ══ RESUMEN FINANCIERO (panel expansible) ══ -->
+        <section v-if="store.precioVisible && (clasesPasajeros.length || totalViaje)" class="pt-12">
+          <div class="bg-emerald-50 border border-emerald-200 rounded-[2rem] shadow-lg shadow-emerald-100/60 overflow-hidden">
 
-            <!-- Switch de moneda -->
-            <div class="flex items-center bg-white border border-slate-200 rounded-xl p-1 gap-1 shadow-sm flex-shrink-0">
-              <button
-                  @click="monedaVista = 'PEN'"
-                  :class="monedaVista === 'PEN' ? 'bg-[#376875] text-white shadow' : 'text-slate-400 hover:text-slate-600'"
-                  class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
-              >S/</button>
-              <button
-                  @click="monedaVista = 'USD'"
-                  :class="monedaVista === 'USD' ? 'bg-[#376875] text-white shadow' : 'text-slate-400 hover:text-slate-600'"
-                  class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
-              >$</button>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div
-                v-for="clase in clasesPasajeros"
-                :key="clase.tipo"
-                class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-5 md:p-7"
+            <!-- Cabecera: siempre visible, total a la vista + flecha -->
+            <button
+                @click="finanzasAbiertas = !finanzasAbiertas"
+                class="w-full flex items-center justify-between gap-3 px-5 md:px-7 py-5 text-left hover:bg-emerald-100/40 transition-colors"
             >
-              <div class="flex items-start justify-between gap-4">
-                <div>
-                  <span class="inline-block px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-black uppercase tracking-widest mb-2">
-                    {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
-                  </span>
-                  <p class="text-sm font-bold text-gray-700">{{ rangoEdadLabel(clase) }}</p>
-                </div>
-                <div class="text-right flex-shrink-0">
-                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                    {{ maestroStore.t('cot_venta_unit') || 'Venta unit.' }}
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-600/30">
+                  <i class="fas fa-sack-dollar"></i>
+                </span>
+                <div class="min-w-0">
+                  <p class="text-[10px] font-black text-emerald-700/70 uppercase tracking-[0.2em]">
+                    {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
                   </p>
-                  <p class="text-2xl md:text-3xl font-black text-gray-800 tabular-nums leading-none">
-                    {{ mv(clase.resumenPorModo.normal.ventaSoles, clase.resumenPorModo.normal.ventaDolares) }}
+                  <p v-if="totalViaje" class="text-2xl md:text-3xl font-black text-emerald-900 tabular-nums leading-tight">
+                    {{ mv(totalViaje.soles, totalViaje.dolares) }}
+                  </p>
+                </div>
+              </div>
+              <span
+                  class="w-9 h-9 rounded-full bg-white border border-emerald-200 text-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm transition-transform"
+                  :class="finanzasAbiertas ? 'rotate-180' : ''"
+              >
+                <i class="fas fa-chevron-down text-sm"></i>
+              </span>
+            </button>
+
+            <!-- Detalle expansible -->
+            <div v-if="finanzasAbiertas" class="px-5 md:px-7 pb-6 border-t border-emerald-200/60">
+
+              <!-- Switch de moneda -->
+              <div class="flex items-center justify-between gap-3 pt-5 mb-4">
+                <h2 class="text-emerald-700/70 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2">
+                  <i class="fas fa-users"></i>
+                  {{ maestroStore.t('cot_perfil_pasajero') || 'Análisis por perfil de pasajero' }}
+                </h2>
+                <div class="flex items-center bg-white border border-emerald-200 rounded-xl p-1 gap-1 shadow-sm flex-shrink-0">
+                  <button
+                      @click="monedaVista = 'PEN'"
+                      :class="monedaVista === 'PEN' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'"
+                      class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
+                  >S/</button>
+                  <button
+                      @click="monedaVista = 'USD'"
+                      :class="monedaVista === 'USD' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'"
+                      class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
+                  >$</button>
+                </div>
+              </div>
+
+              <!-- Perfiles de pasajero (totales por grupo) -->
+              <div class="space-y-3">
+                <div
+                    v-for="clase in clasesPasajeros"
+                    :key="clase.tipo"
+                    class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-4 md:p-5"
+                >
+                  <div class="flex items-start justify-between gap-4">
+                    <div>
+                      <span class="inline-block px-3 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[11px] font-black uppercase tracking-widest mb-1.5">
+                        {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
+                      </span>
+                      <p class="text-sm font-bold text-gray-700">{{ rangoEdadLabel(clase) }}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                      <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        {{ maestroStore.t('cot_total_grupo') || 'Total del grupo' }}
+                      </p>
+                      <!-- Total = venta unitaria × cantidad (evita ambigüedad entre rangos/edades) -->
+                      <p class="text-xl md:text-2xl font-black text-gray-800 tabular-nums leading-none">
+                        {{ mv(clase.resumenPorModo.normal.ventaSoles * clase.cantidad, clase.resumenPorModo.normal.ventaDolares * clase.cantidad) }}
+                      </p>
+                      <p class="text-[10px] font-bold text-slate-400 mt-1 tabular-nums">
+                        {{ mv(clase.resumenPorModo.normal.ventaSoles, clase.resumenPorModo.normal.ventaDolares) }} {{ maestroStore.t('cot_por_persona') || 'c/u' }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Cortesías del perfil (si las hay) -->
+                  <p
+                      v-if="clase.resumenPorModo.cortesia.ventaDolares > 0"
+                      class="mt-3 text-[11px] font-bold text-sky-600 bg-sky-50 border border-sky-100 rounded-xl px-3 py-2 inline-block"
+                  >
+                    <i class="fas fa-gift mr-1"></i>
+                    {{ maestroStore.t('cot_incluye_cortesias') || 'Incluye cortesías valorizadas en' }}
+                    {{ mv(clase.resumenPorModo.cortesia.ventaSoles * clase.cantidad, clase.resumenPorModo.cortesia.ventaDolares * clase.cantidad) }}
                   </p>
                 </div>
               </div>
 
-              <!-- Cortesías del perfil (si las hay) -->
-              <p
-                  v-if="clase.resumenPorModo.cortesia.ventaDolares > 0"
-                  class="mt-3 text-[11px] font-bold text-sky-600 bg-sky-50 border border-sky-100 rounded-xl px-3 py-2 inline-block"
-              >
-                <i class="fas fa-gift mr-1"></i>
-                {{ maestroStore.t('cot_incluye_cortesias') || 'Incluye cortesías valorizadas en' }}
-                {{ mv(clase.resumenPorModo.cortesia.ventaSoles, clase.resumenPorModo.cortesia.ventaDolares) }}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- ══ TOTAL DEL VIAJE ══ -->
-        <section v-if="store.precioVisible && totalViaje" class="pt-10">
-          <div class="bg-[#376875] rounded-[2.5rem] shadow-xl shadow-[#376875]/20 p-6 md:p-10 text-white relative overflow-hidden">
-            <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 24px 24px;"></div>
-            <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <p class="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] mb-1">
-                  {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
-                </p>
-                <p class="text-3xl md:text-5xl font-black tabular-nums leading-none">
-                  {{ mv(totalViaje.soles, totalViaje.dolares) }}
-                </p>
-                <p class="text-white/60 text-[11px] font-bold mt-2">
+              <!-- Pie: pax/días + adelanto -->
+              <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <p class="text-emerald-700/70 text-[11px] font-bold">
                   {{ store.cotizacion.numPax }} {{ maestroStore.t('cot_pasajeros') || 'pasajeros' }}
-                  · {{ store.itinerario.length }} {{ maestroStore.t('cot_dias') || 'días' }}
+                  · {{ totalDiasViaje }} {{ maestroStore.t('cot_dias') || 'días' }}
                 </p>
-              </div>
-
-              <div
-                  v-if="Number(store.cotizacion.adelanto) > 0"
-                  class="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/10 px-5 py-4"
-              >
-                <p class="text-[9px] font-black text-white/60 uppercase tracking-widest mb-1">
-                  {{ maestroStore.t('cot_adelanto') || 'Adelanto' }}
-                </p>
-                <p class="text-xl font-black tabular-nums">
-                  {{ store.cotizacion.monedaGlobal }} {{ store.cotizacion.adelanto }}
-                </p>
+                <div
+                    v-if="Number(store.cotizacion.adelanto) > 0"
+                    class="bg-white rounded-2xl border border-emerald-100 shadow-sm px-4 py-3"
+                >
+                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                    {{ maestroStore.t('cot_adelanto') || 'Adelanto' }}
+                  </p>
+                  <p class="text-lg font-black text-gray-800 tabular-nums leading-none">
+                    {{ store.cotizacion.monedaGlobal }} {{ store.cotizacion.adelanto }}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -547,12 +920,89 @@ const totalViaje = computed(() => {
           </p>
         </div>
       </main>
+
+      <!-- ═══ MODAL PROVEEDOR ═══ -->
+      <div
+          v-if="modalProveedor"
+          class="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      >
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="modalProveedor = null"></div>
+
+        <div class="relative bg-white w-full sm:max-w-lg sm:mx-6 rounded-t-[2rem] sm:rounded-[2rem] max-h-[85vh] overflow-y-auto shadow-2xl">
+          <!-- Cabecera -->
+          <div class="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-6 py-4 flex items-center justify-between gap-3 z-10">
+            <h3 class="font-black text-[#376875] text-base leading-tight">
+              <i class="fas fa-hotel text-[#E07845] mr-2"></i>{{ store.traducir(modalProveedor.titulo) }}
+            </h3>
+            <button
+                @click="modalProveedor = null"
+                class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors flex-shrink-0"
+            >
+              <i class="fas fa-times text-sm"></i>
+            </button>
+          </div>
+
+          <!-- Galería -->
+          <div v-if="galeriaProveedor(modalProveedor).length" class="relative" data-galeria>
+            <div class="galeria-track flex h-56 sm:h-64 overflow-x-auto snap-x snap-mandatory no-scrollbar">
+              <img
+                  v-for="(img, gi) in galeriaProveedor(modalProveedor)"
+                  :key="gi"
+                  :src="img.imageUrl"
+                  class="w-full h-full flex-shrink-0 snap-center object-cover"
+                  loading="lazy"
+              />
+            </div>
+            <template v-if="galeriaProveedor(modalProveedor).length > 1">
+              <button @click="desplazarGaleria($event, -1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm flex items-center justify-center transition-colors">
+                <i class="fas fa-chevron-left text-xs"></i>
+              </button>
+              <button @click="desplazarGaleria($event, 1)" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm flex items-center justify-center transition-colors">
+                <i class="fas fa-chevron-right text-xs"></i>
+              </button>
+              <span class="absolute top-3 right-3 text-[9px] font-black text-white bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 uppercase tracking-wider">
+                <i class="fas fa-images mr-1"></i>{{ galeriaProveedor(modalProveedor).length }}
+              </span>
+            </template>
+          </div>
+
+          <div class="px-6 py-5 space-y-4">
+            <!-- Servicio del proveedor (ej. tipo de habitación) -->
+            <div v-if="modalProveedor.servicioTitulo.length" class="flex items-start gap-3">
+              <span class="w-9 h-9 rounded-xl bg-[#376875]/[0.06] text-[#376875] flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-bed text-sm"></i>
+              </span>
+              <div>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  {{ maestroStore.t('cot_servicio_reservado') || 'Servicio reservado' }}
+                </p>
+                <p class="font-bold text-gray-800 text-sm leading-snug">
+                  {{ store.traducir(modalProveedor.servicioTitulo) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Sitio web -->
+            <a
+                v-if="modalProveedor.url"
+                :href="modalProveedor.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center justify-center gap-2 w-full bg-[#376875] hover:bg-[#2b525d] text-white font-black text-xs uppercase tracking-widest px-5 py-3.5 rounded-2xl transition-colors"
+            >
+              <i class="fas fa-globe"></i>
+              {{ maestroStore.t('cot_visitar_sitio') || 'Visitar sitio web' }}
+              <i class="fas fa-arrow-up-right-from-square text-[10px]"></i>
+            </a>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
 
 <style scoped>
-/* Oculta la scrollbar del day-nav manteniendo el scroll horizontal */
+/* Oculta la scrollbar manteniendo el scroll horizontal */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
