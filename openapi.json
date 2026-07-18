@@ -20806,6 +20806,13 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -20887,6 +20894,13 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -20955,6 +20969,13 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -21011,6 +21032,13 @@
                     "fechaAbsoluta": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "nombreSnapshot": {
                         "type": "array",
@@ -21069,6 +21097,13 @@
                     "fechaAbsoluta": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "nombreSnapshot": {
                         "type": "array",
@@ -21151,6 +21186,13 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -21219,6 +21261,13 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -21281,6 +21330,13 @@
                             "fechaAbsoluta": {
                                 "type": "string",
                                 "format": "date-time"
+                            },
+                            "segmentoMaestroId": {
+                                "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             },
                             "nombreSnapshot": {
                                 "type": "array",
@@ -21370,6 +21426,13 @@
                                 "type": "string",
                                 "format": "date-time"
                             },
+                            "segmentoMaestroId": {
+                                "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "nombreSnapshot": {
                                 "type": "array",
                                 "items": {
@@ -21445,6 +21508,13 @@
                                 "type": "string",
                                 "format": "date-time"
                             },
+                            "segmentoMaestroId": {
+                                "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "nombreSnapshot": {
                                 "type": "array",
                                 "items": {
@@ -21504,6 +21574,13 @@
                     "fechaAbsoluta": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "nombreSnapshot": {
                         "type": "array",
@@ -21586,6 +21663,13 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -21653,6 +21737,13 @@
                     "fechaAbsoluta": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "segmentoMaestroId": {
+                        "description": "Identificador del segmento maestro del cat\u00e1logo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "nombreSnapshot": {
                         "type": "array",

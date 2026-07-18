@@ -51,6 +51,14 @@ class CotizacionSegmento
     #[ORM\Column(type: 'date_immutable')]
     private ?DateTimeImmutable $fechaAbsoluta = null;
 
+    /**
+     * Identificador del segmento maestro del catálogo.
+     * Sirve para mantener la trazabilidad con el catálogo y permitir actualizaciones de storytelling.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $segmentoMaestroId = null;
+
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -117,6 +125,30 @@ class CotizacionSegmento
 
     public function getFechaAbsoluta(): ?DateTimeImmutable { return $this->fechaAbsoluta; }
     public function setFechaAbsoluta(DateTimeImmutable $fechaAbsoluta): self { $this->fechaAbsoluta = $fechaAbsoluta; return $this; }
+
+    /**
+     * Obtiene el identificador del segmento maestro asociado.
+     * Existe para permitir la recarga de textos e imágenes desde el catálogo oficial,
+     * manteniendo la vinculación original de la plantilla.
+     *
+     * @return string|null El UUID del segmento maestro o null si es un segmento personalizado.
+     */
+    public function getSegmentoMaestroId(): ?string
+    {
+        return $this->segmentoMaestroId;
+    }
+
+    /**
+     * Establece el identificador del segmento maestro asociado.
+     *
+     * @param string|null $segmentoMaestroId El UUID del segmento maestro.
+     * @return self
+     */
+    public function setSegmentoMaestroId(?string $segmentoMaestroId): self
+    {
+        $this->segmentoMaestroId = $segmentoMaestroId;
+        return $this;
+    }
 
     public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
     public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }

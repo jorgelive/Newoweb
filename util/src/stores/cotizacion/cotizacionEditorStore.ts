@@ -2787,7 +2787,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 fechaCalculada = dateObj.toISOString().split('T')[0];
             }
 
-            const nuevoSeg = {
+            const nuevoSeg: CotSegmento = {
                 id: nuevoIdSeg,
                 segmentoMaestroId: extractIdStr(segmentoMaestro.id || segmentoMaestro['@id']),
                 dia: diaDelSegmento,

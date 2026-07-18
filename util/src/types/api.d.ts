@@ -5134,6 +5134,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5160,6 +5162,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5180,6 +5184,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5196,6 +5202,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5215,6 +5223,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5241,6 +5251,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5261,6 +5273,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5280,6 +5294,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5306,6 +5322,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5326,6 +5344,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5345,6 +5365,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5371,6 +5393,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
@@ -5391,6 +5415,8 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            /** @description Identificador del segmento maestro del catálogo. */
+            segmentoMaestroId?: string | null;
             nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
