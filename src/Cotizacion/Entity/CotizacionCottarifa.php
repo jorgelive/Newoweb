@@ -200,9 +200,12 @@ class CotizacionCottarifa
     /**
      * Clona la tarifa reseteando su UUID para evitar colisiones.
      */
-    public function __clone(): void
+    public function duplicar(): self
     {
-        $this->resetId();
+        $copia = clone $this;   // clone superficial por defecto (sin __clone)
+        $copia->resetId();
+
+        return $copia;
     }
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]

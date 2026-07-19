@@ -85,50 +85,36 @@ class CotizacionCotservicio
         $this->cotsegmentos = new ArrayCollection();
     }
 
-    /**
-     * Clona el servicio y re-vincula dinámicamente los nuevos componentes a los nuevos segmentos.
-     */
-    public function __clone(): void
+    public function duplicar(): self
     {
-        $this->resetId();
+        $copia = clone $this;
+        $copia->resetId();
+
         $mapaSegmentos = [];
-
-        if ($this->cotsegmentos) {
-            $segmentosOriginales = $this->cotsegmentos;
-            $this->cotsegmentos = new \Doctrine\Common\Collections\ArrayCollection();
-
-            foreach ($segmentosOriginales as $segmento) {
-                $idOriginalStr = $segmento->getId()->toRfc4122();
-
-                $clonSegmento = clone $segmento;
-                $clonSegmento->setCotservicio($this);
-                $this->addCotsegmento($clonSegmento);
-
-                $mapaSegmentos[$idOriginalStr] = $clonSegmento;
-            }
+        $copia->cotsegmentos = new ArrayCollection();
+        foreach ($this->cotsegmentos as $segmento) {
+            $copiaSeg = $segmento->duplicar();
+            $copiaSeg->setCotservicio($copia);
+            $copia->cotsegmentos->add($copiaSeg);
+            $mapaSegmentos[$segmento->getId()->toRfc4122()] = $copiaSeg;
         }
 
-        if ($this->cotcomponentes) {
-            $componentesOriginales = $this->cotcomponentes;
-            $this->cotcomponentes = new \Doctrine\Common\Collections\ArrayCollection();
+        $copia->cotcomponentes = new ArrayCollection();
+        foreach ($this->cotcomponentes as $componente) {
+            $copiaComp = $componente->duplicar();
+            $copiaComp->setCotservicio($copia);
 
-            foreach ($componentesOriginales as $componente) {
-                $clonComponente = clone $componente;
-                $clonComponente->setCotservicio($this);
+            $segOriginal = $componente->getCotsegmento();
+            $copiaComp->setCotsegmento(
+                $segOriginal !== null && isset($mapaSegmentos[$segOriginal->getId()->toRfc4122()])
+                    ? $mapaSegmentos[$segOriginal->getId()->toRfc4122()]
+                    : null
+            );
 
-                // Reconectar el componente con el segmento CLONADO
-                $segmentoOriginal = $componente->getCotsegmento();
-                if ($segmentoOriginal !== null && isset($mapaSegmentos[$segmentoOriginal->getId()->toRfc4122()])) {
-                    $clonComponente->setCotsegmento($mapaSegmentos[$segmentoOriginal->getId()->toRfc4122()]);
-                } else {
-                    // 🔥 NUEVO: Si no encuentra match, lo limpiamos obligatoriamente
-                    // para romper el vínculo con el segmento de la cotización vieja.
-                    $clonComponente->setCotsegmento(null);
-                }
-
-                $this->addCotcomponente($clonComponente);
-            }
+            $copia->cotcomponentes->add($copiaComp);
         }
+
+        return $copia;
     }
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]

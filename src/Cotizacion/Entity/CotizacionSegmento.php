@@ -90,16 +90,16 @@ class CotizacionSegmento
         $this->cotcomponentes = new ArrayCollection();
     }
 
-    /**
-     * Clona el segmento limpiando su ID y sus relaciones inversas.
-     */
-    public function __clone(): void
+    public function duplicar(): self
     {
-        $this->resetId();
+        $copia = clone $this;   // clone superficial por defecto (sin __clone)
+        $copia->resetId();
 
-        // MUY IMPORTANTE: Limpiar la colección inversa para que el clon
-        // no mantenga referencias a los componentes de la cotización original.
-        $this->cotcomponentes = new \Doctrine\Common\Collections\ArrayCollection();
+        // Limpiar la colección inversa: los componentes se re-vinculan desde
+        // CotizacionCotservicio::duplicar() a través del mapa de segmentos.
+        $copia->cotcomponentes = new ArrayCollection();
+
+        return $copia;
     }
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]

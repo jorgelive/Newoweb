@@ -1390,6 +1390,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         } as Cotizacion;
     };
 
+
+    // Helper: elimina campos hipermedia (@id/@context/@type) en todo el árbol.
+    // Colócalo fuera de guardarCotizacion (a nivel de módulo o composable).
+    const stripHypermedia = (obj: any): any => {
+        if (Array.isArray(obj)) return obj.map(stripHypermedia);
+        if (obj && typeof obj === 'object') {
+            delete obj['@id'];
+            delete obj['@context'];
+            delete obj['@type'];
+            for (const k of Object.keys(obj)) obj[k] = stripHypermedia(obj[k]);
+        }
+        return obj;
+    };
+
     /**
      * Sincroniza el estado local de la cotización con el backend (API Platform).
      *
@@ -1416,7 +1430,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 ? `/platform/sales/cotizacions/${cotizacion.value.id}`
                 : `/platform/sales/cotizacions`;
 
-            const payload = JSON.parse(JSON.stringify(cotizacion.value));
+            // 🔥 Clonado + limpieza de hipermedia (evita que @id resuelva a
+            // referencias de Doctrine sin constructor → colección sin inicializar).
+            const payload = stripHypermedia(JSON.parse(JSON.stringify(cotizacion.value)));
+
+            // Campos derivados / gestionados por el backend: no deben viajar.
+            delete payload.ganancia;
+            delete payload.createdAt;
+            delete payload.updatedAt;
 
             // Formateo del archivo adjunto
             if (payload.file && typeof payload.file === 'object') {
@@ -1644,7 +1665,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             isLoading.value = false;
         }
     };
-
     // ============================================================================
     // NAVEGACIÓN Y ABMC
     // ============================================================================

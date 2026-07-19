@@ -102,22 +102,20 @@ class CotizacionCotcomponente
     /**
      * Clona el componente y clona profundamente sus tarifas.
      */
-    public function __clone(): void
+    public function duplicar(): self
     {
-        $this->resetId();
+        $copia = clone $this;   // clone superficial por defecto (sin __clone)
+        $copia->resetId();
 
-        if ($this->cottarifas) {
-            $tarifasOriginales = $this->cottarifas;
-            $this->cottarifas = new ArrayCollection();
-
-            foreach ($tarifasOriginales as $tarifa) {
-                $clonTarifa = clone $tarifa;
-                $clonTarifa->setCotcomponente($this);
-                $this->addCottarifa($clonTarifa);
-            }
+        $copia->cottarifas = new ArrayCollection();
+        foreach ($this->cottarifas as $tarifa) {
+            $copiaTarifa = $tarifa->duplicar();
+            $copiaTarifa->setCotcomponente($copia);
+            $copia->cottarifas->add($copiaTarifa);
         }
-    }
 
+        return $copia;
+    }
     #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
     public function getId(): ?Uuid { return $this->id; }
 

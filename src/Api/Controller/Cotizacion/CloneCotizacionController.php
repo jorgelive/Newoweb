@@ -33,10 +33,10 @@ class CloneCotizacionController extends AbstractController
      */
     public function __invoke(Cotizacion $data): Cotizacion
     {
-        // 1. Clonación mágica que dispara recursivamente todos los __clone() en las entidades hijas
-        $clon = clone $data;
+        // 1. Copia profunda explícita (ya no usamos __clone mágico)
+        $clon = $data->duplicar();
 
-        // 2. Lógica de negocio: Incrementar versión buscando la máxima del File actual
+        // 2. Lógica de negocio: incrementar versión buscando la máxima del File actual
         $filePadre = $data->getFile();
         if ($filePadre) {
             $ultimaVersion = 0;

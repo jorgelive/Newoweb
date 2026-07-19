@@ -166,24 +166,19 @@ class Cotizacion
         return sprintf('V%d - %s', $this->version, $this->file ? $this->file->getNombreGrupo() : 'Sin File');
     }
 
-    /**
-     * Clona la entidad realizando una copia profunda.
-     * Genera nuevos UUIDs y reinstancia las colecciones para no alterar el original.
-     */
-    public function __clone(): void
+    public function duplicar(): self
     {
-        $this->resetId();
+        $copia = clone $this;               // clone superficial por defecto (sin __clone)
+        $copia->resetId();
+        $copia->cotservicios = new ArrayCollection();
 
-        if ($this->cotservicios) {
-            $serviciosOriginales = $this->cotservicios;
-            $this->cotservicios = new ArrayCollection();
-
-            foreach ($serviciosOriginales as $servicio) {
-                $clonServicio = clone $servicio;
-                $clonServicio->setCotizacion($this);
-                $this->addCotservicio($clonServicio);
-            }
+        foreach ($this->cotservicios as $servicio) {
+            $copiaServicio = $servicio->duplicar();
+            $copiaServicio->setCotizacion($copia);
+            $copia->cotservicios->add($copiaServicio);
         }
+
+        return $copia;
     }
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]
