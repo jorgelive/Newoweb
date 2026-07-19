@@ -119,13 +119,7 @@ class TravelSegmento
             $clonComp = clone $compOriginal;
             $this->addSegmentoComponente($clonComp);
         }
-
-        $imagenesOriginales = $this->imagenes;
-        $this->imagenes = new ArrayCollection();
-        foreach ($imagenesOriginales as $imgOriginal) {
-            $clonImg = clone $imgOriginal;
-            $this->addImagen($clonImg);
-        }
+        
     }
 
     public function __toString(): string
