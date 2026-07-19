@@ -162,4 +162,9 @@ class PmsGuiaItem
         if ($hasUrl && !$hasLabel) $context->buildViolation('Si pones una URL, el botón debe tener texto.')->atPath('labelBoton')->addViolation();
     }
 
+    public function getVirtualTitulo(): string { return ''; }
+    public function getVirtualDescripcion(): string { return ''; }
+
+    public function getVirtualLabelBoton(): string { return ''; }
+
 }

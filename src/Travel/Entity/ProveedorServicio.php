@@ -100,12 +100,16 @@ class ProveedorServicio
 
     /**
      * Representación textual legible de la entidad para EasyAdmin.
-     *
-     * @return string Retorna el nombre del servicio o un marcador genérico.
+     * Incluye el nombre comercial del proveedor para identificar a qué hotel/proveedor pertenece.
      */
     public function __toString(): string
     {
-        return $this->nombre ?? 'Servicio sin nombre';
+        $nombreServicio = $this->nombre ?? 'Servicio sin nombre';
+        $nombreProveedor = $this->proveedor?->getNombreComercial();
+
+        return $nombreProveedor
+            ? sprintf('%s - %s', $nombreProveedor, $nombreServicio)
+            : $nombreServicio;
     }
 
     /**
@@ -279,6 +283,11 @@ class ProveedorServicio
      * Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'.
      */
     public function getVirtualTitulo(): string
+    {
+        return '';
+    }
+
+    public function getVirtualGaleria(): string
     {
         return '';
     }

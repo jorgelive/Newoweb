@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Travel\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Panel\Controller\Trait\RenderGaleriaTrait;
 use App\Panel\Form\Type\TranslationLongTextType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Security\Roles;
@@ -18,9 +19,31 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Liip\ImagineBundle\Imagine\Cache\CacheManager;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class ProveedorServicioCrudController extends BaseCrudController
 {
+
+    use RenderGaleriaTrait;
+
+    public function __construct(
+        #[Autowire('%travel.path.proveedor_servicio_galeria%')]
+        private readonly string $uploadPath,
+        private readonly CacheManager $imagineCacheManager,
+        protected AdminUrlGenerator $adminUrlGenerator,
+        protected RequestStack $requestStack,
+    ) {
+        parent::__construct($this->adminUrlGenerator, $this->requestStack);
+    }
+
+    protected function getImagineCacheManager(): CacheManager
+    {
+        return $this->imagineCacheManager;
+    }
+
     /**
      * Define la entidad administrada por este controlador.
      *
@@ -134,6 +157,16 @@ class ProveedorServicioCrudController extends BaseCrudController
         /* ====================================================================
          * COLECCIÓN ANIDADA DE IMÁGENES DEL SERVICIO
          * ==================================================================== */
+        yield TextField::new('virtualGaleria', 'Galería')
+            ->onlyOnIndex()
+            ->formatValue(fn ($value, $entity) => $this->renderGaleriaThumbnails(
+                $entity->getProveedorServicioImagenes(),
+                $entity,
+                $this->uploadPath,
+                'galeria-provserv',
+            ))
+            ->renderAsHtml();
+
         yield CollectionField::new('proveedorServicioImagenes', 'Galería de Imágenes del Servicio')
             ->onlyOnForms()
             ->setColumns(12)

@@ -265,4 +265,8 @@ class PmsGuiaSeccion
                 ->addViolation();
         }
     }
+
+    public function getVirtualTitulo(): string { return ''; }
+
+    public function getVirtualSubtitulo(): string { return ''; }
 }

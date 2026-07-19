@@ -357,4 +357,9 @@ class Proveedor
     {
         return '';
     }
+
+    public function getVirtualGaleria(): string
+    {
+        return '';
+    }
 }

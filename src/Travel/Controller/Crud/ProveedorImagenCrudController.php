@@ -12,6 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
@@ -121,6 +122,15 @@ class ProveedorImagenCrudController extends BaseCrudController
      */
     public function configureFields(string $pageName): iterable
     {
+        $isEmbedded = $this->isEmbedded();
+        if (!$isEmbedded){
+            yield AssociationField::new('proveedor', 'Proveedor')
+                ->autocomplete()
+                ->setColumns(12)
+                ->setHelp('Proveedor al que pertenece la imagen.');
+        }
+
+
         yield TextField::new('imageFile', 'Subir Imagen')
             ->setFormType(VichImageType::class)
             ->onlyOnForms()

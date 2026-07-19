@@ -109,35 +109,57 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
             ->setColumns(6)
             ->setHelp('⚠️ Reemplazará textos existentes.');
 
+        // 🔥 LECTURA (getter virtual)
+        yield TextField::new('virtualTitulo', 'Título de Venta')
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                if (is_iterable($entity->getTitulo())) {
+                    foreach ($entity->getTitulo() as $item) {
+                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                            return sprintf('<span class="fw-bold">%s</span>', htmlspecialchars(strip_tags($item['content'])));
+                        }
+                    }
+                }
+                return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
+            })
+            ->renderAsHtml();
+
+        // 🔥 ESCRITURA (campo real)
         yield CollectionField::new('titulo', 'Título por Idioma')
             ->setEntryType(TranslationTextType::class)
             ->setEntryIsComplex(true)
             ->showEntryLabel(false)
             ->renderExpanded(true)
+            ->hideOnIndex()
+            ->hideOnDetail()
             ->setColumns(12)
-            ->addCssClass('field-full-width')
-            ->formatValue(function ($value) {
-                if (empty($value) || !is_array($value)) return '';
-                foreach ($value as $item) {
-                    if (isset($item['language']) && $item['language'] === 'es') return $item['content'] ?? '';
-                }
-                return reset($value)['content'] ?? '';
-            });
+            ->addCssClass('field-full-width');
 
+        // 🔥 LECTURA (getter virtual)
+        yield TextField::new('virtualSubtitulo', 'Subtítulo')
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                if (is_iterable($entity->getSubtitulo())) {
+                    foreach ($entity->getSubtitulo() as $item) {
+                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                            return sprintf('<span class="text-muted">%s</span>', htmlspecialchars(strip_tags($item['content'])));
+                        }
+                    }
+                }
+                return '<span class="text-muted small"><i class="fas fa-language"></i> Sin subtítulo</span>';
+            })
+            ->renderAsHtml();
+
+        // 🔥 ESCRITURA (campo real)
         yield CollectionField::new('subtitulo', 'Subtítulo por Idioma')
             ->setEntryType(TranslationTextType::class)
             ->setEntryIsComplex(true)
             ->showEntryLabel(false)
             ->renderExpanded(true)
+            ->hideOnIndex()
+            ->hideOnDetail()
             ->setColumns(12)
-            ->addCssClass('field-full-width')
-            ->formatValue(function ($value) {
-                if (empty($value) || !is_array($value)) return '';
-                foreach ($value as $item) {
-                    if (isset($item['language']) && $item['language'] === 'es') return $item['content'] ?? '';
-                }
-                return reset($value)['content'] ?? '';
-            });
+            ->addCssClass('field-full-width');
 
         // --- BLOQUE 3: ESTRUCTURA (ACTUALIZADO) ---
         yield FormField::addPanel('Ítems de Contenido')
