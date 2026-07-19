@@ -4,6 +4,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { apiClient } from '@/services/apiClient';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { getUrls } from '@/services/apiClient';
+import { ESTADO_FILE_LABELS } from '@/types/cotizacionEditorModel';
 
 import type { ApiPais } from '@/types/maestroModel';
 
@@ -55,6 +56,7 @@ const copiarLink = async () => {
 const editandoVersion = ref<string | null>(null);
 const versionTemp = ref<number>(1);
 const eliminandoItem = ref<string | null>(null);
+const clonandoItem = ref<string | null>(null);
 
 const iniciarEdicionVersion = (cot: ApiCotizacionVersion) => {
   editandoVersion.value = cot['@id'] || cot.id || '';
@@ -80,6 +82,33 @@ const eliminarVersion = async (cot: ApiCotizacionVersion) => {
   if (success) await cargarFile();
   else alert(fileStore.error || 'Error al eliminar la versión.');
   eliminandoItem.value = null;
+};
+
+/**
+ * Clona una versión existente delegando la llamada al store.
+ * Al completarse, refresca la vista del expediente para mostrar la nueva tarjeta.
+ */
+const clonarVersion = async (cot: ApiCotizacionVersion) => {
+  const idStr = extractIdStr(cot.id || cot['@id']);
+
+  if (!idStr) {
+    console.error('No se encontró el ID de la cotización');
+    return;
+  }
+
+  if (!confirm(`¿Estás seguro de duplicar la Versión ${cot.version}?\nSe creará una copia idéntica y segura con una nueva versión.`)) return;
+
+  clonandoItem.value = idStr;
+
+  const success = await fileStore.cloneCotizacion(idStr);
+
+  if (success) {
+    await cargarFile();
+  } else {
+    alert(fileStore.error || 'Ocurrió un error al intentar clonar la cotización.');
+  }
+
+  clonandoItem.value = null;
 };
 
 const eliminarFile = async () => {
@@ -322,7 +351,7 @@ const guardarDocumento = async () => {
       vencimiento: docForm.value.vencimiento || null
     });
   } else {
-    // Modo creación: igual que antes, exige archivo
+    // Modo creación: exige archivo
     if (!docForm.value.fileObject || !docForm.value.tipodocumento) {
       alert("Faltan datos o el archivo");
       return;
@@ -414,9 +443,9 @@ const eliminarDocumento = async (iri?: string) => {
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Estado</label>
                 <select v-model="file.estado" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none">
-                  <option value="abierto">Abierto</option>
-                  <option value="cerrado">Cerrado (Ganado)</option>
-                  <option value="perdido">Perdido</option>
+                  <option v-for="(label, valor) in ESTADO_FILE_LABELS" :key="valor" :value="valor">
+                    {{ label }}
+                  </option>
                 </select>
               </div>
               <button type="submit" :disabled="isSavingFile" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow mt-2">
@@ -502,9 +531,13 @@ const eliminarDocumento = async (iri?: string) => {
               <p class="text-xs mt-2 font-medium">Haz clic en "Crear Nueva Versión" para arrancar el motor operativo.</p>
             </div>
 
-            <div v-else v-for="cot in file.cotizaciones" :key="cot.id" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-[#376875] transition-colors group mb-3">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4 flex-1 min-w-0">
+            <div v-else v-for="cot in file.cotizaciones" :key="cot.id" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm hover:border-[#376875] transition-colors group mb-4">
+
+              <!-- 1. CABECERA: Versión, Estado y Botones -->
+              <div class="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 mb-4">
+
+                <!-- Izquierda: Versión y Estado -->
+                <div class="flex items-center gap-3">
                   <!-- Badge de versión, editable -->
                   <div v-if="editandoVersion !== (cot['@id'] || cot.id)"
                        @click="iniciarEdicionVersion(cot)"
@@ -516,34 +549,76 @@ const eliminarDocumento = async (iri?: string) => {
                     <input v-model.number="versionTemp" type="number" min="1"
                            class="w-14 h-12 text-center font-black rounded-full border-2 border-[#376875] outline-none"
                            @keyup.enter="guardarVersion(cot)" @keyup.esc="editandoVersion = null">
-                    <button @click="guardarVersion(cot)" class="text-emerald-600 w-8 h-8 flex items-center justify-center"><i class="fas fa-check"></i></button>
-                    <button @click="editandoVersion = null" class="text-slate-400 w-8 h-8 flex items-center justify-center"><i class="fas fa-times"></i></button>
+                    <button @click="guardarVersion(cot)" class="text-emerald-600 w-8 h-8 flex items-center justify-center bg-emerald-50 rounded-full"><i class="fas fa-check"></i></button>
+                    <button @click="editandoVersion = null" class="text-slate-400 w-8 h-8 flex items-center justify-center bg-slate-100 rounded-full"><i class="fas fa-times"></i></button>
                   </div>
 
-                  <div class="min-w-0 flex-1">
-                    <p class="text-sm font-black text-slate-800">{{ cot.estado || 'Pendiente' }}</p>
-                    <div class="flex flex-wrap items-center gap-3 text-[10px] font-bold text-slate-400 uppercase mt-1">
-                      <span><i class="fas fa-users"></i> {{ cot.numPax ?? '—' }} Pax</span>
-                      <span><i class="fas fa-money-bill"></i> Venta: {{ cot.monedaGlobal }} {{ cot.totalVenta ?? '0.00' }}</span>
-                      <span class="text-emerald-600"><i class="fas fa-chart-line"></i> Ganancia: {{ cot.monedaGlobal }} {{ cot.ganancia ?? '0.00' }}</span>
-                    </div>
-                    <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate">
+                  <div class="min-w-0">
+                    <p class="text-sm sm:text-base font-black text-slate-800 capitalize leading-none">{{ cot.estado || 'Pendiente' }}</p>
+                    <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate max-w-[140px] sm:max-w-xs">
                       {{ fileStore.extraerResumenPreview(cot.resumen) }}
                     </p>
                   </div>
                 </div>
 
-                <div class="flex items-center gap-2 flex-shrink-0 ml-3">
-                  <button @click="abrirMotor(cot)" class="px-4 py-2 bg-[#E07845] text-white text-xs font-bold rounded-lg shadow hover:bg-[#c96636] transition-colors">
-                    Abrir Motor <i class="fas fa-arrow-right ml-1"></i>
+                <!-- Derecha: Botones de Acción -->
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                  <button @click="abrirMotor(cot)" class="px-4 py-2 bg-[#E07845] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#c96636] transition-colors flex items-center gap-2">
+                    Editar <i class="fas fa-arrow-right"></i>
                   </button>
+
+                  <button @click="clonarVersion(cot)" :disabled="clonandoItem === extractIdStr(cot.id || cot['@id'])"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-sky-500 hover:border-sky-200 hover:bg-sky-50 transition-colors disabled:opacity-50"
+                          title="Clonar esta versión">
+                    <i class="fas fa-spinner fa-spin text-xs" v-if="clonandoItem === extractIdStr(cot.id || cot['@id'])"></i>
+                    <i class="fas fa-copy text-xs" v-else></i>
+                  </button>
+
                   <button @click="eliminarVersion(cot)" :disabled="eliminandoItem === (cot['@id'] || cot.id)"
-                          class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 text-slate-300 hover:text-red-500 hover:border-red-200 transition-colors disabled:opacity-50">
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50">
                     <i class="fas fa-spinner fa-spin text-xs" v-if="eliminandoItem === (cot['@id'] || cot.id)"></i>
                     <i class="fas fa-trash-alt text-xs" v-else></i>
                   </button>
                 </div>
               </div>
+
+              <!-- 2. PANEL DE MÉTRICAS (Grid separada) -->
+              <div class="grid grid-cols-3 gap-2 sm:gap-4 bg-slate-50 border border-slate-100 rounded-xl p-3 sm:p-4 mt-2">
+
+                <!-- Pax -->
+                <div class="flex flex-col">
+                  <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                    <i class="fas fa-users mr-1"></i> Pax
+                  </span>
+                  <span class="text-xs sm:text-sm font-black text-slate-700">
+                    {{ cot.numPax ?? '—' }}
+                  </span>
+                </div>
+
+                <!-- Venta -->
+                <div class="flex flex-col border-l border-slate-200 pl-3 sm:pl-4">
+                  <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                    <i class="fas fa-money-bill mr-1"></i> Venta
+                  </span>
+                  <span class="text-xs sm:text-sm font-black text-slate-800">
+                    <span class="text-[9px] font-bold text-slate-400 mr-0.5">{{ cot.monedaGlobal }}</span>
+                    {{ cot.totalVenta ?? '0.00' }}
+                  </span>
+                </div>
+
+                <!-- Ganancia -->
+                <div class="flex flex-col border-l border-slate-200 pl-3 sm:pl-4">
+                  <span class="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest mb-1">
+                    <i class="fas fa-chart-line mr-1"></i> Ganancia
+                  </span>
+                  <span class="text-xs sm:text-sm font-black text-emerald-600">
+                    <span class="text-[9px] font-bold text-emerald-600/60 mr-0.5">{{ cot.monedaGlobal }}</span>
+                    {{ cot.ganancia ?? '0.00' }}
+                  </span>
+                </div>
+
+              </div>
+
             </div>
 
           </div>

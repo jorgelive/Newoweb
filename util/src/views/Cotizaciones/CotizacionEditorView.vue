@@ -18,7 +18,7 @@ import {
   getProcedenciaUI,
   getTipoNotaUI,
   getRolTarifaUI, Servicio, TarifaSnapshot, formatRangoEdad,
-  MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions,
+  MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions
 } from '@/types/cotizacionEditorModel';
 
 // 1. Importa el estado y lógica compartida
@@ -63,8 +63,8 @@ let watchActivo = false;
 
 const onBeforeUnload = (e: BeforeUnloadEvent) => {
   if (isDirty.value) {
+    // El estándar moderno solo requiere esto para mostrar el diálogo genérico
     e.preventDefault();
-    e.returnValue = '';
   }
 };
 
@@ -328,6 +328,21 @@ const opcionesProveedores = computed(() => {
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
+
+const handleNombreProveedorInput = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const val = target.value;
+
+  // Actualizamos el modelo
+  if (store.dataActiva) {
+    (store.dataActiva as any).proveedorNombreSnapshot = val;
+  }
+
+  // Ejecutamos la lógica de limpieza
+  if (!val.trim() && !store.dataActiva?.proveedorMaestroId) {
+    store.limpiarServicioProveedor();
+  }
+};
 
 const opcionesPlantillas = computed(() => {
   return store.catalogos.plantillasItinerario
@@ -759,7 +774,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 <template>
   <div class="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden relative">
 
-    <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md flex-shrink-0">
+    <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md shrink-0">
       <div class="flex items-center gap-3">
         <button @click="handleVolver" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
           <i class="fas fa-arrow-left text-sm"></i>
@@ -903,10 +918,10 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
       </main>
 
       <aside :class="[
-            'bg-white flex flex-col transition-transform duration-300 ease-in-out border-slate-200 flex-shrink-0',
+            'bg-white flex flex-col transition-transform duration-300 ease-in-out border-slate-200 shrink-0',
             'fixed inset-0 z-50 md:z-10 w-full',
             store.isMobileOpen ? 'translate-y-0' : 'translate-y-full',
-            'md:relative md:w-[420px] md:border-l md:translate-y-0 md:transform-none',
+            'md:relative md:w-105 md:border-l md:translate-y-0 md:transform-none',
             store.inspectorActivo === 'tarifa' ? 'bg-white text-slate-800' : 'bg-white text-slate-800'
         ]">
 
@@ -924,7 +939,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
               </div>
               <button @click="store.cotizacion.proveedorOculto = !store.cotizacion.proveedorOculto"
                       :class="[
-                           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none flex-shrink-0',
+                           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0',
                            store.cotizacion.proveedorOculto ? 'bg-teal-600' : 'bg-slate-300'
                        ]">
                  <span :class="store.cotizacion.proveedorOculto ? 'translate-x-6' : 'translate-x-1'"
@@ -1068,12 +1083,12 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
         </div>
 
         <div v-else-if="store.inspectorActivo === 'servicio'" class="flex-1 flex flex-col min-h-0">
-          <div class="px-5 py-1 border-b border-emerald-100 flex items-center gap-3 bg-emerald-50 flex-shrink-0">
-            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-emerald-100 text-slate-500 flex items-center justify-center transition-colors flex-shrink-0"><i class="fas fa-arrow-left"></i></button>
+          <div class="px-5 py-1 border-b border-emerald-100 flex items-center gap-3 bg-emerald-50 shrink-0">
+            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-emerald-100 text-slate-500 flex items-center justify-center transition-colors shrink-0"><i class="fas fa-arrow-left"></i></button>
 
             <div class="flex-1 min-w-0">
               <p class="text-[9px] font-black text-[#E07845] uppercase tracking-widest truncate flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
                 Edición de Servicio
               </p>
               <h2 class="text-sm font-black truncate">
@@ -1084,7 +1099,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
               </p>
             </div>
 
-            <div v-if="store.serviciosOrdenados.length > 1" class="flex flex-col gap-1 flex-shrink-0 self-center">
+            <div v-if="store.serviciosOrdenados.length > 1" class="flex flex-col gap-1 shrink-0 self-center">
               <button @click="store.irAServicioAdyacente(-1)"
                       :disabled="store.serviciosOrdenados.findIndex(s => s.id === store.dataActiva.id) === 0"
                       class="w-9 h-9 rounded-lg bg-white border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
@@ -1160,7 +1175,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
                 <div v-for="comp in store.dataActiva.cotcomponentes" :key="comp.id"
                      @click="store.abrirNivel('componente', comp)"
-                     class="bg-white border-2 rounded-xl p-4 shadow-sm cursor-pointer relative group overflow-hidden transition-all flex flex-col min-h-[140px]"
+                     class="bg-white border-2 rounded-xl p-4 shadow-sm cursor-pointer relative group overflow-hidden transition-all flex flex-col min-h-35"
                      :class="[
                         store.isComponenteConAlerta(comp) ? 'border-red-400 bg-red-50/20' :
                         (!store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/50' : 'border-slate-200 hover:border-sky-300')
@@ -1175,15 +1190,15 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
                   <div class="flex justify-between items-start mb-3">
                     <h4 class="font-black text-sm text-slate-800 leading-tight pr-8 flex flex-col">
-                      <div class="flex items-center gap-1.5">
+                      <span class="flex items-center gap-1.5">
                         <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500" title="Tarifas no cuadran"></i>
                         {{ getNombreMaestroRef(comp) }}
-                      </div>
+                      </span>
                       <span v-if="!store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId))" class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
                          <i class="fas fa-infinity text-[8px] mr-0.5"></i> Horario Libre / Final del día
                       </span>
                     </h4>
-                    <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                    <div class="flex flex-col items-end gap-1 shrink-0">
                       <span class="text-[10px] font-black px-2 py-1 rounded border shadow-sm whitespace-nowrap flex items-center gap-1"
                             :class="[getModoItemConfig(comp.modo).bg, getModoItemConfig(comp.modo).text, getModoItemConfig(comp.modo).border]">
                             <i class="fas text-[9px]" :class="getModoItemConfig(comp.modo).icon"></i>
@@ -1256,14 +1271,14 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                           {{ tarifa.esGrupal ? '1 GRUPO' : `${tarifa.cantidad} Pax` }}
                         </span>
                       </div>
-                      <div class="text-right flex-shrink-0">
+                      <div class="text-right shrink-0">
                         <span class="text-[11px] font-black" :class="comp.modo === 'no_incluido' ? 'text-slate-400 line-through' : 'text-orange-600'">
                           {{ formatMoneda(tarifa.montoCosto * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div v-else class="mt-auto pt-3 border-t border-slate-100 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200 p-2">
+                  <div v-else class="mt-auto pt-3 border-t border-slate-100 text-center bg-slate-50 rounded-lg border border-dashed p-2">
                     <span class="text-[9px] font-black text-red-400 uppercase tracking-widest flex items-center justify-center gap-1">
                       <i class="fas fa-exclamation-circle"></i> Sin tarifas asignadas
                     </span>
@@ -1277,8 +1292,8 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
         </div>
 
         <div v-else-if="store.inspectorActivo === 'componente'" class="flex-1 flex flex-col min-h-0 bg-sky-50/50">
-          <div class="px-5 py-2 border-b border-sky-200 flex items-center gap-3 bg-sky-600 text-white flex-shrink-0">
-            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-sky-500 flex items-center justify-center transition-colors flex-shrink-0"><i class="fas fa-arrow-left"></i></button>
+          <div class="px-5 py-2 border-b border-sky-200 flex items-center gap-3 bg-sky-600 text-white shrink-0">
+            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-sky-500 flex items-center justify-center transition-colors shrink-0"><i class="fas fa-arrow-left"></i></button>
 
             <div class="flex-1 min-w-0">
               <p class="text-[11px] font-black text-sky-200 uppercase tracking-widest truncate flex items-center gap-1">
@@ -1291,7 +1306,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
               </p>
             </div>
 
-            <div v-if="store.componentesHermanos.length > 1" class="flex flex-col gap-1 flex-shrink-0">
+            <div v-if="store.componentesHermanos.length > 1" class="flex flex-col gap-1 shrink-0">
               <button @click="store.irAComponenteAdyacente(-1)"
                       :disabled="store.componentesHermanos.findIndex(c => c.id === store.dataActiva.id) === 0"
                       class="w-9 h-9 rounded-lg bg-sky-500/60 hover:bg-sky-400 text-white flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
@@ -1506,7 +1521,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                            placeholder="Descripción de la inclusión...">
 
                     <span v-if="item.modo === 'opcional'" class="text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">Opcional</span>
-                    <span v-if="item.tieneUpsell" class="text-[8px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase flex-shrink-0 whitespace-nowrap"><i class="fas fa-arrow-up"></i> Upsell</span>
+                    <span v-if="item.tieneUpsell" class="text-[8px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase shrink-0 whitespace-nowrap"><i class="fas fa-arrow-up"></i> Upsell</span>
 
                     <button @click="item.sobreescribirTraduccion = !item.sobreescribirTraduccion"
                             class="transition-colors px-1"
@@ -1550,7 +1565,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                 </div>
                 <div v-else v-for="bloque in store.dataActiva.detallesOperativos" :key="bloque.id"
                      class="flex gap-2 items-start bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
-                  <select v-model="bloque.tipo" class="flex-shrink-0 w-32 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-[10px] font-bold text-slate-600 outline-none">
+                  <select v-model="bloque.tipo" class="shrink-0 w-32 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-[10px] font-bold text-slate-600 outline-none">
                     <option value="cliente">Detalles</option>
                     <option value="operativa">Operativa</option>
                   </select>
@@ -1559,7 +1574,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                             rows="2"
                             class="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none resize-none"
                             placeholder="Contenido..."></textarea>
-                  <button @click="store.eliminarDetalleOperativo(store.dataActiva.id, bloque.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1 flex-shrink-0">
+                  <button @click="store.eliminarDetalleOperativo(store.dataActiva.id, bloque.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1 shrink-0">
                     <i class="fas fa-times text-sm"></i>
                   </button>
                 </div>
@@ -1610,7 +1625,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                         </span>
                       </div>
                     </div>
-                    <div class="text-right flex-shrink-0">
+                    <div class="text-right shrink-0">
                       <span class="font-black text-orange-600 text-base block">{{ formatMoneda(tarifa.montoCosto * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
                       <p class="text-xs font-black text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
                         <i class="fas fa-tag text-[9px]"></i>
@@ -1652,8 +1667,8 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
 
         <div v-else-if="store.inspectorActivo === 'tarifa'" class="flex-1 flex flex-col min-h-0 bg-white">
-          <div class="px-5 py-1 border-b border-orange-200 flex items-center gap-3 bg-orange-50 flex-shrink-0 shadow-sm z-10">
-            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-orange-200 text-orange-600 flex items-center justify-center transition-colors flex-shrink-0"><i class="fas fa-arrow-left"></i></button>
+          <div class="px-5 py-1 border-b border-orange-200 flex items-center gap-3 bg-orange-50 shrink-0 shadow-sm z-10">
+            <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-orange-200 text-orange-600 flex items-center justify-center transition-colors shrink-0"><i class="fas fa-arrow-left"></i></button>
 
             <div class="flex-1 min-w-0">
               <p class="text-[11px] font-black text-orange-400 uppercase tracking-widest truncate flex items-center gap-1">
@@ -1665,7 +1680,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
               </p>
             </div>
 
-            <div v-if="store.tarifasHermanas.length > 1" class="flex flex-col gap-1 flex-shrink-0">
+            <div v-if="store.tarifasHermanas.length > 1" class="flex flex-col gap-1 shrink-0">
               <button @click="store.irATarifaAdyacente(-1)"
                       :disabled="store.tarifasHermanas.findIndex(t => t.id === store.dataActiva.id) === 0"
                       class="w-9 h-9 rounded-lg bg-white border border-orange-200 text-orange-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
@@ -1695,7 +1710,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                 />
                 <button v-if="store.dataActiva.tarifaMaestraId"
                         @click="store.dataActiva.tarifaMaestraId = null"
-                        class="w-9 h-9 flex-shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
+                        class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
                         title="Desvincular tarifa maestra">
                   <i class="fas fa-times"></i>
                 </button>
@@ -1793,7 +1808,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                       ]"
                           class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-user text-xs mb-1"></i>
-                    <p class="text-[8px] font-black uppercase">Unitario (Pax)</p>
+                    <span class="text-[8px] font-black uppercase">Unitario (Pax)</span>
                   </button>
                   <button type="button"
                           @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = true)"
@@ -1804,7 +1819,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                       ]"
                           class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-users text-xs mb-1"></i>
-                    <p class="text-[8px] font-black uppercase">Grupal (Flat)</p>
+                    <span class="text-[8px] font-black uppercase">Grupal (Flat)</span>
                   </button>
                 </div>
               </div>
@@ -1875,7 +1890,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                     </div>
                   </div>
 
-                  <div class="w-24 flex-shrink-0">
+                  <div class="w-24 shrink-0">
                     <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Grupo</label>
                     <input v-model.number="store.dataActiva.grupoTarifa" type="number" min="1" placeholder="Ej: 1"
                            class="w-full bg-white border border-slate-300 rounded-lg px-2 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-teal-500 shadow-sm">
@@ -1901,7 +1916,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
                 <div @click="isProveedorOpen = !isProveedorOpen" class="p-4 pl-5 cursor-pointer flex items-center justify-between hover:bg-orange-50/50 transition-colors relative">
                   <div>
-                    <label class="block text-[10px] font-black text-orange-500 uppercase tracking-widest cursor-pointer mb-0.5 flex items-center gap-1.5">
+                    <label class="text-[10px] font-black text-orange-500 uppercase tracking-widest cursor-pointer mb-0.5 flex items-center gap-1.5">
                       <i class="fas fa-truck-loading"></i> Datos del Proveedor
 
                       <span v-if="store.dataActiva.estadoOperativoSnapshot && store.dataActiva.estadoOperativoSnapshot !== 'sin-solicitar'"
@@ -1928,7 +1943,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                     <span v-else-if="store.dataActiva.proveedorNombreSnapshot" class="text-[8px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded border border-sky-200 uppercase font-black hidden sm:inline-block">
                   Libre
                 </span>
-                    <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0 border border-slate-200">
+                    <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0 border border-slate-200">
                       <i class="fas transition-transform" :class="isProveedorOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                     </div>
                   </div>
@@ -1957,7 +1972,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                       />
                       <button v-if="store.dataActiva.proveedorMaestroId"
                               @click="store.onProveedorChange(null)"
-                              class="w-9 h-9 flex-shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
+                              class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
                               title="Deseleccionar Proveedor">
                         <i class="fas fa-times"></i>
                       </button>
@@ -1981,7 +1996,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                       </div>
 
                       <div class="flex items-center gap-2 mt-3">
-                        <i class="fas fa-building text-slate-400 text-xs w-4 flex-shrink-0 text-center" title="URL a nivel Proveedor"></i>
+                        <i class="fas fa-building text-slate-400 text-xs w-4 shrink-0 text-center" title="URL a nivel Proveedor"></i>
                         <div class="flex-1">
                           <input v-model="store.dataActiva.proveedorUrlSnapshot"
                                  @blur="onUrlBlur('proveedorUrlSnapshot')"
@@ -1998,11 +2013,13 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
                     <div class="mt-4 pt-3 border-t border-slate-100">
                       <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
-                      <input v-model="store.dataActiva.proveedorNombreSnapshot"
-                             @input="e => { if (!(e.target as HTMLInputElement).value.trim() && !store.dataActiva.proveedorMaestroId) store.limpiarServicioProveedor(); }"
-                             type="text"
-                             class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
-                             placeholder="Nombre del proveedor o servicio libre..." />
+                      <input
+                          :value="store.dataActiva?.proveedorNombreSnapshot"
+                          @input="handleNombreProveedorInput"
+                          type="text"
+                          class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
+                          placeholder="Nombre del proveedor o servicio libre..."
+                      />
                       <p class="text-[9px] text-slate-400 mt-1 ml-1 flex items-center gap-1">
                         <i class="fas fa-info-circle"></i> Fija la identidad para el historial financiero.
                       </p>
@@ -2012,7 +2029,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                   <fieldset class="border border-slate-200 bg-white rounded-xl p-4 mb-4 shadow-sm">
                     <legend class="text-[10px] font-black text-slate-500 uppercase px-2 bg-white rounded border border-slate-100">2. Servicio Contratado</legend>
 
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-2 ml-1 flex items-center gap-1">
+                    <label class="text-[9px] font-bold text-slate-500 uppercase mb-2 ml-1 flex items-center gap-1">
                       <i class="fas fa-concierge-bell text-teal-500"></i> Buscar en el catálogo del proveedor (Opcional)
                     </label>
 
@@ -2033,7 +2050,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
                       <button v-if="store.dataActiva.proveedorServicioMaestroId"
                               @click="store.onProveedorServicioChange(null)"
-                              class="w-9 h-9 flex-shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm"
+                              class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm"
                               title="Quitar servicio">
                         <i class="fas fa-times"></i>
                       </button>
@@ -2073,7 +2090,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                     </div>
 
                     <div class="flex items-center gap-2 mt-3">
-                      <i class="fas fa-door-open text-teal-400 text-xs w-4 flex-shrink-0 text-center" title="URL a nivel Servicio del Proveedor"></i>
+                      <i class="fas fa-door-open text-teal-400 text-xs w-4 shrink-0 text-center" title="URL a nivel Servicio del Proveedor"></i>
                       <div class="flex-1">
                         <input v-model="store.dataActiva.proveedorServicioUrlSnapshot"
                                @blur="onUrlBlur('proveedorServicioUrlSnapshot')"
@@ -2091,7 +2108,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
                   <template v-if="store.dataActiva.proveedorNombreSnapshot">
                     <div class="mt-5 pt-4 border-t border-slate-200">
-                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
+                      <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
                         <span>Nombre para la Reserva (Email)</span>
                         <i class="fas fa-paper-plane text-slate-400"></i>
                       </label>
@@ -2108,7 +2125,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                     <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
 
                       <div>
-                        <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
                           <i class="fas fa-tasks text-sky-500"></i> Estado de Reserva
                         </label>
                         <div class="relative">
@@ -2128,7 +2145,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
 
                       <div>
-                        <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
                           <span>Día de Vencimiento</span>
                           <i class="far fa-calendar-alt text-red-500"></i>
                         </label>
@@ -2138,7 +2155,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                       </div>
 
                       <div>
-                        <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
                           <span>Nota de Pago</span>
                           <i class="fas fa-sticky-note text-amber-500"></i>
                         </label>
@@ -2165,7 +2182,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
         <div v-if="store.inspectorActivo !== 'resumen' && store.cotizacion"
              @click="isTotalsDrawerOpen = true"
-             class="absolute bottom-0 w-full bg-slate-900 border-t border-slate-700/50 px-6 py-4 flex justify-between items-center flex-shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.4)] z-40 cursor-pointer hover:bg-slate-800 active:bg-slate-950 transition-colors">
+             class="absolute bottom-0 w-full bg-slate-900 border-t border-slate-700/50 px-6 py-4 flex justify-between items-center shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.4)] z-40 cursor-pointer hover:bg-slate-800 active:bg-slate-950 transition-colors">
 
           <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 px-4 py-0.5 rounded-t-lg border-t border-x border-slate-700/50 text-slate-400 shadow-sm flex flex-col items-center justify-center">
             <i class="fas fa-chevron-up text-[10px]"></i>
@@ -2188,7 +2205,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
             </div>
 
             <button @click.stop="handleGuardar"
-                    class="md:hidden w-9 h-9 rounded-full bg-[#E07845] hover:bg-[#c96636] active:scale-95 flex items-center justify-center shadow-md transition-all flex-shrink-0">
+                    class="md:hidden w-9 h-9 rounded-full bg-[#E07845] hover:bg-[#c96636] active:scale-95 flex items-center justify-center shadow-md transition-all shrink-0">
               <i class="fas fa-save text-sm text-white"></i>
             </button>
           </div>
@@ -2211,7 +2228,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
   <Teleport to="body">
     <Transition name="fade-scale">
-      <div v-if="store.isSegmentEditorOpen && store.cotizacion" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center md:p-8">
+      <div v-if="store.isSegmentEditorOpen && store.cotizacion" class="fixed inset-0 z-1000 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center md:p-8">
         <div class="bg-[#F8FAFC] w-full h-full md:max-w-6xl md:max-h-[90vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
           <header class="bg-teal-600 text-white px-6 py-4 flex justify-between items-center">
             <div>
@@ -2223,7 +2240,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
           <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
 
-            <aside class="w-full md:w-1/3 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shadow-sm z-20 flex-shrink-0 transition-all duration-300"
+            <aside class="w-full md:w-1/3 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shadow-sm z-20 shrink-0 transition-all duration-300"
                    :class="activeAccordion === 'pool' ? 'flex-1 min-h-0' : 'h-auto'">
 
               <div class="md:hidden flex justify-between items-center px-4 py-4 bg-teal-50 hover:bg-teal-100 cursor-pointer transition-colors border-b border-teal-200"
@@ -2233,7 +2250,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
               </div>
 
               <div class="flex-1 flex flex-col min-h-0 overflow-hidden" :class="{'hidden md:flex': activeAccordion !== 'pool'}">
-                <div class="p-3 md:p-5 border-b border-slate-100 bg-slate-50 flex-shrink-0">
+                <div class="p-3 md:p-5 border-b border-slate-100 bg-slate-50 shrink-0">
                   <label class="block text-[10px] font-black text-teal-600 uppercase tracking-widest mb-2">1. Cargar Plantilla</label>
                   <div class="flex gap-2">
                     <SearchableSelect
@@ -2253,7 +2270,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 
                 <div class="p-3 md:p-5 flex-1 overflow-y-auto bg-white flex flex-col">
                   <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 md:mb-3">2. Pool de Segmentos Libres</label>
-                  <div class="mb-3 md:mb-4 flex-shrink-0">
+                  <div class="mb-3 md:mb-4 shrink-0">
                     <input v-model="filtroSegmentos" type="text" placeholder="🔍 Buscar por ID o Título..."
                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-teal-500 outline-none shadow-inner">
                   </div>
@@ -2271,14 +2288,14 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                         <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
                         <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido as any, store.cotizacion?.idiomaEdicion || 'es')"></div>
                       </div>
-                      <button @click="prepararInsercion(seg)" class="text-teal-600 hover:bg-teal-200 bg-teal-50 md:bg-transparent md:hover:bg-teal-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors flex-shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-teal-100"><i class="fas fa-plus"></i></button>
+                      <button @click="prepararInsercion(seg)" class="text-teal-600 hover:bg-teal-200 bg-teal-50 md:bg-transparent md:hover:bg-teal-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-teal-100"><i class="fas fa-plus"></i></button>
                     </div>
                   </div>
                 </div>
               </div>
             </aside>
 
-            <main class="w-full md:flex-1 bg-[#F8FAFC] flex flex-col flex-shrink-0 transition-all duration-300"
+            <main class="w-full md:flex-1 bg-[#F8FAFC] flex flex-col shrink-0 transition-all duration-300"
                   :class="activeAccordion === 'parrafos' ? 'flex-1 min-h-0' : 'h-auto'">
 
               <div class="md:hidden flex justify-between items-center px-4 py-4 bg-slate-200 hover:bg-slate-300 cursor-pointer transition-colors border-b border-slate-300"
@@ -2316,7 +2333,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                   </div>
 
                   <div v-else class="space-y-0 relative">
-                    <div class="absolute left-[15px] top-4 bottom-4 w-0.5 bg-slate-200 z-0 hidden md:block"></div>
+                    <div class="absolute left-3.75 top-4 bottom-4 w-0.5 bg-slate-200 z-0 hidden md:block"></div>
 
                     <template v-for="(cotSeg, idx) in segmentosOrdenadosVisualmente" :key="cotSeg.id">
                       <div v-if="idx === 0 || cotSeg.dia !== segmentosOrdenadosVisualmente[idx-1].dia" class="mb-4 mt-6 first:mt-2 text-teal-700 font-black text-sm border-b border-teal-200 pb-1 flex items-center justify-between">
@@ -2331,7 +2348,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                              dragOverSegId === cotSeg.id && dragSegId !== cotSeg.id ? 'ring-2 ring-teal-400 rounded-2xl' : ''
                            ]">
 
-                        <div class="flex flex-col items-center gap-1 mt-1 flex-shrink-0 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                        <div class="flex flex-col items-center gap-1 mt-1 shrink-0 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
                           <div class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center font-black text-[10px] md:text-xs">{{ cotSeg.orden }}</div>
                           <div class="text-slate-300 hover:text-teal-500 cursor-grab active:cursor-grabbing select-none px-2 py-1"
                                style="touch-action: none;"
@@ -2346,7 +2363,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                         <div class="flex-1 bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden min-w-0">
 
                           <div class="bg-slate-50 px-3 md:px-4 py-3 border-b border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
-                            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm flex-shrink-0">
+                            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm shrink-0">
                               <label class="text-[9px] md:text-[10px] font-black text-teal-600 uppercase tracking-widest whitespace-nowrap">Día Relativo</label>
                               <input type="number" min="1"
                                      v-model="cotSeg.dia"
@@ -2360,12 +2377,12 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                                      class="bg-transparent text-[11px] md:text-xs font-black text-slate-700 uppercase outline-none flex-1 w-full truncate" placeholder="Título..." />
 
                               <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
-                                      class="transition-colors px-2 py-1.5 rounded text-[10px] font-bold border flex items-center gap-1 shadow-sm flex-shrink-0"
+                                      class="transition-colors px-2 py-1.5 rounded text-[10px] font-bold border flex items-center gap-1 shadow-sm shrink-0"
                                       :class="cotSeg.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'" title="Forzar traducción del párrafo al guardar">
                                 <i class="fas fa-language"></i> <span class="hidden xl:inline" v-if="cotSeg.sobreescribirTraduccion">Auto-Traducir</span>
                               </button>
 
-                              <button @click="store.removerCotSegmento(cotSeg.id)" class="bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors ml-1 p-1.5 rounded shadow-sm flex-shrink-0">
+                              <button @click="store.removerCotSegmento(cotSeg.id)" class="bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors ml-1 p-1.5 rounded shadow-sm shrink-0">
                                 <i class="fas fa-trash-alt text-sm"></i>
                               </button>
                             </div>
@@ -2393,7 +2410,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                                           <i class="fas text-[10px] md:text-xs" :class="getTipoNotaUI(tipo).icon"></i>
                                         </div>
                                         <div class="px-2 py-1 md:px-2.5 md:py-1.5 flex-1 min-w-0 flex flex-col justify-center">
-                                          <span class="text-[9px] md:text-[10px] font-bold text-slate-700 block truncate w-full max-w-[120px] md:max-w-[160px]">
+                                          <span class="text-[9px] md:text-[10px] font-bold text-slate-700 block truncate w-full max-w-30 md:max-w-40">
                                             {{ store.getI18nText(nota.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || nota.nombreInterno }}
                                           </span>
                                         </div>
@@ -2410,8 +2427,8 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                               <div v-if="cotSeg.imagenesSnapshot && cotSeg.imagenesSnapshot.length > 0">
                                 <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-images mr-1"></i> Galería</h4>
                                 <div class="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                                  <div v-for="(img, iIdx) in cotSeg.imagenesSnapshot" :key="iIdx" class="relative w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden border border-slate-200 flex-shrink-0 group shadow-sm">
-                                    <img :src="img.imageUrl || '/images/placeholder.jpg'" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                  <div v-for="(img, iIdx) in cotSeg.imagenesSnapshot" :key="iIdx" class="relative w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden border border-slate-200 shrink-0 group shadow-sm">
+                                    <img :src="img.imageUrl || '/images/placeholder.jpg'" class="w-full h-full object-cover transition-transform group-hover:scale-110"  alt="image"/>
                                     <button @click="cotSeg.imagenesSnapshot.splice(iIdx, 1)" class="absolute top-1 right-1 bg-white/90 hover:bg-red-500 hover:text-white w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[9px] md:text-[10px] text-slate-600 transition-colors md:opacity-0 group-hover:opacity-100 shadow-sm" title="Quitar imagen">
                                       <i class="fas fa-times"></i>
                                     </button>
@@ -2434,9 +2451,9 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
     </Transition>
 
     <Transition name="slide-up">
-      <div v-if="isTotalsDrawerOpen" class="fixed inset-0 z-[1200] flex flex-col justify-end bg-slate-900/60 backdrop-blur-sm md:items-end md:justify-start" @click.self="isTotalsDrawerOpen = false">
+      <div v-if="isTotalsDrawerOpen" class="fixed inset-0 z-1200 flex flex-col justify-end bg-slate-900/60 backdrop-blur-sm md:items-end md:justify-start" @click.self="isTotalsDrawerOpen = false">
 
-        <div class="bg-slate-50 w-full md:w-[420px] md:h-screen rounded-t-3xl md:rounded-none shadow-2xl flex flex-col max-h-[85vh] md:max-h-full overflow-hidden relative transition-transform">
+        <div class="bg-slate-50 w-full md:w-105 md:h-screen rounded-t-3xl md:rounded-none shadow-2xl flex flex-col max-h-[85vh] md:max-h-full overflow-hidden relative transition-transform">
 
           <div class="flex justify-between items-center px-6 py-4 bg-white border-b border-slate-200 z-10 sticky top-0 shadow-sm">
             <h3 class="font-black text-slate-800 text-sm uppercase tracking-widest flex items-center gap-2">
@@ -2527,9 +2544,9 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
     </Transition>
 
     <Transition name="fade-scale">
-      <div v-if="modalNota.isOpen" class="fixed inset-0 z-[1300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalNota.isOpen = false">
+      <div v-if="modalNota.isOpen" class="fixed inset-0 z-1300 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalNota.isOpen = false">
         <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
-          <div :class="[getTipoNotaUI(modalNota.nota?.tipo).bg, getTipoNotaUI(modalNota.nota?.tipo).text]" class="px-5 py-4 flex justify-between items-center border-b border-black/5 flex-shrink-0">
+          <div :class="[getTipoNotaUI(modalNota.nota?.tipo).bg, getTipoNotaUI(modalNota.nota?.tipo).text]" class="px-5 py-4 flex justify-between items-center border-b border-black/5 shrink-0">
             <h3 class="font-black text-sm uppercase tracking-widest flex items-center gap-2">
               <i class="fas" :class="getTipoNotaUI(modalNota.nota?.tipo).icon"></i>
               {{ modalNota.nota?.tipo }}
@@ -2544,7 +2561,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                  v-html="store.getI18nText(modalNota.nota?.contenido as any, store.cotizacion?.idiomaEdicion || 'es')">
             </div>
           </div>
-          <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end flex-shrink-0">
+          <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end shrink-0">
             <button @click="modalNota.isOpen = false" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">Cerrar</button>
           </div>
         </div>
@@ -2552,7 +2569,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
     </Transition>
 
     <Transition name="fade-scale">
-      <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-[1400] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalInsercion.isOpen = false">
+      <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-1400 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalInsercion.isOpen = false">
         <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
           <div class="bg-teal-600 text-white px-5 py-4 flex justify-between items-center">
             <h3 class="font-black text-sm uppercase tracking-widest"><i class="fas fa-arrows-alt-v mr-2"></i>¿Dónde ubicar el segmento?</h3>
@@ -2598,10 +2615,10 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
     </Transition>
 
     <Transition name="fade-scale">
-      <div v-if="isReporteOpen" class="fixed inset-0 z-[1500] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
+      <div v-if="isReporteOpen" class="fixed inset-0 z-1500 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
            @click.self="isReporteOpen = false">
         <div class="bg-white w-full max-w-6xl h-full max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
-          <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center flex-shrink-0">
+          <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
             <h2 class="font-black text-lg"><i class="fas fa-file-invoice-dollar mr-2"></i> Reporte financiero</h2>
             <button @click="isReporteOpen = false" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center"><i class="fas fa-times"></i></button>
           </header>
@@ -2619,14 +2636,8 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-.fade-scale-enter-active, .fade-scale-leave-active { transition: all 0.3s ease; }
-.fade-scale-enter-from, .fade-scale-leave-to { opacity: 0; transform: scale(0.95); }
-.slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-.slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
 
-:deep(.dp__main) {
-  font-family: inherit;
-}
+
 </style>
 
 <style>

@@ -9,6 +9,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Entity\Trait\AutoTranslateControlTrait;
+use App\Pms\Enum\PmsGuiaSeccionTipo;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -37,6 +38,10 @@ class PmsGuiaSeccion
     #[Assert\Count(min: 1, minMessage: 'Debe ingresar al menos un título')]
     private array $titulo = [];
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    private ?array $subtitulo = [];
+
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     #[Assert\Length(max: 50, maxMessage: 'El icono no puede exceder los 50 caracteres')]
     private ?string $icono = 'fa-info-circle';
@@ -44,6 +49,9 @@ class PmsGuiaSeccion
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     #[Assert\NotNull]
     private bool $esComun = false;
+
+    #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: PmsGuiaSeccionTipo::class)]
+    private ?PmsGuiaSeccionTipo $tipo = null;
 
     // Relación INVERSA hacia la tabla intermedia (Seccion <-> Item)
     #[ORM\OneToMany(
@@ -61,6 +69,7 @@ class PmsGuiaSeccion
         $this->seccionHasItems = new ArrayCollection();
         $this->id = Uuid::v7();
         $this->titulo = [];
+        $this->subtitulo = [];
         $this->icono = 'fa-info-circle';
         $this->esComun = false;
         $this->nombreInterno = '';
@@ -116,6 +125,25 @@ class PmsGuiaSeccion
         return $this->icono;
     }
 
+
+    #[Groups(['pax_evento:read'])]
+    #[SerializedName('tipo')]
+    public function getTipo(): ?string
+    {
+        return $this->tipo?->value;   // Expone "ingreso" | "descriptivo" | "normas" | null
+    }
+
+    public function getTipoEnum(): ?PmsGuiaSeccionTipo   // Para uso interno/admin
+    {
+        return $this->tipo;
+    }
+
+    public function setTipo(PmsGuiaSeccionTipo|string|null $tipo): self
+    {
+        $this->tipo = is_string($tipo) ? PmsGuiaSeccionTipo::tryFrom($tipo) : $tipo;
+        return $this;
+    }
+
     // =========================================================================
     // GETTERS Y SETTERS ADMINISTRATIVOS
     // =========================================================================
@@ -134,6 +162,18 @@ class PmsGuiaSeccion
     public function setTitulo(array $titulo): self
     {
         $this->titulo = MaestroIdioma::normalizarParaDB($titulo); return $this;
+    }
+
+    #[Groups(['pax_evento:read'])]
+    public function getSubtitulo(): array
+    {
+        return MaestroIdioma::ordenarParaFormulario($this->subtitulo ?? []);
+    }
+
+    public function setSubtitulo(?array $subtitulo): self
+    {
+        $this->subtitulo = MaestroIdioma::normalizarParaDB($subtitulo ?? []);
+        return $this;
     }
 
     public function setIcono(?string $icono): self

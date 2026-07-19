@@ -455,10 +455,10 @@ const mvDelta = (deltaUsd: number) => {
           <div class="flex items-center justify-between gap-3 mb-4">
             <button @click="volverPortada" class="flex items-center gap-2 text-white/80 hover:text-white text-xs font-black uppercase tracking-widest transition-colors">
               <i class="fas fa-arrow-left"></i>
-              <span class="truncate max-w-[140px] sm:max-w-none">{{ store.file?.nombreGrupo }}</span>
+              <span class="truncate max-w-35 sm:max-w-none">{{ store.file?.nombreGrupo }}</span>
             </button>
 
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="flex items-center gap-2 shrink-0">
               <span class="px-2.5 py-1 rounded-lg bg-[#E07845] text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
                 V{{ store.cotizacion.version }}
               </span>
@@ -492,20 +492,20 @@ const mvDelta = (deltaUsd: number) => {
             <button
                 v-if="store.precioVisible && totalViaje"
                 @click="finanzasAbiertas = !finanzasAbiertas"
-                class="flex-shrink-0 bg-white/5 hover:bg-white/10 backdrop-blur-sm border rounded-2xl px-4 py-2.5 text-right transition-all"
+                class="shrink-0 bg-white/5 hover:bg-white/10 backdrop-blur-sm border rounded-2xl px-4 py-2.5 text-right transition-all"
                 :class="finanzasAbiertas ? 'border-emerald-300/60 bg-white/20' : 'border-white/20'"
             >
-              <p class="text-[8px] font-black text-white/60 uppercase tracking-widest flex items-center justify-end gap-1.5">
+              <span class="text-[8px] font-black text-white/60 uppercase tracking-widest flex items-center justify-end gap-1.5">
                 <i class="fas fa-sack-dollar text-emerald-300"></i>
                 {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
-              </p>
-              <p class="text-lg md:text-2xl font-black tabular-nums leading-tight flex items-center justify-end gap-2">
+              </span>
+              <span class="text-lg md:text-2xl font-black tabular-nums leading-tight flex items-center justify-end gap-2">
                 {{ mv(totalViaje.soles, totalViaje.dolares) }}
                 <i
                     class="fas fa-chevron-down text-xs text-emerald-300 transition-transform"
                     :class="finanzasAbiertas ? 'rotate-180' : ''"
                 ></i>
-              </p>
+              </span>
             </button>
           </div>
         </div>
@@ -524,7 +524,7 @@ const mvDelta = (deltaUsd: number) => {
               <i class="fas fa-users"></i>
               {{ maestroStore.t('cot_perfil_pasajero') || 'Análisis por perfil de pasajero' }}
             </h2>
-            <div class="flex items-center bg-white border border-emerald-200 rounded-xl p-1 gap-1 shadow-sm flex-shrink-0">
+            <div class="flex items-center bg-white border border-emerald-200 rounded-xl p-1 gap-1 shadow-sm shrink-0">
               <button
                   @click="monedaVista = 'PEN'"
                   :class="monedaVista === 'PEN' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'"
@@ -550,11 +550,11 @@ const mvDelta = (deltaUsd: number) => {
                   <span class="inline-block px-3 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[11px] font-black uppercase tracking-widest mb-1.5">
                     {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
                   </span>
-                  <p class="text-xs font-black text-[#376875] bg-[#376875]/[0.06] border border-[#376875]/10 rounded-lg px-2.5 py-1 inline-block">
+                  <p class="text-xs font-black text-[#376875] bg-[#376875]/6 border border-[#376875]/10 rounded-lg px-2.5 py-1 inline-block">
                     <i class="fas fa-user-clock mr-1 text-[#E07845]"></i>{{ rangoEdadLabel(clase) }}
                   </p>
                 </div>
-                <div class="text-right flex-shrink-0">
+                <div class="text-right shrink-0">
                   <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
                     {{ maestroStore.t('cot_venta_unit') || 'Venta unit.' }}
                   </p>
@@ -616,7 +616,7 @@ const mvDelta = (deltaUsd: number) => {
                   </div>
 
                   <!-- Delta de venta (negativo = descuento, positivo = adicional) -->
-                  <div class="text-right flex-shrink-0">
+                  <div class="text-right shrink-0">
                     <span
                         class="inline-flex flex-col items-end rounded-xl px-3 py-1.5"
                         :class="up.deltaVentaTotal < 0
@@ -684,7 +684,7 @@ const mvDelta = (deltaUsd: number) => {
         <div class="max-w-3xl mx-auto px-2 py-2.5 flex items-center gap-1">
           <button
               @click="desplazarNav(-1)"
-              class="flex-shrink-0 w-7 h-7 rounded-lg bg-white border border-slate-200 text-[#376875]/60 hover:text-[#376875] hover:border-[#376875]/40 transition-colors flex items-center justify-center"
+              class="shrink-0 w-7 h-7 rounded-lg bg-white border border-slate-200 text-[#376875]/60 hover:text-[#376875] hover:border-[#376875]/40 transition-colors flex items-center justify-center"
               :aria-label="maestroStore.t('cot_dias_anteriores') || 'Días anteriores'"
           >
             <i class="fas fa-chevron-left text-[10px]"></i>
@@ -696,7 +696,7 @@ const mvDelta = (deltaUsd: number) => {
                 :key="dia.fecha"
                 :data-nav-dia="dia.numeroDia"
                 @click="irADia(dia.numeroDia)"
-                class="flex-shrink-0 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all"
+                class="shrink-0 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all"
                 :class="diaActivo === dia.numeroDia
                   ? 'bg-[#376875] text-white shadow-md shadow-[#376875]/20'
                   : 'bg-white text-[#376875]/60 border border-slate-200 hover:border-[#376875]/40'"
@@ -707,7 +707,7 @@ const mvDelta = (deltaUsd: number) => {
 
           <button
               @click="desplazarNav(1)"
-              class="flex-shrink-0 w-7 h-7 rounded-lg bg-white border border-slate-200 text-[#376875]/60 hover:text-[#376875] hover:border-[#376875]/40 transition-colors flex items-center justify-center"
+              class="shrink-0 w-7 h-7 rounded-lg bg-white border border-slate-200 text-[#376875]/60 hover:text-[#376875] hover:border-[#376875]/40 transition-colors flex items-center justify-center"
               :aria-label="maestroStore.t('cot_dias_siguientes') || 'Días siguientes'"
           >
             <i class="fas fa-chevron-right text-[10px]"></i>
@@ -727,7 +727,7 @@ const mvDelta = (deltaUsd: number) => {
         >
           <!-- Título del día -->
           <div class="flex items-center gap-3 mb-5">
-            <span class="w-12 h-12 rounded-2xl bg-[#376875] text-white flex flex-col items-center justify-center flex-shrink-0 shadow-lg shadow-[#376875]/20">
+            <span class="w-12 h-12 rounded-2xl bg-[#376875] text-white flex flex-col items-center justify-center shrink-0 shadow-lg shadow-[#376875]/20">
               <span class="text-[8px] font-black uppercase leading-none opacity-70">{{ maestroStore.t('cot_dia') || 'Día' }}</span>
               <span class="text-lg font-black leading-none">{{ dia.numeroDia }}</span>
             </span>
@@ -749,7 +749,7 @@ const mvDelta = (deltaUsd: number) => {
                 v-if="item.mostrarTituloServicio && !item.esRepeticion"
                 class="text-xl md:text-2xl font-black text-[#376875] leading-tight mb-3 mt-2 flex items-start gap-2.5"
             >
-              <i class="fas fa-route text-[#E07845] text-sm mt-2 flex-shrink-0"></i>
+              <i class="fas fa-route text-[#E07845] text-sm mt-2 shrink-0"></i>
               <span>{{ store.traducir(item.servicio.nombrePublicoSnapshot) }}</span>
             </h3>
 
@@ -758,7 +758,7 @@ const mvDelta = (deltaUsd: number) => {
                 v-if="item.esRepeticion"
                 class="bg-white rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 px-5 py-4 mb-6 flex items-center gap-4"
             >
-              <span class="w-10 h-10 rounded-xl bg-[#376875]/[0.06] text-[#376875] flex items-center justify-center flex-shrink-0">
+              <span class="w-10 h-10 rounded-xl bg-[#376875]/6 text-[#376875] flex items-center justify-center shrink-0">
                 <i class="fas fa-moon"></i>
               </span>
               <div class="min-w-0 flex-1">
@@ -775,7 +775,7 @@ const mvDelta = (deltaUsd: number) => {
             <!-- ── Card completa ── -->
             <article
                 v-else
-                class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-6"
+                class="bg-white rounded-4xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-6"
             >
               <!-- Galería de imágenes (desplazable) -->
               <div v-if="imagenesDe(item.segmento).length" class="h-48 md:h-64 relative overflow-hidden" data-galeria>
@@ -784,11 +784,11 @@ const mvDelta = (deltaUsd: number) => {
                       v-for="(img, ii) in imagenesDe(item.segmento)"
                       :key="ii"
                       :src="img.imageUrl"
-                      class="w-full h-full flex-shrink-0 snap-center object-cover"
+                      class="w-full h-full shrink-0 snap-center object-cover"
                       loading="lazy"
-                  />
+                   alt="imagen"/>
                 </div>
-                <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+                <div class="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
 
                 <!-- Flechas de galería -->
                 <template v-if="imagenesDe(item.segmento).length > 1">
@@ -827,7 +827,7 @@ const mvDelta = (deltaUsd: number) => {
                   <!-- Rango horario del segmento (derivado de componentes) -->
                   <span
                       v-if="item.horaInicio"
-                      class="flex-shrink-0 inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30"
+                      class="shrink-0 inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30"
                   >
                     <i class="far fa-clock"></i>
                     {{ item.horaInicio }}<template v-if="item.horaFin && item.horaFin !== item.horaInicio"> – {{ item.horaFin }}</template>
@@ -851,7 +851,7 @@ const mvDelta = (deltaUsd: number) => {
                   />
                   <div
                       v-if="descEsLarga(item.segmento) && !descExpandida.has(item.key)"
-                      class="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent pointer-events-none"
+                      class="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-white to-transparent pointer-events-none"
                   ></div>
                 </div>
                 <button
@@ -870,8 +870,8 @@ const mvDelta = (deltaUsd: number) => {
                       :key="c.id"
                       class="flex items-center gap-2.5 text-xs font-bold text-slate-500"
                   >
-                    <i class="far fa-clock text-[#E07845] flex-shrink-0"></i>
-                    <span class="tabular-nums text-[#376875] font-black text-sm flex-shrink-0 whitespace-nowrap">{{ horaRango(c) }}</span>
+                    <i class="far fa-clock text-[#E07845] shrink-0"></i>
+                    <span class="tabular-nums text-[#376875] font-black text-sm shrink-0 whitespace-nowrap">{{ horaRango(c) }}</span>
                     <span class="truncate">{{ store.traducir(c.nombreSnapshot) || store.traducir(item.segmento.nombreSnapshot) }}</span>
                   </p>
                 </div>
@@ -881,9 +881,9 @@ const mvDelta = (deltaUsd: number) => {
                   <div
                       v-for="det in comp.detallesParaCliente"
                       :key="det.id"
-                      class="mt-4 flex items-start gap-3 bg-[#376875]/[0.04] border border-[#376875]/10 rounded-2xl px-4 py-3"
+                      class="mt-4 flex items-start gap-3 bg-[#376875]/4 border border-[#376875]/10 rounded-2xl px-4 py-3"
                   >
-                    <i class="fas fa-circle-info text-[#E07845] mt-0.5 flex-shrink-0"></i>
+                    <i class="fas fa-circle-info text-[#E07845] mt-0.5 shrink-0"></i>
                     <p class="text-sm font-bold text-[#376875] leading-snug">{{ store.traducir(det.detalle) }}</p>
                   </div>
                 </template>
@@ -913,10 +913,10 @@ const mvDelta = (deltaUsd: number) => {
                       @click="toggle(incExpandida, item.key)"
                       class="w-full flex items-center justify-between gap-2 text-left"
                   >
-                    <p class="text-xs font-black text-[#376875] uppercase tracking-[0.15em] flex items-center gap-2">
+                    <span class="text-xs font-black text-[#376875] uppercase tracking-[0.15em] flex items-center gap-2">
                       <i class="fas fa-list-check text-[#E07845]"></i>
                       {{ maestroStore.t('cot_detalle_servicio') || 'Detalle del servicio' }}
-                    </p>
+                    </span>
                     <i
                         class="fas fa-chevron-down text-[#E07845] text-xs transition-transform"
                         :class="incExpandida.has(item.key) ? 'rotate-180' : ''"
@@ -926,14 +926,14 @@ const mvDelta = (deltaUsd: number) => {
                   <div class="relative">
                     <div
                         class="space-y-5 mt-4 transition-all"
-                        :class="incExpandida.has(item.key) ? '' : 'max-h-[60px] overflow-hidden'"
+                        :class="incExpandida.has(item.key) ? '' : 'max-h-15 overflow-hidden'"
                     >
                       <div v-for="sec in seccionesInclusion(inclusionPorServicio.get(item.servicio.id))" :key="sec.key">
                         <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 pb-1 border-b border-slate-100">{{ sec.titulo }}</p>
                         <ul class="space-y-2">
                           <li v-for="(l, i) in sec.lineas" :key="i">
                             <p class="flex items-start gap-2">
-                              <i class="fas mt-0.5 text-xs flex-shrink-0" :class="sec.icono"></i>
+                              <i class="fas mt-0.5 text-xs shrink-0" :class="sec.icono"></i>
                               <span class="text-[13px] font-semibold text-slate-700 leading-snug">
                                 {{ store.traducir(l.nombre) }}
                                 <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">×{{ l.cantidadComponente }}</b>
@@ -982,7 +982,7 @@ const mvDelta = (deltaUsd: number) => {
                     <button
                         v-if="!incExpandida.has(item.key)"
                         @click="toggle(incExpandida, item.key)"
-                        class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/80 to-transparent flex items-end justify-center pb-0.5"
+                        class="absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-white via-white/80 to-transparent flex items-end justify-center pb-0.5"
                     >
                       <span class="text-[10px] font-black uppercase tracking-widest text-[#E07845]">
                         <i class="fas fa-chevron-down mr-1"></i>{{ maestroStore.t('cot_ver_todo') || 'Ver todo' }}
@@ -1033,7 +1033,7 @@ const mvDelta = (deltaUsd: number) => {
       >
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="modalProveedor = null"></div>
 
-        <div class="relative bg-white w-full sm:max-w-lg sm:mx-6 rounded-t-[2rem] sm:rounded-[2rem] max-h-[85vh] overflow-y-auto shadow-2xl">
+        <div class="relative bg-white w-full sm:max-w-lg sm:mx-6 rounded-t-4xl sm:rounded-4xl max-h-[85vh] overflow-y-auto shadow-2xl">
           <!-- Cabecera -->
           <div class="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-6 py-4 flex items-center justify-between gap-3 z-10">
             <h3 class="font-black text-[#376875] text-base leading-tight">
@@ -1041,7 +1041,7 @@ const mvDelta = (deltaUsd: number) => {
             </h3>
             <button
                 @click="modalProveedor = null"
-                class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors flex-shrink-0"
+                class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors shrink-0"
             >
               <i class="fas fa-times text-sm"></i>
             </button>
@@ -1054,9 +1054,9 @@ const mvDelta = (deltaUsd: number) => {
                   v-for="(img, gi) in galeriaProveedor(modalProveedor)"
                   :key="gi"
                   :src="img.imageUrl"
-                  class="w-full h-full flex-shrink-0 snap-center object-cover"
+                  class="w-full h-full shrink-0 snap-center object-cover"
                   loading="lazy"
-              />
+               alt="Imagen"/>
             </div>
             <template v-if="galeriaProveedor(modalProveedor).length > 1">
               <button @click="desplazarGaleria($event, -1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm flex items-center justify-center transition-colors">
@@ -1074,7 +1074,7 @@ const mvDelta = (deltaUsd: number) => {
           <div class="px-6 py-5 space-y-4">
             <!-- Servicio del proveedor (ej. tipo de habitación) -->
             <div v-if="modalProveedor.servicioTitulo.length" class="flex items-start gap-3">
-              <span class="w-9 h-9 rounded-xl bg-[#376875]/[0.06] text-[#376875] flex items-center justify-center flex-shrink-0">
+              <span class="w-9 h-9 rounded-xl bg-[#376875]/6 text-[#376875] flex items-center justify-center shrink-0">
                 <i class="fas fa-bed text-sm"></i>
               </span>
               <div>

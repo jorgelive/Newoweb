@@ -386,6 +386,14 @@ export const ROL_TARIFA_CONFIG: Record<TarifaRolValue, EstadoUIConfig> = {
     alternativa: { label: 'Alternativa', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', icon: 'fa-right-left' },
 };
 
+export type EstadoFile = CotizacionFileBase['estado'];
+
+export const ESTADO_FILE_LABELS: Record<EstadoFile, string> = {
+    abierto: 'Abierto',
+    cerrado: 'Cerrado (Ganado)',
+    archivado: 'Archivado (no venta)',
+};
+
 export const getRolTarifaUI = (rol?: string | null): EstadoUIConfig =>
     ROL_TARIFA_CONFIG[(rol as TarifaRolValue) || 'estandar'] || ROL_TARIFA_CONFIG.estandar;
 

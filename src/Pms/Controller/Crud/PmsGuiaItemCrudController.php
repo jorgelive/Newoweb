@@ -173,6 +173,10 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 </div>
             ');
 
+        yield TextField::new('icono', 'Icono (FontAwesome)')
+            ->setHelp('Ej: fa-wifi, fa-utensils.')
+            ->setColumns(6);
+
         yield FormField::addPanel('Botón de Acción (Opcional)')->setIcon('fa fa-link');
 
         yield CollectionField::new('labelBoton', 'Texto Botón')

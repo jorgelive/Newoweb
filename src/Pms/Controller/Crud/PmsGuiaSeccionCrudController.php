@@ -8,11 +8,13 @@ use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Pms\Entity\PmsGuiaSeccion;
 use App\Pms\Entity\PmsGuiaSeccionHasItem; // ✅ Cambiamos la entidad de referencia
+use App\Pms\Enum\PmsGuiaSeccionTipo;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
@@ -76,6 +78,17 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
             ->renderAsSwitch(true)
             ->setColumns(6);
 
+        yield ChoiceField::new('tipo', 'Tipo (comportamiento en la app)')
+            ->setHelp('Opcional. "Ingreso" se muestra como tarjeta destacada; "Descriptivo" es el atajo al tocar la foto; "Normas" para las reglas. Déjalo vacío para una sección normal.')
+            ->setChoices([
+                'Ingreso a la casa'    => PmsGuiaSeccionTipo::Ingreso,
+                'Descriptivo / Fotos'  => PmsGuiaSeccionTipo::Descriptivo,
+                'Normas de la casa'    => PmsGuiaSeccionTipo::Normas,
+            ])
+            ->renderExpanded(false)   // dropdown en vez de radios
+            ->setRequired(false)      // opcional → deja el "vacío"
+            ->setColumns(6);
+
         yield TextField::new('icono', 'Icono (FontAwesome)')
             ->setHelp('Ej: fa-wifi, fa-utensils.')
             ->setColumns(6);
@@ -97,6 +110,21 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
             ->setHelp('⚠️ Reemplazará textos existentes.');
 
         yield CollectionField::new('titulo', 'Título por Idioma')
+            ->setEntryType(TranslationTextType::class)
+            ->setEntryIsComplex(true)
+            ->showEntryLabel(false)
+            ->renderExpanded(true)
+            ->setColumns(12)
+            ->addCssClass('field-full-width')
+            ->formatValue(function ($value) {
+                if (empty($value) || !is_array($value)) return '';
+                foreach ($value as $item) {
+                    if (isset($item['language']) && $item['language'] === 'es') return $item['content'] ?? '';
+                }
+                return reset($value)['content'] ?? '';
+            });
+
+        yield CollectionField::new('subtitulo', 'Subtítulo por Idioma')
             ->setEntryType(TranslationTextType::class)
             ->setEntryIsComplex(true)
             ->showEntryLabel(false)

@@ -1013,6 +1013,126 @@
                 }
             }
         },
+        "/platform/sales/client/cotizacion/{id}/clonar": {
+            "post": {
+                "operationId": "api_salesclientcotizacion_idclonar_post",
+                "tags": [
+                    "Cotizacion"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Cotizacion resource created",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.jsonld-file.item.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion-file.item.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.html-file.item.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.multipart-file.item.read"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Creates a Cotizacion resource.",
+                "description": "Creates a Cotizacion resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Cotizacion identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ],
+                "requestBody": {
+                    "description": "The new Cotizacion resource",
+                    "content": {
+                        "application/ld+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "text/html": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            }
+        },
         "/platform/sales/cotizacions": {
             "get": {
                 "operationId": "api_salescotizacions_get_collection",
@@ -10959,6 +11079,87 @@
                     }
                 }
             },
+            "Cotizacion-file.item.read": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "estado": {
+                        "default": "pendiente",
+                        "type": "string",
+                        "enum": [
+                            "pendiente",
+                            "enviado",
+                            "archivado",
+                            "confirmado",
+                            "operado",
+                            "cancelado"
+                        ]
+                    },
+                    "numPax": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "adelanto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "precioOculto": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                        "type": "boolean"
+                    },
+                    "resumen": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fechaExpiracion": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "monedaGlobal": {
+                        "default": "USD",
+                        "type": "string"
+                    },
+                    "totalCosto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "totalVenta": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "tipoCambio": {
+                        "default": "1.0000",
+                        "type": "string"
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "ganancia": {
+                        "readOnly": true,
+                        "description": "Ganancia bruta calculada (venta - costo). Expuesta como valor derivado\npara no forzar al frontend a hacer aritm\u00e9tica sobre strings decimales.",
+                        "type": "string"
+                    }
+                }
+            },
             "Cotizacion-file.read_file.item.read_timestamp.read": {
                 "type": "object",
                 "properties": {
@@ -11252,6 +11453,87 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "ganancia": {
+                        "readOnly": true,
+                        "description": "Ganancia bruta calculada (venta - costo). Expuesta como valor derivado\npara no forzar al frontend a hacer aritm\u00e9tica sobre strings decimales.",
+                        "type": "string"
+                    }
+                }
+            },
+            "Cotizacion.html-file.item.read": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "estado": {
+                        "default": "pendiente",
+                        "type": "string",
+                        "enum": [
+                            "pendiente",
+                            "enviado",
+                            "archivado",
+                            "confirmado",
+                            "operado",
+                            "cancelado"
+                        ]
+                    },
+                    "numPax": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "adelanto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "precioOculto": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                        "type": "boolean"
+                    },
+                    "resumen": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fechaExpiracion": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "monedaGlobal": {
+                        "default": "USD",
+                        "type": "string"
+                    },
+                    "totalCosto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "totalVenta": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "tipoCambio": {
+                        "default": "1.0000",
+                        "type": "string"
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "ganancia": {
                         "readOnly": true,
@@ -11558,6 +11840,94 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "ganancia": {
+                                "readOnly": true,
+                                "description": "Ganancia bruta calculada (venta - costo). Expuesta como valor derivado\npara no forzar al frontend a hacer aritm\u00e9tica sobre strings decimales.",
+                                "type": "string"
+                            }
+                        }
+                    }
+                ]
+            },
+            "Cotizacion.jsonld-file.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "version": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "estado": {
+                                "default": "pendiente",
+                                "type": "string",
+                                "enum": [
+                                    "pendiente",
+                                    "enviado",
+                                    "archivado",
+                                    "confirmado",
+                                    "operado",
+                                    "cancelado"
+                                ]
+                            },
+                            "numPax": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "adelanto": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "precioOculto": {
+                                "type": "boolean"
+                            },
+                            "proveedorOculto": {
+                                "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                                "type": "boolean"
+                            },
+                            "resumen": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "fechaExpiracion": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "monedaGlobal": {
+                                "default": "USD",
+                                "type": "string"
+                            },
+                            "totalCosto": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "totalVenta": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "tipoCambio": {
+                                "default": "1.0000",
+                                "type": "string"
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
                             },
                             "ganancia": {
                                 "readOnly": true,
@@ -11875,6 +12245,87 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "ganancia": {
+                        "readOnly": true,
+                        "description": "Ganancia bruta calculada (venta - costo). Expuesta como valor derivado\npara no forzar al frontend a hacer aritm\u00e9tica sobre strings decimales.",
+                        "type": "string"
+                    }
+                }
+            },
+            "Cotizacion.multipart-file.item.read": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "estado": {
+                        "default": "pendiente",
+                        "type": "string",
+                        "enum": [
+                            "pendiente",
+                            "enviado",
+                            "archivado",
+                            "confirmado",
+                            "operado",
+                            "cancelado"
+                        ]
+                    },
+                    "numPax": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "adelanto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "precioOculto": {
+                        "type": "boolean"
+                    },
+                    "proveedorOculto": {
+                        "description": "Determina si todos los proveedores de la cotizaci\u00f3n deben ocultarse al cliente.",
+                        "type": "boolean"
+                    },
+                    "resumen": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fechaExpiracion": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "monedaGlobal": {
+                        "default": "USD",
+                        "type": "string"
+                    },
+                    "totalCosto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "totalVenta": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "tipoCambio": {
+                        "default": "1.0000",
+                        "type": "string"
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "ganancia": {
                         "readOnly": true,
@@ -17161,7 +17612,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     },
                     "cotizaciones": {
                         "description": "\nEXTRA_LAZY: la vista p\u00fablica nunca hidrata esta colecci\u00f3n (el provider\nusa queries escalares); el editor la sigue usando con file:item:read.",
@@ -17306,7 +17762,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     },
                     "cotizaciones": {
                         "description": "\nEXTRA_LAZY: la vista p\u00fablica nunca hidrata esta colecci\u00f3n (el provider\nusa queries escalares); el editor la sigue usando con file:item:read.",
@@ -17394,7 +17855,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -17459,7 +17925,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     }
                 }
             },
@@ -17506,7 +17977,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     }
                 }
             },
@@ -17656,7 +18132,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     },
                     "cotizaciones": {
                         "description": "\nEXTRA_LAZY: la vista p\u00fablica nunca hidrata esta colecci\u00f3n (el provider\nusa queries escalares); el editor la sigue usando con file:item:read.",
@@ -17801,7 +18282,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     },
                     "cotizaciones": {
                         "description": "\nEXTRA_LAZY: la vista p\u00fablica nunca hidrata esta colecci\u00f3n (el provider\nusa queries escalares); el editor la sigue usando con file:item:read.",
@@ -17889,7 +18375,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -18061,7 +18552,12 @@
                             },
                             "estado": {
                                 "default": "abierto",
-                                "type": "string"
+                                "type": "string",
+                                "enum": [
+                                    "abierto",
+                                    "cerrado",
+                                    "archivado"
+                                ]
                             },
                             "cotizaciones": {
                                 "description": "\nEXTRA_LAZY: la vista p\u00fablica nunca hidrata esta colecci\u00f3n (el provider\nusa queries escalares); el editor la sigue usando con file:item:read.",
@@ -18221,7 +18717,12 @@
                             },
                             "estado": {
                                 "default": "abierto",
-                                "type": "string"
+                                "type": "string",
+                                "enum": [
+                                    "abierto",
+                                    "cerrado",
+                                    "archivado"
+                                ]
                             },
                             "cotizaciones": {
                                 "description": "\nEXTRA_LAZY: la vista p\u00fablica nunca hidrata esta colecci\u00f3n (el provider\nusa queries escalares); el editor la sigue usando con file:item:read.",
@@ -18318,7 +18819,12 @@
                             },
                             "estado": {
                                 "default": "abierto",
-                                "type": "string"
+                                "type": "string",
+                                "enum": [
+                                    "abierto",
+                                    "cerrado",
+                                    "archivado"
+                                ]
                             },
                             "createdAt": {
                                 "type": "string",
@@ -18503,7 +19009,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     },
                     "cotizaciones": {
                         "description": "\nEXTRA_LAZY: la vista p\u00fablica nunca hidrata esta colecci\u00f3n (el provider\nusa queries escalares); el editor la sigue usando con file:item:read.",
@@ -18648,7 +19159,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     },
                     "cotizaciones": {
                         "description": "\nEXTRA_LAZY: la vista p\u00fablica nunca hidrata esta colecci\u00f3n (el provider\nusa queries escalares); el editor la sigue usando con file:item:read.",
@@ -18736,7 +19252,12 @@
                     },
                     "estado": {
                         "default": "abierto",
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "abierto",
+                            "cerrado",
+                            "archivado"
+                        ]
                     },
                     "createdAt": {
                         "type": "string",

@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
+use App\Api\Controller\Cotizacion\CloneCotizacionController;
 use App\Attribute\AutoTranslate;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
@@ -35,6 +36,16 @@ use Symfony\Component\Uid\Uuid;
         new Post(
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear cotizaciones.'
+        ),
+        new Post(
+            uriTemplate: '/client/cotizacion/{id}/clonar',
+            controller: CloneCotizacionController::class,
+            normalizationContext: ['groups' => ['file:item:read']], // Se retorna exactamente lo que necesita el File
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para clonar cotizaciones.',
+            read: true,
+            deserialize: false,
+            write: false
         ),
         new Put(
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
@@ -153,6 +164,26 @@ class Cotizacion
     public function __toString(): string
     {
         return sprintf('V%d - %s', $this->version, $this->file ? $this->file->getNombreGrupo() : 'Sin File');
+    }
+
+    /**
+     * Clona la entidad realizando una copia profunda.
+     * Genera nuevos UUIDs y reinstancia las colecciones para no alterar el original.
+     */
+    public function __clone(): void
+    {
+        $this->resetId();
+
+        if ($this->cotservicios) {
+            $serviciosOriginales = $this->cotservicios;
+            $this->cotservicios = new ArrayCollection();
+
+            foreach ($serviciosOriginales as $servicio) {
+                $clonServicio = clone $servicio;
+                $clonServicio->setCotizacion($this);
+                $this->addCotservicio($clonServicio);
+            }
+        }
     }
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]

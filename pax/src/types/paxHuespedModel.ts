@@ -95,17 +95,22 @@ export interface PmsGuiaItem {
     tipo: 'card' | 'album' | 'alert' | string;
     titulo: PmsContenidoTraducible[];
     descripcion?: PmsContenidoTraducible[];
+    icono?: string | null;
     labelBoton?: PmsContenidoTraducible[];
     urlBoton?: string;
     galeria: PmsGuiaItemGaleria[];
 }
+
+export type PmsGuiaSeccionTipo = 'ingreso' | 'descriptivo' | 'normas';
 
 export interface PmsGuiaSeccion {
     "@type"?: string;
     "@id": string;
     id: string;
     icono: string;
+    tipo?: PmsGuiaSeccionTipo | null;
     titulo: PmsContenidoTraducible[];
+    subtitulo: PmsContenidoTraducible[];
     items: PmsGuiaItem[];
 }
 

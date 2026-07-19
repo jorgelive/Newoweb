@@ -99,6 +99,25 @@ class CotizacionCotcomponente
         $this->cottarifas = new ArrayCollection();
     }
 
+    /**
+     * Clona el componente y clona profundamente sus tarifas.
+     */
+    public function __clone(): void
+    {
+        $this->resetId();
+
+        if ($this->cottarifas) {
+            $tarifasOriginales = $this->cottarifas;
+            $this->cottarifas = new ArrayCollection();
+
+            foreach ($tarifasOriginales as $tarifa) {
+                $clonTarifa = clone $tarifa;
+                $clonTarifa->setCotcomponente($this);
+                $this->addCottarifa($clonTarifa);
+            }
+        }
+    }
+
     #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
     public function getId(): ?Uuid { return $this->id; }
 

@@ -21,7 +21,7 @@ export interface PaxI18nContent {
     language: string;
 }
 
-export type PaxI18n = PaxI18nContent[];
+export type I18n = PaxI18nContent[];
 
 /** Imagen de snapshot (segmentos, proveedor, proveedorServicio) */
 export interface PaxImagenSnapshot {
@@ -36,8 +36,8 @@ export interface PaxImagenSnapshot {
 export interface PaxNotaSnapshot {
     id: string;
     tipo: string; // 'recomendacion' | ...
-    titulo: PaxI18n;
-    contenido: PaxI18n;
+    titulo: I18n;
+    contenido: I18n;
     nombreInterno?: string;
 }
 
@@ -45,7 +45,7 @@ export interface PaxNotaSnapshot {
 export interface PaxDetalleCliente {
     id: string;
     tipo: 'cliente';
-    detalle: PaxI18n;
+    detalle: I18n;
 }
 
 // --- Segmento (día a día del itinerario) -------------------------------------
@@ -57,8 +57,8 @@ export interface PaxCotSegmento {
     dia: number;
     orden: number;
     fechaAbsoluta: string; // ISO date
-    nombreSnapshot: PaxI18n;
-    contenidoSnapshot: PaxI18n; // HTML por idioma
+    nombreSnapshot: I18n;
+    contenidoSnapshot: I18n; // HTML por idioma
     imagenesSnapshot: PaxImagenSnapshot[];
     notasSnapshot: PaxNotaSnapshot[];
 }
@@ -69,13 +69,13 @@ export interface PaxCottarifa {
     '@id'?: string;
     id: string;
     cantidad: number;
-    tituloSnapshot: PaxI18n;
+    tituloSnapshot: I18n;
     nombreInternoSnapshot?: string | null;
     proveedorNombreSnapshot?: string | null;
-    proveedorTituloSnapshot: PaxI18n;
+    proveedorTituloSnapshot: I18n;
     proveedorUrlSnapshot?: string | null;
     proveedorImagenesSnapshot: PaxImagenSnapshot[];
-    proveedorServicioTituloSnapshot: PaxI18n;
+    proveedorServicioTituloSnapshot: I18n;
     proveedorServicioUrlSnapshot?: string | null;
     proveedorServicioImagenesSnapshot: PaxImagenSnapshot[];
     modalidadSnapshot?: string | null; // 'privado' | 'compartido' | null
@@ -86,7 +86,7 @@ export interface PaxCottarifa {
     esGrupal: boolean;
     proveedorOculto: boolean; // 🔥 si true, no mostrar marca del proveedor
     rolSnapshot?: string | null;
-    notaRol?: PaxI18n;
+    notaRol?: I18n;
 }
 
 // --- Item dentro de snapshotItems de un componente ----------------------------
@@ -95,7 +95,7 @@ export interface PaxSnapshotItem {
     id: string;
     modo: 'incluido' | 'no_incluido' | 'opcional' | 'cortesia' | string;
     incluido: boolean;
-    nombreSnapshot: PaxI18n;
+    nombreSnapshot: I18n;
     tituloTarifaVisible: boolean;
     categoriaTarifaVisible: boolean;
     modalidadTarifaVisible: boolean;
@@ -107,7 +107,7 @@ export interface PaxCotComponente {
     '@id'?: string;
     id: string;
     cantidad: number;
-    nombreSnapshot: PaxI18n;
+    nombreSnapshot: I18n;
     fechaHoraInicio?: string | null;
     fechaHoraFin?: string | null;
     cotsegmento?: PaxCotSegmento | null;
@@ -121,7 +121,7 @@ export interface PaxCotComponente {
 export interface PaxCotServicio {
     '@id'?: string;
     id: string;
-    nombrePublicoSnapshot: PaxI18n;
+    nombrePublicoSnapshot: I18n;
     fechaInicioAbsoluta?: string | null;
     cotcomponentes: PaxCotComponente[];
     cotsegmentos: PaxCotSegmento[];
@@ -132,30 +132,30 @@ export interface PaxCotServicio {
 export interface PaxTarifaFinanciera {
     rol: string;
     moneda: string | null; // null en la versión cliente
-    notaRol: PaxI18n;
+    notaRol: I18n;
     cantidad: number;
     esGrupal: boolean;
     categoria: string | null;
     modalidad: string | null;
-    tarifaTitulo: PaxI18n;
+    tarifaTitulo: I18n;
     montoCotizado: string | null; // null en la versión cliente
 }
 
 export interface PaxInclusionItem {
     modo: string;
     fecha: string;
-    nombre: PaxI18n;
+    nombre: I18n;
     origen: 'componente' | 'item' | string;
     tarifas: PaxTarifaFinanciera[];
     categoria: string | null;
     modalidad: string | null;
-    tarifaTitulo: PaxI18n;
+    tarifaTitulo: I18n;
     cantidadComponente: number;
 }
 
 export interface PaxInclusionServicio {
     servicioId: string;
-    servicioNombre: PaxI18n;
+    servicioNombre: I18n;
     incluidos: PaxInclusionItem[];
     noIncluidos: PaxInclusionItem[];
     opcionales: PaxInclusionItem[];
@@ -180,9 +180,9 @@ export interface PaxClasePasajeroDetalle {
     ventaSoles: number;
     ventaDolares: number;
     montoCotizado: string;
-    tarifaTitulo: PaxI18n;
-    servicioNombre: PaxI18n;
-    componenteNombre: PaxI18n;
+    tarifaTitulo: I18n;
+    servicioNombre: I18n;
+    componenteNombre: I18n;
     cantidadComponente: number;
 }
 
@@ -208,7 +208,7 @@ export interface PaxClasificacionFinancieraCliente {
     inclusiones: PaxInclusionServicio[];
     resumenGeneral: Record<'cortesia' | 'incluido' | 'noIncluido', PaxResumenVenta>;
     clasesPasajeros: PaxClasePasajero[];
-    opcionesUpgrade: unknown[];
+    opcionesUpgrade: PaxOpcionUpgrade[];
 }
 
 // --- Cotización activa (solo campos pax) ---------------------------------------
@@ -261,7 +261,7 @@ export interface PaxVersionResumen {
     version: number;
     estado: string;
     numPax: number;
-    resumen: PaxI18n; // HTML comercial multiidioma
+    resumen: I18n; // HTML comercial multiidioma
     idiomaCliente: string;
     monedaGlobal: string;
     precioOculto: boolean;
@@ -303,4 +303,16 @@ export interface PaxDiaItinerario {
     fecha: string; // yyyy-MM-dd
     numeroDia: number; // correlativo 1..N sobre el viaje completo
     segmentos: PaxSegmentoConServicio[];
+}
+
+export interface PaxOpcionUpgrade {
+    servicioNombre: I18n;
+    componenteNombre: I18n;
+    tarifaTitulo: I18n;
+    modalidad: string | null;
+    categoria: string | null;
+    notaRol?: I18n;
+    /** Deltas en USD (negativo = descuento) */
+    deltaVentaTotal: number;
+    deltaVentaPorPax: number;
 }

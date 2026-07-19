@@ -53,6 +53,10 @@ class PmsGuiaItem
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     private ?array $descripcion = [];
 
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    #[Assert\Length(max: 50, maxMessage: 'El icono no puede exceder los 50 caracteres')]
+    private ?string $icono = null;
+
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $labelBoton = [];
@@ -101,6 +105,18 @@ class PmsGuiaItem
     #[Groups(['pax_evento:read'])]
     public function getDescripcion(): ?array { return MaestroIdioma::ordenarParaFormulario($this->descripcion ?? []); }
     public function setDescripcion(?array $descripcion): self { $this->descripcion = MaestroIdioma::normalizarParaDB($descripcion ?? []); return $this; }
+
+    #[Groups(['pax_evento:read'])]
+    public function getIcono(): ?string
+    {
+        return $this->icono;
+    }
+
+    public function setIcono(?string $icono): self
+    {
+        $this->icono = $icono;
+        return $this;
+    }
 
     #[Groups(['pax_evento:read'])]
     public function getLabelBoton(): ?array { return MaestroIdioma::ordenarParaFormulario($this->labelBoton ?? []); }

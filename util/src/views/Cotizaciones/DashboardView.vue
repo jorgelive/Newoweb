@@ -162,8 +162,8 @@ const loadMore = (): void => {
           <div class="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-slate-400">
             <span class="flex items-center gap-1"><i class="far fa-calendar-alt"></i> {{ formatDate(file.createdAt) }}</span>
             <span class="flex items-center gap-1 text-[#376875] opacity-0 group-hover:opacity-100 transition-opacity">
-                        Abrir Motor <i class="fas fa-chevron-right ml-1"></i>
-                    </span>
+                      Abrir Motor <i class="fas fa-chevron-right ml-1"></i>
+                  </span>
           </div>
         </div>
       </div>

@@ -85,6 +85,52 @@ class CotizacionCotservicio
         $this->cotsegmentos = new ArrayCollection();
     }
 
+    /**
+     * Clona el servicio y re-vincula dinámicamente los nuevos componentes a los nuevos segmentos.
+     */
+    public function __clone(): void
+    {
+        $this->resetId();
+        $mapaSegmentos = [];
+
+        if ($this->cotsegmentos) {
+            $segmentosOriginales = $this->cotsegmentos;
+            $this->cotsegmentos = new \Doctrine\Common\Collections\ArrayCollection();
+
+            foreach ($segmentosOriginales as $segmento) {
+                $idOriginalStr = $segmento->getId()->toRfc4122();
+
+                $clonSegmento = clone $segmento;
+                $clonSegmento->setCotservicio($this);
+                $this->addCotsegmento($clonSegmento);
+
+                $mapaSegmentos[$idOriginalStr] = $clonSegmento;
+            }
+        }
+
+        if ($this->cotcomponentes) {
+            $componentesOriginales = $this->cotcomponentes;
+            $this->cotcomponentes = new \Doctrine\Common\Collections\ArrayCollection();
+
+            foreach ($componentesOriginales as $componente) {
+                $clonComponente = clone $componente;
+                $clonComponente->setCotservicio($this);
+
+                // Reconectar el componente con el segmento CLONADO
+                $segmentoOriginal = $componente->getCotsegmento();
+                if ($segmentoOriginal !== null && isset($mapaSegmentos[$segmentoOriginal->getId()->toRfc4122()])) {
+                    $clonComponente->setCotsegmento($mapaSegmentos[$segmentoOriginal->getId()->toRfc4122()]);
+                } else {
+                    // 🔥 NUEVO: Si no encuentra match, lo limpiamos obligatoriamente
+                    // para romper el vínculo con el segmento de la cotización vieja.
+                    $clonComponente->setCotsegmento(null);
+                }
+
+                $this->addCotcomponente($clonComponente);
+            }
+        }
+    }
+
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     public function getId(): ?Uuid { return $this->id; }
 

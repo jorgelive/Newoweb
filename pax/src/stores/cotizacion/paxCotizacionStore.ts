@@ -6,7 +6,7 @@ import { useMaestroStore } from '../maestroStore';
 import type {
     PaxCotizacionFile,
     PaxCotizacion,
-    PaxI18n,
+    I18n,
     PaxDiaItinerario,
     PaxSegmentoConServicio,
     PaxInclusionServicio,
@@ -224,7 +224,7 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
      * Extrae el string traducido según el idioma actual, con fallback
      * en → es → primer elemento (mismo criterio que pmsGuiaStore).
      */
-    const traducir = (contenido: PaxI18n | undefined | null): string => {
+    const traducir = (contenido: I18n | undefined | null): string => {
         if (!contenido || !Array.isArray(contenido) || contenido.length === 0) return '';
         const idioma = maestroStore.idiomaActual;
         const match = contenido.find(c => c.language === idioma);

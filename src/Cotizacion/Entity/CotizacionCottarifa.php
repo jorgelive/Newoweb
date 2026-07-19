@@ -197,6 +197,14 @@ class CotizacionCottarifa
         $this->initializeId();
     }
 
+    /**
+     * Clona la tarifa reseteando su UUID para evitar colisiones.
+     */
+    public function __clone(): void
+    {
+        $this->resetId();
+    }
+
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     public function getId(): ?Uuid { return $this->id; }
 

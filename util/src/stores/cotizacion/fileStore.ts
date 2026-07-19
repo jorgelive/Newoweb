@@ -64,6 +64,28 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Solicita la clonación profunda de una cotización al servidor.
+     * Utiliza el endpoint custom de API Platform que ejecuta la lógica en base de datos.
+     *
+     * @param iriOrId El UUID o IRI de la cotización a clonar.
+     * @returns {Promise<boolean>} true si se clonó con éxito, false en caso de error.
+     */
+    const cloneCotizacion = async (iriOrId: string): Promise<boolean> => {
+        error.value = null;
+        const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
+
+        try {
+            // Se envía un body vacío {}. El interceptor pondrá application/ld+json
+            // pero Symfony lo ignorará de forma segura gracias a 'deserialize: false'.
+            await apiClient.post(`/platform/sales/client/cotizacion/${id}/clonar`, {});
+            return true;
+        } catch (err: any) {
+            error.value = err.response?.data?.['hydra:description'] || err.response?.data?.detail || 'Error al clonar la versión de la cotización.';
+            return false;
+        }
+    };
+
     const createFile = async (payload: ApiCotizacionFileWrite): Promise<ApiCotizacionFile | null> => {
         loadingFiles.value = true;
         error.value = null;
@@ -234,6 +256,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         updateCotizacionVersion,
         extraerResumenPreview,
         updatePassenger,
-        updateDocument
+        updateDocument,
+        cloneCotizacion
     };
 });

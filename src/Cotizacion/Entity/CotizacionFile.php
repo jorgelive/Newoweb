@@ -14,6 +14,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Patch;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
+use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
@@ -124,8 +125,8 @@ class CotizacionFile
     private ?MaestroIdioma $idioma = null;
 
     #[Groups(['file:read', 'file:item:read', 'file:write'])]
-    #[ORM\Column(type: 'string', length: 30, options: ['default' => 'abierto'])]
-    private string $estado = 'abierto';
+    #[ORM\Column(type: 'string', length: 30, enumType: FileEstadoEnum::class, options: ['default' => 'abierto'])]
+    private FileEstadoEnum $estado = FileEstadoEnum::ABIERTO;
 
     /**
      * @var Collection<int, Cotizacion>
@@ -266,8 +267,17 @@ class CotizacionFile
     public function getTelefono(): ?string { return $this->telefono; }
     public function setTelefono(?string $telefono): self { $this->telefono = $telefono; return $this; }
 
-    public function getEstado(): string { return $this->estado; }
-    public function setEstado(string $estado): self { $this->estado = $estado; return $this; }
+    public function getEstado(): FileEstadoEnum
+    {
+        return $this->estado;
+    }
+
+    public function setEstado(FileEstadoEnum $estado): static
+    {
+        $this->estado = $estado;
+
+        return $this;
+    }
 
     public function getCotizaciones(): Collection { return $this->cotizaciones; }
     public function addCotizacion(Cotizacion $cotizacion): self

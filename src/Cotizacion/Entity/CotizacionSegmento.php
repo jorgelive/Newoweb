@@ -90,6 +90,18 @@ class CotizacionSegmento
         $this->cotcomponentes = new ArrayCollection();
     }
 
+    /**
+     * Clona el segmento limpiando su ID y sus relaciones inversas.
+     */
+    public function __clone(): void
+    {
+        $this->resetId();
+
+        // MUY IMPORTANTE: Limpiar la colección inversa para que el clon
+        // no mantenga referencias a los componentes de la cotización original.
+        $this->cotcomponentes = new \Doctrine\Common\Collections\ArrayCollection();
+    }
+
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     public function getId(): ?Uuid { return $this->id; }
 

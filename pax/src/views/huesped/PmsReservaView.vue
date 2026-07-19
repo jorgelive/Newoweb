@@ -100,7 +100,7 @@ const verGuiaEvento = (eventoId: string | number) => {
 </script>
 
 <template>
-  <div class="min-h-screen p-4 md:p-8 bg-[#F8FAFC] font-sans selection:bg-[#376875]/20 selection:text-[#376875]">
+  <div class="min-h-screen p-4 md:p-8 bg-[#E6EBF1] font-sans selection:bg-[#376875]/20 selection:text-[#376875]">
 
     <!-- ═══ BUSCADOR: sin localizador en la URL ═══ -->
     <div v-if="!localizador" class="max-w-md mx-auto text-center py-16 px-6 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 mt-10 border border-slate-50">
@@ -145,46 +145,49 @@ const verGuiaEvento = (eventoId: string | number) => {
     <!-- ═══ RESERVA ENCONTRADA ═══ -->
     <div v-else-if="pmsStore.reserva && pmsStore.reserva.nombreCliente" class="max-w-4xl mx-auto">
 
-      <header class="bg-[#376875] p-6 md:p-10 rounded-[2.5rem] shadow-xl shadow-[#376875]/20 mb-8 relative overflow-hidden text-white">
+      <!-- 🔧 Header compactado: menos padding en móvil y el selector de idioma
+           baja a la fila inferior junto al bloque de estancia (aprovecha el hueco). -->
+      <header class="bg-[#376875] p-5 md:p-10 rounded-[2.5rem] shadow-xl shadow-[#376875]/20 mb-6 relative overflow-hidden text-white">
         <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 24px 24px;"></div>
 
-        <div class="flex justify-end mb-6 relative z-20">
-          <div class="relative">
-            <select
-                :value="maestroStore.idiomaActual"
-                @change="maestroStore.setIdioma(($event.target as HTMLSelectElement).value)"
-                class="appearance-none bg-white/10 border border-white/20 font-black text-[10px] uppercase tracking-widest rounded-xl pl-4 pr-8 py-2 focus:outline-none focus:bg-white focus:text-[#376875] cursor-pointer text-white transition-colors hover:bg-white/20"
-            >
-              <option v-for="lang in maestroStore.idiomas" :key="lang.id" :value="lang.id" class="text-gray-800">
-                {{ lang.bandera }} {{ lang.id.toUpperCase() }}
-              </option>
-            </select>
-            <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/70">
-              <i class="fas fa-chevron-down text-[8px]"></i>
+        <div class="relative z-10">
+          <!-- Saludo -->
+          <span class="inline-block px-3 py-1 rounded-lg bg-[#E07845] text-white text-[10px] font-black uppercase tracking-widest mb-3 shadow-sm">
+            {{ maestroStore.t('res_localizador') || 'Booking Ref' }}: {{ pmsStore.reserva.localizador }}
+          </span>
+          <h1 class="text-3xl md:text-5xl font-black tracking-tight leading-none">
+            {{ maestroStore.t('res_hola') || '¡Hola' }}, <span class="text-white/90">{{ pmsStore.reserva.nombreCliente }}</span>
+          </h1>
+
+          <!-- Fila inferior: estancia (izq) + selector idioma (der) -->
+          <div class="flex justify-between items-end gap-4 mt-6">
+
+            <div class="bg-white/10 backdrop-blur-sm px-4 py-3 rounded-2xl border border-white/10">
+              <p class="text-[9px] uppercase font-black text-white/60 tracking-wider mb-0.5">{{ maestroStore.t('res_total_estancia') || 'Total Estancia' }}</p>
+              <p class="text-2xl font-black text-white leading-none">{{ pmsStore.reserva.numeroNoches }} <span class="text-sm font-bold text-white/80">{{ maestroStore.t('res_noches') || 'Noches' }}</span></p>
             </div>
-          </div>
-        </div>
 
-        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-          <div>
-            <span class="inline-block px-3 py-1 rounded-lg bg-[#E07845] text-white text-[10px] font-black uppercase tracking-widest mb-2 shadow-sm">
-              {{ maestroStore.t('res_localizador') || 'Booking Ref' }}: {{ pmsStore.reserva.localizador }}
-            </span>
-            <h1 class="text-3xl md:text-5xl font-black tracking-tight leading-tight">
-              {{ maestroStore.t('res_hola') || '¡Hola' }}, <br/>
-              <span class="text-white/90">{{ pmsStore.reserva.nombreCliente }}</span>
-            </h1>
-          </div>
+            <div class="relative z-20 shrink-0">
+              <select
+                  :value="maestroStore.idiomaActual"
+                  @change="maestroStore.setIdioma(($event.target as HTMLSelectElement).value)"
+                  class="appearance-none bg-white/10 border border-white/20 font-black text-[10px] uppercase tracking-widest rounded-xl pl-4 pr-8 py-2.5 focus:outline-none focus:bg-white focus:text-[#376875] cursor-pointer text-white transition-colors hover:bg-white/20"
+              >
+                <option v-for="lang in maestroStore.idiomas" :key="lang.id" :value="lang.id" class="text-gray-800">
+                  {{ lang.bandera }} {{ lang.id.toUpperCase() }}
+                </option>
+              </select>
+              <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/70">
+                <i class="fas fa-chevron-down text-[8px]"></i>
+              </div>
+            </div>
 
-          <div class="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10 min-w-[140px]">
-            <p class="text-[9px] uppercase font-black text-white/60 tracking-wider mb-1">{{ maestroStore.t('res_total_estancia') || 'Total Estancia' }}</p>
-            <p class="text-2xl font-black text-white">{{ pmsStore.reserva.numeroNoches }} <span class="text-sm font-bold text-white/80">{{ maestroStore.t('res_noches') || 'Noches' }}</span></p>
           </div>
         </div>
       </header>
 
       <div v-if="pmsStore.reserva.eventosActivosGuia?.length">
-        <div class="flex items-center gap-4 mb-6 ml-2">
+        <div class="flex items-center gap-4 mb-5 ml-2">
           <span class="h-px bg-[#376875]/20 flex-1"></span>
           <h2 class="text-[#376875]/60 font-black uppercase tracking-[0.2em] text-[11px]">
             {{ maestroStore.t('res_tus_unidades') || 'Tus Unidades' }}
@@ -192,18 +195,29 @@ const verGuiaEvento = (eventoId: string | number) => {
           <span class="h-px bg-[#376875]/20 flex-1"></span>
         </div>
 
-        <div v-for="evento in pmsStore.reserva.eventosActivosGuia" :key="evento.id" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100 mb-8 group hover:shadow-2xl hover:shadow-[#376875]/10 transition-all duration-500">
+        <!-- 🔧 Añadimos índice + total para el contador "1 de N" -->
+        <div v-for="(evento, index) in pmsStore.reserva.eventosActivosGuia" :key="evento.id" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-300/40 ring-1 ring-slate-200/70 overflow-hidden border border-slate-200 mb-6 group hover:shadow-2xl hover:shadow-[#376875]/10 transition-all duration-500">
 
-          <div class="h-56 md:h-64 bg-slate-100 relative overflow-hidden">
+          <!-- 🔧 Altura de imagen reducida en móvil (h-44) para que quepa más de una unidad -->
+          <div class="h-44 md:h-64 bg-slate-100 relative overflow-hidden">
+
+            <!-- 🔧 Indicador "1 de N" (solo si hay más de una unidad) -->
+            <div
+                v-if="pmsStore.reserva.eventosActivosGuia.length > 1"
+                class="absolute top-4 right-4 z-10 bg-black/45 backdrop-blur-sm text-white text-[11px] font-black px-3 py-1.5 rounded-full border border-white/20 shadow-md"
+            >
+              {{ index + 1 }} <span class="text-white/60 font-bold">{{ maestroStore.t('res_de') || 'de' }}</span> {{ pmsStore.reserva.eventosActivosGuia.length }}
+            </div>
+
             <template v-if="evento.pmsUnidad?.imageUrl">
               <img
                   :src="evento.pmsUnidad.imageUrl"
                   :alt="evento.pmsUnidad.nombre"
                   class="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105"
               >
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
+              <div class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
 
-              <div class="absolute bottom-0 left-0 p-6 md:p-8 text-white">
+              <div class="absolute bottom-0 left-0 p-5 md:p-8 text-white">
                 <h3 class="text-2xl md:text-3xl font-black leading-none drop-shadow-md">
                   {{ evento.pmsUnidad.nombre }}
                 </h3>
@@ -221,12 +235,13 @@ const verGuiaEvento = (eventoId: string | number) => {
             </div>
           </div>
 
-          <div class="p-6 md:p-8 bg-white relative">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+          <!-- 🔧 Padding reducido en móvil -->
+          <div class="p-4 md:p-8 bg-white relative">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-stretch">
 
               <div class="md:col-span-5 md:order-2">
                 <button @click="verGuiaEvento(evento.id)"
-                        class="group/btn relative w-full h-full min-h-[100px] rounded-[1.5rem] flex flex-col justify-center px-6 py-5 transition-all active:scale-[0.98] shadow-lg shadow-orange-100 hover:shadow-orange-200 bg-[#E07845] hover:bg-[#D06535] overflow-hidden text-left">
+                        class="group/btn relative w-full h-full min-h-20 md:min-h-25 rounded-3xl flex flex-col justify-center px-6 py-4 md:py-5 transition-all active:scale-[0.98] shadow-lg shadow-orange-100 hover:shadow-orange-200 bg-[#E07845] hover:bg-[#D06535] overflow-hidden text-left">
                   <i class="fas fa-map-signs absolute -right-2 -bottom-4 text-6xl text-white/10 group-hover/btn:scale-110 group-hover/btn:rotate-12 transition-transform duration-500"></i>
                   <span class="relative z-10 flex items-center justify-between w-full mb-1">
                       <span class="text-[13px] font-black uppercase tracking-[0.15em] text-white">
@@ -240,9 +255,9 @@ const verGuiaEvento = (eventoId: string | number) => {
                 </button>
               </div>
 
-              <div class="md:col-span-7 md:order-1 bg-[#F1F5F9] rounded-[1.5rem] grid grid-cols-2 p-1 border border-slate-100">
+              <div class="md:col-span-7 md:order-1 bg-[#F1F5F9] rounded-3xl grid grid-cols-2 p-1 border border-slate-100">
 
-                <div class="text-center p-4 rounded-[1.2rem] bg-white shadow-sm border border-slate-50 flex flex-col justify-center">
+                <div class="text-center p-3 md:p-4 rounded-[1.2rem] bg-white shadow-sm border border-slate-50 flex flex-col justify-center">
                   <p class="text-[9px] text-[#376875]/60 font-black uppercase tracking-widest mb-2">
                     <i class="fas fa-plane-arrival mr-1 text-[#E07845]"></i>
                     {{ maestroStore.t('res_checkin') || 'Check-in' }}
@@ -255,7 +270,7 @@ const verGuiaEvento = (eventoId: string | number) => {
                   </p>
                 </div>
 
-                <div class="text-center p-4 flex flex-col justify-center">
+                <div class="text-center p-3 md:p-4 flex flex-col justify-center">
                   <p class="text-[9px] text-[#376875]/60 font-black uppercase tracking-widest mb-2">
                     {{ maestroStore.t('res_checkout') || 'Check-out' }}
                     <i class="fas fa-plane-departure ml-1 text-[#376875]"></i>
@@ -274,7 +289,7 @@ const verGuiaEvento = (eventoId: string | number) => {
         </div>
       </div>
 
-      <div class="mt-12 text-center pb-8">
+      <div class="mt-10 text-center pb-8">
         <p class="text-[9px] text-[#376875]/40 uppercase tracking-[0.3em] font-black">
           {{ maestroStore.t('com_powered_by') || 'Powered by OpenPeru' }}
         </p>

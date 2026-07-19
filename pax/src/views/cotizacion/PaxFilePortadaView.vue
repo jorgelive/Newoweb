@@ -4,7 +4,7 @@
  * Ruta: /file/:localizador? — portada del expediente con las propuestas activas.
  * Sin localizador muestra el buscador.
  */
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch} from 'vue';
 import { useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
@@ -18,6 +18,7 @@ const maestroStore = useMaestroStore();
 const router = useRouter();
 
 const isReady = ref(false);
+const pasajerosExpandido = ref(false);
 
 // --- BUSCADOR ---
 const codigoBusqueda = ref('');
@@ -72,6 +73,12 @@ const formatearMonto = (monto: string | null, moneda: string) => {
     currency: moneda,
   }).format(Number(monto));
 };
+
+const cambiarIdioma = (e: Event) => {
+  maestroStore.setIdioma((e.target as HTMLSelectElement).value);
+  localStorage.setItem('paxIdiomaManual', '1');
+};
+
 </script>
 
 <template>
@@ -121,7 +128,7 @@ const formatearMonto = (monto: string | null, moneda: string) => {
     <div v-else-if="store.portada" class="max-w-4xl mx-auto">
 
       <!-- SECCIÓN 1: Encabezado del expediente -->
-      <header class="bg-[#376875] p-6 md:p-10 rounded-[2.5rem] shadow-xl shadow-[#376875]/20 mb-8 relative overflow-hidden text-white">
+      <header class="bg-[#376875] p-6 md:p-10 rounded-[2.5rem] shadow-xl shadow-[#376875]/20 mb-6 relative overflow-hidden text-white">
         <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 24px 24px;"></div>
 
         <!-- Selector de idioma -->
@@ -129,7 +136,7 @@ const formatearMonto = (monto: string | null, moneda: string) => {
           <div class="relative">
             <select
                 :value="maestroStore.idiomaActual"
-                @change="maestroStore.setIdioma(($event.target as HTMLSelectElement).value); localStorage.setItem('paxIdiomaManual', '1')"
+                @change="cambiarIdioma"
                 class="appearance-none bg-white/10 border border-white/20 font-black text-[10px] uppercase tracking-widest rounded-xl pl-4 pr-8 py-2 focus:outline-none focus:bg-white focus:text-[#376875] cursor-pointer text-white transition-colors hover:bg-white/20"
             >
               <option v-for="lang in maestroStore.idiomas" :key="lang.id" :value="lang.id" class="text-gray-800">
@@ -155,6 +162,56 @@ const formatearMonto = (monto: string | null, moneda: string) => {
           </p>
         </div>
       </header>
+
+      <!-- SECCIÓN EXTRA: Lista de pasajeros (Namelist) colapsable -->
+      <div v-if="store.portada.filepasajeros && store.portada.filepasajeros.length" class="bg-white rounded-4xl shadow-md shadow-slate-200/40 border border-slate-100 p-5 mb-8">
+        <button
+            @click="pasajerosExpandido = !pasajerosExpandido"
+            class="w-full flex items-center justify-between gap-2 text-left focus:outline-none"
+        >
+          <span class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-xl bg-[#376875]/5 text-[#376875] flex items-center justify-center">
+              <i class="fas fa-users text-sm"></i>
+            </span>
+            <span>
+              <span class="text-gray-800 font-black text-sm uppercase tracking-wider leading-tight">
+                {{ maestroStore.t('cot_lista_pasajeros') || 'Lista de Pasajeros' }}
+              </span>
+              <span class="text-[10px] font-bold text-[#376875]/60 uppercase tracking-widest">
+                {{ store.portada.filepasajeros.length }} {{ store.portada.filepasajeros.length === 1 ? (maestroStore.t('cot_pax') || 'pax') : (maestroStore.t('cot_pax') || 'pax') }}
+              </span>
+            </span>
+          </span>
+          <i
+              class="fas fa-chevron-down text-[#E07845] text-xs transition-transform duration-300"
+              :class="pasajerosExpandido ? 'rotate-180' : ''"
+          ></i>
+        </button>
+
+        <div v-show="pasajerosExpandido" class="mt-4 pt-4 border-t border-slate-100 transition-all">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div
+                v-for="(pax, pi) in store.portada.filepasajeros"
+                :key="pax['@id'] || pi"
+                class="flex items-center gap-3 bg-slate-50/60 border border-slate-100 rounded-2xl p-3.5 hover:bg-slate-50 transition-colors"
+            >
+              <div class="w-9 h-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 font-black shadow-sm">
+                <i v-if="pax.sexo === 'F'" class="fas fa-user text-purple-400 text-sm"></i>
+                <i v-else-if="pax.sexo === 'M'" class="fas fa-user text-sky-400 text-sm"></i>
+                <i v-else class="fas fa-user text-slate-300 text-sm"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="font-black text-gray-800 text-sm leading-tight truncate">
+                  {{ pax.nombre }} {{ pax.apellido }}
+                </p>
+                <p v-if="pax.tipodocumento && pax.numerodocumento" class="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider mt-0.5">
+                  {{ pax.tipodocumento }}: {{ pax.numerodocumento }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- SECCIÓN 2: Propuestas activas (puede haber varias) -->
       <div v-if="store.versiones.length">
@@ -194,9 +251,9 @@ const formatearMonto = (monto: string | null, moneda: string) => {
             />
 
             <!-- Precio + CTA -->
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+            <div class="grid grid-cols-1 md:grid-cols- m12 gap-4 items-stretch">
 
-              <div class="md:col-span-7 bg-[#F1F5F9] rounded-[1.5rem] p-5 border border-slate-100 flex flex-col justify-center">
+              <div class="md:col-span-7 bg-[#F1F5F9] rounded-3xl p-5 border border-slate-100 flex flex-col justify-center">
                 <template v-if="!v.precioOculto && v.totalVenta">
                   <p class="text-[9px] text-[#376875]/60 font-black uppercase tracking-widest mb-1">
                     {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
@@ -216,7 +273,7 @@ const formatearMonto = (monto: string | null, moneda: string) => {
               <div class="md:col-span-5">
                 <button
                     @click="verGuia(v.version)"
-                    class="group/btn relative w-full h-full min-h-[100px] rounded-[1.5rem] flex flex-col justify-center px-6 py-5 transition-all active:scale-[0.98] shadow-lg shadow-orange-100 hover:shadow-orange-200 bg-[#E07845] hover:bg-[#D06535] overflow-hidden text-left"
+                    class="group/btn relative w-full h-full min-h-25 rounded-3xl flex flex-col justify-center px-6 py-5 transition-all active:scale-[0.98] shadow-lg shadow-orange-100 hover:shadow-orange-200 bg-[#E07845] hover:bg-[#D06535] overflow-hidden text-left"
                 >
                   <i class="fas fa-map-signs absolute -right-2 -bottom-4 text-6xl text-white/10 group-hover/btn:scale-110 group-hover/btn:rotate-12 transition-transform duration-500"></i>
                   <span class="relative z-10 flex items-center justify-between w-full mb-1">
@@ -243,7 +300,7 @@ const formatearMonto = (monto: string | null, moneda: string) => {
       <!-- Documentos públicos -->
       <div v-if="store.documentos.length" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 md:p-8 mb-8">
         <h2 class="text-[#376875]/60 font-black uppercase tracking-[0.2em] text-[11px] mb-4">
-          {{ maestroStore.t('cot_documentos') || 'Documentos' }}
+          {{ maestroStore.t('cot_boletos_documentos') || 'Boletos y Documentos' }}
         </h2>
         <div class="flex flex-wrap gap-3">
           <a
