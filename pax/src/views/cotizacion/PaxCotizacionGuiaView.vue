@@ -9,9 +9,14 @@
  *  - Estadías (componentes sin hora que abarcan varios días, ej. hoteles) se repiten al final
  *    de cada día de su periodo [checkin .. checkout), con sus inclusiones solo el primer día.
  *  - Los números de día son calendario: si un día no tiene nada, se salta (Día 1, 2, 4...).
- *  - Inclusiones: estadías → primer día; resto → último segmento del servicio.
  *  - Tarifas con proveedor visible (proveedorTituloSnapshot) → botón "ver más" con modal.
  *  - Resumen financiero: colapsado en el header; expandido divide header y menú de días.
+ *
+ * Inclusiones (dos vistas):
+ *  1. Inline al final de cada día: por servicio con líneas en ese día → "Detalle de <servicio>"
+ *     con las 4 secciones (incluye / no incluye / cortesía / opcional) filtradas por fecha.
+ *  2. Fila de acción con botón sobre la card (entre el título de paquete y el de la card) →
+ *     abre un modal con las inclusiones del servicio COMPLETO (todos los días).
  */
 import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue';
 import { useRouter } from 'vue-router';
@@ -132,15 +137,15 @@ interface BloqueVista {
   servicio: any;
   segmento: any;
   componentes: any[];
-  horaInicio: string | null;   // derivada del primer componente con hora
-  horaFin: string | null;      // derivada del último componente con hora
-  esEstadia: boolean;          // alojamiento / periodo multi-día sin horas
-  esRepeticion: boolean;       // repetición de la estadía en días siguientes
-  noche: number;               // 1..totalNoches (solo estadías)
+  horaInicio: string | null;       // derivada del primer componente con hora
+  horaFin: string | null;          // derivada del último componente con hora
+  esEstadia: boolean;              // alojamiento / periodo multi-día sin horas
+  esRepeticion: boolean;           // repetición de la estadía en días siguientes
+  noche: number;                   // 1..totalNoches (solo estadías)
   totalNoches: number;
   totalSegmentosServicio: number;
-  mostrarTituloServicio: boolean; // título grande: 1er segmento de servicio multi-segmento en el día
-  mostrarInclusiones: boolean;
+  mostrarTituloServicio: boolean;  // título grande: 1er segmento de servicio multi-segmento en el día
+  mostrarAccionInclusiones: boolean; // fila de acción (botón modal): 1er bloque del servicio en el día
 }
 
 interface DiaVista {
@@ -195,7 +200,7 @@ const itinerarioVista = computed<DiaVista[]>(() => {
           noche: rep + 1, totalNoches,
           totalSegmentosServicio: segs.length,
           mostrarTituloServicio: false,
-          mostrarInclusiones: false,
+          mostrarAccionInclusiones: false,
         });
       });
     }
@@ -224,23 +229,17 @@ const itinerarioVista = computed<DiaVista[]>(() => {
     return { fecha, numeroDia: diffDays(fechaBase, fecha) + 1, bloques };
   });
 
-  // Ancla de inclusiones por servicio: estadías → 1er bloque; resto → último bloque
-  const primera = new Map<string, string>();
-  const ultima = new Map<string, string>();
-  const tieneEstadia = new Set<string>();
+  // Fila de acción (botón "Incluye / No incluye"): primer bloque de cada servicio por día,
+  // solo si ese servicio tiene inclusiones y no es una repetición de estadía.
   for (const dia of dias) {
+    const vistosServicio = new Set<string>();
     for (const b of dia.bloques) {
       const sid = b.servicio.id;
-      if (!primera.has(sid)) primera.set(sid, b.key);
-      ultima.set(sid, b.key);
-      if (b.esEstadia) tieneEstadia.add(sid);
-    }
-  }
-  for (const dia of dias) {
-    for (const b of dia.bloques) {
-      const sid = b.servicio.id;
-      const ancla = tieneEstadia.has(sid) ? primera.get(sid) : ultima.get(sid);
-      b.mostrarInclusiones = b.key === ancla && !!inclusionPorServicio.value.get(sid);
+      const srv = inclusionPorServicio.value.get(sid);
+      const tieneLineas = !!srv &&
+          (srv.incluidos.length + srv.noIncluidos.length + srv.cortesias.length + srv.opcionales.length) > 0;
+      b.mostrarAccionInclusiones = !b.esRepeticion && !vistosServicio.has(sid) && tieneLineas;
+      vistosServicio.add(sid);
     }
   }
 
@@ -367,6 +366,63 @@ const seccionesInclusion = (srv: { incluidos: PaxInclusionItem[]; noIncluidos: P
   { key: 'cortesias',   titulo: maestroStore.t('cot_cortesia')   || 'Cortesía',    icono: 'fa-gift text-sky-500',             lineas: srv.cortesias },
   { key: 'opcionales',  titulo: maestroStore.t('cot_opcional')   || 'Opcional',    icono: 'fa-circle-question text-amber-500', lineas: srv.opcionales },
 ].filter(s => s.lineas.length > 0));
+
+/**
+ * Inclusiones agrupadas por día para el panel único al final de cada día.
+ * Por cada servicio presente en el día (en orden de aparición) se toman sus líneas
+ * cuya `fecha` cae en ese día. Todo tiene fecha, así que el reparto es exacto.
+ * `largo` decide si el panel arranca semicolapsado con "mostrar más".
+ */
+type InclusionServicioDia = { servicioId: string; nombre: any; secciones: ReturnType<typeof seccionesInclusion> };
+const inclusionesPorDia = computed(() => {
+  const m = new Map<string, { servicios: InclusionServicioDia[]; largo: boolean }>();
+
+  for (const dia of itinerarioVista.value) {
+    const servicios: InclusionServicioDia[] = [];
+    const vistos = new Set<string>();
+
+    for (const b of dia.bloques) {
+      const sid = b.servicio.id;
+      if (vistos.has(sid)) continue;
+      vistos.add(sid);
+
+      const srv = inclusionPorServicio.value.get(sid);
+      if (!srv) continue;
+
+      const filtrar = (lineas: PaxInclusionItem[]) =>
+          (lineas ?? []).filter((l: PaxInclusionItem) => dateOf(l.fecha) === dia.fecha);
+
+      const secciones = seccionesInclusion({
+        incluidos: filtrar(srv.incluidos),
+        noIncluidos: filtrar(srv.noIncluidos),
+        cortesias: filtrar(srv.cortesias),
+        opcionales: filtrar(srv.opcionales),
+      });
+      if (!secciones.length) continue;
+
+      servicios.push({ servicioId: sid, nombre: b.servicio.nombrePublicoSnapshot, secciones });
+    }
+
+    // Total de líneas del día → decide si el panel arranca semicolapsado
+    const totalLineas = servicios.reduce(
+        (n, s) => n + s.secciones.reduce((k, sec) => k + sec.lineas.length, 0), 0);
+    m.set(dia.fecha, { servicios, largo: totalLineas > 3 });
+  }
+  return m;
+});
+
+// ── Modal de inclusiones del servicio COMPLETO (todos los días) ──────────────
+interface InclusionModal {
+  servicioId: string;
+  nombre: any;
+  secciones: ReturnType<typeof seccionesInclusion>;
+}
+const modalInclusiones = ref<InclusionModal | null>(null);
+const abrirInclusiones = (servicioId: string, nombre: any) => {
+  const srv = inclusionPorServicio.value.get(servicioId);
+  if (!srv) return;
+  modalInclusiones.value = { servicioId, nombre, secciones: seccionesInclusion(srv) };
+};
 
 /** Chips de tarifa de una línea (título + badges + proveedor si es visible) */
 const chipsDeLinea = (l: PaxInclusionItem, servicioId: string) => {
@@ -753,6 +809,24 @@ const mvDelta = (deltaUsd: number) => {
               <span>{{ store.traducir(item.servicio.nombrePublicoSnapshot) }}</span>
             </h3>
 
+            <!-- Fila de acción: botón que abre el modal con las inclusiones del servicio completo.
+                 Va entre el <h3> (multi-segmento) y la card, o encima de la card (single) → simetría. -->
+            <div
+                v-if="item.mostrarAccionInclusiones"
+                class="flex justify-end mb-3"
+            >
+              <button
+                  @click="abrirInclusiones(item.servicio.id, item.servicio.nombrePublicoSnapshot)"
+                  class="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-[#376875] bg-white border border-[#376875]/20 hover:border-[#376875]/50 hover:bg-[#376875]/5 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
+              >
+                <i class="fas fa-list-check text-[#E07845]"></i>
+                {{ item.totalSegmentosServicio > 1
+                  ? (maestroStore.t('cot_inclusiones_tour') || 'Inclusiones del tour')
+                  : (maestroStore.t('cot_inclusiones_servicio') || 'Inclusiones del servicio') }}
+                <i class="fas fa-circle-arrow-right text-[10px] text-[#E07845]"></i>
+              </button>
+            </div>
+
             <!-- ── Card compacta: repetición de estadía (noche 2+) ── -->
             <article
                 v-if="item.esRepeticion"
@@ -786,7 +860,7 @@ const mvDelta = (deltaUsd: number) => {
                       :src="img.imageUrl"
                       class="w-full h-full shrink-0 snap-center object-cover"
                       loading="lazy"
-                   alt="imagen"/>
+                      alt="imagen"/>
                 </div>
                 <div class="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
 
@@ -903,96 +977,109 @@ const mvDelta = (deltaUsd: number) => {
                       v-html="store.traducir(nota.contenido)"
                   />
                 </details>
-
-                <!-- ── Incluye / No incluye (colapsable, anclado según regla) ── -->
-                <div
-                    v-if="item.mostrarInclusiones"
-                    class="mt-6 pt-5 border-t border-dashed border-slate-200"
-                >
-                  <button
-                      @click="toggle(incExpandida, item.key)"
-                      class="w-full flex items-center justify-between gap-2 text-left"
-                  >
-                    <span class="text-xs font-black text-[#376875] uppercase tracking-[0.15em] flex items-center gap-2">
-                      <i class="fas fa-list-check text-[#E07845]"></i>
-                      {{ maestroStore.t('cot_detalle_servicio') || 'Detalle del servicio' }}
-                    </span>
-                    <i
-                        class="fas fa-chevron-down text-[#E07845] text-xs transition-transform"
-                        :class="incExpandida.has(item.key) ? 'rotate-180' : ''"
-                    ></i>
-                  </button>
-
-                  <div class="relative">
-                    <div
-                        class="space-y-5 mt-4 transition-all"
-                        :class="incExpandida.has(item.key) ? '' : 'max-h-15 overflow-hidden'"
-                    >
-                      <div v-for="sec in seccionesInclusion(inclusionPorServicio.get(item.servicio.id))" :key="sec.key">
-                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 pb-1 border-b border-slate-100">{{ sec.titulo }}</p>
-                        <ul class="space-y-2">
-                          <li v-for="(l, i) in sec.lineas" :key="i">
-                            <p class="flex items-start gap-2">
-                              <i class="fas mt-0.5 text-xs shrink-0" :class="sec.icono"></i>
-                              <span class="text-[13px] font-semibold text-slate-700 leading-snug">
-                                {{ store.traducir(l.nombre) }}
-                                <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">×{{ l.cantidadComponente }}</b>
-                                <span class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">
-                                  · {{ fechaChip(l.fecha) }}
-                                </span>
-                              </span>
-                            </p>
-
-                            <!-- Chips: tarifa + badges + proveedor -->
-                            <div
-                                v-for="(chip, ci) in chipsDeLinea(l, item.servicio.id)"
-                                :key="ci"
-                                class="ml-6 mt-1 flex flex-wrap items-center gap-1.5"
-                            >
-                              <span
-                                  v-if="chip.titulo"
-                                  class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5"
-                              >
-                                {{ chip.titulo }}
-                              </span>
-                              <span
-                                  v-for="b in chip.badges"
-                                  :key="b.key"
-                                  class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider"
-                                  :class="b.cls"
-                              >
-                                {{ b.icon }} {{ b.label }}
-                              </span>
-                              <!-- Proveedor visible → ver más -->
-                              <button
-                                  v-if="chip.proveedor"
-                                  @click="abrirProveedor(chip.proveedor)"
-                                  class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white bg-[#E07845] hover:bg-[#D06535] rounded-md px-2 py-0.5 shadow-sm shadow-[#E07845]/30 transition-colors"
-                              >
-                                <i class="fas fa-hotel text-[8px]"></i>
-                                {{ store.traducir(chip.proveedor.titulo) }}
-                                <i class="fas fa-circle-arrow-right text-[8px]"></i>
-                              </button>
-                            </div>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                    <!-- Fade cuando está colapsado -->
-                    <button
-                        v-if="!incExpandida.has(item.key)"
-                        @click="toggle(incExpandida, item.key)"
-                        class="absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-white via-white/80 to-transparent flex items-end justify-center pb-0.5"
-                    >
-                      <span class="text-[10px] font-black uppercase tracking-widest text-[#E07845]">
-                        <i class="fas fa-chevron-down mr-1"></i>{{ maestroStore.t('cot_ver_todo') || 'Ver todo' }}
-                      </span>
-                    </button>
-                  </div>
-                </div>
               </div>
             </article>
           </template>
+
+          <!-- ══ INCLUSIONES DEL DÍA (panel único, elegante, semicolapsado) ══ -->
+          <div
+              v-if="inclusionesPorDia.get(dia.fecha)?.servicios.length"
+              class="bg-white rounded-3xl shadow-md shadow-slate-200/40 border border-slate-100 p-5 md:p-7 mb-4"
+          >
+            <p class="text-xs font-black text-[#376875] uppercase tracking-[0.15em] flex items-center gap-2 mb-5">
+              <i class="fas fa-list-check text-[#E07845]"></i>
+              {{ maestroStore.t('cot_inclusiones_dia') || 'Inclusiones del día' }}
+            </p>
+
+            <div class="relative">
+              <div
+                  class="space-y-7 transition-all"
+                  :class="inclusionesPorDia.get(dia.fecha)?.largo && !incExpandida.has(dia.fecha) ? 'max-h-32 overflow-hidden' : ''"
+              >
+                <!-- Un bloque por servicio del día, dentro del mismo panel -->
+                <div v-for="inc in inclusionesPorDia.get(dia.fecha)?.servicios" :key="inc.servicioId">
+                  <p class="text-[11px] font-black text-[#376875] uppercase tracking-[0.15em] flex items-center gap-2 mb-3">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#E07845] shrink-0"></span>
+                    {{ store.traducir(inc.nombre) }}
+                  </p>
+
+                  <div class="space-y-5">
+                    <div v-for="sec in inc.secciones" :key="sec.key">
+                      <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 pb-1 border-b border-slate-100">{{ sec.titulo }}</p>
+                      <ul class="space-y-2">
+                        <li v-for="(l, i) in sec.lineas" :key="i">
+                          <p class="flex items-start gap-2">
+                            <i class="fas mt-0.5 text-xs shrink-0" :class="sec.icono"></i>
+                            <span class="text-[13px] font-semibold text-slate-700 leading-snug">
+                              {{ store.traducir(l.nombre) }}
+                              <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">×{{ l.cantidadComponente }}</b>
+                              <span class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">
+                                · {{ fechaChip(l.fecha) }}
+                              </span>
+                            </span>
+                          </p>
+
+                          <!-- Chips: tarifa + badges + proveedor -->
+                          <div
+                              v-for="(chip, ci) in chipsDeLinea(l, inc.servicioId)"
+                              :key="ci"
+                              class="ml-6 mt-1 flex flex-wrap items-center gap-1.5"
+                          >
+                            <span
+                                v-if="chip.titulo"
+                                class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5"
+                            >
+                              {{ chip.titulo }}
+                            </span>
+                            <span
+                                v-for="b in chip.badges"
+                                :key="b.key"
+                                class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider"
+                                :class="b.cls"
+                            >
+                              {{ b.icon }} {{ b.label }}
+                            </span>
+                            <button
+                                v-if="chip.proveedor"
+                                @click="abrirProveedor(chip.proveedor)"
+                                class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white bg-[#E07845] hover:bg-[#D06535] rounded-md px-2 py-0.5 shadow-sm shadow-[#E07845]/30 transition-colors"
+                            >
+                              <i class="fas fa-hotel text-[8px]"></i>
+                              {{ store.traducir(chip.proveedor.titulo) }}
+                              <i class="fas fa-circle-arrow-right text-[8px]"></i>
+                            </button>
+                          </div>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fade + "mostrar más" (uno solo para todo el panel del día) -->
+              <button
+                  v-if="inclusionesPorDia.get(dia.fecha)?.largo && !incExpandida.has(dia.fecha)"
+                  @click="toggle(incExpandida, dia.fecha)"
+                  class="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white via-white/90 to-transparent flex items-end justify-center pb-1"
+              >
+                <span class="text-[10px] font-black uppercase tracking-widest text-[#E07845] bg-white/90 border border-[#E07845]/20 rounded-full px-3.5 py-1.5 shadow-sm">
+                  <i class="fas fa-chevron-down mr-1"></i>{{ maestroStore.t('cot_ver_todo') || 'Ver todo' }}
+                </span>
+              </button>
+            </div>
+
+            <div
+                v-if="inclusionesPorDia.get(dia.fecha)?.largo && incExpandida.has(dia.fecha)"
+                class="flex justify-center mt-5"
+            >
+              <button
+                  @click="toggle(incExpandida, dia.fecha)"
+                  class="text-[10px] font-black uppercase tracking-widest text-[#E07845] hover:text-[#D06535] border border-[#E07845]/20 rounded-full px-3.5 py-1.5 transition-colors"
+              >
+                <i class="fas fa-chevron-up mr-1"></i>{{ maestroStore.t('cot_ver_menos') || 'Ver menos' }}
+              </button>
+            </div>
+          </div>
 
           <!-- Pie tipo libro -->
           <div class="flex justify-between gap-2 mb-2">
@@ -1056,7 +1143,7 @@ const mvDelta = (deltaUsd: number) => {
                   :src="img.imageUrl"
                   class="w-full h-full shrink-0 snap-center object-cover"
                   loading="lazy"
-               alt="Imagen"/>
+                  alt="Imagen"/>
             </div>
             <template v-if="galeriaProveedor(modalProveedor).length > 1">
               <button @click="desplazarGaleria($event, -1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm flex items-center justify-center transition-colors">
@@ -1099,6 +1186,80 @@ const mvDelta = (deltaUsd: number) => {
               {{ maestroStore.t('cot_visitar_sitio') || 'Visitar sitio web' }}
               <i class="fas fa-arrow-up-right-from-square text-[10px]"></i>
             </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ MODAL INCLUSIONES (servicio completo, todos los días) ═══ -->
+      <div
+          v-if="modalInclusiones"
+          class="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      >
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="modalInclusiones = null"></div>
+
+        <div class="relative bg-white w-full sm:max-w-lg sm:mx-6 rounded-t-4xl sm:rounded-4xl max-h-[85vh] overflow-y-auto shadow-2xl">
+          <!-- Cabecera -->
+          <div class="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-6 py-4 flex items-center justify-between gap-3 z-10">
+            <h3 class="font-black text-[#376875] text-base leading-tight">
+              <i class="fas fa-list-check text-[#E07845] mr-2"></i>{{ store.traducir(modalInclusiones?.nombre) }}
+            </h3>
+            <button
+                @click="modalInclusiones = null"
+                class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors shrink-0"
+            >
+              <i class="fas fa-times text-sm"></i>
+            </button>
+          </div>
+
+          <div class="px-6 py-5 space-y-5">
+            <div v-for="sec in modalInclusiones?.secciones" :key="sec.key">
+              <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 pb-1 border-b border-slate-100">{{ sec.titulo }}</p>
+              <ul class="space-y-2">
+                <li v-for="(l, i) in sec.lineas" :key="i">
+                  <p class="flex items-start gap-2">
+                    <i class="fas mt-0.5 text-xs shrink-0" :class="sec.icono"></i>
+                    <span class="text-[13px] font-semibold text-slate-700 leading-snug">
+                      {{ store.traducir(l.nombre) }}
+                      <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">×{{ l.cantidadComponente }}</b>
+                      <span class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">
+                        · {{ fechaChip(l.fecha) }}
+                      </span>
+                    </span>
+                  </p>
+
+                  <!-- Chips: tarifa + badges + proveedor -->
+                  <div
+                      v-for="(chip, ci) in chipsDeLinea(l, modalInclusiones?.servicioId ?? '')"
+                      :key="ci"
+                      class="ml-6 mt-1 flex flex-wrap items-center gap-1.5"
+                  >
+                    <span
+                        v-if="chip.titulo"
+                        class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5"
+                    >
+                      {{ chip.titulo }}
+                    </span>
+                    <span
+                        v-for="b in chip.badges"
+                        :key="b.key"
+                        class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider"
+                        :class="b.cls"
+                    >
+                      {{ b.icon }} {{ b.label }}
+                    </span>
+                    <button
+                        v-if="chip.proveedor"
+                        @click="abrirProveedor(chip.proveedor)"
+                        class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white bg-[#E07845] hover:bg-[#D06535] rounded-md px-2 py-0.5 shadow-sm shadow-[#E07845]/30 transition-colors"
+                    >
+                      <i class="fas fa-hotel text-[8px]"></i>
+                      {{ store.traducir(chip.proveedor.titulo) }}
+                      <i class="fas fa-circle-arrow-right text-[8px]"></i>
+                    </button>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>

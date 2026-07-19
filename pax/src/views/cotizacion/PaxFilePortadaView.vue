@@ -223,24 +223,43 @@ const cambiarIdioma = (e: Event) => {
           <span class="h-px bg-[#376875]/20 flex-1"></span>
         </div>
 
+        <!-- Tarjeta de propuesta (Opción B): precio discreto, CTA protagonista, borde definido -->
         <article
             v-for="v in store.versiones"
             :key="v.version"
-            class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 mb-8 overflow-hidden group hover:shadow-2xl hover:shadow-[#376875]/10 transition-all duration-500"
+            class="bg-white rounded-4xl border border-slate-200 border-t-4 border-t-[#E07845] shadow-lg shadow-slate-300/40 mb-8 overflow-hidden group hover:shadow-xl hover:shadow-[#376875]/10 hover:border-slate-300 transition-all duration-500"
         >
           <div class="p-6 md:p-8">
-            <!-- Chip + fechas -->
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <span class="inline-block px-3 py-1 rounded-lg bg-[#376875] text-white text-[10px] font-black uppercase tracking-widest">
-                {{ maestroStore.t('cot_propuesta') || 'Propuesta' }} V{{ v.version }}
-              </span>
-              <span v-if="v.fechaInicio" class="text-[#376875]/70 text-xs font-bold flex items-center gap-2">
-                <i class="fas fa-calendar-alt text-[#E07845]"></i>
-                {{ formatearFecha(v.fechaInicio) }}
-                <span class="text-[#376875]/40">·</span>
-                <i class="fas fa-user-friends text-[#E07845]"></i>
-                {{ v.numPax }} pax
-              </span>
+
+            <!-- Encabezado: chip + fechas (izq) · precio discreto (der) -->
+            <div class="flex items-start justify-between gap-4 mb-4">
+              <div class="min-w-0">
+                <span class="inline-block px-3 py-1 rounded-lg bg-[#376875] text-white text-[10px] font-black uppercase tracking-widest">
+                  {{ maestroStore.t('cot_propuesta') || 'Propuesta' }} V{{ v.version }}
+                </span>
+                <p v-if="v.fechaInicio" class="text-[#376875]/70 text-xs font-bold flex items-center gap-2 mt-2.5">
+                  <i class="fas fa-calendar-alt text-[#E07845]"></i>
+                  {{ formatearFecha(v.fechaInicio) }}
+                  <span class="text-[#376875]/40">·</span>
+                  <i class="fas fa-user-friends text-[#E07845]"></i>
+                  {{ v.numPax }} {{ maestroStore.t('cot_pax') || 'pax' }}
+                </p>
+              </div>
+
+              <!-- Precio discreto (precio total fijo) -->
+              <div v-if="!v.precioOculto && v.totalVenta" class="text-right shrink-0">
+                <p class="text-[9px] text-[#376875]/50 font-black uppercase tracking-widest">
+                  {{ maestroStore.t('cot_precio_total') || 'Precio total' }}
+                </p>
+                <p class="text-sm md:text-base font-black text-gray-500 leading-tight whitespace-nowrap tabular-nums">
+                  {{ formatearMonto(v.totalVenta, v.monedaGlobal) }}
+                </p>
+              </div>
+              <div v-else class="text-right shrink-0 max-w-36">
+                <p class="text-[11px] font-bold text-[#376875]/60 italic leading-snug">
+                  {{ maestroStore.t('cot_precio_consultar') || 'Consulta el precio con tu asesor' }}
+                </p>
+              </div>
             </div>
 
             <!-- Resumen comercial i18n (HTML) para ayudar a elegir -->
@@ -250,48 +269,35 @@ const cambiarIdioma = (e: Event) => {
                 v-html="store.traducir(v.resumen)"
             />
 
-            <!-- Precio + CTA -->
-            <div class="grid grid-cols-1 md:grid-cols- m12 gap-4 items-stretch">
+            <!-- CTA protagonista -->
+            <button
+                @click="verGuia(v.version)"
+                class="group/btn relative w-full rounded-3xl flex items-center justify-between gap-4 px-6 py-5 transition-all active:scale-[0.98] shadow-lg shadow-orange-100 hover:shadow-orange-200 bg-[#E07845] hover:bg-[#D06535] overflow-hidden text-left"
+            >
+              <i class="fas fa-map-signs absolute -right-3 -bottom-4 text-6xl text-white/10 group-hover/btn:scale-110 group-hover/btn:rotate-12 transition-transform duration-500"></i>
+              <span class="relative z-10 min-w-0">
+                <span class="block text-[14px] font-black uppercase tracking-[0.15em] text-white">
+                  {{ maestroStore.t('cot_btn_ver_itinerario') || 'Ver itinerario' }}
+                </span>
+                <span class="block text-white/80 text-[12px] font-medium leading-tight mt-1">
+                  {{ maestroStore.t('cot_cta_sub') || 'Día a día, incluye y precios' }}
+                </span>
+              </span>
+              <i class="fas fa-arrow-right text-white relative z-10 shrink-0 group-hover/btn:translate-x-1 transition-transform"></i>
+            </button>
 
-              <div class="md:col-span-7 bg-[#F1F5F9] rounded-3xl p-5 border border-slate-100 flex flex-col justify-center">
-                <template v-if="!v.precioOculto && v.totalVenta">
-                  <p class="text-[9px] text-[#376875]/60 font-black uppercase tracking-widest mb-1">
-                    {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
-                  </p>
-                  <p class="text-2xl md:text-3xl font-black text-gray-800 leading-none">
-                    {{ formatearMonto(v.totalVenta, v.monedaGlobal) }}
-                  </p>
-                  <p v-if="v.adelanto && Number(v.adelanto) > 0" class="text-xs font-bold text-[#376875] mt-2">
-                    {{ maestroStore.t('cot_adelanto') || 'Adelanto' }}: {{ formatearMonto(v.adelanto, v.monedaGlobal) }}
-                  </p>
-                </template>
-                <p v-else class="text-sm font-bold text-[#376875]/60 italic">
-                  {{ maestroStore.t('cot_precio_consultar') || 'Consulta el precio con tu asesor' }}
-                </p>
-              </div>
-
-              <div class="md:col-span-5">
-                <button
-                    @click="verGuia(v.version)"
-                    class="group/btn relative w-full h-full min-h-25 rounded-3xl flex flex-col justify-center px-6 py-5 transition-all active:scale-[0.98] shadow-lg shadow-orange-100 hover:shadow-orange-200 bg-[#E07845] hover:bg-[#D06535] overflow-hidden text-left"
-                >
-                  <i class="fas fa-map-signs absolute -right-2 -bottom-4 text-6xl text-white/10 group-hover/btn:scale-110 group-hover/btn:rotate-12 transition-transform duration-500"></i>
-                  <span class="relative z-10 flex items-center justify-between w-full mb-1">
-                    <span class="text-[13px] font-black uppercase tracking-[0.15em] text-white">
-                      {{ maestroStore.t('cot_btn_ver_itinerario') || 'VER ITINERARIO' }}
-                    </span>
-                    <i class="fas fa-arrow-right text-white group-hover/btn:translate-x-1 transition-transform"></i>
-                  </span>
-                  <span class="relative z-10 block text-white/80 text-[11px] font-medium leading-tight max-w-[90%]">
-                    {{ maestroStore.t('cot_cta_sub') || 'Día a día, incluye y precios' }}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <p v-if="v.fechaExpiracion" class="text-[10px] text-[#376875]/40 font-bold uppercase tracking-widest mt-4 text-right">
-              <i class="fas fa-hourglass-half mr-1"></i>
-              {{ maestroStore.t('cot_valida_hasta') || 'Válida hasta' }} {{ formatearFecha(v.fechaExpiracion) }}
+            <!-- Pie tenue: adelanto · validez -->
+            <p
+                v-if="(v.adelanto && Number(v.adelanto) > 0) || v.fechaExpiracion"
+                class="text-[10px] text-[#376875]/45 font-bold uppercase tracking-widest mt-3.5 text-right flex items-center justify-end gap-2 flex-wrap"
+            >
+              <span v-if="v.adelanto && Number(v.adelanto) > 0">
+                <i class="fas fa-wallet mr-1 text-[#E07845]/60"></i>{{ maestroStore.t('cot_adelanto') || 'Adelanto' }} {{ formatearMonto(v.adelanto, v.monedaGlobal) }}
+              </span>
+              <span v-if="(v.adelanto && Number(v.adelanto) > 0) && v.fechaExpiracion" class="text-[#376875]/25">·</span>
+              <span v-if="v.fechaExpiracion">
+                <i class="fas fa-hourglass-half mr-1 text-[#E07845]/60"></i>{{ maestroStore.t('cot_valida_hasta') || 'Válida hasta' }} {{ formatearFecha(v.fechaExpiracion) }}
+              </span>
             </p>
           </div>
         </article>

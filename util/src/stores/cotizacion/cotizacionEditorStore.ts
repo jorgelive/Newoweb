@@ -4,6 +4,8 @@ import {apiClient} from '@/services/apiClient';
 
 import {
     Catalogos,
+    ClasePasajeroInterna,
+    CLASIFICACION_SCHEMA_VERSION,
     ClasificacionFinancieraInterna,
     Componente,
     ComponenteCompleto,
@@ -12,21 +14,35 @@ import {
     CotizacionFileExtended,
     CotSegmento,
     CotServicio,
+    DeltaUpgradePorPerfil,
     DetalleOperativoBloque,
     DetalleOperativoTipo,
+    expurgarParaCliente,
+    formatRangoEdad,
+    getProcedenciaUI,
     I18nContent,
+    ImagenProveedorSnapshot,
+    InclusionLinea,
+    InclusionServicio,
+    InclusionTarifa,
+    Item,
+    LineaDetalleClaseInterna,
+    ModoFinanciero,
     NivelInspector,
+    OpcionUpgradeInterna,
+    Segmento,
     SegmentoComponenteProcesado,
     Servicio,
     SnapshotItem,
     Tarifa,
     TarifaBase,
+    TarifaCategoriaValue,
+    TarifaModalidadValue,
+    TarifaProcedenciaValue,
+    TarifaRolValue,
     TarifaSnapshot,
-    ImagenProveedorSnapshot,
-    getProcedenciaUI, TarifaRolValue, formatRangoEdad, Item, OpcionUpgradeInterna, ModoFinanciero,
-    LineaDetalleClaseInterna, TotalesInternos, ClasePasajeroInterna, CLASIFICACION_SCHEMA_VERSION,
-    DeltaUpgradePorPerfil, InclusionTarifa, InclusionLinea, InclusionServicio, totalesInternosVacios,
-    expurgarParaCliente, Segmento, TarifaModalidadValue, TarifaCategoriaValue, TarifaProcedenciaValue
+    TotalesInternos,
+    totalesInternosVacios
 } from '@/types/cotizacionEditorModel.ts';
 
 import {ApiIdioma} from '@/types/maestroModel';
@@ -1081,15 +1097,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const fetchCatalogos = async () => {
         try {
-            const [resServicios, resProveedores, resTipos] = await Promise.all([
-                apiClient.get('/platform/travel/servicios?pagination=false'),
-                apiClient.get('/platform/travel/proveedores?pagination=false'),
+            // Solo cargamos enums o datos estrictamente necesarios al inicio
+            const [resTipos] = await Promise.all([
                 apiClient.get('/cotizacion/user/maestros-enum/componente-tipos')
             ]);
-            catalogos.value.servicios = resServicios.data['hydra:member'] || resServicios.data['member'] || [];
-            catalogos.value.proveedores = resProveedores.data['hydra:member'] || resProveedores.data['member'] || [];
+
             catalogos.value.tiposComponente = resTipos.data || [];
 
+            // Inicializamos los arrays vacíos, se llenarán bajo demanda
+            catalogos.value.servicios = [];
+            catalogos.value.proveedores = [];
             catalogos.value.allComponentes = [];
             catalogos.value.componentes = [];
         } catch (e) {
@@ -1097,6 +1114,43 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    const buscarServiciosAsincrono = async (query: string) => {
+        if (!query || query.trim().length < 3) return; // Disparar búsqueda a partir de 3 letras
+
+        try {
+            const res = await apiClient.get(`/platform/travel/servicios?nombreInterno=${encodeURIComponent(query)}`);
+            const items = res.data['hydra:member'] || res.data['member'] || [];
+
+            items.forEach((item: any) => {
+                const id = extractIdStr(item.id || item['@id']);
+                // Validar que no exista ya en memoria
+                if (!catalogos.value.servicios.some(s => extractIdStr(s.id || (s as any)['@id']) === id)) {
+                    catalogos.value.servicios.push(item);
+                }
+            });
+        } catch (e) {
+            console.error("Error buscando servicios en catálogo", e);
+        }
+    };
+
+    const buscarProveedoresAsincrono = async (query: string) => {
+        if (!query || query.trim().length < 3) return;
+
+        try {
+            // Asumiendo que quieres buscar por nombre comercial
+            const res = await apiClient.get(`/platform/travel/proveedores?nombreComercial=${encodeURIComponent(query)}`);
+            const items = res.data['hydra:member'] || res.data['member'] || [];
+
+            items.forEach((item: any) => {
+                const id = extractIdStr(item.id || item['@id']);
+                if (!catalogos.value.proveedores.some(p => extractIdStr(p.id || (p as any)['@id']) === id)) {
+                    catalogos.value.proveedores.push(item);
+                }
+            });
+        } catch (e) {
+            console.error("Error buscando proveedores en catálogo", e);
+        }
+    };
     const fetchComponenteMaestroSilencioso = async (id: string) => {
         const cleanId = extractIdStr(id);
         if (!cleanId) return;
@@ -1265,29 +1319,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const tarifasToFetch = new Set<string>();
             const componentesToFetch = new Set<string>();
+            // 🔥 NUEVOS SETS PARA BATCHING
+            const proveedoresToFetch = new Set<string>();
+            const serviciosToFetch = new Set<string>();
 
             data.cotservicios.forEach((s: CotServicio) => {
                 s.fechaInicioAbsoluta = getFechaLimpia(s.fechaInicioAbsoluta);
                 if (!s.nombrePublicoSnapshot) s.nombrePublicoSnapshot = JSON.parse(JSON.stringify(s.nombreSnapshot || []));
 
-                if (s.cotsegmentos && Array.isArray(s.cotsegmentos)) {
-                    s.cotsegmentos.forEach((seg: CotSegmento) => {
-                        seg.fechaAbsoluta = getFechaLimpia(seg.fechaAbsoluta);
-                    });
+                // Recolectar Servicio Maestro
+                if (s.servicioMaestroId) {
+                    serviciosToFetch.add(extractIdStr(s.servicioMaestroId));
                 }
+
+                // ... (tu código existente de segmentos) ...
 
                 if (s.cotcomponentes && Array.isArray(s.cotcomponentes)) {
                     s.cotcomponentes?.forEach((c: ComponenteCompleto) => {
-                        if (c.cotsegmento && !c.cotsegmentoId) {
-                            c.cotsegmentoId = typeof c.cotsegmento === 'string'
-                                ? extractIdStr(c.cotsegmento)
-                                : extractIdStr(c.cotsegmento.id || c.cotsegmento['@id']);
-                        }
-
-                        const cId = extractIdStr(c.componenteMaestroId);
-                        if (cId && cId.length === 36) {
-                            componentesToFetch.add(cId); // 🔥 siempre agregamos, sin chequear si ya existe en allComponentes
-                        }
+                        // ... (tu código existente de componentes) ...
 
                         if (c.cottarifas && Array.isArray(c.cottarifas)) {
                             c.cottarifas.forEach((t: TarifaSnapshot) => {
@@ -1296,6 +1345,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 if (tId && tId.length === 36) {
                                     tarifasToFetch.add(tId);
                                 }
+                                // 🔥 Recolectar Proveedor Maestro
+                                const pId = extractIdStr(t.proveedorMaestroId);
+                                if (pId && pId.length === 36) {
+                                    proveedoresToFetch.add(pId);
+                                }
+
                                 if (t.fechaLimitePago) {
                                     t.fechaLimitePago = getFechaLimpia(t.fechaLimitePago);
                                 }
@@ -1308,47 +1363,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const fetchPromises: Promise<any>[] = [];
 
-            // 🔥 Batch ÚNICO: pide el detalle COMPLETO (con tarifas anidadas) de
-            // todos los componentes usados en TODOS los servicios de la cotización.
-            if (componentesToFetch.size > 0) {
-                const idsParam = Array.from(componentesToFetch).map(cid => `id[]=${cid}`).join('&');
-                fetchPromises.push(
-                    apiClient.get(`/platform/travel/componentes/batch?${idsParam}&pagination=false`).then(res => {
-                        const items = res.data['hydra:member'] || res.data['member'] || [];
-                        items.forEach((item: any) => {
-                            const itemId = extractIdStr(item.id || item['@id']);
-                            const idx = catalogos.value.allComponentes.findIndex((exist: any) => extractIdStr(exist.id || exist['@id']) === itemId);
-                            if (idx !== -1) {
-                                catalogos.value.allComponentes.splice(idx, 1, item); // reemplaza liviano por completo
-                            } else {
-                                catalogos.value.allComponentes.push(item);
-                            }
+            // Promesas existentes para Componentes y Tarifas...
+            // ... (mantén tu código actual de fetchPromises.push para componentes y tarifas) ...
 
-                            // Precarga las tarifas embebidas en cada componente al pool global
-                            (item.tarifas || []).forEach((t: any) => {
-                                const tId = extractIdStr(t.id || t['@id']);
-                                if (!todasLasTarifasMaestras.value.some((pt: any) => extractIdStr(pt.id || pt['@id']) === tId)) {
-                                    catalogos.value.tarifas.push(t);
-                                    todasLasTarifasMaestras.value.push(t);
-                                }
-                            });
-                        });
+            // 🔥 NUEVA PROMESA BATCH: SERVICIOS
+            if (serviciosToFetch.size > 0) {
+                const idsParam = Array.from(serviciosToFetch).map(id => `id[]=${id}`).join('&');
+                fetchPromises.push(
+                    apiClient.get(`/platform/travel/servicios?${idsParam}&pagination=false`).then(res => {
+                        catalogos.value.servicios = res.data['hydra:member'] || res.data['member'] || [];
                     }).catch(() => null)
                 );
             }
 
-            if (tarifasToFetch.size > 0) {
-                const idsParam = Array.from(tarifasToFetch).map(tid => `id[]=${tid}`).join('&');
+            // 🔥 NUEVA PROMESA BATCH: PROVEEDORES
+            if (proveedoresToFetch.size > 0) {
+                const idsParam = Array.from(proveedoresToFetch).map(id => `id[]=${id}`).join('&');
                 fetchPromises.push(
-                    apiClient.get(`/platform/travel/tarifas?${idsParam}&pagination=false`).then(res => {
-                        const items = res.data['hydra:member'] || res.data['member'] || [];
-                        items.forEach((item: any) => {
-                            const itemId = extractIdStr(item.id || item['@id']);
-                            if (!todasLasTarifasMaestras.value.some((exist: any) => extractIdStr(exist.id || exist['@id']) === itemId)) {
-                                catalogos.value.tarifas.push(item);
-                                todasLasTarifasMaestras.value.push(item);
-                            }
-                        });
+                    apiClient.get(`/platform/travel/proveedores?${idsParam}&pagination=false`).then(res => {
+                        catalogos.value.proveedores = res.data['hydra:member'] || res.data['member'] || [];
                     }).catch(() => null)
                 );
             }
@@ -3322,6 +3355,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         actualizarInicioManteniendoRango, onProveedorChange, agregarDetalleOperativo, eliminarDetalleOperativo,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         componenteActualDeTarifa, tarifasHermanas, irATarifaAdyacente,
-        servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion
+        servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,
+        buscarServiciosAsincrono, buscarProveedoresAsincrono
     };
 });

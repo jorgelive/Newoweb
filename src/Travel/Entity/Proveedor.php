@@ -25,7 +25,6 @@ use Symfony\Component\Uid\Uuid;
  * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
 #[ApiFilter(SearchFilter::class, properties: [
-    'id' => 'exact',
     'nombreComercial' => 'partial',
     'razonSocial' => 'partial'
 ])]

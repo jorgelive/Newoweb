@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, watch } from 'vue';
 
 const props = defineProps<{
   modelValue: any;
@@ -66,11 +66,22 @@ const props = defineProps<{
   darkMode?: boolean;
 }>();
 
-const emit = defineEmits(['update:modelValue', 'change']);
+const emit = defineEmits(['update:modelValue', 'change', 'search']);
 
 const isOpen = ref(false);
 const searchQuery = ref('');
 const searchInputRef = ref<HTMLInputElement | null>(null);
+
+// Temporizador para el debounce de la búsqueda asíncrona
+let debounceTimer: ReturnType<typeof setTimeout>;
+
+// Observamos lo que el usuario escribe para emitir la búsqueda tras 300ms de inactividad
+watch(searchQuery, (newVal) => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    emit('search', newVal);
+  }, 300);
+});
 
 const toggle = async () => {
   isOpen.value = !isOpen.value;

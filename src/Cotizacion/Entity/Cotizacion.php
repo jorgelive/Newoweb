@@ -11,8 +11,8 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
-use App\Api\Controller\Cotizacion\CloneCotizacionController;
 use App\Attribute\AutoTranslate;
+use App\Cotizacion\ApiPlatform\State\CloneCotizacionProcessor;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -39,13 +39,13 @@ use Symfony\Component\Uid\Uuid;
         ),
         new Post(
             uriTemplate: '/client/cotizacion/{id}/clonar',
-            controller: CloneCotizacionController::class,
-            normalizationContext: ['groups' => ['file:item:read']], // Se retorna exactamente lo que necesita el File
+            normalizationContext: ['groups' => ['file:item:read']],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para clonar cotizaciones.',
             read: true,
             deserialize: false,
-            write: false
+            validate: false,
+            processor: CloneCotizacionProcessor::class
         ),
         new Put(
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",

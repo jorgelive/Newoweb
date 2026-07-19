@@ -1124,11 +1124,11 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                 </div>
 
                 <SearchableSelect
-                    v-else
                     v-model="store.dataActiva.servicioMaestroId"
                     :options="opcionesServicios"
                     placeholder="Buscar servicio..."
                     @change="val => store.onServicioMaestroChange(val)"
+                    @search="val => store.buscarServiciosAsincrono(val)"
                 />
               </div>
               <div>
@@ -1968,6 +1968,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                           placeholder="Seleccionar proveedor del catálogo..."
                           :darkMode="false"
                           @change="val => store.onProveedorChange(val)"
+                          @search="val => store.buscarProveedoresAsincrono(val)"
                           class="flex-1"
                       />
                       <button v-if="store.dataActiva.proveedorMaestroId"

@@ -119,7 +119,7 @@ class TravelSegmento
             $clonComp = clone $compOriginal;
             $this->addSegmentoComponente($clonComp);
         }
-        
+
     }
 
     public function __toString(): string
