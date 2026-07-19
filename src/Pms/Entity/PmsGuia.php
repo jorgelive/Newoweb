@@ -153,4 +153,6 @@ class PmsGuia
                 ->addViolation();
         }
     }
+
+    public function getVirtualSecciones(): string { return ''; }
 }

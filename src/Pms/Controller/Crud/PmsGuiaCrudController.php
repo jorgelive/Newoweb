@@ -67,7 +67,7 @@ class PmsGuiaCrudController extends BaseCrudController
         // El ID siempre oculto en formulario
         yield IdField::new('id')
             ->setMaxLength(40)
-            ->hideOnForm();
+            ->onlyOnDetail();
 
         // --- PANEL 1: CONFIGURACIÓN ---
         yield FormField::addPanel('Configuración General')
@@ -119,7 +119,37 @@ class PmsGuiaCrudController extends BaseCrudController
             ->setIcon('fa fa-sitemap')
             ->collapsible();
 
+        yield TextField::new('virtualSecciones', 'Secciones')
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                $relaciones = $entity->getGuiaHasSecciones();
+                if ($relaciones->isEmpty()) {
+                    return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin secciones vinculadas</span>';
+                }
+
+                $html = '<ul style="max-height: 180px; overflow-y: auto; text-align: left; min-width: 240px; margin: 0; padding: 0 5px 0 0; list-style: none;">';
+                foreach ($relaciones as $rel) {
+                    $seccion = $rel->getSeccion();
+                    if (!$seccion) {
+                        continue;
+                    }
+                    $nombre = htmlspecialchars((string) $seccion);
+                    $activo = $rel->isActivo();
+                    $icono  = $activo ? 'fa-check-circle text-success' : 'fa-eye-slash text-muted';
+                    $estilo = $activo ? 'text-dark fw-medium' : 'text-muted text-decoration-line-through';
+
+                    $html .= sprintf(
+                        '<li class="px-2 py-1 mb-1 bg-white border rounded small text-truncate" title="%s" style="display: block;"><i class="fas %s" style="font-size: 0.8em; margin-right: 4px;"></i> <span class="%s">%s</span></li>',
+                        $nombre, $icono, $estilo, $nombre
+                    );
+                }
+                $html .= '</ul>';
+                return $html;
+            })
+            ->renderAsHtml();
+
         yield CollectionField::new('guiaHasSecciones', 'Orden y Selección de Secciones')
+            ->onlyOnForms()
             ->setEntryType(PmsGuiaHasSeccionType::class)
             ->setEntryIsComplex(true)
             ->showEntryLabel(false)

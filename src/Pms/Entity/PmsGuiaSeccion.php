@@ -269,4 +269,6 @@ class PmsGuiaSeccion
     public function getVirtualTitulo(): string { return ''; }
 
     public function getVirtualSubtitulo(): string { return ''; }
+
+    public function getVirtualItems(): string { return ''; }
 }

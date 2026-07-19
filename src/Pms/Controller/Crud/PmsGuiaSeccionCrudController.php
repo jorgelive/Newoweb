@@ -166,8 +166,38 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
             ->setIcon('fa fa-layer-group')
             ->collapsible();
 
+        yield TextField::new('virtualItems', 'Ítems')
+            ->hideOnForm()
+            ->formatValue(static function ($value, $entity) {
+                $relaciones = $entity->getSeccionHasItems();
+                if ($relaciones->isEmpty()) {
+                    return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin ítems vinculados</span>';
+                }
+
+                $html = '<ul style="max-height: 180px; overflow-y: auto; text-align: left; min-width: 240px; margin: 0; padding: 0 5px 0 0; list-style: none;">';
+                foreach ($relaciones as $rel) {
+                    $item = $rel->getItem();
+                    if (!$item) {
+                        continue;
+                    }
+                    $nombre = htmlspecialchars($item->getNombreInterno() ?? 'Ítem');
+                    $icono  = htmlspecialchars($item->getIcono() ?: 'fa-file-lines');
+                    $activo = $rel->isActivo();
+                    $estilo = $activo ? 'text-dark fw-medium' : 'text-muted text-decoration-line-through';
+
+                    $html .= sprintf(
+                        '<li class="px-2 py-1 mb-1 bg-white border rounded small text-truncate" title="%s" style="display: block;"><i class="fas %s text-primary" style="font-size: 0.8em; margin-right: 4px;"></i> <span class="%s">%s</span></li>',
+                        $nombre, $icono, $estilo, $nombre
+                    );
+                }
+                $html .= '</ul>';
+                return $html;
+            })
+            ->renderAsHtml();
+
         // 🔴 CAMBIO IMPORTANTE: Ahora apuntamos a 'seccionHasItems' y usamos el Crud intermedio
         yield CollectionField::new('seccionHasItems', 'Ítems en esta Sección')
+            ->onlyOnForms()
             ->useEntryCrudForm(PmsGuiaSeccionHasItemCrudController::class) // ✅ Usamos el controlador de la tabla intermedia
             ->setEntryIsComplex(true)
             ->setColumns(12)
