@@ -79,7 +79,7 @@ class PmsReservaHuesped
      * Tipo de Documento: Enum String
      * SE ELIMINA BINARY(16) Y RELACIÓN CON TABLA MAESTRA
      */
-    #[ORM\Column(type: 'string', length: 20, enumType: DocumentoTipoEnum::class, nullable: true)]
+    #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: DocumentoTipoEnum::class)]
     private ?DocumentoTipoEnum $tipoDocumento = null;
 
     #[ORM\Column(length: 50, nullable: true)]

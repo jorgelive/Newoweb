@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Enum\DocumentoTipoEnum;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Field\LiipImageField;
 use App\Pms\Entity\PmsReservaHuesped;
@@ -79,7 +80,11 @@ class PmsReservaHuespedCrudController extends BaseCrudController
     {
         return $filters
             ->add('pais')
-            ->add(ChoiceFilter::new('tipoDocumento')) // ✅ Cambiado para soportar Enum
+            ->add(ChoiceFilter::new('tipoDocumento')->setChoices(array_combine(
+                array_map(fn (DocumentoTipoEnum $c) => $c->getLabel(), DocumentoTipoEnum::cases()),
+                DocumentoTipoEnum::cases()
+            )))
+            // ✅ Cambiado para soportar Enum
             ->add('esPrincipal')
             ->add('fechaNacimiento');
     }
@@ -123,7 +128,12 @@ class PmsReservaHuespedCrudController extends BaseCrudController
         yield AssociationField::new('pais', 'Nacionalidad')->setColumns(4);
 
         // ✅ Cambiado a ChoiceField. EasyAdmin extraerá automáticamente los casos del Enum.
-        yield ChoiceField::new('tipoDocumento', 'Tipo Doc.')->setColumns(4);
+        yield ChoiceField::new('tipoDocumento', 'Tipo Doc.')
+            ->setChoices(array_combine(
+                array_map(fn (DocumentoTipoEnum $c) => $c->getLabel(), DocumentoTipoEnum::cases()),
+                DocumentoTipoEnum::cases()
+            ))
+            ->setColumns(4);
 
         yield TextField::new('documentoNumero', 'Número Documento')->setColumns(4);
 
