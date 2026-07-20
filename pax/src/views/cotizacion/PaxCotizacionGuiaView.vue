@@ -212,23 +212,50 @@ const itinerarioVista = computed<DiaVista[]>(() => {
 
   const dias: DiaVista[] = fechasOrdenadas.map((fecha) => {
     const bloques = porFecha.get(fecha)!;
-    // Orden del día: con hora (cronológico) → sin hora → estadías
-    bloques.sort((a, b) => {
-      const ka = a.horaInicio ? 0 : (a.esEstadia ? 2 : 1);
-      const kb = b.horaInicio ? 0 : (b.esEstadia ? 2 : 1);
-      if (ka !== kb) return ka - kb;
-      if (a.horaInicio && b.horaInicio) return a.horaInicio.localeCompare(b.horaInicio);
-      return 0;
-    });
-    // Título de servicio grande en el 1er segmento (por día) de servicios multi-segmento
-    const vistos = new Set<string>();
+
+    // 1) Agrupar los bloques del día por servicio
+    const grupos = new Map<string, BloqueVista[]>();
     for (const b of bloques) {
+      if (!grupos.has(b.servicio.id)) grupos.set(b.servicio.id, []);
+      grupos.get(b.servicio.id)!.push(b);
+    }
+
+    // 2) Metadatos por grupo: hora absoluta más temprana y orden mínimo del día
+    const metaGrupo = (gb: BloqueVista[]) => {
+      const horas = gb.map(b => b.horaInicio).filter(Boolean) as string[];
+      const horaMin = horas.length ? [...horas].sort()[0] : null; // null = sin hora absoluta
+      const ordenMin = Math.min(...gb.map(b => b.segmento.orden ?? 0));
+      const esEstadia = gb.every(b => b.esEstadia);
+      return { horaMin, ordenMin, esEstadia };
+    };
+
+    // 3) Ordenar los GRUPOS:
+    //    con hora → primero (por su hora más temprana) · sin hora → luego · estadías → al final
+    const gruposOrdenados = [...grupos.values()].sort((ga, gb) => {
+      const ma = metaGrupo(ga), mb = metaGrupo(gb);
+      const tier = (m: typeof ma) => (m.horaMin ? 0 : (m.esEstadia ? 2 : 1));
+      const ta = tier(ma), tb = tier(mb);
+      if (ta !== tb) return ta - tb;
+      if (ma.horaMin && mb.horaMin) return ma.horaMin.localeCompare(mb.horaMin);
+      return ma.ordenMin - mb.ordenMin; // desempate estable entre grupos sin hora
+    });
+
+    // 4) Dentro de cada grupo, los segmentos por su campo `orden`
+    const ordenados: BloqueVista[] = [];
+    for (const g of gruposOrdenados) {
+      g.sort((a, b) => (a.segmento.orden ?? 0) - (b.segmento.orden ?? 0));
+      ordenados.push(...g);
+    }
+
+    // Título grande en el 1er segmento (por día) de servicios multi-segmento
+    const vistos = new Set<string>();
+    for (const b of ordenados) {
       b.mostrarTituloServicio = b.totalSegmentosServicio > 1 && !vistos.has(b.servicio.id);
       vistos.add(b.servicio.id);
     }
-    return { fecha, numeroDia: diffDays(fechaBase, fecha) + 1, bloques };
-  });
 
+    return { fecha, numeroDia: diffDays(fechaBase, fecha) + 1, bloques: ordenados };
+  });
   // Fila de acción (botón "Incluye / No incluye"): primer bloque de cada servicio por día,
   // solo si ese servicio tiene inclusiones y no es una repetición de estadía.
   for (const dia of dias) {
