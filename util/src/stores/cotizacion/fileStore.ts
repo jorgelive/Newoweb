@@ -1,12 +1,18 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
-import {ApiCotizacionFile, ApiCotizacionFileWrite} from '@/types/fileDetalleModel.ts';
+import {ApiCotizacionFile, ApiCotizacionFileWrite, I18nContent} from '@/types/fileDetalleModel.ts';
 
 // ============================================================================
 // TIPOS AUTOGENERADOS Y EXTENDIDOS (HÍBRIDOS)
 // ============================================================================
 
+export interface ApiIdioma {
+    id: string;         // código de idioma: 'es', 'en', 'pt'...
+    nombre: string;
+    bandera?: string;
+    prioridad?: number;
+}
 
 export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
 
@@ -19,6 +25,9 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     const hasNextPage = ref<boolean>(true);
     const currentPage = ref<number>(1);
     const error = ref<string | null>(null);
+
+    // Idiomas disponibles para revisar traducciones (AutoTranslate)
+    const idiomasDisponibles = ref<ApiIdioma[]>([]);
 
     // ============================================================================
     // GETTERS
@@ -61,6 +70,19 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         } finally {
             loadingFiles.value = false;
             loadingMore.value = false;
+        }
+    };
+
+    /**
+     * Carga los idiomas activos (prioridad > 0) ordenados por prioridad desc.
+     * Usado para el selector de idioma que revisa el contenido AutoTranslate.
+     */
+    const fetchIdiomas = async (): Promise<void> => {
+        try {
+            const response = await apiClient.get('/platform/maestro/idiomas?prioridad[gt]=0&order[prioridad]=desc');
+            idiomasDisponibles.value = response.data['hydra:member'] || response.data['member'] || [];
+        } catch (e) {
+            idiomasDisponibles.value = [{ id: 'es', nombre: 'Español', bandera: '🇪🇸', prioridad: 1 }];
         }
     };
 
@@ -185,7 +207,10 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
-    const updateDocument = async (iri: string, payload: { tipodocumento: string; vencimiento: string | null }): Promise<boolean> => {
+    const updateDocument = async (
+        iri: string,
+        payload: { nombre?: I18nContent[] | null; tipodocumento: string; vencimiento: string | null; sobreescribirTraduccion?: boolean }
+    ): Promise<boolean> => {
         error.value = null;
         try {
             await apiClient.patch(iri, payload);
@@ -243,8 +268,10 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         hasNextPage,
         currentPage,
         error,
+        idiomasDisponibles,
         getActiveFiles,
         fetchFiles,
+        fetchIdiomas,
         createFile,
         updateFile,
         uploadDocument,

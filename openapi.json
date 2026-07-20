@@ -3607,6 +3607,151 @@
                         "explode": false
                     }
                 ]
+            },
+            "patch": {
+                "operationId": "api_salescotizacion_filepasajeros_id_patch",
+                "tags": [
+                    "CotizacionFilepasajero"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CotizacionFilepasajero resource updated",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero.jsonld"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero.html"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero.multipart"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Updates the CotizacionFilepasajero resource.",
+                "description": "Updates the CotizacionFilepasajero resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "CotizacionFilepasajero identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ],
+                "requestBody": {
+                    "description": "The updated CotizacionFilepasajero resource",
+                    "content": {
+                        "application/merge-patch+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFilepasajero-file.write.jsonMergePatch"
+                            }
+                        }
+                    },
+                    "required": true
+                }
             }
         },
         "/platform/sales/cotizacion_segmentos/{id}": {
@@ -6344,33 +6489,6 @@
                         "explode": false
                     },
                     {
-                        "name": "id",
-                        "in": "query",
-                        "description": "",
-                        "required": false,
-                        "deprecated": false,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "style": "form",
-                        "explode": false
-                    },
-                    {
-                        "name": "id[]",
-                        "in": "query",
-                        "description": "",
-                        "required": false,
-                        "deprecated": false,
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "style": "form",
-                        "explode": true
-                    },
-                    {
                         "name": "nombreComercial",
                         "in": "query",
                         "description": "",
@@ -7492,6 +7610,18 @@
                         "schema": {
                             "type": "integer",
                             "default": 1
+                        },
+                        "style": "form",
+                        "explode": false
+                    },
+                    {
+                        "name": "nombreInterno",
+                        "in": "query",
+                        "description": "",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
                         },
                         "style": "form",
                         "explode": false
@@ -19432,6 +19562,12 @@
                             "null"
                         ]
                     },
+                    "nombre": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -19506,6 +19642,12 @@
                             "null"
                         ]
                     },
+                    "nombre": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
@@ -19559,6 +19701,12 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "nombre": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -19602,6 +19750,12 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "nombre": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -19654,6 +19808,12 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "nombre": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "id": {
                         "readOnly": true,
@@ -19729,6 +19889,12 @@
                             "null"
                         ]
                     },
+                    "nombre": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
@@ -19796,6 +19962,12 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "nombre": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
                             },
                             "id": {
                                 "readOnly": true,
@@ -19878,6 +20050,12 @@
                                     "null"
                                 ]
                             },
+                            "nombre": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
                             "createdAt": {
                                 "type": "string",
                                 "format": "date-time"
@@ -19942,6 +20120,12 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "nombre": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "id": {
                         "readOnly": true,
@@ -20016,6 +20200,12 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "nombre": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "createdAt": {
                         "type": "string",
@@ -20239,6 +20429,55 @@
                 }
             },
             "CotizacionFilepasajero-file.write": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "apellido": {
+                        "type": "string"
+                    },
+                    "pais": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "sexo": {
+                        "type": "string",
+                        "enum": [
+                            "M",
+                            "F"
+                        ]
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "DNI",
+                            "CE",
+                            "RUC",
+                            "PASAPORTE",
+                            "CI"
+                        ]
+                    },
+                    "fechanacimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "numerodocumento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile-file.write"
+                    }
+                }
+            },
+            "CotizacionFilepasajero-file.write.jsonMergePatch": {
                 "type": "object",
                 "properties": {
                     "nombre": {

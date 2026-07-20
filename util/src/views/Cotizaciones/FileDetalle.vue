@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {ref, onMounted, onUnmounted, watch, computed} from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
+import MaskedDateInput from '@/components/MaskedDateInput.vue';   // ajusta ruta
+import SearchableSelect from '@/components/SearchableSelect.vue';
 import { apiClient } from '@/services/apiClient';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { getUrls } from '@/services/apiClient';
@@ -37,10 +39,37 @@ const isSavingFile = ref(false);
 const isDirty = ref(false);
 let watchActivo = false;
 
+// ============================================================================
+// CATÁLOGOS Y ENUMS
+// ============================================================================
+const catalogos = ref({
+  paises: [] as ApiPais[],
+});
+
+// País como opciones {value,label} para el buscador
+const paisOptions = computed(() =>
+    catalogos.value.paises.map(p => ({ value: p['@id'], label: p.nombre }))
+);
+
+// ============================================================================
+// IDIOMAS (revisión de traducciones AutoTranslate)
+// ============================================================================
+const idiomaActivo = ref('es');
+const idiomasDisponibles = computed(() => fileStore.idiomasDisponibles);
+
+// ============================================================================
+// LINKS VISTA CLIENTE  (pax + /file/ + localizador [+ /v/N])
+// ============================================================================
 const linkPublico = computed(() => {
   if (!file.value?.localizador) return '';
   return `${getUrls().pax}/file/${file.value.localizador}`;
 });
+
+const linkPublicoVersion = (version?: number) => {
+  if (!file.value?.localizador) return '';
+  const base = `${getUrls().pax}/file/${file.value.localizador}`;
+  return version ? `${base}/v/${version}` : base;
+};
 
 const copiarLink = async () => {
   if (!linkPublico.value) return;
@@ -51,6 +80,20 @@ const copiarLink = async () => {
   } catch (e) {
     alert('No se pudo copiar. Copia manualmente: ' + linkPublico.value);
   }
+};
+
+// ============================================================================
+// HELPER NOMBRE DOCUMENTO  (formato AutoTranslate: [{content, language}])
+// ============================================================================
+const getDocNombre = (doc: any, lang = idiomaActivo.value): string => {
+  if (!doc?.nombre) return '';
+  if (Array.isArray(doc.nombre)) {
+    return doc.nombre.find((n: any) => n.language === lang)?.content
+        || doc.nombre.find((n: any) => n.language === 'es')?.content
+        || doc.nombre[0]?.content
+        || '';
+  }
+  return typeof doc.nombre === 'object' ? (doc.nombre[lang] || doc.nombre.es || '') : String(doc.nombre);
 };
 
 const editandoVersion = ref<string | null>(null);
@@ -132,6 +175,7 @@ const onBeforeUnload = (e: BeforeUnloadEvent) => {
 onMounted(() => {
   window.addEventListener('beforeunload', onBeforeUnload);
   fetchCatalogos();
+  fileStore.fetchIdiomas();
   cargarFile();
 });
 
@@ -159,13 +203,6 @@ onBeforeRouteLeave((to, from, next) => {
   }
 });
 
-// ============================================================================
-// CATÁLOGOS Y ENUMS
-// ============================================================================
-const catalogos = ref({
-  paises: [] as ApiPais[],
-});
-
 const showPaxModal = ref(false);
 const showDocModal = ref(false);
 const isSubmittingPax = ref(false);
@@ -176,7 +213,7 @@ const paxForm = ref({
 });
 
 const docForm = ref({
-  tipodocumento: '', vencimiento: '', fileObject: null as File | null
+  nombre: '', tipodocumento: '', vencimiento: '', sobreescribirTraduccion: false, fileObject: null as File | null
 });
 
 const extractIdStr = (val: any) => val ? String(val).split('/').pop() : '';
@@ -321,15 +358,17 @@ const docEditandoIri = ref<string | null>(null);
 
 const abrirDocModal = () => {
   docEditandoIri.value = null; // modo creación
-  docForm.value = { tipodocumento: '', vencimiento: '', fileObject: null };
+  docForm.value = { nombre: '', tipodocumento: '', vencimiento: '', sobreescribirTraduccion: false, fileObject: null };
   showDocModal.value = true;
 };
 
 const abrirEdicionDoc = (doc: any) => {
   docEditandoIri.value = doc['@id'] || `/platform/sales/cotizacion_filedocumentos/${extractIdStr(doc.id)}`;
   docForm.value = {
+    nombre: getDocNombre(doc, 'es'),   // siempre editamos la fuente en español
     tipodocumento: doc.tipodocumento || '',
     vencimiento: doc.vencimiento ? doc.vencimiento.split('T')[0] : '',
+    sobreescribirTraduccion: false,
     fileObject: null
   };
   showDocModal.value = true;
@@ -344,14 +383,18 @@ const guardarDocumento = async () => {
   let success: boolean;
 
   if (docEditandoIri.value) {
-    // Modo edición: solo metadata, sin archivo
+    // Modo edición: solo metadata, sin archivo (PATCH JSON → array i18n)
     isSubmittingDoc.value = true;
     success = await fileStore.updateDocument(docEditandoIri.value, {
+      nombre: docForm.value.nombre
+          ? [{ content: docForm.value.nombre.trim(), language: 'es' }]
+          : null,
       tipodocumento: docForm.value.tipodocumento,
-      vencimiento: docForm.value.vencimiento || null
+      vencimiento: docForm.value.vencimiento || null,
+      sobreescribirTraduccion: docForm.value.sobreescribirTraduccion
     });
   } else {
-    // Modo creación: exige archivo
+    // Modo creación: exige archivo (POST multipart)
     if (!docForm.value.fileObject || !docForm.value.tipodocumento) {
       alert("Faltan datos o el archivo");
       return;
@@ -359,7 +402,14 @@ const guardarDocumento = async () => {
     isSubmittingDoc.value = true;
     const formData = new FormData();
     formData.append('documento', docForm.value.fileObject);
+    // ⚠️ nombre es json/array (I18nContent[]): se envía con notación de índice,
+    //     nunca como string plano (rompe AbstractItemNormalizer).
+    if (docForm.value.nombre) {
+      formData.append('nombre[0][content]', docForm.value.nombre.trim());
+      formData.append('nombre[0][language]', 'es');
+    }
     formData.append('tipodocumento', docForm.value.tipodocumento);
+    formData.append('sobreescribirTraduccion', docForm.value.sobreescribirTraduccion ? 'true' : 'false');
     formData.append('file', `/platform/sales/cotizacion_files/${extractIdStr(file.value.id || file.value['@id'])}`);
     if (docForm.value.vencimiento) formData.append('vencimiento', docForm.value.vencimiento);
     success = await fileStore.uploadDocument(formData);
@@ -387,13 +437,13 @@ const eliminarDocumento = async (iri?: string) => {
 <template>
   <div class="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden">
 
-    <header class="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-30 shadow-sm">
-      <div class="flex items-center gap-4">
-        <button @click="handleVolver" class="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
+    <header class="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 z-30 shadow-sm">
+      <div class="flex items-center gap-4 min-w-0">
+        <button @click="handleVolver" class="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
           <i class="fas fa-arrow-left"></i>
         </button>
-        <div>
-          <h1 class="font-black text-2xl text-slate-800 tracking-tight leading-none mb-1">Detalle del Expediente</h1>
+        <div class="min-w-0">
+          <h1 class="font-black text-2xl text-slate-800 tracking-tight leading-none mb-1 truncate">Detalle del Expediente</h1>
           <div class="flex items-center gap-2">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ file?.localizador || 'Sin Localizador' }}</p>
             <button
@@ -408,12 +458,21 @@ const eliminarDocumento = async (iri?: string) => {
           </div>
         </div>
       </div>
-      <button @click="eliminarFile" class="text-[10px] font-bold px-2 py-0.5 rounded-md border border-red-200 text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1">
-        <i class="fas fa-trash-alt"></i> Eliminar Expediente
-      </button>
-      <button @click="nuevaVersion" class="px-5 py-2.5 bg-[#376875] hover:bg-[#2d5662] text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2">
-        <i class="fas fa-rocket"></i> <span class="hidden md:inline">Crear Nueva Versión</span>
-      </button>
+
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <button @click="eliminarFile" class="text-[10px] font-bold px-2 py-0.5 rounded-md border border-red-200 text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1">
+          <i class="fas fa-trash-alt"></i> <span class="hidden md:inline">Eliminar Expediente</span>
+        </button>
+
+        <a v-if="file?.localizador" :href="linkPublicoVersion()" target="_blank" rel="noopener"
+           class="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+          <i class="fas fa-external-link-alt"></i> <span class="hidden md:inline">Vista Cliente</span>
+        </a>
+
+        <button @click="nuevaVersion" class="px-5 py-2.5 bg-[#376875] hover:bg-[#2d5662] text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2">
+          <i class="fas fa-rocket"></i> <span class="hidden md:inline">Crear Nueva Versión</span>
+        </button>
+      </div>
     </header>
 
     <main v-if="isLoading" class="flex-1 flex justify-center items-center">
@@ -421,9 +480,9 @@ const eliminarDocumento = async (iri?: string) => {
     </main>
 
     <main v-else class="flex-1 overflow-y-auto p-6 md:p-8">
-      <div class="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-8 items-start pb-20">
+      <div class="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-[minmax(340px,380px)_1fr] gap-8 items-start pb-20">
 
-        <aside class="md:col-span-1 space-y-6 md:sticky md:top-0">
+        <aside class="space-y-6 lg:sticky lg:top-0 min-w-0">
 
           <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
             <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-5 border-b pb-3"><i class="fas fa-folder-open mr-2 text-[#E07845]"></i> Datos del Expediente</h2>
@@ -457,31 +516,49 @@ const eliminarDocumento = async (iri?: string) => {
           <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
             <div class="flex items-center justify-between mb-4 border-b pb-3">
               <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest"><i class="fas fa-folder-open mr-1 text-sky-500"></i> Bóveda Digital</h2>
-              <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200">+ Subir Doc</button>
+              <div class="flex items-center gap-2">
+                <div v-if="idiomasDisponibles.length > 1" class="flex items-center gap-0.5">
+                  <button v-for="idi in idiomasDisponibles" :key="idi.id"
+                          type="button" @click="idiomaActivo = idi.id" :title="idi.nombre"
+                          class="text-sm px-1 py-0.5 rounded transition-all"
+                          :class="idiomaActivo === idi.id ? 'ring-2 ring-sky-400 scale-110' : 'opacity-40 hover:opacity-100'">
+                    {{ idi.bandera }}
+                  </button>
+                </div>
+                <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 flex-shrink-0">+ Subir Doc</button>
+              </div>
             </div>
 
-            <div v-for="doc in file.filedocumentos" :key="doc.id" class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl border border-slate-200 group relative">
-              <a :href="doc.imageUrl || undefined" target="_blank" class="flex-1 flex items-center gap-3 min-w-0">
-                <div class="w-8 h-8 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm flex-shrink-0"><i class="far fa-file-pdf"></i></div>
-                <div class="min-w-0">
-                  <p class="text-[10px] font-black text-slate-800 truncate">{{ getArchivoLabel(doc.tipodocumento) }}</p>
-                  <p class="text-[8px] font-bold text-slate-500 uppercase mt-0.5" :class="doc.vencimiento && new Date(doc.vencimiento) < new Date() ? 'text-red-500' : ''">
-                    <span v-if="doc.vencimiento">Vence: {{ new Date(doc.vencimiento).toLocaleDateString() }}</span>
-                    <span v-else>Permanente</span>
-                  </p>
-                </div>
-              </a>
-              <button @click="abrirEdicionDoc(doc)" class="w-6 h-6 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200 flex items-center justify-center transition-colors">
-                <i class="fas fa-pencil-alt text-xs"></i>
-              </button>
-              <button @click="eliminarDocumento(doc['@id'])" class="w-6 h-6 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-red-500 hover:border-red-200 flex items-center justify-center transition-colors">
-                <i class="fas fa-times text-xs"></i>
-              </button>
+            <div v-if="!file.filedocumentos?.length" class="bg-sky-50 border-2 border-dashed border-sky-200 rounded-2xl p-6 text-center text-sky-400">
+              <i class="fas fa-cloud-upload-alt text-2xl mb-2 opacity-60"></i>
+              <p class="text-[10px] font-bold uppercase tracking-widest">Bóveda vacía</p>
+            </div>
+
+            <div v-else class="space-y-2">
+              <div v-for="doc in file.filedocumentos" :key="doc.id" class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 group relative">
+                <a :href="doc.imageUrl || undefined" target="_blank" class="flex-1 flex items-center gap-3 min-w-0">
+                  <div class="w-8 h-8 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm flex-shrink-0"><i class="far fa-file-pdf"></i></div>
+                  <div class="min-w-0">
+                    <p class="text-[11px] font-black text-slate-800 truncate">{{ getDocNombre(doc) || getArchivoLabel(doc.tipodocumento) }}</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase truncate">{{ getArchivoLabel(doc.tipodocumento) }}</p>
+                    <p class="text-[8px] font-bold text-slate-500 uppercase mt-0.5" :class="doc.vencimiento && new Date(doc.vencimiento) < new Date() ? 'text-red-500' : ''">
+                      <span v-if="doc.vencimiento">Vence: {{ new Date(doc.vencimiento).toLocaleDateString() }}</span>
+                      <span v-else>Permanente</span>
+                    </p>
+                  </div>
+                </a>
+                <button @click="abrirEdicionDoc(doc)" class="w-6 h-6 flex-shrink-0 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200 flex items-center justify-center transition-colors">
+                  <i class="fas fa-pencil-alt text-xs"></i>
+                </button>
+                <button @click="eliminarDocumento(doc['@id'])" class="w-6 h-6 flex-shrink-0 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-red-500 hover:border-red-200 flex items-center justify-center transition-colors">
+                  <i class="fas fa-times text-xs"></i>
+                </button>
+              </div>
             </div>
           </div>
         </aside>
 
-        <section class="md:col-span-2 space-y-8">
+        <section class="space-y-8 min-w-0">
 
           <div>
             <div class="flex items-center justify-between mb-4">
@@ -567,6 +644,12 @@ const eliminarDocumento = async (iri?: string) => {
                     Editar <i class="fas fa-arrow-right"></i>
                   </button>
 
+                  <a :href="linkPublicoVersion(cot.version)" target="_blank" rel="noopener"
+                     class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50 transition-colors"
+                     :title="`Abrir vista cliente (V${cot.version})`">
+                    <i class="fas fa-external-link-alt text-xs"></i>
+                  </a>
+
                   <button @click="clonarVersion(cot)" :disabled="clonandoItem === extractIdStr(cot.id || cot['@id'])"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-sky-500 hover:border-sky-200 hover:bg-sky-50 transition-colors disabled:opacity-50"
                           title="Clonar esta versión">
@@ -630,9 +713,9 @@ const eliminarDocumento = async (iri?: string) => {
 
   <Teleport to="body">
     <div v-if="showPaxModal" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
-        <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white">
-          <h3 class="font-black text-sm uppercase tracking-widest">Nuevo Pasajero</h3>
+      <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-visible">
+        <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white rounded-t-3xl">
+          <h3 class="font-black text-sm uppercase tracking-widest">{{ paxEditandoIri ? 'Editar Pasajero' : 'Nuevo Pasajero' }}</h3>
           <button @click="showPaxModal = false" class="text-indigo-200 hover:text-white"><i class="fas fa-times"></i></button>
         </div>
         <form @submit.prevent="guardarPasajero" class="p-6 space-y-4">
@@ -647,9 +730,11 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
             <div class="col-span-2">
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nacionalidad *</label>
-              <select v-model="paxForm.pais" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
-                <option v-for="p in catalogos.paises" :key="p['@id']" :value="p['@id']">{{ p.nombre }}</option>
-              </select>
+              <SearchableSelect
+                  v-model="paxForm.pais"
+                  :options="paisOptions"
+                  placeholder="Buscar país..."
+              />
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tipo Doc *</label>
@@ -663,7 +748,7 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nacimiento</label>
-              <input v-model="paxForm.fechanacimiento" type="date" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+              <MaskedDateInput v-model="paxForm.fechanacimiento" />
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sexo *</label>
@@ -705,6 +790,26 @@ const eliminarDocumento = async (iri?: string) => {
           </div>
 
           <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-[10px] font-bold text-slate-500 uppercase">Nombre del documento *</label>
+              <button type="button"
+                      @click="docForm.sobreescribirTraduccion = !docForm.sobreescribirTraduccion"
+                      :title="docForm.sobreescribirTraduccion ? 'Se regenerarán las traducciones al guardar' : 'Se conservan las traducciones existentes'"
+                      class="w-8 h-8 flex items-center justify-center rounded-lg border transition-all"
+                      :class="docForm.sobreescribirTraduccion ? 'bg-sky-100 border-sky-300 text-sky-600 shadow-inner' : 'bg-white border-slate-200 text-slate-300 hover:text-slate-500'">
+                <i class="fas fa-language text-base"></i>
+              </button>
+            </div>
+            <input v-model="docForm.nombre" required type="text" placeholder="Ej. Entrada Machupicchu"
+                   class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500">
+            <p class="text-[9px] text-slate-400 mt-1">
+              {{ docForm.sobreescribirTraduccion
+                ? 'Al guardar se regenerarán las traducciones automáticas.'
+                : 'Se traduce automáticamente; las traducciones existentes se conservan.' }}
+            </p>
+          </div>
+
+          <div>
             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría del Doc *</label>
             <select v-model="docForm.tipodocumento" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500">
               <option v-for="(label, valor) in ARCHIVO_TIPO_LABELS" :key="valor" :value="valor">{{ label }}</option>
@@ -712,7 +817,7 @@ const eliminarDocumento = async (iri?: string) => {
           </div>
           <div>
             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Vencimiento (Opcional)</label>
-            <input v-model="docForm.vencimiento" type="date" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500">
+            <MaskedDateInput v-model="docForm.vencimiento" placeholder="DD/MM/AAAA" />
             <p class="text-[9px] text-slate-400 mt-1">Útil para alertar sobre Pasaportes o Visas vencidas.</p>
           </div>
           <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">

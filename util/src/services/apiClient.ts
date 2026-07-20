@@ -28,13 +28,13 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
     const method = config.method?.toLowerCase();
     const needsBody = method === 'post' || method === 'put' || method === 'patch';
+    const isFormData = config.data instanceof FormData;
 
-    if (needsBody && !config.headers['Content-Type']) {
+    if (needsBody && !isFormData && !config.headers['Content-Type']) {
         config.headers['Content-Type'] = method === 'patch'
             ? 'application/merge-patch+json'
             : 'application/ld+json';
     }
-
     return config;
 });
 

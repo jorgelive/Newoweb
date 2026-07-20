@@ -453,7 +453,11 @@ export interface paths {
         delete: operations["api_salescotizacion_filepasajeros_id_delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Updates the CotizacionFilepasajero resource.
+         * @description Updates the CotizacionFilepasajero resource.
+         */
+        patch: operations["api_salescotizacion_filepasajeros_id_patch"];
         trace?: never;
     };
     "/platform/sales/cotizacion_segmentos/{id}": {
@@ -4745,6 +4749,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4765,6 +4770,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -4780,6 +4786,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
         };
         "CotizacionFiledocumento-file.write.jsonMergePatch": {
             /** Format: date-time */
@@ -4791,6 +4798,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
         };
         "CotizacionFiledocumento.html": {
             /** Format: date-time */
@@ -4808,6 +4816,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4828,6 +4837,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -4849,6 +4859,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4869,6 +4880,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -4890,6 +4902,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4910,6 +4923,7 @@ export interface components {
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
+            nombre?: string[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -4980,6 +4994,23 @@ export interface components {
             readonly categoriaddc?: number | null;
         };
         "CotizacionFilepasajero-file.write": {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            file?: components["schemas"]["CotizacionFile-file.write"];
+        };
+        "CotizacionFilepasajero-file.write.jsonMergePatch": {
             nombre?: string;
             apellido?: string;
             /**
@@ -12099,6 +12130,81 @@ export interface operations {
             };
         };
     };
+    api_salescotizacion_filepasajeros_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFilepasajero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated CotizacionFilepasajero resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["CotizacionFilepasajero-file.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description CotizacionFilepasajero resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld"];
+                    "application/json": components["schemas"]["CotizacionFilepasajero"];
+                    "text/html": components["schemas"]["CotizacionFilepasajero.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
     api_salescotizacion_segmentos_id_get: {
         parameters: {
             query?: never;
@@ -13334,8 +13440,6 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
-                id?: string;
-                "id[]"?: string[];
                 nombreComercial?: string;
                 razonSocial?: string;
             };
@@ -13850,6 +13954,7 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
+                nombreInterno?: string;
             };
             header?: never;
             path?: never;

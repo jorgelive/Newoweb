@@ -1,5 +1,6 @@
 import type { components } from '@/types/api';
 import type { ApiIdioma, ApiPais } from '@/types/maestroModel';
+import {Language} from "@/types/cotizacionEditorModel.ts";
 
 // ============================================================================
 // PASAJERO
@@ -20,6 +21,8 @@ export type ApiCotizacionFilepasajero = Omit<components['schemas']['CotizacionFi
 export type ApiCotizacionFiledocumento = components['schemas']['CotizacionFiledocumento-file.read_file.item.read_timestamp.read'] & {
     '@id'?: string;
     id?: string;
+    nombre?: I18nContent[];
+    sobreescribirTraduccion: boolean;
 };
 
 // ============================================================================
@@ -48,6 +51,11 @@ export type ApiCotizacionFileWrite = components['schemas']['CotizacionFile-file.
     email?: string | null;
     telefono?: string | null;
 };
+
+export interface I18nContent {
+    content: string;
+    language: Language | string; // Permitimos string para flexibilizar asignaciones literales tipo 'es'
+}
 
 // ============================================================================
 // ENUMS — espejos de los enums PHP, derivados del schema OpenAPI

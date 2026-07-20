@@ -6,6 +6,7 @@ namespace App\Cotizacion\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Entity\Maestro\MaestroPais;
@@ -28,6 +29,11 @@ use Symfony\Component\Serializer\Annotation\Groups;
             securityPostDenormalizeMessage: 'No tienes permiso para crear pasajeros.'
         ),
         new Put(
+            denormalizationContext: ['groups' => ['file:write']],
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar pasajeros.'
+        ),
+        new Patch(
             denormalizationContext: ['groups' => ['file:write']],
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar pasajeros.'

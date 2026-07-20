@@ -8,8 +8,10 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use App\Attribute\AutoTranslate;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Cotizacion\State\CotizacionFiledocumentoMultipartProcessor;
+use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Panel\Entity\Trait\MediaTrait;
@@ -29,7 +31,10 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
                 'jsonld' => ['application/ld+json'],
                 'multipart' => ['multipart/form-data']
             ],
-            denormalizationContext: ['groups' => ['file:write']],
+            denormalizationContext: [
+                'groups' => ['file:write'],
+                'disable_type_enforcement' => true,   // 🔑 multipart manda todo como string
+            ],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para subir documentos.',
             processor: CotizacionFiledocumentoMultipartProcessor::class
@@ -55,6 +60,7 @@ class CotizacionFiledocumento
     use IdTrait;
     use TimestampTrait;
     use MediaTrait;
+    use AutoTranslateControlTrait;
 
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'date', nullable: true)]
@@ -91,6 +97,11 @@ class CotizacionFiledocumento
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     private ?string $imageUrl = null;
 
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $nombre = null;
+
     public function __construct()
     {
         $this->initializeId();
@@ -104,11 +115,32 @@ class CotizacionFiledocumento
 
     public function __toString(): string
     {
-        $nombre = $this->imageName ?? 'Documento sin archivo';
-        if ($this->vencimiento) {
-            return sprintf('%s | %s', $this->vencimiento->format('Y-m-d'), $nombre);
+        $nombre = $this->getNombreTraducido('es') ?? $this->imageName ?? 'Documento sin archivo';
+        return $this->vencimiento
+            ? sprintf('%s | %s', $this->vencimiento->format('Y-m-d'), $nombre)
+            : $nombre;
+    }
+
+    public function isSobreescribirTraduccion(): bool
+    {
+        return $this->sobreescribirTraduccion;
+    }
+
+    #[Groups(['file:write'])]
+    public function setSobreescribirTraduccion(bool|string|int|null $sobreescribirTraduccion): self
+    {
+        $this->sobreescribirTraduccion = filter_var($sobreescribirTraduccion, FILTER_VALIDATE_BOOLEAN);
+        return $this;
+    }
+
+    private function getNombreTraducido(string $lang): ?string
+    {
+        foreach ($this->nombre ?? [] as $item) {
+            if (($item['language'] ?? null) === $lang) {
+                return $item['content'] ?? null;
+            }
         }
-        return $nombre;
+        return null;
     }
 
     /* ======================================================
@@ -142,4 +174,7 @@ class CotizacionFiledocumento
 
     public function getImageUrl(): ?string { return $this->imageUrl; }
     public function setImageUrl(?string $imageUrl): self { $this->imageUrl = $imageUrl; return $this; }
+
+    public function getNombre(): array { return $this->nombre; }
+    public function setNombre(array $nombre): void { $this->nombre = $nombre; }
 }
