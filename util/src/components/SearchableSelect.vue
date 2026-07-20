@@ -5,14 +5,21 @@
         :class="[
         'w-full cursor-pointer flex justify-between items-center px-4 py-3 border rounded-xl transition-all shadow-sm',
         darkMode ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-slate-300 text-slate-700',
-        isOpen ? 'ring-2 ring-orange-500 border-orange-500' : ''
+        isOpen
+          ? 'ring-2 ring-orange-500 border-orange-500'
+          : (showError ? 'ring-1 ring-red-400 border-red-300' : '')
       ]"
     >
-      <span class="truncate font-bold text-sm">
+      <span class="truncate font-bold text-sm" :class="!selectedLabel ? 'text-slate-400 font-medium' : ''">
         {{ selectedLabel || placeholder }}
       </span>
       <i class="fas fa-chevron-down text-[10px] transition-transform" :class="{ 'rotate-180': isOpen }"></i>
     </div>
+
+    <!-- Mensaje de error opcional (solo si se activa `required`/`invalid`) -->
+    <p v-if="showError && errorMessage" class="text-[9px] font-bold text-red-400 mt-1">
+      {{ errorMessage }}
+    </p>
 
     <div
         v-if="isOpen"
@@ -59,18 +66,29 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch } from 'vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: any;
   options: { value: any, label: string }[];
   placeholder?: string;
   darkMode?: boolean;
-}>();
+  // 🆕 opcionales — no afectan a las instancias existentes
+  required?: boolean;      // marca error si queda vacío tras interactuar
+  invalid?: boolean;       // fuerza el estado de error desde el padre (ej. al enviar)
+  errorMessage?: string;   // texto de error bajo el campo
+}>(), {
+  placeholder: '',
+  darkMode: false,
+  required: false,
+  invalid: false,
+  errorMessage: '',
+});
 
-const emit = defineEmits(['update:modelValue', 'change', 'search']);
+const emit = defineEmits(['update:modelValue', 'change', 'search', 'blur']);
 
 const isOpen = ref(false);
 const searchQuery = ref('');
 const searchInputRef = ref<HTMLInputElement | null>(null);
+const touched = ref(false); // se activa tras abrir/cerrar (comportamiento tipo blur)
 
 // Temporizador para el debounce de la búsqueda asíncrona
 let debounceTimer: ReturnType<typeof setTimeout>;
@@ -83,22 +101,35 @@ watch(searchQuery, (newVal) => {
   }, 300);
 });
 
+const isEmpty = computed(() => props.modelValue === '' || props.modelValue === null || props.modelValue === undefined);
+
+// Muestra error si: el padre lo fuerza (invalid) o es required, está vacío y ya fue tocado
+const showError = computed(() => props.invalid || (props.required && isEmpty.value && touched.value));
+
 const toggle = async () => {
   isOpen.value = !isOpen.value;
   if (isOpen.value) {
     searchQuery.value = '';
     await nextTick();
     searchInputRef.value?.focus(); // 🔥 FOCO AUTOMÁTICO AL ABRIR
+  } else {
+    touched.value = true;
+    emit('blur');
   }
 };
 
 const close = () => {
+  if (isOpen.value) {
+    touched.value = true;
+    emit('blur');
+  }
   isOpen.value = false;
 };
 
 const select = (opt: any) => {
   emit('update:modelValue', opt.value);
   emit('change', opt.value);
+  touched.value = true;
   close();
 };
 
@@ -111,6 +142,17 @@ const filteredOptions = computed(() => {
   const q = searchQuery.value.toLowerCase();
   return props.options.filter(o => o.label.toLowerCase().includes(q));
 });
+
+/**
+ * Valida a demanda (útil al enviar el formulario desde el padre).
+ * Marca el campo como tocado y devuelve si es válido.
+ */
+const validate = (): boolean => {
+  touched.value = true;
+  return !(props.required && isEmpty.value);
+};
+
+defineExpose({ validate, isValid: computed(() => !(props.required && isEmpty.value)) });
 
 // Directiva simple para cerrar al hacer clic fuera
 const vClickOutside = {

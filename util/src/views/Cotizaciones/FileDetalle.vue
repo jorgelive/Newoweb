@@ -48,7 +48,9 @@ const catalogos = ref({
 
 // País como opciones {value,label} para el buscador
 const paisOptions = computed(() =>
-    catalogos.value.paises.map(p => ({ value: p['@id'], label: p.nombre }))
+    catalogos.value.paises
+        .filter(p => (p['@id'] || p.id) && p.nombre)
+        .map(p => ({ value: (p['@id'] ?? p.id) as string, label: p.nombre as string }))
 );
 
 // ============================================================================
@@ -315,7 +317,15 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero) => {
   showPaxModal.value = true;
 };
 
+const paisSelectRef = ref<{ validate: () => boolean } | null>(null);
+
 const guardarPasajero = async () => {
+  // SearchableSelect no dispara la validación nativa del form: validamos a mano.
+  // validate() pinta el error dentro del componente y devuelve si es válido.
+  if (paisSelectRef.value && !paisSelectRef.value.validate()) {
+    return;
+  }
+
   isSubmittingPax.value = true;
 
   let success: boolean;
@@ -437,9 +447,9 @@ const eliminarDocumento = async (iri?: string) => {
 <template>
   <div class="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden">
 
-    <header class="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 z-30 shadow-sm">
+    <header class="shrink-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 z-30 shadow-sm">
       <div class="flex items-center gap-4 min-w-0">
-        <button @click="handleVolver" class="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
+        <button @click="handleVolver" class="w-10 h-10 shrink-0 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
           <i class="fas fa-arrow-left"></i>
         </button>
         <div class="min-w-0">
@@ -459,7 +469,7 @@ const eliminarDocumento = async (iri?: string) => {
         </div>
       </div>
 
-      <div class="flex items-center gap-2 flex-shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
         <button @click="eliminarFile" class="text-[10px] font-bold px-2 py-0.5 rounded-md border border-red-200 text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1">
           <i class="fas fa-trash-alt"></i> <span class="hidden md:inline">Eliminar Expediente</span>
         </button>
@@ -525,7 +535,7 @@ const eliminarDocumento = async (iri?: string) => {
                     {{ idi.bandera }}
                   </button>
                 </div>
-                <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 flex-shrink-0">+ Subir Doc</button>
+                <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 shrink-0">+ Subir Doc</button>
               </div>
             </div>
 
@@ -537,7 +547,7 @@ const eliminarDocumento = async (iri?: string) => {
             <div v-else class="space-y-2">
               <div v-for="doc in file.filedocumentos" :key="doc.id" class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 group relative">
                 <a :href="doc.imageUrl || undefined" target="_blank" class="flex-1 flex items-center gap-3 min-w-0">
-                  <div class="w-8 h-8 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm flex-shrink-0"><i class="far fa-file-pdf"></i></div>
+                  <div class="w-8 h-8 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm shrink-0"><i class="far fa-file-pdf"></i></div>
                   <div class="min-w-0">
                     <p class="text-[11px] font-black text-slate-800 truncate">{{ getDocNombre(doc) || getArchivoLabel(doc.tipodocumento) }}</p>
                     <p class="text-[9px] font-bold text-slate-400 uppercase truncate">{{ getArchivoLabel(doc.tipodocumento) }}</p>
@@ -547,10 +557,10 @@ const eliminarDocumento = async (iri?: string) => {
                     </p>
                   </div>
                 </a>
-                <button @click="abrirEdicionDoc(doc)" class="w-6 h-6 flex-shrink-0 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200 flex items-center justify-center transition-colors">
+                <button @click="abrirEdicionDoc(doc)" class="w-6 h-6 shrink-0 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200 flex items-center justify-center transition-colors">
                   <i class="fas fa-pencil-alt text-xs"></i>
                 </button>
-                <button @click="eliminarDocumento(doc['@id'])" class="w-6 h-6 flex-shrink-0 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-red-500 hover:border-red-200 flex items-center justify-center transition-colors">
+                <button @click="eliminarDocumento(doc['@id'])" class="w-6 h-6 shrink-0 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-red-500 hover:border-red-200 flex items-center justify-center transition-colors">
                   <i class="fas fa-times text-xs"></i>
                 </button>
               </div>
@@ -618,11 +628,11 @@ const eliminarDocumento = async (iri?: string) => {
                   <!-- Badge de versión, editable -->
                   <div v-if="editandoVersion !== (cot['@id'] || cot.id)"
                        @click="iniciarEdicionVersion(cot)"
-                       class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-700 text-lg border-2 border-white shadow-sm group-hover:bg-[#376875] group-hover:text-white transition-colors cursor-pointer flex-shrink-0"
+                       class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-700 text-lg border-2 border-white shadow-sm group-hover:bg-[#376875] group-hover:text-white transition-colors cursor-pointer shrink-0"
                        title="Click para editar versión">
                     V{{ cot.version }}
                   </div>
-                  <div v-else class="flex items-center gap-1 flex-shrink-0">
+                  <div v-else class="flex items-center gap-1 shrink-0">
                     <input v-model.number="versionTemp" type="number" min="1"
                            class="w-14 h-12 text-center font-black rounded-full border-2 border-[#376875] outline-none"
                            @keyup.enter="guardarVersion(cot)" @keyup.esc="editandoVersion = null">
@@ -632,7 +642,7 @@ const eliminarDocumento = async (iri?: string) => {
 
                   <div class="min-w-0">
                     <p class="text-sm sm:text-base font-black text-slate-800 capitalize leading-none">{{ cot.estado || 'Pendiente' }}</p>
-                    <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate max-w-[140px] sm:max-w-xs">
+                    <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate max-w-35 sm:max-w-xs">
                       {{ fileStore.extraerResumenPreview(cot.resumen) }}
                     </p>
                   </div>
@@ -712,7 +722,7 @@ const eliminarDocumento = async (iri?: string) => {
   </div>
 
   <Teleport to="body">
-    <div v-if="showPaxModal" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div v-if="showPaxModal" class="fixed inset-0 z-1000 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-visible">
         <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white rounded-t-3xl">
           <h3 class="font-black text-sm uppercase tracking-widest">{{ paxEditandoIri ? 'Editar Pasajero' : 'Nuevo Pasajero' }}</h3>
@@ -731,9 +741,12 @@ const eliminarDocumento = async (iri?: string) => {
             <div class="col-span-2">
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nacionalidad *</label>
               <SearchableSelect
+                  ref="paisSelectRef"
                   v-model="paxForm.pais"
                   :options="paisOptions"
                   placeholder="Buscar país..."
+                  required
+                  error-message="La nacionalidad es obligatoria."
               />
             </div>
             <div>
@@ -769,7 +782,7 @@ const eliminarDocumento = async (iri?: string) => {
   </Teleport>
 
   <Teleport to="body">
-    <div v-if="showDocModal" class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div v-if="showDocModal" class="fixed inset-0 z-1000 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
 
         <div class="bg-sky-600 px-6 py-4 flex justify-between items-center text-white">

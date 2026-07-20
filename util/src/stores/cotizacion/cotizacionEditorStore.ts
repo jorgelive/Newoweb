@@ -1317,39 +1317,51 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             if (!data.cotservicios) data.cotservicios = [];
 
-            const tarifasToFetch = new Set<string>();
+            // IDs a hidratar en batch (evita waterfall)
             const componentesToFetch = new Set<string>();
-            // 🔥 NUEVOS SETS PARA BATCHING
             const proveedoresToFetch = new Set<string>();
             const serviciosToFetch = new Set<string>();
 
             data.cotservicios.forEach((s: CotServicio) => {
+                // Servicio: normaliza fecha base y asegura título público
                 s.fechaInicioAbsoluta = getFechaLimpia(s.fechaInicioAbsoluta);
-                if (!s.nombrePublicoSnapshot) s.nombrePublicoSnapshot = JSON.parse(JSON.stringify(s.nombreSnapshot || []));
+                if (!s.nombrePublicoSnapshot) {
+                    s.nombrePublicoSnapshot = JSON.parse(JSON.stringify(s.nombreSnapshot || []));
+                }
 
-                // Recolectar Servicio Maestro
                 if (s.servicioMaestroId) {
                     serviciosToFetch.add(extractIdStr(s.servicioMaestroId));
                 }
 
-                // ... (tu código existente de segmentos) ...
+                // Segmentos: normaliza fecha y resetea flag de traducción
+                if (s.cotsegmentos && Array.isArray(s.cotsegmentos)) {
+                    s.cotsegmentos.forEach((seg: CotSegmento) => {
+                        seg.fechaAbsoluta = getFechaLimpia(seg.fechaAbsoluta);
+                        seg.sobreescribirTraduccion = false;
+                    });
+                }
 
+                // Componentes
                 if (s.cotcomponentes && Array.isArray(s.cotcomponentes)) {
-                    s.cotcomponentes?.forEach((c: ComponenteCompleto) => {
-                        // ... (tu código existente de componentes) ...
+                    s.cotcomponentes.forEach((c: ComponenteCompleto) => {
+                        // Maestro del componente (para tipo / requiereHoraExacta)
+                        const cmId = extractIdStr(c.componenteMaestroId);
+                        if (cmId && cmId.length === 36) componentesToFetch.add(cmId);
 
+                        // Normaliza el segmento a id plano en cotsegmentoId
+                        if (c.cotsegmento && !c.cotsegmentoId) {
+                            c.cotsegmentoId = typeof c.cotsegmento === 'string'
+                                ? extractIdStr(c.cotsegmento)
+                                : extractIdStr(c.cotsegmento?.id || c.cotsegmento?.['@id']);
+                        }
+
+                        // Tarifas del componente
                         if (c.cottarifas && Array.isArray(c.cottarifas)) {
                             c.cottarifas.forEach((t: TarifaSnapshot) => {
                                 t.moneda = normalizarCodigoMoneda(t.moneda);
-                                const tId = extractIdStr(t.tarifaMaestraId);
-                                if (tId && tId.length === 36) {
-                                    tarifasToFetch.add(tId);
-                                }
-                                // 🔥 Recolectar Proveedor Maestro
+
                                 const pId = extractIdStr(t.proveedorMaestroId);
-                                if (pId && pId.length === 36) {
-                                    proveedoresToFetch.add(pId);
-                                }
+                                if (pId && pId.length === 36) proveedoresToFetch.add(pId);
 
                                 if (t.fechaLimitePago) {
                                     t.fechaLimitePago = getFechaLimpia(t.fechaLimitePago);
@@ -1363,26 +1375,50 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const fetchPromises: Promise<any>[] = [];
 
-            // Promesas existentes para Componentes y Tarifas...
-            // ... (mantén tu código actual de fetchPromises.push para componentes y tarifas) ...
-
-            // 🔥 NUEVA PROMESA BATCH: SERVICIOS
+            // BATCH: servicios maestros
             if (serviciosToFetch.size > 0) {
                 const idsParam = Array.from(serviciosToFetch).map(id => `id[]=${id}`).join('&');
                 fetchPromises.push(
-                    apiClient.get(`/platform/travel/servicios?${idsParam}&pagination=false`).then(res => {
-                        catalogos.value.servicios = res.data['hydra:member'] || res.data['member'] || [];
-                    }).catch(() => null)
+                    apiClient.get(`/platform/travel/servicios?${idsParam}&pagination=false`)
+                        .then(res => { catalogos.value.servicios = res.data['hydra:member'] || res.data['member'] || []; })
+                        .catch(() => null)
                 );
             }
 
-            // 🔥 NUEVA PROMESA BATCH: PROVEEDORES
+            // BATCH: proveedores maestros
             if (proveedoresToFetch.size > 0) {
                 const idsParam = Array.from(proveedoresToFetch).map(id => `id[]=${id}`).join('&');
                 fetchPromises.push(
-                    apiClient.get(`/platform/travel/proveedores?${idsParam}&pagination=false`).then(res => {
-                        catalogos.value.proveedores = res.data['hydra:member'] || res.data['member'] || [];
-                    }).catch(() => null)
+                    apiClient.get(`/platform/travel/proveedores?${idsParam}&pagination=false`)
+                        .then(res => { catalogos.value.proveedores = res.data['hydra:member'] || res.data['member'] || []; })
+                        .catch(() => null)
+                );
+            }
+
+            // BATCH: componentes maestros (trae tipo + tarifas). Resiliente: si falla, no rompe la carga.
+            if (componentesToFetch.size > 0) {
+                const idsParam = Array.from(componentesToFetch).map(id => `id[]=${id}`).join('&');
+                fetchPromises.push(
+                    apiClient.get(`/platform/travel/componentes/batch?${idsParam}&pagination=false`)
+                        .then(res => {
+                            const items = res.data['hydra:member'] || res.data['member'] || [];
+                            items.forEach((comp: any) => {
+                                const cid = extractIdStr(comp.id || comp['@id']);
+                                const idx = catalogos.value.allComponentes.findIndex(
+                                    c => extractIdStr(c.id || (c as any)['@id']) === cid
+                                );
+                                if (idx === -1) catalogos.value.allComponentes.push(comp);
+                                else catalogos.value.allComponentes.splice(idx, 1, comp);
+
+                                (comp.tarifas || []).forEach((t: any) => {
+                                    const tId = extractIdStr(t.id || t['@id']);
+                                    if (!todasLasTarifasMaestras.value.some((pt: any) => extractIdStr(pt.id || pt['@id']) === tId)) {
+                                        todasLasTarifasMaestras.value.push(t);
+                                    }
+                                });
+                            });
+                        })
+                        .catch((e) => { console.error('No se pudieron precargar los componentes maestros', e); return null; })
                 );
             }
 
@@ -1395,7 +1431,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             throw new Error("No se encontró la cotización o falló la hidratación.");
         }
     };
-
     const crearCotizacionVacia = (fileId: string) => {
         const idiomaDefault = idiomasDisponibles.value.find(i => i.id === 'es')
             ? 'es'
@@ -1540,13 +1575,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 componente.componenteMaestroId = extractIdStr(componente.componenteMaestroId);
                             }
 
-                            const maestroTipo = getTipoComponente(componente.componenteMaestroId || null);
-                            if (!requiereHoraExacta(maestroTipo)) {
-                                if (componente.fechaHoraInicio) {
-                                    componente.fechaHoraInicio = componente.fechaHoraInicio.split('T')[0] + 'T00:00:00';
-                                }
-                                if (componente.fechaHoraFin) {
-                                    componente.fechaHoraFin = componente.fechaHoraFin.split('T')[0] + 'T00:00:00';
+                            // Solo colapsamos a 00:00 si el maestro está REALMENTE cargado y confirma que no lleva hora.
+                            // Si la hidratación falló o el maestro no está, se preservan las horas (nunca se borran).
+                            const compMaestroId = extractIdStr(componente.componenteMaestroId || '');
+                            const maestroCargado = !!compMaestroId && catalogos.value.allComponentes.some(
+                                (c) => extractIdStr(c.id || (c as any)['@id']) === compMaestroId && isComponenteCompleto(c)
+                            );
+
+                            if (maestroCargado) {
+                                const maestroTipo = getTipoComponente(componente.componenteMaestroId || null);
+                                if (!requiereHoraExacta(maestroTipo)) {
+                                    if (componente.fechaHoraInicio) {
+                                        componente.fechaHoraInicio = componente.fechaHoraInicio.split('T')[0] + 'T00:00:00';
+                                    }
+                                    if (componente.fechaHoraFin) {
+                                        componente.fechaHoraFin = componente.fechaHoraFin.split('T')[0] + 'T00:00:00';
+                                    }
                                 }
                             }
 
@@ -2961,6 +3005,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         );
 
         if (maestro && isComponenteCompleto(maestro) && dataActiva.value) {
+            dataActiva.value.tipo = maestro.tipo || 'extras';   // 🔥 snapshot autónomo del tipo
             dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
 
             const reqHora = requiereHoraExacta(maestro.tipo);
