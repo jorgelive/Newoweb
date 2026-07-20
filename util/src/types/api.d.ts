@@ -4757,6 +4757,13 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly token?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -4787,6 +4794,8 @@ export interface components {
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: string[];
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionFiledocumento-file.write.jsonMergePatch": {
             /** Format: date-time */
@@ -4799,6 +4808,8 @@ export interface components {
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: string[];
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionFiledocumento.html": {
             /** Format: date-time */
@@ -4824,6 +4835,13 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly token?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -4867,6 +4885,13 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly token?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -4910,6 +4935,13 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly token?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };

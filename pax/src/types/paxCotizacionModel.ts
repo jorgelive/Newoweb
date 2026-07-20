@@ -249,8 +249,9 @@ export interface PaxFilepasajero {
 export interface PaxFiledocumento {
     '@id'?: string;
     id?: string;
+    nombre?: I18n;
     vencimiento?: string | null;
-    tipodocumento?: string | null; // ArchivoTipoEnum (solo los esPublico())
+    tipodocumento?: string | null;
     imageUrl?: string | null;
 }
 

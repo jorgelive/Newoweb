@@ -19594,6 +19594,15 @@
                             "null"
                         ]
                     },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    },
                     "image": {
                         "readOnly": true,
                         "description": "Determina si el archivo es compatible con LiipImagine.",
@@ -19707,6 +19716,10 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -19756,6 +19769,10 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -19840,6 +19857,15 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     },
                     "image": {
                         "readOnly": true,
@@ -19994,6 +20020,15 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "ejecutarTraduccion": {
+                                "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                                "default": true,
+                                "type": "boolean"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
                             },
                             "image": {
                                 "readOnly": true,
@@ -20152,6 +20187,15 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     },
                     "image": {
                         "readOnly": true,

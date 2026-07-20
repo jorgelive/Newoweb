@@ -317,7 +317,7 @@ const cambiarIdioma = (e: Event) => {
               class="flex items-center gap-2 bg-slate-50 hover:bg-[#376875]/5 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-[#376875] transition-colors"
           >
             <i class="fas fa-file-pdf text-[#E07845]"></i>
-            {{ doc.tipodocumento }}
+            {{ store.traducir(doc.nombre) || doc.tipodocumento }}
           </a>
         </div>
       </div>
