@@ -8,6 +8,7 @@ use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelComponenteItem;
+use App\Travel\Entity\TravelTarifa;
 use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
@@ -312,9 +313,13 @@ class TravelComponenteCrudController extends BaseCrudController
         // ESCRITURA
         yield CollectionField::new('tarifas', 'Costos Maestros')
             ->useEntryCrudForm(TravelTarifaCrudController::class)
-            ->setFormTypeOption('by_reference', false)
             ->hideOnIndex()
             ->hideOnDetail()
+            ->setFormTypeOptions([
+                'by_reference' => false,
+                'prototype'    => true,
+            ])
+            ->setFormTypeOption('prototype_data', new TravelTarifa())
             ->setColumns(12);
 
 

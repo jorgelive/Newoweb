@@ -22,6 +22,8 @@ use App\Travel\Enum\TarifaProcedenciaEnum;
 use App\Travel\Enum\TarifaRolEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ApiFilter(SearchFilter::class, properties: [
     'nombreInterno' => 'partial'
@@ -49,24 +51,39 @@ class TravelTarifa
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
+    #[Assert\NotNull(message: 'El componente asociado es obligatorio.')]
     #[ORM\ManyToOne(targetEntity: TravelComponente::class, inversedBy: 'tarifas')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelComponente $componente = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\NotBlank(message: 'El nombre interno no puede estar vacío.')]
+    #[Assert\Length(
+        max: 150,
+        maxMessage: 'El nombre interno no puede superar los {{ limit }} caracteres.'
+    )]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[Assert\NotNull(message: 'El título multiidioma es requerido.')]
+    #[Assert\Type(type: 'array', message: 'El título debe ser una estructura de datos válida.')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\NotBlank(message: 'El monto es obligatorio.')]
+    #[Assert\Regex(
+        pattern: '/^\d+(\.\d{1,2})?$/',
+        message: 'El monto debe ser un número decimal válido con hasta 2 decimales.'
+    )]
+    #[Assert\PositiveOrZero(message: 'El monto no puede ser negativo.')]
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
     private ?string $monto = '0.00';
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\NotNull(message: 'La moneda es obligatoria.')]
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?MaestroMoneda $moneda = null;
@@ -87,30 +104,45 @@ class TravelTarifa
     private ?TarifaProcedenciaEnum $procedencia = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\PositiveOrZero(message: 'La edad mínima no puede ser negativa.')]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $edadMinima = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\PositiveOrZero(message: 'La edad máxima no puede ser negativa.')]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $edadMaxima = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\PositiveOrZero(message: 'La capacidad mínima no puede ser negativa.')]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $capacidadMinima = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\PositiveOrZero(message: 'La capacidad máxima no puede ser negativa.')]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $capacidadMaxima = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\Type(type: 'bool', message: 'El valor de costo por grupo debe ser booleano.')]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $costoPorGrupo = false;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\NotNull(message: 'El rol de la tarifa es obligatorio.')]
     #[ORM\Column(type: 'string', length: 20, enumType: TarifaRolEnum::class, options: ['default' => 'estandar'])]
     private TarifaRolEnum $rol = TarifaRolEnum::ESTANDAR;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\Regex(
+        pattern: '/^\d+(\.\d{1,2})?$/',
+        message: 'La comisión de anulación/override debe tener un formato decimal válido (ej. 12.34).'
+    )]
+    #[Assert\Range(
+        notInRangeMessage: 'La comisión override debe estar entre el {{ min }}% y el {{ max }}%.',
+        min: 0,
+        max: 100
+    )]
     #[ORM\Column(type: 'decimal', precision: 5, scale: 2, nullable: true)]
     private ?string $comisionOverride = null; // null = usa la comisión global de la cotización
 
@@ -129,6 +161,10 @@ class TravelTarifa
     private ?ProveedorServicio $proveedorServicio = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
+    #[Assert\Length(
+        max: 150,
+        maxMessage: 'El nombre para el proveedor no puede superar los {{ limit }} caracteres.'
+    )]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombreParaProveedor = null;
 
@@ -441,5 +477,38 @@ class TravelTarifa
     public function getVirtualCategoria(): string
     {
         return '';
+    }
+
+    /**
+     * Validación lógica cruzada a nivel de entidad.
+     * Evita inconsistencias matemáticas y relacionales antes de persistir en BD.
+     *
+     * @param ExecutionContextInterface $context El contexto de ejecución de validaciones.
+     */
+    #[Assert\Callback]
+    public function validarConsistenciaLogica(ExecutionContextInterface $context): void
+    {
+        // 1. Validar que la edad máxima no sea inferior a la edad mínima
+        if ($this->edadMinima !== null && $this->edadMaxima !== null && $this->edadMaxima < $this->edadMinima) {
+            $context->buildViolation('La edad máxima no puede ser inferior a la edad mínima.')
+                ->atPath('edadMaxima')
+                ->addViolation();
+        }
+
+        // 2. Validar que la capacidad máxima no sea inferior a la capacidad mínima
+        if ($this->capacidadMinima !== null && $this->capacidadMaxima !== null && $this->capacidadMaxima < $this->capacidadMinima) {
+            $context->buildViolation('La capacidad máxima no puede ser inferior a la capacidad mínima.')
+                ->atPath('capacidadMaxima')
+                ->addViolation();
+        }
+
+        // 3. Si se especifica un ProveedorServicio, asegurar que corresponda al mismo Proveedor general
+        if ($this->proveedorServicio !== null && $this->proveedor !== null) {
+            if ($this->proveedorServicio->getProveedor() !== $this->proveedor) {
+                $context->buildViolation('El servicio seleccionado no pertenece al proveedor especificado en la tarifa.')
+                    ->atPath('proveedorServicio')
+                    ->addViolation();
+            }
+        }
     }
 }

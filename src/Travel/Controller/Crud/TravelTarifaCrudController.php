@@ -246,7 +246,8 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield ChoiceField::new('rol', 'Rol')
             ->setChoices(array_reduce(TarifaRolEnum::cases(), fn($c, $e) => $c + [$e->name => $e], []))
-            ->setRequired(true)->onlyOnForms()->setColumns(6);
+            ->setRequired(true)->setFormTypeOption('attr', ['required' => true])
+            ->onlyOnForms()->setColumns(6);
 
         yield NumberField::new('comisionOverride', 'Comisión Propia (%)')
             ->setNumDecimals(2)->setRequired(false)->setColumns(6)

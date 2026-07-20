@@ -84,23 +84,37 @@ class TravelComponente
     use AutoTranslateControlTrait;
 
     #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
+    #[Assert\NotBlank(message: 'El nombre del componente no puede estar vacío.')]
+    #[Assert\Length(
+        max: 150,
+        maxMessage: 'El nombre del componente no puede superar los {{ limit }} caracteres.'
+    )]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
     #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[Assert\NotNull(message: 'El título multiidioma es requerido.')]
+    #[Assert\Type(type: 'array', message: 'El título debe ser una estructura de datos válida.')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
     #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
+    #[Assert\NotNull(message: 'El tipo de componente es obligatorio.')]
     #[ORM\Column(type: 'string', length: 50, enumType: ComponenteTipoEnum::class)]
     private ComponenteTipoEnum $tipo = ComponenteTipoEnum::EXTRAS;
 
     #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
+    #[Assert\Regex(
+        pattern: '/^\d+(\.\d{1})?$/',
+        message: 'La duración debe ser un número decimal válido con máximo un decimal.'
+    )]
+    #[Assert\PositiveOrZero(message: 'La duración estimada no puede ser negativa.')]
     #[ORM\Column(type: 'decimal', precision: 4, scale: 1, nullable: true)]
     private ?string $duracion = null;
 
     #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
+    #[Assert\PositiveOrZero(message: 'Los días de anticipación de alerta no pueden ser negativos.')]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $anticipacionalerta = null;
 
@@ -116,7 +130,9 @@ class TravelComponente
     /**
      * 👇 CASCADA HACIA ABAJO (Tarifas)
      * Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
+     * Se aplica Assert\Valid para disparar en cadena la validación interna de cada tarifa mapeada.
      */
+    #[Assert\Valid]
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelTarifa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['nombreInterno' => 'ASC'])]
