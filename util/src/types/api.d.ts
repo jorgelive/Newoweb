@@ -1195,15 +1195,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         Componente: {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1244,15 +1244,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1270,15 +1270,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1289,15 +1289,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.write": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1313,15 +1313,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-servicio.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1332,15 +1332,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1381,15 +1381,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-componente.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1407,15 +1407,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-componente.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1426,15 +1426,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-servicio.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1445,15 +1445,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1494,15 +1494,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1520,15 +1520,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-componente.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1539,15 +1539,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1558,15 +1558,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1607,15 +1607,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-componente.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1633,15 +1633,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-componente.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -1652,15 +1652,15 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-servicio.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
+            nombre: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
+            titulo: string[];
             /**
              * @description Obtiene la categoría operativa del componente.
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -2635,6 +2635,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
+            tipo?: string | null;
+            sinHorario?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2690,6 +2692,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
+            tipo?: string | null;
+            sinHorario?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2740,6 +2744,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
+            tipo?: string | null;
+            sinHorario?: boolean;
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -2768,6 +2774,8 @@ export interface components {
             fechaHoraFin?: string | null;
             /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa-pax_file.read_pax_cotizacion.read"][];
+            tipo?: string | null;
+            sinHorario?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -2822,6 +2830,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
+            tipo?: string | null;
+            sinHorario?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2877,6 +2887,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
+            tipo?: string | null;
+            sinHorario?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2909,6 +2921,8 @@ export interface components {
             fechaHoraFin?: string | null;
             /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_file.read_pax_cotizacion.read"][];
+            tipo?: string | null;
+            sinHorario?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -2963,6 +2977,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
+            tipo?: string | null;
+            sinHorario?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3019,6 +3035,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
+            tipo?: string | null;
+            sinHorario?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3052,6 +3070,8 @@ export interface components {
             fechaHoraFin?: string | null;
             /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_file.read_pax_cotizacion.read"][];
+            tipo?: string | null;
+            sinHorario?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -3106,6 +3126,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
+            tipo?: string | null;
+            sinHorario?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3161,6 +3183,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Obtiene los detalles operativos internos. */
             detallesOperativos?: string[];
+            tipo?: string | null;
+            sinHorario?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -3193,6 +3217,8 @@ export interface components {
             fechaHoraFin?: string | null;
             /** @description Obtiene las tarifas vinculadas al componente. */
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_file.read_pax_cotizacion.read"][];
+            tipo?: string | null;
+            sinHorario?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -8607,11 +8633,11 @@ export interface components {
             readonly id?: string | null;
         };
         "Tarifa-componente.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
+            nombreInterno: string;
+            titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda?: components["schemas"]["MaestroMoneda-componente.item.read"];
+            moneda: components["schemas"]["MaestroMoneda-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**
@@ -8644,11 +8670,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         "Tarifa-componente.write": {
-            nombreInterno?: string;
-            titulo?: string[];
+            nombreInterno: string;
+            titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda?: components["schemas"]["MaestroMoneda-componente.write"];
+            moneda: components["schemas"]["MaestroMoneda-componente.write"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**
@@ -8683,11 +8709,11 @@ export interface components {
             nombreParaProveedor?: string | null;
         };
         "Tarifa.html-componente.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
+            nombreInterno: string;
+            titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda?: components["schemas"]["MaestroMoneda.html-componente.item.read"];
+            moneda: components["schemas"]["MaestroMoneda.html-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**
@@ -8720,11 +8746,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         "Tarifa.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            titulo?: string[];
+            nombreInterno: string;
+            titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda?: components["schemas"]["MaestroMoneda.jsonld-componente.item.read"];
+            moneda: components["schemas"]["MaestroMoneda.jsonld-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**
@@ -8757,11 +8783,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         "Tarifa.multipart-componente.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
+            nombreInterno: string;
+            titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda?: components["schemas"]["MaestroMoneda.multipart-componente.item.read"];
+            moneda: components["schemas"]["MaestroMoneda.multipart-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**

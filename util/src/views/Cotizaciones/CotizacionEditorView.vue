@@ -379,8 +379,7 @@ const formatRangoServicio = (servicio: any) => {
   let tieneHorasValidas = false;
 
   servicio.cotcomponentes.forEach((c: any) => {
-    const maestroTipo = store.getTipoComponente(c.componenteMaestroId);
-    const reqHora = store.requiereHoraExacta(maestroTipo);
+    const reqHora = !c.sinHorario;
 
     if (c.fechaHoraInicio) {
       const t = new Date(c.fechaHoraInicio).getTime();
@@ -1178,11 +1177,11 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                      class="bg-white border-2 rounded-xl p-4 shadow-sm cursor-pointer relative group overflow-hidden transition-all flex flex-col min-h-35"
                      :class="[
                         store.isComponenteConAlerta(comp) ? 'border-red-400 bg-red-50/20' :
-                        (!store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/50' : 'border-slate-200 hover:border-sky-300')
+                        (!!comp.sinHorario ? 'border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/50' : 'border-slate-200 hover:border-sky-300')
                      ]">
 
                   <div class="absolute left-0 top-0 bottom-0 w-1.5"
-                       :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : (!store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'bg-slate-300' : 'bg-sky-400')"></div>
+                       :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : (!!comp.sinHorario ? 'bg-slate-300' : 'bg-sky-400')"></div>
 
                   <button v-if="!store.isComponenteBloqueado(comp)" @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
                     <i class="fas fa-trash-alt text-sm"></i>
@@ -1194,7 +1193,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                         <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500" title="Tarifas no cuadran"></i>
                         {{ getNombreMaestroRef(comp) }}
                       </span>
-                      <span v-if="!store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId))" class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                      <span v-if="!!comp.sinHorario" class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
                          <i class="fas fa-infinity text-[8px] mr-0.5"></i> Horario Libre / Final del día
                       </span>
                     </h4>
@@ -1215,7 +1214,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                   <div class="flex flex-col gap-1.5 mb-3">
                     <span class="bg-sky-50 border border-sky-100 text-sky-800 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
                       <i class="far fa-calendar-alt text-sky-500"></i>
-                      {{ store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'INICIO: ' + formatDateTimeFromISO(comp.fechaHoraInicio) : 'FECHA: ' + formatDateOnlyFromISO(comp.fechaHoraInicio) }}
+                      {{ !comp.sinHorario ? 'INICIO: ' + formatDateTimeFromISO(comp.fechaHoraInicio) : 'FECHA: ' + formatDateOnlyFromISO(comp.fechaHoraInicio) }}
                     </span>
 
                     <div v-if="comp.cantidad && comp.cantidad !== 1"
@@ -1226,9 +1225,9 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                       </span>
                     </div>
 
-                    <span v-if="store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) || store.calcularPernoctes(comp.fechaHoraInicio, comp.fechaHoraFin) > 1" class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
+                    <span v-if="!comp.sinHorario || store.calcularPernoctes(comp.fechaHoraInicio, comp.fechaHoraFin) > 1" class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
                       <i class="far fa-flag text-slate-400"></i>
-                      {{ store.requiereHoraExacta(store.getTipoComponente(comp.componenteMaestroId)) ? 'FIN: ' + formatDateTimeFromISO(comp.fechaHoraFin) : 'HASTA: ' + formatDateOnlyFromISO(comp.fechaHoraFin) }}
+                      {{ !comp.sinHorario ? 'FIN: ' + formatDateTimeFromISO(comp.fechaHoraFin) : 'HASTA: ' + formatDateOnlyFromISO(comp.fechaHoraFin) }}
                     </span>
 
                     <span v-if="store.isComponenteBloqueado(comp)" class="mt-1 text-[9px] font-bold text-teal-500 flex items-center gap-1">
@@ -1377,13 +1376,13 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                       :model-value="store.dataActiva.fechaHoraInicio"
                       @update:model-value="onInicioChange"
                       :is-24="true"
-                      :enable-time-picker="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
-                      :format="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId)) ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
+                      :enable-time-picker="!store.dataActiva.sinHorario"
+                      :format="!store.dataActiva.sinHorario ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
                       model-type="yyyy-MM-dd'T'HH:mm:ss"
                       auto-apply
                   >
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
-                      <input v-if="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
+                      <input v-if="!store.dataActiva.sinHorario"
                              type="text"
                              class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
                              :value="formatParaMascara(store.dataActiva.fechaHoraInicio)"
@@ -1412,13 +1411,13 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                       v-model="store.dataActiva.fechaHoraFin"
                       @update:model-value="store.onComponenteFechasChange(false)"
                       :is-24="true"
-                      :enable-time-picker="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
-                      :format="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId)) ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
+                      :enable-time-picker="!store.dataActiva.sinHorario"
+                      :format="!store.dataActiva.sinHorario ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
                       model-type="yyyy-MM-dd'T'HH:mm:ss"
                       auto-apply
                   >
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
-                      <input v-if="store.requiereHoraExacta(store.getTipoComponente(store.dataActiva.componenteMaestroId))"
+                      <input v-if="!store.dataActiva.sinHorario"
                              type="text"
                              class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
                              :value="formatParaMascara(store.dataActiva.fechaHoraFin)"

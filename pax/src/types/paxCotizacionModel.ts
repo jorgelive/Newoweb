@@ -110,6 +110,7 @@ export interface PaxCotComponente {
     nombreSnapshot: I18n;
     fechaHoraInicio?: string | null;
     fechaHoraFin?: string | null;
+    sinHorario?: boolean;
     cotsegmento?: PaxCotSegmento | null;
     snapshotItems: PaxSnapshotItem[];
     cottarifas: PaxCottarifa[];

@@ -21,14 +21,14 @@ import {
     formatRangoEdad,
     getProcedenciaUI,
     I18nContent,
-    ImagenProveedorSnapshot,
+    ImagenProveedorSnapshot, ImagenSnapshot,
     InclusionLinea,
     InclusionServicio,
     InclusionTarifa,
     Item,
     LineaDetalleClaseInterna,
     ModoFinanciero,
-    NivelInspector,
+    NivelInspector, NotaSnapshot,
     OpcionUpgradeInterna,
     Segmento,
     SegmentoComponenteProcesado,
@@ -44,6 +44,13 @@ import {
     TotalesInternos,
     totalesInternosVacios
 } from '@/types/cotizacionEditorModel.ts';
+
+import {
+    parseNaiveAsUTC,
+    formatNaiveFromUTC,
+    getDuracionMs,
+    addDurationToDate,
+} from '@/utils/naiveDate';
 
 import {ApiIdioma} from '@/types/maestroModel';
 import {components} from "@/types/api";
@@ -99,11 +106,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return (maestro && isComponenteCompleto(maestro)) ? maestro.tipo : 'extras';
     };
 
+    // Compat: firma antigua, ahora derivada del flag negativo del enum.
     const requiereHoraExacta = (tipo?: string): boolean => {
         if(!tipo) return false;
         const config = catalogos.value.tiposComponente.find((t: any) => t.id === tipo.toLowerCase());
-        return config ? config.requiereHoraExacta : false;
+        return config ? !config.sinHorario : false;   // ← flag negativo del enum
     };
+
+    // Default del enum para un TIPO: ¿no lleva hora? (solo se consulta al enganchar un maestro).
+    const sinHorarioDeTipo = (tipo?: string | null): boolean => {
+        if (!tipo) return true; // sin tipo => como 'extras'
+        const config = catalogos.value.tiposComponente.find((t: any) => t.id === tipo.toLowerCase());
+        return config ? config.sinHorario : true;
+    };
+
+    // Runtime: SIEMPRE lee el snapshot del componente, no el maestro.
+    const componenteRequiereHora = (comp: any): boolean => !comp?.sinHorario;
 
     // ============================================================================
     // 🔥 HELPERS Y LÓGICA DE TIEMPO
@@ -121,11 +139,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return match ? `${match[1]}:${match[2]}` : null;
     };
 
-    const formatLocalDateTime = (date: Date): string => {
-        const pad = (n: number) => String(n).padStart(2, '0');
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-    };
-
     const toDateTimeString = (fecha: string, hora: string = '00:00'): string => {
         const horaConSegundos = hora.length === 5 ? `${hora}:00` : hora;
         return `${fecha}T${horaConSegundos}`;
@@ -135,15 +148,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (!isoDateTime) return `${newDate}T08:00`;
         const timePart = isoDateTime.includes('T') ? isoDateTime.split('T')[1] : '08:00';
         return `${newDate}T${timePart}`;
-    };
-
-    const getDuracionMs = (inicioIso: string, finIso: string, defaultHoras = 0): number => {
-        if (inicioIso && finIso) {
-            const oS = new Date(inicioIso).getTime();
-            const oE = new Date(finIso).getTime();
-            if (!isNaN(oS) && !isNaN(oE) && oE >= oS) return oE - oS;
-        }
-        return defaultHoras * 60 * 60 * 1000;
     };
 
     const calcularDiaRelativo = (fechaBase: string, fechaObjetivo: string): number => {
@@ -205,15 +209,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         let tituloData: I18nContent[] = [];
         const dicc = item.diccionario;
 
-        if (typeof dicc === 'string') {
-            try {
-                const res = await apiClient.get(dicc);
-                tituloData = res.data.titulo || [];
-            } catch (err) {
-                console.error('No se pudo cargar el diccionario del item:', dicc, err);
-            }
-        } else if (dicc && typeof dicc === 'object' && Array.isArray((dicc as { titulo?: I18nContent[] }).titulo)) {
-            tituloData = (dicc as { titulo: I18nContent[] }).titulo;
+        try {
+            const res = await apiClient.get(dicc);
+            tituloData = res.data.titulo || [];
+        } catch (err) {
+            console.error('No se pudo cargar el diccionario del item:', dicc, err);
         }
 
         const modoBackend = item.modo || 'incluido';
@@ -246,9 +246,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }));
     };
 
-    const extraerNotasSnapshot = (segmentoMaestro: any) => {
-        if (!segmentoMaestro.notas || !Array.isArray(segmentoMaestro.notas)) return [];
-        return segmentoMaestro.notas.map((n: any) => ({
+    const extraerNotasSnapshot = (segmentoMaestro: Segmento): NotaSnapshot[] => {
+        // Aplicamos el mismo casteo interno por si el autogenerado omite la propiedad 'notas'
+        const maestro = segmentoMaestro as Record<string, any>;
+
+        if (!maestro.notas || !Array.isArray(maestro.notas)) return [];
+
+        return maestro.notas.map((n: any): NotaSnapshot => ({
             id: crypto.randomUUID(),
             nombreInterno: n.nombreInterno,
             tipo: n.tipo || 'INFO',
@@ -257,9 +261,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }));
     };
 
-    const extraerImagenesSnapshot = (segmentoMaestro: any) => {
-        if (!segmentoMaestro.imagenes || !Array.isArray(segmentoMaestro.imagenes)) return [];
-        return JSON.parse(JSON.stringify(segmentoMaestro.imagenes));
+    const extraerImagenesSnapshot = (segmentoMaestro: Segmento): ImagenSnapshot[] => {
+        // Usamos un casteo a any (o Record) internamente si la interfaz autogenerada de la API
+        // no expone explícitamente la propiedad 'imagenes', pero mantenemos la firma estricta.
+        const maestro = segmentoMaestro as Record<string, any>;
+
+        if (!maestro.imagenes || !Array.isArray(maestro.imagenes)) return [];
+
+        return JSON.parse(JSON.stringify(maestro.imagenes));
     };
 
     const getTarifaLabel = (cat: TarifaLike, lang: string): string => {
@@ -279,25 +288,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return `${nombre}${edadStr}${indicadorMatematica}${indicadorProcedencia} (${moneda} ${monto})`;
     };
 
-    const addDurationToDate = (baseIsoString: string, durationDecimal: number | string): string => {
-        if (!baseIsoString) return '';
-        const date = new Date(baseIsoString);
-        if (isNaN(date.getTime())) return '';
-        const hoursToAdd = typeof durationDecimal === 'string' ? parseFloat(durationDecimal) : durationDecimal;
-        date.setMinutes(date.getMinutes() + Math.round(hoursToAdd * 60));
-        return formatLocalDateTime(date);
-    };
-
     const calcularPernoctes = (inicioStr: string, finStr: string): number => {
         if (!inicioStr || !finStr) return 1;
-        const fInicio = new Date(inicioStr);
-        const fFin = new Date(finStr);
-        fInicio.setHours(0, 0, 0, 0);
-        fFin.setHours(0, 0, 0, 0);
-        const diffDays = Math.round((fFin.getTime() - fInicio.getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays > 0 ? diffDays : 1;
+        const DIA = 24 * 60 * 60 * 1000;
+        const s = Math.floor(parseNaiveAsUTC(inicioStr) / DIA);
+        const e = Math.floor(parseNaiveAsUTC(finStr) / DIA);
+        const diff = e - s;
+        return diff > 0 ? diff : 1;
     };
-
     const getI18nText = (arrayI18n: I18nContent[] | undefined, lang: string): string => {
         if (!arrayI18n || !Array.isArray(arrayI18n)) return '';
         const found = arrayI18n.find(item => item.language === lang);
@@ -372,9 +370,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 return dateA.localeCompare(dateB);
             }
 
-            // Forzamos el fallback a null para satisfacer la firma estricta (string | null) de getTipoComponente
-            const reqA = requiereHoraExacta(getTipoComponente(a.componenteMaestroId || null));
-            const reqB = requiereHoraExacta(getTipoComponente(b.componenteMaestroId || null));
+            const reqA = componenteRequiereHora(a);
+            const reqB = componenteRequiereHora(b);
 
             if (reqA && !reqB) return -1;
             if (!reqA && reqB) return 1;
@@ -383,11 +380,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         });
     };
 
-    const sincronizarFechaServicio = (servicio: any) => {
+    const sincronizarFechaServicio = (servicio: CotServicio | null | undefined): void => {
         if (!servicio || !servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return;
 
         let fechaMinima = '9999-12-31T23:59:59';
-        servicio.cotcomponentes.forEach((c: any) => {
+
+        servicio.cotcomponentes.forEach((c: ComponenteCompleto) => {
             if (c.fechaHoraInicio && c.fechaHoraInicio < fechaMinima) {
                 fechaMinima = c.fechaHoraInicio;
             }
@@ -409,17 +407,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return upper;
     };
 
-    const isComponenteBloqueado = (comp: any): boolean => {
+    const isComponenteBloqueado = (comp: ComponenteCompleto | null | undefined): boolean => {
         if (!comp) return false;
+
+        // Bloqueado si pertenece a un segmento del itinerario (storytelling)
         if (comp.cotsegmentoId || comp.cotsegmento) return true;
+
+        // Bloqueado si es un componente inyectado como logística adicional (upsell)
         if (comp.upsellSourceItemId) return true;
 
         const servicio = findServicioByComponenteId(comp.id);
         if (servicio && servicio.cotcomponentes) {
-            return servicio.cotcomponentes.some((cPadre: any) =>
-                cPadre.snapshotItems?.some((item: any) => item.idComponenteInyectado === comp.id)
+            return servicio.cotcomponentes.some((cPadre: ComponenteCompleto) =>
+                cPadre.snapshotItems?.some((item: SnapshotItem) => item.idComponenteInyectado === comp.id)
             );
         }
+
         return false;
     };
 
@@ -937,7 +940,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         tarifas: estandares.map((t: TarifaSnapshot): InclusionTarifa => ({
                             tarifaTitulo: t.tituloSnapshot || [],
                             cantidad: parseInt(String(t.cantidad)) || 1,
-                            esGrupal: !!t.esGrupal,
+                            esGrupal: t.esGrupal,
                             modalidad: t.modalidadSnapshot || null,
                             categoria: t.categoriaSnapshot || null,
                             rol: (t.rolSnapshot || 'estandar') as TarifaRolValue,
@@ -1008,8 +1011,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             let horaMinima: string | null = null;
             srv.cotcomponentes.forEach((c: ComponenteCompleto) => {
-                const tipo = getTipoComponente(c.componenteMaestroId || null);
-                if (requiereHoraExacta(tipo) && c.fechaHoraInicio) {
+                if (componenteRequiereHora(c) && c.fechaHoraInicio) {
                     if (horaMinima === null || c.fechaHoraInicio < horaMinima) {
                         horaMinima = c.fechaHoraInicio;
                     }
@@ -1238,12 +1240,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             const [plantillas, pool] = await Promise.all([
-               hydrateRelations(data.itinerarios || []),
-               hydrateRelations(data.segmentos || [])
+                hydrateRelations(data.itinerarios || []),
+                hydrateRelations(data.segmentos || [])
             ]);
-           if (gen !== undefined && gen !== navGen) return;
-           catalogos.value.plantillasItinerario = plantillas;
-           catalogos.value.poolSegmentos = pool;
+            if (gen !== undefined && gen !== navGen) return;
+            catalogos.value.plantillasItinerario = plantillas;
+            catalogos.value.poolSegmentos = pool;
         } catch (e) {}
     };
 
@@ -1304,7 +1306,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (dataActiva.value && inspectorActivo.value === 'componente') {
                 const itemsRaw = fetchedComp.componenteItems || [];
                 if (!dataActiva.value.snapshotItems || dataActiva.value.snapshotItems.length === 0) {
-                   dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
+                    dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
                 }
             }
         } catch (e) {}
@@ -1344,6 +1346,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // Componentes
                 if (s.cotcomponentes && Array.isArray(s.cotcomponentes)) {
                     s.cotcomponentes.forEach((c: ComponenteCompleto) => {
+                        // Backfill defensivo del flag de horario (data previa a la migración del backend)
+                        if (c.sinHorario === undefined || c.sinHorario === null) {
+                            c.sinHorario = sinHorarioDeTipo((c as any).tipo);
+                        }
+
                         // Maestro del componente (para tipo / requiereHoraExacta)
                         const cmId = extractIdStr(c.componenteMaestroId);
                         if (cmId && cmId.length === 36) componentesToFetch.add(cmId);
@@ -1575,22 +1582,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 componente.componenteMaestroId = extractIdStr(componente.componenteMaestroId);
                             }
 
-                            // Solo colapsamos a 00:00 si el maestro está REALMENTE cargado y confirma que no lleva hora.
-                            // Si la hidratación falló o el maestro no está, se preservan las horas (nunca se borran).
-                            const compMaestroId = extractIdStr(componente.componenteMaestroId || '');
-                            const maestroCargado = !!compMaestroId && catalogos.value.allComponentes.some(
-                                (c) => extractIdStr(c.id || (c as any)['@id']) === compMaestroId && isComponenteCompleto(c)
-                            );
-
-                            if (maestroCargado) {
-                                const maestroTipo = getTipoComponente(componente.componenteMaestroId || null);
-                                if (!requiereHoraExacta(maestroTipo)) {
-                                    if (componente.fechaHoraInicio) {
-                                        componente.fechaHoraInicio = componente.fechaHoraInicio.split('T')[0] + 'T00:00:00';
-                                    }
-                                    if (componente.fechaHoraFin) {
-                                        componente.fechaHoraFin = componente.fechaHoraFin.split('T')[0] + 'T00:00:00';
-                                    }
+                            // Colapso a 00:00 gobernado por el snapshot del propio componente.
+                            // Autosuficiente: ya no depende de que el maestro esté cargado.
+                            if (componente.sinHorario) {
+                                if (componente.fechaHoraInicio) {
+                                    componente.fechaHoraInicio = componente.fechaHoraInicio.split('T')[0] + 'T00:00:00';
+                                }
+                                if (componente.fechaHoraFin) {
+                                    componente.fechaHoraFin = componente.fechaHoraFin.split('T')[0] + 'T00:00:00';
                                 }
                             }
 
@@ -1658,6 +1657,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 s.cotcomponentes?.forEach((c: ComponenteCompleto) => {
                     c.sobreescribirTraduccion = false;
+
+                    // Backfill del flag de horario si el backend no lo devolviera
+                    if (c.sinHorario === undefined || c.sinHorario === null) {
+                        c.sinHorario = sinHorarioDeTipo((c as any).tipo);
+                    }
 
                     if (c.snapshotItems && !Array.isArray(c.snapshotItems)) {
                         c.snapshotItems = Object.values(c.snapshotItems);
@@ -1961,6 +1965,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 componenteMaestroId: null,
                 nombreSnapshot: [],
                 tipo: 'extras',
+                sinHorario: true,
                 cantidad: 1,
                 estado: 'pendiente',
                 modo: 'incluido',
@@ -2109,6 +2114,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         componenteMaestroId: compMaestro.id || compMaestro['@id'],
                         nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                         tipo: compMaestro.tipo || 'extras',
+                        sinHorario: sinHorarioDeTipo(compMaestro.tipo),
                         cantidad: componentePadre.cantidad,
                         estado: 'pendiente',
                         modo: 'incluido',
@@ -2185,7 +2191,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             : 1;
 
         const enGrupoActual = agrupables.filter((t: TarifaSnapshot) => t.grupoTarifa === grupoActual);
-        const tieneGrupal = enGrupoActual.some((t: TarifaSnapshot) => !!t.esGrupal);
+        const tieneGrupal = enGrupoActual.some((t: TarifaSnapshot) => t.esGrupal);
         const paxAsignados = enGrupoActual
             .filter((t: TarifaSnapshot) => !t.esGrupal)
             .reduce((sum: number, t: TarifaSnapshot) => sum + (parseInt(String(t.cantidad)) || 0), 0);
@@ -2532,14 +2538,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             segmentoMaestro.segmentoComponentes.forEach((rawSegComp) => {
                 const segComp = rawSegComp as SegmentoComponenteProcesado;
-                let compMaestro: string | components['schemas']['Componente-componente.item.read'] | ComponenteCompleto | undefined = segComp.componente;
+                let compMaestro: string | components['schemas']['Componente-componente.item.read'] | Componente | undefined = segComp.componente;
 
                 if (!compMaestro) return;
 
                 const cId = String(extractIdStr(compMaestro) || '');
                 const found = catalogos.value.allComponentes.find((c) => String(extractIdStr(c.id || c['@id']) || '') === cId);
                 if (found) {
-                    compMaestro = found as ComponenteCompleto;
+                    compMaestro = found as Componente;
                 }
 
                 if (!compMaestro || typeof compMaestro !== 'object') return;
@@ -2573,7 +2579,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             });
 
             for (const [compId, segComp] of mejoresMatches.entries()) {
-                let compMaestro = segComp.tempCompObj as ComponenteCompleto;
+                let compMaestro = segComp.tempCompObj as Componente;
                 if (!compMaestro) continue;
 
                 const compHidratado = catalogos.value.allComponentes.find((c) => {
@@ -2583,7 +2589,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 });
 
                 if (compHidratado) {
-                    compMaestro = compHidratado as unknown as ComponenteCompleto;
+                    compMaestro = compHidratado as unknown as Componente;
                 }
 
                 let fechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
@@ -2595,7 +2601,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
 
                 const tipoComp = compMaestro.tipo || 'extras';
-                const reqHora = requiereHoraExacta(tipoComp);
+                const sinHorario = sinHorarioDeTipo(tipoComp);
+                const reqHora = !sinHorario;
 
                 const hInicio = reqHora ? (getHoraLimpia(segComp.hora) || '08:00') : '00:00';
                 const fHoraInicio = toDateTimeString(fechaBase, hInicio);
@@ -2638,6 +2645,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     componenteMaestroId: compMaestro.id || String(maestroObj['@id'] || '') || null,
                     nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                     tipo: tipoComp,
+                    sinHorario,
                     cantidad: calcularPernoctes(fHoraInicio, fHoraFin),
                     estado: 'pendiente',
                     modo: segComp.modo || 'incluido',
@@ -2969,9 +2977,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                     comp.fechaHoraInicio = toDateTimeString(nuevaFechaCompStr, horaActual);
 
-                    const nS = new Date(comp.fechaHoraInicio).getTime();
-                    const nE = new Date(nS + duracionMs);
-                    comp.fechaHoraFin = formatLocalDateTime(nE);
+                    const nS = parseNaiveAsUTC(comp.fechaHoraInicio);
+                    comp.fechaHoraFin = formatNaiveFromUTC(nS + duracionMs);
                 }
             });
         }
@@ -3006,9 +3013,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         if (maestro && isComponenteCompleto(maestro) && dataActiva.value) {
             dataActiva.value.tipo = maestro.tipo || 'extras';   // 🔥 snapshot autónomo del tipo
+            dataActiva.value.sinHorario = sinHorarioDeTipo(maestro.tipo);   // 🔥 snapshot del flag de horario
             dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
 
-            const reqHora = requiereHoraExacta(maestro.tipo);
+            const reqHora = !dataActiva.value.sinHorario;
             const fechaDate = dataActiva.value.fechaHoraInicio.split('T')[0];
 
             if (reqHora) {
@@ -3033,15 +3041,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             await fetchComponenteDetalles(val);
         }
     };
+
     const onSegmentoDiaChange = (servicioId: string, segmentoId: string, nuevoDiaStr: string | number) => {
         const nuevoDia = parseInt(String(nuevoDiaStr)) || 1;
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
         const servicio = cotizacion.value.cotservicios.find((s: any) => s.id === servicioId);
-        if(!servicio) return;
+        if (!servicio) return;
 
         const segmento = servicio.cotsegmentos?.find((s: any) => s.id === segmentoId);
-        if(!segmento) return;
+        if (!segmento) return;
 
         segmento.dia = nuevoDia;
 
@@ -3050,19 +3059,18 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const nuevaFechaAbs = dateObj.toISOString().split('T')[0];
         segmento.fechaAbsoluta = nuevaFechaAbs;
 
-        if(servicio.cotcomponentes) {
+        if (servicio.cotcomponentes) {
             servicio.cotcomponentes.forEach((comp: any) => {
                 const segId = comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento.id || comp.cotsegmento['@id'] || comp.cotsegmento) : null);
 
-                if(segId === segmentoId) {
+                if (segId === segmentoId) {
                     const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
 
-                    if(comp.fechaHoraInicio) comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaAbs);
+                    if (comp.fechaHoraInicio) comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaAbs);
 
-                    if(comp.fechaHoraInicio) {
-                        const nS = new Date(comp.fechaHoraInicio).getTime();
-                        const nE = new Date(nS + duracionMs);
-                        comp.fechaHoraFin = formatLocalDateTime(nE);
+                    if (comp.fechaHoraInicio) {
+                        const nS = parseNaiveAsUTC(comp.fechaHoraInicio);
+                        comp.fechaHoraFin = formatNaiveFromUTC(nS + duracionMs);
                     }
                 }
             });
@@ -3076,20 +3084,19 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const duracionMs = getDuracionMs(dataActiva.value.fechaHoraInicio, dataActiva.value.fechaHoraFin);
         dataActiva.value.fechaHoraInicio = nuevoInicioStr;
 
-        const newStartMs = new Date(nuevoInicioStr).getTime();
-        const newEndObj = new Date(newStartMs + duracionMs);
-        dataActiva.value.fechaHoraFin = formatLocalDateTime(newEndObj);
+        const newStartMs = parseNaiveAsUTC(nuevoInicioStr);
+        dataActiva.value.fechaHoraFin = formatNaiveFromUTC(newStartMs + duracionMs);
 
         onComponenteFechasChange(false);
     };
 
+
     const onComponenteFechasChange = (esCambioInicio: boolean = true): void => {
         if (!dataActiva.value) return;
 
-        const maestroTipo = getTipoComponente(dataActiva.value.componenteMaestroId);
-        if (!requiereHoraExacta(maestroTipo)) {
-            if(dataActiva.value.fechaHoraInicio) dataActiva.value.fechaHoraInicio = dataActiva.value.fechaHoraInicio.split('T')[0] + 'T00:00:00';
-            if(dataActiva.value.fechaHoraFin) dataActiva.value.fechaHoraFin = dataActiva.value.fechaHoraFin.split('T')[0] + 'T00:00:00';
+        if (!componenteRequiereHora(dataActiva.value)) {
+            if (dataActiva.value.fechaHoraInicio) dataActiva.value.fechaHoraInicio = dataActiva.value.fechaHoraInicio.split('T')[0] + 'T00:00:00';
+            if (dataActiva.value.fechaHoraFin) dataActiva.value.fechaHoraFin = dataActiva.value.fechaHoraFin.split('T')[0] + 'T00:00:00';
         }
 
         if (dataActiva.value.fechaHoraInicio && dataActiva.value.fechaHoraFin) {
@@ -3116,9 +3123,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
                             comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaDateStr);
 
-                            const nS = new Date(comp.fechaHoraInicio).getTime();
-                            const nE = new Date(nS + duracionMs);
-                            comp.fechaHoraFin = formatLocalDateTime(nE);
+                            const nS = parseNaiveAsUTC(comp.fechaHoraInicio);
+                            comp.fechaHoraFin = formatNaiveFromUTC(nS + duracionMs);
                         }
                     });
                 }
@@ -3254,10 +3260,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     /**
      * El usuario eligió un servicio-proveedor del dropdown. Como la colección no trae 'titulo'
-     * (solo el Get individual lo expone), hacemos un fetch de detalle para hidratar el snapshot completo.
-     */
-    /**
-     * El usuario eligió un servicio-proveedor del dropdown. Como la colección no trae 'titulo'
      * ni imágenes (solo el Get individual lo expone), hacemos un fetch de detalle para hidratar
      * el snapshot completo, incluyendo la galería.
      */
@@ -3386,7 +3388,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         catalogos, cotizacion, fileActual, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,
         resumenFinanciero, itinerarioDinamico, totalCostoNeto, ventaSugerida,
-        getTipoComponente, requiereHoraExacta, calcularPernoctes,
+        getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, calcularPernoctes,
         isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
         updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente,

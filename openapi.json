@@ -8660,8 +8660,14 @@
             "Componente": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -8682,7 +8688,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -8692,6 +8699,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -8699,6 +8707,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -8791,8 +8800,14 @@
             "Componente-componente.item.read": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -8813,7 +8828,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -8823,6 +8839,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -8830,6 +8847,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -8863,8 +8881,14 @@
             "Componente-componente.read": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -8885,7 +8909,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -8895,6 +8920,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -8902,6 +8928,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -8921,8 +8948,14 @@
             "Componente-componente.write": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -8943,7 +8976,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -8953,6 +8987,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -8960,6 +8995,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -8985,8 +9021,14 @@
             "Componente-servicio.item.read": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -9007,7 +9049,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -9017,6 +9060,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -9024,6 +9068,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -9043,8 +9088,14 @@
             "Componente.html": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -9065,7 +9116,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -9075,6 +9127,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -9082,6 +9135,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -9174,8 +9228,14 @@
             "Componente.html-componente.item.read": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -9196,7 +9256,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -9206,6 +9267,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -9213,6 +9275,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -9246,8 +9309,14 @@
             "Componente.html-componente.read": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -9268,7 +9337,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -9278,6 +9348,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -9285,6 +9356,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -9304,8 +9376,14 @@
             "Componente.html-servicio.item.read": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -9326,7 +9404,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -9336,6 +9415,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -9343,6 +9423,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -9366,8 +9447,14 @@
                     },
                     {
                         "type": "object",
+                        "required": [
+                            "nombre",
+                            "titulo",
+                            "tipo"
+                        ],
                         "properties": {
                             "nombre": {
+                                "maxLength": 150,
                                 "description": "Obtiene el nombre interno del componente.",
                                 "type": "string"
                             },
@@ -9388,7 +9475,8 @@
                                     "guiado",
                                     "transporte",
                                     "alojamiento",
-                                    "alimentacion",
+                                    "alimentacion_fijo",
+                                    "alimentacion_variable",
                                     "pool",
                                     "privada",
                                     "personal_extra",
@@ -9398,6 +9486,7 @@
                                 ]
                             },
                             "duracion": {
+                                "pattern": "^(\\d+(\\.\\d{1})?)$",
                                 "description": "Obtiene la duraci\u00f3n estimada en horas.",
                                 "type": [
                                     "string",
@@ -9405,6 +9494,7 @@
                                 ]
                             },
                             "anticipacionalerta": {
+                                "minimum": 0,
                                 "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                                 "type": [
                                     "integer",
@@ -9504,8 +9594,14 @@
                     },
                     {
                         "type": "object",
+                        "required": [
+                            "nombre",
+                            "titulo",
+                            "tipo"
+                        ],
                         "properties": {
                             "nombre": {
+                                "maxLength": 150,
                                 "description": "Obtiene el nombre interno del componente.",
                                 "type": "string"
                             },
@@ -9526,7 +9622,8 @@
                                     "guiado",
                                     "transporte",
                                     "alojamiento",
-                                    "alimentacion",
+                                    "alimentacion_fijo",
+                                    "alimentacion_variable",
                                     "pool",
                                     "privada",
                                     "personal_extra",
@@ -9536,6 +9633,7 @@
                                 ]
                             },
                             "duracion": {
+                                "pattern": "^(\\d+(\\.\\d{1})?)$",
                                 "description": "Obtiene la duraci\u00f3n estimada en horas.",
                                 "type": [
                                     "string",
@@ -9543,6 +9641,7 @@
                                 ]
                             },
                             "anticipacionalerta": {
+                                "minimum": 0,
                                 "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                                 "type": [
                                     "integer",
@@ -9583,8 +9682,14 @@
                     },
                     {
                         "type": "object",
+                        "required": [
+                            "nombre",
+                            "titulo",
+                            "tipo"
+                        ],
                         "properties": {
                             "nombre": {
+                                "maxLength": 150,
                                 "description": "Obtiene el nombre interno del componente.",
                                 "type": "string"
                             },
@@ -9605,7 +9710,8 @@
                                     "guiado",
                                     "transporte",
                                     "alojamiento",
-                                    "alimentacion",
+                                    "alimentacion_fijo",
+                                    "alimentacion_variable",
                                     "pool",
                                     "privada",
                                     "personal_extra",
@@ -9615,6 +9721,7 @@
                                 ]
                             },
                             "duracion": {
+                                "pattern": "^(\\d+(\\.\\d{1})?)$",
                                 "description": "Obtiene la duraci\u00f3n estimada en horas.",
                                 "type": [
                                     "string",
@@ -9622,6 +9729,7 @@
                                 ]
                             },
                             "anticipacionalerta": {
+                                "minimum": 0,
                                 "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                                 "type": [
                                     "integer",
@@ -9648,8 +9756,14 @@
                     },
                     {
                         "type": "object",
+                        "required": [
+                            "nombre",
+                            "titulo",
+                            "tipo"
+                        ],
                         "properties": {
                             "nombre": {
+                                "maxLength": 150,
                                 "description": "Obtiene el nombre interno del componente.",
                                 "type": "string"
                             },
@@ -9670,7 +9784,8 @@
                                     "guiado",
                                     "transporte",
                                     "alojamiento",
-                                    "alimentacion",
+                                    "alimentacion_fijo",
+                                    "alimentacion_variable",
                                     "pool",
                                     "privada",
                                     "personal_extra",
@@ -9680,6 +9795,7 @@
                                 ]
                             },
                             "duracion": {
+                                "pattern": "^(\\d+(\\.\\d{1})?)$",
                                 "description": "Obtiene la duraci\u00f3n estimada en horas.",
                                 "type": [
                                     "string",
@@ -9687,6 +9803,7 @@
                                 ]
                             },
                             "anticipacionalerta": {
+                                "minimum": 0,
                                 "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                                 "type": [
                                     "integer",
@@ -9709,8 +9826,14 @@
             "Componente.multipart": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -9731,7 +9854,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -9741,6 +9865,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -9748,6 +9873,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -9840,8 +9966,14 @@
             "Componente.multipart-componente.item.read": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -9862,7 +9994,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -9872,6 +10005,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -9879,6 +10013,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -9912,8 +10047,14 @@
             "Componente.multipart-componente.read": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -9934,7 +10075,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -9944,6 +10086,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -9951,6 +10094,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -9970,8 +10114,14 @@
             "Componente.multipart-servicio.item.read": {
                 "type": "object",
                 "description": "Entidad base para la log\u00edstica pura (El insumo financiero).",
+                "required": [
+                    "nombre",
+                    "titulo",
+                    "tipo"
+                ],
                 "properties": {
                     "nombre": {
+                        "maxLength": 150,
                         "description": "Obtiene el nombre interno del componente.",
                         "type": "string"
                     },
@@ -9992,7 +10142,8 @@
                             "guiado",
                             "transporte",
                             "alojamiento",
-                            "alimentacion",
+                            "alimentacion_fijo",
+                            "alimentacion_variable",
                             "pool",
                             "privada",
                             "personal_extra",
@@ -10002,6 +10153,7 @@
                         ]
                     },
                     "duracion": {
+                        "pattern": "^(\\d+(\\.\\d{1})?)$",
                         "description": "Obtiene la duraci\u00f3n estimada en horas.",
                         "type": [
                             "string",
@@ -10009,6 +10161,7 @@
                         ]
                     },
                     "anticipacionalerta": {
+                        "minimum": 0,
                         "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
                         "type": [
                             "integer",
@@ -12732,6 +12885,15 @@
                             "type": "string"
                         }
                     },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -12865,6 +13027,15 @@
                             "type": "string"
                         }
                     },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -12993,6 +13164,15 @@
                             "type": "string"
                         }
                     },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -13066,6 +13246,15 @@
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa-pax_file.read_pax_cotizacion.read"
                         }
+                    },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
                     },
                     "detallesParaCliente": {
                         "readOnly": true,
@@ -13175,6 +13364,15 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
                     },
                     "id": {
                         "allOf": [
@@ -13309,6 +13507,15 @@
                             "type": "string"
                         }
                     },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -13393,6 +13600,15 @@
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa.html-pax_file.read_pax_cotizacion.read"
                         }
+                    },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
                     },
                     "detallesParaCliente": {
                         "readOnly": true,
@@ -13506,6 +13722,15 @@
                                 "items": {
                                     "type": "string"
                                 }
+                            },
+                            "tipo": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "sinHorario": {
+                                "type": "boolean"
                             },
                             "id": {
                                 "allOf": [
@@ -13648,6 +13873,15 @@
                                     "type": "string"
                                 }
                             },
+                            "tipo": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "sinHorario": {
+                                "type": "boolean"
+                            },
                             "id": {
                                 "allOf": [
                                     {
@@ -13740,6 +13974,15 @@
                                 "items": {
                                     "$ref": "#/components/schemas/CotizacionCottarifa.jsonld-pax_file.read_pax_cotizacion.read"
                                 }
+                            },
+                            "tipo": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "sinHorario": {
+                                "type": "boolean"
                             },
                             "detallesParaCliente": {
                                 "readOnly": true,
@@ -13852,6 +14095,15 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
                     },
                     "id": {
                         "allOf": [
@@ -13986,6 +14238,15 @@
                             "type": "string"
                         }
                     },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -14070,6 +14331,15 @@
                         "items": {
                             "$ref": "#/components/schemas/CotizacionCottarifa.multipart-pax_file.read_pax_cotizacion.read"
                         }
+                    },
+                    "tipo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sinHorario": {
+                        "type": "boolean"
                     },
                     "detallesParaCliente": {
                         "readOnly": true,
@@ -31080,8 +31350,16 @@
             },
             "Tarifa-componente.item.read": {
                 "type": "object",
+                "required": [
+                    "nombreInterno",
+                    "titulo",
+                    "monto",
+                    "moneda",
+                    "rol"
+                ],
                 "properties": {
                     "nombreInterno": {
+                        "maxLength": 150,
                         "type": "string"
                     },
                     "titulo": {
@@ -31091,6 +31369,7 @@
                         }
                     },
                     "monto": {
+                        "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                         "default": "0.00",
                         "type": "string"
                     },
@@ -31135,24 +31414,28 @@
                         ]
                     },
                     "edadMinima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "edadMaxima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "capacidadMinima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "capacidadMaxima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
@@ -31171,6 +31454,7 @@
                         ]
                     },
                     "comisionOverride": {
+                        "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                         "type": [
                             "string",
                             "null"
@@ -31196,6 +31480,7 @@
                         ]
                     },
                     "nombreParaProveedor": {
+                        "maxLength": 150,
                         "type": [
                             "string",
                             "null"
@@ -31216,8 +31501,16 @@
             },
             "Tarifa-componente.write": {
                 "type": "object",
+                "required": [
+                    "nombreInterno",
+                    "titulo",
+                    "monto",
+                    "moneda",
+                    "rol"
+                ],
                 "properties": {
                     "nombreInterno": {
+                        "maxLength": 150,
                         "type": "string"
                     },
                     "titulo": {
@@ -31227,6 +31520,7 @@
                         }
                     },
                     "monto": {
+                        "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                         "default": "0.00",
                         "type": "string"
                     },
@@ -31271,24 +31565,28 @@
                         ]
                     },
                     "edadMinima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "edadMaxima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "capacidadMinima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "capacidadMaxima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
@@ -31307,6 +31605,7 @@
                         ]
                     },
                     "comisionOverride": {
+                        "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                         "type": [
                             "string",
                             "null"
@@ -31330,6 +31629,7 @@
                         "example": "https://example.com/"
                     },
                     "nombreParaProveedor": {
+                        "maxLength": 150,
                         "type": [
                             "string",
                             "null"
@@ -31339,8 +31639,16 @@
             },
             "Tarifa.html-componente.item.read": {
                 "type": "object",
+                "required": [
+                    "nombreInterno",
+                    "titulo",
+                    "monto",
+                    "moneda",
+                    "rol"
+                ],
                 "properties": {
                     "nombreInterno": {
+                        "maxLength": 150,
                         "type": "string"
                     },
                     "titulo": {
@@ -31350,6 +31658,7 @@
                         }
                     },
                     "monto": {
+                        "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                         "default": "0.00",
                         "type": "string"
                     },
@@ -31394,24 +31703,28 @@
                         ]
                     },
                     "edadMinima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "edadMaxima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "capacidadMinima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "capacidadMaxima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
@@ -31430,6 +31743,7 @@
                         ]
                     },
                     "comisionOverride": {
+                        "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                         "type": [
                             "string",
                             "null"
@@ -31455,6 +31769,7 @@
                         ]
                     },
                     "nombreParaProveedor": {
+                        "maxLength": 150,
                         "type": [
                             "string",
                             "null"
@@ -31480,8 +31795,16 @@
                     },
                     {
                         "type": "object",
+                        "required": [
+                            "nombreInterno",
+                            "titulo",
+                            "monto",
+                            "moneda",
+                            "rol"
+                        ],
                         "properties": {
                             "nombreInterno": {
+                                "maxLength": 150,
                                 "type": "string"
                             },
                             "titulo": {
@@ -31491,6 +31814,7 @@
                                 }
                             },
                             "monto": {
+                                "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                                 "default": "0.00",
                                 "type": "string"
                             },
@@ -31535,24 +31859,28 @@
                                 ]
                             },
                             "edadMinima": {
+                                "minimum": 0,
                                 "type": [
                                     "integer",
                                     "null"
                                 ]
                             },
                             "edadMaxima": {
+                                "minimum": 0,
                                 "type": [
                                     "integer",
                                     "null"
                                 ]
                             },
                             "capacidadMinima": {
+                                "minimum": 0,
                                 "type": [
                                     "integer",
                                     "null"
                                 ]
                             },
                             "capacidadMaxima": {
+                                "minimum": 0,
                                 "type": [
                                     "integer",
                                     "null"
@@ -31571,6 +31899,7 @@
                                 ]
                             },
                             "comisionOverride": {
+                                "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                                 "type": [
                                     "string",
                                     "null"
@@ -31596,6 +31925,7 @@
                                 ]
                             },
                             "nombreParaProveedor": {
+                                "maxLength": 150,
                                 "type": [
                                     "string",
                                     "null"
@@ -31618,8 +31948,16 @@
             },
             "Tarifa.multipart-componente.item.read": {
                 "type": "object",
+                "required": [
+                    "nombreInterno",
+                    "titulo",
+                    "monto",
+                    "moneda",
+                    "rol"
+                ],
                 "properties": {
                     "nombreInterno": {
+                        "maxLength": 150,
                         "type": "string"
                     },
                     "titulo": {
@@ -31629,6 +31967,7 @@
                         }
                     },
                     "monto": {
+                        "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                         "default": "0.00",
                         "type": "string"
                     },
@@ -31673,24 +32012,28 @@
                         ]
                     },
                     "edadMinima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "edadMaxima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "capacidadMinima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
                     "capacidadMaxima": {
+                        "minimum": 0,
                         "type": [
                             "integer",
                             "null"
@@ -31709,6 +32052,7 @@
                         ]
                     },
                     "comisionOverride": {
+                        "pattern": "^(\\d+(\\.\\d{1,2})?)$",
                         "type": [
                             "string",
                             "null"
@@ -31734,6 +32078,7 @@
                         ]
                     },
                     "nombreParaProveedor": {
+                        "maxLength": 150,
                         "type": [
                             "string",
                             "null"

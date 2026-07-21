@@ -30,7 +30,7 @@ class MaestrosEnumAjaxController extends AbstractController
         foreach (ComponenteTipoEnum::cases() as $case) {
             $data[] = [
                 'id' => $case->value,
-                'requiereHoraExacta' => $case->requiereHoraExacta(),
+                'sinHorario' => $case->sinHorario(),
                 'prioridad' => $case->prioridad(),
             ];
         }

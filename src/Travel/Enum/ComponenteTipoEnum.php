@@ -15,7 +15,9 @@ enum ComponenteTipoEnum: string
     case GUIADO = 'guiado';
     case TRANSPORTE = 'transporte';
     case ALOJAMIENTO = 'alojamiento';
-    case ALIMENTACION = 'alimentacion';
+
+    case ALIMENTACION_HORARIO_FIJO = 'alimentacion_fijo';
+    case ALIMENTACION_HORARIO_VAR = 'alimentacion_variable';
     case EXCURSION_POOL = 'pool';
     case EXCURSION_PRIVADA = 'privada';
     case PERSONAL_EXTRA = 'personal_extra';
@@ -29,22 +31,23 @@ enum ComponenteTipoEnum: string
      *
      * @return bool
      */
-    public function requiereHoraExacta(): bool
+    public function sinHorario(): bool
     {
         return match($this) {
             self::TREN,
             self::VUELO,
             self::TRANSPORTE,
             self::TICKET_HORARIO_FIJO,
+            self::ALIMENTACION_HORARIO_FIJO,
             self::EXCURSION_POOL,
             self::EXCURSION_PRIVADA,
-            self::GUIADO => true,
+            self::GUIADO => false,
 
             self::ALOJAMIENTO,
             self::TICKET_HORARIO_VAR,
-            self::ALIMENTACION,
+            self::ALIMENTACION_HORARIO_VAR,
             self::EXTRAS,
-            self::PERSONAL_EXTRA => false,
+            self::PERSONAL_EXTRA => true,
         };
     }
 
@@ -59,7 +62,7 @@ enum ComponenteTipoEnum: string
         return match($this) {
             self::GUIADO, self::TRANSPORTE, self::EXCURSION_POOL, self::EXCURSION_PRIVADA, self::TREN => 1,
             self::ALOJAMIENTO, self::VUELO => 2,
-            self::ALIMENTACION => 3,
+            self::ALIMENTACION_HORARIO_FIJO,  self::ALIMENTACION_HORARIO_VAR=> 3,
             self::TICKET_HORARIO_FIJO, self::TICKET_HORARIO_VAR => 4,
             default => 5,
         };

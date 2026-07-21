@@ -12,6 +12,7 @@ import type {
     PaxInclusionServicio,
     PaxVersionResumen,
 } from '@/types/paxCotizacionModel';
+
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
 
 export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {

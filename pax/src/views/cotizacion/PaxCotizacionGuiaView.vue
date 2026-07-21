@@ -24,6 +24,8 @@ import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero } from '@/types/paxCotizacionModel';
 
+
+
 const props = defineProps<{
   localizador: string;
   version: string | number;
@@ -105,30 +107,38 @@ const mv = (soles: number, dolares: number) =>
 const dateOf = (iso: string) => iso.substring(0, 10);
 
 /** Hora 'HH:mm' solo si es una hora real (≠ medianoche) */
-const horaDe = (iso?: string | null): string | null => {
-  if (!iso || iso.length < 16) return null;
-  const t = iso.substring(11, 16);
-  return t && t !== '00:00' ? t : null;
+/** 'HH:mm' de un ISO naive, o null si el string no trae hora */
+const hhmm = (iso?: string | null): string | null =>
+    (iso && iso.length >= 16) ? iso.substring(11, 16) : null;
+
+/**
+ * ¿El componente lleva hora? Ahora por el flag del snapshot.
+ * Fallback legacy (data sin el flag aún): la hora es real si no es 00:00.
+ */
+const compConHora = (c: any): boolean => {
+  if (typeof c?.sinHorario === 'boolean') return !c.sinHorario;
+  const t = hhmm(c?.fechaHoraInicio);
+  return !!t && t !== '00:00';
 };
 
 const addDays = (ymd: string, n: number) => {
-  const d = new Date(ymd + 'T00:00:00');
-  d.setDate(d.getDate() + n);
+  const d = new Date(ymd + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
   const p = (x: number) => String(x).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
 };
 
 const diffDays = (a: string, b: string) =>
-    Math.round((new Date(b + 'T00:00:00').getTime() - new Date(a + 'T00:00:00').getTime()) / 86400000);
+    Math.round((new Date(b + 'T00:00:00Z').getTime() - new Date(a + 'T00:00:00Z').getTime()) / 86400000);
 
 const formatearFecha = (ymd: string) =>
-    new Date(ymd.substring(0, 10) + 'T00:00:00').toLocaleDateString(maestroStore.idiomaActual, {
-      weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Lima',
+    new Date(ymd.substring(0, 10) + 'T00:00:00Z').toLocaleDateString(maestroStore.idiomaActual, {
+      weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
     });
 
 const fechaChip = (iso: string) =>
-    new Date(iso.substring(0, 10) + 'T00:00:00').toLocaleDateString(maestroStore.idiomaActual, {
-      day: '2-digit', month: 'short', timeZone: 'America/Lima',
+    new Date(iso.substring(0, 10) + 'T00:00:00Z').toLocaleDateString(maestroStore.idiomaActual, {
+      day: '2-digit', month: 'short', timeZone: 'UTC',
     });
 
 // ── Itinerario de vista (segmentos → bloques por día) ────────────────────────
@@ -171,10 +181,11 @@ const itinerarioVista = computed<DiaVista[]>(() => {
       const comps = (servicio.cotcomponentes ?? []).filter((c: any) => c.cotsegmento?.id === segmento.id);
 
       // Hora dinámica del segmento: min inicio / max fin de componentes con hora real
-      const inicios = comps.map((c: any) => (horaDe(c.fechaHoraInicio) ? c.fechaHoraInicio : null)).filter(Boolean) as string[];
-      const fines   = comps.map((c: any) => (horaDe(c.fechaHoraFin)    ? c.fechaHoraFin    : null)).filter(Boolean) as string[];
-      const horaInicio = inicios.length ? inicios.sort()[0].substring(11, 16) : null;
-      const horaFin    = fines.length   ? fines.sort()[fines.length - 1].substring(11, 16) : null;
+      const conHora = comps.filter((c: any) => compConHora(c));
+      const inicios = conHora.map((c: any) => c.fechaHoraInicio).filter(Boolean) as string[];
+      const fines   = conHora.map((c: any) => c.fechaHoraFin).filter(Boolean) as string[];
+      const horaInicio = inicios.length ? hhmm(inicios.sort()[0]) : null;
+      const horaFin    = fines.length   ? hhmm(fines.sort()[fines.length - 1]) : null;
 
       const base = dateOf(segmento.fechaAbsoluta);
 
@@ -279,13 +290,14 @@ const totalDiasViaje = computed(() =>
 // ── Horarios de componentes ──────────────────────────────────────────────────
 const compsConHora = (b: BloqueVista) =>
     b.componentes
-        .filter((c: any) => horaDe(c.fechaHoraInicio))
+        .filter((c: any) => compConHora(c) && c.fechaHoraInicio)
         .sort((a: any, b2: any) => a.fechaHoraInicio.localeCompare(b2.fechaHoraInicio));
 
+
 const horaRango = (c: any) => {
-  const hi = horaDe(c.fechaHoraInicio);
-  const hf = horaDe(c.fechaHoraFin);
-  // Si inicio y fin coinciden, mostrar una sola hora
+  if (!compConHora(c)) return null;
+  const hi = hhmm(c.fechaHoraInicio);
+  const hf = hhmm(c.fechaHoraFin);
   return hf && hf !== hi ? `${hi} – ${hf}` : hi;
 };
 

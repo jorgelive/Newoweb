@@ -50,7 +50,14 @@ export type Itinerario = components['schemas']['Itinerario-itinerario.read'];
 
 type CotServicioBase = components["schemas"]["CotizacionCotservicio-cotizacion.read_timestamp.read"];
 
-export type CotServicio = Omit<CotServicioBase, 'nombreSnapshot' | 'itinerarioNombreSnapshot' | 'nombrePublicoSnapshot' | 'cotcomponentes'> & {
+export type CotServicio = Omit<
+    CotServicioBase,
+    'nombreSnapshot' |
+    'itinerarioNombreSnapshot' |
+    'nombrePublicoSnapshot' |
+    'cotcomponentes' |
+    'cotsegmentos'
+> & {
     nombreSnapshot: I18nContent[];
     itinerarioNombreSnapshot: I18nContent[];
     nombrePublicoSnapshot: I18nContent[];
@@ -238,13 +245,22 @@ export interface ImagenSnapshot {
     isPortada: boolean;
 }
 
-export type CotSegmento = Omit<CotSegmentoBase, 'id' | 'fechaAbsoluta' | 'sobreescribirTraduccion'> & {
+export type CotSegmento = Omit<
+    CotSegmentoBase,
+    'id' |
+    'fechaAbsoluta' |
+    'sobreescribirTraduccion' |
+    'nombreSnapshot' |       // <-- Agrégalo aquí
+    'contenidoSnapshot' |    // <-- Agrégalo aquí
+    'imagenesSnapshot' |     // <-- Agrégalo aquí
+    'notasSnapshot'          // <-- Agrégalo aquí
+> & {
     id: string;
     fechaAbsoluta: string;
     sobreescribirTraduccion: boolean;
     dia: number;
     orden: number;
-    segmentoMaestroId?: string | null; // <---- PROPIEDAD AÑADIDA
+    segmentoMaestroId?: string | null;
     nombreSnapshot?: I18nContent[];
     contenidoSnapshot?: I18nContent[];
     imagenesSnapshot?: ImagenSnapshot[];
@@ -254,7 +270,7 @@ export type CotSegmento = Omit<CotSegmentoBase, 'id' | 'fechaAbsoluta' | 'sobree
 
 export interface ComponenteTipo {
     id: string;
-    requiereHoraExacta: boolean;
+    sinHorario: boolean;
     prioridad: number;
 }
 
@@ -338,30 +354,30 @@ export interface SnapshotItem {
     modalidadTarifaVisible: boolean;
 }
 
-export type ComponenteCompleto = Omit<
-    components['schemas']['Componente-componente.item.read'],
-    'cottarifas' | 'snapshotItems'
+type CotComponenteBase = components["schemas"]["CotizacionCotcomponente-cotizacion.read_timestamp.read"];
+
+export type ComponenteCompleto = Omit<CotComponenteBase,
+    'id' | 'nombreSnapshot' | 'estado' | 'modo' | 'fechaHoraInicio' | 'fechaHoraFin'
+    | 'snapshotItems' | 'cottarifas' | 'detallesOperativos' | 'cotsegmento'
 > & {
     id: string;
-    componenteMaestroId?: string | null;
     nombreSnapshot: I18nContent[];
-    duracion?: string | number;
-    cantidad: number;
     estado: string;
     modo: string;
     fechaHoraInicio: string;
     fechaHoraFin: string;
-    cotsegmentoId?: string | null;
-    cotsegmento?: string | CotSegmento | null;
     snapshotItems: SnapshotItem[];
     cottarifas: TarifaSnapshot[];
     detallesOperativos: DetalleOperativoBloque[];
-    upsellSourceItemId?: string;
+    cotsegmento?: string | CotSegmento | null;
     sobreescribirTraduccion: boolean;
+    duracion?: string | number;
+    cotsegmentoId?: string | null;
+    upsellSourceItemId?: string;
 };
 
 export type SegmentoComponenteProcesado = components['schemas']['TravelSegmentoComponente-segmento.item.read'] & {
-    tempCompObj?: ComponenteCompleto | components['schemas']['Componente-componente.item.read'];
+    tempCompObj?: Componente | components['schemas']['Componente-componente.item.read'];
     esPrioritario?: boolean;
     tarifaId?: string | null;
 };
@@ -625,7 +641,7 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
             componenteNombre: o.componenteNombre,
             servicioId: o.servicioId,
             servicioNombre: o.servicioNombre,
-            tarifaTitulo: o.tarifaTitulo,
+            tarifaTitulo: o.notaRol,
             notaRol: o.notaRol,
             modalidad: o.modalidad,
             categoria: o.categoria,

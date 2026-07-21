@@ -93,6 +93,14 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'json')]
     private array $detallesOperativos = [];
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $tipo = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $sinHorario = false;
+
     public function __construct()
     {
         $this->initializeId();
@@ -116,6 +124,16 @@ class CotizacionCotcomponente
 
         return $copia;
     }
+
+    #[ORM\PrePersist]
+    public function normalizarHorarioAlCrear(): void
+    {
+        if ($this->sinHorario) {
+            $this->fechaHoraInicio = $this->fechaHoraInicio?->setTime(0, 0, 0);
+            $this->fechaHoraFin = $this->fechaHoraFin?->setTime(0, 0, 0);
+        }
+    }
+
     #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
     public function getId(): ?Uuid { return $this->id; }
 
@@ -369,4 +387,9 @@ class CotizacionCotcomponente
      * @return self
      */
     public function setComponenteMaestroId(?string $componenteMaestroId): self { $this->componenteMaestroId = $componenteMaestroId; return $this; }
-}
+
+    public function getTipo(): ?string { return $this->tipo; }
+    public function setTipo(?string $tipo): self { $this->tipo = $tipo; return $this; }
+
+    public function isSinHorario(): bool { return $this->sinHorario; }
+    public function setSinHorario(bool $sinHorario): self { $this->sinHorario = $sinHorario; return $this; }}
