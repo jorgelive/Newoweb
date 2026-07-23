@@ -145,9 +145,9 @@ onBeforeRouteLeave((to, from, next) => {
     return;
   }
 
-  // 5. Si estamos en la raíz del panel lateral en un dispositivo móvil
-  if (store.isMobileOpen && window.innerWidth < 768) {
-    store.cerrarInspectorMobile();
+  // 5. Flujo móvil de paneles: Detalle → Servicios → Cabecera
+  if (window.innerWidth < 768 && nivelEditor.value !== 'cabecera') {
+    nivelEditor.value = nivelEditor.value === 'detalle' ? 'servicios' : 'cabecera';
     next(false);
     return;
   }
@@ -782,6 +782,19 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
   if (valor) store.dataActiva[campo] = normalizarUrl(valor);
 };
 
+// Miller-columns navigation: 'cabecera' → 'servicios' → 'detalle'
+const nivelEditor = ref<'cabecera' | 'servicios' | 'detalle'>('cabecera');
+watch(() => store.inspectorActivo, (val) => {
+  nivelEditor.value = val === 'resumen' ? 'servicios' : 'detalle';
+});
+// abrirNivel puede reasignar el mismo inspectorActivo (mismo nivel, otro data);
+// el watch no dispara sin cambio de valor, así que se escucha la acción directamente.
+store.$onAction(({ name, args }) => {
+  if (name === 'abrirNivel') {
+    nivelEditor.value = args[0] === 'resumen' ? 'servicios' : 'detalle';
+  }
+});
+
 </script>
 
 <template>
@@ -816,10 +829,11 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
             {{ store.cotizacion.idiomaCliente }}<span class="hidden md:inline"> (CLIENTE)</span>
           </button>
         </div>
-        <button @click="store.abrirNivel('resumen')" class="md:hidden px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold shadow-sm border border-slate-700 whitespace-nowrap">Totales</button>
+        <button @click="nivelEditor = 'cabecera'" class="md:hidden px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold shadow-sm border border-slate-700 whitespace-nowrap">
+          <i class="fas fa-chart-pie mr-1"></i> Resumen
+        </button>
         <button @click="handleGuardar"
-                :class="store.isMobileOpen ? 'hidden md:flex' : 'flex'"
-                class="items-center gap-2 px-4 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors">
+                class="flex items-center gap-2 px-4 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors">
           <i class="fas fa-save"></i> <span class="hidden sm:inline">Guardar</span>
         </button>
       </div>
@@ -832,9 +846,21 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
       </div>
     </div>
 
-    <div v-else-if="store.cotizacion" class="flex flex-1 overflow-hidden relative">
+    <div v-else-if="store.cotizacion" class="flex flex-1 overflow-hidden">
 
-      <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-[#F8FAFC]">
+      <!-- ═══ PANEL 2: Servicios (order-2 en desktop) ══════════════════════ -->
+      <div :class="[
+          'flex-col overflow-hidden bg-[#F8FAFC] flex-1 md:order-2',
+          nivelEditor === 'servicios' ? 'flex' : 'hidden md:flex'
+      ]">
+        <div class="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-200 bg-white shrink-0">
+          <button @click="nivelEditor = 'cabecera'"
+                  class="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-full transition-colors text-slate-600">
+            <i class="fas fa-arrow-left text-sm"></i>
+          </button>
+          <span class="font-black text-sm text-slate-800">Servicios del Itinerario</span>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 md:p-8">
         <div class="max-w-4xl mx-auto pb-32">
 
           <div v-for="dia in store.itinerarioDinamico" :key="dia.fechaAbsoluta" class="mb-10">
@@ -928,20 +954,46 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
           </button>
 
         </div>
-      </main>
+        </div>
 
+        <div @click="isTotalsDrawerOpen = true"
+             class="md:hidden relative bg-slate-900 border-t border-slate-700/50 px-6 py-4 flex justify-between items-center shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.4)] cursor-pointer active:bg-slate-950 transition-colors">
+
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 px-4 py-0.5 rounded-t-lg border-t border-x border-slate-700/50 text-slate-400 shadow-sm flex flex-col items-center justify-center">
+            <i class="fas fa-chevron-up text-[10px]"></i>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300">
+              <i class="fas fa-chart-pie text-xs"></i>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Costo Neto Total</span>
+              <span class="text-base font-black text-white leading-none">{{ formatMoneda(store.totalCostoNeto, store.cotizacion.monedaGlobal) }}</span>
+            </div>
+          </div>
+
+          <div class="px-4 flex flex-col items-end">
+            <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-0.5">Venta Sugerida</span>
+            <span class="text-xl font-black text-emerald-400 leading-none">{{ formatMoneda(store.ventaSugerida, store.cotizacion.monedaGlobal) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PANEL 1: Cabecera de Cotización (md:order-1, siempre visible en desktop amplio) ═══ -->
       <aside :class="[
-            'bg-white flex flex-col transition-transform duration-300 ease-in-out border-slate-200 shrink-0',
-            'fixed inset-0 z-50 md:z-10 w-full',
-            store.isMobileOpen ? 'translate-y-0' : 'translate-y-full',
-            'md:relative md:w-105 md:border-l md:translate-y-0 md:transform-none',
-            store.inspectorActivo === 'tarifa' ? 'bg-white text-slate-800' : 'bg-white text-slate-800'
-        ]">
+          'flex-col overflow-hidden bg-white border-slate-200 md:order-1 md:border-r shrink-0 w-full md:w-88',
+          nivelEditor === 'cabecera' ? 'flex' : 'hidden',
+          store.inspectorActivo === 'resumen' ? 'md:flex' : 'md:hidden xl:flex'
+      ]">
 
-        <div v-if="store.inspectorActivo === 'resumen'" class="flex-1 flex flex-col min-h-0">
-          <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div class="flex-1 flex flex-col min-h-0">
+          <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
             <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest">Cabecera de Cotización</h2>
-            <button @click="store.cerrarInspectorMobile" class="md:hidden text-slate-400 hover:text-red-500"><i class="fas fa-times text-lg"></i></button>
+            <button @click="nivelEditor = 'servicios'"
+                    class="md:hidden flex items-center gap-1.5 px-3 py-2 bg-[#376875] hover:bg-[#2c5560] text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm transition-colors">
+              Ver Servicios <i class="fas fa-arrow-right"></i>
+            </button>
           </div>
           <div class="p-6 flex-1 overflow-y-auto space-y-6 pb-32">
 
@@ -1114,8 +1166,15 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
             </div>
           </div>
         </div>
+      </aside>
 
-        <div v-else-if="store.inspectorActivo === 'servicio'" class="flex-1 flex flex-col min-h-0">
+      <!-- ═══ PANEL 3: Detalle (servicio / componente / tarifa, md:order-3) ═══ -->
+      <aside :class="[
+          'flex-col overflow-hidden bg-white border-slate-200 md:order-3 shrink-0 w-full md:w-105 md:border-l relative',
+          store.inspectorActivo === 'resumen' ? 'hidden' : (nivelEditor === 'detalle' ? 'flex' : 'hidden md:flex')
+      ]">
+
+        <div v-if="store.inspectorActivo === 'servicio'" class="flex-1 flex flex-col min-h-0">
           <div class="px-5 py-1 border-b border-emerald-100 flex items-center gap-3 bg-emerald-50 shrink-0">
             <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-emerald-100 text-slate-500 flex items-center justify-center transition-colors shrink-0"><i class="fas fa-arrow-left"></i></button>
 
@@ -2166,11 +2225,6 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
               <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-0.5">Venta Sugerida</span>
               <span class="text-xl font-black text-emerald-400 leading-none">{{ formatMoneda(store.ventaSugerida, store.cotizacion.monedaGlobal) }}</span>
             </div>
-
-            <button @click.stop="handleGuardar"
-                    class="md:hidden w-9 h-9 rounded-full bg-[#E07845] hover:bg-[#c96636] active:scale-95 flex items-center justify-center shadow-md transition-all shrink-0">
-              <i class="fas fa-save text-sm text-white"></i>
-            </button>
           </div>
         </div>
       </aside>

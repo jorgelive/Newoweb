@@ -62,6 +62,29 @@ const idiomaFileDropdown = ref(false);
 const idiomasDisponibles = computed(() => fileStore.idiomasDisponibles);
 
 // ============================================================================
+// TELÉFONO — máscara de display
+// ============================================================================
+const telefonoFocused = ref(false);
+
+const formatearTelefonoDisplay = (val?: string | null): string => {
+  if (!val) return '';
+  const v = val.trim();
+  // Si ya tiene espacios o + viene formateado del backend, mostrar tal cual
+  if (v.includes(' ') || v.startsWith('+')) return v;
+  const d = v.replace(/\D/g, '');
+  // Perú: 51XXXXXXXXX (11 dígitos) → +51 XXX XXX XXX
+  if (d.startsWith('51') && d.length === 11) return `+51 ${d.slice(2, 5)} ${d.slice(5, 8)} ${d.slice(8)}`;
+  // Celular peruano 9 dígitos → +51 XXX XXX XXX
+  if (d.length === 9 && d.startsWith('9')) return `+51 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
+  return v;
+};
+
+// ============================================================================
+// PAÍS DEL EXPEDIENTE
+// ============================================================================
+const paisFileIri = ref('');
+
+// ============================================================================
 // LINKS VISTA CLIENTE  (pax + /file/ + localizador [+ /v/N])
 // ============================================================================
 const linkPublico = computed(() => {
@@ -237,6 +260,8 @@ const cargarFile = async () => {
   try {
     const response = await apiClient.get(`/platform/sales/cotizacion_files/${route.params.id}`);
     file.value = response.data;
+    const pais = file.value.pais;
+    paisFileIri.value = pais ? (typeof pais === 'object' ? (pais['@id'] ?? '') : String(pais)) : '';
   } catch (error) {
     console.error("Error al cargar el File", error);
     router.push('/cotizacion');
@@ -262,7 +287,8 @@ const guardarFile = async () => {
     nombreGrupo: file.value.nombreGrupo,
     pasajeroPrincipal: file.value.pasajeroPrincipal,
     email: file.value.email,
-    telefono: file.value.telefono,
+    telefono: file.value.telefono || null,
+    pais: paisFileIri.value || null,
     estado: file.value.estado,
     idiomaCliente: file.value.idiomaCliente || 'es'
   };
@@ -514,7 +540,30 @@ const eliminarDocumento = async (iri?: string) => {
               </div>
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono</label>
-                <input v-model="file.telefono" type="tel" placeholder="+51 987 654 321" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none">
+                <div class="relative">
+                  <input
+                      v-model="file.telefono"
+                      type="tel"
+                      placeholder="+51 987 654 321"
+                      @focus="telefonoFocused = true"
+                      @blur="telefonoFocused = false"
+                      class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none transition-colors"
+                      :class="!telefonoFocused && file.telefono ? 'text-transparent caret-transparent' : ''"
+                  >
+                  <div v-if="!telefonoFocused && file.telefono"
+                       class="absolute inset-0 flex items-center px-3 text-sm font-bold text-slate-800 pointer-events-none select-none rounded-lg">
+                    <i class="fas fa-phone text-[#376875]/40 text-xs mr-2"></i>
+                    {{ formatearTelefonoDisplay(file.telefono) }}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">País de Origen</label>
+                <SearchableSelect
+                    v-model="paisFileIri"
+                    :options="paisOptions"
+                    placeholder="Buscar país..."
+                />
               </div>
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Estado</label>

@@ -13,75 +13,66 @@ use App\Operacion\Enum\EstadoOperacionEnum;
 use App\Travel\Enum\TarifaRolEnum;
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
-use Doctrine\ORM\Event\PostUpdateEventArgs;
-use Doctrine\ORM\Event\PreUpdateEventArgs;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
+use Doctrine\ORM\UnitOfWork;
 
-#[AsDoctrineListener(event: Events::preUpdate)]
-#[AsDoctrineListener(event: Events::postUpdate)]
+#[AsDoctrineListener(event: Events::onFlush)]
 class CotizacionConfirmadaEventListener
 {
-    /** @var array<string, CotizacionEstadoEnum> */
-    private array $pendingEstado = [];
-
-    public function preUpdate(PreUpdateEventArgs $args): void
+    /**
+     * Intercepta el proceso de sincronización con la base de datos para evaluar
+     * cambios de estado en Cotizacion.
+     *
+     * Utilizar onFlush es la estrategia recomendada por Doctrine para persistir o modificar
+     * otras entidades (OperacionServicio) en reacción a un cambio, garantizando que todo
+     * ocurra en la misma transacción sin causar bucles infinitos por flushes anidados.
+     *
+     * @param OnFlushEventArgs $args Argumentos proporcionados por Doctrine durante el flush.
+     */
+    public function onFlush(OnFlushEventArgs $args): void
     {
-        $entity = $args->getObject();
-        if (!$entity instanceof Cotizacion) {
-            return;
-        }
-
-        if (!$args->hasChangedField('estado')) {
-            return;
-        }
-
-        $nuevo = $args->getNewValue('estado');
-
-        $relevantes = [
-            CotizacionEstadoEnum::CONFIRMADO,
-            CotizacionEstadoEnum::CANCELADO,
-            CotizacionEstadoEnum::PENDIENTE,
-            CotizacionEstadoEnum::ENVIADO,
-            CotizacionEstadoEnum::ARCHIVADO,
-        ];
-
-        if (in_array($nuevo, $relevantes, true)) {
-            $this->pendingEstado[$entity->getId()->toRfc4122()] = $nuevo;
-        }
-    }
-
-    public function postUpdate(PostUpdateEventArgs $args): void
-    {
-        $entity = $args->getObject();
-        if (!$entity instanceof Cotizacion) {
-            return;
-        }
-
-        $id = $entity->getId()->toRfc4122();
-        $nuevoEstado = $this->pendingEstado[$id] ?? null;
-        if ($nuevoEstado === null) {
-            return;
-        }
-
-        unset($this->pendingEstado[$id]);
         $em = $args->getObjectManager();
+        $uow = $em->getUnitOfWork();
 
-        match ($nuevoEstado) {
-            CotizacionEstadoEnum::CONFIRMADO => $this->generarSnapshotBiblia($entity, $em),
-            CotizacionEstadoEnum::CANCELADO  => $this->propagarEstadoOperacion($entity, $em, EstadoOperacionEnum::CANCELADO),
-            CotizacionEstadoEnum::PENDIENTE,
-            CotizacionEstadoEnum::ENVIADO,
-            CotizacionEstadoEnum::ARCHIVADO  => $this->propagarEstadoOperacion($entity, $em, EstadoOperacionEnum::PENDIENTE),
-            default                          => null,
-        };
+        // Iterar únicamente sobre las entidades que tienen actualizaciones programadas
+        foreach ($uow->getScheduledEntityUpdates() as $entity) {
+            if (!$entity instanceof Cotizacion) {
+                continue;
+            }
+
+            $changeSet = $uow->getEntityChangeSet($entity);
+
+            // Validar si el campo 'estado' fue uno de los que cambió
+            if (!isset($changeSet['estado'])) {
+                continue;
+            }
+
+            // $changeSet['estado'][0] es el valor viejo, [1] es el nuevo valor
+            $nuevoEstado = $changeSet['estado'][1];
+
+            // Si Doctrine devuelve un string en lugar del Enum debido a la configuración de mapeo, lo parseamos
+            if (is_string($nuevoEstado)) {
+                $nuevoEstado = CotizacionEstadoEnum::tryFrom($nuevoEstado);
+            }
+
+            match ($nuevoEstado) {
+                CotizacionEstadoEnum::CONFIRMADO => $this->generarSnapshotBiblia($entity, $em, $uow),
+                CotizacionEstadoEnum::CANCELADO  => $this->propagarEstadoOperacion($entity, $em, $uow, EstadoOperacionEnum::CANCELADO),
+                CotizacionEstadoEnum::PENDIENTE,
+                CotizacionEstadoEnum::ENVIADO,
+                CotizacionEstadoEnum::ARCHIVADO  => $this->propagarEstadoOperacion($entity, $em, $uow, EstadoOperacionEnum::PENDIENTE),
+                default                          => null,
+            };
+        }
     }
 
-    private function generarSnapshotBiblia(Cotizacion $cotizacion, object $em): void
+    private function generarSnapshotBiblia(Cotizacion $cotizacion, EntityManagerInterface $em, UnitOfWork $uow): void
     {
         $file          = $cotizacion->getFile();
         $cantidadPax   = $cotizacion->getNumPax();
         $osRepo        = $em->getRepository(OperacionServicio::class);
-        $nuevos        = [];
 
         foreach ($cotizacion->getCotservicios() as $cotservicio) {
             foreach ($cotservicio->getCotcomponentes() as $cotcomponente) {
@@ -129,18 +120,17 @@ class CotizacionConfirmadaEventListener
                 $ops->setMonedaReal($moneda);
 
                 $em->persist($ops);
-                $nuevos[] = $ops;
-            }
-        }
 
-        if (!empty($nuevos)) {
-            $em->flush();
+                // Instruir manualmente a Doctrine para que inserte esta nueva entidad en el ciclo actual
+                $uow->computeChangeSet($em->getClassMetadata(OperacionServicio::class), $ops);
+            }
         }
     }
 
     private function propagarEstadoOperacion(
         Cotizacion $cotizacion,
-        object $em,
+        EntityManagerInterface $em,
+        UnitOfWork $uow,
         EstadoOperacionEnum $estado,
     ): void {
         /** @var OperacionServicio[] $servicios */
@@ -159,9 +149,10 @@ class CotizacionConfirmadaEventListener
 
         foreach ($servicios as $ops) {
             $ops->setEstadoOperacion($estado);
-        }
 
-        $em->flush();
+            // Recalcular los cambios para la entidad actualizada dentro del proceso de flush en curso
+            $uow->computeChangeSet($em->getClassMetadata(OperacionServicio::class), $ops);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
