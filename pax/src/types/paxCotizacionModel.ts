@@ -57,6 +57,7 @@ export interface PaxCotSegmento {
     dia: number;
     orden: number;
     fechaAbsoluta: string; // ISO date
+    segmentoMaestroId?: string | null;
     nombreSnapshot: I18n;
     contenidoSnapshot: I18n; // HTML por idioma
     imagenesSnapshot: PaxImagenSnapshot[];
@@ -111,8 +112,8 @@ export interface PaxCotComponente {
     fechaHoraInicio?: string | null;
     fechaHoraFin?: string | null;
     sinHorario?: boolean;
+    tipo?: string | null;
     cotsegmento?: PaxCotSegmento | null;
-    snapshotItems: PaxSnapshotItem[];
     cottarifas: PaxCottarifa[];
     detallesParaCliente: PaxDetalleCliente[];
 }
@@ -267,6 +268,7 @@ export interface PaxVersionResumen {
     idiomaCliente: string;
     monedaGlobal: string;
     precioOculto: boolean;
+    tipoCambio: number;
     totalVenta: string | null; // null si precioOculto
     adelanto: string | null;
     fechaExpiracion?: string | null;
@@ -282,6 +284,7 @@ export interface PaxCotizacionFile {
     localizador: string;
     nombreGrupo: string;
     pasajeroPrincipal?: string | null;
+    idiomaCliente?: string;
     /** Cards de todas las propuestas públicas vigentes (siempre presente) */
     versionesParaCliente: PaxVersionResumen[];
     /** Cotización completa; solo viene cuando la URL incluye /{version} */

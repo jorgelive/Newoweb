@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation } from '@/stores/chat/chatStore.ts';
+import { renewSession } from '@/services/sessionAuth';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
@@ -29,13 +30,13 @@ const handleSessionRenewal = async () => {
   if (!loginUsername.value || !loginPassword.value) return;
   isLoggingIn.value = true;
 
-  const success = await store.renewSession({
-    _username: loginUsername.value,
-    _password: loginPassword.value,
-    _remember_me: loginRemember.value
-  });
+  try {
+    await renewSession({
+      _username: loginUsername.value,
+      _password: loginPassword.value,
+      _remember_me: loginRemember.value
+    });
 
-  if (success) {
     loginPassword.value = '';
 
     await store.fetchConversations();
@@ -45,9 +46,9 @@ const handleSessionRenewal = async () => {
       await nextTick();
       scrollToBottom();
     }
+  } finally {
+    isLoggingIn.value = false;
   }
-
-  isLoggingIn.value = false;
 };
 
 const isLoggingOut = ref(false);

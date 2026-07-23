@@ -19,7 +19,7 @@ const maestroStore = useMaestroStore();
 const homeScroll = ref<HTMLElement | null>(null);
 
 const cargarTodo = async () => {
-  let idTarget = '';
+  let idTarget: string;
   if (props.mode === 'guest') {
     idTarget = route.params.uuidEvento as string;
   } else {
@@ -369,10 +369,10 @@ onMounted(() => {
             <span class="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center text-2xl shrink-0">
               <i :class="['fas', seccionDestacada.icono || 'fa-key']"></i>
             </span>
-            <div class="flex-1 min-w-0">
-              <h3 class="text-white font-black text-lg leading-tight">{{ store.traducir(seccionDestacada.titulo) }}</h3>
-              <p v-if="subtituloDe(seccionDestacada)" class="text-white/60 text-xs mt-0.5 truncate">{{ subtituloDe(seccionDestacada) }}</p>
-            </div>
+            <span class="flex-1 min-w-0 flex flex-col">
+              <span class="text-white font-black text-lg leading-tight">{{ store.traducir(seccionDestacada.titulo) }}</span>
+              <span v-if="subtituloDe(seccionDestacada)" class="text-white/60 text-xs mt-0.5 truncate">{{ subtituloDe(seccionDestacada) }}</span>
+            </span>
             <span class="w-9 h-9 rounded-full bg-[#E07845] text-white flex items-center justify-center shadow-md shadow-orange-900/30 group-hover:translate-x-0.5 transition-transform shrink-0">
               <i class="fas fa-arrow-right text-sm"></i>
             </span>
@@ -411,7 +411,7 @@ onMounted(() => {
               @click="abrirSeccion(seccion)"
               class="group relative flex flex-col justify-between min-h-30 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-200 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 text-left"
           >
-            <div class="flex items-start justify-between">
+            <span class="flex items-start justify-between">
               <span
                   class="relative w-11 h-11 rounded-xl flex items-center justify-center text-lg transition-transform group-hover:scale-105"
                   :style="{ backgroundColor: colorDe(seccion, index).bg, color: colorDe(seccion, index).color }"
@@ -422,12 +422,12 @@ onMounted(() => {
                 </span>
               </span>
               <i class="fas fa-chevron-right text-slate-300 text-xs mt-1.5 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all"></i>
-            </div>
+            </span>
 
-            <div class="mt-3">
-              <p class="text-[13px] font-black text-gray-800 leading-tight">{{ store.traducir(seccion.titulo) }}</p>
-              <p v-if="subtituloDe(seccion)" class="text-[11px] text-slate-400 font-medium mt-0.5 leading-tight">{{ subtituloDe(seccion) }}</p>
-            </div>
+            <span class="mt-3 flex flex-col">
+              <span class="text-[13px] font-black text-gray-800 leading-tight">{{ store.traducir(seccion.titulo) }}</span>
+              <span v-if="subtituloDe(seccion)" class="text-[11px] text-slate-400 font-medium mt-0.5 leading-tight">{{ subtituloDe(seccion) }}</span>
+            </span>
           </button>
         </div>
 
@@ -464,12 +464,12 @@ onMounted(() => {
                 <span v-else class="w-11 h-11 rounded-xl bg-[#376875]/8 text-[#376875] text-lg flex items-center justify-center shrink-0">
                   <i :class="['fas', iconoItem(item)]"></i>
                 </span>
-                <div class="flex-1 min-w-0">
-                  <p class="font-bold text-gray-800 leading-tight group-hover:text-[#376875] transition-colors">{{ store.traducir(item.titulo) }}</p>
-                  <p v-if="item.galeria && item.galeria.length" class="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+                <span class="flex-1 min-w-0 flex flex-col">
+                  <span class="font-bold text-gray-800 leading-tight group-hover:text-[#376875] transition-colors">{{ store.traducir(item.titulo) }}</span>
+                  <span v-if="item.galeria && item.galeria.length" class="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
                     <i class="fas fa-images"></i> {{ item.galeria.length }} {{ maestroStore.t('gui_fotos') || 'fotos' }}
-                  </p>
-                </div>
+                  </span>
+                </span>
                 <i class="fas fa-chevron-right text-slate-300 group-hover:text-[#E07845] group-hover:translate-x-0.5 transition-all"></i>
               </button>
             </div>

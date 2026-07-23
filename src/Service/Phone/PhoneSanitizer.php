@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\Service\Phone;
+namespace App\Service\Phone;
 
 use libphonenumber\NumberParseException;
 use libphonenumber\PhoneNumberFormat;

@@ -135,6 +135,12 @@ const handleLogout = async () => {
           </span>
         </RouterLink>
 
+        <RouterLink to="/operacion" class="group relative px-8 py-4 bg-white text-slate-800 font-bold text-lg rounded-2xl overflow-hidden shadow-lg border border-slate-200 hover:border-[#376875] transition-all hover:-translate-y-1 w-full sm:w-auto flex justify-center items-center gap-3">
+          <span class="relative z-10 flex items-center gap-3 group-hover:text-[#376875] transition-colors">
+            <i class="fas fa-car-side text-xl" aria-hidden="true"></i> Centro de Operaciones
+          </span>
+        </RouterLink>
+
       </div>
 
     </main>

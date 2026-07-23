@@ -208,6 +208,7 @@ type CotizacionFileBase = components["schemas"]["CotizacionFile-file.read_file.i
 export type CotizacionFileExtended = Omit<CotizacionFileBase, 'cotizaciones'> & {
     id?: string | null;
     localizador?: string;
+    idiomaCliente?: string;
     cotizaciones?: Cotizacion[];
 };
 
@@ -296,6 +297,7 @@ export interface Catalogos {
     proveedores: Proveedor[];
     proveedorServicios: ProveedorServicioOption[];
     tiposComponente: ComponenteTipo[];
+    monedas: MaestroMoneda[];
 }
 
 export interface TarifaSnapshot {
@@ -328,10 +330,7 @@ export interface TarifaSnapshot {
     proveedorServicioTituloSnapshot?: I18nContent[];
     proveedorServicioUrlSnapshot?: string | null;
     proveedorServicioImagenesSnapshot: ImagenProveedorSnapshot[];
-    estadoOperativoSnapshot: string;
-    fechaLimitePago: string | null;
     nombreParaProveedorSnapshot?: string | null;
-    condicionesPagoSnapshot?: string | null;
     proveedorOculto: boolean;
     sobreescribirTraduccion: boolean;
 }

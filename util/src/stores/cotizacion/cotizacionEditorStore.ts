@@ -74,7 +74,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         poolSegmentos: [],
         proveedores: [],
         proveedorServicios: [],
-        tiposComponente: []
+        tiposComponente: [],
+        monedas: []
     });
 
     const todasLasTarifasMaestras = ref<Tarifa[]>([]);
@@ -401,10 +402,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const normalizarCodigoMoneda = (val: unknown): string => {
         if (!val) return 'USD';
-        const s = String(val).trim();
-        const upper = s.toUpperCase();
-        if (upper === 'PEN' || upper === 'USD') return upper;
-        return upper;
+        if (typeof val === 'object' && val !== null) {
+            const obj = val as Record<string, unknown>;
+            return normalizarCodigoMoneda(obj.id ?? 'USD');
+        }
+        return String(val).trim().toUpperCase() || 'USD';
     };
 
     const isComponenteBloqueado = (comp: ComponenteCompleto | null | undefined): boolean => {
@@ -1099,14 +1101,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const fetchCatalogos = async () => {
         try {
-            // Solo cargamos enums o datos estrictamente necesarios al inicio
-            const [resTipos] = await Promise.all([
-                apiClient.get('/cotizacion/user/maestros-enum/componente-tipos')
+            const [resTipos, resMonedas] = await Promise.all([
+                apiClient.get('/cotizacion/user/maestros-enum/componente-tipos'),
+                apiClient.get('/platform/maestro/monedas'),
             ]);
 
             catalogos.value.tiposComponente = resTipos.data || [];
+            catalogos.value.monedas = resMonedas.data['hydra:member'] || resMonedas.data['member'] || [];
 
-            // Inicializamos los arrays vacíos, se llenarán bajo demanda
             catalogos.value.servicios = [];
             catalogos.value.proveedores = [];
             catalogos.value.allComponentes = [];
@@ -1369,10 +1371,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                                 const pId = extractIdStr(t.proveedorMaestroId);
                                 if (pId && pId.length === 36) proveedoresToFetch.add(pId);
-
-                                if (t.fechaLimitePago) {
-                                    t.fechaLimitePago = getFechaLimpia(t.fechaLimitePago);
-                                }
                             });
                         }
                     });
@@ -1439,9 +1437,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
     const crearCotizacionVacia = (fileId: string) => {
-        const idiomaDefault = idiomasDisponibles.value.find(i => i.id === 'es')
-            ? 'es'
-            : (idiomasDisponibles.value.length ? idiomasDisponibles.value[0].id : 'es');
+        const idiomaDefault = fileActual.value?.idiomaCliente
+            || (idiomasDisponibles.value.find(i => i.id === 'es') ? 'es' : (idiomasDisponibles.value.length ? idiomasDisponibles.value[0].id : 'es'));
 
         cotizacion.value = {
             id: crypto.randomUUID(),
@@ -1612,12 +1609,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                     if (tarifa.tarifaMaestraId) {
                                         tarifa.tarifaMaestraId = extractIdStr(tarifa.tarifaMaestraId);
                                     }
-                                    if (tarifa.fechaLimitePago === '') {
-                                        tarifa.fechaLimitePago = null;
-                                    }
                                     tarifa.comisionOverrideSnapshot = (tarifa.comisionOverrideSnapshot === '' || tarifa.comisionOverrideSnapshot == null)
                                         ? null
                                         : String(tarifa.comisionOverrideSnapshot);
+                                    // MaestroMoneda es una relación — enviar IRI, no código plano
+                                    const codigoMoneda = normalizarCodigoMoneda(tarifa.moneda);
+                                    (tarifa as any).moneda = `/platform/maestro/monedas/${codigoMoneda}`;
                                 });
                             }
                         });
@@ -1673,9 +1670,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                     c.cottarifas?.forEach((t: TarifaSnapshot) => {
                         t.sobreescribirTraduccion = false;
-                        if (t.fechaLimitePago) {
-                            t.fechaLimitePago = getFechaLimpia(t.fechaLimitePago);
-                        }
+                        t.moneda = normalizarCodigoMoneda(t.moneda);
                     });
 
                     // 🔥 MECANISMO DE RESCATE LOCAL
@@ -2242,8 +2237,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             proveedorServicioTituloSnapshot: [],
             proveedorServicioUrlSnapshot: null,
             proveedorServicioImagenesSnapshot: [],
-            estadoOperativoSnapshot: 'sin-solicitar',   // FIX: 'pendiente' no existe en EstadoOperativoValue
-            fechaLimitePago: null,
             proveedorOculto: false,
             sobreescribirTraduccion: false
         } as TarifaSnapshot;
@@ -2461,9 +2454,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             proveedorServicioUrlSnapshot: null,
             proveedorServicioImagenesSnapshot: [],
             nombreParaProveedorSnapshot: getNombreParaProveedorTarifa(tarifa),
-            estadoOperativoSnapshot: 'sin-solicitar',
-            fechaLimitePago: null,
-            condicionesPagoSnapshot: null,
             proveedorOculto: false,
             sobreescribirTraduccion: false
         };
@@ -3144,7 +3134,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * usuario selecciona una nueva tarifa desde la interfaz (SearchableSelect).
      *
      * Relaciones críticas y efectos secundarios:
-     * - Sobreescribe múltiples propiedades de `dataActiva.value` (montoCosto, moneda, esGrupal, estadoOperativoSnapshot, etc.).
+     * - Sobreescribe múltiples propiedades de `dataActiva.value` (montoCosto, moneda, esGrupal, etc.).
      * - Depende de `catalogos.value.tarifas` y `todasLasTarifasMaestras.value` para localizar la entidad completa.
      * - Depende de `catalogos.value.proveedores` para resolver e hidratar el nombre comercial del proveedor vinculado.
      *
@@ -3227,9 +3217,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             dataActiva.value.nombreParaProveedorSnapshot = maestro.nombreParaProveedor || maestro.nombreInterno || null;
-            dataActiva.value.estadoOperativoSnapshot = 'sin-solicitar';
-            dataActiva.value.fechaLimitePago = null;
-            dataActiva.value.condicionesPagoSnapshot = null;
         }
     };
 
@@ -3309,11 +3296,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 dataActiva.value.proveedorTituloSnapshot = [];
                 dataActiva.value.proveedorUrlSnapshot = null;
                 dataActiva.value.proveedorImagenesSnapshot = [];
-
-                // 🔥 Sin proveedor, la gestión operativa no aplica — limpiamos los 3
-                dataActiva.value.estadoOperativoSnapshot = null;
-                dataActiva.value.fechaLimitePago = null;
-                dataActiva.value.condicionesPagoSnapshot = null;
             }
             catalogos.value.proveedorServicios = [];
             return;
@@ -3329,8 +3311,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             dataActiva.value.proveedorUrlSnapshot = provCat.url || null;
             dataActiva.value.proveedorImagenesSnapshot = mapearImagenesSnapshot((provCat as any).proveedorImagenes);
 
-            // 🔥 Proveedor recién asignado -> arranca en Sin Solicitar
-            dataActiva.value.estadoOperativoSnapshot = 'sin-solicitar';
         }
 
         fetchProveedorServiciosDeProveedor(targetId);

@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 namespace App\EventListener;
 
-use App\Service\AutoTranslationService;
+use App\Service\Translate\AutoTranslationService;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;

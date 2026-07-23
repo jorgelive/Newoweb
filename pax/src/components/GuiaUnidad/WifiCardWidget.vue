@@ -105,7 +105,7 @@ const traducirUbicacion = (ubicacion: any) => {
             </div>
 
             <button v-if="!isLocked"
-                    @click="copiarAlPortapapeles(wifi.password, index)"
+                    @click="copiarAlPortapapeles(wifi.password, index as number)"
                     class="w-10 h-10 flex items-center justify-center rounded-lg bg-white text-[#E07845] shadow-sm border border-orange-100 hover:bg-[#E07845] hover:text-white hover:shadow-md transition-all active:scale-95 shrink-0"
                     title="Copiar contraseña"
             >

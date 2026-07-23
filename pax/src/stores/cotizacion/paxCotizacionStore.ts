@@ -97,6 +97,12 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
                 currentLocalizador.value = localizador;
                 lastUpdatePortada.value = Date.now();
                 error.value = null;
+
+                // Aplicar idioma predeterminado del expediente si no hay selección manual
+                const idiomaFile = data.idiomaCliente;
+                if (idiomaFile && maestroStore.idiomaActual !== idiomaFile && !localStorage.getItem('paxIdiomaManual')) {
+                    maestroStore.setIdioma(idiomaFile);
+                }
             } catch (err: any) {
                 if (!datosExisten) { portada.value = null; currentLocalizador.value = null; }
                 manejarError(err, datosExisten);

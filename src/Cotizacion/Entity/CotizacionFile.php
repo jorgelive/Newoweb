@@ -21,9 +21,13 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
+use App\Service\Phone\PhoneSanitizer;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use libphonenumber\NumberParseException;
+use libphonenumber\PhoneNumberFormat;
+use libphonenumber\PhoneNumberUtil;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 
@@ -123,6 +127,10 @@ class CotizacionFile
     #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
     #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: true)]
     private ?MaestroIdioma $idioma = null;
+
+    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_file:read'])]
+    #[ORM\Column(type: 'string', length: 5, options: ['default' => 'es'])]
+    private string $idiomaCliente = 'es';
 
     #[Groups(['file:read', 'file:item:read', 'file:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: FileEstadoEnum::class, options: ['default' => 'abierto'])]
@@ -255,6 +263,9 @@ class CotizacionFile
     public function getIdioma(): ?MaestroIdioma { return $this->idioma; }
     public function setIdioma(?MaestroIdioma $idioma): self { $this->idioma = $idioma; return $this; }
 
+    public function getIdiomaCliente(): string { return $this->idiomaCliente; }
+    public function setIdiomaCliente(string $idiomaCliente): self { $this->idiomaCliente = $idiomaCliente; return $this; }
+
     public function getNombreGrupo(): ?string { return $this->nombreGrupo; }
     public function setNombreGrupo(string $nombreGrupo): self { $this->nombreGrupo = $nombreGrupo; return $this; }
 
@@ -264,8 +275,28 @@ class CotizacionFile
     public function getEmail(): ?string { return $this->email; }
     public function setEmail(?string $email): self { $this->email = $email; return $this; }
 
-    public function getTelefono(): ?string { return $this->telefono; }
+    public function getTelefono(): ?string
+    {
+        if ($this->telefono === null || $this->telefono === '') return null;
+        try {
+            $util = PhoneNumberUtil::getInstance();
+            return $util->format($util->parse('+' . $this->telefono, null), PhoneNumberFormat::INTERNATIONAL);
+        } catch (NumberParseException) {
+            return $this->telefono;
+        }
+    }
+
     public function setTelefono(?string $telefono): self { $this->telefono = $telefono; return $this; }
+
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function sanitizarCampos(): void
+    {
+        if ($this->telefono !== null && $this->telefono !== '') {
+            $cleaned = (new PhoneSanitizer())->cleanPhoneNumber($this->telefono, 'PE');
+            $this->telefono = $cleaned !== '' ? $cleaned : null;
+        }
+    }
 
     public function getEstado(): FileEstadoEnum
     {

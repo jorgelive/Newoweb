@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Service\AutoTranslationService;
+use App\Service\Translate\AutoTranslationService;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelItemDiccionario;
 use App\Travel\Entity\TravelTarifa;

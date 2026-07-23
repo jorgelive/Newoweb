@@ -34,13 +34,15 @@ export type ApiCotizacionFiledocumento = components['schemas']['CotizacionFiledo
 // esos campos solo llevan #[Groups(['file:item:read'])] en el entity.
 type BaseApiCotizacionFile = components['schemas']['CotizacionFile.jsonld-file.read_file.item.read_timestamp.read'];
 
-export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filedocumentos'> & {
+export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filedocumentos' | 'cotizaciones'> & {
     '@id'?: string;
     '@type'?: string;
     id?: string;
     localizador?: string | null;
+    idiomaCliente?: string;
     pais?: ApiPais | null;
     idioma?: ApiIdioma | null;
+    cotizaciones?: ApiCotizacionVersion[];
     filepasajeros?: ApiCotizacionFilepasajero[];
     filedocumentos?: ApiCotizacionFiledocumento[];
 };
@@ -104,4 +106,5 @@ export const getDocIdLabel = (val?: string | null): string =>
 // sin cotservicios, idiomaEdicion, clasificacionFinanciera, etc.).
 export type ApiCotizacionVersion = components['schemas']['Cotizacion.jsonld-file.read_file.item.read_timestamp.read'] & {
     '@id'?: string;
+    idiomaCliente?: string;
 };

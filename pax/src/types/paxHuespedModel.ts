@@ -1,54 +1,51 @@
 // src/types/paxHuespedModel.ts
+// ============================================================================
+// Tipos del módulo PAX / Huésped.
+//
+// Los tipos con schema en api.d.ts se anclan con components['schemas'][...],
+// extendiéndolos donde el schema OpenAPI es incompleto:
+//  - PmsUnidad: api.d.ts solo expone `imageUrl`; en runtime también viene `id` y `nombre`.
+//  - PmsReserva.eventosActivosGuia: api.d.ts lo declara string[] pero
+//    el endpoint devuelve objetos PmsEventoCalendario embebidos.
+//  - PmsGuia.titulo y secciones: api.d.ts los tipifica como string[] (columnas
+//    JSON que API Platform no puede introspeccionar); en runtime son objetos.
+//  - GuiaHelperContext: endpoint personalizado, sin schema en api.d.ts.
+// ============================================================================
 
-// --- COMUNES ---
+import type { components } from './api';
+
+// --- Tipos de contenido traducible (columnas JSON, sin schema propio en api.d.ts) ---
+
+/** Elemento de contenido multiidioma: { language, content } */
 export interface PmsContenidoTraducible {
     language: string;
     content: string;
 }
 
-// --- MAESTROS ---
-export interface MaestroPais {
-    "@type"?: string;
-    "@id"?: string;
-    id: string;
-    nombre: string;
-}
+// --- PmsChannel: anclado a api.d.ts ---
 
-export interface MaestroIdioma {
-    "@type"?: string;
-    "@id"?: string;
-    id: string;
-    nombre: string;
-}
+export type PmsChannel = components['schemas']['PmsChannel-pax_reserva.read'];
 
-export interface PmsChannel {
-    "@type"?: string;
-    "@id"?: string;
-    id: string;
-    nombre: string;
-}
+// --- PmsUnidad: extiende api.d.ts con campos que el endpoint devuelve en runtime ---
+// api.d.ts solo expone imageUrl en pax_evento.read; id y nombre también se serializan.
+
+export type PmsUnidad = components['schemas']['PmsUnidad-pax_evento.read'] & {
+    id?: string;
+    nombre?: string;
+};
+
+// --- PmsEventoCalendario: no tiene schema en api.d.ts; el endpoint los embebe como objetos ---
 
 export interface PmsEventoEstado {
-    "@type"?: string;
-    "@id"?: string;
     nombre: string;
-}
-
-// --- CORE ---
-export interface PmsUnidad {
-    "@type"?: string;
-    "@id"?: string;
-    nombre: string;
-    id: string;
-    imageUrl: string;
 }
 
 export interface PmsEventoCalendario {
-    "@type"?: string;
-    "@id": string;
+    '@type'?: string;
+    '@id'?: string;
     id: string;
     pmsUnidad: PmsUnidad;
-    estado: PmsEventoEstado;
+    estado?: PmsEventoEstado;
     reserva?: string;
     inicio: string;
     fin: string;
@@ -56,42 +53,23 @@ export interface PmsEventoCalendario {
     cantidadNinos: number;
 }
 
-export interface PmsReserva {
-    "@context"?: string;
-    "@id": string;
-    "@type": string;
-    id: string;
-    localizador: string;
-    nombreCliente: string;
-    apellidoCliente: string;
-    nombreCompleto: string;
-    telefono: string;
-    emailCliente: string;
-    pais: MaestroPais;
-    idioma: MaestroIdioma;
-    channel: PmsChannel;
-    nombreHotel: string;
-    nombreHabitacion: string;
-    fechaLlegada: string;
-    fechaSalida: string;
-    numeroNoches: number;
-    cantidadAdultos: number;
-    cantidadNinos: number;
-    paxTotal: number;
-    eventosActivosGuia: PmsEventoCalendario[];
-}
+// --- PmsReserva: ancla al schema de api.d.ts pero sobreescribe eventosActivosGuia ---
+// api.d.ts declara eventosActivosGuia como string[]; en runtime son objetos embebidos.
 
-// --- GUÍA ---
+export type PmsReserva = Omit<components['schemas']['PmsReserva-pax_reserva.read'], 'eventosActivosGuia'> & {
+    eventosActivosGuia?: PmsEventoCalendario[];
+};
+
+// --- Guía del huésped: secciones e items (no son schemas separados en api.d.ts) ---
+
 export interface PmsGuiaItemGaleria {
-    "@type"?: string;
-    "@id"?: string;
     descripcion?: PmsContenidoTraducible[];
     imageUrl: string;
 }
 
 export interface PmsGuiaItem {
-    "@type"?: string;
-    "@id": string;
+    '@type'?: string;
+    '@id'?: string;
     tipo: 'card' | 'album' | 'alert' | string;
     titulo: PmsContenidoTraducible[];
     descripcion?: PmsContenidoTraducible[];
@@ -104,8 +82,8 @@ export interface PmsGuiaItem {
 export type PmsGuiaSeccionTipo = 'ingreso' | 'descriptivo' | 'normas';
 
 export interface PmsGuiaSeccion {
-    "@type"?: string;
-    "@id": string;
+    '@type'?: string;
+    '@id'?: string;
     id: string;
     icono: string;
     tipo?: PmsGuiaSeccionTipo | null;
@@ -114,17 +92,17 @@ export interface PmsGuiaSeccion {
     items: PmsGuiaItem[];
 }
 
-export interface PmsGuia {
-    "@context"?: string;
-    "@id": string;
-    "@type": string;
-    unidad: PmsUnidad;
-    activo: boolean;
+// PmsGuia: ancla al schema de api.d.ts corrigiendo los campos JSON no introspectables.
+// Se sobreescribe también `unidad` para usar PmsUnidad extendido con id y nombre.
+
+export type PmsGuia = Omit<components['schemas']['PmsGuia-pax_evento.read'], 'titulo' | 'secciones' | 'unidad'> & {
+    unidad?: PmsUnidad;
     titulo: PmsContenidoTraducible[];
     secciones: PmsGuiaSeccion[];
-}
+};
 
-// --- HELPER CONTEXT (ESTRUCTURA SEGURA) ---
+// --- GuiaHelperContext: endpoint personalizado, sin schema en api.d.ts ---
+
 export interface GuiaHelperContext {
     data: {
         text_fixed: {
@@ -148,7 +126,6 @@ export interface GuiaHelperContext {
         };
         config: {
             mode: 'guest' | 'demo';
-            // 🔥 Añadido 'unconfirmed' al tipo
             access_status: 'active' | 'pending' | 'expired' | 'unconfirmed' | 'demo';
             is_locked: boolean;
             unit_uuid: string;

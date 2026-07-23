@@ -4,7 +4,7 @@ namespace App\Oweb\Controller;
 
 use App\Oweb\Entity\MaestroClasemedio;
 use App\Oweb\Entity\MaestroMedio;
-use App\Service\GoogleTranslateService;
+use App\Service\Translate\GoogleTranslateService;
 use Doctrine\ORM\EntityManagerInterface;
 use Google\ApiCore\ApiException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;

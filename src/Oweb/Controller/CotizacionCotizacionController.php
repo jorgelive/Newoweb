@@ -6,7 +6,7 @@ use App\Oweb\Entity\CotizacionCotizacion;
 use App\Oweb\Entity\CotizacionEstadocotcomponente;
 use App\Oweb\Entity\CotizacionEstadocotizacion;
 use App\Oweb\Service\CotizacionProceso;
-use App\Service\GoogleTranslateService;
+use App\Service\Translate\GoogleTranslateService;
 use Doctrine\ORM\EntityManagerInterface;
 use Google\ApiCore\ApiException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -35,7 +35,7 @@ class CotizacionCotizacionController extends CRUDController
         return [
                 'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
                 'App\Oweb\Service\CotizacionProceso' => CotizacionProceso::class,
-                'App\Service\GoogleTranslateService' => GoogleTranslateService::class,
+                'App\Service\Translate\GoogleTranslateService' => GoogleTranslateService::class,
             ] + parent::getSubscribedServices();
     }
 
@@ -117,7 +117,7 @@ class CotizacionCotizacionController extends CRUDController
         /** @var EntityManagerInterface $em */
         $em = $this->container->get('doctrine.orm.default_entity_manager');
         /** @var GoogleTranslateService $translateService */
-        $translateService = $this->container->get('App\Service\GoogleTranslateService');
+        $translateService = $this->container->get('App\Service\Translate\GoogleTranslateService');
 
         /** @var CotizacionCotizacion $cotizacionDL */
         $cotizacionDL = $em->getRepository(CotizacionCotizacion::class)->find($object->getId());

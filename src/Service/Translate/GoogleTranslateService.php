@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Service;
+namespace App\Service\Translate;
 
+use Google\ApiCore\ApiException;
 use Google\Cloud\Translate\V3\Client\TranslationServiceClient;
 use Google\Cloud\Translate\V3\TranslateTextRequest;
-use Google\ApiCore\ApiException;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 
 /**

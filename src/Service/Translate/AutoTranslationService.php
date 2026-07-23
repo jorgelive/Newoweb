@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Service;
+namespace App\Service\Translate;
 
 use App\Attribute\AutoTranslate;
 use App\Entity\Maestro\MaestroIdioma;

@@ -3,7 +3,7 @@
 namespace App\Oweb\Controller;
 
 use App\Oweb\Entity\ServicioTarifa;
-use App\Service\GoogleTranslateService;
+use App\Service\Translate\GoogleTranslateService;
 use Doctrine\ORM\EntityManagerInterface;
 use Google\ApiCore\ApiException;
 use Symfony\Component\HttpFoundation\RedirectResponse;

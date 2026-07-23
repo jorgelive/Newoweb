@@ -19,6 +19,7 @@ const router = useRouter();
 
 const isReady = ref(false);
 const pasajerosExpandido = ref(false);
+const idiomaDropdown = ref(false);
 
 // --- BUSCADOR ---
 const codigoBusqueda = ref('');
@@ -36,6 +37,11 @@ const cargar = async () => {
     await maestroStore.cargarConfiguracion();
     if (props.localizador) {
       await store.cargarPortada(props.localizador);
+      // Aplicar idioma del expediente (incluso si vino de caché)
+      const idiomaFile = store.portada?.idiomaCliente;
+      if (idiomaFile && !localStorage.getItem('paxIdiomaManual')) {
+        maestroStore.setIdioma(idiomaFile);
+      }
     }
   } catch (error) {
     console.error('Error en carga inicial:', error);
@@ -74,9 +80,24 @@ const formatearMonto = (monto: string | null, moneda: string) => {
   }).format(Number(monto));
 };
 
-const cambiarIdioma = (e: Event) => {
-  maestroStore.setIdioma((e.target as HTMLSelectElement).value);
+const seleccionarIdioma = (id: string) => {
+  maestroStore.setIdioma(id);
   localStorage.setItem('paxIdiomaManual', '1');
+  idiomaDropdown.value = false;
+};
+
+// totalVenta siempre llega en USD del backend; monedaGlobal solo indica cómo mostrarlo
+const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoCambio: number) => {
+  if (monto === null) return '';
+  const usd = Number(monto);
+  if (monedaGlobal === 'PEN') {
+    const soles = usd * (tipoCambio || 1);
+    if (maestroStore.idiomaActual === 'es') {
+      return `S/. ${new Intl.NumberFormat('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(soles)}`;
+    }
+    return new Intl.NumberFormat(maestroStore.idiomaActual, { style: 'currency', currency: 'PEN' }).format(soles);
+  }
+  return new Intl.NumberFormat(maestroStore.idiomaActual, { style: 'currency', currency: 'USD' }).format(usd);
 };
 
 </script>
@@ -133,18 +154,28 @@ const cambiarIdioma = (e: Event) => {
 
         <!-- Selector de idioma -->
         <div class="flex justify-end mb-6 relative z-20">
-          <div class="relative">
-            <select
-                :value="maestroStore.idiomaActual"
-                @change="cambiarIdioma"
-                class="appearance-none bg-white/10 border border-white/20 font-black text-[10px] uppercase tracking-widest rounded-xl pl-4 pr-8 py-2 focus:outline-none focus:bg-white focus:text-[#376875] cursor-pointer text-white transition-colors hover:bg-white/20"
+          <div v-if="idiomaDropdown" class="fixed inset-0 z-40" @click="idiomaDropdown = false"></div>
+          <div class="relative z-50">
+            <button
+                @click="idiomaDropdown = !idiomaDropdown"
+                class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl px-4 py-2 text-white transition-colors"
             >
-              <option v-for="lang in maestroStore.idiomas" :key="lang.id" :value="lang.id" class="text-gray-800">
-                {{ lang.bandera }} {{ lang.id.toUpperCase() }}
-              </option>
-            </select>
-            <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/70">
-              <i class="fas fa-chevron-down text-[8px]"></i>
+              <span class="text-base leading-none">{{ maestroStore.idiomas.find(l => l.id === maestroStore.idiomaActual)?.bandera ?? '🌐' }}</span>
+              <span class="font-black text-[10px] uppercase tracking-widest">{{ maestroStore.idiomaActual.toUpperCase() }}</span>
+              <i class="fas fa-chevron-down text-[8px] text-white/70 transition-transform duration-200" :class="idiomaDropdown ? 'rotate-180' : ''"></i>
+            </button>
+            <div v-if="idiomaDropdown" class="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-[160px]">
+              <button
+                  v-for="lang in maestroStore.idiomas"
+                  :key="lang.id"
+                  @click="seleccionarIdioma(lang.id)"
+                  class="flex items-center gap-3 w-full px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                  :class="maestroStore.idiomaActual === lang.id ? 'bg-[#376875]/5 text-[#376875]' : 'text-slate-700'"
+              >
+                <span class="text-lg leading-none">{{ lang.bandera }}</span>
+                <span class="text-xs font-black uppercase tracking-wider flex-1">{{ lang.nombre }}</span>
+                <i v-if="maestroStore.idiomaActual === lang.id" class="fas fa-check text-[#376875] text-[10px]"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -252,7 +283,7 @@ const cambiarIdioma = (e: Event) => {
                   {{ maestroStore.t('cot_precio_total') || 'Precio total' }}
                 </p>
                 <p class="text-sm md:text-base font-black text-gray-500 leading-tight whitespace-nowrap tabular-nums">
-                  {{ formatearMonto(v.totalVenta, v.monedaGlobal) }}
+                  {{ formatearMontoPortada(v.totalVenta, v.monedaGlobal, v.tipoCambio) }}
                 </p>
               </div>
               <div v-else class="text-right shrink-0 max-w-36">
@@ -292,7 +323,7 @@ const cambiarIdioma = (e: Event) => {
                 class="text-[10px] text-[#376875]/45 font-bold uppercase tracking-widest mt-3.5 text-right flex items-center justify-end gap-2 flex-wrap"
             >
               <span v-if="v.adelanto && Number(v.adelanto) > 0">
-                <i class="fas fa-wallet mr-1 text-[#E07845]/60"></i>{{ maestroStore.t('cot_adelanto') || 'Adelanto' }} {{ formatearMonto(v.adelanto, v.monedaGlobal) }}
+                <i class="fas fa-wallet mr-1 text-[#E07845]/60"></i>{{ maestroStore.t('cot_adelanto') || 'Adelanto' }} {{ formatearMontoPortada(v.adelanto, v.monedaGlobal, v.tipoCambio) }}
               </span>
               <span v-if="(v.adelanto && Number(v.adelanto) > 0) && v.fechaExpiracion" class="text-[#376875]/25">·</span>
               <span v-if="v.fechaExpiracion">

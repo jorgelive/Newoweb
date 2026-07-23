@@ -6,7 +6,7 @@ namespace App\Message\Service\Translation;
 
 use App\Entity\Maestro\MaestroIdioma;
 use App\Message\Entity\Message;
-use App\Service\GoogleTranslateService;
+use App\Service\Translate\GoogleTranslateService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;

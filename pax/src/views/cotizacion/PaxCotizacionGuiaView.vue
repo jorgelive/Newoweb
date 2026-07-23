@@ -100,8 +100,11 @@ const monedaVista = ref<'PEN' | 'USD'>('USD');
 watch(() => store.cotizacion?.monedaGlobal, (m) => { if (m === 'PEN') monedaVista.value = 'PEN'; }, { immediate: true });
 
 const n2 = (v: number) => (Math.round(v * 100) / 100).toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtPEN = (v: number) => maestroStore.idiomaActual === 'es'
+    ? `S/. ${n2(v)}`
+    : new Intl.NumberFormat(maestroStore.idiomaActual, { style: 'currency', currency: 'PEN' }).format(Math.round(v * 100) / 100);
 const mv = (soles: number, dolares: number) =>
-    monedaVista.value === 'PEN' ? `S/ ${n2(soles)}` : `$ ${n2(dolares)}`;
+    monedaVista.value === 'PEN' ? fmtPEN(soles) : `$ ${n2(dolares)}`;
 
 // ── Helpers de fecha/hora ────────────────────────────────────────────────────
 const dateOf = (iso: string) => iso.substring(0, 10);
@@ -510,6 +513,15 @@ const mvDelta = (deltaUsd: number) => {
       ? `S/ ${n2(abs * tipoCambio.value)}`
       : `$ ${n2(abs)}`;
 };
+
+const adelantoVista = computed(() => {
+  const cot = store.cotizacion;
+  if (!cot) return '';
+  const a = Number(cot.adelanto);
+  const tc = tipoCambio.value || 1;
+  const [s, d] = cot.monedaGlobal === 'PEN' ? [a, a / tc] : [a * tc, a];
+  return mv(s, d);
+});
 </script>
 
 <template>
@@ -583,25 +595,39 @@ const mvDelta = (deltaUsd: number) => {
               </p>
             </div>
 
-            <!-- Resumen financiero colapsado: vive en el header -->
-            <button
-                v-if="store.precioVisible && totalViaje"
-                @click="finanzasAbiertas = !finanzasAbiertas"
-                class="shrink-0 bg-white/5 hover:bg-white/10 backdrop-blur-sm border rounded-2xl px-4 py-2.5 text-right transition-all"
-                :class="finanzasAbiertas ? 'border-emerald-300/60 bg-white/20' : 'border-white/20'"
-            >
-              <span class="text-[8px] font-black text-white/60 uppercase tracking-widest flex items-center justify-end gap-1.5">
-                <i class="fas fa-sack-dollar text-emerald-300"></i>
-                {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
-              </span>
-              <span class="text-lg md:text-2xl font-black tabular-nums leading-tight flex items-center justify-end gap-2">
-                {{ mv(totalViaje.soles, totalViaje.dolares) }}
-                <i
-                    class="fas fa-chevron-down text-xs text-emerald-300 transition-transform"
-                    :class="finanzasAbiertas ? 'rotate-180' : ''"
-                ></i>
-              </span>
-            </button>
+            <!-- Precio + selector de moneda (debajo del monto) -->
+            <div v-if="store.precioVisible && totalViaje" class="flex flex-col items-end gap-2 shrink-0">
+              <button
+                  @click="finanzasAbiertas = !finanzasAbiertas"
+                  class="bg-white/5 hover:bg-white/10 backdrop-blur-sm border rounded-2xl px-4 py-2.5 text-right transition-all"
+                  :class="finanzasAbiertas ? 'border-emerald-300/60 bg-white/20' : 'border-white/20'"
+              >
+                <span class="text-[8px] font-black text-white/60 uppercase tracking-widest flex items-center justify-end gap-1.5">
+                  <i class="fas fa-sack-dollar text-emerald-300"></i>
+                  {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
+                </span>
+                <span class="text-lg md:text-2xl font-black tabular-nums leading-tight flex items-center justify-end gap-2">
+                  {{ mv(totalViaje.soles, totalViaje.dolares) }}
+                  <i
+                      class="fas fa-chevron-down text-xs text-emerald-300 transition-transform"
+                      :class="finanzasAbiertas ? 'rotate-180' : ''"
+                  ></i>
+                </span>
+              </button>
+              <!-- Selector de moneda justo debajo del precio -->
+              <div class="flex items-center bg-white/10 border border-white/20 rounded-xl p-0.5 gap-0.5">
+                <button
+                    @click="monedaVista = 'PEN'"
+                    :class="monedaVista === 'PEN' ? 'bg-white text-[#376875] shadow' : 'text-white/60 hover:text-white'"
+                    class="px-3 py-1 rounded-lg text-[10px] font-black tracking-widest transition-all"
+                >S/</button>
+                <button
+                    @click="monedaVista = 'USD'"
+                    :class="monedaVista === 'USD' ? 'bg-white text-[#376875] shadow' : 'text-white/60 hover:text-white'"
+                    class="px-3 py-1 rounded-lg text-[10px] font-black tracking-widest transition-all"
+                >$</button>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -613,25 +639,10 @@ const mvDelta = (deltaUsd: number) => {
       >
         <div class="max-w-3xl mx-auto px-4 py-6">
 
-          <!-- Switch de moneda -->
-          <div class="flex items-center justify-between gap-3 mb-4">
-            <h2 class="text-emerald-700/80 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2">
-              <i class="fas fa-users"></i>
-              {{ maestroStore.t('cot_perfil_pasajero') || 'Análisis por perfil de pasajero' }}
-            </h2>
-            <div class="flex items-center bg-white border border-emerald-200 rounded-xl p-1 gap-1 shadow-sm shrink-0">
-              <button
-                  @click="monedaVista = 'PEN'"
-                  :class="monedaVista === 'PEN' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'"
-                  class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
-              >S/</button>
-              <button
-                  @click="monedaVista = 'USD'"
-                  :class="monedaVista === 'USD' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'"
-                  class="px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all"
-              >$</button>
-            </div>
-          </div>
+          <h2 class="text-emerald-700/80 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2 mb-4">
+            <i class="fas fa-users"></i>
+            {{ maestroStore.t('cot_perfil_pasajero') || 'Análisis por perfil de pasajero' }}
+          </h2>
 
           <!-- Perfiles de pasajero (venta unitaria; el total está en el header) -->
           <div class="space-y-3">
@@ -759,7 +770,7 @@ const mvDelta = (deltaUsd: number) => {
                   {{ maestroStore.t('cot_adelanto') || 'Adelanto' }}
                 </p>
                 <p class="text-base font-black text-gray-800 tabular-nums leading-none">
-                  {{ store.cotizacion.monedaGlobal }} {{ store.cotizacion.adelanto }}
+                  {{ adelantoVista }}
                 </p>
               </div>
               <button

@@ -59,7 +59,7 @@ const descripcionRaw = computed(() => {
             v-for="(foto, idx) in item.galeria"
             :key="idx"
             class="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-[#376875]/5 shadow-sm hover:shadow-md transition-all duration-300 cursor-zoom-in border border-[#376875]/10"
-            @click="showImg(idx)"
+            @click="showImg(idx as number)"
         >
           <img
               :src="foto.imageUrl"

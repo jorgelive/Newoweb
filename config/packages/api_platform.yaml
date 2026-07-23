@@ -14,6 +14,9 @@ api_platform:
             # - '%kernel.project_dir%/src/Exchange/Entity'
 
 
+    eager_loading:
+        max_joins: 100
+
     defaults:
         stateless: false
         cache_headers:

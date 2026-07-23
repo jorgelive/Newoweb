@@ -121,7 +121,7 @@ class Cotizacion
     #[ORM\Column(type: 'string', length: 10, options: ['default' => 'USD'])]
     private string $monedaGlobal = 'USD';
 
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'pax_cotizacion:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 5, options: ['default' => 'es'])]
     private string $idiomaCliente = 'es';
 

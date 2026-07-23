@@ -49,7 +49,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.version, c.estado, c.numPax, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto, c.totalVenta, c.adelanto,
-                   c.fechaExpiracion, MIN(s.fechaInicioAbsoluta) AS fechaInicio
+                   c.tipoCambio, c.fechaExpiracion, MIN(s.fechaInicioAbsoluta) AS fechaInicio
             FROM App\Cotizacion\Entity\Cotizacion c
             LEFT JOIN c.cotservicios s
             WHERE c.file = :file
@@ -80,6 +80,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 'idiomaCliente'   => $f['idiomaCliente'],
                 'monedaGlobal'    => $f['monedaGlobal'],
                 'precioOculto'    => $oculto,
+                'tipoCambio'      => (float) $f['tipoCambio'],
                 // No filtrar montos cuando el precio está oculto
                 'totalVenta'      => $oculto ? null : $f['totalVenta'],
                 'adelanto'        => $oculto ? null : $f['adelanto'],

@@ -15,7 +15,7 @@ use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidadBeds24Map;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
-use App\Pms\Service\Phone\PhoneSanitizer;
+use App\Service\Phone\PhoneSanitizer;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;

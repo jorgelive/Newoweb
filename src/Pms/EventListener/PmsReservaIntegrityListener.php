@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\EventListener;
 
 use App\Pms\Entity\PmsReserva;
-use App\Pms\Service\Phone\PhoneSanitizer;
+use App\Service\Phone\PhoneSanitizer;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;

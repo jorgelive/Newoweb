@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Oweb\Controller;
 
 use App\Oweb\Entity\ServicioItinerariodia;
-use App\Service\GoogleTranslateService;
+use App\Service\Translate\GoogleTranslateService;
 use Doctrine\ORM\EntityManagerInterface;
 use Google\ApiCore\ApiException;
 use Symfony\Component\HttpFoundation\RedirectResponse;

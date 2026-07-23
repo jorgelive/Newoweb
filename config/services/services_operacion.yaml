@@ -1,0 +1,28 @@
+# config/services/services_operacion.yaml
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Operacion\:
+        resource: '../../src/Operacion/'
+        exclude:
+#            - '../../src/Operacion/Dto/'
+            - '../../src/Operacion/Entity/'
+
+    # =========================
+    # controllers del módulo Operacion
+    # (fuera de src/Controller/)
+    # =========================
+    App\Operacion\Controller\:
+        resource: '../../src/Operacion/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+          - 'controller.service_arguments'
+
+
+
+

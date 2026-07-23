@@ -50,6 +50,7 @@ defineProps<{
 }>();
 
 const isReporteOpen = ref(false);
+const verEnSoles = ref(false);
 
 const route = useRoute();
 const router = useRouter();
@@ -361,6 +362,19 @@ const formatFecha = (fecha?: string) => {
 const formatMoneda = (monto?: number | string, moneda?: string) => {
   const num = typeof monto === 'string' ? parseFloat(monto) : (monto ?? 0);
   return `${moneda === 'USD' ? '$' : 'S/'} ${num.toFixed(2)}`;
+};
+
+const formatMonedaPanel = (monto?: number | string, moneda?: string) => {
+  const num = typeof monto === 'string' ? parseFloat(monto) : (monto ?? 0);
+  const monedaBase = moneda ?? store.cotizacion?.monedaGlobal ?? 'USD';
+  // El resumen financiero siempre normaliza montos a USD.
+  // Hay que convertir cuando la cotización es en PEN, o cuando el switch está activo.
+  const convertirASoles = monedaBase === 'PEN' || (verEnSoles.value && monedaBase !== 'PEN');
+  if (convertirASoles) {
+    const tc = parseFloat(String(store.cotizacion?.tipoCambio || 1));
+    return `S/ ${(num * tc).toFixed(2)}`;
+  }
+  return formatMoneda(num, monedaBase);
 };
 
 const formatRangoServicio = (servicio: any) => {
@@ -950,15 +964,15 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
               <i class="fas fa-chart-pie absolute -right-6 -bottom-6 text-8xl opacity-10"></i>
               <div class="relative z-10">
                 <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Venta Total Sugerida</p>
-                <p class="text-4xl font-black tracking-tight">{{ formatMoneda(store.resumenFinanciero?.totalVentaBruta, store.cotizacion?.monedaGlobal) }}</p>
+                <p class="text-4xl font-black tracking-tight">{{ formatMonedaPanel(store.resumenFinanciero?.totalVentaBruta) }}</p>
                 <div class="mt-4 pt-4 border-t border-slate-800/30 flex justify-between items-end">
                   <div>
                     <p class="text-[9px] text-slate-300 uppercase font-bold">Costo Neto</p>
-                    <p class="text-lg font-bold text-white">{{ formatMoneda(store.resumenFinanciero?.totalCostoNeto, store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-lg font-bold text-white">{{ formatMonedaPanel(store.resumenFinanciero?.totalCostoNeto) }}</p>
                   </div>
                   <div class="text-right">
                     <p class="text-[9px] text-emerald-400 uppercase font-bold">Margen Bruto</p>
-                    <p class="text-lg font-bold text-emerald-300">+{{ formatMoneda(store.resumenFinanciero?.ganancia, store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-lg font-bold text-emerald-300">+{{ formatMonedaPanel(store.resumenFinanciero?.ganancia) }}</p>
                   </div>
                 </div>
               </div>
@@ -990,18 +1004,18 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                   </div>
                   <div class="text-right">
                     <p class="text-[9px] text-slate-400 font-bold uppercase">Venta Unit.</p>
-                    <p class="text-sm font-black text-slate-800">{{ formatMoneda(clase.resumen.ventaDolares / (clase.cantidad || 1), store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-sm font-black text-slate-800">{{ formatMonedaPanel(clase.resumen.ventaDolares / (clase.cantidad || 1)) }}</p>
                   </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-50">
                   <div class="bg-slate-50 p-2 rounded-lg text-center">
                     <p class="text-[8px] text-slate-400 font-bold uppercase">Costo Total</p>
-                    <p class="text-[11px] font-black text-slate-600">{{ formatMoneda(clase.resumen.montoDolares, store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-[11px] font-black text-slate-600">{{ formatMonedaPanel(clase.resumen.montoDolares) }}</p>
                   </div>
                   <div class="bg-emerald-50 p-2 rounded-lg text-center">
                     <p class="text-[8px] text-emerald-600 font-bold uppercase">Utilidad</p>
-                    <p class="text-[11px] font-black text-emerald-700">{{ formatMoneda(clase.resumen.gananciaDolares, store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-[11px] font-black text-emerald-700">{{ formatMonedaPanel(clase.resumen.gananciaDolares) }}</p>
                   </div>
                 </div>
 
@@ -1058,6 +1072,26 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                   <input v-model="store.cotizacion.tipoCambio" type="number" step="0.0001"
                          class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-black text-center outline-none focus:ring-2 focus:ring-orange-500 shadow-inner">
                   <div class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase tracking-tighter">PEN/USD</div>
+                </div>
+              </div>
+
+              <div class="col-span-2 bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                <div>
+                  <span class="block text-[10px] font-black text-slate-500 uppercase mb-1.5">Moneda Base</span>
+                  <select v-model="store.cotizacion.monedaGlobal"
+                          class="font-black text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] text-sm appearance-none shadow-sm">
+                    <option v-for="m in store.catalogos.monedas" :key="m.id" :value="m.id">
+                      {{ m.id }} — {{ m.nombre }}
+                    </option>
+                  </select>
+                </div>
+                <div v-if="store.cotizacion?.monedaGlobal !== 'PEN'" class="flex flex-col items-end gap-2 shrink-0">
+                  <span class="text-[10px] font-black text-slate-500 uppercase">Ver en Soles</span>
+                  <button @click="verEnSoles = !verEnSoles"
+                          :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none', verEnSoles ? 'bg-[#376875]' : 'bg-slate-300']">
+                    <span :class="verEnSoles ? 'translate-x-6' : 'translate-x-1'"
+                          class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -1640,19 +1674,6 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                     <span class="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
                       <i class="fas fa-truck-loading text-slate-400"></i> {{ tarifa.proveedorNombreSnapshot }}
                     </span>
-
-                    <span v-if="tarifa.estadoOperativoSnapshot && tarifa.estadoOperativoSnapshot !== 'sin-solicitar'"
-                          class="text-[9px] font-black px-2 py-1 rounded-lg border shadow-sm flex items-center gap-1"
-                          :class="[getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).bg, getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).text, getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).border]">
-                      <i class="fas" :class="getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).icon"></i>
-                      {{ getEstadoOperativoConfig(tarifa.estadoOperativoSnapshot).label }}
-                    </span>
-
-                    <span v-if="tarifa.fechaLimitePago"
-                          class="text-[9px] font-black px-2 py-1 rounded-lg border shadow-sm flex items-center gap-1"
-                          :class="new Date(tarifa.fechaLimitePago) < new Date() ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-600 border-slate-200'">
-                      <i class="far fa-calendar-alt"></i> {{ formatDateOnlyFromISO(tarifa.fechaLimitePago) }}
-                    </span>
                   </div>
 
                 </div>
@@ -1750,8 +1771,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                   <div>
                     <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5">Moneda</label>
                     <select v-model="store.dataActiva.moneda" class="bg-transparent text-slate-800 font-bold text-xs outline-none border-b border-slate-300 pb-1 appearance-none focus:border-orange-500 transition-colors">
-                      <option value="USD">USD</option>
-                      <option value="PEN">PEN</option>
+                      <option v-for="m in store.catalogos.monedas" :key="m.id" :value="m.id">{{ m.id }}</option>
                     </select>
                   </div>
                   <div>
@@ -1918,20 +1938,9 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                     <label class="text-[10px] font-black text-orange-500 uppercase tracking-widest cursor-pointer mb-0.5 flex items-center gap-1.5">
                       <i class="fas fa-truck-loading"></i> Datos del Proveedor
 
-                      <span v-if="store.dataActiva.estadoOperativoSnapshot && store.dataActiva.estadoOperativoSnapshot !== 'sin-solicitar'"
-                            class="inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded border uppercase font-black tracking-tighter ml-2"
-                            :class="[
-                          getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).bg,
-                          getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).text,
-                          getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).border
-                        ]">
-                    <i class="fas" :class="getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).icon"></i>
-                    {{ getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).label }}
-                  </span>
                     </label>
                     <p class="text-sm font-bold flex items-center gap-2" :class="store.dataActiva.proveedorNombreSnapshot ? 'text-slate-800' : 'text-slate-400 italic'">
                       {{ store.dataActiva.proveedorNombreSnapshot || 'Sin proveedor asignado' }}
-                      <i v-if="store.dataActiva.vencimientoPagoSnapshot" class="fas fa-bell text-orange-500 text-xs" title="Tiene alerta de pago"></i>
                     </p>
                   </div>
 
@@ -2121,57 +2130,11 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                         Este es el texto exacto del requerimiento automático.
                       </p>
                     </div>
-
-                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                      <div>
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
-                          <i class="fas fa-tasks text-sky-500"></i> Estado de Reserva
-                        </label>
-                        <div class="relative">
-                          <select v-model="store.dataActiva.estadoOperativoSnapshot"
-                                  class="w-full appearance-none rounded-lg px-3 py-2 pr-8 text-xs font-black outline-none shadow-sm border cursor-pointer transition-colors"
-                                  :class="[getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).bg, getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).text, getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).border]">
-                            <option value="sin-solicitar">Sin Solicitar</option>
-                            <option value="solicitado">Solicitado</option>
-                            <option value="confirmado">Confirmado</option>
-                            <option value="reconfirmado">Reconfirmado</option>
-                            <option value="pendiente-pago">Pendiente Pago</option>
-                          </select>
-                          <i class="fas absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]"
-                             :class="[getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).icon, getEstadoOperativoConfig(store.dataActiva.estadoOperativoSnapshot).text]"></i>
-                        </div>
-                      </div>
-
-
-                      <div>
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
-                          <span>Día de Vencimiento</span>
-                          <i class="far fa-calendar-alt text-red-500"></i>
-                        </label>
-                        <input v-model="store.dataActiva.fechaLimitePago"
-                               type="date"
-                               class="w-full bg-white border border-slate-300 text-red-600 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-red-500 outline-none shadow-sm" />
-                      </div>
-
-                      <div>
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
-                          <span>Nota de Pago</span>
-                          <i class="fas fa-sticky-note text-amber-500"></i>
-                        </label>
-                        <input v-model="store.dataActiva.condicionesPagoSnapshot"
-                               type="text"
-                               class="w-full bg-white border border-slate-300 text-amber-600 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-amber-500 outline-none shadow-sm placeholder-slate-300"
-                               placeholder="Ej: Depósito BCP / 15 días antes..." />
-                      </div>
-                    </div>
                   </template>
                   <div v-else class="mt-5 pt-4 border-t border-slate-200 text-center py-6 text-slate-400">
                     <i class="fas fa-user-slash text-2xl mb-2 opacity-40"></i>
                     <p class="text-[10px] font-bold uppercase tracking-widest">Asigna un proveedor para gestionar la reserva</p>
                   </div>
-
-
                 </div>
               </div>
 
@@ -2470,15 +2433,15 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
               <i class="fas fa-chart-pie absolute -right-6 -bottom-6 text-7xl opacity-10"></i>
               <div class="relative z-10">
                 <p class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Venta Total Sugerida</p>
-                <p class="text-3xl font-black tracking-tight">{{ formatMoneda(store.resumenFinanciero?.totalVentaBruta, store.cotizacion?.monedaGlobal) }}</p>
+                <p class="text-3xl font-black tracking-tight">{{ formatMonedaPanel(store.resumenFinanciero?.totalVentaBruta) }}</p>
                 <div class="mt-3 pt-3 border-t border-slate-800/30 flex justify-between items-end">
                   <div>
                     <p class="text-[8px] text-slate-300 uppercase font-bold">Costo Neto</p>
-                    <p class="text-base font-bold text-white">{{ formatMoneda(store.resumenFinanciero?.totalCostoNeto, store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-base font-bold text-white">{{ formatMonedaPanel(store.resumenFinanciero?.totalCostoNeto) }}</p>
                   </div>
                   <div class="text-right">
                     <p class="text-[8px] text-emerald-400 uppercase font-bold">Margen Bruto</p>
-                    <p class="text-base font-bold text-emerald-300">+{{ formatMoneda(store.resumenFinanciero?.ganancia, store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-base font-bold text-emerald-300">+{{ formatMonedaPanel(store.resumenFinanciero?.ganancia) }}</p>
                   </div>
                 </div>
               </div>
@@ -2510,18 +2473,18 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
                   </div>
                   <div class="text-right">
                     <p class="text-[8px] text-slate-400 font-bold uppercase">Venta Unit.</p>
-                    <p class="text-xs font-black text-slate-800">{{ formatMoneda(clase.resumen.ventaDolares / (clase.cantidad || 1), store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-xs font-black text-slate-800">{{ formatMonedaPanel(clase.resumen.ventaDolares / (clase.cantidad || 1)) }}</p>
                   </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-50">
                   <div class="bg-slate-50 p-2 rounded-lg text-center">
                     <p class="text-[7px] text-slate-400 font-bold uppercase">Costo Total</p>
-                    <p class="text-[10px] font-black text-slate-600">{{ formatMoneda(clase.resumen.montoDolares, store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-[10px] font-black text-slate-600">{{ formatMonedaPanel(clase.resumen.montoDolares) }}</p>
                   </div>
                   <div class="bg-emerald-50 p-2 rounded-lg text-center">
                     <p class="text-[7px] text-emerald-600 font-bold uppercase">Utilidad</p>
-                    <p class="text-[10px] font-black text-emerald-700">{{ formatMoneda(clase.resumen.gananciaDolares, store.cotizacion?.monedaGlobal) }}</p>
+                    <p class="text-[10px] font-black text-emerald-700">{{ formatMonedaPanel(clase.resumen.gananciaDolares) }}</p>
                   </div>
                 </div>
 
@@ -2601,7 +2564,7 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
               </label>
               <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500">
                 <option v-for="(cotSeg, idx) in store.dataActiva?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
-                  {{ idx + 1 }}. {{ store.getI18nText(cotSeg.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
+                  {{ (idx as number) + 1 }}. {{ store.getI18nText(cotSeg.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
                 </option>
               </select>
             </div>

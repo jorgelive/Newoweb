@@ -688,6 +688,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/maestro/monedas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Moneda resources.
+         * @description Retrieves the collection of Moneda resources.
+         */
+        get: operations["api_maestromonedas_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/maestro/monedas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a Moneda resource.
+         * @description Retrieves a Moneda resource.
+         */
+        get: operations["api_maestromonedas_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/travel/notas": {
         parameters: {
             query?: never;
@@ -738,6 +778,166 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/platform/ops/operacion_mensajes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of OperacionMensaje resources.
+         * @description Retrieves the collection of OperacionMensaje resources.
+         */
+        get: operations["api_opsoperacion_mensajes_get_collection"];
+        put?: never;
+        /**
+         * Creates a OperacionMensaje resource.
+         * @description Creates a OperacionMensaje resource.
+         */
+        post: operations["api_opsoperacion_mensajes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/ops/operacion_mensajes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a OperacionMensaje resource.
+         * @description Retrieves a OperacionMensaje resource.
+         */
+        get: operations["api_opsoperacion_mensajes_id_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Removes the OperacionMensaje resource.
+         * @description Removes the OperacionMensaje resource.
+         */
+        delete: operations["api_opsoperacion_mensajes_id_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/ops/operacion_orden_servicios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of OperacionOrdenServicio resources.
+         * @description Retrieves the collection of OperacionOrdenServicio resources.
+         */
+        get: operations["api_opsoperacion_orden_servicios_get_collection"];
+        put?: never;
+        /**
+         * Creates a OperacionOrdenServicio resource.
+         * @description Creates a OperacionOrdenServicio resource.
+         */
+        post: operations["api_opsoperacion_orden_servicios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/ops/operacion_orden_servicios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a OperacionOrdenServicio resource.
+         * @description Retrieves a OperacionOrdenServicio resource.
+         */
+        get: operations["api_opsoperacion_orden_servicios_id_get"];
+        /**
+         * Replaces the OperacionOrdenServicio resource.
+         * @description Replaces the OperacionOrdenServicio resource.
+         */
+        put: operations["api_opsoperacion_orden_servicios_id_put"];
+        post?: never;
+        /**
+         * Removes the OperacionOrdenServicio resource.
+         * @description Removes the OperacionOrdenServicio resource.
+         */
+        delete: operations["api_opsoperacion_orden_servicios_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the OperacionOrdenServicio resource.
+         * @description Updates the OperacionOrdenServicio resource.
+         */
+        patch: operations["api_opsoperacion_orden_servicios_id_patch"];
+        trace?: never;
+    };
+    "/platform/ops/operacion_servicios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of OperacionServicio resources.
+         * @description Retrieves the collection of OperacionServicio resources.
+         */
+        get: operations["api_opsoperacion_servicios_get_collection"];
+        put?: never;
+        /**
+         * Creates a OperacionServicio resource.
+         * @description Creates a OperacionServicio resource.
+         */
+        post: operations["api_opsoperacion_servicios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/ops/operacion_servicios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a OperacionServicio resource.
+         * @description Retrieves a OperacionServicio resource.
+         */
+        get: operations["api_opsoperacion_servicios_id_get"];
+        /**
+         * Replaces the OperacionServicio resource.
+         * @description Replaces the OperacionServicio resource.
+         */
+        put: operations["api_opsoperacion_servicios_id_put"];
+        post?: never;
+        /**
+         * Removes the OperacionServicio resource.
+         * @description Removes the OperacionServicio resource.
+         */
+        delete: operations["api_opsoperacion_servicios_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the OperacionServicio resource.
+         * @description Updates the OperacionServicio resource.
+         */
+        patch: operations["api_opsoperacion_servicios_id_patch"];
         trace?: never;
     };
     "/platform/maestro/pais/{id}": {
@@ -2752,6 +2952,12 @@ export interface components {
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
+        "CotizacionCotcomponente-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCotcomponente-pax_file.read_pax_cotizacion.read": {
             /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"] | null;
@@ -2898,6 +3104,12 @@ export interface components {
             sobreescribirTraduccion?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
+        };
+        "CotizacionCotcomponente.html-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read": {
             /** @description Obtiene el segmento de la cotización vinculado. */
@@ -3048,6 +3260,13 @@ export interface components {
             readonly detallesParaCliente?: string[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
+        "CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"] | null;
@@ -3195,6 +3414,12 @@ export interface components {
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
+        "CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read": {
             /** @description Obtiene el segmento de la cotización vinculado. */
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"] | null;
@@ -3279,6 +3504,12 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
+        "CotizacionCotservicio-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCotservicio-pax_file.read_pax_cotizacion.read": {
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
@@ -3330,6 +3561,12 @@ export interface components {
             updatedAt?: string | null;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionCotservicio.html-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read": {
             nombrePublicoSnapshot?: string[];
@@ -3383,6 +3620,12 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
+        "CotizacionCotservicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
@@ -3435,6 +3678,12 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
+        "CotizacionCotservicio.multipart-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCotservicio.multipart-pax_file.read_pax_cotizacion.read": {
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
@@ -3455,8 +3704,11 @@ export interface components {
             cantidad: number;
             /** @default 0.00 */
             montoCosto: string;
-            /** @default USD */
-            moneda: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             tarifaMaestraId?: string | null;
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
@@ -3479,19 +3731,6 @@ export interface components {
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
-            /**
-             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
-             * @default sin-solicitar
-             * @enum {string|null}
-             */
-            estadoOperativoSnapshot: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago" | null;
-            /**
-             * Format: date-time
-             * @description Obtiene la fecha límite exacta para reportes del sistema.
-             */
-            fechaLimitePago?: string | null;
-            /** @description Obtiene las condiciones o notas de pago del proveedor. */
-            condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -3527,8 +3766,7 @@ export interface components {
             cantidad: number;
             /** @default 0.00 */
             montoCosto: string;
-            /** @default USD */
-            moneda: string;
+            moneda?: components["schemas"]["Moneda-cotizacion.read_timestamp.read"];
             tarifaMaestraId?: string | null;
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
@@ -3551,19 +3789,6 @@ export interface components {
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
-            /**
-             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
-             * @default sin-solicitar
-             * @enum {string|null}
-             */
-            estadoOperativoSnapshot: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago" | null;
-            /**
-             * Format: date-time
-             * @description Obtiene la fecha límite exacta para reportes del sistema.
-             */
-            fechaLimitePago?: string | null;
-            /** @description Obtiene las condiciones o notas de pago del proveedor. */
-            condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -3593,8 +3818,11 @@ export interface components {
             cantidad: number;
             /** @default 0.00 */
             montoCosto: string;
-            /** @default USD */
-            moneda: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             tarifaMaestraId?: string | null;
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
@@ -3617,19 +3845,6 @@ export interface components {
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
-            /**
-             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
-             * @default sin-solicitar
-             * @enum {string|null}
-             */
-            estadoOperativoSnapshot: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago" | null;
-            /**
-             * Format: date-time
-             * @description Obtiene la fecha límite exacta para reportes del sistema.
-             */
-            fechaLimitePago?: string | null;
-            /** @description Obtiene las condiciones o notas de pago del proveedor. */
-            condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -3647,6 +3862,12 @@ export interface components {
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionCottarifa-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "CotizacionCottarifa-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
@@ -3692,8 +3913,11 @@ export interface components {
             cantidad: number;
             /** @default 0.00 */
             montoCosto: string;
-            /** @default USD */
-            moneda: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             tarifaMaestraId?: string | null;
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
@@ -3716,19 +3940,6 @@ export interface components {
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
-            /**
-             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
-             * @default sin-solicitar
-             * @enum {string|null}
-             */
-            estadoOperativoSnapshot: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago" | null;
-            /**
-             * Format: date-time
-             * @description Obtiene la fecha límite exacta para reportes del sistema.
-             */
-            fechaLimitePago?: string | null;
-            /** @description Obtiene las condiciones o notas de pago del proveedor. */
-            condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -3764,8 +3975,7 @@ export interface components {
             cantidad: number;
             /** @default 0.00 */
             montoCosto: string;
-            /** @default USD */
-            moneda: string;
+            moneda?: components["schemas"]["Moneda.html-cotizacion.read_timestamp.read"];
             tarifaMaestraId?: string | null;
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
@@ -3788,19 +3998,6 @@ export interface components {
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
-            /**
-             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
-             * @default sin-solicitar
-             * @enum {string|null}
-             */
-            estadoOperativoSnapshot: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago" | null;
-            /**
-             * Format: date-time
-             * @description Obtiene la fecha límite exacta para reportes del sistema.
-             */
-            fechaLimitePago?: string | null;
-            /** @description Obtiene las condiciones o notas de pago del proveedor. */
-            condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -3822,6 +4019,12 @@ export interface components {
             updatedAt?: string | null;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionCottarifa.html-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "CotizacionCottarifa.html-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
@@ -3867,8 +4070,11 @@ export interface components {
             cantidad: number;
             /** @default 0.00 */
             montoCosto: string;
-            /** @default USD */
-            moneda: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             tarifaMaestraId?: string | null;
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
@@ -3891,19 +4097,6 @@ export interface components {
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
-            /**
-             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
-             * @default sin-solicitar
-             * @enum {string|null}
-             */
-            estadoOperativoSnapshot: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago" | null;
-            /**
-             * Format: date-time
-             * @description Obtiene la fecha límite exacta para reportes del sistema.
-             */
-            fechaLimitePago?: string | null;
-            /** @description Obtiene las condiciones o notas de pago del proveedor. */
-            condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -3939,8 +4132,7 @@ export interface components {
             cantidad: number;
             /** @default 0.00 */
             montoCosto: string;
-            /** @default USD */
-            moneda: string;
+            moneda?: components["schemas"]["Moneda.jsonld-cotizacion.read_timestamp.read"];
             tarifaMaestraId?: string | null;
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
@@ -3963,19 +4155,6 @@ export interface components {
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
-            /**
-             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
-             * @default sin-solicitar
-             * @enum {string|null}
-             */
-            estadoOperativoSnapshot: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago" | null;
-            /**
-             * Format: date-time
-             * @description Obtiene la fecha límite exacta para reportes del sistema.
-             */
-            fechaLimitePago?: string | null;
-            /** @description Obtiene las condiciones o notas de pago del proveedor. */
-            condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -3997,6 +4176,12 @@ export interface components {
             updatedAt?: string | null;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "CotizacionCottarifa.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default 1 */
@@ -4042,8 +4227,11 @@ export interface components {
             cantidad: number;
             /** @default 0.00 */
             montoCosto: string;
-            /** @default USD */
-            moneda: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             tarifaMaestraId?: string | null;
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
@@ -4066,19 +4254,6 @@ export interface components {
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
-            /**
-             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
-             * @default sin-solicitar
-             * @enum {string|null}
-             */
-            estadoOperativoSnapshot: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago" | null;
-            /**
-             * Format: date-time
-             * @description Obtiene la fecha límite exacta para reportes del sistema.
-             */
-            fechaLimitePago?: string | null;
-            /** @description Obtiene las condiciones o notas de pago del proveedor. */
-            condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -4114,8 +4289,7 @@ export interface components {
             cantidad: number;
             /** @default 0.00 */
             montoCosto: string;
-            /** @default USD */
-            moneda: string;
+            moneda?: components["schemas"]["Moneda.multipart-cotizacion.read_timestamp.read"];
             tarifaMaestraId?: string | null;
             /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
             proveedorMaestroId?: string | null;
@@ -4138,19 +4312,6 @@ export interface components {
             /** @description Título público del servicio del proveedor (I18nContent[]), traducible. */
             proveedorServicioTituloSnapshot?: string[];
             proveedorServicioUrlSnapshot?: string | null;
-            /**
-             * @description Obtiene el estado operativo actual de la tarifa basado en el Enum estricto.
-             * @default sin-solicitar
-             * @enum {string|null}
-             */
-            estadoOperativoSnapshot: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago" | null;
-            /**
-             * Format: date-time
-             * @description Obtiene la fecha límite exacta para reportes del sistema.
-             */
-            fechaLimitePago?: string | null;
-            /** @description Obtiene las condiciones o notas de pago del proveedor. */
-            condicionesPagoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -4172,6 +4333,12 @@ export interface components {
             updatedAt?: string | null;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionCottarifa.multipart-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "CotizacionCottarifa.multipart-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
@@ -4348,6 +4515,18 @@ export interface components {
              */
             estado: "abierto" | "cerrado" | "archivado";
         };
+        "CotizacionFile-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionFile-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-pax_file.read": {
             nombreGrupo?: string;
@@ -4474,6 +4653,18 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+        };
+        "CotizacionFile.html-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionFile.html-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.html-pax_file.read": {
@@ -4605,6 +4796,20 @@ export interface components {
             readonly localizador?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
@@ -4730,6 +4935,18 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+        };
+        "CotizacionFile.multipart-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionFile.multipart-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.multipart-pax_file.read": {
@@ -6322,40 +6539,6 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
         };
-        MaestroMoneda: {
-            id?: string;
-            nombre?: string;
-            simbolo?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        "MaestroMoneda-componente.item.read": {
-            id?: string;
-            nombre?: string;
-            simbolo?: string;
-        };
-        "MaestroMoneda-componente.write": Record<string, never>;
-        "MaestroMoneda-tipocambio.read": Record<string, never>;
-        "MaestroMoneda.html-componente.item.read": {
-            id?: string;
-            nombre?: string;
-            simbolo?: string;
-        };
-        "MaestroMoneda.html-tipocambio.read": Record<string, never>;
-        "MaestroMoneda.jsonld-componente.item.read": {
-            id?: string;
-            nombre?: string;
-            simbolo?: string;
-        };
-        "MaestroMoneda.jsonld-tipocambio.read": Record<string, never>;
-        "MaestroMoneda.multipart-componente.item.read": {
-            id?: string;
-            nombre?: string;
-            simbolo?: string;
-        };
-        "MaestroMoneda.multipart-tipocambio.read": Record<string, never>;
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
          *     Expuesta a través de API Platform permitiendo lectura y escritura.
@@ -6597,6 +6780,154 @@ export interface components {
         "MessageChannel.multipart-message.read": {
             id: string;
             name: string;
+        };
+        "Moneda-componente.item.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda-cotizacion.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda-maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda-operacion.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda-operacion.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.html-componente.item.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.html-cotizacion.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.html-maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.html-operacion.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.html-operacion.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.jsonld-maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.multipart-componente.item.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.multipart-cotizacion.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.multipart-maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.multipart-operacion.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.multipart-operacion.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /**
          * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
@@ -7035,6 +7366,533 @@ export interface components {
             tipo: "introduccion" | "recomendacion" | "advertencia";
             titulo?: string[];
             contenido?: string[];
+        };
+        "OperacionMensaje-operacion.mensaje.read_timestamp.read": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.mensaje.read_timestamp.read"];
+            tipo?: string;
+            cuerpoHtml?: string;
+            usuarioId?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionMensaje-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionMensaje-operacion.write": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.write"];
+            tipo?: string;
+            cuerpoHtml?: string;
+        };
+        "OperacionMensaje.html-operacion.mensaje.read_timestamp.read": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio.html-operacion.mensaje.read_timestamp.read"];
+            tipo?: string;
+            cuerpoHtml?: string;
+            usuarioId?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionMensaje.html-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionMensaje.jsonld-operacion.mensaje.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.mensaje.read_timestamp.read"];
+            tipo?: string;
+            cuerpoHtml?: string;
+            usuarioId?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionMensaje.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionMensaje.multipart-operacion.mensaje.read_timestamp.read": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.mensaje.read_timestamp.read"];
+            tipo?: string;
+            cuerpoHtml?: string;
+            usuarioId?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionMensaje.multipart-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio-operacion.mensaje.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio-operacion.read_timestamp.read": {
+            numeroOs?: string;
+            file?: components["schemas"]["CotizacionFile-operacion.read_timestamp.read"];
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            /**
+             * @default borrador
+             * @enum {string}
+             */
+            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
+            monedaOs?: components["schemas"]["Moneda-operacion.read_timestamp.read"];
+            /** @default 0.00 */
+            totalOs: string;
+            operacionServicios?: components["schemas"]["OperacionServicio-operacion.read_timestamp.read"][];
+            mensajes?: components["schemas"]["OperacionMensaje-operacion.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio-operacion.write": {
+            numeroOs?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            /**
+             * @default borrador
+             * @enum {string}
+             */
+            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            monedaOs?: string;
+            /** @default 0.00 */
+            totalOs: string;
+            id?: string;
+        };
+        "OperacionOrdenServicio-operacion.write.jsonMergePatch": {
+            numeroOs?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            /**
+             * @default borrador
+             * @enum {string}
+             */
+            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            monedaOs?: string;
+            /** @default 0.00 */
+            totalOs: string;
+            id?: string;
+        };
+        "OperacionOrdenServicio.html-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.html-operacion.mensaje.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.html-operacion.read_timestamp.read": {
+            numeroOs?: string;
+            file?: components["schemas"]["CotizacionFile.html-operacion.read_timestamp.read"];
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            /**
+             * @default borrador
+             * @enum {string}
+             */
+            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
+            monedaOs?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"];
+            /** @default 0.00 */
+            totalOs: string;
+            operacionServicios?: components["schemas"]["OperacionServicio.html-operacion.read_timestamp.read"][];
+            mensajes?: components["schemas"]["OperacionMensaje.html-operacion.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.jsonld-operacion.mensaje.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            numeroOs?: string;
+            file?: components["schemas"]["CotizacionFile.jsonld-operacion.read_timestamp.read"];
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            /**
+             * @default borrador
+             * @enum {string}
+             */
+            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
+            monedaOs?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"];
+            /** @default 0.00 */
+            totalOs: string;
+            operacionServicios?: components["schemas"]["OperacionServicio.jsonld-operacion.read_timestamp.read"][];
+            mensajes?: components["schemas"]["OperacionMensaje.jsonld-operacion.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.multipart-operacion.mensaje.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.multipart-operacion.read_timestamp.read": {
+            numeroOs?: string;
+            file?: components["schemas"]["CotizacionFile.multipart-operacion.read_timestamp.read"];
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            /**
+             * @default borrador
+             * @enum {string}
+             */
+            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
+            monedaOs?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"];
+            /** @default 0.00 */
+            totalOs: string;
+            operacionServicios?: components["schemas"]["OperacionServicio.multipart-operacion.read_timestamp.read"][];
+            mensajes?: components["schemas"]["OperacionMensaje.multipart-operacion.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionServicio-operacion.item.read_timestamp.read": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.item.read_timestamp.read"] | null;
+            file?: components["schemas"]["CotizacionFile-operacion.item.read_timestamp.read"];
+            cotizacionServicio?: components["schemas"]["CotizacionCotservicio-operacion.item.read_timestamp.read"];
+            cotizacionComponente?: components["schemas"]["CotizacionCotcomponente-operacion.item.read_timestamp.read"];
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa-operacion.item.read_timestamp.read"];
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojoReal?: string | null;
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            descripcionServicio?: string;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"];
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            monedaReal?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"];
+            /**
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionServicio-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionServicio-operacion.write": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.write"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotizacionTarifa?: string;
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojoReal?: string | null;
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            descripcionServicio?: string;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            monedaCotizada?: string;
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            monedaReal?: string;
+            /**
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+        };
+        "OperacionServicio-operacion.write.jsonMergePatch": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.write"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotizacionTarifa?: string;
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojoReal?: string | null;
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            descripcionServicio?: string;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            monedaCotizada?: string;
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            monedaReal?: string;
+            /**
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+        };
+        "OperacionServicio.html-operacion.item.read_timestamp.read": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio.html-operacion.item.read_timestamp.read"] | null;
+            file?: components["schemas"]["CotizacionFile.html-operacion.item.read_timestamp.read"];
+            cotizacionServicio?: components["schemas"]["CotizacionCotservicio.html-operacion.item.read_timestamp.read"];
+            cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.html-operacion.item.read_timestamp.read"];
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.html-operacion.item.read_timestamp.read"];
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojoReal?: string | null;
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            descripcionServicio?: string;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"];
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            monedaReal?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"];
+            /**
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionServicio.html-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read"] | null;
+            file?: components["schemas"]["CotizacionFile.jsonld-operacion.item.read_timestamp.read"];
+            cotizacionServicio?: components["schemas"]["CotizacionCotservicio.jsonld-operacion.item.read_timestamp.read"];
+            cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read"];
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read"];
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojoReal?: string | null;
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            descripcionServicio?: string;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"];
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            monedaReal?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"];
+            /**
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionServicio.multipart-operacion.item.read_timestamp.read": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
+            file?: components["schemas"]["CotizacionFile.multipart-operacion.item.read_timestamp.read"];
+            cotizacionServicio?: components["schemas"]["CotizacionCotservicio.multipart-operacion.item.read_timestamp.read"];
+            cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read"];
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.multipart-operacion.item.read_timestamp.read"];
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojoReal?: string | null;
+            proveedorMaestroId?: string | null;
+            proveedorNombreManual?: string | null;
+            descripcionServicio?: string;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"];
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            monedaReal?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"];
+            /**
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionServicio.multipart-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /**
          * @description Entidad MaestroPais.
@@ -8637,7 +9495,7 @@ export interface components {
             titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda: components["schemas"]["MaestroMoneda-componente.item.read"];
+            moneda: components["schemas"]["Moneda-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**
@@ -8674,7 +9532,11 @@ export interface components {
             titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda: components["schemas"]["MaestroMoneda-componente.write"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda: string;
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**
@@ -8713,7 +9575,7 @@ export interface components {
             titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda: components["schemas"]["MaestroMoneda.html-componente.item.read"];
+            moneda: components["schemas"]["Moneda.html-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**
@@ -8750,7 +9612,7 @@ export interface components {
             titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda: components["schemas"]["MaestroMoneda.jsonld-componente.item.read"];
+            moneda: components["schemas"]["Moneda.jsonld-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**
@@ -8787,7 +9649,7 @@ export interface components {
             titulo: string[];
             /** @default 0.00 */
             monto: string;
-            moneda: components["schemas"]["MaestroMoneda.multipart-componente.item.read"];
+            moneda: components["schemas"]["Moneda.multipart-componente.item.read"];
             /** @enum {string|null} */
             modalidad?: "privado" | "compartido" | null;
             /**
@@ -8908,7 +9770,11 @@ export interface components {
          *     Registra el histórico de tasas de cambio.
          */
         TipoCambio: {
-            moneda?: components["schemas"]["MaestroMoneda"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             /** Format: date-time */
             fecha?: string;
             compra?: string;
@@ -8927,7 +9793,11 @@ export interface components {
          *     Registra el histórico de tasas de cambio.
          */
         "TipoCambio-tipocambio.read": {
-            moneda?: components["schemas"]["MaestroMoneda-tipocambio.read"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             /** Format: date-time */
             fecha?: string;
             compra?: string;
@@ -8940,7 +9810,11 @@ export interface components {
          *     Registra el histórico de tasas de cambio.
          */
         "TipoCambio.html-tipocambio.read": {
-            moneda?: components["schemas"]["MaestroMoneda.html-tipocambio.read"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             /** Format: date-time */
             fecha?: string;
             compra?: string;
@@ -8953,7 +9827,11 @@ export interface components {
          *     Registra el histórico de tasas de cambio.
          */
         "TipoCambio.jsonld-tipocambio.read": components["schemas"]["HydraItemBaseSchema"] & {
-            moneda?: components["schemas"]["MaestroMoneda.jsonld-tipocambio.read"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             /** Format: date-time */
             fecha?: string;
             compra?: string;
@@ -8966,7 +9844,11 @@ export interface components {
          *     Registra el histórico de tasas de cambio.
          */
         "TipoCambio.multipart-tipocambio.read": {
-            moneda?: components["schemas"]["MaestroMoneda.multipart-tipocambio.read"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string;
             /** Format: date-time */
             fecha?: string;
             compra?: string;
@@ -13096,6 +13978,71 @@ export interface operations {
             };
         };
     };
+    api_maestromonedas_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Moneda collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Moneda.jsonld-maestro.moneda.read"][];
+                    };
+                    "application/json": components["schemas"]["Moneda-maestro.moneda.read"][];
+                    "text/html": components["schemas"]["Moneda.html-maestro.moneda.read"][];
+                    "multipart/form-data": components["schemas"]["Moneda.multipart-maestro.moneda.read"][];
+                };
+            };
+        };
+    };
+    api_maestromonedas_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Moneda identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Moneda resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Moneda.jsonld-maestro.moneda.read"];
+                    "application/json": components["schemas"]["Moneda-maestro.moneda.read"];
+                    "text/html": components["schemas"]["Moneda.html-maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["Moneda.multipart-maestro.moneda.read"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     api_travelnotas_get_collection: {
         parameters: {
             query?: {
@@ -13353,6 +14300,861 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_mensajes_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionMensaje collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["OperacionMensaje.jsonld-operacion.mensaje.read_timestamp.read"][];
+                    };
+                    "application/json": components["schemas"]["OperacionMensaje-operacion.mensaje.read_timestamp.read"][];
+                    "text/html": components["schemas"]["OperacionMensaje.html-operacion.mensaje.read_timestamp.read"][];
+                    "multipart/form-data": components["schemas"]["OperacionMensaje.multipart-operacion.mensaje.read_timestamp.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_mensajes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new OperacionMensaje resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionMensaje-operacion.write"];
+                "application/json": components["schemas"]["OperacionMensaje-operacion.write"];
+                "text/html": components["schemas"]["OperacionMensaje-operacion.write"];
+                "multipart/form-data": components["schemas"]["OperacionMensaje-operacion.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionMensaje resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionMensaje.jsonld-operacion.mensaje.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionMensaje-operacion.mensaje.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionMensaje.html-operacion.mensaje.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionMensaje.multipart-operacion.mensaje.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_mensajes_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionMensaje identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionMensaje resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionMensaje.jsonld-operacion.mensaje.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionMensaje-operacion.mensaje.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionMensaje.html-operacion.mensaje.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionMensaje.multipart-operacion.mensaje.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_mensajes_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionMensaje identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionMensaje resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_orden_servicios_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionOrdenServicio collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"][];
+                    };
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"][];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"][];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_orden_servicios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new OperacionOrdenServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+                "application/json": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+                "text/html": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+                "multipart/form-data": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionOrdenServicio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_orden_servicios_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionOrdenServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionOrdenServicio resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_orden_servicios_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionOrdenServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated OperacionOrdenServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+                "application/json": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+                "text/html": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+                "multipart/form-data": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionOrdenServicio resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_orden_servicios_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionOrdenServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionOrdenServicio resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_orden_servicios_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionOrdenServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated OperacionOrdenServicio resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["OperacionOrdenServicio-operacion.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description OperacionOrdenServicio resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_servicios_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionServicio collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["OperacionServicio.jsonld-operacion.item.read_timestamp.read"][];
+                    };
+                    "application/json": components["schemas"]["OperacionServicio-operacion.item.read_timestamp.read"][];
+                    "text/html": components["schemas"]["OperacionServicio.html-operacion.item.read_timestamp.read"][];
+                    "multipart/form-data": components["schemas"]["OperacionServicio.multipart-operacion.item.read_timestamp.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_servicios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new OperacionServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionServicio-operacion.write"];
+                "application/json": components["schemas"]["OperacionServicio-operacion.write"];
+                "text/html": components["schemas"]["OperacionServicio-operacion.write"];
+                "multipart/form-data": components["schemas"]["OperacionServicio-operacion.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionServicio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionServicio.jsonld-operacion.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionServicio-operacion.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionServicio.html-operacion.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionServicio.multipart-operacion.item.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_servicios_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionServicio resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionServicio.jsonld-operacion.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionServicio-operacion.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionServicio.html-operacion.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionServicio.multipart-operacion.item.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_servicios_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated OperacionServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionServicio-operacion.write"];
+                "application/json": components["schemas"]["OperacionServicio-operacion.write"];
+                "text/html": components["schemas"]["OperacionServicio-operacion.write"];
+                "multipart/form-data": components["schemas"]["OperacionServicio-operacion.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionServicio resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionServicio.jsonld-operacion.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionServicio-operacion.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionServicio.html-operacion.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionServicio.multipart-operacion.item.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_servicios_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionServicio resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_servicios_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated OperacionServicio resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["OperacionServicio-operacion.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description OperacionServicio resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionServicio.jsonld-operacion.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionServicio-operacion.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionServicio.html-operacion.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionServicio.multipart-operacion.item.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };
