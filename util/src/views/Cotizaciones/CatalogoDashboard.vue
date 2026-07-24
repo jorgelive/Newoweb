@@ -147,6 +147,8 @@ const abrirEdicion = (cat: CatalogoResumen) => {
   };
 };
 
+const cerrarEdicion = () => { editCatalogo.value = null; };
+
 const handleEditSave = async () => {
   if (!editCatalogo.value || !editCatalogo.value.nombre.trim()) return;
   try {
@@ -278,7 +280,7 @@ onMounted(() => {
             <span class="uppercase tracking-wider">{{ idiomaActivo }}</span>
             <i class="fas fa-chevron-down text-[8px] transition-transform duration-200" :class="idiomaDropdown ? 'rotate-180' : ''"></i>
           </button>
-          <div v-if="idiomaDropdown" class="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden min-w-[150px] z-50">
+          <div v-if="idiomaDropdown" class="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden min-w-37.5 z-50">
             <button v-for="idi in idiomas" :key="idi.id" type="button"
                 @click="idiomaActivo = idi.id; idiomaDropdown = false"
                 class="flex items-center gap-2.5 w-full px-3 py-2.5 text-left text-xs font-bold transition-colors hover:bg-slate-50"
@@ -355,6 +357,11 @@ onMounted(() => {
                 <i class="fas" :class="copiadoId === extractId(cat) ? 'fa-check text-emerald-500' : 'fa-link text-[#E07845]'"></i>
                 {{ copiadoId === extractId(cat) ? 'COPIADO' : cat.localizador }}
               </button>
+              <a :href="linkPublico(cat)" target="_blank" rel="noopener"
+                 class="w-9 h-9 flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-500 transition-colors shadow-sm"
+                 title="Abrir catálogo público">
+                <i class="fas fa-external-link-alt text-xs"></i>
+              </a>
 
               <button @click="toggleActivo(cat)"
                       :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none', cat.activo ? 'bg-teal-600' : 'bg-slate-300']"
@@ -475,7 +482,7 @@ onMounted(() => {
       <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
         <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
           <h2 class="font-black text-base"><i class="fas fa-pen mr-2 text-[#E07845]"></i> Editar Catálogo</h2>
-          <button @click="editCatalogo = null" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors">
+          <button @click="cerrarEdicion" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors">
             <i class="fas fa-times"></i>
           </button>
         </header>

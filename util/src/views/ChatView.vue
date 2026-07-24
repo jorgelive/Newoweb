@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation } from '@/stores/chat/chatStore.ts';
-import { renewSession } from '@/services/sessionAuth';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
+import EditConversationModal from '@/components/chat/EditConversationModal.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -17,39 +17,6 @@ const newMessageText = ref('');
 
 const isMobileSidebarOpen = ref(true);
 const isTransitioning = ref(true);
-
-// ============================================================================
-// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN
-// ============================================================================
-const loginUsername = ref('');
-const loginPassword = ref('');
-const loginRemember = ref(true);
-const isLoggingIn = ref(false);
-
-const handleSessionRenewal = async () => {
-  if (!loginUsername.value || !loginPassword.value) return;
-  isLoggingIn.value = true;
-
-  try {
-    await renewSession({
-      _username: loginUsername.value,
-      _password: loginPassword.value,
-      _remember_me: loginRemember.value
-    });
-
-    loginPassword.value = '';
-
-    await store.fetchConversations();
-
-    if (store.currentConversation?.id) {
-      await store.selectConversation(store.currentConversation.id);
-      await nextTick();
-      scrollToBottom();
-    }
-  } finally {
-    isLoggingIn.value = false;
-  }
-};
 
 const isLoggingOut = ref(false);
 
@@ -98,8 +65,8 @@ const cancelLongPress = () => {
 const openContextMenu = (msg: ApiMessage, event: MouseEvent | TouchEvent) => {
   contextMenuMessage.value = msg;
 
-  let clientX = 0;
-  let clientY = 0;
+  let clientX: number;
+  let clientY: number;
 
   if ('touches' in event) {
     clientX = event.touches[0].clientX;
@@ -155,8 +122,8 @@ let errorPressTimer: number | null = null;
 const showMobileError = (text: string | null, event: TouchEvent | MouseEvent) => {
   if (!text) return;
 
-  let clientX = 0;
-  let clientY = 0;
+  let clientX: number;
+  let clientY: number;
 
   if ('touches' in event && (event as TouchEvent).touches.length > 0) {
     clientX = (event as TouchEvent).touches[0].clientX;
@@ -235,6 +202,7 @@ const stalkScrollContainer = ref<HTMLElement | null>(null);
 
 let stalkPressTimer: number | null = null;
 let stalkHoverTimer: number | null = null;
+let stalkCloseTimer: number | null = null;
 const isStalkTouchAction = ref(false);
 
 const startStalkLongPress = (chat: ApiConversation, event: TouchEvent) => {
@@ -258,21 +226,39 @@ const cancelStalkLongPress = () => {
 
 const startStalkHover = (chat: ApiConversation, event: MouseEvent) => {
   if (window.matchMedia("(pointer: coarse)").matches) return;
-  cancelStalkHover();
+  cancelStalkHoverTimer();
+  cancelStalkCloseTimer();
   stalkHoverTimer = window.setTimeout(() => {
     isStalkHoverMode.value = true;
     openStalkMenu(chat, event);
   }, 700);
 };
 
-const cancelStalkHover = () => {
+const cancelStalkHoverTimer = () => {
   if (stalkHoverTimer) {
     clearTimeout(stalkHoverTimer);
     stalkHoverTimer = null;
   }
-  if (isStalkMenuOpen.value && isStalkHoverMode.value) {
-    closeStalkMenu();
+};
+
+const cancelStalkCloseTimer = () => {
+  if (stalkCloseTimer) {
+    clearTimeout(stalkCloseTimer);
+    stalkCloseTimer = null;
   }
+};
+
+// Se dispara al salir del ítem de chat Y al salir del propio popup. El pequeño
+// margen evita que se cierre mientras el cursor viaja del ítem hacia el popup
+// (antes cerraba de inmediato y además el popup tenía pointer-events-none,
+// por eso no se podía ni hacer scroll para ver los últimos mensajes).
+const cancelStalkHover = () => {
+  cancelStalkHoverTimer();
+  if (!isStalkMenuOpen.value || !isStalkHoverMode.value) return;
+  cancelStalkCloseTimer();
+  stalkCloseTimer = window.setTimeout(() => {
+    closeStalkMenu();
+  }, 200);
 };
 
 const handleContextMenu = (chat: ApiConversation, event: MouseEvent) => {
@@ -283,7 +269,8 @@ const handleContextMenu = (chat: ApiConversation, event: MouseEvent) => {
 const handleChatClick = (chat: ApiConversation) => {
   if (isStalkTouchAction.value) return;
 
-  cancelStalkHover();
+  cancelStalkHoverTimer();
+  cancelStalkCloseTimer();
   closeStalkMenu();
   if (chat.id) selectChat(chat.id);
 };
@@ -421,6 +408,8 @@ const selectedChannels = ref<string[]>([]);
 
 const isPreviewModalOpen = ref(false);
 const previewImageUrl = ref<string | null>(null);
+
+const isEditConversationModalOpen = ref(false);
 
 const translatedMessages = ref<Record<string, boolean>>({});
 
@@ -578,9 +567,9 @@ const isWhatsappAllowed = computed(() => {
 
     if (!tpl.whatsappMetaActive) return false;
 
-    if (!sessionActive && !tpl.whatsappMetaOfficial) return false;
+    return !(!sessionActive && !tpl.whatsappMetaOfficial);
 
-    return true;
+    
   }
 
   return sessionActive;
@@ -611,7 +600,7 @@ const setDefaultChannels = () => {
   selectedChannels.value = newChannels;
 };
 
-watch(() => store.currentConversation, (chat) => {
+watch(() => store.currentConversation, () => {
   selectedTemplateId.value = null;
   showTemplateDropdown.value = false;
   attachmentStore.clear();
@@ -1018,42 +1007,43 @@ const getDirectChannelId = (channel?: any): string | null => {
   <div class="fixed inset-0 flex bg-[#F8FAFC] font-sans overflow-hidden text-slate-900 antialiased" @contextmenu="isContextMenuOpen ? closeContextMenu() : (isStalkMenuOpen ? closeStalkMenu() : null)">
 
     <Transition name="toast-slide">
-      <div v-if="updateAvailable" class="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-[#376875] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-fade-in font-bold cursor-pointer hover:bg-[#2c535d] transition-colors" @click="refreshApp">
+      <div v-if="updateAvailable" class="fixed top-4 left-1/2 -translate-x-1/2 z-9999 bg-[#376875] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-fade-in font-bold cursor-pointer hover:bg-[#2c535d] transition-colors" @click="refreshApp">
         <i class="fas fa-sync-alt fa-spin"></i>
         <span class="text-sm">Nueva versión disponible. Clic para actualizar.</span>
       </div>
     </Transition>
 
-    <div v-if="isContextMenuOpen" class="fixed inset-0 z-[400]" @click="closeContextMenu"></div>
+    <div v-if="isContextMenuOpen" class="fixed inset-0 z-400" @click="closeContextMenu"></div>
     <Transition name="fade-scale">
       <div v-if="isContextMenuOpen"
            :style="{ top: contextMenuPos.y + 'px', left: contextMenuPos.x + 'px' }"
-           class="fixed z-[500] bg-white border border-slate-200 shadow-xl rounded-xl py-1 w-48 overflow-hidden transform origin-top-left">
+           class="fixed z-500 bg-white border border-slate-200 shadow-xl rounded-xl py-1 w-48 overflow-hidden transform origin-top-left">
         <button @click="copyMessageText" class="w-full text-left px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-[#376875] flex items-center gap-3 transition-colors">
           <i class="far fa-copy opacity-70"></i> Copiar texto
         </button>
       </div>
     </Transition>
 
-    <div v-if="activeErrorText" class="fixed inset-0 z-[400]" @click="closeErrorTooltip"></div>
+    <div v-if="activeErrorText" class="fixed inset-0 z-400" @click="closeErrorTooltip"></div>
     <Transition name="fade-scale">
       <div v-if="activeErrorText"
            :style="{ top: errorTooltipPos.y + 'px', left: errorTooltipPos.x + 'px' }"
-           class="fixed z-[500] bg-red-600 text-white border border-red-700 shadow-2xl rounded-xl p-3 w-64 overflow-hidden transform origin-top-left pointer-events-none">
+           class="fixed z-500 bg-red-600 text-white border border-red-700 shadow-2xl rounded-xl p-3 w-64 overflow-hidden transform origin-top-left pointer-events-none">
         <div class="flex items-start gap-2">
           <i class="fas fa-exclamation-triangle mt-0.5"></i>
-          <p class="text-[11px] font-bold leading-tight whitespace-pre-wrap break-words">{{ activeErrorText }}</p>
+          <p class="text-[11px] font-bold leading-tight whitespace-pre-wrap wrap-break-word">{{ activeErrorText }}</p>
         </div>
       </div>
     </Transition>
 
-    <div v-if="isStalkMenuOpen && !isStalkHoverMode" class="fixed inset-0 z-[400]" @click="closeStalkMenu"></div>
+    <div v-if="isStalkMenuOpen && !isStalkHoverMode" class="fixed inset-0 z-400" @click="closeStalkMenu"></div>
 
     <Transition name="fade-scale">
       <div v-if="isStalkMenuOpen"
            :style="{ top: stalkMenuPos.y + 'px', left: stalkMenuPos.x + 'px' }"
-           :class="{'pointer-events-none': isStalkHoverMode}"
-           class="fixed z-[500] bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-72 md:w-80 overflow-hidden transform origin-top-left flex flex-col gap-3 max-h-[350px]">
+           @mouseenter="isStalkHoverMode ? cancelStalkCloseTimer() : null"
+           @mouseleave="isStalkHoverMode ? cancelStalkHover() : null"
+           class="fixed z-500 bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-72 md:w-80 overflow-hidden transform origin-top-left flex flex-col gap-3 max-h-87.5">
 
         <h3 class="text-xs font-black uppercase text-slate-500 border-b border-slate-100 pb-2 flex justify-between items-center">
           <span class="flex items-center gap-2"><i class="fas fa-eye text-[#376875]"></i> Vista Previa</span>
@@ -1065,7 +1055,7 @@ const getDirectChannelId = (channel?: any): string | null => {
         <div v-if="isLoadingStalk" class="flex justify-center py-6"><i class="fas fa-circle-notch fa-spin text-slate-300 text-2xl"></i></div>
         <div v-else-if="stalkMessages.length === 0" class="text-xs text-slate-400 text-center py-4 italic">No hay historial reciente.</div>
 
-        <div v-else class="overflow-y-auto flex flex-col gap-3 scrollbar-hide py-1">
+        <div ref="stalkScrollContainer" v-else class="overflow-y-auto flex-1 min-h-0 flex flex-col gap-3 scrollbar-hide py-1">
           <div v-for="m in stalkMessages" :key="m.id" class="text-[12px] p-2.5 rounded-xl border shadow-sm leading-relaxed"
                :class="m.direction === 'outgoing' ? 'bg-[#376875]/5 border-[#376875]/10 text-slate-700 ml-6 rounded-tr-sm' : 'bg-white border-slate-200 text-slate-800 mr-6 rounded-tl-sm'">
             <div class="font-black mb-1 flex justify-between text-[9px] uppercase tracking-wider" :class="m.direction === 'outgoing' ? 'text-[#376875]' : 'text-slate-400'">
@@ -1073,7 +1063,7 @@ const getDirectChannelId = (channel?: any): string | null => {
               <span>{{ formatStalkDate(m.effectiveDateTime || m.createdAt) }}</span>
             </div>
 
-            <div class="whitespace-pre-wrap break-words opacity-90 font-medium">
+            <div class="whitespace-pre-wrap wrap-break-word opacity-90 font-medium">
               <span v-if="m.template" class="block text-[10px] font-black uppercase opacity-80">
                 🤖 {{ getTemplateName(m.template) }}
               </span>
@@ -1092,13 +1082,13 @@ const getDirectChannelId = (channel?: any): string | null => {
     </Transition>
 
     <Transition name="fade-slide">
-      <div v-if="store.error && !store.isSessionExpired" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-xl border border-white/10 max-w-[90vw] text-center">
+      <div v-if="store.error && !store.isSessionExpired" class="fixed top-8 left-1/2 -translate-x-1/2 z-100 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-xl border border-white/10 max-w-[90vw] text-center">
         <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0"></div>
         <span class="text-xs font-black uppercase tracking-wide leading-tight">{{ store.error }}</span>
       </div>
     </Transition>
 
-    <aside class="fixed inset-y-0 left-0 z-40 w-full md:relative md:w-80 lg:w-[380px] bg-white border-r border-slate-200 flex flex-col md:translate-x-0" :class="[isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full', isTransitioning ? 'transition-transform duration-300 ease-in-out' : '']">
+    <aside class="fixed inset-y-0 left-0 z-40 w-full md:relative md:w-80 lg:w-95 bg-white border-r border-slate-200 flex flex-col md:translate-x-0" :class="[isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full', isTransitioning ? 'transition-transform duration-300 ease-in-out' : '']">
       <div class="px-6 pt-6 bg-white shrink-0">
         <div class="flex justify-between items-center mb-6">
           <h1 class="font-black text-2xl tracking-tight text-slate-800">Inbox</h1>
@@ -1153,7 +1143,7 @@ const getDirectChannelId = (channel?: any): string | null => {
                 {{ chat.guestName || 'Huésped' }}
               </span>
 
-              <span class="flex flex-col gap-[5px]">
+              <span class="flex flex-col gap-1.25">
                 <span class="text-[10px] font-black truncate text-[#E07845] uppercase tracking-tight leading-none">
                   {{ chat.contextItems?.length ? chat.contextItems.join(', ') : (chat.contextOrigin === 'whatsapp' ? 'Chat Directo' : 'Reserva PMS') }}
                 </span>
@@ -1184,7 +1174,7 @@ const getDirectChannelId = (channel?: any): string | null => {
     <main class="flex-1 bg-[#F1F5F9] flex flex-col relative z-30 transition-all duration-300 min-w-0">
       <div v-if="!store.currentConversation" class="hidden md:flex flex-1 flex-col items-center justify-center bg-white text-slate-300">
         <i class="fas fa-paper-plane text-4xl mb-4 opacity-10"></i>
-        <h2 class="text-xl font-black text-slate-800 tracking-tighter uppercase tracking-widest">Selecciona un chat</h2>
+        <h2 class="text-xl font-black text-slate-800 tracking-tighter uppercase">Selecciona un chat</h2>
       </div>
 
       <template v-else>
@@ -1193,8 +1183,11 @@ const getDirectChannelId = (channel?: any): string | null => {
             <div class="flex items-center gap-4 overflow-hidden">
               <button @click="closeMobileChat" class="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 shadow-sm transition-colors"><i class="fas fa-chevron-left"></i></button>
               <div class="truncate">
-                <h2 class="font-black text-slate-900 text-lg md:text-2xl tracking-tight truncate leading-none mb-1">
-                  {{ store.currentConversation?.guestName || 'Huésped Sin Nombre' }}
+                <h2 class="font-black text-slate-900 text-lg md:text-2xl tracking-tight truncate leading-none mb-1 flex items-center gap-2">
+                  <span class="truncate">{{ store.currentConversation?.guestName || 'Huésped Sin Nombre' }}</span>
+                  <button @click="isEditConversationModalOpen = true" title="Editar conversación" class="shrink-0 w-6 h-6 flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+                    <i class="fas fa-pen text-[10px]"></i>
+                  </button>
                 </h2>
                 <div class="flex items-center gap-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-400">
                   <span class="text-[#E07845]">
@@ -1291,7 +1284,7 @@ const getDirectChannelId = (channel?: any): string | null => {
                           activeTab === 'scheduled' ? 'bg-orange-50 border-2 border-orange-200 text-slate-800 shadow-sm' :
                           (activeTab === 'cancelled' ? 'bg-red-50 border-2 border-red-200 text-slate-800 shadow-sm' :
                           (msg.direction === 'outgoing' ? 'bg-[#376875] text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'))
-                        ]" class="rounded-3xl p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative break-words select-none">
+                        ]" class="rounded-3xl p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative wrap-break-word select-none">
 
                           <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
                             <div
@@ -1301,7 +1294,7 @@ const getDirectChannelId = (channel?: any): string | null => {
                                 class="flex items-center gap-3 p-3 rounded-xl bg-black/10 cursor-pointer hover:bg-black/20 transition-colors"
                             >
                               <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                                <img v-if="typeof att !== 'string' && att.fileUrl && isImageAttachment(att)" :src="att.fileUrl ?? undefined" class="w-full h-full object-cover" />
+                                <img v-if="typeof att !== 'string' && att.fileUrl && isImageAttachment(att)" :src="att.fileUrl ?? undefined" class="w-full h-full object-cover"  alt="Imagen"/>
                                 <i v-else class="fas fa-file-alt text-lg"></i>
                               </div>
                               <div class="min-w-0">
@@ -1456,7 +1449,7 @@ const getDirectChannelId = (channel?: any): string | null => {
                 <i v-else-if="!store.currentConversation?.whatsappSessionActive" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-700/50' : 'text-slate-400'" title="Sesión de 24h inactiva"></i>
               </button>
 
-              <div v-if="store.currentConversation?.whatsappDisabled" class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-red-600 text-white text-[9px] p-2 rounded shadow-lg z-[100] w-48 text-center font-black uppercase tracking-tighter whitespace-normal">
+              <div v-if="store.currentConversation?.whatsappDisabled" class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-red-600 text-white text-[9px] p-2 rounded shadow-lg z-100 w-48 text-center font-black uppercase tracking-tighter whitespace-normal">
                 {{ store.currentConversation?.whatsappDisabledReason || 'Canal bloqueado por error de Meta' }}
               </div>
             </div>
@@ -1464,7 +1457,7 @@ const getDirectChannelId = (channel?: any): string | null => {
           </div>
 
           <Transition name="fade-slide">
-            <div v-if="showTemplateDropdown" class="absolute bottom-[90px] left-2 right-2 md:left-auto md:right-auto z-50 bg-white border border-slate-200 shadow-2xl rounded-2xl p-2 md:w-96 max-h-64 overflow-y-auto">
+            <div v-if="showTemplateDropdown" class="absolute bottom-22.5 left-2 right-2 md:left-auto md:right-auto z-50 bg-white border border-slate-200 shadow-2xl rounded-2xl p-2 md:w-96 max-h-64 overflow-y-auto">
               <div class="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 mb-2 flex justify-between items-center">
                 <span>Plantillas Permitidas</span>
                 <button @click="showTemplateDropdown = false" class="text-slate-300 hover:text-red-400"><i class="fas fa-times"></i></button>
@@ -1486,13 +1479,13 @@ const getDirectChannelId = (channel?: any): string | null => {
 
           <input type="file" ref="fileInput" class="hidden" @change="onFileSelected" />
 
-          <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-[24px] focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative min-w-0">
+          <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-3xl focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative min-w-0">
 
             <Transition name="fade-scale">
               <div v-if="sharedFileFromDB && !attachmentStore.file" class="absolute -top-14 left-0 bg-[#E07845] text-white px-4 py-2 rounded-xl shadow-xl z-20 flex items-center gap-3 animate-bounce">
                 <i class="fas fa-share-alt"></i>
                 <div class="flex flex-col min-w-0">
-                  <span class="text-xs font-bold truncate max-w-[150px] md:max-w-xs">{{ sharedFileFromDB.name }}</span>
+                  <span class="text-xs font-bold truncate max-w-37.5 md:max-w-xs">{{ sharedFileFromDB.name }}</span>
                   <span class="text-[9px] opacity-80">Recibido para compartir</span>
                 </div>
                 <button type="button" @click="attachSharedFile" class="bg-white text-[#E07845] px-2 py-1 rounded text-xs font-black hover:bg-orange-50 ml-1">Adjuntar</button>
@@ -1501,7 +1494,7 @@ const getDirectChannelId = (channel?: any): string | null => {
             </Transition>
 
             <div v-if="attachmentStore.file" class="absolute -top-14 left-0 bg-white border border-slate-200 shadow-lg rounded-xl px-3 py-2 flex items-center gap-3 z-10 animate-fade-in max-w-full">
-              <img v-if="attachmentStore.isImage" :src="attachmentStore.previewUrl ?? undefined" class="w-8 h-8 object-cover rounded shadow-sm shrink-0" />
+              <img v-if="attachmentStore.isImage" :src="attachmentStore.previewUrl ?? undefined" class="w-8 h-8 object-cover rounded shadow-sm shrink-0"  alt="Imagen"/>
               <i v-else class="fas fa-file-pdf text-red-500 text-2xl shrink-0"></i>
               <div class="flex flex-col min-w-0">
                 <span class="text-xs font-bold text-slate-800 truncate">{{ attachmentStore.fileName }}</span>
@@ -1519,7 +1512,7 @@ const getDirectChannelId = (channel?: any): string | null => {
               </button>
             </div>
 
-            <div class="flex-1 min-h-[40px] flex items-center min-w-0">
+            <div class="flex-1 min-h-10 flex items-center min-w-0">
               <div v-if="selectedTemplateId" class="w-full bg-white border border-[#376875]/20 rounded-xl px-3 py-1.5 flex justify-between items-center shadow-sm overflow-hidden min-w-0 mr-1">
                 <div class="flex items-center gap-2 min-w-0">
                   <i class="fas fa-robot text-[#376875] shrink-0 text-xs"></i>
@@ -1552,7 +1545,7 @@ const getDirectChannelId = (channel?: any): string | null => {
     <Transition name="fade-slide">
       <div
           v-if="isPreviewModalOpen"
-          class="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-pointer"
+          class="fixed inset-0 z-200 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-pointer"
           @click="closePreviewModal"
       >
         <button
@@ -1566,9 +1559,15 @@ const getDirectChannelId = (channel?: any): string | null => {
             :src="previewImageUrl"
             class="max-w-full max-h-full object-contain rounded-xl shadow-2xl cursor-default"
             @click.stop
-        />
+         alt="Imagen"/>
       </div>
     </Transition>
+
+    <EditConversationModal
+        v-if="isEditConversationModalOpen && store.currentConversation"
+        :conversation="store.currentConversation"
+        @close="isEditConversationModalOpen = false"
+    />
 
   </div>
 </template>

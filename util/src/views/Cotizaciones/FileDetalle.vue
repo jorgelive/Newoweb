@@ -489,30 +489,19 @@ const eliminarDocumento = async (iri?: string) => {
 <template>
   <div class="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden">
 
-    <header class="shrink-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 z-30 shadow-sm">
-      <div class="flex items-center gap-4 min-w-0">
-        <button @click="handleVolver" class="w-10 h-10 shrink-0 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
-          <i class="fas fa-arrow-left"></i>
-        </button>
-        <div class="min-w-0">
-          <h1 class="font-black text-2xl text-slate-800 tracking-tight leading-none mb-1 truncate">Detalle del Expediente</h1>
-          <div class="flex items-center gap-2">
+    <header class="shrink-0 bg-white border-b border-slate-200 px-6 py-4 flex flex-col gap-3 z-30 shadow-sm">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4 min-w-0">
+          <button @click="handleVolver" class="w-10 h-10 shrink-0 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div class="min-w-0">
+            <h1 class="font-black text-2xl text-slate-800 tracking-tight leading-none mb-1 truncate">Detalle del Expediente</h1>
             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ file?.localizador || 'Sin Localizador' }}</p>
-            <button
-                v-if="file?.localizador"
-                @click="copiarLink"
-                class="text-[10px] font-bold px-2 py-0.5 rounded-md border transition-colors flex items-center gap-1"
-                :class="linkCopiado ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'"
-            >
-              <i :class="linkCopiado ? 'fas fa-check' : 'far fa-copy'"></i>
-              {{ linkCopiado ? 'Copiado' : 'Copiar link' }}
-            </button>
           </div>
         </div>
-      </div>
 
-      <div class="flex items-center gap-2 shrink-0">
-        <div v-if="idiomasDisponibles.length > 1" class="relative">
+        <div v-if="idiomasDisponibles.length > 1" class="relative shrink-0">
           <div v-if="idiomaDocDropdown" class="fixed inset-0 z-40" @click="idiomaDocDropdown = false"></div>
           <button type="button" @click="idiomaDocDropdown = !idiomaDocDropdown"
               title="Idioma de visualización: títulos, resúmenes y documentos"
@@ -532,17 +521,28 @@ const eliminarDocumento = async (iri?: string) => {
             </button>
           </div>
         </div>
+      </div>
 
-        <button @click="eliminarFile" class="text-[10px] font-bold px-2 py-0.5 rounded-md border border-red-200 text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1">
-          <i class="fas fa-trash-alt"></i> <span class="hidden md:inline">Eliminar Expediente</span>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button v-if="file?.localizador" @click="copiarLink"
+           class="px-4 py-2.5 border font-bold text-sm rounded-xl shadow-sm transition-all flex items-center gap-2"
+           :class="linkCopiado ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'">
+          <i :class="linkCopiado ? 'fas fa-check' : 'far fa-copy'"></i>
+          <span class="hidden md:inline">{{ linkCopiado ? 'Copiado' : 'Copiar Link' }}</span>
         </button>
 
         <a v-if="file?.localizador" :href="linkPublicoVersion()" target="_blank" rel="noopener"
-           class="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+           class="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-sm rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
           <i class="fas fa-external-link-alt"></i> <span class="hidden md:inline">Vista Cliente</span>
         </a>
 
-        <button @click="nuevaVersion" class="px-5 py-2.5 bg-[#376875] hover:bg-[#2d5662] text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2">
+        <button @click="eliminarFile"
+           class="px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 font-bold text-sm rounded-xl shadow-sm hover:bg-red-100 transition-all flex items-center gap-2">
+          <i class="fas fa-trash-alt"></i> <span class="hidden md:inline">Eliminar Expediente</span>
+        </button>
+
+        <button @click="nuevaVersion"
+           class="px-4 py-2.5 bg-[#376875] hover:bg-[#2d5662] text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center gap-2 ml-auto">
           <i class="fas fa-rocket"></i> <span class="hidden md:inline">Crear Nueva Versión</span>
         </button>
       </div>

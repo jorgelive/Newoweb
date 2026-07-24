@@ -2758,7 +2758,8 @@ store.$onAction(({ name, args }) => {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-
+.fade-scale-enter-active, .fade-scale-leave-active { transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
+.fade-scale-enter-from, .fade-scale-leave-to { opacity: 0; transform: scale(0.95); }
 </style>
 
 <style>

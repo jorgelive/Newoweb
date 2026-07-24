@@ -254,4 +254,31 @@ class PmsReservaMessageContext implements MessageContextInterface
 
         return true;
     }
+
+    /**
+     * Evalúa si la reserva es exclusivamente un bloqueo de calendario (agenda cerrada,
+     * mantenimiento, sync de canal sin huésped), sin mezclar el caso de inquiry ("abierto").
+     * * A diferencia de isAbiertoOrBloqueo(), los inquiries (ej. consultas de Airbnb) NO
+     * cuentan aquí: sí deben generar/actualizar su conversación de chat, porque representan
+     * contacto real de un huésped potencial.
+     *
+     * @return bool True si TODOS los eventos son bloqueo puro, False si hay algún evento
+     *              de otro tipo (incluido "abierto") o si la colección está vacía.
+     */
+    public function isSoloBloqueo(): bool
+    {
+        $eventos = $this->reserva->getEventosCalendario();
+
+        if ($eventos->isEmpty()) {
+            return false;
+        }
+
+        foreach ($eventos as $evento) {
+            if ($evento->getEstado()?->getId() !== PmsEventoEstado::CODIGO_BLOQUEO) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

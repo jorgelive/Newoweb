@@ -603,6 +603,33 @@ export const useChatStore = defineStore('chatStore', () => {
         } catch (err) { return []; }
     };
 
+    /**
+     * Edita la cabecera de la conversación (nombre/teléfono del huésped, idioma, WhatsApp)
+     * vía PATCH (merge-patch+json). Sincroniza el resultado en `currentConversation` y en
+     * la lista `conversations` para que el inbox refleje el cambio sin recargar.
+     *
+     * @param {string} id UUID de la conversación (no el IRI completo).
+     * @param {Partial<Pick<ApiConversation, 'guestName' | 'guestPhone' | 'idioma' | 'idiomaFijado' | 'whatsappDisabled' | 'whatsappDisabledReason'>>} payload Campos a actualizar.
+     * @returns {Promise<boolean>} true si la actualización tuvo éxito.
+     */
+    const updateConversation = async (id: string, payload: Record<string, any>): Promise<boolean> => {
+        try {
+            const response = await apiClient.patch(`/platform/message/conversations/${id}`, payload);
+            const updated = response.data as ApiConversation;
+
+            if (currentConversation.value && sameEntity(currentConversation.value, updated)) {
+                Object.assign(currentConversation.value, updated);
+            }
+            const idx = conversations.value.findIndex(c => sameEntity(c, updated));
+            if (idx !== -1) Object.assign(conversations.value[idx], updated);
+
+            return true;
+        } catch (err) {
+            error.value = 'No se pudo actualizar la conversación.';
+            return false;
+        }
+    };
+
     // ============================================================================
     // BADGE NATIVO (sin cambios)
     // ============================================================================
@@ -618,6 +645,6 @@ export const useChatStore = defineStore('chatStore', () => {
     });
 
     return {
-        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk
+        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, updateConversation
     };
 });

@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation;
 use App\Entity\Maestro\MaestroIdioma;
@@ -51,6 +52,13 @@ use Symfony\Component\Uid\Uuid;
             security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
             securityMessage: 'No tienes permisos para alterar el estado de las conversaciones.',
             deserialize: false
+        ),
+
+        // Edición de la cabecera de la conversación (nombre/teléfono del huésped, idioma, WhatsApp).
+        new Patch(
+            denormalizationContext: ['groups' => ['conversation:write']],
+            security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar la conversación.'
         )
     ], // 🔥 El módulo define la raíz para todas las operaciones
     routePrefix: '/message',
@@ -85,28 +93,28 @@ class MessageConversation
     private string $contextId;
 
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
-    #[Groups(['conversation:read'])]
+    #[Groups(['conversation:read', 'conversation:write'])]
     private ?string $guestName = null;
 
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
-    #[Groups(['conversation:read'])]
+    #[Groups(['conversation:read', 'conversation:write'])]
     private ?string $guestPhone = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    #[Groups(['conversation:read'])]
+    #[Groups(['conversation:read', 'conversation:write'])]
     private bool $whatsappDisabled = false;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    #[Groups(['conversation:read'])]
+    #[Groups(['conversation:read', 'conversation:write'])]
     private ?string $whatsappDisabledReason = null;
 
     #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
     #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: false)]
-    #[Groups(['conversation:read'])]
+    #[Groups(['conversation:read', 'conversation:write'])]
     private MaestroIdioma $idioma;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    #[Groups(['conversation:read'])]
+    #[Groups(['conversation:read', 'conversation:write'])]
     private bool $idiomaFijado = false;
 
     #[ORM\Column(type: 'datetime', nullable: true)]

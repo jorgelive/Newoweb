@@ -126,6 +126,13 @@ SQL;
                     // Envolvemos la reserva en su adaptador de contexto para el sistema de mensajería
                     $context = new PmsReservaMessageContext($reserva);
 
+                    // Los bloqueos puros de calendario (agenda cerrada, sin huésped real) no deben
+                    // generar ni actualizar conversaciones de chat. Los inquiries ("abierto", ej. Airbnb)
+                    // sí representan contacto real de un huésped potencial y deben seguir su flujo normal.
+                    if ($context->isSoloBloqueo()) {
+                        continue;
+                    }
+
                     // Pasamos false para no hacer mini-flushes constantes y agrupar todo al final
                     // (Nota: Revisar si MessageRuleEngine fuerza un flush internamente que anule este comportamiento)
                     $conversation = $this->messageFactory->upsertFromContext($context, false);
