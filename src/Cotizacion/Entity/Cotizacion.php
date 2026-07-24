@@ -67,6 +67,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_cotizacion')]
 #[ORM\Index(columns: ['file_id', 'version'], name: 'idx_cotizacion_file_version')]
+#[ORM\Index(columns: ['catalogo_id', 'version'], name: 'idx_cotizacion_catalogo_version')]
 #[ORM\HasLifecycleCallbacks]
 class Cotizacion
 {
@@ -74,10 +75,17 @@ class Cotizacion
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
+    /** Padre expediente. Excluyente con $catalogo: una cotización cuelga de uno u otro. */
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionFile::class, inversedBy: 'cotizaciones')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
+
+    /** Padre catálogo de tours. Excluyente con $file. */
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\ManyToOne(targetEntity: CotizacionCatalogo::class, inversedBy: 'cotizaciones')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?CotizacionCatalogo $catalogo = null;
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer')]
@@ -108,6 +116,16 @@ class Cotizacion
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $proveedorOculto = false;
 
+    /**
+     * Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
+     * Experiencia Mística". Diferencia paquetes tanto en el expediente del
+     * cliente como en el escaparate del catálogo.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es')]
+    #[ORM\Column(type: 'json')]
+    private array $titulo = [];
+
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
@@ -132,6 +150,33 @@ class Cotizacion
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $totalVenta = '0.00';
+
+    /**
+     * Rangos de precio de exhibición "Desde X" para tours de catálogo.
+     * Valores comerciales arbitrarios por perfil de cliente; el cálculo
+     * financiero real (totalVenta/totalCosto) se conserva para producto.
+     *
+     * Estructura: [{ titulo: I18n[], moneda: 'PEN'|'USD', valor: '99.00' }, ...]
+     * El título es traducible (AutoTranslate busca la clave anidada).
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['titulo'])]
+    #[ORM\Column(type: 'json')]
+    private array $preciosDesde = [];
+
+    /** Orden de exhibición del tour dentro del catálogo. */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    private int $orden = 0;
+
+    /**
+     * Override editorial de la imagen de portada del tour (snapshot de la
+     * imagen elegida). Null = se deriva automáticamente: primera imagen con
+     * isPortada recorriendo el itinerario, o la primera disponible.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $imagenPortada = null;
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
     #[ORM\Column(type: 'decimal', precision: 10, scale: 4, options: ['default' => '1.0000'])]
@@ -163,7 +208,8 @@ class Cotizacion
 
     public function __toString(): string
     {
-        return sprintf('V%d - %s', $this->version, $this->file ? $this->file->getNombreGrupo() : 'Sin File');
+        $padre = $this->file?->getNombreGrupo() ?? $this->catalogo?->getNombre() ?? 'Sin File';
+        return sprintf('V%d - %s', $this->version, $padre);
     }
 
     public function duplicar(): self
@@ -216,6 +262,18 @@ class Cotizacion
 
     public function getFile(): ?CotizacionFile { return $this->file; }
     public function setFile(?CotizacionFile $file): self { $this->file = $file; return $this; }
+
+    public function getCatalogo(): ?CotizacionCatalogo { return $this->catalogo; }
+    public function setCatalogo(?CotizacionCatalogo $catalogo): self { $this->catalogo = $catalogo; return $this; }
+
+    public function getPreciosDesde(): array { return $this->preciosDesde; }
+    public function setPreciosDesde(array $preciosDesde): self { $this->preciosDesde = $preciosDesde; return $this; }
+
+    public function getOrden(): int { return $this->orden; }
+    public function setOrden(int $orden): self { $this->orden = $orden; return $this; }
+
+    public function getImagenPortada(): ?array { return $this->imagenPortada; }
+    public function setImagenPortada(?array $imagenPortada): self { $this->imagenPortada = $imagenPortada; return $this; }
 
     public function getVersion(): int { return $this->version; }
     public function setVersion(int $version): self { $this->version = $version; return $this; }
@@ -322,6 +380,9 @@ class Cotizacion
     {
         $this->proveedorOculto = $proveedorOculto;
     }
+
+    public function getTitulo(): array { return $this->titulo; }
+    public function setTitulo(array $titulo): self { $this->titulo = $titulo; return $this; }
 
     public function getResumen(): array { return $this->resumen; }
     public function setResumen(array $resumen): void { $this->resumen = $resumen; }

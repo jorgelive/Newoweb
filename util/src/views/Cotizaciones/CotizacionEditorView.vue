@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
+import { thumbUrl } from '@/services/imageThumb';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import WysiwygEditor from '@/components/WysiwygEditor.vue';
 import ResumenClasificacion from '@/components/cotizacion/ResumenClasificacion.vue';
@@ -95,14 +96,14 @@ onMounted(() => {
   const cotizacionId = route.params.cotizacionId as string;
 
   if (fileId && cotizacionId) {
-    store.inicializarEditor(fileId, cotizacionId).then(() => {
+    store.inicializarEditor(fileId, cotizacionId, route.meta.modoCatalogo === true).then(() => {
       setTimeout(() => {
         watchActivo = true;
         isDirty.value = false;
       }, 1000);
     });
   } else {
-    router.push('/cotizacion');
+    router.push(route.meta.modoCatalogo === true ? '/catalogo' : '/cotizacion');
   }
 });
 
@@ -166,6 +167,10 @@ onBeforeRouteLeave((to, from, next) => {
 });
 
 const handleVolver = () => {
+  if (store.modoCatalogo) {
+    router.push('/catalogo');
+    return;
+  }
   const fileId = route.params.fileId || store.fileActual?.id;
   if (fileId) {
     router.push(`/cotizacion/${fileId}`);
@@ -782,6 +787,31 @@ const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot
   if (valor) store.dataActiva[campo] = normalizarUrl(valor);
 };
 
+// Todas las imágenes de los segmentos del tour, en orden de itinerario
+const imagenesDelTour = computed(() => {
+  const imgs: any[] = [];
+  (store.cotizacion?.cotservicios || []).forEach((s: any) =>
+    (s.cotsegmentos || []).forEach((seg: any) =>
+      ((seg.imagenesSnapshot as any[]) || []).forEach((img: any) => imgs.push(img))));
+  return imgs;
+});
+
+const esPortadaSeleccionada = (img: any): boolean => {
+  const sel = (store.cotizacion as any)?.imagenPortada;
+  return !!sel && (sel.imageUrl || sel.imageName) === (img.imageUrl || img.imageName);
+};
+
+const seleccionarPortada = (img: any) => {
+  if (!store.cotizacion) return;
+  (store.cotizacion as any).imagenPortada = esPortadaSeleccionada(img) ? null : img;
+};
+
+const agregarRangoPrecio = () => {
+  if (!store.cotizacion) return;
+  if (!store.cotizacion.preciosDesde) store.cotizacion.preciosDesde = [];
+  store.cotizacion.preciosDesde.push({ titulo: [], moneda: 'USD', valor: '' });
+};
+
 // Miller-columns navigation: 'cabecera' → 'servicios' → 'detalle'
 const nivelEditor = ref<'cabecera' | 'servicios' | 'detalle'>('cabecera');
 watch(() => store.inspectorActivo, (val) => {
@@ -810,7 +840,8 @@ store.$onAction(({ name, args }) => {
             {{ store.fileActual?.nombreGrupo || 'Cargando Expediente...' }}
           </h1>
           <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-            Motor Operativo <span v-if="store.cotizacion">• V{{ store.cotizacion.version ?? 1 }}</span>
+            {{ store.modoCatalogo ? 'Catálogo de Tours' : 'Motor Operativo' }}
+            <span v-if="store.cotizacion">• {{ store.modoCatalogo ? 'Tour' : 'V' }}{{ store.cotizacion.version ?? 1 }}</span>
           </p>
         </div>
       </div>
@@ -872,7 +903,7 @@ store.$onAction(({ name, args }) => {
               <div class="flex flex-col">
                 <span class="text-[11px] font-black text-[#E07845] uppercase tracking-tighter leading-none mb-1">Cronología Operativa</span>
                 <div class="text-sm font-black text-slate-800 uppercase tracking-tight">
-                  {{ formatFecha(dia.fechaAbsoluta) }}
+                  {{ store.modoCatalogo ? 'Programa del Tour' : formatFecha(dia.fechaAbsoluta) }}
                 </div>
               </div>
               <hr class="flex-1 border-slate-300 ml-4">
@@ -894,7 +925,7 @@ store.$onAction(({ name, args }) => {
                 <div class="flex items-start justify-between gap-4">
                   <div class="pr-10 w-full">
 
-                    <p class="text-[10px] font-black text-slate-600 uppercase flex items-center gap-1.5 mb-2 bg-slate-100 w-max px-2 py-1 rounded border border-slate-200">
+                    <p v-if="!store.modoCatalogo" class="text-[10px] font-black text-slate-600 uppercase flex items-center gap-1.5 mb-2 bg-slate-100 w-max px-2 py-1 rounded border border-slate-200">
                       <i class="far fa-calendar-check text-[#E07845]"></i> FECHA BASE: {{ formatFecha(servicio.fechaInicioAbsoluta) }}
                     </p>
 
@@ -989,7 +1020,7 @@ store.$onAction(({ name, args }) => {
 
         <div class="flex-1 flex flex-col min-h-0">
           <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-            <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest">Cabecera de Cotización</h2>
+            <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest">{{ store.modoCatalogo ? 'Cabecera del Tour' : 'Cabecera de Cotización' }}</h2>
             <button @click="nivelEditor = 'servicios'"
                     class="md:hidden flex items-center gap-1.5 px-3 py-2 bg-[#376875] hover:bg-[#2c5560] text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm transition-colors">
               Ver Servicios <i class="fas fa-arrow-right"></i>
@@ -1029,6 +1060,61 @@ store.$onAction(({ name, args }) => {
                 </div>
               </div>
             </div>
+
+            <div v-if="store.modoCatalogo" class="bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow-sm">
+              <div class="flex items-center justify-between mb-1">
+                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-tags mr-1"></i> Precios de Exhibición (Desde)</h3>
+                <button @click="agregarRangoPrecio"
+                        class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition-colors">+ Rango</button>
+              </div>
+              <p class="text-[9px] text-orange-400 font-medium mb-3 leading-tight">Rangos comerciales por perfil (Peruano, Extranjero, Niño...). El título es traducible; el cálculo financiero real se conserva para producto.</p>
+
+              <div v-if="!store.cotizacion.preciosDesde?.length" class="text-center py-3 border border-dashed border-orange-200 rounded-xl">
+                <span class="text-[9px] font-black text-orange-300 uppercase tracking-widest">Sin rangos — agrega el primero</span>
+              </div>
+
+              <div v-else class="space-y-2">
+                <div v-for="(rango, idx) in store.cotizacion.preciosDesde" :key="idx"
+                     class="bg-white border border-orange-100 rounded-xl p-2.5 flex gap-2 items-center shadow-sm">
+                  <input :value="store.getI18nText(rango.titulo as any, store.cotizacion.idiomaEdicion)"
+                         @input="e => store.setI18nText(rango.titulo, store.cotizacion!.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                         type="text" placeholder="Perfil (ej: Peruano)"
+                         class="flex-1 min-w-0 bg-transparent text-xs font-bold text-slate-700 outline-none border-b border-slate-200 focus:border-orange-400 pb-1">
+                  <select v-model="rango.moneda"
+                          class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] font-black text-slate-600 outline-none shrink-0">
+                    <option v-for="m in store.catalogos.monedas" :key="m.id" :value="m.id">{{ m.id }}</option>
+                  </select>
+                  <input :value="rango.valor"
+                         @input="e => rango.valor = (e.target as HTMLInputElement).value"
+                         type="number" step="0.01" placeholder="0.00"
+                         class="w-20 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-black text-right text-orange-600 outline-none focus:ring-1 focus:ring-orange-400 shrink-0">
+                  <button @click="store.cotizacion.preciosDesde.splice(idx, 1)"
+                          class="text-slate-300 hover:text-red-500 transition-colors px-1 shrink-0">
+                    <i class="fas fa-times text-sm"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="store.modoCatalogo" class="bg-teal-50 border border-teal-200 rounded-2xl p-4 shadow-sm">
+              <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest mb-1"><i class="fas fa-image mr-1"></i> Portada del Tour</h3>
+              <p class="text-[9px] text-teal-500 font-medium mb-3 leading-tight">
+                {{ (store.cotizacion as any).imagenPortada ? 'Portada fija elegida manualmente. Click para volver a automática.' : 'Automática: primera portada del itinerario. Click en una imagen para fijarla.' }}
+              </p>
+              <div v-if="!imagenesDelTour.length" class="text-center py-3 border border-dashed border-teal-200 rounded-xl">
+                <span class="text-[9px] font-black text-teal-300 uppercase tracking-widest">Los segmentos del tour aún no tienen imágenes</span>
+              </div>
+              <div v-else class="grid grid-cols-3 gap-2">
+                <button v-for="(img, i) in imagenesDelTour" :key="i" @click="seleccionarPortada(img)"
+                        class="relative aspect-video rounded-lg overflow-hidden border-2 transition-all"
+                        :class="esPortadaSeleccionada(img) ? 'border-teal-500 ring-2 ring-teal-300' : 'border-transparent hover:border-teal-300'">
+                  <img :src="thumbUrl(img.imageUrl, 'travel_thumb_admin')" class="w-full h-full object-cover" loading="lazy">
+                  <span v-if="img.isPortada" class="absolute top-1 left-1 bg-amber-400 text-white text-[8px] font-black px-1 rounded" title="Portada de su segmento"><i class="fas fa-star"></i></span>
+                  <span v-if="esPortadaSeleccionada(img)" class="absolute inset-0 bg-teal-600/30 flex items-center justify-center"><i class="fas fa-check-circle text-white text-lg"></i></span>
+                </button>
+              </div>
+            </div>
+
             <button @click="isReporteOpen = true"
                     class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
               <i class="fas fa-file-invoice-dollar mr-2"></i> Reporte financiero completo
@@ -1086,7 +1172,7 @@ store.$onAction(({ name, args }) => {
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2 grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
                 <div>
-                  <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Estado Versión</span>
+                  <span class="block text-xs font-bold text-slate-500 uppercase mb-1">{{ store.modoCatalogo ? 'Estado del Tour' : 'Estado Versión' }}</span>
                   <select v-model="store.cotizacion.estado" class="w-full font-black text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] text-sm appearance-none shadow-sm">
                     <option v-for="(cfg, valor) in ESTADO_COTIZACION_CONFIG" :key="valor" :value="valor">
                       {{ cfg.label }}
@@ -1146,6 +1232,24 @@ store.$onAction(({ name, args }) => {
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1.5 ml-1">
+                <label class="block text-[10px] font-black text-slate-500 uppercase">
+                  Título Comercial ({{ store.cotizacion.idiomaEdicion.toUpperCase() }}) <span class="text-slate-300 normal-case">— opcional</span>
+                </label>
+                <button @click="toggleSobreescribirTraduccion"
+                        :class="store.cotizacion?.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                        class="p-1 px-2 border rounded-lg transition-colors shadow-sm text-[10px] font-bold flex items-center gap-1"
+                        title="Traducir automáticamente título y resumen a otros idiomas al guardar">
+                  <i class="fas fa-language"></i>
+                </button>
+              </div>
+              <input :value="store.getI18nText(store.cotizacion.titulo as any, store.cotizacion.idiomaEdicion)"
+                     @input="e => { if (!store.cotizacion!.titulo) store.cotizacion!.titulo = []; store.setI18nText(store.cotizacion!.titulo, store.cotizacion!.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                     type="text" placeholder="Ej: Cusco — Experiencia Mística"
+                     class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
             </div>
 
             <div>

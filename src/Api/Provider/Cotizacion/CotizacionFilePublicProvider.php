@@ -47,7 +47,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
 
         // ── 1. Resúmenes para la portada: un solo query escalar ──────────────
         $filas = $this->em->createQuery(<<<'DQL'
-            SELECT c.version, c.estado, c.numPax, c.resumen, c.idiomaCliente,
+            SELECT c.version, c.estado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto, c.totalVenta, c.adelanto,
                    c.tipoCambio, c.fechaExpiracion, MIN(s.fechaInicioAbsoluta) AS fechaInicio
             FROM App\Cotizacion\Entity\Cotizacion c
@@ -76,6 +76,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 'version'         => $f['version'],
                 'estado'          => $estado,
                 'numPax'          => $f['numPax'],
+                'titulo'          => $f['titulo'] ?? [],           // I18nContent[] (texto)
                 'resumen'         => $f['resumen'] ?? [],          // I18nContent[] (HTML)
                 'idiomaCliente'   => $f['idiomaCliente'],
                 'monedaGlobal'    => $f['monedaGlobal'],

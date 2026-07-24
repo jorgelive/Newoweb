@@ -42,6 +42,12 @@ class CotizacionConfirmadaEventListener
                 continue;
             }
 
+            // Tours de catálogo: producto de exhibición con fechas nominales,
+            // sin expediente real — nunca deben generar operación en La Biblia.
+            if ($entity->getCatalogo() !== null) {
+                continue;
+            }
+
             $changeSet = $uow->getEntityChangeSet($entity);
 
             // Validar si el campo 'estado' fue uno de los que cambió

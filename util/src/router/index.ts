@@ -50,6 +50,26 @@ const router = createRouter({
         },
 
         // ============================================================================
+        // MÓDULO DE CATÁLOGOS DE TOURS
+        // ============================================================================
+
+        // 1. Dashboard: Lista de catálogos y sala de cada catálogo (tours)
+        {
+            path: '/catalogo',
+            name: 'catalogos_dashboard',
+            component: () => import('../views/Cotizaciones/CatalogoDashboard.vue')
+        },
+
+        // 2. Motor Operativo en modo catálogo: edición de un tour (misma vista)
+        {
+            path: '/catalogo/:fileId/version/:cotizacionId',
+            name: 'catalogo_editor',
+            component: () => import('../views/Cotizaciones/CotizacionEditorView.vue'),
+            props: true,
+            meta: { modoCatalogo: true }
+        },
+
+        // ============================================================================
         // MÓDULO DE OPERACIONES
         // ============================================================================
         {

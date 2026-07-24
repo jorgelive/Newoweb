@@ -20,10 +20,11 @@ final class CloneCotizacionProcessor implements ProcessorInterface
         // $data es la Cotizacion leída por el provider (gracias a read: true)
         $clon = $data->duplicar();
 
-        $filePadre = $data->getFile();
-        if ($filePadre) {
+        // El padre puede ser un expediente o un catálogo de tours
+        $padre = $data->getFile() ?? $data->getCatalogo();
+        if ($padre) {
             $ultimaVersion = 0;
-            foreach ($filePadre->getCotizaciones() as $c) {
+            foreach ($padre->getCotizaciones() as $c) {
                 if ($c->getVersion() > $ultimaVersion) {
                     $ultimaVersion = $c->getVersion();
                 }

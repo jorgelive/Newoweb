@@ -26,6 +26,27 @@ const router = createRouter({
         },
 
         // -----------------------------------------------------------------
+        // CATÁLOGO DE TOURS — Escaparate público (por localizador)
+        // -----------------------------------------------------------------
+        {
+            path: '/catalogo/:localizador',
+            name: 'catalogo_publico',
+            component: () => import('@/views/cotizacion/PaxCatalogoPortadaView.vue'),
+            props: true
+        },
+
+        // -----------------------------------------------------------------
+        // CATÁLOGO DE TOURS — Guía día a día de un tour (reusa la vista guía)
+        // -----------------------------------------------------------------
+        {
+            path: '/catalogo/:localizador/v/:version',
+            name: 'catalogo_guia',
+            component: () => import('@/views/cotizacion/PaxCotizacionGuiaView.vue'),
+            props: true,
+            meta: { esCatalogo: true }
+        },
+
+        // -----------------------------------------------------------------
         // 1. RUTA DE RESERVA (Entrada Clásica)
         // -----------------------------------------------------------------
         {

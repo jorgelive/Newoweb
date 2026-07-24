@@ -30,7 +30,7 @@ export type OperacionServicio      = components['schemas']['OperacionServicio-op
 export type OperacionMensaje       = components['schemas']['OperacionMensaje-operacion.mensaje.read_timestamp.read'];
 
 // MaestroMoneda con los campos que expone en contexto de operacion
-export type MaestroMonedaOperacion = components['schemas']['MaestroMoneda-operacion.read_timestamp.read'];
+export type MaestroMonedaOperacion = components['schemas']['Moneda-operacion.read_timestamp.read'];
 
 // ============================================================================
 // TIPOS DE ESCRITURA

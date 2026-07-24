@@ -82,6 +82,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const cotizacion = ref<Cotizacion | null>(null);
     const fileActual = ref<CotizacionFileExtended | null>(null);
 
+    // Modo catálogo de tours: el padre es un CotizacionCatalogo en vez de un
+    // File. Los tours usan fechas base nominales (solo se muestra "Día N")
+    // y exponen un precio comercial "Desde X" además del cálculo real.
+    const modoCatalogo = ref(false);
+    const FECHA_BASE_NOMINAL = '2030-01-05';
+
     // ============================================================================
     // 🔥 LÓGICA DE NEGOCIO: ENUMS (Replicado del Backend)
     // ============================================================================
@@ -1054,9 +1060,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // INICIALIZACIÓN Y BATCH FETCHING (ANTI-WATERFALL)
     // ============================================================================
 
-    const inicializarEditor = async (fileId: string, cotizacionId: string) => {
+    const inicializarEditor = async (fileId: string, cotizacionId: string, esCatalogo = false) => {
         if (!fileId) return;
 
+        modoCatalogo.value = esCatalogo;
         isLoading.value = true;
         try {
             try {
@@ -1067,8 +1074,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             await fetchIdiomas();
             await fetchCatalogos();
 
-            const fileRes = await apiClient.get(`/platform/sales/cotizacion_files/${fileId}`);
-            fileActual.value = fileRes.data;
+            if (esCatalogo) {
+                const catRes = await apiClient.get(`/platform/sales/cotizacion_catalogos/${fileId}`);
+                // El editor lee nombreGrupo para la cabecera; el catálogo usa "nombre"
+                fileActual.value = { ...catRes.data, nombreGrupo: catRes.data.nombre };
+            } else {
+                const fileRes = await apiClient.get(`/platform/sales/cotizacion_files/${fileId}`);
+                fileActual.value = fileRes.data;
+            }
 
             if (cotizacionId === 'nueva') {
                 const maxVersion: number = fileActual.value?.cotizaciones?.reduce((max: number, c) => Math.max(max, c.version), 0) || 0;
@@ -1442,7 +1455,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         cotizacion.value = {
             id: crypto.randomUUID(),
-            file: `/platform/sales/cotizacion_files/${fileId}`,
+            ...(modoCatalogo.value
+                ? { catalogo: `/platform/sales/cotizacion_catalogos/${fileId}`, preciosDesde: [], orden: 0 }
+                : { file: `/platform/sales/cotizacion_files/${fileId}` }),
             version: 1,
             estado: 'pendiente',
             monedaGlobal: 'USD',
@@ -1456,6 +1471,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             totalVenta: '0.00',
             precioOculto: false,
             proveedorOculto: false,
+            titulo: [],
             resumen: [],
             sobreescribirTraduccion: false,
             cotservicios: []
@@ -1511,12 +1527,29 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             delete payload.createdAt;
             delete payload.updatedAt;
 
-            // Formateo del archivo adjunto
+            // Formateo del padre (expediente o catálogo de tours)
             if (payload.file && typeof payload.file === 'object') {
                 payload.file = payload.file['@id'] || payload.file.id;
             } else if (payload.file && !payload.file.includes('/platform/')) {
                 payload.file = `/platform/sales/cotizacion_files/${payload.file}`;
             }
+            if (payload.catalogo && typeof payload.catalogo === 'object') {
+                payload.catalogo = payload.catalogo['@id'] || payload.catalogo.id;
+            } else if (payload.catalogo && !payload.catalogo.includes('/platform/')) {
+                payload.catalogo = `/platform/sales/cotizacion_catalogos/${payload.catalogo}`;
+            }
+
+            // Rangos "Desde" (catálogo): valor decimal como string, nunca number
+            if (Array.isArray(payload.preciosDesde)) {
+                payload.preciosDesde = payload.preciosDesde
+                    .filter((r: any) => r && (r.valor !== '' && r.valor !== null && r.valor !== undefined))
+                    .map((r: any) => ({
+                        titulo: Array.isArray(r.titulo) ? r.titulo : [],
+                        moneda: r.moneda || 'USD',
+                        valor: String(r.valor),
+                    }));
+            }
+            if (payload.orden !== undefined) payload.orden = parseInt(String(payload.orden)) || 0;
 
             // Parseo seguro de métricas base
             payload.comision = String(payload.comision || '0');
@@ -1848,7 +1881,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const cots = cotizacion.value.cotservicios || [];
         const fechaBase = cots.length > 0
             ? getFechaLimpia(cots[cots.length - 1].fechaInicioAbsoluta)
-            : getFechaLimpia(new Date().toISOString());
+            : (modoCatalogo.value ? FECHA_BASE_NOMINAL : getFechaLimpia(new Date().toISOString()));
 
         const nuevoServicio = {
             id: crypto.randomUUID(),
@@ -3365,7 +3398,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
 
     return {
-        catalogos, cotizacion, fileActual, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
+        catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,
         resumenFinanciero, itinerarioDinamico, totalCostoNeto, ventaSugerida,
         getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, calcularPernoctes,

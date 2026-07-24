@@ -26,7 +26,7 @@ export interface ImagenProveedorSnapshot {
     isPortada: boolean;
 }
 
-export type MaestroMoneda = components['schemas']['MaestroMoneda-componente.item.read'] & {
+export type MaestroMoneda = components['schemas']['Moneda-componente.item.read'] & {
     '@id'?: string;
 };
 
@@ -65,12 +65,23 @@ export type CotServicio = Omit<
     cotsegmentos?: CotSegmento[];
 };
 
+/** Rango comercial "Desde X" por perfil de cliente (tours de catálogo). */
+export interface PrecioDesdeRango {
+    titulo: I18nContent[];
+    moneda: string;
+    valor: string;
+}
+
 export type Cotizacion = Omit<
     components['schemas']['Cotizacion-cotizacion.read_timestamp.read'],
     'file' | 'cotservicios' | 'resumen'
 > & {
     idiomaEdicion: string;
-    file: { id?: string; '@id'?: string; createdAt?: string; updatedAt?: string; } | string;
+    titulo?: I18nContent[];
+    file?: { id?: string; '@id'?: string; createdAt?: string; updatedAt?: string; } | string | null;
+    catalogo?: { id?: string; '@id'?: string; } | string | null;
+    preciosDesde?: PrecioDesdeRango[];
+    orden?: number;
     cotservicios: CotServicio[];
     resumen: I18nContent[];
     clasificacionFinanciera?: ClasificacionFinancieraInterna;

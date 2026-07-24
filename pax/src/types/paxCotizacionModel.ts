@@ -293,6 +293,47 @@ export interface PaxCotizacionFile {
     filepasajeros: PaxFilepasajero[];
 }
 
+// --- Catálogo de tours (escaparate público) -------------------------------------
+
+/** Rango comercial "Desde X" por perfil de cliente (título traducible). */
+export interface PaxPrecioDesdeRango {
+    titulo: I18n;
+    moneda: string;
+    valor: string;
+}
+
+/** Card liviana de un tour del catálogo (portada del escaparate). */
+export interface PaxTourResumen {
+    version: number;
+    estado: string;
+    numPax: number;
+    titulo: I18n;
+    resumen: I18n; // HTML comercial multiidioma
+    idiomaCliente: string;
+    monedaGlobal: string;
+    precioOculto: boolean;
+    orden: number;
+    preciosDesde: PaxPrecioDesdeRango[];
+    /** Snapshot de la imagen de portada (override o derivada); null si el tour no tiene fotos */
+    imagenPortada?: { imageUrl?: string; imageName?: string; isPortada?: boolean } | null;
+    /** Duración del programa en días (span del itinerario nominal) */
+    numDias?: number | null;
+}
+
+/** Raíz: el catálogo público de tours (por localizador). */
+export interface PaxCatalogo {
+    '@context'?: string;
+    '@id'?: string;
+    '@type'?: string;
+    localizador: string;
+    nombre: string;
+    idiomaCliente?: string;
+    /** Cards de todos los tours públicos (siempre presente) */
+    toursParaCliente: PaxTourResumen[];
+    /** Cotización completa del tour; solo viene cuando la URL incluye /{version} */
+    cotizacionParaCliente?: PaxCotizacion | null;
+}
+
 // --- Tipos derivados para la UI (itinerario agrupado) ---------------------------
 
 /** Segmento enriquecido con referencia a su servicio padre */

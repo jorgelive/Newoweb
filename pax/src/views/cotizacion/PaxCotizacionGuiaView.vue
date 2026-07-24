@@ -19,7 +19,7 @@
  *     abre un modal con las inclusiones del servicio COMPLETO (todos los días).
  */
 import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero } from '@/types/paxCotizacionModel';
@@ -34,6 +34,10 @@ const props = defineProps<{
 const store = usePaxCotizacionStore();
 const maestroStore = useMaestroStore();
 const router = useRouter();
+const route = useRoute();
+
+// Modo catálogo: tour con fechas nominales — se muestra solo "Día N"
+const esCatalogo = computed(() => route.meta.esCatalogo === true);
 
 const isReady = ref(false);
 const diaActivo = ref(1);
@@ -44,7 +48,11 @@ const cargar = async () => {
   isReady.value = false;
   try {
     await maestroStore.cargarConfiguracion();
-    await store.cargarVersion(props.localizador, Number(props.version));
+    if (esCatalogo.value) {
+      await store.cargarVersionCatalogo(props.localizador, Number(props.version));
+    } else {
+      await store.cargarVersion(props.localizador, Number(props.version));
+    }
   } catch (error) {
     console.error('Error en carga inicial:', error);
   } finally {
@@ -86,7 +94,10 @@ const irADia = (n: number) => {
 };
 
 const volverPortada = () => {
-  router.push({ name: 'file_publica', params: { localizador: props.localizador } });
+  router.push({
+    name: esCatalogo.value ? 'catalogo_publico' : 'file_publica',
+    params: { localizador: props.localizador },
+  });
 };
 
 // ── Idioma (manual pisa al idiomaCliente) ────────────────────────────────────
@@ -134,15 +145,32 @@ const addDays = (ymd: string, n: number) => {
 const diffDays = (a: string, b: string) =>
     Math.round((new Date(b + 'T00:00:00Z').getTime() - new Date(a + 'T00:00:00Z').getTime()) / 86400000);
 
-const formatearFecha = (ymd: string) =>
-    new Date(ymd.substring(0, 10) + 'T00:00:00Z').toLocaleDateString(maestroStore.idiomaActual, {
-      weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
-    });
+/** Día relativo del programa (1-based) a partir de la fecha nominal. */
+const diaNumDe = (iso: string): number => {
+  const base = store.itinerario[0]?.fecha;
+  if (!base) return 1;
+  return diffDays(base, iso.substring(0, 10)) + 1;
+};
 
-const fechaChip = (iso: string) =>
-    new Date(iso.substring(0, 10) + 'T00:00:00Z').toLocaleDateString(maestroStore.idiomaActual, {
-      day: '2-digit', month: 'short', timeZone: 'UTC',
-    });
+const formatearFecha = (ymd: string) => {
+  // Catálogo: fechas nominales — nunca mostrar fecha absoluta
+  if (esCatalogo.value) {
+    return `${maestroStore.t('cot_dia') || 'Día'} ${diaNumDe(ymd)}`;
+  }
+  return new Date(ymd.substring(0, 10) + 'T00:00:00Z').toLocaleDateString(maestroStore.idiomaActual, {
+    weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
+  });
+};
+
+const fechaChip = (iso: string) => {
+  // Catálogo: fechas nominales — se referencia por día del programa
+  if (esCatalogo.value) {
+    return `${maestroStore.t('cot_dia') || 'Día'} ${diaNumDe(iso)}`;
+  }
+  return new Date(iso.substring(0, 10) + 'T00:00:00Z').toLocaleDateString(maestroStore.idiomaActual, {
+    day: '2-digit', month: 'short', timeZone: 'UTC',
+  });
+};
 
 // ── Itinerario de vista (segmentos → bloques por día) ────────────────────────
 interface BloqueVista {
@@ -466,26 +494,48 @@ const abrirInclusiones = (servicioId: string, nombre: any) => {
   modalInclusiones.value = { servicioId, nombre, secciones: seccionesInclusion(srv) };
 };
 
-/** Chips de tarifa de una línea (título + badges + proveedor si es visible) */
-const chipsDeLinea = (l: PaxInclusionItem, servicioId: string) => {
-  const chips: { titulo: string; badges: ReturnType<typeof modCatBadges>; proveedor: ProveedorInfo | null }[] = [];
+/**
+ * Chips de tarifa de una línea (título + badges + proveedor si es visible).
+ *
+ * - Cotización: un chip por tarifa, agrupando idénticas con multiplicador ("Peruano ×2").
+ * - Catálogo: un único chip solo con los atributos unánimes entre todas las
+ *   tarifas (si todas son privadas → PRIVADO; si difieren, el atributo se
+ *   omite) y nunca con multiplicador.
+ */
+interface ChipLinea { titulo: string; badges: ReturnType<typeof modCatBadges>; proveedor: ProveedorInfo | null; count: number }
+const chipsDeLinea = (l: PaxInclusionItem, servicioId: string): ChipLinea[] => {
   const conProveedor = (tarifaTitulo: any) =>
       proveedorPorTarifa.value.get(`${servicioId}::${contenidoEs(tarifaTitulo)}`) ?? null;
 
-  if (l.tarifas.length) {
-    for (const t of l.tarifas as PaxTarifaFinanciera[]) {
-      const titulo = store.traducir(t.tarifaTitulo);
-      const badges = modCatBadges(t.modalidad, t.categoria);
-      const proveedor = conProveedor(t.tarifaTitulo);
-      if (titulo || badges.length || proveedor) chips.push({ titulo, badges, proveedor });
-    }
-  } else {
-    const badges = modCatBadges(l.modalidad, l.categoria);
-    const titulo = store.traducir(l.tarifaTitulo);
-    const proveedor = conProveedor(l.tarifaTitulo);
-    if (titulo || badges.length || proveedor) chips.push({ titulo, badges, proveedor });
+  // Datos crudos por tarifa (o la propia línea si no trae tarifas)
+  const fuentes = (l.tarifas.length ? (l.tarifas as PaxTarifaFinanciera[]) : [l as any])
+      .map((t: any) => ({
+        titulo: store.traducir(t.tarifaTitulo),
+        modalidad: (t.modalidad ?? null) as string | null,
+        categoria: (t.categoria ?? null) as string | null,
+        proveedor: conProveedor(t.tarifaTitulo),
+      }));
+
+  if (esCatalogo.value) {
+    const unanime = <T,>(vals: (T | null)[]): T | null =>
+        vals.length > 0 && vals.every(v => v !== null && v === vals[0]) ? vals[0] : null;
+
+    const titulo = unanime(fuentes.map(f => f.titulo || null)) ?? '';
+    const badges = modCatBadges(unanime(fuentes.map(f => f.modalidad)), unanime(fuentes.map(f => f.categoria)));
+    const proveedor = unanime(fuentes.map(f => f.proveedor));
+    return (titulo || badges.length || proveedor) ? [{ titulo, badges, proveedor, count: 1 }] : [];
   }
-  return chips;
+
+  const grupos = new Map<string, ChipLinea>();
+  for (const f of fuentes) {
+    const badges = modCatBadges(f.modalidad, f.categoria);
+    if (!f.titulo && !badges.length && !f.proveedor) continue;
+    const key = `${f.titulo}|${badges.map(b => b.key).join(',')}|${f.proveedor ? contenidoEs(f.proveedor.titulo) : ''}`;
+    const previo = grupos.get(key);
+    if (previo) previo.count++;
+    else grupos.set(key, { titulo: f.titulo, badges, proveedor: f.proveedor, count: 1 });
+  }
+  return [...grupos.values()];
 };
 
 // ── Perfiles de pasajero (solo venta) ────────────────────────────────────────
@@ -838,8 +888,11 @@ const adelantoVista = computed(() => {
               <span class="text-lg font-black leading-none">{{ dia.numeroDia }}</span>
             </span>
             <div class="min-w-0">
-              <h2 class="text-lg md:text-xl font-black text-gray-800 capitalize leading-tight">
+              <h2 v-if="!esCatalogo" class="text-lg md:text-xl font-black text-gray-800 capitalize leading-tight">
                 {{ formatearFecha(dia.fecha) }}
+              </h2>
+              <h2 v-else class="text-lg md:text-xl font-black text-gray-800 leading-tight">
+                {{ maestroStore.t('cot_dia') || 'Día' }} {{ dia.numeroDia }}
               </h2>
               <p class="text-[10px] font-bold text-[#376875]/50 uppercase tracking-widest">
                 {{ dia.bloques.length }} {{ dia.bloques.length === 1 ? (maestroStore.t('cot_actividad') || 'actividad') : (maestroStore.t('cot_actividades') || 'actividades') }}
@@ -1079,7 +1132,7 @@ const adelantoVista = computed(() => {
                                 v-if="chip.titulo"
                                 class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5"
                             >
-                              {{ chip.titulo }}
+                              {{ chip.titulo }}<b v-if="chip.count > 1" class="text-[#376875] font-black ml-1">×{{ chip.count }}</b>
                             </span>
                             <span
                                 v-for="b in chip.badges"
@@ -1287,7 +1340,7 @@ const adelantoVista = computed(() => {
                         v-if="chip.titulo"
                         class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5"
                     >
-                      {{ chip.titulo }}
+                      {{ chip.titulo }}<b v-if="chip.count > 1" class="text-[#376875] font-black ml-1">×{{ chip.count }}</b>
                     </span>
                     <span
                         v-for="b in chip.badges"

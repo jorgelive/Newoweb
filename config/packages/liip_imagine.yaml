@@ -32,3 +32,20 @@ liip_imagine:
             filters:
                 downscale: { max: [ 1600, 1600 ] }
                 strip: ~
+
+        # --- FILTRO 4: THUMBNAIL TRAVEL (selectores y grillas del editor) ---
+        travel_thumb_admin:
+            quality: 75
+            format: webp
+            filters:
+                thumbnail: { size: [220, 124], mode: outbound, allow_upscale: true } # 16:9 para cards
+                strip: ~
+
+        # --- FILTRO 5: VISTA CLIENTE (pax: cards y visor de fotos) ---
+        # Limita la altura a 900px conservando proporción; nunca upscalea.
+        travel_cliente:
+            quality: 80
+            format: webp
+            filters:
+                downscale: { max: [1600, 900] }
+                strip: ~

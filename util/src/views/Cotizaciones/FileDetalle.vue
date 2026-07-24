@@ -58,6 +58,19 @@ const paisOptions = computed(() =>
 // ============================================================================
 const idiomaActivo = ref('es');
 const idiomaDocDropdown = ref(false);
+
+/** Texto i18n en el idioma activo de la vista, con fallback es → primero. */
+const t18 = (arr?: { language?: string; content?: string }[] | null): string => {
+  if (!Array.isArray(arr) || !arr.length) return '';
+  const m = arr.find(i => i.language === idiomaActivo.value)
+      || arr.find(i => i.language === 'es')
+      || arr[0];
+  return m?.content || '';
+};
+
+/** Resumen HTML → texto plano corto para previews. */
+const resumenPreview = (arr?: { language?: string; content?: string }[] | null): string =>
+  t18(arr).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const idiomaFileDropdown = ref(false);
 const idiomasDisponibles = computed(() => fileStore.idiomasDisponibles);
 
@@ -499,6 +512,27 @@ const eliminarDocumento = async (iri?: string) => {
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
+        <div v-if="idiomasDisponibles.length > 1" class="relative">
+          <div v-if="idiomaDocDropdown" class="fixed inset-0 z-40" @click="idiomaDocDropdown = false"></div>
+          <button type="button" @click="idiomaDocDropdown = !idiomaDocDropdown"
+              title="Idioma de visualización: títulos, resúmenes y documentos"
+              class="relative z-50 flex items-center gap-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-600 transition-colors shadow-sm">
+            <span>{{ idiomasDisponibles.find(i => i.id === idiomaActivo)?.bandera ?? '🌐' }}</span>
+            <span class="uppercase tracking-wider">{{ idiomaActivo }}</span>
+            <i class="fas fa-chevron-down text-[8px] transition-transform duration-200" :class="idiomaDocDropdown ? 'rotate-180' : ''"></i>
+          </button>
+          <div v-if="idiomaDocDropdown" class="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden min-w-[150px] z-50">
+            <button v-for="idi in idiomasDisponibles" :key="idi.id" type="button"
+                @click="idiomaActivo = idi.id; idiomaDocDropdown = false"
+                class="flex items-center gap-2.5 w-full px-3 py-2.5 text-left text-xs font-bold transition-colors hover:bg-slate-50"
+                :class="idiomaActivo === idi.id ? 'bg-sky-50 text-sky-700' : 'text-slate-700'">
+              <span class="text-sm">{{ idi.bandera }}</span>
+              <span class="flex-1">{{ idi.nombre }}</span>
+              <i v-if="idiomaActivo === idi.id" class="fas fa-check text-sky-500 text-[10px]"></i>
+            </button>
+          </div>
+        </div>
+
         <button @click="eliminarFile" class="text-[10px] font-bold px-2 py-0.5 rounded-md border border-red-200 text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1">
           <i class="fas fa-trash-alt"></i> <span class="hidden md:inline">Eliminar Expediente</span>
         </button>
@@ -604,28 +638,7 @@ const eliminarDocumento = async (iri?: string) => {
           <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
             <div class="flex items-center justify-between mb-4 border-b pb-3">
               <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest"><i class="fas fa-folder-open mr-1 text-sky-500"></i> Bóveda Digital</h2>
-              <div class="flex items-center gap-2">
-                <div v-if="idiomasDisponibles.length > 1" class="relative">
-                  <div v-if="idiomaDocDropdown" class="fixed inset-0 z-40" @click="idiomaDocDropdown = false"></div>
-                  <button type="button" @click="idiomaDocDropdown = !idiomaDocDropdown"
-                      class="relative z-50 flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-600 transition-colors">
-                    <span>{{ idiomasDisponibles.find(i => i.id === idiomaActivo)?.bandera ?? '🌐' }}</span>
-                    <span class="uppercase tracking-wider">{{ idiomaActivo }}</span>
-                    <i class="fas fa-chevron-down text-[8px] transition-transform duration-200" :class="idiomaDocDropdown ? 'rotate-180' : ''"></i>
-                  </button>
-                  <div v-if="idiomaDocDropdown" class="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden min-w-[150px] z-50">
-                    <button v-for="idi in idiomasDisponibles" :key="idi.id" type="button"
-                        @click="idiomaActivo = idi.id; idiomaDocDropdown = false"
-                        class="flex items-center gap-2.5 w-full px-3 py-2.5 text-left text-xs font-bold transition-colors hover:bg-slate-50"
-                        :class="idiomaActivo === idi.id ? 'bg-sky-50 text-sky-700' : 'text-slate-700'">
-                      <span class="text-sm">{{ idi.bandera }}</span>
-                      <span class="flex-1">{{ idi.nombre }}</span>
-                      <i v-if="idiomaActivo === idi.id" class="fas fa-check text-sky-500 text-[10px]"></i>
-                    </button>
-                  </div>
-                </div>
-                <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 shrink-0">+ Subir Doc</button>
-              </div>
+              <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 shrink-0">+ Subir Doc</button>
             </div>
 
             <div v-if="!file.filedocumentos?.length" class="bg-sky-50 border-2 border-dashed border-sky-200 rounded-2xl p-6 text-center text-sky-400">
@@ -730,12 +743,15 @@ const eliminarDocumento = async (iri?: string) => {
                   </div>
 
                   <div class="min-w-0">
-                    <div class="flex items-center gap-2 leading-none">
-                      <p class="text-sm sm:text-base font-black text-slate-800 capitalize">{{ cot.estado || 'Pendiente' }}</p>
+                    <div class="flex items-center gap-2 leading-none flex-wrap">
+                      <p class="text-sm sm:text-base font-black text-slate-800">
+                        {{ t18((cot as any).titulo) || `Versión ${cot.version}` }}
+                      </p>
+                      <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 uppercase shrink-0">{{ cot.estado || 'Pendiente' }}</span>
                       <span class="text-[9px] font-black bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100 uppercase shrink-0">{{ cot.monedaGlobal || 'USD' }}</span>
                     </div>
                     <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate max-w-35 sm:max-w-xs">
-                      {{ fileStore.extraerResumenPreview(cot.resumen) }}
+                      {{ resumenPreview(cot.resumen as any) }}
                     </p>
                   </div>
                 </div>

@@ -25,6 +25,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     const hasNextPage = ref<boolean>(true);
     const currentPage = ref<number>(1);
     const error = ref<string | null>(null);
+    const searchTerm = ref<string>('');
 
     // Idiomas disponibles para revisar traducciones (AutoTranslate)
     const idiomasDisponibles = ref<ApiIdioma[]>([]);
@@ -49,7 +50,10 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         error.value = null;
 
         try {
-            const response = await apiClient.get(`/platform/sales/cotizacion_files?page=${page}&order[createdAt]=desc`);
+            const nombre = searchTerm.value.trim();
+            const query = `/platform/sales/cotizacion_files?page=${page}&order[createdAt]=desc`
+                + (nombre ? `&nombre=${encodeURIComponent(nombre)}` : '');
+            const response = await apiClient.get(query);
             const rawData = response.data;
             const newFiles = rawData['hydra:member'] || rawData['member'] || [];
 
@@ -71,6 +75,15 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             loadingFiles.value = false;
             loadingMore.value = false;
         }
+    };
+
+    /**
+     * Aplica el término de búsqueda (nombre de grupo o pasajero principal) y
+     * recarga desde la página 1.
+     */
+    const setSearchTerm = async (term: string): Promise<void> => {
+        searchTerm.value = term;
+        await fetchFiles(1);
     };
 
     /**
@@ -268,9 +281,11 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         hasNextPage,
         currentPage,
         error,
+        searchTerm,
         idiomasDisponibles,
         getActiveFiles,
         fetchFiles,
+        setSearchTerm,
         fetchIdiomas,
         createFile,
         updateFile,

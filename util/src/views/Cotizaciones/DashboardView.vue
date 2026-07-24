@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { useMaestroStore } from '@/stores/maestroStore';
+import type { ApiCotizacionFile } from '@/types/fileDetalleModel';
 
 /**
  * Normaliza y formatea la fecha provista a estándar regional PE.
@@ -14,9 +15,69 @@ const formatDate = (dateStr?: string): string => {
   return new Date(dateStr).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+/**
+ * Formatea una fecha "date-only" (YYYY-MM-DD, sin hora) sin sufrir el
+ * corrimiento de un día que produce `new Date('YYYY-MM-DD')` en zonas
+ * horarias negativas (parsea como UTC medianoche).
+ */
+const formatFechaInicio = (dateStr: string | null): string => {
+  if (!dateStr) return 'S/F';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
 const router = useRouter();
 const fileStore = useCotizacionFileStore();
 const maestroStore = useMaestroStore();
+
+// ============================================================================
+// BUSCADOR POR NOMBRE (grupo o pasajero principal)
+// ============================================================================
+const searchInput = ref<string>('');
+let searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+const onSearchInput = (): void => {
+  if (searchDebounce) clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    fileStore.setSearchTerm(searchInput.value);
+  }, 400);
+};
+
+onBeforeUnmount(() => {
+  if (searchDebounce) clearTimeout(searchDebounce);
+});
+
+// ============================================================================
+// ORDENAMIENTO: fecha de cotización vs. fecha de primer servicio (más próxima)
+// ============================================================================
+type SortKey = 'createdAt' | 'fechaInicio';
+const sortKey = ref<SortKey>('createdAt');
+const sortDir = ref<'asc' | 'desc'>('desc');
+
+/** Fecha de primer servicio más próxima entre todas las versiones del file (o null si ninguna tiene). */
+const primeraFechaServicio = (file: ApiCotizacionFile): string | null => {
+  const fechas = (file.versionesFechas || [])
+    .map(v => v.fechaInicio)
+    .filter((f): f is string => !!f)
+    .sort();
+  return fechas[0] ?? null;
+};
+
+const sortedFiles = computed(() => {
+  const lista = [...fileStore.files];
+  const dir = sortDir.value === 'asc' ? 1 : -1;
+
+  return lista.sort((a, b) => {
+    const va = sortKey.value === 'createdAt' ? (a.createdAt || '') : (primeraFechaServicio(a) || '');
+    const vb = sortKey.value === 'createdAt' ? (b.createdAt || '') : (primeraFechaServicio(b) || '');
+    // Los que no tienen fecha de servicio siempre van al final, sin importar la dirección.
+    if (sortKey.value === 'fechaInicio' && (!va || !vb)) {
+      if (!va && !vb) return 0;
+      return !va ? 1 : -1;
+    }
+    return va < vb ? -1 * dir : va > vb ? 1 * dir : 0;
+  });
+});
 
 // ============================================================================
 // ESTADO LOCAL DE LA INTERFAZ
@@ -125,15 +186,43 @@ const loadMore = (): void => {
         <i class="fas fa-exclamation-triangle text-xl"></i> {{ fileStore.error }}
       </div>
 
+      <!-- BUSCADOR Y ORDENAMIENTO -->
+      <div class="mb-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div class="relative flex-1 max-w-sm">
+          <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input v-model="searchInput" @input="onSearchInput" type="text"
+                 placeholder="Buscar por grupo o pasajero..."
+                 class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#376875]/30 focus:border-[#376875] shadow-sm">
+        </div>
+        <div class="flex items-center gap-2">
+          <select v-model="sortKey" class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-[#376875]/30 shadow-sm">
+            <option value="createdAt">Ordenar por fecha de cotización</option>
+            <option value="fechaInicio">Ordenar por fecha de primer servicio</option>
+          </select>
+          <button @click="sortDir = sortDir === 'asc' ? 'desc' : 'asc'"
+                  class="w-9 h-9 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-500 transition-colors shadow-sm"
+                  :title="sortDir === 'asc' ? 'Ascendente' : 'Descendente'">
+            <i class="fas" :class="sortDir === 'asc' ? 'fa-arrow-up-wide-short' : 'fa-arrow-down-wide-short'"></i>
+          </button>
+        </div>
+      </div>
+
       <!-- ESTADO DE CARGA INICIAL -->
       <div v-if="fileStore.loadingFiles && fileStore.files.length === 0" class="flex flex-col items-center justify-center py-20 text-slate-300">
         <i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i>
         <span class="font-bold uppercase tracking-widest text-sm">Cargando expedientes...</span>
       </div>
 
+      <!-- SIN RESULTADOS DE BÚSQUEDA -->
+      <div v-else-if="!sortedFiles.length" class="text-center py-20">
+        <i class="fas fa-folder-open text-5xl text-slate-300 mb-4"></i>
+        <h2 class="text-xl font-black text-slate-600">Sin resultados</h2>
+        <p class="text-sm text-slate-400 font-medium mt-1">No hay expedientes que coincidan con "{{ searchInput }}".</p>
+      </div>
+
       <!-- GRILLA DE RESULTADOS / EXPEDIENTES -->
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="(file, index) in fileStore.files" :key="file.id ?? index"
+        <div v-for="(file, index) in sortedFiles" :key="file.id ?? index"
              class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col relative overflow-hidden"
              @click="router.push(`/cotizacion/${file.id || (file['@id']?.split('/').pop())}`)">
 
@@ -157,6 +246,14 @@ const loadMore = (): void => {
                     </span>
             <i class="fas fa-user-tie opacity-50 ml-1"></i> {{ file.pasajeroPrincipal || 'Pasajero principal sin asignar' }}
           </p>
+
+          <!-- Fechas de primer servicio por versión -->
+          <div v-if="file.versionesFechas?.length" class="flex flex-wrap gap-1.5 mt-3">
+            <span v-for="v in file.versionesFechas" :key="v.version"
+                  class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500">
+              V{{ v.version }}: {{ formatFechaInicio(v.fechaInicio) }}
+            </span>
+          </div>
 
           <!-- Área inferior de la tarjeta -->
           <div class="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-slate-400">

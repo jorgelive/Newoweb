@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
@@ -13,7 +14,9 @@ use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Patch;
+use App\Api\Provider\Cotizacion\CotizacionFileCollectionProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
+use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
 use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroPais;
@@ -38,12 +41,14 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
  *   - pax_file:read→ PORTADA: datos del File + resúmenes de propuestas.
  *   - pax_cotizacion:read → DETALLE: agrega la cotización completa de UNA versión.
  */
+#[ApiFilter(CotizacionFileNombreFilter::class)]
 #[ApiResource(
     shortName: 'CotizacionFile',
     operations: [
         new GetCollection(
             normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
-            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            provider: CotizacionFileCollectionProvider::class,
         ),
         new Get(
             normalizationContext: ['groups' => ['file:read', 'file:item:read', 'timestamp:read']],
@@ -228,6 +233,28 @@ class CotizacionFile
     {
         $this->cotizacionParaCliente = $cotizacion;
         return $this;
+    }
+
+    /**
+     * Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
+     * expediente. La llena CotizacionFileCollectionProvider con UN query
+     * escalar batched para toda la página del dashboard (sin N+1), evitando
+     * hidratar $cotizaciones/$cotservicios por cada fila.
+     *
+     * @var array<int, array{version: int, fechaInicio: ?string}>
+     */
+    private array $versionesFechas = [];
+
+    public function setVersionesFechas(array $versionesFechas): self
+    {
+        $this->versionesFechas = $versionesFechas;
+        return $this;
+    }
+
+    #[Groups(['file:read'])]
+    public function getVersionesFechas(): array
+    {
+        return $this->versionesFechas;
     }
 
     /**

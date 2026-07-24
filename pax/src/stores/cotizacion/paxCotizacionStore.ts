@@ -11,6 +11,8 @@ import type {
     PaxSegmentoConServicio,
     PaxInclusionServicio,
     PaxVersionResumen,
+    PaxCatalogo,
+    PaxTourResumen,
 } from '@/types/paxCotizacionModel';
 
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
@@ -33,11 +35,18 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
     const loading = ref(false);
     const error = ref<string | null>(null);
 
+    // CATÁLOGO DE TOURS (escaparate público). El detalle de un tour reusa
+    // el ref `detalle` para que la guía día a día funcione sin cambios.
+    const portadaCatalogo = ref<PaxCatalogo | null>(null);
+    const lastUpdatePortadaCatalogo = ref<number>(0);
+    const esCatalogo = ref(false);
+
     const CACHE_TTL = 30000; // 30 segundos
 
     // Request Deduplication (una por tipo de carga)
     let portadaPromise: Promise<void> | null = null;
     let detallePromise: Promise<void> | null = null;
+    let portadaCatalogoPromise: Promise<void> | null = null;
 
     // ── Helpers internos ──────────────────────────────────────────────────
 
@@ -164,6 +173,105 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
         return detallePromise;
     };
 
+    /**
+     * Carga la PORTADA del catálogo de tours (escaparate).
+     * Mismo patrón de caché/dedup que la portada de expediente.
+     *
+     * @param {string} localizador Código localizador del catálogo.
+     */
+    const cargarPortadaCatalogo = async (localizador: string): Promise<void> => {
+        const ahora = Date.now();
+        const hayInternet = navigator.onLine;
+        const datosExisten = portadaCatalogo.value !== null && currentLocalizador.value === localizador;
+        const esFresco = (ahora - lastUpdatePortadaCatalogo.value) < CACHE_TTL;
+
+        if (datosExisten && !hayInternet) return;
+        if (datosExisten && esFresco) return;
+        if (portadaCatalogoPromise) return portadaCatalogoPromise;
+
+        loading.value = true;
+        portadaCatalogoPromise = (async () => {
+            try {
+                await asegurarMaestro();
+                const data = await paxCotizacionService.getCatalogoPortada(localizador);
+
+                if (currentLocalizador.value !== localizador) {
+                    detalle.value = null;
+                    currentVersion.value = null;
+                    lastUpdateDetalle.value = 0;
+                }
+
+                portadaCatalogo.value = data;
+                esCatalogo.value = true;
+                currentLocalizador.value = localizador;
+                lastUpdatePortadaCatalogo.value = Date.now();
+                error.value = null;
+
+                // Idioma predeterminado del catálogo (sin selección manual previa)
+                const idiomaCat = data.idiomaCliente;
+                if (idiomaCat && maestroStore.idiomaActual !== idiomaCat && !localStorage.getItem('paxIdiomaManual')) {
+                    maestroStore.setIdioma(idiomaCat);
+                }
+            } catch (err: any) {
+                if (!datosExisten) { portadaCatalogo.value = null; }
+                manejarError(err, datosExisten);
+            } finally {
+                loading.value = false;
+                portadaCatalogoPromise = null;
+            }
+        })();
+        return portadaCatalogoPromise;
+    };
+
+    /**
+     * Carga el DETALLE de un tour del catálogo. Llena el mismo ref `detalle`
+     * (con `nombre` alias de `nombreGrupo`) para que la guía día a día y sus
+     * getters (`cotizacion`, `itinerario`, etc.) funcionen sin cambios.
+     *
+     * @param {string} localizador Código localizador del catálogo.
+     * @param {number} version Número de tour dentro del catálogo.
+     */
+    const cargarVersionCatalogo = async (localizador: string, version: number): Promise<void> => {
+        const ahora = Date.now();
+        const hayInternet = navigator.onLine;
+        const datosExisten = detalle.value !== null
+            && currentLocalizador.value === localizador
+            && currentVersion.value === version
+            && esCatalogo.value;
+        const esFresco = (ahora - lastUpdateDetalle.value) < CACHE_TTL;
+
+        if (datosExisten && !hayInternet) return;
+        if (datosExisten && esFresco) return;
+        if (detallePromise) return detallePromise;
+
+        loading.value = true;
+        detallePromise = (async () => {
+            try {
+                await asegurarMaestro();
+                const data = await paxCotizacionService.getCatalogoVersion(localizador, version);
+
+                detalle.value = { ...data, nombreGrupo: data.nombre } as unknown as PaxCotizacionFile;
+                esCatalogo.value = true;
+                currentLocalizador.value = localizador;
+                currentVersion.value = version;
+                lastUpdateDetalle.value = Date.now();
+                error.value = null;
+
+                const idiomaTour = data.cotizacionParaCliente?.idiomaCliente;
+                if (idiomaTour && maestroStore.idiomaActual !== idiomaTour && !localStorage.getItem('paxIdiomaManual')) {
+                    maestroStore.setIdioma(idiomaTour);
+                }
+            } catch (err: any) {
+                if (!datosExisten) { detalle.value = null; currentVersion.value = null; }
+                manejarError(err, datosExisten);
+            } finally {
+                loading.value = false;
+                detallePromise = null;
+            }
+        })();
+        return detallePromise;
+    };
+
     // ── Getters derivados ─────────────────────────────────────────────────
 
     /** File "vigente" para cabecera (detalle si está cargado, sino portada) */
@@ -171,6 +279,9 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
 
     /** Cards de propuestas públicas (portada) */
     const versiones = computed<PaxVersionResumen[]>(() => file.value?.versionesParaCliente ?? []);
+
+    /** Cards de tours del catálogo, ya ordenadas por el backend (orden, version) */
+    const tours = computed<PaxTourResumen[]>(() => portadaCatalogo.value?.toursParaCliente ?? []);
 
     /** Cotización completa de la versión abierta */
     const cotizacion = computed<PaxCotizacion | null>(() => detalle.value?.cotizacionParaCliente ?? null);
@@ -245,17 +356,20 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
         portada, detalle, loading, error,
         currentLocalizador, currentVersion,
         lastUpdatePortada, lastUpdateDetalle,
+        portadaCatalogo, lastUpdatePortadaCatalogo, esCatalogo,
         // getters
-        file, versiones, cotizacion, documentos, pasajeros,
+        file, versiones, tours, cotizacion, documentos, pasajeros,
         inclusiones, precioVisible, totalVenta, itinerario,
         // acciones
         cargarPortada, cargarVersion, traducir,
+        cargarPortadaCatalogo, cargarVersionCatalogo,
     };
 }, {
     persist: {
         paths: [
             'portada', 'detalle', 'currentLocalizador', 'currentVersion',
             'lastUpdatePortada', 'lastUpdateDetalle',
+            'portadaCatalogo', 'lastUpdatePortadaCatalogo', 'esCatalogo',
         ],
         storage: localStorage,
     } as PersistenceOptions
