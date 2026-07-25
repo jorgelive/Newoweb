@@ -143,7 +143,7 @@ class TareasBlockService extends AbstractBlockService
         $qb->select('fd')
             ->from(CotizacionFiledocumento::class, 'fd')
             ->innerJoin('fd.file', 'f')
-            ->innerJoin('f.cotizacion', 'c')
+            ->innerJoin('f.cotizaciones', 'c')
             ->innerJoin('c.estadocotizacion', 'e')
             ->where(
                 $qb->expr()->andX(
