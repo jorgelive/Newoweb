@@ -17,6 +17,7 @@ import {
     DeltaUpgradePorPerfil,
     DetalleOperativoBloque,
     DetalleOperativoTipo,
+    etiquetaGrupoTarifa,
     expurgarParaCliente,
     formatRangoEdad,
     getProcedenciaUI,
@@ -561,7 +562,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 let paxEstandar = 0;
 
                 (componente.cottarifas || []).forEach((t: TarifaSnapshot) => {
-                    const rol = t.rolSnapshot || 'estandar';
+                    // req 1: el rol sólo aplica bajo modo 'incluido'. En cualquier otro
+                    // modo manda el modo del componente y la 'alternativa' se trata como
+                    // estándar (así el preview ya refleja lo que se normalizará al guardar).
+                    const rolCrudo = t.rolSnapshot || 'estandar';
+                    const rol = (modoFin !== 'incluido' && rolCrudo === 'alternativa')
+                        ? 'estandar'
+                        : rolCrudo;
                     if (rol === 'alternativa') return;   // → opcionesUpgrade
 
                     const esGrupal = resolverGrupal(t);
@@ -647,6 +654,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if (alternativas.length === 0) return;
 
                     const estandares = (componente.cottarifas || []).filter((t) => (t.rolSnapshot || 'estandar') === 'estandar');
+                    const hayEstandar = estandares.length > 0;
 
                     const ventaPPde = (t: TarifaSnapshot): number => {
                         const esGrupal = resolverGrupal(t);
@@ -718,9 +726,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 deltaVentaPorPax: altPP - stdPP
                             }];
 
+                            const etiquetaGrupo = etiquetaGrupoTarifa(grupo, hayEstandar);
+
                             opcionesUpgrade.push({
                                 componenteId: extractIdStr(componente.id),
                                 grupoTarifa: grupo,
+                                grupoLabel: etiquetaGrupo.label,
+                                esOpcion: etiquetaGrupo.tipo === 'opcion',
                                 componenteNombre: compNombre,
                                 servicioId,
                                 servicioNombre,
@@ -932,31 +944,66 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const estandares = (componente.cottarifas || []).filter(
                     (t: TarifaSnapshot) => (t.rolSnapshot || 'estandar') === 'estandar'
                 );
+                const hayEstandar = estandares.length > 0;
                 const tarifaRef = estandares[0] || null;
+
+                const mapearTarifaInclusion = (t: TarifaSnapshot): InclusionTarifa => ({
+                    tarifaTitulo: t.tituloSnapshot || [],
+                    cantidad: parseInt(String(t.cantidad)) || 1,
+                    esGrupal: t.esGrupal,
+                    modalidad: t.modalidadSnapshot || null,
+                    categoria: t.categoriaSnapshot || null,
+                    rol: (t.rolSnapshot || 'estandar') as TarifaRolValue,
+                    notaRol: t.notaRol || [],
+                    montoCotizado: String(t.montoCosto || '0'),   // interna con monto; expurgador limpia
+                    moneda: String(t.moneda || 'USD')
+                });
 
                 // Línea del COMPONENTE (casos 2 y 3): solo si tiene nombre propio
                 if (tieneNombre) {
-                    destino(modo).push({
-                        origen: 'componente',
-                        modo: modo as ModoFinanciero,
-                        nombre: componente.nombreSnapshot,
-                        fecha,
-                        cantidadComponente: cCant,
-                        modalidad: tarifaRef?.modalidadSnapshot || null,
-                        categoria: tarifaRef?.categoriaSnapshot || null,
-                        tarifaTitulo: [],
-                        tarifas: estandares.map((t: TarifaSnapshot): InclusionTarifa => ({
-                            tarifaTitulo: t.tituloSnapshot || [],
-                            cantidad: parseInt(String(t.cantidad)) || 1,
-                            esGrupal: t.esGrupal,
-                            modalidad: t.modalidadSnapshot || null,
-                            categoria: t.categoriaSnapshot || null,
-                            rol: (t.rolSnapshot || 'estandar') as TarifaRolValue,
-                            notaRol: t.notaRol || [],
-                            montoCotizado: String(t.montoCosto || '0'),   // interna con monto; expurgador limpia
-                            moneda: String(t.moneda || 'USD')
-                        }))
-                    });
+                    if (modo === 'incluido' && !hayEstandar) {
+                        // req 3: componente incluido SIN estándar → no aparece en "Incluye".
+                        // Sus grupos de tarifas se muestran como "Opcional" etiquetados
+                        // "Opción N" (blindaje req 4: grupoTarifa nulo → 0).
+                        const opcionables = (componente.cottarifas || []).filter(
+                            (t: TarifaSnapshot) => (t.rolSnapshot || 'estandar') !== 'operativo'
+                        );
+                        const grupos = new Map<number, TarifaSnapshot[]>();
+                        opcionables.forEach((t: TarifaSnapshot) => {
+                            const g = t.grupoTarifa ?? 0;
+                            if (!grupos.has(g)) grupos.set(g, []);
+                            grupos.get(g)!.push(t);
+                        });
+                        [...grupos.entries()]
+                            .sort((a, b) => a[0] - b[0])
+                            .forEach(([g, tarifasGrupo]) => {
+                                const ref = tarifasGrupo[0] || null;
+                                bloque.opcionales.push({
+                                    origen: 'componente',
+                                    modo: 'opcional',
+                                    nombre: componente.nombreSnapshot,
+                                    grupoOpcion: etiquetaGrupoTarifa(g, false).indice,
+                                    fecha,
+                                    cantidadComponente: cCant,
+                                    modalidad: ref?.modalidadSnapshot || null,
+                                    categoria: ref?.categoriaSnapshot || null,
+                                    tarifaTitulo: [],
+                                    tarifas: tarifasGrupo.map(mapearTarifaInclusion)
+                                });
+                            });
+                    } else {
+                        destino(modo).push({
+                            origen: 'componente',
+                            modo: modo as ModoFinanciero,
+                            nombre: componente.nombreSnapshot,
+                            fecha,
+                            cantidadComponente: cCant,
+                            modalidad: tarifaRef?.modalidadSnapshot || null,
+                            categoria: tarifaRef?.categoriaSnapshot || null,
+                            tarifaTitulo: [],
+                            tarifas: estandares.map(mapearTarifaInclusion)
+                        });
+                    }
                 }
 
                 // Líneas de ITEMS aplanadas (casos 1 y 3): cada item con su propio modo
@@ -988,6 +1035,23 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const totalCostoNeto = computed(() => resumenFinanciero.value?.totalCostoNeto || 0);
     const ventaSugerida = computed(() => resumenFinanciero.value?.totalVentaBruta || 0);
+
+    /**
+     * Opciones de upgrade agrupadas por escenario ("Alternativa 1/2", "Opción N").
+     * Fuente única que consumen tanto el Reporte Financiero como los paneles de
+     * Desglose (Análisis por Perfil). Todas las opciones del mismo grupoLabel
+     * trabajan juntas aunque provengan de componentes distintos.
+     */
+    const gruposUpgrade = computed<{ label: string; esOpcion: boolean; opciones: OpcionUpgradeInterna[] }[]>(() => {
+        const list = resumenFinanciero.value?.opcionesUpgrade || [];
+        const mapa = new Map<string, { label: string; esOpcion: boolean; opciones: OpcionUpgradeInterna[] }>();
+        list.forEach((o) => {
+            const key = o.grupoLabel || (o.esOpcion ? `Opción ${o.grupoTarifa}` : `Alternativa ${o.grupoTarifa}`);
+            if (!mapa.has(key)) mapa.set(key, { label: key, esOpcion: o.esOpcion, opciones: [] });
+            mapa.get(key)!.opciones.push(o);
+        });
+        return [...mapa.values()].sort((a, b) => a.label.localeCompare(b.label, 'es', { numeric: true }));
+    });
 
     const itinerarioDinamico = computed(() => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return [];
@@ -1493,6 +1557,46 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /**
+     * ¿Hay tarifas 'alternativa' que se normalizarían a 'estándar' porque el
+     * componente ya no está 'incluido'? Las 'operativo' se mantienen intactas.
+     */
+    const tieneAlternativasAfectadas = (comp: ComponenteCompleto | null | undefined): boolean =>
+        !!comp && (comp.modo || '').toLowerCase() !== 'incluido'
+        && (comp.cottarifas || []).some((t: TarifaSnapshot) => t.rolSnapshot === 'alternativa');
+
+    /**
+     * req 5: el rol sólo aplica bajo modo 'incluido'. Al guardar, cualquier tarifa
+     * 'alternativa' en un componente no-incluido pasa a 'estándar' (manda el modo).
+     * Las 'operativo' se conservan. Muta el árbol reactivo para que el recálculo
+     * financiero y el payload queden coherentes con lo que se persiste.
+     */
+    const normalizarRolesSegunModo = (): void => {
+        cotizacion.value?.cotservicios?.forEach((servicio: CotServicio) => {
+            servicio.cotcomponentes?.forEach((comp: ComponenteCompleto) => {
+                if ((comp.modo || '').toLowerCase() === 'incluido') return;
+                (comp.cottarifas || []).forEach((t: TarifaSnapshot) => {
+                    if (t.rolSnapshot === 'alternativa') t.rolSnapshot = 'estandar';
+                });
+            });
+        });
+    };
+
+    /**
+     * req 5: al cambiar el modo de un componente fuera de 'incluido', avisa al
+     * digitador (posible error de captura) que sus tarifas alternativas pasarán a
+     * estándar al guardar. Sólo alerta si efectivamente hay alternativas afectadas.
+     */
+    const onCambioModoComponente = (comp: ComponenteCompleto | null | undefined): void => {
+        if (tieneAlternativasAfectadas(comp)) {
+            alert(
+                'Este componente ya no está "Incluido": el rol deja de aplicar y manda el modo.\n\n' +
+                'Al guardar, sus tarifas "Alternativa" pasarán a "Estándar" y se cotizarán bajo el modo actual. ' +
+                'Las tarifas operativas se mantienen. Revisa que no queden tarifas duplicadas.'
+            );
+        }
+    };
+
+    /**
      * Sincroniza el estado local de la cotización con el backend (API Platform).
      *
      * ¿Por qué existe?: Se encarga de transformar y persistir todo el árbol relacional de la
@@ -1513,6 +1617,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (isLoading.value) return;
         isLoading.value = true;
         try {
+            // req 5: normaliza roles antes de clonar el payload y de leer el resumen
+            // financiero, para que lo que se persiste y lo que se recalcula coincidan.
+            normalizarRolesSegunModo();
+
             const isUpdate = !!cotizacion.value.createdAt;
             const endpoint = isUpdate
                 ? `/platform/sales/cotizacions/${cotizacion.value.id}`
@@ -3400,7 +3508,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     return {
         catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,
-        resumenFinanciero, itinerarioDinamico, totalCostoNeto, ventaSugerida,
+        resumenFinanciero, gruposUpgrade, itinerarioDinamico, totalCostoNeto, ventaSugerida,
         getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, calcularPernoctes,
         isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
@@ -3411,7 +3519,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         actualizarTextosSegmentos,
         agregarSegmentoIndividual, reordenarSegmentos, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
-        onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange,
+        onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange, onCambioModoComponente,
         actualizarInicioManteniendoRango, onProveedorChange, agregarDetalleOperativo, eliminarDetalleOperativo,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         componenteActualDeTarifa, tarifasHermanas, irATarifaAdyacente,

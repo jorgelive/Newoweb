@@ -423,6 +423,39 @@ export const ESTADO_FILE_LABELS: Record<EstadoFile, string> = {
 export const getRolTarifaUI = (rol?: string | null): EstadoUIConfig =>
     ROL_TARIFA_CONFIG[(rol as TarifaRolValue) || 'estandar'] || ROL_TARIFA_CONFIG.estandar;
 
+/**
+ * Etiqueta consistente para el grupo de tarifas dentro de un componente.
+ *
+ * Grupo 1 es siempre el estándar. La numeración depende de si el componente
+ * tiene una tarifa estándar (rol 'estandar'):
+ *  - hayEstandar:  g===1 → "Estándar", g>1 → "Alternativa (g-1)"
+ *  - !hayEstandar: g      → "Opción g"  (todo el componente es opcional)
+ *
+ * Blindaje req 4: las operativas tienen grupoTarifa nulo en BD, por eso se
+ * normaliza con `?? 0` para no romper el agrupamiento.
+ */
+export type TipoGrupoTarifa = 'estandar' | 'alternativa' | 'opcion';
+
+export interface EtiquetaGrupoTarifa {
+    label: string;
+    tipo: TipoGrupoTarifa;
+    indice: number;
+}
+
+export const etiquetaGrupoTarifa = (
+    grupo: number | null | undefined,
+    hayEstandar: boolean
+): EtiquetaGrupoTarifa => {
+    const g = grupo ?? 0;
+    if (!hayEstandar) {
+        return { label: `Opción ${g}`, tipo: 'opcion', indice: g };
+    }
+    if (g <= 1) {
+        return { label: 'Estándar', tipo: 'estandar', indice: 0 };
+    }
+    return { label: `Alternativa ${g - 1}`, tipo: 'alternativa', indice: g - 1 };
+};
+
 export type NivelInspector = 'resumen' | 'servicio' | 'componente' | 'tarifa';
 
 export type ModoFinanciero = 'incluido' | 'no_incluido' | 'cortesia';
@@ -506,6 +539,8 @@ export interface DeltaUpgradePorPerfil {
 export interface OpcionUpgradeCliente {
     componenteId: string;
     grupoTarifa: number;
+    grupoLabel: string;
+    esOpcion: boolean;
     componenteNombre: I18nContent[];
     servicioId: string;
     servicioNombre: I18nContent[];
@@ -545,6 +580,9 @@ export interface InclusionLinea {
     origen: 'componente' | 'item';
     modo: ModoFinanciero | 'opcional';
     nombre: I18nContent[];
+    /** Número de opción (req 3) para componentes opcionales sin estándar.
+     *  El texto "Opción N" se compone en cada vista para respetar el idioma. */
+    grupoOpcion?: number;
     fecha: string;
     cantidadComponente: number;
     modalidad: TarifaModalidadValue | null;
@@ -648,6 +686,8 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
         opcionesUpgrade: fin.opcionesUpgrade.map((o): OpcionUpgradeCliente => ({
             componenteId: o.componenteId,
             grupoTarifa: o.grupoTarifa,
+            grupoLabel: o.grupoLabel,
+            esOpcion: o.esOpcion,
             componenteNombre: o.componenteNombre,
             servicioId: o.servicioId,
             servicioNombre: o.servicioNombre,

@@ -13,6 +13,7 @@ import type {
     PaxVersionResumen,
     PaxCatalogo,
     PaxTourResumen,
+    PaxOpcionUpgrade,
 } from '@/types/paxCotizacionModel';
 
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
@@ -294,6 +295,27 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
         () => cotizacion.value?.clasificacionFinancieraCliente?.inclusiones ?? []
     );
 
+    /**
+     * Opciones de upgrade agrupadas por escenario. Devuelve la estructura
+     * (esOpcion + índice) para que la vista componga la etiqueta traducida
+     * ("Alternativa N" u "Opción N"). Todas las opciones del mismo escenario
+     * trabajan juntas aunque provengan de componentes distintos.
+     */
+    const gruposUpgrade = computed<{ esOpcion: boolean; indice: number; opciones: PaxOpcionUpgrade[] }[]>(() => {
+        const list = cotizacion.value?.clasificacionFinancieraCliente?.opcionesUpgrade ?? [];
+        const mapa = new Map<string, { esOpcion: boolean; indice: number; opciones: PaxOpcionUpgrade[] }>();
+        list.forEach((o) => {
+            const grupo = o.grupoTarifa ?? 0;
+            const indice = o.esOpcion ? grupo : Math.max(grupo - 1, 0);
+            const key = `${o.esOpcion ? 'o' : 'a'}${indice}`;
+            if (!mapa.has(key)) mapa.set(key, { esOpcion: !!o.esOpcion, indice, opciones: [] });
+            mapa.get(key)!.opciones.push(o);
+        });
+        return [...mapa.values()].sort((a, b) =>
+            a.esOpcion === b.esOpcion ? a.indice - b.indice : (a.esOpcion ? 1 : -1)
+        );
+    });
+
     const precioVisible = computed(() => cotizacion.value ? !cotizacion.value.precioOculto : false);
 
     const totalVenta = computed(() => ({
@@ -359,7 +381,7 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
         portadaCatalogo, lastUpdatePortadaCatalogo, esCatalogo,
         // getters
         file, versiones, tours, cotizacion, documentos, pasajeros,
-        inclusiones, precioVisible, totalVenta, itinerario,
+        inclusiones, gruposUpgrade, precioVisible, totalVenta, itinerario,
         // acciones
         cargarPortada, cargarVersion, traducir,
         cargarPortadaCatalogo, cargarVersionCatalogo,

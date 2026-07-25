@@ -86,6 +86,10 @@ const seccionesInclusion = (srv: any) => ([
   { key: 'opcionales',  titulo: 'Opcional',    icono: 'fa-circle-question text-amber-500', lineas: srv.opcionales }
 ].filter(s => s.lineas.length > 0));
 
+/** Upgrades agrupados por escenario (req 2): "Alternativa 1/2" u "Opción N".
+ *  Fuente única en el store, compartida con los paneles de Desglose. */
+const gruposUpgrade = computed(() => store.gruposUpgrade);
+
 /** Contadores agregados de TODOS los servicios — el acordeón único los muestra en su header */
 const totalesInclusiones = computed(() => {
   const list = fin.value?.inclusiones || [];
@@ -297,6 +301,10 @@ const totalesInclusiones = computed(() => {
                     <p class="text-[13px] font-bold text-slate-800 flex items-start gap-2">
                       <i class="fas mt-0.5 flex-shrink-0" :class="sec.icono"></i>
                       <span class="leading-snug">
+                        <span v-if="l.grupoOpcion != null"
+                              class="text-[9px] font-black text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 mr-1 uppercase whitespace-nowrap align-middle">
+                          Opción {{ l.grupoOpcion }}
+                        </span>
                         {{ labelInclusion(l) }}
                         <b v-if="l.cantidadComponente > 1" class="text-slate-500">x {{ l.cantidadComponente }}</b>
                         <span class="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 ml-1 whitespace-nowrap align-middle">
@@ -352,26 +360,38 @@ const totalesInclusiones = computed(() => {
             <i class="fas fa-chevron-down text-slate-300 transition-transform" :class="isOpen('upgrades') ? 'rotate-180' : ''"></i>
           </span>
         </button>
-        <div v-show="isOpen('upgrades')" class="border-t border-slate-100 p-3 sm:p-4 grid gap-3 md:grid-cols-2">
-          <div v-for="(o, i) in fin.opcionesUpgrade" :key="i" class="bg-slate-50 border border-slate-200 rounded-xl p-4">
-            <p class="text-[11px] font-black uppercase tracking-tight" style="color:#376875">
-              {{ store.getI18nText(o.servicioNombre as any, lang) }}
+        <!-- Agrupado por escenario: "Alternativa 1/2" u "Opción N". El nombre del
+             componente da el contexto real (la tarifa sólo dice "en van", "vista dome"). -->
+        <div v-show="isOpen('upgrades')" class="border-t border-slate-100 divide-y divide-slate-100">
+          <div v-for="grupo in gruposUpgrade" :key="grupo.label" class="px-3 sm:px-5 py-4">
+            <p class="text-[10px] font-black uppercase tracking-widest mb-3 flex items-center gap-2"
+               :class="grupo.esOpcion ? 'text-amber-600' : 'text-purple-600'">
+              <i class="fas" :class="grupo.esOpcion ? 'fa-circle-question' : 'fa-right-left'"></i>
+              {{ grupo.label }}
+              <span class="text-slate-300 font-bold normal-case tracking-normal">· {{ grupo.opciones.length }}</span>
             </p>
-            <p class="text-[13px] font-bold text-slate-600">{{ store.getI18nText(o.componenteNombre as any, lang) }}</p>
-            <p class="text-sm font-black text-slate-800 mt-1 flex flex-wrap items-center gap-1.5">
-              {{ store.getI18nText(o.tarifaTitulo as any, lang) }}
-              <span v-for="b in modCatBadges(o.modalidad, o.categoria)" :key="b.type"
-                    class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
-                    :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
-                {{ b.icon }} {{ b.label }}
-              </span>
-            </p>
-            <p v-if="o.notaRol.length" class="text-[11px] text-slate-500 italic">{{ store.getI18nText(o.notaRol as any, lang) }}</p>
-            <div class="mt-2 pt-2 border-t border-slate-200 flex justify-between items-center">
-              <span class="text-[10px] font-bold text-slate-400">std $ {{ n2(o.ventaPorPaxEstandar) }} → alt $ {{ n2(o.ventaPorPaxAlternativa) }}</span>
-              <span class="text-sm font-black" :class="o.deltaVentaPorPax >= 0 ? 'text-purple-700' : 'text-emerald-700'">
-                {{ o.deltaVentaPorPax >= 0 ? '+' : '−' }}$ {{ n2(Math.abs(o.deltaVentaPorPax)) }}/pax
-              </span>
+            <div class="grid gap-3 md:grid-cols-2">
+              <div v-for="(o, i) in grupo.opciones" :key="i" class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <p class="text-[13px] font-black text-slate-800 leading-tight">{{ store.getI18nText(o.componenteNombre as any, lang) }}</p>
+                <p class="text-[11px] font-black uppercase tracking-tight" style="color:#376875">
+                  {{ store.getI18nText(o.servicioNombre as any, lang) }}
+                </p>
+                <p class="text-[13px] font-bold text-slate-600 mt-1 flex flex-wrap items-center gap-1.5">
+                  {{ store.getI18nText(o.tarifaTitulo as any, lang) }}
+                  <span v-for="b in modCatBadges(o.modalidad, o.categoria)" :key="b.type"
+                        class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
+                        :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
+                    {{ b.icon }} {{ b.label }}
+                  </span>
+                </p>
+                <p v-if="o.notaRol.length" class="text-[11px] text-slate-500 italic">{{ store.getI18nText(o.notaRol as any, lang) }}</p>
+                <div class="mt-2 pt-2 border-t border-slate-200 flex justify-between items-center">
+                  <span class="text-[10px] font-bold text-slate-400">std $ {{ n2(o.ventaPorPaxEstandar) }} → alt $ {{ n2(o.ventaPorPaxAlternativa) }}</span>
+                  <span class="text-sm font-black" :class="o.deltaVentaPorPax >= 0 ? 'text-purple-700' : 'text-emerald-700'">
+                    {{ o.deltaVentaPorPax >= 0 ? '+' : '−' }}$ {{ n2(Math.abs(o.deltaVentaPorPax)) }}/pax
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

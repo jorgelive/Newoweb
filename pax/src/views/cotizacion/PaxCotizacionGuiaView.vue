@@ -552,9 +552,22 @@ const totalViaje = computed(() => {
   return cfc ? { soles: cfc.resumenGeneral.incluido.ventaSoles, dolares: cfc.resumenGeneral.incluido.ventaDolares } : null;
 });
 
+/** Rango con más pasajeros: su venta por pax es el precio que se destaca en el
+ *  encabezado (más representativo que el total, que se ve grande). */
+const claseDominante = computed(() =>
+  clasesPasajeros.value.length
+    ? [...clasesPasajeros.value].sort((a, b) => b.cantidad - a.cantidad)[0]
+    : null
+);
+
 // ── Opciones alternativas (upgrades/downgrades con delta de venta) ───────────
-const upgrades = computed(() => store.cotizacion?.clasificacionFinancieraCliente?.opcionesUpgrade ?? []);
+// Agrupadas por escenario en el store; la etiqueta se compone aquí con el idioma
+// actual: "Alternativa N" (grupo con estándar) u "Opción N" (sin estándar).
+const gruposUpgrade = computed(() => store.gruposUpgrade);
 const tipoCambio = computed(() => store.cotizacion?.clasificacionFinancieraCliente?.tipoCambio ?? 0);
+
+const labelGrupoUpgrade = (g: { esOpcion: boolean; indice: number }): string =>
+    `${g.esOpcion ? (maestroStore.t('cot_opcion') || 'Opción') : (maestroStore.t('cot_alternativa') || 'Alternativa')} ${g.indice}`;
 
 /** Los deltas vienen en USD → convertir a la moneda en vista (valor absoluto formateado) */
 const mvDelta = (deltaUsd: number) => {
@@ -645,7 +658,9 @@ const adelantoVista = computed(() => {
               </p>
             </div>
 
-            <!-- Precio + selector de moneda (debajo del monto) -->
+            <!-- Precio + selector de moneda (debajo del monto).
+                 Se prioriza el precio POR PASAJERO del rango con más pax; el total
+                 del viaje queda como referencia secundaria (se ve grande de por sí). -->
             <div v-if="store.precioVisible && totalViaje" class="flex flex-col items-end gap-2 shrink-0">
               <button
                   @click="finanzasAbiertas = !finanzasAbiertas"
@@ -653,15 +668,22 @@ const adelantoVista = computed(() => {
                   :class="finanzasAbiertas ? 'border-emerald-300/60 bg-white/20' : 'border-white/20'"
               >
                 <span class="text-[8px] font-black text-white/60 uppercase tracking-widest flex items-center justify-end gap-1.5">
-                  <i class="fas fa-sack-dollar text-emerald-300"></i>
-                  {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
+                  <i class="fas fa-user-tag text-emerald-300"></i>
+                  <template v-if="claseDominante">{{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}</template>
+                  <template v-else>{{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}</template>
                 </span>
                 <span class="text-lg md:text-2xl font-black tabular-nums leading-tight flex items-center justify-end gap-2">
-                  {{ mv(totalViaje.soles, totalViaje.dolares) }}
+                  <template v-if="claseDominante">
+                    {{ mv(claseDominante.resumenPorModo.normal.ventaSoles, claseDominante.resumenPorModo.normal.ventaDolares) }}
+                  </template>
+                  <template v-else>{{ mv(totalViaje.soles, totalViaje.dolares) }}</template>
                   <i
                       class="fas fa-chevron-down text-xs text-emerald-300 transition-transform"
                       :class="finanzasAbiertas ? 'rotate-180' : ''"
                   ></i>
+                </span>
+                <span v-if="claseDominante" class="block text-[9px] font-bold text-white/50 uppercase tracking-widest tabular-nums mt-0.5">
+                  {{ maestroStore.t('cot_precio_total') || 'Total del viaje' }}: {{ mv(totalViaje.soles, totalViaje.dolares) }}
                 </span>
               </button>
               <!-- Selector de moneda justo debajo del precio -->
@@ -711,14 +733,16 @@ const adelantoVista = computed(() => {
                   </p>
                 </div>
                 <div class="text-right shrink-0">
-                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                    {{ maestroStore.t('cot_venta_unit') || 'Venta unit.' }}
+                  <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">
+                    {{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}
                   </p>
-                  <p class="text-xl md:text-2xl font-black text-gray-800 tabular-nums leading-none">
+                  <p class="text-2xl md:text-3xl font-black text-gray-800 tabular-nums leading-none">
                     {{ mv(clase.resumenPorModo.normal.ventaSoles, clase.resumenPorModo.normal.ventaDolares) }}
                   </p>
                   <p class="text-[10px] font-bold text-slate-400 mt-1 tabular-nums">
                     × {{ clase.cantidad }} {{ maestroStore.t('cot_pax') || 'pax' }}
+                    <span class="text-slate-300">·</span>
+                    {{ mv(clase.resumenPorModo.normal.ventaSoles * clase.cantidad, clase.resumenPorModo.normal.ventaDolares * clase.cantidad) }}
                   </p>
                 </div>
               </div>
@@ -735,72 +759,93 @@ const adelantoVista = computed(() => {
             </div>
           </div>
 
+          <!-- Total del viaje (suma de todos los rangos) -->
+          <div v-if="totalViaje" class="mt-3 flex items-center justify-between bg-[#376875] text-white rounded-2xl px-4 py-3.5 shadow-sm">
+            <span class="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+              <i class="fas fa-sack-dollar text-emerald-300"></i>
+              {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
+            </span>
+            <span class="text-lg md:text-xl font-black tabular-nums">{{ mv(totalViaje.soles, totalViaje.dolares) }}</span>
+          </div>
+
           <!-- ── Opciones alternativas (upgrades / downgrades) ── -->
-          <div v-if="upgrades.length" class="mt-6">
+          <div v-if="gruposUpgrade.length" class="mt-6">
             <h2 class="text-emerald-700/80 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2 mb-3">
               <i class="fas fa-shuffle"></i>
               {{ maestroStore.t('cot_opciones_alternativas') || 'Opciones alternativas' }}
             </h2>
 
-            <div class="space-y-3">
-              <div
-                  v-for="(up, ui) in upgrades"
-                  :key="ui"
-                  class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-4 md:p-5"
-              >
-                <div class="flex items-start justify-between gap-4">
-                  <div class="min-w-0">
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                      {{ store.traducir(up.servicioNombre) }}
-                    </p>
-                    <p class="text-sm font-black text-gray-800 leading-snug">
-                      {{ store.traducir(up.componenteNombre) }}
-                    </p>
-                    <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5">
-                        {{ store.traducir(up.tarifaTitulo) }}
-                      </span>
+            <!-- Agrupado por escenario: "Alternativa 1/2" u "Opción N".
+                 Todas las opciones del mismo grupo trabajan juntas. -->
+            <div v-for="grupo in gruposUpgrade" :key="(grupo.esOpcion ? 'o' : 'a') + grupo.indice" class="mb-5 last:mb-0">
+              <p class="text-[10px] font-black uppercase tracking-[0.15em] mb-2 flex items-center gap-1.5"
+                 :class="grupo.esOpcion ? 'text-amber-600' : 'text-[#E07845]'">
+                <i class="fas" :class="grupo.esOpcion ? 'fa-circle-question' : 'fa-shuffle'"></i>
+                {{ labelGrupoUpgrade(grupo) }}
+              </p>
+
+              <div class="space-y-3">
+                <div
+                    v-for="(up, ui) in grupo.opciones"
+                    :key="ui"
+                    class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-4 md:p-5"
+                >
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                      <p class="text-sm font-black text-gray-800 leading-snug">
+                        {{ store.traducir(up.componenteNombre) }}
+                      </p>
+                      <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                        {{ store.traducir(up.servicioNombre) }}
+                      </p>
+                      <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <span class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5">
+                          {{ store.traducir(up.tarifaTitulo) }}
+                        </span>
+                        <span
+                            v-for="b in modCatBadges(up.modalidad, up.categoria)"
+                            :key="b.key"
+                            class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider"
+                            :class="b.cls"
+                        >
+                          {{ b.icon }} {{ b.label }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Delta de venta: se prioriza el costo POR PASAJERO (grande);
+                         el total del grupo queda como referencia secundaria. -->
+                    <div class="text-right shrink-0">
                       <span
-                          v-for="b in modCatBadges(up.modalidad, up.categoria)"
-                          :key="b.key"
-                          class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider"
-                          :class="b.cls"
+                          class="inline-flex flex-col items-end rounded-xl px-3 py-2"
+                          :class="up.deltaVentaPorPax < 0
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-[#E07845]/10 text-[#E07845]'"
                       >
-                        {{ b.icon }} {{ b.label }}
+                        <span class="text-[8px] font-black uppercase tracking-widest opacity-80">
+                          <i class="fas mr-0.5" :class="up.deltaVentaPorPax < 0 ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'"></i>
+                          {{ up.deltaVentaPorPax < 0
+                            ? (maestroStore.t('cot_descuento') || 'Descuento')
+                            : (maestroStore.t('cot_adicional') || 'Adicional') }}
+                          · {{ maestroStore.t('cot_por_persona') || 'c/u' }}
+                        </span>
+                        <span class="text-xl md:text-2xl font-black tabular-nums leading-tight">{{ mvDelta(up.deltaVentaPorPax) }}</span>
                       </span>
+                      <p class="text-[9px] font-bold text-slate-400 mt-1 tabular-nums">
+                        {{ maestroStore.t('cot_total') || 'Total' }} {{ mvDelta(up.deltaVentaTotal) }}
+                      </p>
                     </div>
                   </div>
 
-                  <!-- Delta de venta (negativo = descuento, positivo = adicional) -->
-                  <div class="text-right shrink-0">
-                    <span
-                        class="inline-flex flex-col items-end rounded-xl px-3 py-1.5"
-                        :class="up.deltaVentaTotal < 0
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-[#E07845]/10 text-[#E07845]'"
-                    >
-                      <span class="text-[8px] font-black uppercase tracking-widest opacity-80">
-                        <i class="fas mr-0.5" :class="up.deltaVentaTotal < 0 ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'"></i>
-                        {{ up.deltaVentaTotal < 0
-                          ? (maestroStore.t('cot_descuento') || 'Descuento')
-                          : (maestroStore.t('cot_adicional') || 'Adicional') }}
-                      </span>
-                      <span class="text-sm font-black tabular-nums leading-tight">{{ mvDelta(up.deltaVentaTotal) }}</span>
-                    </span>
-                    <p class="text-[9px] font-bold text-slate-400 mt-1 tabular-nums">
-                      {{ mvDelta(up.deltaVentaPorPax) }} {{ maestroStore.t('cot_por_persona') || 'c/u' }}
-                    </p>
-                  </div>
+                  <!-- Nota de la alternativa -->
+                  <p
+                      v-if="up.notaRol?.length"
+                      class="mt-2.5 text-[11px] font-medium text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 italic"
+                  >
+                    <i class="fas fa-circle-info mr-1 text-slate-400 not-italic"></i>
+                    {{ store.traducir(up.notaRol) }}
+                  </p>
                 </div>
-
-                <!-- Nota de la alternativa -->
-                <p
-                    v-if="up.notaRol?.length"
-                    class="mt-2.5 text-[11px] font-medium text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 italic"
-                >
-                  <i class="fas fa-circle-info mr-1 text-slate-400 not-italic"></i>
-                  {{ store.traducir(up.notaRol) }}
-                </p>
               </div>
             </div>
           </div>
@@ -1114,6 +1159,10 @@ const adelantoVista = computed(() => {
                           <p class="flex items-start gap-2">
                             <i class="fas mt-0.5 text-xs shrink-0" :class="sec.icono"></i>
                             <span class="text-[13px] font-semibold text-slate-700 leading-snug">
+                              <span v-if="l.grupoOpcion != null"
+                                    class="text-[9px] font-black text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 mr-1 uppercase whitespace-nowrap align-middle">
+                                {{ maestroStore.t('cot_opcion') || 'Opción' }} {{ l.grupoOpcion }}
+                              </span>
                               {{ store.traducir(l.nombre) }}
                               <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">×{{ l.cantidadComponente }}</b>
                               <span class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">
@@ -1322,6 +1371,10 @@ const adelantoVista = computed(() => {
                   <p class="flex items-start gap-2">
                     <i class="fas mt-0.5 text-xs shrink-0" :class="sec.icono"></i>
                     <span class="text-[13px] font-semibold text-slate-700 leading-snug">
+                      <span v-if="l.grupoOpcion != null"
+                            class="text-[9px] font-black text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 mr-1 uppercase whitespace-nowrap align-middle">
+                        {{ maestroStore.t('cot_opcion') || 'Opción' }} {{ l.grupoOpcion }}
+                      </span>
                       {{ store.traducir(l.nombre) }}
                       <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">×{{ l.cantidadComponente }}</b>
                       <span class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">

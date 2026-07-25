@@ -147,6 +147,9 @@ export interface PaxInclusionItem {
     modo: string;
     fecha: string;
     nombre: I18n;
+    /** Número de opción (req 3): componente opcional sin estándar. El texto
+     *  "Opción N" se compone en la vista con el idioma actual. */
+    grupoOpcion?: number;
     origen: 'componente' | 'item' | string;
     tarifas: PaxTarifaFinanciera[];
     categoria: string | null;
@@ -358,6 +361,10 @@ export interface PaxOpcionUpgrade {
     modalidad: string | null;
     categoria: string | null;
     notaRol?: I18n;
+    /** Grupo de tarifa (1 = estándar). Con el flag esOpcion permite reconstruir
+     *  la etiqueta traducida "Alternativa N" (grupo-1) u "Opción N" (grupo). */
+    grupoTarifa: number;
+    esOpcion: boolean;
     /** Deltas en USD (negativo = descuento) */
     deltaVentaTotal: number;
     deltaVentaPorPax: number;

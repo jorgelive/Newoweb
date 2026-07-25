@@ -1169,6 +1169,29 @@ store.$onAction(({ name, args }) => {
               </div>
             </div>
 
+            <!-- Opciones y alternativas agrupadas (req 2): "Alternativa 1/2" u "Opción N" -->
+            <div v-if="store.gruposUpgrade.length" class="space-y-3">
+              <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"><i class="fas fa-right-left mr-1"></i> Opciones y Alternativas</h3>
+              <div v-for="grupo in store.gruposUpgrade" :key="grupo.label"
+                   class="bg-white border rounded-2xl p-4 shadow-sm"
+                   :class="grupo.esOpcion ? 'border-amber-200' : 'border-purple-200'">
+                <p class="text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                   :class="grupo.esOpcion ? 'text-amber-600' : 'text-purple-600'">
+                  <i class="fas" :class="grupo.esOpcion ? 'fa-circle-question' : 'fa-right-left'"></i> {{ grupo.label }}
+                </p>
+                <div v-for="(o, i) in grupo.opciones" :key="i" class="flex justify-between items-start gap-2 py-1.5 border-t border-slate-50 first:border-0">
+                  <div class="min-w-0">
+                    <p class="text-[12px] font-black text-slate-800 leading-tight">{{ store.getI18nText(o.componenteNombre as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
+                    <p class="text-[11px] font-bold text-slate-500 leading-tight">{{ store.getI18nText(o.tarifaTitulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
+                  </div>
+                  <span class="text-[12px] font-black whitespace-nowrap shrink-0"
+                        :class="o.deltaVentaPorPax >= 0 ? 'text-purple-700' : 'text-emerald-700'">
+                    {{ o.deltaVentaPorPax >= 0 ? '+' : '−' }}{{ formatMonedaPanel(Math.abs(o.deltaVentaPorPax)) }}/pax
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2 grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
                 <div>
@@ -1647,6 +1670,7 @@ store.$onAction(({ name, args }) => {
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo Comercial</label>
                   <div class="relative">
                     <select v-model="store.dataActiva.modo"
+                            @change="store.onCambioModoComponente(store.dataActiva)"
                             class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
                             :class="[getModoItemConfig(store.dataActiva.modo).bg, getModoItemConfig(store.dataActiva.modo).text, getModoItemConfig(store.dataActiva.modo).border]">
                       <option value="incluido">Incluido</option>
@@ -2046,12 +2070,25 @@ store.$onAction(({ name, args }) => {
               </span>
                 </div>
 
+                <!-- req 1: el rol sólo aplica cuando el componente está "Incluido"; en los
+                     demás modos manda el modo y la "Alternativa" pasará a "Estándar" al guardar. -->
+                <div v-if="store.dataActiva.rolSnapshot !== 'operativo' && (store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido'"
+                     class="mb-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
+                  <i class="fas fa-triangle-exclamation text-amber-500 mt-0.5"></i>
+                  <span class="text-[10px] font-bold text-amber-700 leading-tight">
+                    El rol no aplica: el componente está en modo
+                    "{{ getModoItemConfig(store.componenteActualDeTarifa?.modo).label }}", así que manda el modo.
+                    Al guardar, las tarifas "Alternativa" pasarán a "Estándar".
+                  </span>
+                </div>
+
                 <div v-if="store.dataActiva.rolSnapshot === 'operativo'" class="mb-3 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
                   <i class="fas fa-lock text-slate-400 mt-0.5"></i>
                   <span class="text-[10px] font-bold text-slate-500 leading-tight">Rol Operativo — heredado del catálogo maestro. No se elige a mano ni participa del selector de opciones del cliente.</span>
                 </div>
 
-                <div v-else class="flex gap-2 mb-3 items-end">
+                <div v-else class="flex gap-2 mb-3 items-end"
+                     :class="(store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido' ? 'opacity-60' : ''">
                   <div class="flex-1">
                     <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Rol Comercial</label>
                     <div class="flex gap-2">
@@ -2064,8 +2101,12 @@ store.$onAction(({ name, args }) => {
                               class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
                         <i class="fas fa-star mr-1"></i> Estándar
                       </button>
-                      <button @click="store.dataActiva.rolSnapshot = 'alternativa'"
-                              :class="store.dataActiva.rolSnapshot === 'alternativa' ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-teal-50'"
+                      <button @click="(store.componenteActualDeTarifa?.modo || 'incluido') === 'incluido' && (store.dataActiva.rolSnapshot = 'alternativa')"
+                              :disabled="(store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido'"
+                              :class="[
+                              store.dataActiva.rolSnapshot === 'alternativa' ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-teal-50',
+                              (store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido' ? 'opacity-40 cursor-not-allowed' : ''
+                          ]"
                               class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
                         <i class="fas fa-right-left mr-1"></i> Alternativa
                       </button>
@@ -2656,6 +2697,29 @@ store.$onAction(({ name, args }) => {
                   </ul>
                 </div>
 
+              </div>
+            </div>
+
+            <!-- Opciones y alternativas agrupadas (req 2): "Alternativa 1/2" u "Opción N" -->
+            <div v-if="store.gruposUpgrade.length" class="space-y-3 pt-2">
+              <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1"><i class="fas fa-right-left mr-1"></i> Opciones y Alternativas</h3>
+              <div v-for="grupo in store.gruposUpgrade" :key="grupo.label"
+                   class="bg-white border rounded-2xl p-3 shadow-sm"
+                   :class="grupo.esOpcion ? 'border-amber-200' : 'border-purple-200'">
+                <p class="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                   :class="grupo.esOpcion ? 'text-amber-600' : 'text-purple-600'">
+                  <i class="fas" :class="grupo.esOpcion ? 'fa-circle-question' : 'fa-right-left'"></i> {{ grupo.label }}
+                </p>
+                <div v-for="(o, i) in grupo.opciones" :key="i" class="flex justify-between items-start gap-2 py-1.5 border-t border-slate-50 first:border-0">
+                  <div class="min-w-0">
+                    <p class="text-[11px] font-black text-slate-800 leading-tight">{{ store.getI18nText(o.componenteNombre as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
+                    <p class="text-[10px] font-bold text-slate-500 leading-tight">{{ store.getI18nText(o.tarifaTitulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
+                  </div>
+                  <span class="text-[11px] font-black whitespace-nowrap shrink-0"
+                        :class="o.deltaVentaPorPax >= 0 ? 'text-purple-700' : 'text-emerald-700'">
+                    {{ o.deltaVentaPorPax >= 0 ? '+' : '−' }}{{ formatMonedaPanel(Math.abs(o.deltaVentaPorPax)) }}/pax
+                  </span>
+                </div>
               </div>
             </div>
 
