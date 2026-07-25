@@ -10,9 +10,17 @@ const store = useChatStore();
 const maestroStore = useMaestroStore();
 
 const saving = ref(false);
+const deleting = ref(false);
 const errorMsg = ref('');
 
+const STATUS_OPTIONS = [
+  { value: 'open', label: 'Abierta' },
+  { value: 'closed', label: 'Cerrada' },
+  { value: 'archived', label: 'Archivada' }
+];
+
 const form = ref({
+  status: 'open',
   guestName: '',
   guestPhone: '',
   idiomaId: '',
@@ -25,6 +33,7 @@ const resetForm = () => {
   const c = props.conversation;
   const idiomaRef = (c as any).idioma as string | undefined;
   form.value = {
+    status: c.status || 'open',
     guestName: c.guestName || '',
     guestPhone: c.guestPhone || '',
     idiomaId: idiomaRef ? idiomaRef.split('/').pop() || '' : '',
@@ -54,6 +63,7 @@ const handleSave = async () => {
   const idiomaObj = maestroStore.idiomas.find((i: any) => i.id === form.value.idiomaId);
 
   const payload: Record<string, any> = {
+    status: form.value.status,
     guestName: form.value.guestName.trim() || null,
     guestPhone: form.value.guestPhone.trim() || null,
     idiomaFijado: form.value.idiomaFijado,
@@ -67,6 +77,21 @@ const handleSave = async () => {
 
   if (ok) emit('close');
   else errorMsg.value = 'No se pudo guardar. Intenta de nuevo.';
+};
+
+const handleDelete = async () => {
+  if (!conversationUuid.value) return;
+  const guest = props.conversation.guestName || 'este huésped';
+  if (!confirm(`¿Eliminar la conversación con ${guest}? Se borrarán también todos sus mensajes. Esta acción no se puede deshacer.`)) return;
+
+  deleting.value = true;
+  errorMsg.value = '';
+
+  const ok = await store.deleteConversation(conversationUuid.value);
+  deleting.value = false;
+
+  if (ok) emit('close');
+  else errorMsg.value = 'No se pudo eliminar. Intenta de nuevo.';
 };
 
 const formatDateTime = (iso?: string | null) => {
@@ -88,6 +113,14 @@ const formatDateTime = (iso?: string | null) => {
       <div class="p-6 space-y-6 overflow-y-auto min-h-0">
         <!-- Formulario editable -->
         <div class="space-y-4">
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Estado</label>
+            <select v-model="form.status"
+                    class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
+              <option v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+          </div>
+
           <div>
             <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre del Huésped</label>
             <input v-model="form.guestName" type="text" placeholder="Sin nombre"
@@ -127,9 +160,14 @@ const formatDateTime = (iso?: string | null) => {
 
           <p v-if="errorMsg" class="text-xs font-bold text-red-500">{{ errorMsg }}</p>
 
-          <button @click="handleSave" :disabled="saving"
+          <button @click="handleSave" :disabled="saving || deleting"
                   class="w-full py-3.5 bg-[#E07845] text-white rounded-xl text-xs font-black uppercase tracking-widest transition-colors shadow-md disabled:opacity-50">
             <i class="fas mr-2" :class="saving ? 'fa-circle-notch fa-spin' : 'fa-save'"></i> Guardar Cambios
+          </button>
+
+          <button @click="handleDelete" :disabled="saving || deleting"
+                  class="w-full py-3.5 bg-white border border-red-300 text-red-600 hover:bg-red-50 rounded-xl text-xs font-black uppercase tracking-widest transition-colors disabled:opacity-50">
+            <i class="fas mr-2" :class="deleting ? 'fa-circle-notch fa-spin' : 'fa-trash'"></i> Eliminar Conversación
           </button>
         </div>
 

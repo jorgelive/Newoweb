@@ -7,6 +7,7 @@ namespace App\Message\Entity;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
@@ -59,6 +60,11 @@ use Symfony\Component\Uid\Uuid;
             denormalizationContext: ['groups' => ['conversation:write']],
             security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
             securityMessage: 'No tienes permiso para editar la conversación.'
+        ),
+
+        new Delete(
+            security: "is_granted('" . Roles::MENSAJES_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar conversaciones.'
         )
     ], // 🔥 El módulo define la raíz para todas las operaciones
     routePrefix: '/message',
@@ -81,7 +87,7 @@ class MessageConversation
     public const string STATUS_ARCHIVED = 'archived';
 
     #[ORM\Column(type: 'string', length: 20, options: ['default' => self::STATUS_OPEN])]
-    #[Groups(['conversation:read'])]
+    #[Groups(['conversation:read', 'conversation:write'])]
     private string $status = self::STATUS_OPEN;
 
     #[ORM\Column(type: 'string', length: 50)]
@@ -163,7 +169,15 @@ class MessageConversation
     public function getCreatedAt(): ?DateTimeInterface { return $this->createdAt ?? null; }
 
     public function getStatus(): string { return $this->status; }
-    public function setStatus(string $status): self { $this->status = $status; return $this; }
+    public function setStatus(string $status): self
+    {
+        $validStatuses = [self::STATUS_OPEN, self::STATUS_CLOSED, self::STATUS_ARCHIVED];
+        if (!in_array($status, $validStatuses, true)) {
+            throw new InvalidArgumentException(sprintf('El estado "%s" no es válido.', $status));
+        }
+        $this->status = $status;
+        return $this;
+    }
 
     public function getContextType(): string { return $this->contextType; }
     public function getContextId(): string { return $this->contextId; }

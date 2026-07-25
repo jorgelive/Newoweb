@@ -630,6 +630,32 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
+    /**
+     * Elimina permanentemente una conversación (y sus mensajes, en cascada) vía DELETE.
+     * Limpia la conversación de la lista y, si era la conversación abierta, cierra el chat.
+     *
+     * @param {string} id UUID de la conversación (no el IRI completo).
+     * @returns {Promise<boolean>} true si la eliminación tuvo éxito.
+     */
+    const deleteConversation = async (id: string): Promise<boolean> => {
+        try {
+            await apiClient.delete(`/platform/message/conversations/${id}`);
+
+            conversations.value = conversations.value.filter(c => uuidOf(c) !== id);
+            if (uuidOf(currentConversation.value) === id) {
+                currentConversation.value = null;
+                messages.value = [];
+                eventSource.value?.close();
+                eventSource.value = null;
+            }
+
+            return true;
+        } catch (err) {
+            error.value = 'No se pudo eliminar la conversación.';
+            return false;
+        }
+    };
+
     // ============================================================================
     // BADGE NATIVO (sin cambios)
     // ============================================================================
@@ -645,6 +671,6 @@ export const useChatStore = defineStore('chatStore', () => {
     });
 
     return {
-        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, updateConversation
+        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, updateConversation, deleteConversation
     };
 });
