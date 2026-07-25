@@ -600,13 +600,19 @@ const setDefaultChannels = () => {
   selectedChannels.value = newChannels;
 };
 
-watch(() => store.currentConversation, () => {
+watch(() => store.currentConversation, (newVal) => {
   selectedTemplateId.value = null;
   showTemplateDropdown.value = false;
   attachmentStore.clear();
   translatedMessages.value = {};
   activeTab.value = 'history';
   setDefaultChannels();
+
+  // Si la conversación abierta fue eliminada (queda en null) y estamos en mobile,
+  // el panel de chat se cierra sin que quede nada visible detrás: volvemos al listado.
+  if (!newVal && window.innerWidth < 768) {
+    closeMobileChat();
+  }
 });
 
 watch(() => store.activeChatMessages, (newMessages, oldMessages) => {
