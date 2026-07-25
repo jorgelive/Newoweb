@@ -1100,7 +1100,7 @@ const getDirectChannelId = (channel?: any): string | null => {
           <h1 class="font-black text-2xl tracking-tight text-slate-800">Inbox</h1>
           <div class="flex items-center gap-2">
 
-            <button @click="router.push('/dashboard')" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-[#376875] group transition-all shadow-sm" title="Volver al Inicio">
+            <button @click="router.push({ name: 'home' })" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-[#376875] group transition-all shadow-sm" title="Volver al Inicio">
               <i class="fas fa-home text-slate-400 group-hover:text-white text-xs"></i>
             </button>
 

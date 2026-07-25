@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/pwa-postbuild.mjs",
+    "verify:deploy": "node scripts/pwa-verify-deploy.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

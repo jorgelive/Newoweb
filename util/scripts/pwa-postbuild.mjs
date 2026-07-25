@@ -63,6 +63,9 @@ const shellHtml = `<!doctype html>
   ${jsModule}
   <script>
     if ('serviceWorker' in navigator) {
+      // updateViaCache 'none' fuerza la re-descarga de service-worker.js y de
+      // push-sw.js (importScripts) en cada chequeo; sin esto un SW viejo con la
+      // navegación corrupta (host + undefined) puede sobrevivir en el caché HTTP.
       navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
         .then(reg => reg.update());
     }
@@ -74,3 +77,55 @@ const shellHtml = `<!doctype html>
 const shellPath = path.resolve(appUtilDir, 'shell.html')
 fs.writeFileSync(shellPath, shellHtml, 'utf8')
 console.log('✅ Shell generado:', shellPath)
+
+// ============================================================================
+// 4) GATE DE AUTOCONSISTENCIA SW ↔ SHELL ↔ BUNDLE
+// ----------------------------------------------------------------------------
+// El service-worker.js (generado por VitePWA) PRECACHEA y sirve /app_util/shell.html
+// como única respuesta de navegación para /chat. Si el shell no existe, o apunta a
+// un bundle inexistente, el `install` del SW hace 404 y FALLA: el SW nuevo nunca se
+// activa y el cliente queda atrapado en un SW viejo con /chat cacheado obsoleto.
+// Ese fallo era invisible ("solo pasa en el chat"). Aquí lo convertimos en un error
+// ruidoso del build en vez de una bomba de tiempo en producción.
+// ============================================================================
+const errors = []
+
+// 4.1) El SW debe existir y referenciar el shell que acabamos de generar.
+const swPath = path.resolve(publicDir, 'service-worker.js')
+if (!fs.existsSync(swPath)) {
+    errors.push(`No existe service-worker.js en ${swPath}. ¿Corrió 'vite build' antes del postbuild?`)
+} else {
+    const swSrc = fs.readFileSync(swPath, 'utf8')
+    if (!swSrc.includes('/app_util/shell.html')) {
+        errors.push('service-worker.js NO referencia /app_util/shell.html: el SW y el postbuild se desincronizaron (revisa vite.config: navigateFallback / additionalManifestEntries).')
+    }
+
+    // 4.2) Todo bundle que el SW precachea debe existir físicamente en disco,
+    //      o el install del SW hará 404 y no se activará.
+    const precachedAssets = [...swSrc.matchAll(/["']\/app_util\/(assets\/[^"']+?\.(?:js|css))["']/g)].map(m => m[1])
+    for (const asset of new Set(precachedAssets)) {
+        if (!fs.existsSync(path.resolve(appUtilDir, asset))) {
+            errors.push(`El SW precachea /app_util/${asset} pero el archivo no existe en disco (install del SW haría 404).`)
+        }
+    }
+}
+
+// 4.3) El bundle que carga el shell debe existir en disco.
+if (!fs.existsSync(path.resolve(appUtilDir, entry.file))) {
+    errors.push(`shell.html carga /app_util/${entry.file} pero ese bundle no existe en disco.`)
+}
+
+// 4.4) El manifest PWA de la raíz (que enlaza el Twig como /util-manifest.webmanifest) debe existir.
+if (!fs.existsSync(pwaManifestDst)) {
+    errors.push(`Falta el manifest PWA en la raíz pública: ${pwaManifestDst}`)
+}
+
+if (errors.length > 0) {
+    console.error('\n❌ BUILD PWA INCONSISTENTE — el Service Worker quedaría ininstalable:')
+    for (const e of errors) console.error('   •', e)
+    console.error('\n   Corre el build COMPLETO (`npm run build`, no solo `vite build`) y asegúrate de desplegar')
+    console.error('   public/service-worker.js, public/app_util/** y public/util-manifest.webmanifest juntos.\n')
+    process.exit(1)
+}
+
+console.log('✅ Consistencia SW ↔ shell ↔ bundles verificada. El Service Worker podrá instalarse.')

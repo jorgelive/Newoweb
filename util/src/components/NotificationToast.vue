@@ -16,28 +16,32 @@ const router = useRouter();
  * @returns {void}
  */
 const handleActionClick = (notif: AppNotification): void => {
-  if (notif.actionUrl) {
-    let targetRoute = String(notif.actionUrl);
+  if (!notif.actionUrl) return;
 
-    // 1. Escudo anti-undefined: Si la ruta se corrompió, aplicamos un fallback seguro al Inbox.
-    if (targetRoute.includes('undefined') || targetRoute.includes('unknown')) {
-      console.warn('[Toast] Ruta corrupta interceptada antes del Vue Router. Aplicando fallback a /chat. Ruta original:', targetRoute);
-      targetRoute = '/chat';
-    }
-    // 2. Prevención de fuga de SPA: Si llega una URL absoluta, extraemos solo el path relativo.
-    else if (targetRoute.startsWith('http')) {
-      try {
-        const urlObj = new URL(targetRoute);
-        targetRoute = urlObj.pathname + urlObj.search;
-      } catch (e) {
-        targetRoute = '/chat';
-      }
-    }
+  let targetRoute = String(notif.actionUrl).trim();
 
-    // Ejecutamos la navegación con la ruta purificada
-    router.push(targetRoute);
-    notificationStore.removeNotification(notif.id);
+  // Cinturón de MISMO ORIGEN: resolvemos contra el origin actual y, si el valor
+  // apunta a CUALQUIER otro host (incluido el clásico `origin + "undefined"` que
+  // producía `util.openperu.peundefined`), lo descartamos hacia el Inbox.
+  // Esto garantiza que Vue Router SIEMPRE reciba una ruta interna con slash inicial.
+  try {
+    const resolved = new URL(targetRoute, window.location.origin);
+    targetRoute = resolved.origin === window.location.origin
+        ? resolved.pathname + resolved.search
+        : '/chat';
+  } catch {
+    targetRoute = '/chat';
   }
+
+  // Escudo final anti-basura: cualquier rastro corrupto o ruta sin slash -> Inbox.
+  if (targetRoute.includes('undefined') || targetRoute.includes('unknown') || !targetRoute.startsWith('/')) {
+    targetRoute = '/chat';
+  }
+
+  // Navegación interna blindada: si el router rechaza la ruta, caemos al Inbox
+  // en vez de dejar que el navegador intente una navegación dura.
+  router.push(targetRoute).catch(() => router.push('/chat'));
+  notificationStore.removeNotification(notif.id);
 };
 </script>
 
