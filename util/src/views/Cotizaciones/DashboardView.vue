@@ -160,10 +160,10 @@ const loadMore = (): void => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 flex flex-col font-sans">
+  <div class="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden">
 
     <!-- CABECERA -->
-    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0 z-30">
       <div class="flex items-center gap-4">
         <RouterLink to="/" class="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
           <i class="fas fa-arrow-left"></i>
@@ -179,7 +179,7 @@ const loadMore = (): void => {
     </header>
 
     <!-- ÁREA PRINCIPAL -->
-    <main class="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full">
+    <main class="flex-1 overflow-y-auto p-6 md:p-8 max-w-7xl mx-auto w-full">
 
       <!-- ALERTAS GLOBALES -->
       <div v-if="fileStore.error" class="mb-6 bg-red-50 text-red-600 border border-red-200 p-4 rounded-2xl flex items-center gap-3 font-bold text-sm shadow-sm">

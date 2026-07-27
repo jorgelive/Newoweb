@@ -1671,11 +1671,33 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /**
+     * Si el componente deja de estar 'incluido' (no_incluido, cortesía o
+     * reemplazado), sus ítems que estaban marcados 'incluido' dejan de tener
+     * sentido como tal: se desmarcan y pasan a 'no_incluido' también. Evita el
+     * típico olvido operativo (ej. alojamiento no incluido pero desayuno sí
+     * queda marcado como incluido). Si alguno tenía un componente de upsell
+     * inyectado por estar incluido, se retira junto con el ítem.
+     */
+    const cascadeModoItemsSegunComponente = (comp: ComponenteCompleto | null | undefined): void => {
+        if (!comp || (comp.modo || '').toLowerCase() === 'incluido') return;
+        (comp.snapshotItems || []).forEach((item: SnapshotItem) => {
+            if ((item.modo || '').toLowerCase() !== 'incluido') return;
+            item.incluido = false;
+            item.modo = 'no_incluido';
+            if (item.idComponenteInyectado && !item.isInjecting) {
+                removerComponenteInyectado(item, comp.id);
+            }
+        });
+    };
+
+    /**
      * req 5: al cambiar el modo de un componente fuera de 'incluido', avisa al
      * digitador (posible error de captura) que sus tarifas alternativas pasarán a
      * estándar al guardar. Sólo alerta si efectivamente hay alternativas afectadas.
      */
     const onCambioModoComponente = (comp: ComponenteCompleto | null | undefined): void => {
+        cascadeModoItemsSegunComponente(comp);
+
         if (tieneAlternativasAfectadas(comp)) {
             alert(
                 'Este componente ya no está "Incluido": el rol deja de aplicar y manda el modo.\n\n' +
