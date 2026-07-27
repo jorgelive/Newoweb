@@ -16,8 +16,12 @@ use Symfony\Component\Serializer\SerializerInterface;
  * Nivel 1 del anonimato del visor público: la entidad Cotizacion.
  *
  * Responsabilidades:
- *  1. Si precioOculto=true, elimina totalVenta y clasificacionFinancieraCliente
- *     del JSON servido en el grupo `pax_cotizacion:read`.
+ *  1. Si precioOculto=true, redacta SOLO los campos monetarios del JSON servido
+ *     en el grupo `pax_cotizacion:read` (totalVenta, adelanto, y los montos
+ *     dentro de clasificacionFinancieraCliente). Deliberadamente NO borra el
+ *     bloque completo: `inclusiones` (ya sin montos) y los datos descriptivos
+ *     de `opcionesUpgrade` (nombre, tarifa, badges) no son dinero y deben
+ *     seguir viéndose aunque el precio esté oculto. Ver redactarMontos().
  *  2. Si proveedorOculto=true (flag GLOBAL a nivel de cotización completa),
  *     inyecta un flag en $context ANTES de delegar al normalizer decorado.
  *     Ese $context viaja automáticamente en toda la recursión de serialización
@@ -58,7 +62,39 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Cacheable
         $data = $this->decorated->normalize($object, $format, $context);
 
         if ($isPublicView && $object instanceof Cotizacion && \is_array($data) && $object->isPrecioOculto()) {
-            unset($data['totalVenta'], $data['clasificacionFinancieraCliente']);
+            $data = $this->redactarMontos($data);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Quita únicamente los campos monetarios del payload público, dejando
+     * intacto todo lo descriptivo (inclusiones, nombres/tarifas/badges de las
+     * opciones de upgrade). `clasificacionFinancieraCliente` no se borra
+     * entero: solo sus sub-campos de dinero.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function redactarMontos(array $data): array
+    {
+        unset($data['totalVenta'], $data['adelanto']);
+
+        if (isset($data['clasificacionFinancieraCliente']) && \is_array($data['clasificacionFinancieraCliente'])) {
+            $cfc = $data['clasificacionFinancieraCliente'];
+            unset($cfc['totalVentaBruta'], $cfc['montoAdelanto'], $cfc['resumenGeneral'], $cfc['clasesPasajeros']);
+
+            if (isset($cfc['opcionesUpgrade']) && \is_array($cfc['opcionesUpgrade'])) {
+                $cfc['opcionesUpgrade'] = array_map(static function ($opcion) {
+                    if (\is_array($opcion)) {
+                        unset($opcion['deltaVentaPorPax'], $opcion['deltaVentaTotal'], $opcion['deltasPorPerfil']);
+                    }
+                    return $opcion;
+                }, $cfc['opcionesUpgrade']);
+            }
+
+            $data['clasificacionFinancieraCliente'] = $cfc;
         }
 
         return $data;

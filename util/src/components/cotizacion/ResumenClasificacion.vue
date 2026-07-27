@@ -17,7 +17,7 @@ import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorSt
 import {
   filasResumenGeneral,
   LineaDetalleClaseInterna, InclusionLinea,
-  MODALIDAD_CONFIG, CATEGORIA_CONFIG, TarifaModalidadValue, TarifaCategoriaValue
+  clasificacionBadges, CLASIF_BADGE_CLASE
 } from '@/types/cotizacionEditorModel';
 
 const store = useCotizacionEditorStore();
@@ -57,16 +57,10 @@ const rangoEdadLabel = (clase: any) => {
   return `hasta ${clase.edadMax} años`;
 };
 
-/** Modalidad/categoría como badges inline con el mismo icono del dropdown de edición */
-const modCatBadges = (
-    modalidad?: TarifaModalidadValue | null,
-    categoria?: TarifaCategoriaValue | null
-): { icon: string; label: string; type: 'modalidad' | 'categoria' }[] => {
-  const badges: { icon: string; label: string; type: 'modalidad' | 'categoria' }[] = [];
-  if (modalidad && MODALIDAD_CONFIG[modalidad]) badges.push({ ...MODALIDAD_CONFIG[modalidad], type: 'modalidad' });
-  if (categoria && CATEGORIA_CONFIG[categoria]) badges.push({ ...CATEGORIA_CONFIG[categoria], type: 'categoria' });
-  return badges;
-};
+/** Badges de clasificación (modalidad · categoría · procedencia · edad) con el
+ *  mismo icono del dropdown de edición. Fuente única en el modelo. */
+const badgesClasif = clasificacionBadges;
+const badgeClase = (t: keyof typeof CLASIF_BADGE_CLASE) => CLASIF_BADGE_CLASE[t];
 
 /** "2 x 60.00" — la moneda y (P)/(U) van en badges, no en el texto */
 const montoLinea = (d: LineaDetalleClaseInterna) => {
@@ -78,6 +72,14 @@ const labelTarifa = (d: LineaDetalleClaseInterna) =>
     store.getI18nText(d.tarifaTitulo as any, lang.value) || d.nombreInterno || '';
 
 const labelInclusion = (l: InclusionLinea) => store.getI18nText(l.nombre as any, lang.value);
+
+/** Nombre de la tarifa de una alternativa: interno primero (genérico pero siempre
+ *  presente), luego el título público. */
+const tarifaLabelAlt = (o: { tarifaNombreInterno: string | null; tarifaTitulo: any }) =>
+    o.tarifaNombreInterno || store.getI18nText(o.tarifaTitulo as any, lang.value);
+/** Nombre de la estándar reemplazada: mismo criterio. */
+const estandarLabelAlt = (o: { estandarNombreInterno: string | null; estandarTitulo: any }) =>
+    o.estandarNombreInterno || store.getI18nText(o.estandarTitulo as any, lang.value);
 
 const seccionesInclusion = (srv: any) => ([
   { key: 'incluidos',   titulo: 'Incluye',     icono: 'fa-check-circle text-emerald-500', lineas: srv.incluidos },
@@ -231,10 +233,10 @@ const totalesInclusiones = computed(() => {
                     {{ store.getI18nText(d.componenteNombre as any, lang) }}
                     <span v-if="labelTarifa(d)" class="text-slate-400">({{ labelTarifa(d) }})</span>
                   </p>
-                  <p v-if="modCatBadges(d.modalidad, d.categoria).length || d.comisionOverride" class="flex flex-wrap items-center gap-1 mt-1">
-                    <span v-for="b in modCatBadges(d.modalidad, d.categoria)" :key="b.type"
+                  <p v-if="badgesClasif(d).length || d.comisionOverride" class="flex flex-wrap items-center gap-1 mt-1">
+                    <span v-for="b in badgesClasif(d)" :key="b.type"
                           class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
-                          :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
+                          :class="badgeClase(b.type)">
                       {{ b.icon }} {{ b.label }}
                     </span>
                     <span v-if="d.comisionOverride" class="text-[10px] font-bold text-purple-600">com. {{ d.comisionOverride }}%</span>
@@ -314,15 +316,15 @@ const totalesInclusiones = computed(() => {
                     </p>
 
                     <!-- Sin precio: solo referencia de tarifa/modalidad heredada (los items no heredan monto), como fila de chips -->
-                    <div v-if="l.tarifas.length === 0 && (l.tarifaTitulo.length || modCatBadges(l.modalidad, l.categoria).length)"
+                    <div v-if="l.tarifas.length === 0 && (l.tarifaTitulo.length || badgesClasif(l).length)"
                          class="ml-6 mt-1 flex flex-wrap items-center gap-1.5">
                       <span v-if="l.tarifaTitulo.length"
                             class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
                         {{ store.getI18nText(l.tarifaTitulo as any, lang) }}
                       </span>
-                      <span v-for="b in modCatBadges(l.modalidad, l.categoria)" :key="b.type"
+                      <span v-for="b in badgesClasif(l)" :key="b.type"
                             class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
-                            :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
+                            :class="badgeClase(b.type)">
                         {{ b.icon }} {{ b.label }}
                       </span>
                     </div>
@@ -331,9 +333,9 @@ const totalesInclusiones = computed(() => {
                             class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
                         {{ store.getI18nText(t.tarifaTitulo as any, lang) }}
                       </span>
-                      <span v-for="b in modCatBadges(t.modalidad, t.categoria)" :key="b.type"
+                      <span v-for="b in badgesClasif(t)" :key="b.type"
                             class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
-                            :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
+                            :class="badgeClase(b.type)">
                         {{ b.icon }} {{ b.label }}
                       </span>
                       <span v-if="!t.esGrupal && t.cantidad > 1" class="text-[10px] font-bold text-slate-400">x {{ t.cantidad }}</span>
@@ -372,17 +374,34 @@ const totalesInclusiones = computed(() => {
             </p>
             <div class="grid gap-3 md:grid-cols-2">
               <div v-for="(o, i) in grupo.opciones" :key="i" class="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <p class="text-[13px] font-black text-slate-800 leading-tight">{{ store.getI18nText(o.componenteNombre as any, lang) }}</p>
+                <p class="text-[13px] font-black leading-tight">
+                  <template v-if="o.componenteNombreInterno">
+                    <span class="text-slate-800">{{ o.componenteNombreInterno }}</span>
+                    <span v-if="tarifaLabelAlt(o)" class="text-slate-400 font-bold"> · {{ tarifaLabelAlt(o) }}</span>
+                  </template>
+                  <span v-else class="text-slate-800">{{ tarifaLabelAlt(o) || 'Insumo Logístico' }}</span>
+                </p>
                 <p class="text-[11px] font-black uppercase tracking-tight" style="color:#376875">
                   {{ store.getI18nText(o.servicioNombre as any, lang) }}
                 </p>
-                <p class="text-[13px] font-bold text-slate-600 mt-1 flex flex-wrap items-center gap-1.5">
-                  {{ store.getI18nText(o.tarifaTitulo as any, lang) }}
-                  <span v-for="b in modCatBadges(o.modalidad, o.categoria)" :key="b.type"
+                <p v-if="badgesClasif(o).length" class="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span v-for="b in badgesClasif(o)" :key="b.type"
                         class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
-                        :class="b.type === 'modalidad' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200'">
+                        :class="badgeClase(b.type)">
                     {{ b.icon }} {{ b.label }}
                   </span>
+                </p>
+                <!-- Estándar reemplazada: nombre tachado + atenuado, con su modalidad/categoría -->
+                <p class="text-[12px] text-slate-500 mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span class="text-[10px] font-black uppercase tracking-wide text-slate-400">Reemplaza</span>
+                  <template v-if="o.tieneEstandarEspejo">
+                    <span class="line-through">{{ estandarLabelAlt(o) || 'Estándar' }}</span>
+                    <span v-for="b in badgesClasif({ modalidad: o.estandarModalidad, categoria: o.estandarCategoria })" :key="b.type"
+                          class="inline-flex items-center gap-1 text-[10px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-100 text-slate-400 border-slate-200 line-through">
+                      {{ b.icon }} {{ b.label }}
+                    </span>
+                  </template>
+                  <span v-else class="italic line-through">vs. estándar del bloque</span>
                 </p>
                 <p v-if="o.notaRol.length" class="text-[11px] text-slate-500 italic">{{ store.getI18nText(o.notaRol as any, lang) }}</p>
                 <div class="mt-2 pt-2 border-t border-slate-200 flex justify-between items-center">

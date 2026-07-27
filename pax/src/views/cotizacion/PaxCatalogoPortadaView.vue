@@ -59,12 +59,12 @@ const rangoPrincipal = (tour: PaxTourResumen) => tour.preciosDesde?.[0] ?? null;
       <!-- Hero del catálogo -->
       <header class="bg-[#376875] text-white relative overflow-hidden">
         <i class="fas fa-mountain absolute -right-8 -bottom-10 text-[10rem] opacity-10"></i>
-        <div class="max-w-3xl mx-auto px-6 py-12 md:py-16 relative z-10">
-          <p class="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-3">
+        <div class="max-w-3xl mx-auto px-6 py-6 md:py-8 relative z-10">
+          <p class="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">
             {{ maestroStore.t('cat_titulo_hero') || 'Catálogo de Experiencias' }}
           </p>
-          <h1 class="text-3xl md:text-4xl font-black tracking-tight leading-tight">{{ store.portadaCatalogo.nombre }}</h1>
-          <p class="text-white/70 text-sm font-medium mt-3">
+          <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-tight">{{ store.portadaCatalogo.nombre }}</h1>
+          <p class="text-white/70 text-sm font-medium mt-2">
             {{ store.tours.length }} {{ store.tours.length === 1 ? (maestroStore.t('cat_tour') || 'experiencia') : (maestroStore.t('cat_tours') || 'experiencias') }}
             · {{ maestroStore.t('cat_ref') || 'Ref' }}: {{ store.portadaCatalogo.localizador }}
           </p>
@@ -77,7 +77,7 @@ const rangoPrincipal = (tour: PaxTourResumen) => tour.preciosDesde?.[0] ?? null;
                  class="bg-white rounded-4xl border border-slate-200 shadow-lg shadow-slate-300/40 mb-8 overflow-hidden group hover:shadow-xl hover:shadow-[#376875]/10 hover:border-slate-300 transition-all duration-500">
 
           <!-- Portada -->
-          <div class="relative aspect-[16/8] bg-slate-100 overflow-hidden">
+          <div class="relative aspect-[16/7] bg-slate-100 overflow-hidden">
             <img v-if="tour.imagenPortada?.imageUrl"
                  :src="thumbUrl(tour.imagenPortada.imageUrl, 'travel_cliente')"
                  :alt="store.traducir(tour.titulo)"
@@ -86,19 +86,26 @@ const rangoPrincipal = (tour: PaxTourResumen) => tour.preciosDesde?.[0] ?? null;
               <i class="fas fa-mountain text-5xl text-white/20"></i>
             </div>
 
+            <!-- Degradado para legibilidad del título flotante -->
+            <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent"></div>
+
             <span v-if="tour.numDias" class="absolute top-4 left-4 bg-white/95 backdrop-blur text-[#376875] text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow">
               <i class="fas fa-route mr-1 text-[#E07845]"></i>
               {{ tour.numDias }} {{ tour.numDias === 1 ? (maestroStore.t('cat_dia') || 'día') : (maestroStore.t('cat_dias') || 'días') }}
             </span>
+
+            <!-- Título flotante sobre la foto -->
+            <div class="absolute bottom-0 left-0 right-0 p-4 md:p-5">
+              <h2 class="inline-block bg-black/35 backdrop-blur-md rounded-xl px-3.5 py-2 text-lg md:text-2xl font-black text-white tracking-tight leading-tight max-w-full">
+                {{ store.traducir(tour.titulo) || `Tour ${tour.version}` }}
+              </h2>
+            </div>
           </div>
 
           <div class="p-6 md:p-8">
-            <!-- Título + precio "Desde" principal -->
-            <div class="flex items-start justify-between gap-4 mb-3">
-              <h2 class="text-xl md:text-2xl font-black text-slate-800 tracking-tight leading-tight min-w-0">
-                {{ store.traducir(tour.titulo) || `Tour ${tour.version}` }}
-              </h2>
-              <div v-if="!tour.precioOculto && rangoPrincipal(tour)" class="text-right shrink-0">
+            <!-- Precio "Desde" principal -->
+            <div v-if="!tour.precioOculto && rangoPrincipal(tour)" class="flex justify-end mb-3">
+              <div class="text-right shrink-0">
                 <p class="text-[9px] text-[#376875]/50 font-black uppercase tracking-widest">
                   {{ maestroStore.t('cat_desde') || 'Desde' }}
                 </p>

@@ -488,6 +488,10 @@ export interface LineaDetalleClaseCliente {
     fecha: string;
     modalidad: TarifaModalidadValue | null;
     categoria: TarifaCategoriaValue | null;
+    // Restricciones de clasificación de la tarifa (badges). null = sin restricción.
+    procedencia: TarifaProcedenciaValue | null;
+    edadMin: number | null;
+    edadMax: number | null;
     rol: TarifaRolValue;
     notaRol: I18nContent[];
     tarifaTitulo: I18nContent[];
@@ -548,12 +552,41 @@ export interface OpcionUpgradeCliente {
     notaRol: I18nContent[];
     modalidad: TarifaModalidadValue | null;
     categoria: TarifaCategoriaValue | null;
+    // Restricciones de clasificación de la tarifa alternativa (badges).
+    procedencia: TarifaProcedenciaValue | null;
+    edadMin: number | null;
+    edadMax: number | null;
+    // Tarifa estándar espejo a la que reemplaza (datos PÚBLICOS: título + mod/cat).
+    // En cliente ya vienen gateados por los flags de visibilidad del componente.
+    tieneEstandarEspejo: boolean;
+    estandarTitulo: I18nContent[];
+    estandarModalidad: TarifaModalidadValue | null;
+    estandarCategoria: TarifaCategoriaValue | null;
     deltaVentaPorPax: number;
     deltasPorPerfil: DeltaUpgradePorPerfil[];
     deltaVentaTotal: number;
 }
 
 export interface OpcionUpgradeInterna extends OpcionUpgradeCliente {
+    // Nombre interno de la tarifa alternativa: en vistas internas es el fallback
+    // cuando el componente contenedor no tiene nombre propio (evita caer al título
+    // del segmento, que en contenedores multisegmento se ve genérico/raro).
+    tarifaNombreInterno: string | null;
+    // Nombre INTERNO del componente (siempre presente vía maestro). En vistas
+    // internas se antepone al nombre de la tarifa: "Componente · Tarifa", porque
+    // el nombre de tarifa suele ser genérico y la misma tarifa cae en varios
+    // componentes. NO se expone al cliente.
+    componenteNombreInterno: string | null;
+    // Nombre interno de la estándar reemplazada (editor). NO se expone al cliente.
+    estandarNombreInterno: string | null;
+    // ── Insumos client-safe para expurgarParaCliente (no se muestran en interno) ──
+    // Título público del componente para el cliente: nombreSnapshot o, si falta,
+    // los primeros 3 ítems incluidos. Nunca nombre interno ni segmento.
+    componenteNombreCliente: I18nContent[];
+    // Herencia tarifa→ítems gateada (permisiva: algún ítem lo permite).
+    mostrarTituloCliente: boolean;
+    mostrarModalidadCliente: boolean;
+    mostrarCategoriaCliente: boolean;
     tarifaMaestraId: string | null;
     ventaPorPaxEstandar: number;
     ventaPorPaxAlternativa: number;
@@ -570,6 +603,9 @@ export interface InclusionTarifa {
     esGrupal: boolean;
     modalidad: TarifaModalidadValue | null;
     categoria: TarifaCategoriaValue | null;
+    procedencia: TarifaProcedenciaValue | null;
+    edadMin: number | null;
+    edadMax: number | null;
     rol: TarifaRolValue;
     notaRol: I18nContent[];
     montoCotizado: string | null;
@@ -587,6 +623,9 @@ export interface InclusionLinea {
     cantidadComponente: number;
     modalidad: TarifaModalidadValue | null;
     categoria: TarifaCategoriaValue | null;
+    procedencia: TarifaProcedenciaValue | null;
+    edadMin: number | null;
+    edadMax: number | null;
     tarifaTitulo: I18nContent[];
     tarifas: InclusionTarifa[];
 }
@@ -667,6 +706,9 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
                     fecha: d.fecha,
                     modalidad: d.modalidad,
                     categoria: d.categoria,
+                    procedencia: d.procedencia,
+                    edadMin: d.edadMin,
+                    edadMax: d.edadMax,
                     rol: d.rol,
                     notaRol: d.notaRol,
                     tarifaTitulo: d.tarifaTitulo,
@@ -688,13 +730,25 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
             grupoTarifa: o.grupoTarifa,
             grupoLabel: o.grupoLabel,
             esOpcion: o.esOpcion,
-            componenteNombre: o.componenteNombre,
+            // Título PÚBLICO (nombreSnapshot o primeros ítems), nunca nombre interno.
+            componenteNombre: o.componenteNombreCliente,
             servicioId: o.servicioId,
             servicioNombre: o.servicioNombre,
-            tarifaTitulo: o.notaRol,
+            // Título real de tarifa gateado por tituloTarifaVisible (antes se mandaba
+            // notaRol por error). Si no es visible, vacío.
+            tarifaTitulo: o.mostrarTituloCliente ? o.tarifaTitulo : [],
             notaRol: o.notaRol,
-            modalidad: o.modalidad,
-            categoria: o.categoria,
+            modalidad: o.mostrarModalidadCliente ? o.modalidad : null,
+            categoria: o.mostrarCategoriaCliente ? o.categoria : null,
+            // Procedencia/edad: se exponen junto con la categoría (misma puerta).
+            procedencia: o.mostrarCategoriaCliente ? o.procedencia : null,
+            edadMin: o.mostrarCategoriaCliente ? o.edadMin : null,
+            edadMax: o.mostrarCategoriaCliente ? o.edadMax : null,
+            // Estándar reemplazada, solo datos públicos y gateados.
+            tieneEstandarEspejo: o.tieneEstandarEspejo,
+            estandarTitulo: o.mostrarTituloCliente ? o.estandarTitulo : [],
+            estandarModalidad: o.mostrarModalidadCliente ? o.estandarModalidad : null,
+            estandarCategoria: o.mostrarCategoriaCliente ? o.estandarCategoria : null,
             deltaVentaPorPax: r2(o.deltaVentaPorPax),
             deltasPorPerfil: o.deltasPorPerfil.map(dp => ({ ...dp, deltaVentaPorPax: r2(dp.deltaVentaPorPax) })),
             deltaVentaTotal: r2(o.deltaVentaTotal)
@@ -731,4 +785,49 @@ export const formatModCat = (modalidad?: TarifaModalidadValue | null, categoria?
     if (modalidad) partes.push(`Mod: ${MODALIDAD_CONFIG[modalidad]?.label || modalidad}`);
     if (categoria) partes.push(`Cat: ${CATEGORIA_CONFIG[categoria]?.label || categoria}`);
     return partes.join(' · ');
+};
+
+/** Modalidad/categoría como badges inline (mismo icono del dropdown de edición).
+ *  Fuente única para las tarjetas de tarifa/alternativa en las vistas internas. */
+export const modCatBadges = (
+    modalidad?: TarifaModalidadValue | null,
+    categoria?: TarifaCategoriaValue | null
+): { icon: string; label: string; type: 'modalidad' | 'categoria' }[] => {
+    const badges: { icon: string; label: string; type: 'modalidad' | 'categoria' }[] = [];
+    if (modalidad && MODALIDAD_CONFIG[modalidad]) badges.push({ ...MODALIDAD_CONFIG[modalidad], type: 'modalidad' });
+    if (categoria && CATEGORIA_CONFIG[categoria]) badges.push({ ...CATEGORIA_CONFIG[categoria], type: 'categoria' });
+    return badges;
+};
+
+// ── Badges de clasificación (modalidad · categoría · procedencia · edad) ─────
+// Superset de modCatBadges: mismo patrón visual, ampliado con procedencia y el
+// rango de edad. Fuente única para las vistas internas que muestran la
+// clasificación completa de una tarifa/alternativa/inclusión.
+export type ClasifBadgeTipo = 'modalidad' | 'categoria' | 'procedencia' | 'edad';
+
+export const CLASIF_BADGE_CLASE: Record<ClasifBadgeTipo, string> = {
+    modalidad:   'bg-sky-50 text-sky-700 border-sky-200',
+    categoria:   'bg-purple-50 text-purple-700 border-purple-200',
+    procedencia: 'bg-teal-50 text-teal-700 border-teal-200',
+    edad:        'bg-orange-50 text-orange-700 border-orange-200',
+};
+
+export interface ClasifBadgeData {
+    modalidad?: TarifaModalidadValue | null;
+    categoria?: TarifaCategoriaValue | null;
+    procedencia?: TarifaProcedenciaValue | null;
+    edadMin?: number | null;
+    edadMax?: number | null;
+}
+
+export const clasificacionBadges = (
+    o: ClasifBadgeData
+): { icon: string; label: string; type: ClasifBadgeTipo }[] => {
+    const badges: { icon: string; label: string; type: ClasifBadgeTipo }[] = [];
+    if (o.modalidad && MODALIDAD_CONFIG[o.modalidad]) badges.push({ ...MODALIDAD_CONFIG[o.modalidad], type: 'modalidad' });
+    if (o.categoria && CATEGORIA_CONFIG[o.categoria]) badges.push({ ...CATEGORIA_CONFIG[o.categoria], type: 'categoria' });
+    if (o.procedencia && PROCEDENCIA_CONFIG[o.procedencia]) badges.push({ ...PROCEDENCIA_CONFIG[o.procedencia], type: 'procedencia' });
+    const edad = formatRangoEdad(o.edadMin, o.edadMax);
+    if (edad) badges.push({ icon: '🎂', label: edad, type: 'edad' });
+    return badges;
 };

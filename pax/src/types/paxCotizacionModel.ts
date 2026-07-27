@@ -139,6 +139,9 @@ export interface PaxTarifaFinanciera {
     esGrupal: boolean;
     categoria: string | null;
     modalidad: string | null;
+    procedencia?: string | null;
+    edadMin?: number | null;
+    edadMax?: number | null;
     tarifaTitulo: I18n;
     montoCotizado: string | null; // null en la versión cliente
 }
@@ -154,6 +157,9 @@ export interface PaxInclusionItem {
     tarifas: PaxTarifaFinanciera[];
     categoria: string | null;
     modalidad: string | null;
+    procedencia?: string | null;
+    edadMin?: number | null;
+    edadMax?: number | null;
     tarifaTitulo: I18n;
     cantidadComponente: number;
 }
@@ -208,11 +214,15 @@ export interface PaxClasificacionFinancieraCliente {
     generatedAt: string;
     schemaVersion: number;
     precioOculto: boolean;
-    montoAdelanto: number;
-    totalVentaBruta: number;
+    /** Ausente si precioOculto=true (redactado por CotizacionPublicNormalizer). */
+    montoAdelanto?: number;
+    /** Ausente si precioOculto=true (redactado por CotizacionPublicNormalizer). */
+    totalVentaBruta?: number;
     inclusiones: PaxInclusionServicio[];
-    resumenGeneral: Record<'cortesia' | 'incluido' | 'noIncluido', PaxResumenVenta>;
-    clasesPasajeros: PaxClasePasajero[];
+    /** Ausente si precioOculto=true (redactado por CotizacionPublicNormalizer). */
+    resumenGeneral?: Record<'cortesia' | 'incluido' | 'noIncluido', PaxResumenVenta>;
+    /** Ausente si precioOculto=true (redactado por CotizacionPublicNormalizer). */
+    clasesPasajeros?: PaxClasePasajero[];
     opcionesUpgrade: PaxOpcionUpgrade[];
 }
 
@@ -225,14 +235,18 @@ export interface PaxCotizacion {
     version: number;
     estado: string; // CotizacionEstadoEnum
     numPax: number;
-    adelanto: string;
+    /** Título comercial opcional de la propuesta/tour (i18n); vacío si no se definió. */
+    titulo?: I18n;
     precioOculto: boolean;
     proveedorOculto: boolean; // 🔥 anonimato global de proveedores
     resumen: unknown[];
     fechaExpiracion?: string | null;
     monedaGlobal: string;
     idiomaCliente: string;
-    totalVenta: string;
+    /** Ausente si precioOculto=true (redactado por CotizacionPublicNormalizer). */
+    totalVenta?: string;
+    /** Ausente si precioOculto=true (redactado por CotizacionPublicNormalizer). */
+    adelanto?: string;
     clasificacionFinancieraCliente?: PaxClasificacionFinancieraCliente | null;
     cotservicios: PaxCotServicio[];
 }
@@ -360,12 +374,21 @@ export interface PaxOpcionUpgrade {
     tarifaTitulo: I18n;
     modalidad: string | null;
     categoria: string | null;
+    procedencia?: string | null;
+    edadMin?: number | null;
+    edadMax?: number | null;
     notaRol?: I18n;
+    /** Estándar reemplazada (datos públicos, ya gateados en el editor). */
+    tieneEstandarEspejo?: boolean;
+    estandarTitulo?: I18n;
+    estandarModalidad?: string | null;
+    estandarCategoria?: string | null;
     /** Grupo de tarifa (1 = estándar). Con el flag esOpcion permite reconstruir
      *  la etiqueta traducida "Alternativa N" (grupo-1) u "Opción N" (grupo). */
     grupoTarifa: number;
     esOpcion: boolean;
-    /** Deltas en USD (negativo = descuento) */
-    deltaVentaTotal: number;
-    deltaVentaPorPax: number;
+    /** Deltas en USD (negativo = descuento). Ausentes si precioOculto=true
+     *  (redactados por CotizacionPublicNormalizer). */
+    deltaVentaTotal?: number;
+    deltaVentaPorPax?: number;
 }

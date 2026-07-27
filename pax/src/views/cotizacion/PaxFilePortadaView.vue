@@ -86,6 +86,12 @@ const seleccionarIdioma = (id: string) => {
   idiomaDropdown.value = false;
 };
 
+/** Precio por pasajero (rango principal): promedio simple totalVenta / numPax. */
+const montoPorPax = (monto: string, numPax: number): string => {
+  if (!numPax) return monto;
+  return String(Number(monto) / numPax);
+};
+
 // totalVenta siempre llega en USD del backend; monedaGlobal solo indica cómo mostrarlo
 const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoCambio: number) => {
   if (monto === null) return '';
@@ -164,7 +170,7 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
               <span class="font-black text-[10px] uppercase tracking-widest">{{ maestroStore.idiomaActual.toUpperCase() }}</span>
               <i class="fas fa-chevron-down text-[8px] text-white/70 transition-transform duration-200" :class="idiomaDropdown ? 'rotate-180' : ''"></i>
             </button>
-            <div v-if="idiomaDropdown" class="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-[160px]">
+            <div v-if="idiomaDropdown" class="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-40">
               <button
                   v-for="lang in maestroStore.idiomas"
                   :key="lang.id"
@@ -277,13 +283,16 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
                 </p>
               </div>
 
-              <!-- Precio discreto (precio total fijo) -->
+              <!-- Precio destacado: unitario (rango principal) grande, total como referencia -->
               <div v-if="!v.precioOculto && v.totalVenta" class="text-right shrink-0">
                 <p class="text-[9px] text-[#376875]/50 font-black uppercase tracking-widest">
-                  {{ maestroStore.t('cot_precio_total') || 'Precio total' }}
+                  {{ maestroStore.t('cot_precio_desde') || 'Desde' }} · {{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}
                 </p>
-                <p class="text-sm md:text-base font-black text-gray-500 leading-tight whitespace-nowrap tabular-nums">
-                  {{ formatearMontoPortada(v.totalVenta, v.monedaGlobal, v.tipoCambio) }}
+                <p class="text-lg md:text-xl font-black text-[#E07845] leading-tight whitespace-nowrap tabular-nums">
+                  {{ formatearMontoPortada(montoPorPax(v.totalVenta, v.numPax), v.monedaGlobal, v.tipoCambio) }}
+                </p>
+                <p class="text-[10px] font-bold text-slate-400 mt-0.5 tabular-nums">
+                  {{ maestroStore.t('cot_precio_total') || 'Precio total' }} {{ formatearMontoPortada(v.totalVenta, v.monedaGlobal, v.tipoCambio) }}
                 </p>
               </div>
               <div v-else class="text-right shrink-0 max-w-36">

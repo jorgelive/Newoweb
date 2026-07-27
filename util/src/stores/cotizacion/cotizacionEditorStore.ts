@@ -495,6 +495,51 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             return [];
         };
 
+        // Nombre INTERNO del componente (siempre presente): sale del componente
+        // maestro. El nombreSnapshot es sólo el título público (opcional, para el
+        // cliente). Sólo lectura del catálogo; no dispara fetch dentro del computed.
+        const nombreInternoDeComponente = (componente: ComponenteCompleto): string => {
+            const maestroId = componente.componenteMaestroId ? extractIdStr(componente.componenteMaestroId) : '';
+            if (maestroId) {
+                const maestro = catalogos.value.allComponentes.find(
+                    (c) => extractIdStr(c.id || (c as any)['@id'] || '') === maestroId
+                );
+                const nombre = maestro ? (maestro as any).nombre : '';
+                if (nombre && nombre !== 'Sincronizando...') return nombre;
+            }
+            // Fallbacks internos: título override del snapshot, luego segmento.
+            const snap = getI18nText(componente.nombreSnapshot, idiomaEdicion);
+            if (snap) return snap;
+            const seg = componente.cotsegmento;
+            if (seg && typeof seg === 'object' && Array.isArray((seg as CotSegmento).nombreSnapshot)) {
+                return getI18nText((seg as CotSegmento).nombreSnapshot as I18nContent[], idiomaEdicion);
+            }
+            return '';
+        };
+
+        // Título PÚBLICO del componente para el cliente (nunca nombre interno ni
+        // segmento): si el componente tiene título público (nombreSnapshot) se usa;
+        // si no, se arma con los primeros 3 ítems INCLUIDOS unidos por " · ", por
+        // idioma. Devuelve I18nContent[] para respetar traducciones.
+        const tituloClienteDeComponente = (componente: ComponenteCompleto): I18nContent[] => {
+            if (componente.nombreSnapshot?.length) return componente.nombreSnapshot;
+            const items = (componente.snapshotItems || [])
+                .filter((it) => (it.modo || '').toLowerCase() === 'incluido' || it.incluido)
+                .slice(0, 3);
+            if (!items.length) return [];
+            // Idiomas presentes en cualquiera de los ítems.
+            const idiomas = new Set<string>();
+            items.forEach((it) => (it.nombreSnapshot || []).forEach((c) => idiomas.add(c.language)));
+            if (!idiomas.size) return [];
+            return [...idiomas].map((language) => ({
+                language,
+                content: items
+                    .map((it) => getI18nText(it.nombreSnapshot, language))
+                    .filter(Boolean)
+                    .join(' · ')
+            }));
+        };
+
         // ── Estructuras internas del voter ──────────────────────────────────────
         interface LineaVoter {
             esGrupal: boolean;
@@ -554,6 +599,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 const modoFin = modo as ModoFinanciero;
                 const compNombre = nombreDeComponente(componente);
+                // Nombre propio del componente (sin fallback al segmento): en vistas
+                // internas las alternativas prefieren el nombreInterno de la tarifa
+                // antes que caer al título del segmento contenedor.
+                const compNombrePropio = componente.nombreSnapshot?.length ? componente.nombreSnapshot : [];
+                const compNombreInterno = nombreInternoDeComponente(componente);
+                // Datos client-safe para el snapshot que consume la vista pax.
+                const compTituloCliente = tituloClienteDeComponente(componente);
+                // Herencia de atributos de tarifa → ítems, gateada por flags. Criterio
+                // permisivo: se muestra en la tarjeta si AL MENOS un ítem lo permite.
+                // Sin ítems, se muestra por defecto (no hay a quién ocultarlo).
+                const itemsComp = componente.snapshotItems || [];
+                const mostrarTituloCliente = !itemsComp.length || itemsComp.some((it) => it.tituloTarifaVisible);
+                const mostrarModalidadCliente = !itemsComp.length || itemsComp.some((it) => it.modalidadTarifaVisible);
+                const mostrarCategoriaCliente = !itemsComp.length || itemsComp.some((it) => it.categoriaTarifaVisible);
                 const compLabel = getI18nText(compNombre, idiomaEdicion) || 'Insumo Logístico';
                 const cCant = componente.cantidad || 1;
                 const fecha = getFechaLimpia(componente.fechaHoraInicio);
@@ -617,6 +676,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             fecha,
                             modalidad: t.modalidadSnapshot || null, // Se extrae pacíficamente, no es estrictamente obligatorio
                             categoria: t.categoriaSnapshot || null, // Se extrae pacíficamente, no es estrictamente obligatorio
+                            procedencia: t.procedenciaSnapshot || null,
+                            edadMin: t.edadMinimaSnapshot ?? null,
+                            edadMax: t.edadMaximaSnapshot ?? null,
                             rol,
                             notaRol: t.notaRol || [],
                             tarifaTitulo: t.tituloSnapshot || [],
@@ -733,13 +795,27 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 grupoTarifa: grupo,
                                 grupoLabel: etiquetaGrupo.label,
                                 esOpcion: etiquetaGrupo.tipo === 'opcion',
-                                componenteNombre: compNombre,
+                                componenteNombre: compNombrePropio,
+                                componenteNombreInterno: compNombreInterno || null,
+                                componenteNombreCliente: compTituloCliente,
+                                mostrarTituloCliente,
+                                mostrarModalidadCliente,
+                                mostrarCategoriaCliente,
                                 servicioId,
                                 servicioNombre,
                                 tarifaTitulo: t.tituloSnapshot || [],
+                                tarifaNombreInterno: t.nombreInternoSnapshot || null,
+                                tieneEstandarEspejo: !!std,
+                                estandarTitulo: std?.tituloSnapshot || [],
+                                estandarNombreInterno: std?.nombreInternoSnapshot || null,
+                                estandarModalidad: std?.modalidadSnapshot || null,
+                                estandarCategoria: std?.categoriaSnapshot || null,
                                 notaRol: t.notaRol || [],
                                 modalidad: t.modalidadSnapshot || null,
                                 categoria: t.categoriaSnapshot || null,
+                                procedencia: t.procedenciaSnapshot || null,
+                                edadMin: t.edadMinimaSnapshot ?? null,
+                                edadMax: t.edadMaximaSnapshot ?? null,
                                 deltaVentaPorPax: altPP - basePP, // Diferencia general vs promedio
                                 deltasPorPerfil,
                                 deltaVentaTotal: (altPP - basePP) * numPaxGlobal,
@@ -953,6 +1029,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     esGrupal: t.esGrupal,
                     modalidad: t.modalidadSnapshot || null,
                     categoria: t.categoriaSnapshot || null,
+                    procedencia: t.procedenciaSnapshot || null,
+                    edadMin: t.edadMinimaSnapshot ?? null,
+                    edadMax: t.edadMaximaSnapshot ?? null,
                     rol: (t.rolSnapshot || 'estandar') as TarifaRolValue,
                     notaRol: t.notaRol || [],
                     montoCotizado: String(t.montoCosto || '0'),   // interna con monto; expurgador limpia
@@ -987,6 +1066,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                     cantidadComponente: cCant,
                                     modalidad: ref?.modalidadSnapshot || null,
                                     categoria: ref?.categoriaSnapshot || null,
+                                    procedencia: ref?.procedenciaSnapshot || null,
+                                    edadMin: ref?.edadMinimaSnapshot ?? null,
+                                    edadMax: ref?.edadMaximaSnapshot ?? null,
                                     tarifaTitulo: [],
                                     tarifas: tarifasGrupo.map(mapearTarifaInclusion)
                                 });
@@ -1000,6 +1082,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             cantidadComponente: cCant,
                             modalidad: tarifaRef?.modalidadSnapshot || null,
                             categoria: tarifaRef?.categoriaSnapshot || null,
+                            procedencia: tarifaRef?.procedenciaSnapshot || null,
+                            edadMin: tarifaRef?.edadMinimaSnapshot ?? null,
+                            edadMax: tarifaRef?.edadMaximaSnapshot ?? null,
                             tarifaTitulo: [],
                             tarifas: estandares.map(mapearTarifaInclusion)
                         });
@@ -1018,6 +1103,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         // Herencia condicional por flags desde la tarifa estándar del contenedor
                         modalidad: item.modalidadTarifaVisible ? (tarifaRef?.modalidadSnapshot || null) : null,
                         categoria: item.categoriaTarifaVisible ? (tarifaRef?.categoriaSnapshot || null) : null,
+                        // Procedencia/edad heredan la misma puerta que la categoría (no tienen flag propio).
+                        procedencia: item.categoriaTarifaVisible ? (tarifaRef?.procedenciaSnapshot || null) : null,
+                        edadMin: item.categoriaTarifaVisible ? (tarifaRef?.edadMinimaSnapshot ?? null) : null,
+                        edadMax: item.categoriaTarifaVisible ? (tarifaRef?.edadMaximaSnapshot ?? null) : null,
                         tarifaTitulo: item.tituloTarifaVisible ? (tarifaRef?.tituloSnapshot || []) : [],
                         tarifas: []   // items: sin dimensión monetaria, nunca "0"
                     });

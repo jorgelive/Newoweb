@@ -19,7 +19,7 @@ import {
   getProcedenciaUI,
   getTipoNotaUI,
   getRolTarifaUI, Servicio, TarifaSnapshot, formatRangoEdad,
-  MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions
+  MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE
 } from '@/types/cotizacionEditorModel';
 
 // 1. Importa el estado y lógica compartida
@@ -486,6 +486,13 @@ const getNombreMaestroRef = (comp: any) => {
   const snapshotName = store.getI18nText(comp.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es');
   return snapshotName ? snapshotName : 'Sincronizando...';
 };
+
+// Nombre de tarifa / estándar de una alternativa: interno primero (genérico pero
+// siempre presente), luego el título público.
+const tarifaLabelAlt = (o: any) =>
+    o.tarifaNombreInterno || store.getI18nText(o.tarifaTitulo as any, store.cotizacion?.idiomaEdicion || 'es');
+const estandarLabelAlt = (o: any) =>
+    o.estandarNombreInterno || store.getI18nText(o.estandarTitulo as any, store.cotizacion?.idiomaEdicion || 'es');
 
 const filtroSegmentos = ref('');
 // ESTADO DEL ACORDEÓN (Móvil) Y EDITORES
@@ -1181,8 +1188,32 @@ store.$onAction(({ name, args }) => {
                 </p>
                 <div v-for="(o, i) in grupo.opciones" :key="i" class="flex justify-between items-start gap-2 py-1.5 border-t border-slate-50 first:border-0">
                   <div class="min-w-0">
-                    <p class="text-[12px] font-black text-slate-800 leading-tight">{{ store.getI18nText(o.componenteNombre as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
-                    <p class="text-[11px] font-bold text-slate-500 leading-tight">{{ store.getI18nText(o.tarifaTitulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
+                    <p class="text-[12px] font-black leading-tight">
+                      <template v-if="o.componenteNombreInterno">
+                        <span class="text-slate-800">{{ o.componenteNombreInterno }}</span>
+                        <span v-if="tarifaLabelAlt(o)" class="text-slate-400 font-bold"> · {{ tarifaLabelAlt(o) }}</span>
+                      </template>
+                      <span v-else class="text-slate-800">{{ tarifaLabelAlt(o) || 'Insumo Logístico' }}</span>
+                    </p>
+                    <p v-if="clasificacionBadges(o).length" class="mt-0.5 flex flex-wrap items-center gap-1">
+                      <span v-for="b in clasificacionBadges(o)" :key="b.type"
+                            class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
+                            :class="CLASIF_BADGE_CLASE[b.type]">
+                        {{ b.icon }} {{ b.label }}
+                      </span>
+                    </p>
+                    <!-- Estándar reemplazada: tachada + atenuada, con su modalidad/categoría -->
+                    <p class="text-[11px] text-slate-500 leading-tight flex flex-wrap items-center gap-1 mt-1">
+                      <span class="text-[9px] font-black uppercase tracking-wide text-slate-400">Reemplaza</span>
+                      <template v-if="o.tieneEstandarEspejo">
+                        <span class="line-through">{{ estandarLabelAlt(o) || 'Estándar' }}</span>
+                        <span v-for="b in clasificacionBadges({ modalidad: o.estandarModalidad, categoria: o.estandarCategoria })" :key="b.type"
+                              class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-100 text-slate-400 border-slate-200 line-through">
+                          {{ b.icon }} {{ b.label }}
+                        </span>
+                      </template>
+                      <span v-else class="italic line-through">vs. estándar del bloque</span>
+                    </p>
                   </div>
                   <span class="text-[12px] font-black whitespace-nowrap shrink-0"
                         :class="o.deltaVentaPorPax >= 0 ? 'text-purple-700' : 'text-emerald-700'">
@@ -2712,8 +2743,32 @@ store.$onAction(({ name, args }) => {
                 </p>
                 <div v-for="(o, i) in grupo.opciones" :key="i" class="flex justify-between items-start gap-2 py-1.5 border-t border-slate-50 first:border-0">
                   <div class="min-w-0">
-                    <p class="text-[11px] font-black text-slate-800 leading-tight">{{ store.getI18nText(o.componenteNombre as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
-                    <p class="text-[10px] font-bold text-slate-500 leading-tight">{{ store.getI18nText(o.tarifaTitulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</p>
+                    <p class="text-[11px] font-black leading-tight">
+                      <template v-if="o.componenteNombreInterno">
+                        <span class="text-slate-800">{{ o.componenteNombreInterno }}</span>
+                        <span v-if="tarifaLabelAlt(o)" class="text-slate-400 font-bold"> · {{ tarifaLabelAlt(o) }}</span>
+                      </template>
+                      <span v-else class="text-slate-800">{{ tarifaLabelAlt(o) || 'Insumo Logístico' }}</span>
+                    </p>
+                    <p v-if="clasificacionBadges(o).length" class="mt-0.5 flex flex-wrap items-center gap-1">
+                      <span v-for="b in clasificacionBadges(o)" :key="b.type"
+                            class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded border uppercase"
+                            :class="CLASIF_BADGE_CLASE[b.type]">
+                        {{ b.icon }} {{ b.label }}
+                      </span>
+                    </p>
+                    <!-- Estándar reemplazada: tachada + atenuada, con su modalidad/categoría -->
+                    <p class="text-[10px] text-slate-500 leading-tight flex flex-wrap items-center gap-1 mt-1">
+                      <span class="text-[9px] font-black uppercase tracking-wide text-slate-400">Reemplaza</span>
+                      <template v-if="o.tieneEstandarEspejo">
+                        <span class="line-through">{{ estandarLabelAlt(o) || 'Estándar' }}</span>
+                        <span v-for="b in clasificacionBadges({ modalidad: o.estandarModalidad, categoria: o.estandarCategoria })" :key="b.type"
+                              class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-100 text-slate-400 border-slate-200 line-through">
+                          {{ b.icon }} {{ b.label }}
+                        </span>
+                      </template>
+                      <span v-else class="italic line-through">vs. estándar del bloque</span>
+                    </p>
                   </div>
                   <span class="text-[11px] font-black whitespace-nowrap shrink-0"
                         :class="o.deltaVentaPorPax >= 0 ? 'text-purple-700' : 'text-emerald-700'">
