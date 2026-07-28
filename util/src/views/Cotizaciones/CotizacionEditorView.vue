@@ -1103,6 +1103,21 @@ store.$onAction(({ name, args }) => {
               </div>
             </div>
 
+            <div v-if="store.modoCatalogo" class="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+              <div>
+                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-user-tag mr-1"></i> Precios Unitarios (Sin Totales)</h3>
+                <p class="text-[9px] text-orange-400 mt-1 font-medium leading-tight pr-4">Menú de precios por perfil (peruano, extranjero, niño…). Oculta al cliente el "2X", el "× N pax" y el precio total del viaje: sirve como guía, no como cotización de un grupo concreto.</p>
+              </div>
+              <button @click="store.cotizacion.totalesOcultos = !store.cotizacion.totalesOcultos"
+                      :class="[
+                           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0',
+                           store.cotizacion.totalesOcultos ? 'bg-orange-500' : 'bg-slate-300'
+                       ]">
+                 <span :class="store.cotizacion.totalesOcultos ? 'translate-x-6' : 'translate-x-1'"
+                       class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
+              </button>
+            </div>
+
             <div v-if="store.modoCatalogo" class="bg-teal-50 border border-teal-200 rounded-2xl p-4 shadow-sm">
               <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest mb-1"><i class="fas fa-image mr-1"></i> Portada del Tour</h3>
               <p class="text-[9px] text-teal-500 font-medium mb-3 leading-tight">
@@ -2102,14 +2117,14 @@ store.$onAction(({ name, args }) => {
                 </div>
 
                 <!-- req 1: el rol sólo aplica cuando el componente está "Incluido"; en los
-                     demás modos manda el modo y la "Alternativa" pasará a "Estándar" al guardar. -->
+                     demás modos manda el modo, así que las tarifas "Alternativa" ya pasaron
+                     a "Estándar" apenas el componente dejó de estar incluido. -->
                 <div v-if="store.dataActiva.rolSnapshot !== 'operativo' && (store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido'"
                      class="mb-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
                   <i class="fas fa-triangle-exclamation text-amber-500 mt-0.5"></i>
                   <span class="text-[10px] font-bold text-amber-700 leading-tight">
                     El rol no aplica: el componente está en modo
                     "{{ getModoItemConfig(store.componenteActualDeTarifa?.modo).label }}", así que manda el modo.
-                    Al guardar, las tarifas "Alternativa" pasarán a "Estándar".
                   </span>
                 </div>
 

@@ -117,6 +117,18 @@ class Cotizacion
     private bool $proveedorOculto = false;
 
     /**
+     * Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+     * mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+     * (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+     * El catálogo funciona como un menú de precios por unidad — "peruanos tal
+     * precio, extranjeros tal precio" — no como cotización de un grupo concreto.
+     * Sólo tiene sentido en modo catálogo; el precio unitario sí se sigue viendo.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $totalesOcultos = false;
+
+    /**
      * Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
      * Experiencia Mística". Diferencia paquetes tanto en el expediente del
      * cliente como en el escaparate del catálogo.
@@ -356,6 +368,9 @@ class Cotizacion
 
     public function isPrecioOculto(): bool { return $this->precioOculto; }
     public function setPrecioOculto(bool $precioOculto): void { $this->precioOculto = $precioOculto; }
+
+    public function isTotalesOcultos(): bool { return $this->totalesOcultos; }
+    public function setTotalesOcultos(bool $totalesOcultos): void { $this->totalesOcultos = $totalesOcultos; }
 
     /**
      * Determina si todos los proveedores de la cotización deben ocultarse al cliente.

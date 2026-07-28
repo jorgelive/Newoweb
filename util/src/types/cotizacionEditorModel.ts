@@ -87,6 +87,8 @@ export type Cotizacion = Omit<
     clasificacionFinanciera?: ClasificacionFinancieraInterna;
     clasificacionFinancieraCliente?: ClasificacionFinancieraCliente;
     proveedorOculto?: boolean;
+    /** Modo catálogo unitario: oculta totales y referencias a cantidad de pax en la guía del cliente. */
+    totalesOcultos?: boolean;
 };
 
 export type TarifaProcedenciaValue = NonNullable<TarifaBase['procedencia']>;

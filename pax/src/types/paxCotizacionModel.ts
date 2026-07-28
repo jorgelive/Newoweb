@@ -239,6 +239,8 @@ export interface PaxCotizacion {
     titulo?: I18n;
     precioOculto: boolean;
     proveedorOculto: boolean; // 🔥 anonimato global de proveedores
+    /** Modo catálogo unitario: oculta totales y toda referencia a cantidad de pasajeros. */
+    totalesOcultos?: boolean;
     resumen: unknown[];
     fechaExpiracion?: string | null;
     monedaGlobal: string;

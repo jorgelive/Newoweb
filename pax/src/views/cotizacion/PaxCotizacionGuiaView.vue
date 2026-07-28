@@ -597,6 +597,12 @@ const totalViaje = computed(() => {
       : null;
 });
 
+/** Modo catálogo unitario: el precio funciona como menú por perfil ("peruano
+ *  tal precio, extranjero tal precio"), no como cotización de un grupo. Oculta
+ *  toda referencia a cantidad de pasajeros: el "2X" del perfil, el "× N pax ·
+ *  total" y el "precio total del viaje". El precio unitario sí se sigue viendo. */
+const ocultarTotales = computed(() => store.cotizacion?.totalesOcultos === true);
+
 /** Rango con más pasajeros: su venta por pax es el precio que se destaca en el
  *  encabezado (más representativo que el total, que se ve grande). */
 const claseDominante = computed(() =>
@@ -701,7 +707,7 @@ const adelantoVista = computed(() => {
               </h1>
               <p class="text-white/70 text-xs font-bold mt-1 uppercase tracking-widest">
                 {{ totalDiasViaje }} {{ maestroStore.t('cot_dias') || 'días' }}
-                · {{ store.cotizacion.numPax }} {{ maestroStore.t('cot_pax') || 'pax' }}
+                <template v-if="!ocultarTotales">· {{ store.cotizacion.numPax }} {{ maestroStore.t('cot_pax') || 'pax' }}</template>
               </p>
             </div>
 
@@ -731,7 +737,7 @@ const adelantoVista = computed(() => {
                         :class="finanzasAbiertas ? 'rotate-180' : 'arrow-pulse-blur'"
                     ></i>
                   </span>
-                  <span v-if="claseDominante" class="block text-[10px] font-black text-[#376875]/60 uppercase tracking-widest tabular-nums mt-1">
+                  <span v-if="claseDominante && !ocultarTotales" class="block text-[10px] font-black text-[#376875]/60 uppercase tracking-widest tabular-nums mt-1">
                     {{ maestroStore.t('cot_precio_total') || 'Total del viaje' }}: {{ mv(totalViaje.soles, totalViaje.dolares) }}
                   </span>
                 </template>
@@ -799,7 +805,7 @@ const adelantoVista = computed(() => {
                 <div class="flex items-center justify-between gap-4">
                   <div>
                     <span class="inline-block px-3 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[11px] font-black uppercase tracking-widest mb-1.5">
-                      {{ clase.cantidad }}x {{ clase.tipoPaxNombre }}
+                      <template v-if="!ocultarTotales">{{ clase.cantidad }}x </template>{{ clase.tipoPaxNombre }}
                     </span>
                     <p class="text-xs font-black text-[#376875] bg-[#376875]/6 border border-[#376875]/10 rounded-lg px-2.5 py-1 inline-block">
                       <i class="fas fa-user-clock mr-1 text-[#E07845]"></i>{{ rangoEdadLabel(clase) }}
@@ -812,7 +818,7 @@ const adelantoVista = computed(() => {
                     <p class="text-xl md:text-2xl font-black text-gray-800 tabular-nums leading-none">
                       {{ mv(clase.resumenPorModo.normal.ventaSoles, clase.resumenPorModo.normal.ventaDolares) }}
                     </p>
-                    <p class="text-[11px] font-black text-slate-500 mt-1 tabular-nums">
+                    <p v-if="!ocultarTotales" class="text-[11px] font-black text-slate-500 mt-1 tabular-nums">
                       × {{ clase.cantidad }} {{ maestroStore.t('cot_pax') || 'pax' }}
                       <span class="text-slate-300">·</span>
                       {{ mv(clase.resumenPorModo.normal.ventaSoles * clase.cantidad, clase.resumenPorModo.normal.ventaDolares * clase.cantidad) }}
@@ -832,8 +838,9 @@ const adelantoVista = computed(() => {
               </div>
             </div>
 
-            <!-- Total del viaje (suma de todos los rangos) -->
-            <div v-if="totalViaje" class="mt-3 flex items-center justify-between bg-[#376875] text-white rounded-2xl px-4 py-3.5 shadow-sm">
+            <!-- Total del viaje (suma de todos los rangos). Oculto en modo catálogo
+                 unitario: allí el precio es un menú por perfil, no un total de grupo. -->
+            <div v-if="totalViaje && !ocultarTotales" class="mt-3 flex items-center justify-between bg-[#376875] text-white rounded-2xl px-4 py-3.5 shadow-sm">
               <span class="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
                 <i class="fas fa-sack-dollar text-emerald-300"></i>
                 {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}

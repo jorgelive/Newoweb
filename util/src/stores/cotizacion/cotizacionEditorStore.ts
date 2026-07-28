@@ -1624,6 +1624,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             totalVenta: '0.00',
             precioOculto: false,
             proveedorOculto: false,
+            totalesOcultos: false,
             titulo: [],
             resumen: [],
             sobreescribirTraduccion: false,
@@ -1646,12 +1647,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /**
-     * ¿Hay tarifas 'alternativa' que se normalizarían a 'estándar' porque el
-     * componente ya no está 'incluido'? Las 'operativo' se mantienen intactas.
+     * req 5: el rol sólo aplica bajo modo 'incluido'. Si el componente deja de
+     * estar 'incluido', cualquier tarifa 'alternativa' pasa a 'estándar' de
+     * inmediato (manda el modo). Las 'operativo' se conservan.
      */
-    const tieneAlternativasAfectadas = (comp: ComponenteCompleto | null | undefined): boolean =>
-        !!comp && (comp.modo || '').toLowerCase() !== 'incluido'
-        && (comp.cottarifas || []).some((t: TarifaSnapshot) => t.rolSnapshot === 'alternativa');
+    const normalizarRolesDeComponente = (comp: ComponenteCompleto | null | undefined): void => {
+        if (!comp || (comp.modo || '').toLowerCase() === 'incluido') return;
+        (comp.cottarifas || []).forEach((t: TarifaSnapshot) => {
+            if (t.rolSnapshot === 'alternativa') t.rolSnapshot = 'estandar';
+        });
+    };
 
     /**
      * req 5: el rol sólo aplica bajo modo 'incluido'. Al guardar, cualquier tarifa
@@ -1661,12 +1666,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      */
     const normalizarRolesSegunModo = (): void => {
         cotizacion.value?.cotservicios?.forEach((servicio: CotServicio) => {
-            servicio.cotcomponentes?.forEach((comp: ComponenteCompleto) => {
-                if ((comp.modo || '').toLowerCase() === 'incluido') return;
-                (comp.cottarifas || []).forEach((t: TarifaSnapshot) => {
-                    if (t.rolSnapshot === 'alternativa') t.rolSnapshot = 'estandar';
-                });
-            });
+            servicio.cotcomponentes?.forEach((comp: ComponenteCompleto) => normalizarRolesDeComponente(comp));
         });
     };
 
@@ -1691,20 +1691,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /**
-     * req 5: al cambiar el modo de un componente fuera de 'incluido', avisa al
-     * digitador (posible error de captura) que sus tarifas alternativas pasarán a
-     * estándar al guardar. Sólo alerta si efectivamente hay alternativas afectadas.
+     * req 5: al cambiar el modo de un componente fuera de 'incluido', el rol
+     * deja de aplicar y sus tarifas 'alternativa' pasan a 'estándar' de una vez
+     * (sin advertencia: se hace y punto).
      */
     const onCambioModoComponente = (comp: ComponenteCompleto | null | undefined): void => {
         cascadeModoItemsSegunComponente(comp);
-
-        if (tieneAlternativasAfectadas(comp)) {
-            alert(
-                'Este componente ya no está "Incluido": el rol deja de aplicar y manda el modo.\n\n' +
-                'Al guardar, sus tarifas "Alternativa" pasarán a "Estándar" y se cotizarán bajo el modo actual. ' +
-                'Las tarifas operativas se mantienen. Revisa que no queden tarifas duplicadas.'
-            );
-        }
+        normalizarRolesDeComponente(comp);
     };
 
     /**
