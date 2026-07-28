@@ -262,7 +262,7 @@ onMounted(() => {
 
     <header class="bg-slate-900 text-white px-4 md:px-8 py-4 flex items-center justify-between shadow-md">
       <div class="flex items-center gap-3">
-        <button @click="router.push('/cotizacion')" class="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+        <button @click="router.push('/')" class="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
           <i class="fas fa-arrow-left text-sm"></i>
         </button>
         <div>

@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
+import { getUrls } from '@/services/apiClient';
 import { thumbUrl } from '@/services/imageThumb';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import WysiwygEditor from '@/components/WysiwygEditor.vue';
@@ -182,6 +183,25 @@ const handleVolver = () => {
 const handleGuardar = async () => {
   await store.guardarCotizacion();
   isDirty.value = false;
+};
+
+// URL de la vista pax (guía del cliente) de esta misma cotización/tour, para
+// abrirla en una pestaña sin salir hasta el catálogo. En modo catálogo usa la
+// ruta /catalogo/...; si no, /file/... Requiere localizador + versión.
+const paxPreviewUrl = computed<string | null>(() => {
+  const loc = store.fileActual?.localizador;
+  const version = store.cotizacion?.version;
+  if (!loc || !version) return null;
+  const seg = store.modoCatalogo ? 'catalogo' : 'file';
+  return `${getUrls().pax}/${seg}/${loc}/v/${version}`;
+});
+
+const abrirVistaPax = async () => {
+  if (!paxPreviewUrl.value) return;
+  // Guarda antes para que la guía refleje los cambios (el snapshot cliente se
+  // regenera al guardar). Si hay cambios pendientes, guardamos primero.
+  if (isDirty.value) await handleGuardar();
+  window.open(paxPreviewUrl.value, '_blank', 'noopener');
 };
 
 // ============================================================================
@@ -869,6 +889,11 @@ store.$onAction(({ name, args }) => {
         </div>
         <button @click="nivelEditor = 'cabecera'" class="md:hidden px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold shadow-sm border border-slate-700 whitespace-nowrap">
           <i class="fas fa-chart-pie mr-1"></i> Resumen
+        </button>
+        <button v-if="paxPreviewUrl" @click="abrirVistaPax"
+                title="Abrir la vista del cliente (guía pax) en otra pestaña"
+                class="flex items-center gap-2 px-3 md:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold border border-slate-700 transition-colors whitespace-nowrap">
+          <i class="fas fa-eye"></i> <span class="hidden md:inline">Vista Cliente</span>
         </button>
         <button @click="handleGuardar"
                 class="flex items-center gap-2 px-4 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors">

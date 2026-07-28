@@ -715,61 +715,86 @@ const adelantoVista = computed(() => {
                  (precio por pasajero + opciones alternativas). Se muestra si hay precio
                  O si hay alternativas -- si el precio está oculto, cambia a un botón sin
                  montos, para que el panel de alternativas siga siendo alcanzable. -->
-            <div v-if="(store.precioVisible && totalViaje) || gruposUpgrade.length" class="flex flex-col items-end gap-2 shrink-0">
+            <div v-if="(store.precioVisible && totalViaje) || gruposUpgrade.length" class="flex flex-col items-end gap-2.5 shrink-0">
+
+              <!-- BOTÓN PRINCIPAL FINANCIERO -->
               <button
                   @click="finanzasAbiertas = !finanzasAbiertas"
-                  class="bg-white hover:bg-white rounded-2xl px-4 py-2.5 text-right transition-all shadow-lg shadow-black/20 border-2"
-                  :class="finanzasAbiertas ? 'border-[#376875]/30 ring-4 ring-[#376875]/10' : 'border-white'"
+                  class="group relative text-right transition-all duration-300 ease-out focus:outline-none min-w-55 sm:min-w-65"
               >
-                <template v-if="store.precioVisible && totalViaje">
-                  <span class="text-[8px] font-black text-[#376875]/50 uppercase tracking-widest flex items-center justify-end gap-1.5">
-                    <i class="fas fa-user-tag text-[#E07845]"></i>
-                    <template v-if="claseDominante">{{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}</template>
-                    <template v-else>{{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}</template>
+                <!-- Fondo Soft Card con hover/active states -->
+                <span
+                    class="absolute inset-0 bg-linear-to-br from-white to-slate-50/95 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border transition-all duration-300 group-hover:shadow-[0_12px_40px_rgb(55,104,117,0.15)] group-hover:border-white"
+                    :class="finanzasAbiertas ? 'border-[#376875]/20 ring-4 ring-[#376875]/10 scale-[0.98]' : 'border-white/60'"
+                ></span>
+
+                <!-- Contenido -->
+                <span class="relative z-10 px-5 pt-4 pb-3.5 flex flex-col gap-1.5">
+
+                  <!-- ESTADO 1: Hay precio visible -->
+                  <template v-if="store.precioVisible && totalViaje">
+
+                    <!-- Etiqueta superior -->
+                    <div class="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                      <i class="fas fa-user-tag text-[#E07845] opacity-90 text-[10px]"></i>
+                      <template v-if="claseDominante">{{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}</template>
+                      <template v-else>{{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}</template>
+                    </div>
+
+                    <!-- Precio principal -->
+                    <div class="text-2xl md:text-3xl font-extrabold tabular-nums tracking-tight leading-none text-[#376875] flex items-center justify-end gap-2 drop-shadow-sm">
+                      <template v-if="claseDominante">
+                        {{ mv(claseDominante.resumenPorModo.normal.ventaSoles, claseDominante.resumenPorModo.normal.ventaDolares) }}
+                      </template>
+                      <template v-else>{{ mv(totalViaje.soles, totalViaje.dolares) }}</template>
+                    </div>
+
+                    <!-- Total del viaje (Separado por línea fina) -->
+                    <div v-if="claseDominante && !ocultarTotales" class="mt-2 pt-2 border-t border-slate-200/60 flex justify-end">
+                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider tabular-nums flex items-center gap-1.5">
+                        {{ maestroStore.t('cot_precio_total') || 'Total del viaje' }}:
+                        <span class="text-slate-600 font-extrabold text-[11px]">{{ mv(totalViaje.soles, totalViaje.dolares) }}</span>
+                      </span>
+                    </div>
+                  </template>
+
+                  <!-- ESTADO 2: Solo Opciones Alternativas -->
+                  <template v-else>
+                    <div class="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">
+                      <i class="fas fa-shuffle text-[#E07845] opacity-90"></i>
+                      {{ maestroStore.t('cot_opciones_alternativas') || 'Opciones alternativas' }}
+                    </div>
+                    <div class="text-base font-extrabold text-[#376875] tracking-tight flex items-center justify-end gap-2">
+                      {{ maestroStore.t('cot_ver_opciones') || 'Ver opciones' }}
+                    </div>
+                  </template>
+
+                  <!-- Píldora de acción inferior (CTA) - Ahora con min-w y centrado absoluto -->
+                  <span class="mt-1 flex justify-end">
+                    <span class="inline-flex justify-center items-center gap-1.5 bg-slate-100/50 rounded-full px-3 py-1 border border-slate-200/60 transition-colors group-hover:bg-[#E07845]/10 group-hover:border-[#E07845]/20 min-w-27.5">
+                      <i class="fas fa-hand-pointer text-[8px] text-[#E07845]"></i>
+                      <span class="text-[8px] font-bold text-[#E07845] uppercase tracking-widest text-center">
+                        {{ finanzasAbiertas ? (maestroStore.t('cot_ocultar_detalle') || 'Ocultar') : (maestroStore.t('cot_ver_detalle') || 'Ver detalle') }}
+                      </span>
+                      <i class="fas fa-chevron-down text-[9px] text-[#E07845] transition-transform duration-300"
+                         :class="finanzasAbiertas ? 'rotate-180' : 'group-hover:translate-y-0.5'"></i>
+                    </span>
                   </span>
-                  <span class="text-lg md:text-2xl font-black tabular-nums leading-tight flex items-center justify-end gap-2 text-[#376875]">
-                    <template v-if="claseDominante">
-                      {{ mv(claseDominante.resumenPorModo.normal.ventaSoles, claseDominante.resumenPorModo.normal.ventaDolares) }}
-                    </template>
-                    <template v-else>{{ mv(totalViaje.soles, totalViaje.dolares) }}</template>
-                    <i
-                        class="fas fa-chevron-down text-xs text-[#E07845] transition-transform"
-                        :class="finanzasAbiertas ? 'rotate-180' : 'arrow-pulse-blur'"
-                    ></i>
-                  </span>
-                  <span v-if="claseDominante && !ocultarTotales" class="block text-[10px] font-black text-[#376875]/60 uppercase tracking-widest tabular-nums mt-1">
-                    {{ maestroStore.t('cot_precio_total') || 'Total del viaje' }}: {{ mv(totalViaje.soles, totalViaje.dolares) }}
-                  </span>
-                </template>
-                <template v-else>
-                  <span class="text-[8px] font-black text-[#376875]/50 uppercase tracking-widest flex items-center justify-end gap-1.5">
-                    <i class="fas fa-shuffle text-[#E07845]"></i>
-                    {{ maestroStore.t('cot_opciones_alternativas') || 'Opciones alternativas' }}
-                  </span>
-                  <span class="text-sm font-black text-[#376875] flex items-center justify-end gap-2 mt-1">
-                    {{ maestroStore.t('cot_ver_opciones') || 'Ver opciones' }}
-                    <i
-                        class="fas fa-chevron-down text-xs text-[#E07845] transition-transform"
-                        :class="finanzasAbiertas ? 'rotate-180' : 'arrow-pulse-blur'"
-                    ></i>
-                  </span>
-                </template>
-                <span class="block text-[9px] font-black text-[#E07845] uppercase tracking-wider mt-1.5 flex items-center justify-end gap-1">
-                  <i class="fas fa-hand-pointer"></i>
-                  {{ finanzasAbiertas ? (maestroStore.t('cot_ocultar_detalle') || 'Toca para ocultar') : (maestroStore.t('cot_ver_detalle') || 'Toca para ver detalle') }}
+
                 </span>
               </button>
-              <!-- Selector de moneda justo debajo del precio -->
-              <div v-if="store.precioVisible" class="flex items-center bg-white/10 border border-white/20 rounded-xl p-0.5 gap-0.5">
+
+              <!-- SELECTOR DE MONEDA (Efecto cristal) -->
+              <div v-if="store.precioVisible" class="flex items-center bg-white/15 backdrop-blur-md border border-white/30 rounded-xl p-0.5 gap-0.5 shadow-[0_4px_12px_rgb(0,0,0,0.05)]">
                 <button
                     @click="monedaVista = 'PEN'"
-                    :class="monedaVista === 'PEN' ? 'bg-white text-[#376875] shadow' : 'text-white/60 hover:text-white'"
-                    class="px-3 py-1 rounded-lg text-[10px] font-black tracking-widest transition-all"
+                    :class="monedaVista === 'PEN' ? 'bg-white text-[#376875] shadow-sm font-extrabold' : 'text-white/80 hover:text-white font-bold'"
+                    class="px-3.5 py-1.5 rounded-[10px] text-[10px] tracking-widest transition-all"
                 >S/</button>
                 <button
                     @click="monedaVista = 'USD'"
-                    :class="monedaVista === 'USD' ? 'bg-white text-[#376875] shadow' : 'text-white/60 hover:text-white'"
-                    class="px-3 py-1 rounded-lg text-[10px] font-black tracking-widest transition-all"
+                    :class="monedaVista === 'USD' ? 'bg-white text-[#376875] shadow-sm font-extrabold' : 'text-white/80 hover:text-white font-bold'"
+                    class="px-3.5 py-1.5 rounded-[10px] text-[10px] tracking-widest transition-all"
                 >$</button>
               </div>
             </div>
