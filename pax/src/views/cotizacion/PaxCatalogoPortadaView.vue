@@ -30,6 +30,12 @@ const verTour = (version: number) => {
   router.push(`/catalogo/${store.portadaCatalogo?.localizador}/v/${version}`);
 };
 
+// Idioma manual pisa al idiomaCliente del catálogo (mismo criterio que la guía).
+const cambiarIdioma = (event: Event) => {
+  maestroStore.setIdioma((event.target as HTMLSelectElement).value);
+  localStorage.setItem('paxIdiomaManual', '1');
+};
+
 const formatMonto = (valor: string): string => {
   const n = Number(valor);
   return Number.isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : valor;
@@ -60,14 +66,31 @@ const rangoPrincipal = (tour: PaxTourResumen) => tour.preciosDesde?.[0] ?? null;
       <header class="bg-[#376875] text-white relative overflow-hidden">
         <i class="fas fa-mountain absolute -right-8 -bottom-10 text-[10rem] opacity-10"></i>
         <div class="max-w-3xl mx-auto px-6 py-6 md:py-8 relative z-10">
-          <p class="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">
-            {{ maestroStore.t('cat_titulo_hero') || 'Catálogo de Experiencias' }}
-          </p>
-          <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-tight">{{ store.portadaCatalogo.nombre }}</h1>
-          <p class="text-white/70 text-sm font-medium mt-2">
-            {{ store.tours.length }} {{ store.tours.length === 1 ? (maestroStore.t('cat_tour') || 'experiencia') : (maestroStore.t('cat_tours') || 'experiencias') }}
-            · {{ maestroStore.t('cat_ref') || 'Ref' }}: {{ store.portadaCatalogo.localizador }}
-          </p>
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">
+                {{ maestroStore.t('cat_titulo_hero') || 'Catálogo de Experiencias' }}
+              </p>
+              <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-tight">{{ store.portadaCatalogo.nombre }}</h1>
+              <p class="text-white/70 text-sm font-medium mt-2">
+                {{ store.tours.length }} {{ store.tours.length === 1 ? (maestroStore.t('cat_tour') || 'experiencia') : (maestroStore.t('cat_tours') || 'experiencias') }}
+                · {{ maestroStore.t('cat_ref') || 'Ref' }}: {{ store.portadaCatalogo.localizador }}
+              </p>
+            </div>
+
+            <div v-if="maestroStore.idiomas.length > 1" class="relative shrink-0">
+              <select
+                  :value="maestroStore.idiomaActual"
+                  @change="cambiarIdioma"
+                  class="appearance-none bg-white/10 border border-white/20 font-black text-[10px] uppercase tracking-widest rounded-xl pl-3 pr-7 py-1.5 focus:outline-none cursor-pointer text-white hover:bg-white/20 transition-colors"
+              >
+                <option v-for="lang in maestroStore.idiomas" :key="lang.id" :value="lang.id" class="text-gray-800">
+                  {{ lang.bandera }} {{ lang.id.toUpperCase() }}
+                </option>
+              </select>
+              <i class="fas fa-chevron-down text-[8px] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/70"></i>
+            </div>
+          </div>
         </div>
       </header>
 

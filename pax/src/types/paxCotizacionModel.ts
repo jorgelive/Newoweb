@@ -116,6 +116,9 @@ export interface PaxCotComponente {
     cotsegmento?: PaxCotSegmento | null;
     cottarifas: PaxCottarifa[];
     detallesParaCliente: PaxDetalleCliente[];
+    /** Su hora representa el horario de toda la excursión (servicio completo), no
+     *  la del segmento donde está anclado. Ver CotizacionCotcomponente. */
+    horaServicioCompleto?: boolean;
 }
 
 // --- Servicio -----------------------------------------------------------------

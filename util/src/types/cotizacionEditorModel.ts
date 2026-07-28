@@ -386,6 +386,8 @@ export type ComponenteCompleto = Omit<CotComponenteBase,
     duracion?: string | number;
     cotsegmentoId?: string | null;
     upsellSourceItemId?: string;
+    /** La hora del componente representa el horario de toda la excursión (servicio completo). */
+    horaServicioCompleto?: boolean;
 };
 
 export type SegmentoComponenteProcesado = components['schemas']['TravelSegmentoComponente-segmento.item.read'] & {

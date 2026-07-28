@@ -105,6 +105,21 @@ class TravelSegmentoComponente
     #[ORM\Column(type: 'integer')]
     private int $orden = 1;
 
+    /**
+     * Promueve la hora de este componente al nivel de "servicio completo": su
+     * horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+     * itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+     * la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+     * horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+     * por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+     * globales en conflicto.
+     *
+     * @var bool
+     */
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $horaServicioCompleto = false;
+
     public function __construct()
     {
         $this->initializeId();
@@ -307,6 +322,17 @@ class TravelSegmentoComponente
     public function setOrden(int $orden): self
     {
         $this->orden = $orden;
+        return $this;
+    }
+
+    public function isHoraServicioCompleto(): bool
+    {
+        return $this->horaServicioCompleto;
+    }
+
+    public function setHoraServicioCompleto(bool $horaServicioCompleto): self
+    {
+        $this->horaServicioCompleto = $horaServicioCompleto;
         return $this;
     }
 }

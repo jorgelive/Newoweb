@@ -63,6 +63,7 @@ export default class extends Controller {
         document.getElementById('tscTable').style.display = 'none';
         document.getElementById('tscTbody').innerHTML = '';
         document.getElementById('tscTbodyGeneral').innerHTML = '';
+        document.getElementById('tscPromoNote').innerHTML = '';
 
         modal.show();
 
@@ -71,6 +72,14 @@ export default class extends Controller {
             if (!res.ok) throw new Error('Error en la respuesta del servidor');
             const json = await res.json();
             this.catalogo = json.catalogo;
+
+            if (json.promovidoEnOtroSegmento) {
+                document.getElementById('tscPromoNote').innerHTML = `
+                    <div class="alert alert-warning border small d-flex align-items-start gap-2 py-2 px-3 mb-3">
+                        <i class="fas fa-triangle-exclamation mt-1"></i>
+                        <span>Ya hay una hora de <b>servicio completo</b> promovida en otro segmento de esta plantilla. Si marcas una aquí, aquella se desactivará automáticamente.</span>
+                    </div>`;
+            }
 
             if (json.dataGeneral && json.dataGeneral.length > 0) {
                 document.getElementById('tscTableGeneral').style.display = 'table';
@@ -158,6 +167,9 @@ export default class extends Controller {
             <td class="p-1">
                 <input type="number" class="form-control form-control-sm comp-ord text-center shadow-none w-100" value="${data.orden || 1}">
             </td>
+            <td class="p-1 text-center align-middle">
+                <input type="checkbox" class="form-check-input comp-servcompleto" ${data.servicioCompleto ? 'checked' : ''} title="Su hora es la de toda la excursión (servicio completo)">
+            </td>
             <td class="p-1 text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('tr').remove()" title="Eliminar fila">
                     <i class="fas fa-trash"></i>
@@ -165,6 +177,19 @@ export default class extends Controller {
             </td>
         `;
         tbody.appendChild(tr);
+
+        // Único por plantilla: al marcar "Servicio Completo" en una fila se
+        // desmarca en las demás (el backend igual lo garantiza al guardar).
+        const chkServ = tr.querySelector('.comp-servcompleto');
+        if (chkServ) {
+            chkServ.addEventListener('change', () => {
+                if (chkServ.checked) {
+                    document.querySelectorAll('.comp-servcompleto').forEach(other => {
+                        if (other !== chkServ) other.checked = false;
+                    });
+                }
+            });
+        }
 
         // 🔥 INICIALIZACIÓN DE TOM-SELECT
         const selectElement = tr.querySelector('.tom-select-target');
@@ -229,7 +254,8 @@ export default class extends Controller {
                     hora: tr.querySelector('.comp-ini').value,
                     horaFin: tr.querySelector('.comp-fin').value,
                     modo: tr.querySelector('.comp-modo').value,
-                    orden: tr.querySelector('.comp-ord').value || 1
+                    orden: tr.querySelector('.comp-ord').value || 1,
+                    servicioCompleto: tr.querySelector('.comp-servcompleto')?.checked || false
                 });
             }
         });
@@ -276,6 +302,12 @@ export default class extends Controller {
                                 <i class="fas fa-circle-notch fa-spin text-warning fs-1"></i>
                                 <p class="mt-2 text-muted fw-bold text-uppercase" style="font-size: 11px;">Sincronizando datos...</p>
                             </div>
+
+                            <div id="tscPromoNote"></div>
+                            <div class="alert alert-light border small text-muted d-flex align-items-start gap-2 py-2 px-3 mb-3">
+                                <i class="fas fa-globe text-primary mt-1"></i>
+                                <span><b>Servicio completo:</b> marca un insumo cuya hora represente el horario de <b>toda la excursión</b> (no solo la de este párrafo). Solo puede haber uno por plantilla; al marcar aquí se desmarca en otros segmentos.</span>
+                            </div>
                             
                             <div class="table-responsive mb-3 pb-5">
                                 <table class="table table-sm table-bordered bg-white shadow-sm mb-3" id="tscTableGeneral" style="display:none;">
@@ -304,6 +336,9 @@ export default class extends Controller {
                                             <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 80px;">Fin</th>
                                             <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 100px;">Modo</th>
                                             <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 50px;">Ord</th>
+                                            <th class="text-uppercase text-muted text-center align-middle" style="font-size: 11px; width: 90px;" title="Su hora representa el horario de toda la excursión (servicio completo). Solo uno por plantilla.">
+                                                <i class="fas fa-globe me-1 text-primary"></i> Servicio
+                                            </th>
                                             <th style="width: 45px;"></th>
                                         </tr>
                                     </thead>

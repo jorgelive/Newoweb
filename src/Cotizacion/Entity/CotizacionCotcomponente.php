@@ -101,6 +101,17 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $sinHorario = false;
 
+    /**
+     * La hora de este componente representa el horario global de toda la
+     * excursión (servicio/itinerario), no la del segmento donde está anclado.
+     * Propagado desde TravelSegmentoComponente::$horaServicioCompleto. La guía
+     * del cliente lo muestra como horario de la experiencia completa en vez de
+     * estirar el bloque del segmento al que pertenece.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $horaServicioCompleto = false;
+
     public function __construct()
     {
         $this->initializeId();
@@ -392,4 +403,8 @@ class CotizacionCotcomponente
     public function setTipo(?string $tipo): self { $this->tipo = $tipo; return $this; }
 
     public function isSinHorario(): bool { return $this->sinHorario; }
-    public function setSinHorario(bool $sinHorario): self { $this->sinHorario = $sinHorario; return $this; }}
+    public function setSinHorario(bool $sinHorario): self { $this->sinHorario = $sinHorario; return $this; }
+
+    public function isHoraServicioCompleto(): bool { return $this->horaServicioCompleto; }
+    public function setHoraServicioCompleto(bool $horaServicioCompleto): self { $this->horaServicioCompleto = $horaServicioCompleto; return $this; }
+}

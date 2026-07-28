@@ -2881,6 +2881,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                     tipo: tipoComp,
                     sinHorario,
+                    // Propaga la promoción de la plantilla Travel: la hora de este
+                    // componente representa el horario de toda la excursión.
+                    horaServicioCompleto: !!(segComp as any).horaServicioCompleto,
                     cantidad: calcularPernoctes(fHoraInicio, fHoraFin),
                     estado: 'pendiente',
                     modo: segComp.modo || 'incluido',

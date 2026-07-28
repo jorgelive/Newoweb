@@ -180,6 +180,11 @@ interface BloqueVista {
   componentes: any[];
   horaInicio: string | null;       // derivada del primer componente con hora
   horaFin: string | null;          // derivada del último componente con hora
+  // Horario global de la excursión (componente promovido a "servicio completo").
+  // Se adjunta al 1er bloque del servicio en el día; representa el span de toda
+  // la experiencia, no el del segmento donde el componente está anclado.
+  horaServicioInicio: string | null;
+  horaServicioFin: string | null;
   esEstadia: boolean;              // alojamiento / periodo multi-día sin horas
   esRepeticion: boolean;           // repetición de la estadía en días siguientes
   noche: number;                   // 1..totalNoches (solo estadías)
@@ -211,8 +216,10 @@ const itinerarioVista = computed<DiaVista[]>(() => {
     for (const segmento of segs) {
       const comps = (servicio.cotcomponentes ?? []).filter((c: any) => c.cotsegmento?.id === segmento.id);
 
-      // Hora dinámica del segmento: min inicio / max fin de componentes con hora real
-      const conHora = comps.filter((c: any) => compConHora(c));
+      // Hora dinámica del segmento: min inicio / max fin de componentes con hora real.
+      // Se excluyen los componentes promovidos a "servicio completo": su hora no
+      // pertenece a este segmento sino a toda la excursión (se muestra aparte).
+      const conHora = comps.filter((c: any) => compConHora(c) && !c.horaServicioCompleto);
       const inicios = conHora.map((c: any) => c.fechaHoraInicio).filter(Boolean) as string[];
       const fines   = conHora.map((c: any) => c.fechaHoraFin).filter(Boolean) as string[];
       const horaInicio = inicios.length ? hhmm(inicios.sort()[0]) : null;
@@ -238,6 +245,7 @@ const itinerarioVista = computed<DiaVista[]>(() => {
           key: `${segmento.id}-${fecha}`,
           servicio, segmento, componentes: comps,
           horaInicio, horaFin,
+          horaServicioInicio: null, horaServicioFin: null,
           esEstadia, esRepeticion: rep > 0,
           noche: rep + 1, totalNoches,
           totalSegmentosServicio: segs.length,
@@ -289,11 +297,36 @@ const itinerarioVista = computed<DiaVista[]>(() => {
       ordenados.push(...g);
     }
 
-    // Título grande en el 1er segmento (por día) de servicios multi-segmento
+    // Horario global de la excursión: por cada servicio del día, la hora de su
+    // componente promovido a "servicio completo" (si existe). Se muestra como el
+    // horario de toda la experiencia en vez de estirar el segmento donde se ancla.
+    const promoPorServicio = new Map<string, { inicio: string; fin: string | null }>();
+    for (const b of ordenados) {
+      if (promoPorServicio.has(b.servicio.id)) continue;
+      for (const c of b.componentes) {
+        if (!c?.horaServicioCompleto) continue;
+        const pi = hhmm(c.fechaHoraInicio);
+        if (!pi || pi === '00:00') continue;
+        const pf = hhmm(c.fechaHoraFin);
+        promoPorServicio.set(b.servicio.id, { inicio: pi, fin: (pf && pf !== '00:00' && pf !== pi) ? pf : null });
+        break;
+      }
+    }
+
+    // Título grande en el 1er segmento (por día) de servicios multi-segmento;
+    // y adjuntamos el horario global al primer bloque de cada servicio en el día.
     const vistos = new Set<string>();
+    const vistosPromo = new Set<string>();
     for (const b of ordenados) {
       b.mostrarTituloServicio = b.totalSegmentosServicio > 1 && !vistos.has(b.servicio.id);
       vistos.add(b.servicio.id);
+
+      const promo = promoPorServicio.get(b.servicio.id);
+      if (promo && !vistosPromo.has(b.servicio.id)) {
+        b.horaServicioInicio = promo.inicio;
+        b.horaServicioFin = promo.fin;
+        vistosPromo.add(b.servicio.id);
+      }
     }
 
     return { fecha, numeroDia: diffDays(fechaBase, fecha) + 1, bloques: ordenados };
@@ -603,6 +636,19 @@ const totalViaje = computed(() => {
  *  total" y el "precio total del viaje". El precio unitario sí se sigue viendo. */
 const ocultarTotales = computed(() => store.cotizacion?.totalesOcultos === true);
 
+/** Etiqueta "N día(s)" con singular/plural correcto ("1 día", no "1 días"). */
+const diasLabel = computed(() => {
+  const n = totalDiasViaje.value;
+  const palabra = n === 1 ? (maestroStore.t('cot_dia') || 'día') : (maestroStore.t('cot_dias') || 'días');
+  return `${n} ${palabra}`;
+});
+/** Etiqueta "N pasajero(s)" con singular/plural correcto. */
+const paxLabel = computed(() => {
+  const n = store.cotizacion?.numPax ?? 0;
+  const palabra = n === 1 ? (maestroStore.t('cot_pasajero') || 'pasajero') : (maestroStore.t('cot_pasajeros') || 'pasajeros');
+  return `${n} ${palabra}`;
+});
+
 /** Rango con más pasajeros: su venta por pax es el precio que se destaca en el
  *  encabezado (más representativo que el total, que se ve grande). */
 const claseDominante = computed(() =>
@@ -706,7 +752,7 @@ const adelantoVista = computed(() => {
                 {{ store.traducir(store.cotizacion?.titulo) || maestroStore.t('cot_tu_itinerario') || 'Tu itinerario' }}
               </h1>
               <p class="text-white/70 text-xs font-bold mt-1 uppercase tracking-widest">
-                {{ totalDiasViaje }} {{ maestroStore.t('cot_dias') || 'días' }}
+                {{ diasLabel }}
                 <template v-if="!ocultarTotales">· {{ store.cotizacion.numPax }} {{ maestroStore.t('cot_pax') || 'pax' }}</template>
               </p>
             </div>
@@ -975,8 +1021,7 @@ const adelantoVista = computed(() => {
           <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3"
                :class="store.precioVisible && totalViaje ? 'justify-between' : 'justify-end'">
             <p v-if="store.precioVisible && totalViaje" class="text-emerald-700/70 text-[11px] font-bold">
-              {{ store.cotizacion.numPax }} {{ maestroStore.t('cot_pasajeros') || 'pasajeros' }}
-              · {{ totalDiasViaje }} {{ maestroStore.t('cot_dias') || 'días' }}
+              <template v-if="!ocultarTotales">{{ paxLabel }} · </template>{{ diasLabel }}
             </p>
             <div class="flex items-center gap-3">
               <div
@@ -1079,6 +1124,21 @@ const adelantoVista = computed(() => {
               <i class="fas fa-route text-[#E07845] text-sm mt-2 shrink-0"></i>
               <span>{{ store.traducir(item.servicio.nombrePublicoSnapshot) }}</span>
             </h3>
+
+            <!-- Horario global de la excursión (componente promovido a "servicio
+                 completo"): abarca toda la experiencia, no un segmento puntual. -->
+            <div
+                v-if="item.horaServicioInicio && !item.esRepeticion"
+                class="mb-3 -mt-1 flex items-center gap-2"
+            >
+              <span class="inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30">
+                <i class="far fa-clock"></i>
+                {{ item.horaServicioInicio }}<template v-if="item.horaServicioFin"> – {{ item.horaServicioFin }}</template>
+              </span>
+              <span class="text-[10px] font-black text-[#376875]/50 uppercase tracking-widest">
+                {{ maestroStore.t('cot_horario_excursion') || 'Horario de la excursión' }}
+              </span>
+            </div>
 
             <!-- Fila de acción: botón que abre el modal con las inclusiones del servicio completo.
                  Va entre el <h3> (multi-segmento) y la card, o encima de la card (single) → simetría. -->

@@ -61,14 +61,23 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
         // 🔥 Se mapea el día a la vista
         $dataEspecifica = array_map(fn($l) => [
-            'componenteId' => $l->getComponente()->getId()->toRfc4122(),
-            'tarifaId'     => $l->getTarifaPredeterminada() ? $l->getTarifaPredeterminada()->getId()->toRfc4122() : null,
-            'dia'          => $l->getDia(), // <-- Inyectamos el filtro de día relativo
-            'hora'         => $l->getHora() ? $l->getHora()->format('H:i') : '',
-            'horaFin'      => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '',
-            'modo'         => $l->getModo()->value,
-            'orden'        => $l->getOrden()
+            'componenteId'     => $l->getComponente()->getId()->toRfc4122(),
+            'tarifaId'         => $l->getTarifaPredeterminada() ? $l->getTarifaPredeterminada()->getId()->toRfc4122() : null,
+            'dia'              => $l->getDia(), // <-- Inyectamos el filtro de día relativo
+            'hora'             => $l->getHora() ? $l->getHora()->format('H:i') : '',
+            'horaFin'          => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '',
+            'modo'             => $l->getModo()->value,
+            'orden'            => $l->getOrden(),
+            'servicioCompleto' => $l->isHoraServicioCompleto(),
         ], $logisticaEspecifica);
+
+        // Aviso a la vista: ¿ya hay una hora promovida en OTRO segmento de esta
+        // misma plantilla? Sirve para que el modal explique por qué al promover
+        // aquí se desactivará la otra (garantía de único por itinerario).
+        $promovidoEnOtroSegmento = (bool) $this->em->getRepository(TravelSegmentoComponente::class)->count([
+            'itinerarioContexto'  => $itinerarioId,
+            'horaServicioCompleto' => true,
+        ]) && !array_filter($dataEspecifica, static fn($r) => $r['servicioCompleto']);
 
         // 3. Data de la logística GENERAL del pool (Solo lectura, itinerarioContexto = null)
         $logisticaGeneral = $this->em->getRepository(TravelSegmentoComponente::class)->findBy([
@@ -88,10 +97,11 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
         ], $logisticaGeneral);
 
         return $this->json([
-            'catalogo'    => $cat,
-            'data'        => $dataEspecifica,
-            'dataGeneral' => $dataGeneral,
-            'contexto'    => ['itinerario' => $itinerarioId, 'segmento' => $segmentoId]
+            'catalogo'                => $cat,
+            'data'                    => $dataEspecifica,
+            'dataGeneral'             => $dataGeneral,
+            'promovidoEnOtroSegmento' => $promovidoEnOtroSegmento,
+            'contexto'                => ['itinerario' => $itinerarioId, 'segmento' => $segmentoId]
         ]);
     }
 
@@ -122,6 +132,10 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
             $this->em->remove($e);
         }
         $this->em->flush();
+
+        // Único por itinerario: a lo sumo UNA fila del payload queda promovida a
+        // "servicio completo" (si el usuario marcó varias, gana la primera).
+        $yaPromovioUno = false;
 
         // 2. Insertar nueva operativa específica
         foreach ($payload as $row) {
@@ -155,7 +169,29 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
             if (!empty($row['hora'])) $nuevaLog->setHora(new \DateTimeImmutable($row['hora']));
             if (!empty($row['horaFin'])) $nuevaLog->setHoraFin(new \DateTimeImmutable($row['horaFin']));
 
+            if (!empty($row['servicioCompleto']) && !$yaPromovioUno) {
+                $nuevaLog->setHoraServicioCompleto(true);
+                $yaPromovioUno = true;
+            }
+
             $this->em->persist($nuevaLog);
+        }
+
+        // Si en este guardado se promovió una hora, se retira la promoción de
+        // cualquier otra fila de la MISMA plantilla (otros segmentos): garantiza
+        // que sólo haya una hora de "servicio completo" por itinerario.
+        if ($yaPromovioUno) {
+            $otrasPromovidas = $this->em->getRepository(TravelSegmentoComponente::class)->createQueryBuilder('sc')
+                ->where('sc.itinerarioContexto = :itin')
+                ->andWhere('sc.horaServicioCompleto = true')
+                ->andWhere('sc.segmento != :seg')
+                ->setParameter('itin', $itinerario)
+                ->setParameter('seg', $segmento)
+                ->getQuery()->getResult();
+
+            foreach ($otrasPromovidas as $otra) {
+                $otra->setHoraServicioCompleto(false);
+            }
         }
 
         $this->em->flush();

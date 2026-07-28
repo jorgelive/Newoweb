@@ -10,6 +10,7 @@ use App\Travel\Entity\TravelSegmentoComponente;
 use App\Travel\Enum\ComponenteModoEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TimeField;
@@ -120,5 +121,16 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
                 ],
             ])
             ->hideOnIndex();
+
+        /* ====================================================================
+         * FILA 4: HORA DE SERVICIO COMPLETO
+         * La hora de este componente representa el horario de toda la excursión
+         * (servicio/itinerario), no solo la del segmento donde se ancla. Debe
+         * haber a lo sumo uno promovido por plantilla (itinerarioContexto).
+         * ==================================================================== */
+        yield BooleanField::new('horaServicioCompleto', 'Hora de Servicio Completo')
+            ->setHelp('Su hora representa el horario de toda la excursión, no solo la de este párrafo. Solo debe haber uno por plantilla.')
+            ->setColumns('col-12')
+            ->renderAsSwitch(true);
     }
 }
