@@ -63,7 +63,6 @@ export default class extends Controller {
         document.getElementById('tscTable').style.display = 'none';
         document.getElementById('tscTbody').innerHTML = '';
         document.getElementById('tscTbodyGeneral').innerHTML = '';
-        document.getElementById('tscPromoNote').innerHTML = '';
 
         modal.show();
 
@@ -72,14 +71,6 @@ export default class extends Controller {
             if (!res.ok) throw new Error('Error en la respuesta del servidor');
             const json = await res.json();
             this.catalogo = json.catalogo;
-
-            if (json.promovidoEnOtroSegmento) {
-                document.getElementById('tscPromoNote').innerHTML = `
-                    <div class="alert alert-warning border small d-flex align-items-start gap-2 py-2 px-3 mb-3">
-                        <i class="fas fa-triangle-exclamation mt-1"></i>
-                        <span>Ya hay una hora de <b>servicio completo</b> promovida en otro segmento de esta plantilla. Si marcas una aquí, aquella se desactivará automáticamente.</span>
-                    </div>`;
-            }
 
             if (json.dataGeneral && json.dataGeneral.length > 0) {
                 document.getElementById('tscTableGeneral').style.display = 'table';
@@ -178,16 +169,23 @@ export default class extends Controller {
         `;
         tbody.appendChild(tr);
 
-        // Único por plantilla: al marcar "Servicio Completo" en una fila se
-        // desmarca en las demás (el backend igual lo garantiza al guardar).
+        // Único por DÍA: al marcar "Servicio Completo" en una fila se desmarca en
+        // las demás filas del MISMO día (el listener de Doctrine igual lo
+        // garantiza al guardar, en cualquier vía). Distintos días pueden tener
+        // cada uno su propia hora promovida.
         const chkServ = tr.querySelector('.comp-servcompleto');
         if (chkServ) {
             chkServ.addEventListener('change', () => {
-                if (chkServ.checked) {
-                    document.querySelectorAll('.comp-servcompleto').forEach(other => {
-                        if (other !== chkServ) other.checked = false;
-                    });
-                }
+                if (!chkServ.checked) return;
+                const diaActual = (tr.querySelector('.comp-dia')?.value || '').trim();
+                document.querySelectorAll('.tsc-row').forEach(otherTr => {
+                    if (otherTr === tr) return;
+                    const otherChk = otherTr.querySelector('.comp-servcompleto');
+                    const otherDia = (otherTr.querySelector('.comp-dia')?.value || '').trim();
+                    if (otherChk && otherChk.checked && otherDia === diaActual) {
+                        otherChk.checked = false;
+                    }
+                });
             });
         }
 
@@ -303,10 +301,9 @@ export default class extends Controller {
                                 <p class="mt-2 text-muted fw-bold text-uppercase" style="font-size: 11px;">Sincronizando datos...</p>
                             </div>
 
-                            <div id="tscPromoNote"></div>
                             <div class="alert alert-light border small text-muted d-flex align-items-start gap-2 py-2 px-3 mb-3">
                                 <i class="fas fa-globe text-primary mt-1"></i>
-                                <span><b>Servicio completo:</b> marca un insumo cuya hora represente el horario de <b>toda la excursión</b> (no solo la de este párrafo). Solo puede haber uno por plantilla; al marcar aquí se desmarca en otros segmentos.</span>
+                                <span><b>Servicio completo:</b> marca un insumo cuya hora represente el horario de <b>toda la excursión</b> (no solo la de este párrafo). Puede haber uno por <b>cada día</b>; al marcar aquí se desmarca cualquier otro del mismo día.</span>
                             </div>
                             
                             <div class="table-responsive mb-3 pb-5">

@@ -60,6 +60,8 @@ export type CotServicio = Omit<
 > & {
     nombreSnapshot: I18nContent[];
     itinerarioNombreSnapshot: I18nContent[];
+    /** Id del maestro TravelItinerario desde el que se armó el servicio (re-sync exacto de flags). */
+    itinerarioMaestroId?: string | null;
     nombrePublicoSnapshot: I18nContent[];
     cotcomponentes?: ComponenteCompleto[];
     cotsegmentos?: CotSegmento[];

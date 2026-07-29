@@ -49,6 +49,17 @@ class CotizacionCotservicio
     #[ORM\Column(type: 'json')]
     private array $itinerarioNombreSnapshot = [];
 
+    /**
+     * Id del maestro TravelItinerario (plantilla) desde el que se armó este
+     * servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+     * filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+     * "hora de servicio completo", única por plantilla/día). Null si el servicio
+     * no proviene de una plantilla o es previo a este campo.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $itinerarioMaestroId = null;
+
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -149,6 +160,9 @@ class CotizacionCotservicio
 
     public function getItinerarioNombreSnapshot(): array { return $this->itinerarioNombreSnapshot; }
     public function setItinerarioNombreSnapshot(array $itinerarioNombreSnapshot): self { $this->itinerarioNombreSnapshot = $itinerarioNombreSnapshot; return $this; }
+
+    public function getItinerarioMaestroId(): ?string { return $this->itinerarioMaestroId; }
+    public function setItinerarioMaestroId(?string $itinerarioMaestroId): self { $this->itinerarioMaestroId = $itinerarioMaestroId; return $this; }
 
     public function getNombrePublicoSnapshot(): array { return $this->nombrePublicoSnapshot; }
     public function setNombrePublicoSnapshot(array $nombrePublicoSnapshot): self { $this->nombrePublicoSnapshot = $nombrePublicoSnapshot; return $this; }

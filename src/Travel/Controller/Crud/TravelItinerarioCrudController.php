@@ -185,17 +185,69 @@ class TravelItinerarioCrudController extends BaseCrudController
                 $html = '<ul style="max-height: 220px; overflow-y: auto; text-align: left; min-width: 280px; margin: 0; padding: 0 5px 0 0; list-style: none;">';
                 foreach ($iterator as $rel) {
                     $dia = $rel->getDia();
-                    $nombreSegmento = $rel->getSegmento() ? htmlspecialchars((string) $rel->getSegmento()->getNombreInterno()) : 'Segmento pendiente';
+                    $segmento = $rel->getSegmento();
+                    $nombreSegmento = $segmento ? htmlspecialchars((string) $segmento->getNombreInterno()) : 'Segmento pendiente';
+
+                    // Se itera la logística del segmento aplicable a ESTA plantilla y ESTE día
+                    // (contexto = esta plantilla o global; día = este día o global) para:
+                    //  - saber si aporta la hora de "servicio completo" (punto rojo)
+                    //  - derivar las horas efectivas del paso (mín. inicio / máx. fin)
+                    $promovido = false;
+                    $inicios = [];
+                    $fines = [];
+                    if ($segmento) {
+                        foreach ($segmento->getSegmentoComponentes() as $sc) {
+                            $ctx = $sc->getItinerarioContexto();
+                            $ctxOk = $ctx === null
+                                || ($ctx->getId() && $entity->getId() && (string) $ctx->getId() === (string) $entity->getId());
+                            $diaSc = $sc->getDia();
+                            $diaOk = $diaSc === null || $diaSc === $dia;
+                            if (!$ctxOk || !$diaOk) {
+                                continue;
+                            }
+                            if ($sc->isHoraServicioCompleto()) {
+                                $promovido = true;
+                            }
+                            if ($sc->getHora()) {
+                                $inicios[] = $sc->getHora()->format('H:i');
+                            }
+                            if ($sc->getHoraFin()) {
+                                $fines[] = $sc->getHoraFin()->format('H:i');
+                            }
+                        }
+                    }
+                    $dot = $promovido
+                        ? '<span class="d-inline-block rounded-circle me-2 flex-shrink-0" style="width:8px;height:8px;background:#ef4444;" title="Aporta la hora de servicio completo de este día"></span>'
+                        : '';
+
+                    // Horas efectivas del paso (si algún componente aplicable tiene hora).
+                    $horaTxt = '';
+                    if ($inicios) {
+                        sort($inicios);
+                        $ini = $inicios[0];
+                        $fin = '';
+                        if ($fines) {
+                            sort($fines);
+                            $fin = ' – ' . end($fines);
+                        }
+                        $horaTxt = sprintf(
+                            '<span class="text-muted ms-2 flex-shrink-0 text-nowrap" style="font-size: 0.85em;"><i class="far fa-clock"></i> %s%s</span>',
+                            $ini,
+                            $fin
+                        );
+                    }
 
                     // Implementación de Flexbox para alineación perfecta y text-white forzado para el contraste
                     $html .= sprintf(
                         '<li class="px-2 py-1 mb-1 bg-white border rounded small d-flex align-items-center" title="%s">
-                            <span class="badge bg-primary text-white me-2" style="font-size: 0.75rem; min-width: 48px; text-align: center;">Día %d</span> 
-                            <span class="text-dark fw-medium text-truncate">%s</span>
+                            %s<span class="badge bg-primary text-white me-2" style="font-size: 0.75rem; min-width: 48px; text-align: center;">Día %d</span>
+                            <span class="text-dark fw-medium text-truncate">%s</span>%s
                         </li>',
                         $nombreSegmento,
+                        $dot,
                         $dia,
-                        $nombreSegmento
+                        $nombreSegmento,
+                        $horaTxt
                     );
                 }
                 $html .= '</ul>';

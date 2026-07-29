@@ -13,6 +13,7 @@ use App\Travel\Entity\TravelItinerario;
 use App\Travel\Entity\TravelSegmento;
 use App\Travel\Entity\TravelSegmentoComponente;
 use App\Travel\Entity\TravelSegmentoImagen;
+use App\Travel\Enum\ComponenteModoEnum;
 use App\Security\Roles;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -249,11 +250,34 @@ class TravelSegmentoCrudController extends BaseCrudController
                 $html = '<div class="d-flex flex-column gap-1" style="font-size: 11px; min-width: 250px; max-height: 220px; overflow-y: auto; padding-right: 5px;">';
                 foreach ($coleccion as $sc) {
                     $compName = $sc->getComponente() ? htmlspecialchars((string) $sc->getComponente()) : 'N/A';
-                    $hora = $sc->getHora() ? $sc->getHora()->format('H:i') : 'Horario BD';
+
+                    // Rango horario: inicio – fin (o solo inicio, o "Horario BD" si no hay hora).
+                    $horaIni = $sc->getHora() ? $sc->getHora()->format('H:i') : null;
+                    $horaFin = $sc->getHoraFin() ? $sc->getHoraFin()->format('H:i') : null;
+                    $horaTxt = $horaIni ? ($horaFin ? ($horaIni . ' – ' . $horaFin) : $horaIni) : 'Horario BD';
+
+                    // Día del filtro (si aplica a un día concreto de la plantilla).
+                    $diaTxt = $sc->getDia() !== null
+                        ? sprintf(' <span class="badge bg-light text-dark border" style="font-size:0.85em;"><i class="fas fa-calendar-day text-muted"></i> Día %d</span>', $sc->getDia())
+                        : '';
+
+                    // Ícono pequeño del modo comercial (no crece la fila).
+                    [$modoIcon, $modoColor] = match ($sc->getModo()) {
+                        ComponenteModoEnum::INCLUIDO => ['fa-circle-check', 'text-success'],
+                        ComponenteModoEnum::NO_INCLUIDO => ['fa-circle-xmark', 'text-danger'],
+                        ComponenteModoEnum::CORTESIA => ['fa-gift', 'text-info'],
+                        ComponenteModoEnum::REEMPLAZADO => ['fa-arrows-rotate', 'text-warning'],
+                    };
+                    $modoTxt = sprintf('<i class="fas %s %s ms-1" title="%s"></i>', $modoIcon, $modoColor, ucfirst($sc->getModo()->value));
+
                     $ctx = $sc->getItinerarioContexto() ? htmlspecialchars($sc->getItinerarioContexto()->getNombreInterno()) : 'Global';
                     $colorCtx = $sc->getItinerarioContexto() ? 'text-primary' : 'text-success';
                     $iconCtx = $sc->getItinerarioContexto() ? 'fa-filter' : 'fa-globe';
-                    $html .= sprintf('<div class="p-1 border rounded bg-white shadow-sm"><strong class="d-block text-truncate mb-1" style="max-width: 280px;" title="%s">%s</strong><span class="text-muted"><i class="far fa-clock"></i> %s</span> <span class="mx-1 text-muted">|</span> <span class="%s fw-bold" title="Contexto de Plantilla"><i class="fas %s"></i> %s</span></div>', $compName, $compName, $hora, $colorCtx, $iconCtx, $ctx);
+                    // Puntito rojo: su hora está promovida al horario de toda la excursión (servicio completo).
+                    $dot = $sc->isHoraServicioCompleto()
+                        ? '<span class="d-inline-block rounded-circle me-1 align-middle" style="width:8px;height:8px;background:#ef4444;" title="Hora de servicio completo (toda la excursión)"></span>'
+                        : '';
+                    $html .= sprintf('<div class="p-1 border rounded bg-white shadow-sm"><strong class="d-block text-truncate mb-1" style="max-width: 280px;" title="%s">%s%s%s</strong><span class="text-muted"><i class="far fa-clock"></i> %s</span>%s <span class="mx-1 text-muted">|</span> <span class="%s fw-bold" title="Contexto de Plantilla"><i class="fas %s"></i> %s</span></div>', $compName, $dot, $compName, $modoTxt, $horaTxt, $diaTxt, $colorCtx, $iconCtx, $ctx);
                 }
                 $html .= '</div>';
                 return $html;

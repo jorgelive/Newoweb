@@ -2937,6 +2937,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (!dataActiva.value) return;
 
             dataActiva.value.itinerarioNombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda)));
+            // Referencia interna a la plantilla: habilita el re-sync exacto de flags
+            // (p.ej. "hora de servicio completo") por el botón Actualizar.
+            dataActiva.value.itinerarioMaestroId = extractIdStr(plantillaId)
+                || extractIdStr(plantillaProfunda.id || plantillaProfunda['@id']) || null;
             dataActiva.value.nombrePublicoSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda))); // 👉 NUEVO
             let ordenMaximo = dataActiva.value.cotsegmentos ? dataActiva.value.cotsegmentos.length : 0;
 
@@ -3592,7 +3596,45 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 mapaMaestros.set(extractIdStr(seg.id || seg['@id']), seg);
             });
 
-            // Actualizar estrictamente solo los textos e imágenes
+            // Id de la plantilla con la que se armó el servicio (si se conoce): permite
+            // el match exacto de la fila TravelSegmentoComponente, igual que la inyección.
+            const itinId = extractIdStr(dataActiva.value.itinerarioMaestroId);
+
+            // Elige, para un componente ya inyectado, la fila TravelSegmentoComponente
+            // del maestro que aporta su configuración.
+            const resolverSegCompDeComponente = (segComps: any[], componenteMaestroId: any, dia: any): any => {
+                const targetId = extractIdStr(componenteMaestroId);
+                if (!targetId) return null;
+                const candidatos = segComps.filter((sc: any) => {
+                    const cId = extractIdStr(sc.componente?.id || sc.componente?.['@id'] || sc.componente);
+                    if (cId !== targetId) return false;
+                    return sc.dia === undefined || sc.dia === null || sc.dia === dia;
+                });
+                if (!candidatos.length) return null;
+
+                if (itinId) {
+                    // Match exacto (como en la inyección): se excluyen filas ligadas a
+                    // OTRA plantilla; las de esta plantilla mandan sobre las globales.
+                    const aplicables = candidatos.filter((sc: any) =>
+                        !sc.itinerarioContexto || extractIdStr(sc.itinerarioContexto) === itinId);
+                    if (!aplicables.length) return null;
+                    const deLaPlantilla = aplicables.filter((sc: any) => extractIdStr(sc.itinerarioContexto) === itinId);
+                    const grupo = deLaPlantilla.length ? deLaPlantilla : aplicables;
+                    return grupo.find((sc: any) => sc.horaServicioCompleto) || grupo[0];
+                }
+
+                // Fallback (servicios previos a itinerarioMaestroId): mejor esfuerzo —
+                // prioriza filas ligadas a plantilla y, entre ellas, la promovida.
+                const ligadasAPlantilla = candidatos.filter((sc: any) => sc.itinerarioContexto);
+                const grupo = ligadasAPlantilla.length ? ligadasAPlantilla : candidatos;
+                return grupo.find((sc: any) => sc.horaServicioCompleto) || grupo[0];
+            };
+
+            // Actualizar estrictamente los textos, imágenes y el flag de "hora de
+            // servicio completo". NO se tocan tarifas, fechas/horas ni el modo
+            // comercial, y NO se elimina ningún componente que ya no figure en los
+            // segmentos maestros (los sin coincidencia quedan intactos).
+            const componentesDelServicio = dataActiva.value.cotcomponentes || [];
             dataActiva.value.cotsegmentos.forEach((cotSeg: any) => {
                 if (cotSeg.segmentoMaestroId && mapaMaestros.has(cotSeg.segmentoMaestroId)) {
                     const maestro = mapaMaestros.get(cotSeg.segmentoMaestroId);
@@ -3600,6 +3642,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     cotSeg.contenidoSnapshot = JSON.parse(JSON.stringify(maestro.contenido || []));
                     cotSeg.notasSnapshot = extraerNotasSnapshot(maestro);
                     cotSeg.imagenesSnapshot = extraerImagenesSnapshot(maestro);
+
+                    const segComps = Array.isArray(maestro.segmentoComponentes) ? maestro.segmentoComponentes : [];
+                    componentesDelServicio
+                        .filter((comp: any) => comp.cotsegmentoId === cotSeg.id)
+                        .forEach((comp: any) => {
+                            const segComp = resolverSegCompDeComponente(segComps, comp.componenteMaestroId, cotSeg.dia);
+                            if (segComp) {
+                                comp.horaServicioCompleto = !!segComp.horaServicioCompleto;
+                            }
+                        });
                 }
             });
 

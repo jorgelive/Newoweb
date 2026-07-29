@@ -83,6 +83,18 @@ const t18 = (arr?: { language?: string; content?: string }[] | null): string => 
 const resumenPreview = (arr?: any[]): string =>
   t18(arr).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
+/** Venta calculada mostrada en la moneda del tour. `totalVenta` se persiste
+ *  SIEMPRE en USD; si el tour es en PEN se convierte multiplicando por su tipo
+ *  de cambio (nunca dividiendo). Los tours en USD se muestran tal cual. */
+const ventaCalcMostrada = (tour: any): string => {
+  const usd = Number(tour.totalVenta) || 0;
+  if (tour.monedaGlobal === 'PEN') {
+    const soles = usd * (Number(tour.tipoCambio) || 1);
+    return `PEN ${soles.toFixed(2)}`;
+  }
+  return `${tour.monedaGlobal || 'USD'} ${usd.toFixed(2)}`;
+};
+
 /** Resumen legible de los rangos "Desde X" (título en es, moneda y valor). */
 const resumenRangos = (tour: any): string => {
   const rangos = tour.preciosDesde || [];
@@ -363,6 +375,11 @@ onMounted(() => {
                 <i class="fas fa-external-link-alt text-xs"></i>
               </a>
 
+              <span class="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"
+                    :class="cat.activo ? 'text-teal-600' : 'text-slate-400'">
+                <i class="fas" :class="cat.activo ? 'fa-eye' : 'fa-eye-slash'"></i>
+                <span class="hidden sm:inline">{{ cat.activo ? 'Visible' : 'Oculto' }}</span>
+              </span>
               <button @click="toggleActivo(cat)"
                       :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none', cat.activo ? 'bg-teal-600' : 'bg-slate-300']"
                       :title="cat.activo ? 'Catálogo visible al público' : 'Catálogo oculto'">
@@ -426,7 +443,7 @@ onMounted(() => {
                   </div>
                   <div class="text-right">
                     <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Venta Calc.</p>
-                    <p class="text-sm font-black text-slate-600">{{ tour.monedaGlobal }} {{ tour.totalVenta }}</p>
+                    <p class="text-sm font-black text-slate-600">{{ ventaCalcMostrada(tour) }}</p>
                   </div>
                   <i class="fas fa-chevron-right text-slate-300 group-hover:text-[#376875] transition-colors"></i>
                 </div>

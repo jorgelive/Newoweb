@@ -11,6 +11,8 @@ use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Pivot Ternario: Vincula la logística (Componente) con la narrativa (Segmento),
@@ -334,5 +336,22 @@ class TravelSegmentoComponente
     {
         $this->horaServicioCompleto = $horaServicioCompleto;
         return $this;
+    }
+
+    /**
+     * La promoción "hora de servicio completo" debe estar atada a una plantilla
+     * (itinerarioContexto). Una promoción global aplicaría a todos los tours que
+     * usen el segmento y chocaría con las horas específicas de cada plantilla —
+     * y el horario de una excursión es propio de cada tour. Se valida en toda
+     * vía basada en el validador (CRUD suelto, CRUD anidado y API).
+     */
+    #[Assert\Callback]
+    public function validarPromocionRequierePlantilla(ExecutionContextInterface $context): void
+    {
+        if ($this->horaServicioCompleto && $this->itinerarioContexto === null) {
+            $context->buildViolation('La "Hora de servicio completo" requiere una plantilla en "Condicionado a Plantilla": una hora global aplicaría a todos los tours y generaría horarios en conflicto.')
+                ->atPath('horaServicioCompleto')
+                ->addViolation();
+        }
     }
 }

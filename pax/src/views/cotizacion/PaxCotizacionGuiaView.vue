@@ -270,9 +270,31 @@ const itinerarioVista = computed<DiaVista[]>(() => {
       grupos.get(b.servicio.id)!.push(b);
     }
 
-    // 2) Metadatos por grupo: hora absoluta más temprana y orden mínimo del día
+    // Horario global de la excursión: por cada servicio del día, la hora de su
+    // componente promovido a "servicio completo" (si existe). Se calcula ANTES de
+    // ordenar porque esa hora es la que representa al servicio en la cronología: su
+    // segmento ancla no la expone en `horaInicio` (a propósito, para no estirar el
+    // segmento donde se apoya).
+    const promoPorServicio = new Map<string, { inicio: string; fin: string | null }>();
+    for (const b of bloques) {
+      if (promoPorServicio.has(b.servicio.id)) continue;
+      for (const c of b.componentes) {
+        if (!c?.horaServicioCompleto) continue;
+        const pi = hhmm(c.fechaHoraInicio);
+        if (!pi || pi === '00:00') continue;
+        const pf = hhmm(c.fechaHoraFin);
+        promoPorServicio.set(b.servicio.id, { inicio: pi, fin: (pf && pf !== '00:00' && pf !== pi) ? pf : null });
+        break;
+      }
+    }
+
+    // 2) Metadatos por grupo: hora absoluta más temprana y orden mínimo del día.
+    //    Si el servicio no tiene hora en sus segmentos pero sí una hora promovida
+    //    (servicio completo), se usa esa para posicionarlo en la cronología.
     const metaGrupo = (gb: BloqueVista[]) => {
       const horas = gb.map(b => b.horaInicio).filter(Boolean) as string[];
+      const promoInicio = promoPorServicio.get(gb[0]?.servicio.id)?.inicio ?? null;
+      if (promoInicio) horas.push(promoInicio);
       const horaMin = horas.length ? [...horas].sort()[0] : null; // null = sin hora absoluta
       const ordenMin = Math.min(...gb.map(b => b.segmento.orden ?? 0));
       const esEstadia = gb.every(b => b.esEstadia);
@@ -295,22 +317,6 @@ const itinerarioVista = computed<DiaVista[]>(() => {
     for (const g of gruposOrdenados) {
       g.sort((a, b) => (a.segmento.orden ?? 0) - (b.segmento.orden ?? 0));
       ordenados.push(...g);
-    }
-
-    // Horario global de la excursión: por cada servicio del día, la hora de su
-    // componente promovido a "servicio completo" (si existe). Se muestra como el
-    // horario de toda la experiencia en vez de estirar el segmento donde se ancla.
-    const promoPorServicio = new Map<string, { inicio: string; fin: string | null }>();
-    for (const b of ordenados) {
-      if (promoPorServicio.has(b.servicio.id)) continue;
-      for (const c of b.componentes) {
-        if (!c?.horaServicioCompleto) continue;
-        const pi = hhmm(c.fechaHoraInicio);
-        if (!pi || pi === '00:00') continue;
-        const pf = hhmm(c.fechaHoraFin);
-        promoPorServicio.set(b.servicio.id, { inicio: pi, fin: (pf && pf !== '00:00' && pf !== pi) ? pf : null });
-        break;
-      }
     }
 
     // Título grande en el 1er segmento (por día) de servicios multi-segmento;
@@ -384,6 +390,11 @@ const descExpandida = ref(new Set<string>());
 const incExpandida = ref(new Set<string>());
 const finanzasAbiertas = ref(false);
 const toggle = (set: Set<string>, key: string) => { set.has(key) ? set.delete(key) : set.add(key); };
+
+// Modo de lectura del itinerario: 'detalle' muestra las descripciones completas;
+// 'resumen' colapsa las narrativas y deja títulos, subtítulos y horas, en tipografía
+// más compacta. Es global a toda la vista.
+const modoResumen = ref(false);
 
 /** ¿La descripción es lo bastante larga como para truncarla? */
 const descEsLarga = (segmento: any) => (store.traducir(segmento.contenidoSnapshot) || '').length > 450;
@@ -845,6 +856,29 @@ const adelantoVista = computed(() => {
               </div>
             </div>
           </div>
+
+          <!-- Toggle Detalle / Resumen (botón partido): afecta a TODO el itinerario.
+               'Resumen' colapsa descripciones y fotos, dejando títulos, subtítulos y horas. -->
+          <div class="mt-5 md:mt-6 flex justify-center sm:justify-start">
+            <div class="inline-flex items-center bg-white/12 backdrop-blur-md border border-white/25 rounded-2xl p-1 gap-1 shadow-[0_8px_24px_rgb(0,0,0,0.12)]">
+              <button
+                  @click="modoResumen = false"
+                  :class="!modoResumen ? 'bg-white text-[#376875] shadow-md' : 'text-white/75 hover:text-white'"
+                  class="inline-flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[11px] md:text-xs font-black uppercase tracking-widest transition-all"
+              >
+                <i class="fas fa-align-left text-[#E07845]" :class="!modoResumen ? '' : 'opacity-70'"></i>
+                {{ maestroStore.t('cot_modo_detalle') || 'Detalle' }}
+              </button>
+              <button
+                  @click="modoResumen = true"
+                  :class="modoResumen ? 'bg-white text-[#376875] shadow-md' : 'text-white/75 hover:text-white'"
+                  class="inline-flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[11px] md:text-xs font-black uppercase tracking-widest transition-all"
+              >
+                <i class="fas fa-list-ul text-[#E07845]" :class="modoResumen ? '' : 'opacity-70'"></i>
+                {{ maestroStore.t('cot_modo_resumen') || 'Resumen' }}
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -1148,11 +1182,11 @@ const adelantoVista = computed(() => {
             >
               <button
                   @click="abrirInclusiones(item.servicio.id, item.servicio.nombrePublicoSnapshot)"
-                  class="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-[#376875] bg-white border border-[#376875]/20 hover:border-[#376875]/50 hover:bg-[#376875]/5 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
+                  class="inline-flex items-center gap-2 text-[11px] font-black tracking-wide text-[#376875] bg-white border border-[#376875]/20 hover:border-[#376875]/50 hover:bg-[#376875]/5 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
               >
                 <i class="fas fa-list-check text-[#E07845]"></i>
                 {{ item.totalSegmentosServicio > 1
-                  ? (maestroStore.t('cot_inclusiones_tour') || 'Inclusiones del tour')
+                  ? (maestroStore.t('cot_inclusiones_tour') || '¿Qué incluye el tour?')
                   : (maestroStore.t('cot_inclusiones_servicio') || 'Inclusiones del servicio') }}
                 <i class="fas fa-circle-arrow-right text-[10px] text-[#E07845]"></i>
               </button>
@@ -1182,8 +1216,8 @@ const adelantoVista = computed(() => {
                 v-else
                 class="bg-white rounded-4xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-6"
             >
-              <!-- Galería de imágenes (desplazable) -->
-              <div v-if="imagenesDe(item.segmento).length" class="h-48 md:h-64 relative overflow-hidden" data-galeria>
+              <!-- Galería de imágenes (desplazable) — oculta en modo Resumen -->
+              <div v-if="!modoResumen && imagenesDe(item.segmento).length" class="h-48 md:h-64 relative overflow-hidden" data-galeria>
                 <div class="galeria-track flex h-full overflow-x-auto snap-x snap-mandatory no-scrollbar">
                   <img
                       v-for="(img, ii) in imagenesDe(item.segmento)"
@@ -1218,23 +1252,28 @@ const adelantoVista = computed(() => {
                 </div>
               </div>
 
-              <div class="p-5 md:p-7">
-                <!-- Encabezado (solo si no hubo galería) -->
-                <div v-if="!imagenesDe(item.segmento).length" class="flex items-start justify-between gap-3">
+              <div :class="modoResumen ? 'p-4 md:p-5' : 'p-5 md:p-7'">
+                <!-- Encabezado con título. Se muestra si no hubo galería o en modo
+                     Resumen (donde la galería se oculta y el título toma su lugar). -->
+                <div v-if="modoResumen || !imagenesDe(item.segmento).length" class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
                     <p v-if="!item.mostrarTituloServicio" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
                       {{ store.traducir(item.servicio.nombrePublicoSnapshot) }}
                     </p>
-                    <h4 class="text-gray-800 text-base md:text-lg font-black leading-tight mb-3">
+                    <h4
+                        class="text-gray-800 font-black leading-tight"
+                        :class="modoResumen ? 'text-sm md:text-base mb-0' : 'text-base md:text-lg mb-3'"
+                    >
                       {{ store.traducir(item.segmento.nombreSnapshot) }}
                     </h4>
                   </div>
                   <!-- Rango horario del segmento (derivado de componentes) -->
                   <span
                       v-if="item.horaInicio"
-                      class="shrink-0 inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30"
+                      class="shrink-0 inline-flex items-center font-black text-white bg-[#E07845] tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30"
+                      :class="modoResumen ? 'gap-1.5 text-xs rounded-lg px-2.5 py-1' : 'gap-2 text-sm rounded-xl px-3.5 py-2'"
                   >
-                    <i class="far fa-clock"></i>
+                    <i class="far fa-clock" :class="modoResumen ? 'text-[10px]' : ''"></i>
                     {{ item.horaInicio }}<template v-if="item.horaFin && item.horaFin !== item.horaInicio"> – {{ item.horaFin }}</template>
                   </span>
                 </div>
@@ -1247,8 +1286,8 @@ const adelantoVista = computed(() => {
                   {{ item.horaInicio }}<template v-if="item.horaFin && item.horaFin !== item.horaInicio"> – {{ item.horaFin }}</template>
                 </span>
 
-                <!-- Contenido narrativo (truncable) -->
-                <div class="relative">
+                <!-- Contenido narrativo (truncable) — oculto en modo Resumen -->
+                <div v-if="!modoResumen" class="relative">
                   <div
                       class="prose prose-sm max-w-none text-slate-600 prose-strong:text-[#376875] prose-a:text-[#E07845] prose-p:leading-relaxed transition-all"
                       :class="descEsLarga(item.segmento) && !descExpandida.has(item.key) ? 'max-h-36 overflow-hidden' : ''"
@@ -1260,7 +1299,7 @@ const adelantoVista = computed(() => {
                   ></div>
                 </div>
                 <button
-                    v-if="descEsLarga(item.segmento)"
+                    v-if="!modoResumen && descEsLarga(item.segmento)"
                     @click="toggle(descExpandida, item.key)"
                     class="mt-1 text-[10px] font-black uppercase tracking-widest text-[#E07845] hover:text-[#D06535] transition-colors"
                 >
@@ -1317,9 +1356,9 @@ const adelantoVista = computed(() => {
               v-if="inclusionesPorDia.get(dia.fecha)?.servicios.length"
               class="bg-white rounded-3xl shadow-md shadow-slate-200/40 border border-slate-100 p-5 md:p-7 mb-4"
           >
-            <p class="text-xs font-black text-[#376875] uppercase tracking-[0.15em] flex items-center gap-2 mb-5">
+            <p class="text-sm font-black text-[#376875] tracking-tight flex items-center gap-2 mb-5">
               <i class="fas fa-list-check text-[#E07845]"></i>
-              {{ maestroStore.t('cot_inclusiones_dia') || 'Inclusiones del día' }}
+              {{ maestroStore.t('cot_inclusiones_dia') || '¿Qué incluye este día?' }}
             </p>
 
             <div class="relative">

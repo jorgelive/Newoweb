@@ -125,11 +125,12 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
         /* ====================================================================
          * FILA 4: HORA DE SERVICIO COMPLETO
          * La hora de este componente representa el horario de toda la excursión
-         * (servicio/itinerario), no solo la del segmento donde se ancla. Debe
-         * haber a lo sumo uno promovido por plantilla (itinerarioContexto).
+         * (servicio/itinerario), no solo la del segmento donde se ancla. Se
+         * admite uno promovido por cada día de la plantilla (itinerarioContexto,
+         * día); la unicidad la garantiza al guardar el listener de Doctrine.
          * ==================================================================== */
         yield BooleanField::new('horaServicioCompleto', 'Hora de Servicio Completo')
-            ->setHelp('Su hora representa el horario de toda la excursión, no solo la de este párrafo. Solo debe haber uno por plantilla.')
+            ->setHelp('Su hora representa el horario de toda la excursión de ese día. Requiere elegir una plantilla en "Condicionado a Plantilla" (no aplica a Global). Se admite uno por cada día de la plantilla; al activarlo se desactiva cualquier otro del mismo día.')
             ->setColumns('col-12')
             ->renderAsSwitch(true);
     }
