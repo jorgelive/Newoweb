@@ -1058,9 +1058,9 @@ store.$onAction(({ name, args }) => {
               Ver Servicios <i class="fas fa-arrow-right"></i>
             </button>
           </div>
-          <div class="p-6 flex-1 overflow-y-auto space-y-6 pb-32">
+          <div class="p-6 flex-1 overflow-y-auto flex flex-col gap-6 pb-32">
 
-            <div class="bg-teal-50 border border-teal-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
+            <div class="order-last shrink-0 bg-teal-50 border border-teal-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
               <div>
                 <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest"><i class="fas fa-user-secret mr-1"></i> Anonimato Logístico</h3>
                 <p class="text-[9px] text-teal-500 mt-1 font-medium leading-tight pr-4">Ocultar todos los proveedores y servicios logísticos al generar vistas públicas o vouchers.</p>
@@ -1075,7 +1075,7 @@ store.$onAction(({ name, args }) => {
               </button>
             </div>
 
-            <div class="bg-[#376875] text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
+            <div v-if="!store.modoCatalogo" class="order-1 shrink-0 bg-[#376875] text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
               <i class="fas fa-chart-pie absolute -right-6 -bottom-6 text-8xl opacity-10"></i>
               <div class="relative z-10">
                 <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Venta Total Sugerida</p>
@@ -1093,7 +1093,7 @@ store.$onAction(({ name, args }) => {
               </div>
             </div>
 
-            <div v-if="store.modoCatalogo" class="bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow-sm">
+            <div v-if="store.modoCatalogo" class="order-2 shrink-0 bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow-sm">
               <div class="flex items-center justify-between mb-1">
                 <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-tags mr-1"></i> Precios de Exhibición (Desde)</h3>
                 <button @click="agregarRangoPrecio"
@@ -1128,7 +1128,7 @@ store.$onAction(({ name, args }) => {
               </div>
             </div>
 
-            <div v-if="store.modoCatalogo" class="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+            <div v-if="store.modoCatalogo" class="order-5 shrink-0 bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
               <div>
                 <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-user-tag mr-1"></i> Precios Unitarios (Sin Totales)</h3>
                 <p class="text-[9px] text-orange-400 mt-1 font-medium leading-tight pr-4">Menú de precios por perfil (peruano, extranjero, niño…). Oculta al cliente el "2X", el "× N pax" y el precio total del viaje: sirve como guía, no como cotización de un grupo concreto.</p>
@@ -1143,7 +1143,7 @@ store.$onAction(({ name, args }) => {
               </button>
             </div>
 
-            <div v-if="store.modoCatalogo" class="bg-teal-50 border border-teal-200 rounded-2xl p-4 shadow-sm">
+            <div v-if="store.modoCatalogo" class="order-4 shrink-0 bg-teal-50 border border-teal-200 rounded-2xl p-4 shadow-sm">
               <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest mb-1"><i class="fas fa-image mr-1"></i> Portada del Tour</h3>
               <p class="text-[9px] text-teal-500 font-medium mb-3 leading-tight">
                 {{ (store.cotizacion as any).imagenPortada ? 'Portada fija elegida manualmente. Click para volver a automática.' : 'Automática: primera portada del itinerario. Click en una imagen para fijarla.' }}
@@ -1162,6 +1162,7 @@ store.$onAction(({ name, args }) => {
               </div>
             </div>
 
+            <div class="space-y-6 shrink-0" :class="store.modoCatalogo ? 'order-3' : 'order-2'">
             <button @click="isReporteOpen = true"
                     class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
               <i class="fas fa-file-invoice-dollar mr-2"></i> Reporte financiero completo
@@ -1262,7 +1263,9 @@ store.$onAction(({ name, args }) => {
                 </div>
               </div>
             </div>
+            </div>
 
+            <div class="space-y-6 shrink-0" :class="store.modoCatalogo ? 'order-1' : 'order-5'">
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2 grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
                 <div>
@@ -1361,6 +1364,7 @@ store.$onAction(({ name, args }) => {
                   :model-value="store.getI18nText(store.cotizacion?.resumen as any, store.cotizacion?.idiomaEdicion || 'es')"
                   @update:model-value="actualizarResumen"
               />
+            </div>
             </div>
           </div>
         </div>
