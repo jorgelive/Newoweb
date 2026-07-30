@@ -83,27 +83,17 @@ const t18 = (arr?: { language?: string; content?: string }[] | null): string => 
 const resumenPreview = (arr?: any[]): string =>
   t18(arr).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
-/** Venta calculada mostrada en la moneda del tour. `totalVenta` se persiste
- *  SIEMPRE en USD; si el tour es en PEN se convierte multiplicando por su tipo
- *  de cambio (nunca dividiendo). Los tours en USD se muestran tal cual. */
-const ventaCalcMostrada = (tour: any): string => {
-  const usd = Number(tour.totalVenta) || 0;
-  if (tour.monedaGlobal === 'PEN') {
-    const soles = usd * (Number(tour.tipoCambio) || 1);
-    return `PEN ${soles.toFixed(2)}`;
-  }
-  return `${tour.monedaGlobal || 'USD'} ${usd.toFixed(2)}`;
-};
-
-/** Resumen legible de los rangos "Desde X" (título en es, moneda y valor). */
-const resumenRangos = (tour: any): string => {
-  const rangos = tour.preciosDesde || [];
-  if (!rangos.length) return '—';
-  return rangos.map((r: any) => {
-    const titulo = t18(r.titulo);
-    return `${titulo ? titulo + ' ' : ''}${r.moneda} ${r.valor}`;
-  }).join(' · ');
-};
+/** Rangos de precio "Desde X" del tour de catálogo, cada uno con su título
+ *  (en el idioma activo), moneda y valor. A diferencia de una cotización de
+ *  grupo (ver FileDetalle.vue), un tour de catálogo NO tiene un total vendible:
+ *  el pax por rango no está definido, así que lo informativo es el precio de
+ *  cada rango (extranjero/peruano, adulto/niño), no un `totalVenta` de grupo. */
+const rangosDesde = (tour: any): { titulo: string; moneda: string; valor: any }[] =>
+  (tour.preciosDesde || []).map((r: any) => ({
+    titulo: t18(r.titulo),
+    moneda: r.moneda,
+    valor: r.valor,
+  }));
 
 /** Reordena el catálogo en el listado y persiste el nuevo orden. */
 const moverCatalogo = async (idx: number, dir: -1 | 1) => {
@@ -437,13 +427,15 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="flex items-center gap-4 shrink-0">
-                  <div class="text-right max-w-60">
-                    <p class="text-[8px] font-black text-orange-400 uppercase tracking-widest">Desde</p>
-                    <p class="text-[11px] font-black text-orange-600 leading-tight">{{ resumenRangos(tour) }}</p>
-                  </div>
                   <div class="text-right">
-                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Venta Calc.</p>
-                    <p class="text-sm font-black text-slate-600">{{ ventaCalcMostrada(tour) }}</p>
+                    <p class="text-[8px] font-black text-orange-400 uppercase tracking-widest mb-1">Precio por rango</p>
+                    <div v-if="rangosDesde(tour).length" class="flex flex-col items-end gap-0.5">
+                      <div v-for="(r, i) in rangosDesde(tour)" :key="i" class="flex items-baseline gap-2">
+                        <span v-if="r.titulo" class="text-[10px] font-bold text-slate-500">{{ r.titulo }}</span>
+                        <span class="text-[11px] font-black text-orange-600 leading-tight">{{ r.moneda }} {{ r.valor }}</span>
+                      </div>
+                    </div>
+                    <p v-else class="text-[11px] font-black text-slate-300 leading-tight">Sin rangos</p>
                   </div>
                   <i class="fas fa-chevron-right text-slate-300 group-hover:text-[#376875] transition-colors"></i>
                 </div>
