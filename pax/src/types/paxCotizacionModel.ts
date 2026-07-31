@@ -286,6 +286,7 @@ export interface PaxVersionResumen {
     version: number;
     estado: string;
     numPax: number;
+    titulo?: I18n; // título comercial multiidioma (opcional)
     resumen: I18n; // HTML comercial multiidioma
     idiomaCliente: string;
     monedaGlobal: string;

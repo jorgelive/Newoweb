@@ -274,6 +274,9 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
                 <span class="inline-block px-3 py-1 rounded-lg bg-[#376875] text-white text-[10px] font-black uppercase tracking-widest">
                   {{ maestroStore.t('cot_propuesta') || 'Propuesta' }} V{{ v.version }}
                 </span>
+                <h3 v-if="store.traducir(v.titulo)" class="text-xl md:text-2xl font-black text-[#376875] leading-tight tracking-tight mt-2">
+                  {{ store.traducir(v.titulo) }}
+                </h3>
                 <p v-if="v.fechaInicio" class="text-[#376875]/70 text-xs font-bold flex items-center gap-2 mt-2.5">
                   <i class="fas fa-calendar-alt text-[#E07845]"></i>
                   {{ formatearFecha(v.fechaInicio) }}
