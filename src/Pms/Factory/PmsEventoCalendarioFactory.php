@@ -309,7 +309,9 @@ class PmsEventoCalendarioFactory
         }
 
         foreach ($leftovers as $unused) {
-            $unused->setBeds24BookId(null);
+            // No limpiar beds24BookId aquí: el PushQueueListener lo lee durante onFlush
+            // para construir el DELETE hacia Beds24. Con orphanRemoval=true, Doctrine
+            // programa el DELETE de la fila completa — el ID ya no hace falta después.
             $evento->removeBeds24Link($unused);
         }
     }

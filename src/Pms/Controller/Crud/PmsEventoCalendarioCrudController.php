@@ -225,7 +225,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
                         // LOGICA DE LA MÁQUINA DE ESTADOS OTA EN LA UI
                         if ($estadoActualId === PmsEventoEstado::CODIGO_ABIERTO) {
                             $qb->andWhere('e.id IN (:permitidos)')
-                                ->setParameter('permitidos', [PmsEventoEstado::CODIGO_ABIERTO, PmsEventoEstado::CODIGO_CANCELADA]);
+                                ->setParameter('permitidos', PmsEventoCalendario::OTA_ABIERTO_ESTADOS_SELECCIONABLES);
                         } else {
                             $restringidos = array_merge(PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES, [PmsEventoEstado::CODIGO_CANCELADA]);
                             $qb->andWhere('e.id NOT IN (:restringidos)')

@@ -50,6 +50,15 @@ class PmsEventoCalendario
         PmsEventoEstado::CODIGO_BLOQUEO,
     ];
 
+    /**
+     * Únicos estados hacia los que un evento OTA en estado ABIERTO puede transicionar manualmente.
+     * (Airbnb "inquiry": solo se puede confirmar como cancelación o mantener abierto.)
+     */
+    public const OTA_ABIERTO_ESTADOS_SELECCIONABLES = [
+        PmsEventoEstado::CODIGO_ABIERTO,
+        PmsEventoEstado::CODIGO_CANCELADA,
+    ];
+
 
     /* ======================================================
      * RELACIONES DE NEGOCIO (UUID v7)

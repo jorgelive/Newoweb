@@ -550,3 +550,56 @@ con datos completos.
 | Proteger campo Push en OTA | `Beds24BookingsPushQueueListener` | `IGNORED_FIELDS_ON_LOCKED_OTA` |
 | Cambiar idioma por defecto | `MaestroIdioma` | `DEFAULT_IDIOMA` |
 | Cambiar país por defecto | `MaestroPais` | `DEFAULT_PAIS` |
+
+---
+
+## 12. Bug Conocido Resuelto — Reserva Fantasma al Cambiar de Unidad
+
+### Síntoma
+
+Cuando Beds24 mueve una reserva a otra habitación (`roomId` cambia en el webhook), el link espejo (`esPrincipal=false`) de la unidad antigua no se borraba de Beds24. Quedaba activo bloqueando esa habitación → reserva fantasma.
+
+### Secuencia que lo provocaba
+
+```
+1. Webhook 1 (roomId=501)
+   → Link1 principal (beds24BookId="83116820") + Link2 espejo (beds24BookId=null)
+
+2. Push worker ejecuta → Link2.beds24BookId = "99999" (booking creado en Beds24)
+
+3. Webhook 2 (misma reserva, roomId=503 — nueva unidad)
+   → internalHydrate() reconstruye links para la nueva unidad
+   → Link2 queda como "leftover" (su virtualCode no existe en la nueva unidad)
+   → factory ejecuta: $unused->setBeds24BookId(null)  ← BORRA el ID "99999"
+   → factory ejecuta: $evento->removeBeds24Link($unused)  ← orphanRemoval → DELETE Doctrine
+
+4. onFlush: PushQueueListener ve Link2 en ScheduledEntityDeletions → acción DELETE
+   → ensureBookIdForDelete() → getBeds24BookId() → null (ya fue borrado)
+   → recoverBookIdFromQueues() → la cola POST original tenía beds24BookIdOriginal=null
+   → sin ID → SKIP DELETE
+
+5. Beds24 conserva booking "99999" → bloquea roomId=502 indefinidamente
+```
+
+### Causa raíz
+
+`setBeds24BookId(null)` se ejecutaba **antes** de `flush()`, destruyendo el ID que el `PushQueueListener` necesitaba leer durante `onFlush` para construir el DELETE hacia Beds24.
+
+### Fix aplicado
+
+`PmsEventoCalendarioFactory::internalHydrate()` línea ~311 — eliminada la llamada a `setBeds24BookId(null)` en el bucle de sobrantes:
+
+```php
+// ANTES (bug):
+foreach ($leftovers as $unused) {
+    $unused->setBeds24BookId(null);      // ← destruía el ID
+    $evento->removeBeds24Link($unused);
+}
+
+// DESPUÉS (fix):
+foreach ($leftovers as $unused) {
+    $evento->removeBeds24Link($unused);  // orphanRemoval=true → DELETE completo de fila
+}
+```
+
+Con `orphanRemoval: true` en la relación `OneToMany`, Doctrine programa un `DELETE` completo de la fila — no necesita nullear columnas individualmente. El `PushQueueListener` lee `beds24BookId` durante `onFlush` (todavía intacto), crea el queue de DELETE, y el push worker borra la reserva de Beds24 antes de que la fila sea eliminada de la BD.

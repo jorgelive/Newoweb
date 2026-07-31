@@ -58,7 +58,6 @@ class PmsReserva
     private ?string $nombreCliente = null;
 
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
-    #[Assert\NotBlank(message: 'El apellido del cliente es obligatorio.')]
     #[Assert\Length(max: 180)]
     private ?string $apellidoCliente = null;
 
