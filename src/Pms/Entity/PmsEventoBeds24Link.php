@@ -7,6 +7,7 @@ namespace App\Pms\Entity;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\Entity\PmsBookingsPushQueue;
+use App\Pms\Entity\PmsChannel;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -88,6 +89,13 @@ class PmsEventoBeds24Link
 
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTimeInterface $deactivatedAt = null;
+
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $referenciaCanal = null;
+
+    #[ORM\ManyToOne(targetEntity: PmsChannel::class)]
+    #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
+    private ?PmsChannel $channel = null;
 
     /**
      * @var Collection<int, PmsBookingsPushQueue>
@@ -272,6 +280,12 @@ class PmsEventoBeds24Link
         }
         return $this;
     }
+
+    public function getReferenciaCanal(): ?string { return $this->referenciaCanal; }
+    public function setReferenciaCanal(?string $v): self { $this->referenciaCanal = $v; return $this; }
+
+    public function getChannel(): ?PmsChannel { return $this->channel; }
+    public function setChannel(?PmsChannel $v): self { $this->channel = $v; return $this; }
 
     public function __toString(): string
     {

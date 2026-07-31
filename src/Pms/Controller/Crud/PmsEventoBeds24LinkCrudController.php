@@ -137,6 +137,14 @@ class PmsEventoBeds24LinkCrudController extends BaseCrudController
             ->setHelp('Si activo: Propietario del ID en Beds24. Si inactivo: Espejo (Mirror).')
             ->renderAsSwitch(false); // Switch en form, check en index
 
+        yield TextField::new('referenciaCanal', 'Ref. OTA')
+            ->setHelp('Código de reserva del canal (apiReference). Ej: BDC-1234567.')
+            ->hideOnForm();
+
+        yield AssociationField::new('channel', 'Canal OTA')
+            ->setHelp('Canal OTA del link principal. Null en espejos.')
+            ->hideOnForm();
+
         // ============================================================
         // 3. TRAZABILIDAD
         // ============================================================

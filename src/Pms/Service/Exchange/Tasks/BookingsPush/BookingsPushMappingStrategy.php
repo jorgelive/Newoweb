@@ -216,6 +216,10 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
 
         $payload['comment'] = $isMirror ? 'Reserva espejo' : $this->buildAuditComment($queue);
 
+        // Identificadores PMS para deduplicación determinista en migraciones
+        $payload['custom1'] = 'PMS:' . (string) $link->getId();
+        $payload['custom2'] = $isMirror ? 'MIRROR' : 'PRINCIPAL';
+
         return $payload;
     }
 

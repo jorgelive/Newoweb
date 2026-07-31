@@ -39,6 +39,8 @@ final class Beds24BookingDto
         public readonly mixed $commission,
         public readonly ?DateTimeInterface $bookingTime,
         public readonly ?DateTimeInterface $modifiedTime,
+        public readonly ?string $custom1 = null,
+        public readonly ?string $custom2 = null,
     ) {}
 
     public static function fromArray(array $booking): self
@@ -85,6 +87,8 @@ final class Beds24BookingDto
             commission: $booking['commission'] ?? null,
             bookingTime: self::toDateTimeOrNull($booking['bookingTime'] ?? null),
             modifiedTime: self::toDateTimeOrNull($booking['modifiedTime'] ?? null),
+            custom1: self::toStringOrNull($booking['custom1'] ?? null),
+            custom2: self::toStringOrNull($booking['custom2'] ?? null),
         );
     }
 

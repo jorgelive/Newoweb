@@ -102,13 +102,17 @@ final class BookingPullPersister implements ResetInterface
 
         $establecimiento = $this->resolveEstablecimiento(config: $config, map: $map);
 
-        // 3. Resolver Link existente (Memoria o BD)
-        $existingLink = $this->resolveLink($bookingIdStr);
+        // 3. Resolver Link existente — primero por UUID (custom1) para migración determinista
+        $existingLink = $this->resolveLinkByPmsUuid($booking->custom1)
+            ?? $this->resolveLink($bookingIdStr);
 
-        // Determinación de Autoridad (Obs #4)
-        // Si existe, respetamos la BD. Si es nuevo, asumimos true SOLO si no es una sub-reserva explícita.
-        // Pero para simplificar y mantener la regla: "Ante la duda, si es nuevo, es principal hasta que se demuestre lo contrario por lógica de grupo".
-        $isLinkPrincipal = $existingLink ? $existingLink->isEsPrincipal() : true;
+        // Determinación de Autoridad:
+        // Si existe link en BD → respetamos su valor.
+        // Si es nuevo → custom2 es autoritativo (escrito por nosotros en el Push previo).
+        // Fallback: true (si no hay custom2 es una reserva que nunca hemos procesado).
+        $isLinkPrincipal = $existingLink
+            ? $existingLink->isEsPrincipal()
+            : ($booking->custom2 !== 'MIRROR');
 
         // 4. DETECCIÓN DE JERARQUÍA
         $masterIdReal = $this->resolveMasterIdReal($booking);
@@ -205,6 +209,21 @@ final class BookingPullPersister implements ResetInterface
             $establecimiento->getNombreComercial()
         ));
     }
+
+    private function resolveLinkByPmsUuid(?string $custom1): ?PmsEventoBeds24Link
+    {
+        if (empty($custom1) || !str_starts_with($custom1, 'PMS:')) {
+            return null;
+        }
+        $uuidStr = substr($custom1, 4);
+        try {
+            $uuid = \Symfony\Component\Uid\Uuid::fromString($uuidStr);
+        } catch (\Throwable) {
+            return null;
+        }
+        return $this->em->getRepository(PmsEventoBeds24Link::class)->find($uuid);
+    }
+
 
     private function resolveLink(string $bookId): ?PmsEventoBeds24Link
     {
@@ -467,12 +486,20 @@ final class BookingPullPersister implements ResetInterface
         // Actualizar LastSeen (Obs #9: Iteración inevitable si no hay repo method, pero controlada)
         // Optimizacion: Si acabamos de crear, sabemos cual es. Si es update, iteramos.
         foreach ($evento->getBeds24Links() as $l) {
-            if ($l->getBeds24BookId() === $bookIdStr) {
-                $l->setLastSeenAt(new DateTimeImmutable());
-                // Actualizamos cache para evitar re-query en este mismo ciclo
-                $this->cacheLinks[$bookIdStr] = $l;
-                break;
+            $matchById       = $l->getBeds24BookId() === $bookIdStr;
+            $matchByIdentity = $existingLink !== null && $l === $existingLink;
+            if (!$matchById && !$matchByIdentity) {
+                continue;
             }
+            // En migración el beds24BookId puede haber cambiado: lo actualizamos
+            if ($matchByIdentity && !$matchById && $l->isEsPrincipal()) {
+                $l->setBeds24BookId($bookIdStr);
+            }
+            $l->setLastSeenAt(new DateTimeImmutable());
+            $l->setReferenciaCanal($booking->apiReference);
+            $l->setChannel($this->resolveChannel($booking));
+            $this->cacheLinks[$bookIdStr] = $l;
+            break;
         }
 
         $this->em->persist($evento);
