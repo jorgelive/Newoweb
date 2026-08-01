@@ -110,10 +110,18 @@ export interface paths {
         get: operations["api_messageconversations_id_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Removes the Conversation resource.
+         * @description Removes the Conversation resource.
+         */
+        delete: operations["api_messageconversations_id_delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Updates the Conversation resource.
+         * @description Updates the Conversation resource.
+         */
+        patch: operations["api_messageconversations_id_patch"];
         trace?: never;
     };
     "/platform/message/conversations/{id}/read": {
@@ -1076,6 +1084,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/pms/pms_channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsChannel resources.
+         * @description Retrieves the collection of PmsChannel resources.
+         */
+        get: operations["api_pmspms_channels_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_evento_calendarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a PmsEventoCalendario resource.
+         * @description Creates a PmsEventoCalendario resource.
+         */
+        post: operations["api_pmspms_evento_calendarios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_evento_calendarios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsEventoCalendario resource.
+         * @description Retrieves a PmsEventoCalendario resource.
+         */
+        get: operations["api_pmspms_evento_calendarios_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Updates the PmsEventoCalendario resource.
+         * @description Updates the PmsEventoCalendario resource.
+         */
+        patch: operations["api_pmspms_evento_calendarios_id_patch"];
+        trace?: never;
+    };
+    "/platform/pms/pms_evento_estados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsEventoEstado resources.
+         * @description Retrieves the collection of PmsEventoEstado resources.
+         */
+        get: operations["api_pmspms_evento_estados_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_evento_estado_pagos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsEventoEstadoPago resources.
+         * @description Retrieves the collection of PmsEventoEstadoPago resources.
+         */
+        get: operations["api_pmspms_evento_estado_pagos_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/public/pax/pms/pms_guia/pms_unidad/{unidad}": {
         parameters: {
             query?: never;
@@ -1108,6 +1220,50 @@ export interface paths {
          * @description Retrieves a PmsReserva resource.
          */
         get: operations["pax_get_reserva"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_reservas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsReserva resource.
+         * @description Retrieves a PmsReserva resource.
+         */
+        get: operations["api_pmspms_reservas_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Updates the PmsReserva resource.
+         * @description Updates the PmsReserva resource.
+         */
+        patch: operations["api_pmspms_reservas_id_patch"];
+        trace?: never;
+    };
+    "/platform/pms/pms_unidads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsUnidad resources.
+         * @description Retrieves the collection of PmsUnidad resources.
+         */
+        get: operations["api_pmspms_unidads_get_collection"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2093,6 +2249,20 @@ export interface components {
             readonly contextFinancialTotal?: number | null;
             readonly contextFinancialIsCleared?: boolean;
         };
+        "Conversation-conversation.write.jsonMergePatch": {
+            /** @default open */
+            status: string;
+            guestName?: string | null;
+            guestPhone?: string | null;
+            whatsappDisabled?: boolean;
+            whatsappDisabledReason?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma?: string;
+            idiomaFijado?: boolean;
+        };
         "Conversation.html-conversation.read": {
             /** @default open */
             status: string;
@@ -2226,6 +2396,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2286,6 +2462,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2362,6 +2544,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2428,6 +2616,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2480,6 +2674,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2530,6 +2730,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2586,6 +2792,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2630,6 +2842,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2673,6 +2891,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2735,6 +2959,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2796,6 +3026,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2846,6 +3082,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2902,6 +3144,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2946,6 +3194,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2989,6 +3243,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -3051,6 +3311,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3112,6 +3378,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3162,6 +3434,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -3218,6 +3496,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3262,6 +3546,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3305,6 +3595,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -3367,6 +3663,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3428,6 +3730,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3478,6 +3786,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -3534,6 +3848,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3577,6 +3897,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -4249,6 +4575,11 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4306,6 +4637,11 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4358,6 +4694,11 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -4394,6 +4735,11 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4421,6 +4767,11 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4477,6 +4828,11 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4534,6 +4890,11 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4574,6 +4935,11 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4601,6 +4967,11 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4657,6 +5028,11 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4715,6 +5091,11 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4757,6 +5138,11 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4785,6 +5171,11 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4841,6 +5232,11 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4898,6 +5294,11 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4938,6 +5339,11 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4965,6 +5371,11 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4976,6 +5387,14 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
@@ -4998,6 +5417,14 @@ export interface components {
         "CotizacionCotservicio-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
@@ -5015,6 +5442,14 @@ export interface components {
         "CotizacionCotservicio-cotizacion.write": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
@@ -5055,6 +5490,14 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
@@ -5077,6 +5520,14 @@ export interface components {
         "CotizacionCotservicio.html-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
@@ -5121,6 +5572,14 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
@@ -5143,6 +5602,14 @@ export interface components {
         "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
@@ -5187,6 +5654,14 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
@@ -5209,6 +5684,14 @@ export interface components {
         "CotizacionCotservicio.multipart-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
@@ -8046,6 +8529,16 @@ export interface components {
             /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
         };
+        "Idioma-pms_reserva.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
+            id?: string;
+            /** @description Obtiene el nombre del idioma. */
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Idioma.html-file.read_file.item.read_timestamp.read": {
             /** @description Obtiene el identificador único del idioma. */
             id?: string;
@@ -8083,6 +8576,16 @@ export interface components {
             bandera?: string | null;
             /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
+        };
+        "Idioma.html-pms_reserva.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
+            id?: string;
+            /** @description Obtiene el nombre del idioma. */
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "Idioma.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el identificador único del idioma. */
@@ -8122,6 +8625,16 @@ export interface components {
             /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
         };
+        "Idioma.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el identificador único del idioma. */
+            id?: string;
+            /** @description Obtiene el nombre del idioma. */
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Idioma.multipart-file.read_file.item.read_timestamp.read": {
             /** @description Obtiene el identificador único del idioma. */
             id?: string;
@@ -8159,6 +8672,16 @@ export interface components {
             bandera?: string | null;
             /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
+        };
+        "Idioma.multipart-pms_reserva.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
+            id?: string;
+            /** @description Obtiene el nombre del idioma. */
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         Itinerario: {
             /**
@@ -9806,6 +10329,18 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais-pms_reserva.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais.html-file.read_file.item.read_timestamp.read": {
             id?: string;
             nombre?: string;
@@ -9836,6 +10371,18 @@ export interface components {
             id?: string;
             nombre?: string;
             bandera?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.html-pms_reserva.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /**
          * @description Entidad MaestroPais.
@@ -9876,6 +10423,18 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais.multipart-file.read_file.item.read_timestamp.read": {
             id?: string;
             nombre?: string;
@@ -9907,25 +10466,615 @@ export interface components {
             nombre?: string;
             bandera?: string | null;
         };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.multipart-pms_reserva.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "PmsChannel-pax_reserva.read": {
             /** @description El ID es el código string. */
             id?: string;
             nombre?: string;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel-pms_channel.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+        };
+        "PmsChannel-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsChannel-pms_reserva.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "PmsChannel.html-pax_reserva.read": {
             /** @description El ID es el código string. */
             id?: string;
             nombre?: string;
         };
-        "PmsChannel.jsonld-pax_reserva.read": {
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.html-pms_channel.read": {
             /** @description El ID es el código string. */
             id?: string;
             nombre?: string;
+            color?: string | null;
+        };
+        "PmsChannel.html-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsChannel.html-pms_reserva.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.jsonld-pms_channel.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "PmsChannel.multipart-pax_reserva.read": {
             /** @description El ID es el código string. */
             id?: string;
             nombre?: string;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.multipart-pms_channel.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+        };
+        "PmsChannel.multipart-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsChannel.multipart-pms_reserva.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario-pms_evento.read_timestamp.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad-pms_evento.read_timestamp.read"];
+            reserva?: components["schemas"]["PmsReserva-pms_evento.read_timestamp.read"] | null;
+            channel: components["schemas"]["PmsChannel-pms_evento.read_timestamp.read"] | null;
+            referenciaCanal?: string | null;
+            comentariosHuesped?: string | null;
+            estado: components["schemas"]["PmsEventoEstado-pms_evento.read_timestamp.read"];
+            estadoPago: components["schemas"]["PmsEventoEstadoPago-pms_evento.read_timestamp.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly ota?: boolean;
+            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
+            readonly noches?: number;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario-pms_evento.write": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel: string | null;
+            comentariosHuesped?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estado: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estadoPago: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario-pms_evento.write.jsonMergePatch": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            comentariosHuesped?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estado?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estadoPago?: string;
+            /** Format: date-time */
+            inicio?: string;
+            /** Format: date-time */
+            fin?: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.html-pms_evento.read_timestamp.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad.html-pms_evento.read_timestamp.read"];
+            reserva?: components["schemas"]["PmsReserva.html-pms_evento.read_timestamp.read"] | null;
+            channel: components["schemas"]["PmsChannel.html-pms_evento.read_timestamp.read"] | null;
+            referenciaCanal?: string | null;
+            comentariosHuesped?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.html-pms_evento.read_timestamp.read"];
+            estadoPago: components["schemas"]["PmsEventoEstadoPago.html-pms_evento.read_timestamp.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly ota?: boolean;
+            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
+            readonly noches?: number;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            pmsUnidad: components["schemas"]["PmsUnidad.jsonld-pms_evento.read_timestamp.read"];
+            reserva?: components["schemas"]["PmsReserva.jsonld-pms_evento.read_timestamp.read"] | null;
+            channel: components["schemas"]["PmsChannel.jsonld-pms_evento.read_timestamp.read"] | null;
+            referenciaCanal?: string | null;
+            comentariosHuesped?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.jsonld-pms_evento.read_timestamp.read"];
+            estadoPago: components["schemas"]["PmsEventoEstadoPago.jsonld-pms_evento.read_timestamp.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly ota?: boolean;
+            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
+            readonly noches?: number;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.multipart-pms_evento.read_timestamp.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad.multipart-pms_evento.read_timestamp.read"];
+            reserva?: components["schemas"]["PmsReserva.multipart-pms_evento.read_timestamp.read"] | null;
+            channel: components["schemas"]["PmsChannel.multipart-pms_evento.read_timestamp.read"] | null;
+            referenciaCanal?: string | null;
+            comentariosHuesped?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.multipart-pms_evento.read_timestamp.read"];
+            estadoPago: components["schemas"]["PmsEventoEstadoPago.multipart-pms_evento.read_timestamp.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly ota?: boolean;
+            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
+            readonly noches?: number;
+        };
+        "PmsEventoEstado-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado-pms_evento_estado.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** @description Orden para listados en la UI. */
+            orden?: number | null;
+        };
+        "PmsEventoEstado.html-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.html-pms_evento_estado.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** @description Orden para listados en la UI. */
+            orden?: number | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.jsonld-pms_evento_estado.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** @description Orden para listados en la UI. */
+            orden?: number | null;
+        };
+        "PmsEventoEstado.multipart-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.multipart-pms_evento_estado.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** @description Orden para listados en la UI. */
+            orden?: number | null;
+        };
+        "PmsEventoEstadoPago-pms_evento.read_timestamp.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago-pms_evento_estado_pago.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Orden de prioridad/aparición en la interfaz. */
+            orden?: number | null;
+        };
+        "PmsEventoEstadoPago.html-pms_evento.read_timestamp.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago.html-pms_evento_estado_pago.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Orden de prioridad/aparición en la interfaz. */
+            orden?: number | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago.jsonld-pms_evento_estado_pago.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Orden de prioridad/aparición en la interfaz. */
+            orden?: number | null;
+        };
+        "PmsEventoEstadoPago.multipart-pms_evento.read_timestamp.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago.multipart-pms_evento_estado_pago.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Orden de prioridad/aparición en la interfaz. */
+            orden?: number | null;
         };
         /**
          * @description PmsGuia centraliza la información de la guía para el huésped.
@@ -9973,7 +11122,7 @@ export interface components {
         };
         "PmsReserva-pax_reserva.read": {
             nombreCliente: string | null;
-            apellidoCliente: string | null;
+            apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
             /** Format: email */
@@ -10007,9 +11156,63 @@ export interface components {
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
         };
+        "PmsReserva-pms_evento.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsReserva-pms_reserva.read_timestamp.read": {
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** Format: email */
+            emailCliente?: string | null;
+            channel?: components["schemas"]["PmsChannel-pms_reserva.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais-pms_reserva.read_timestamp.read"] | null;
+            idioma: components["schemas"]["Idioma-pms_reserva.read_timestamp.read"];
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsReserva-pms_reserva.write.jsonMergePatch": {
+            nombreCliente?: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** Format: email */
+            emailCliente?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma?: string;
+            datosLocked?: boolean;
+            nota?: string | null;
+        };
         "PmsReserva.html-pax_reserva.read": {
             nombreCliente: string | null;
-            apellidoCliente: string | null;
+            apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
             /** Format: email */
@@ -10043,9 +11246,43 @@ export interface components {
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
         };
+        "PmsReserva.html-pms_evento.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsReserva.html-pms_reserva.read_timestamp.read": {
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** Format: email */
+            emailCliente?: string | null;
+            channel?: components["schemas"]["PmsChannel.html-pms_reserva.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais.html-pms_reserva.read_timestamp.read"] | null;
+            idioma: components["schemas"]["Idioma.html-pms_reserva.read_timestamp.read"];
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "PmsReserva.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreCliente: string | null;
-            apellidoCliente: string | null;
+            apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
             /** Format: email */
@@ -10079,9 +11316,43 @@ export interface components {
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
         };
+        "PmsReserva.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsReserva.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** Format: email */
+            emailCliente?: string | null;
+            channel?: components["schemas"]["PmsChannel.jsonld-pms_reserva.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais.jsonld-pms_reserva.read_timestamp.read"] | null;
+            idioma: components["schemas"]["Idioma.jsonld-pms_reserva.read_timestamp.read"];
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "PmsReserva.multipart-pax_reserva.read": {
             nombreCliente: string | null;
-            apellidoCliente: string | null;
+            apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
             /** Format: email */
@@ -10115,21 +11386,143 @@ export interface components {
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
         };
+        "PmsReserva.multipart-pms_evento.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsReserva.multipart-pms_reserva.read_timestamp.read": {
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** Format: email */
+            emailCliente?: string | null;
+            channel?: components["schemas"]["PmsChannel.multipart-pms_reserva.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais.multipart-pms_reserva.read_timestamp.read"] | null;
+            idioma: components["schemas"]["Idioma.multipart-pms_reserva.read_timestamp.read"];
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "PmsUnidad-pax_evento.read": {
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
+        };
+        "PmsUnidad-pms_evento.read_timestamp.read": {
+            nombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad-pms_unidad.read": {
+            nombre?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
         };
         "PmsUnidad.html-pax_evento.read": {
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
-        "PmsUnidad.jsonld-pax_evento.read": {
+        "PmsUnidad.html-pms_evento.read_timestamp.read": {
+            nombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.html-pms_unidad.read": {
+            nombre?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pax_evento.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pms_unidad.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
         };
         "PmsUnidad.multipart-pax_evento.read": {
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
+        };
+        "PmsUnidad.multipart-pms_evento.read_timestamp.read": {
+            nombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.multipart-pms_unidad.read": {
+            nombre?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
         };
         /**
          * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
@@ -12240,6 +13633,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12289,6 +13692,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12338,6 +13751,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12387,6 +13810,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
         };
         "TravelSegmentoComponente-servicio.item.read": Record<string, never>;
         "TravelSegmentoComponente.html": {
@@ -12441,6 +13874,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12490,6 +13933,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12539,6 +13992,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12595,6 +14058,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12644,6 +14117,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12693,6 +14176,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12749,6 +14242,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12798,6 +14301,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12847,6 +14360,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -13559,6 +15082,124 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversations_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversation resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversations_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Conversation resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["Conversation-conversation.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description Conversation resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Conversation.jsonld-conversation.read"];
+                    "application/json": components["schemas"]["Conversation-conversation.read"];
+                    "text/html": components["schemas"]["Conversation.html-conversation.read"];
+                    "multipart/form-data": components["schemas"]["Conversation.multipart-conversation.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };
@@ -17530,6 +19171,290 @@ export interface operations {
             };
         };
     };
+    api_pmspms_channels_get_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsChannel collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["PmsChannel.jsonld-pms_channel.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsChannel-pms_channel.read"][];
+                    "text/html": components["schemas"]["PmsChannel.html-pms_channel.read"][];
+                    "multipart/form-data": components["schemas"]["PmsChannel.multipart-pms_channel.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_calendarios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new PmsEventoCalendario resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["PmsEventoCalendario-pms_evento.write"];
+                "application/json": components["schemas"]["PmsEventoCalendario-pms_evento.write"];
+                "text/html": components["schemas"]["PmsEventoCalendario-pms_evento.write"];
+                "multipart/form-data": components["schemas"]["PmsEventoCalendario-pms_evento.write"];
+            };
+        };
+        responses: {
+            /** @description PmsEventoCalendario resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsEventoCalendario-pms_evento.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsEventoCalendario.html-pms_evento.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsEventoCalendario.multipart-pms_evento.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_calendarios_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsEventoCalendario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsEventoCalendario resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsEventoCalendario-pms_evento.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsEventoCalendario.html-pms_evento.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsEventoCalendario.multipart-pms_evento.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_calendarios_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsEventoCalendario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated PmsEventoCalendario resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["PmsEventoCalendario-pms_evento.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description PmsEventoCalendario resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsEventoCalendario-pms_evento.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsEventoCalendario.html-pms_evento.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsEventoCalendario.multipart-pms_evento.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_estados_get_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsEventoEstado collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["PmsEventoEstado.jsonld-pms_evento_estado.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsEventoEstado-pms_evento_estado.read"][];
+                    "text/html": components["schemas"]["PmsEventoEstado.html-pms_evento_estado.read"][];
+                    "multipart/form-data": components["schemas"]["PmsEventoEstado.multipart-pms_evento_estado.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_estado_pagos_get_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsEventoEstadoPago collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["PmsEventoEstadoPago.jsonld-pms_evento_estado_pago.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsEventoEstadoPago-pms_evento_estado_pago.read"][];
+                    "text/html": components["schemas"]["PmsEventoEstadoPago.html-pms_evento_estado_pago.read"][];
+                    "multipart/form-data": components["schemas"]["PmsEventoEstadoPago.multipart-pms_evento_estado_pago.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     api_publicpaxpmspms_guiapms_unidad_unidad_get: {
         parameters: {
             query?: never;
@@ -17593,6 +19518,165 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_reservas_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsReserva identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsReserva resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsReserva.jsonld-pms_reserva.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsReserva-pms_reserva.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsReserva.html-pms_reserva.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsReserva.multipart-pms_reserva.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_reservas_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsReserva identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated PmsReserva resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["PmsReserva-pms_reserva.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description PmsReserva resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsReserva.jsonld-pms_reserva.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsReserva-pms_reserva.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsReserva.html-pms_reserva.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsReserva.multipart-pms_reserva.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_unidads_get_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsUnidad collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["PmsUnidad.jsonld-pms_unidad.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsUnidad-pms_unidad.read"][];
+                    "text/html": components["schemas"]["PmsUnidad.html-pms_unidad.read"][];
+                    "multipart/form-data": components["schemas"]["PmsUnidad.multipart-pms_unidad.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

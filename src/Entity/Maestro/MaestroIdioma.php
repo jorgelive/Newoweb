@@ -62,11 +62,11 @@ class MaestroIdioma
     #[ORM\Column(type: 'string', length: 2)]
     #[ORM\GeneratedValue(strategy: 'NONE')]
     #[ApiProperty(identifier: true)] // 🔥 Soluciona el error "key not found in object" en Swagger UI
-    #[Groups(['pax:read', 'file:read', 'file:item:read'])]
+    #[Groups(['pax:read', 'file:read', 'file:item:read', 'pms_reserva:read'])]
     private ?string $id = null;
 
     #[ORM\Column(type: 'string', length: 50)]
-    #[Groups(['pax:read', 'file:read', 'file:item:read'])]
+    #[Groups(['pax:read', 'file:read', 'file:item:read', 'pms_reserva:read'])]
     private ?string $nombre = null;
 
     #[ORM\Column(type: 'string', length: 10, nullable: true)]

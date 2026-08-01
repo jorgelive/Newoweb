@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -13,6 +16,18 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * Define los estados internos del PMS y su mapeo con Beds24.
  * IDs Naturales basados en los códigos originales.
  */
+#[ApiResource(
+    operations: [
+        // Solo lectura: alimenta el selector de estado del calendario SPA (Vue).
+        new GetCollection(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            normalizationContext: ['groups' => ['pms_evento_estado:read']],
+        ),
+    ],
+    routePrefix: '/pms',
+    order: ['orden' => 'ASC'],
+    paginationEnabled: false,
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_evento_estado')]
 #[ORM\HasLifecycleCallbacks]
@@ -108,19 +123,22 @@ class PmsEventoEstado
      * GETTERS Y SETTERS
      * ====================================================== */
 
+    #[Groups(['pms_evento_estado:read', 'pms_evento:read'])]
     public function getId(): ?string { return $this->id; }
     public function setId(string $id): self { $this->id = $id; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_evento_estado:read', 'pms_evento:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
 
+    #[Groups(['pms_evento_estado:read', 'pms_evento:read'])]
     public function getColor(): ?string { return $this->color; }
     public function setColor(?string $color): self { $this->color = $color; return $this; }
 
     public function getCodigoBeds24(): ?string { return $this->codigoBeds24; }
     public function setCodigoBeds24(?string $codigoBeds24): self { $this->codigoBeds24 = $codigoBeds24; return $this; }
 
+    #[Groups(['pms_evento_estado:read'])]
     public function getOrden(): ?int { return $this->orden; }
     public function setOrden(?int $orden): self { $this->orden = $orden; return $this; }
 

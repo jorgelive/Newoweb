@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
 use App\Attribute\AutoTranslate;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroMoneda;
@@ -11,6 +13,7 @@ use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Panel\Entity\Trait\MediaTrait;
+use App\Security\Roles;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -26,6 +29,18 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
  * Entidad PmsUnidad.
  * Representa un apartamento o habitación específica.
  */
+#[ApiResource(
+    operations: [
+        // Solo lectura: alimenta el selector de unidad del calendario SPA (Vue).
+        new GetCollection(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            normalizationContext: ['groups' => ['pms_unidad:read']],
+        ),
+    ],
+    routePrefix: '/pms',
+    order: ['nombre' => 'ASC'],
+    paginationEnabled: false,
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_unidad')]
 #[ORM\HasLifecycleCallbacks]
@@ -156,7 +171,7 @@ class PmsUnidad
     public function getEstablecimiento(): ?PmsEstablecimiento { return $this->establecimiento; }
     public function setEstablecimiento(?PmsEstablecimiento $val): self { $this->establecimiento = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_unidad:read', 'pms_evento:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $val): self { $this->nombre = $val; return $this; }
 
@@ -182,6 +197,7 @@ class PmsUnidad
     public function getCapacidad(): ?int { return $this->capacidad; }
     public function setCapacidad(?int $val): self { $this->capacidad = $val; return $this; }
 
+    #[Groups(['pms_unidad:read'])]
     public function isActivo(): bool { return $this->activo; }
     public function setActivo(bool $val): self { $this->activo = $val; return $this; }
 
@@ -370,7 +386,7 @@ class PmsUnidad
         return $this;
     }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_unidad:read', 'pms_evento:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;

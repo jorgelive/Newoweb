@@ -54,6 +54,12 @@ message_api_controllers:
     type: attribute
     host: '%app.host.api%'
 
+# API (calendario SPA de reservas — módulo nuevo)
+pms_api_controllers:
+    resource: ../src/Pms/Controller/Api/
+    type: attribute
+    host: '%app.host.api%'
+
 # Panel (Easyadmin)
 panel_controllers:
     resource: ../src/Panel/Controller/

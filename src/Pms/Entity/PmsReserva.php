@@ -7,6 +7,10 @@ namespace App\Pms\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use App\Pms\ApiPlatform\Dto\PmsReservaCrearInput;
+use App\Pms\ApiPlatform\State\PmsReservaCrearProcessor;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Maestro\MaestroIdioma;
@@ -14,6 +18,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\Repository\PmsReservaRepository;
+use App\Security\Roles;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -37,7 +42,35 @@ use Symfony\Component\Validator\Constraints as Assert;
             normalizationContext: ['groups' => ['pax_reserva:read']],
             name: 'pax_get_reserva',
         ),
-    ]
+        // ====================================================================
+        // App util (Vue) — edición de reservas desde el calendario SPA.
+        // No reemplaza el flujo de EasyAdmin, es un acceso adicional.
+        // ====================================================================
+        new Get(
+            uriTemplate: '/pms/pms_reservas/{id}',
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            normalizationContext: ['groups' => ['pms_reserva:read', 'timestamp:read']],
+        ),
+        new Patch(
+            uriTemplate: '/pms/pms_reservas/{id}',
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar reservas.',
+            normalizationContext: ['groups' => ['pms_reserva:read', 'timestamp:read']],
+            denormalizationContext: ['groups' => ['pms_reserva:write']],
+        ),
+        // "Reserva completa" (titular + estancia inicial) creada desde el calendario
+        // SPA en un único paso atómico. Ver PmsReservaCrearProcessor: solo puede
+        // crear reservas de canal DIRECTO, nunca OTA.
+        new Post(
+            uriTemplate: '/pms/pms_reservas',
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear reservas.',
+            input: PmsReservaCrearInput::class,
+            normalizationContext: ['groups' => ['pms_reserva:read', 'timestamp:read']],
+            denormalizationContext: ['groups' => ['pms_reserva_crear:write']],
+            processor: PmsReservaCrearProcessor::class,
+        ),
+    ],
 )]
 #[ORM\HasLifecycleCallbacks]
 class PmsReserva
@@ -160,7 +193,7 @@ class PmsReserva
         $this->id = Uuid::v7();
     }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read'])]
     public function getLocalizador(): ?string { return $this->localizador; }
 
     #[Groups(['pax_reserva:read'])]
@@ -206,6 +239,7 @@ class PmsReserva
         return (int) $this->fechaLlegada->diff($this->fechaSalida)->days;
     }
 
+    #[Groups(['pms_reserva:read'])]
     public function getUrlBeds24(): ?string {
         $bookId = $this->beds24MasterId ?: $this->beds24BookIdPrincipal;
         if (!$bookId) {
@@ -232,7 +266,7 @@ class PmsReserva
         return $hasError ? 'error' : (!$allSynced ? 'pending' : 'synced');
     }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read'])]
     public function getId(): ?Uuid { return $this->id; }
 
     public function getBeds24MasterId(): ?string { return $this->beds24MasterId; }
@@ -241,66 +275,70 @@ class PmsReserva
     public function getBeds24BookIdPrincipal(): ?string { return $this->beds24BookIdPrincipal; }
     public function setBeds24BookIdPrincipal(?string $val): self { $this->beds24BookIdPrincipal = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getNombreCliente(): ?string { return $this->nombreCliente; }
     public function setNombreCliente(?string $val): self { $this->nombreCliente = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getApellidoCliente(): ?string { return $this->apellidoCliente; }
     public function setApellidoCliente(?string $val): self { $this->apellidoCliente = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getTelefono(): ?string { return $this->telefono; }
     public function setTelefono(?string $val): self { $this->telefono = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getTelefono2(): ?string { return $this->telefono2; }
     public function setTelefono2(?string $val): self { $this->telefono2 = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getEmailCliente(): ?string { return $this->emailCliente; }
     public function setEmailCliente(?string $val): self { $this->emailCliente = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read'])]
     public function getChannel(): ?PmsChannel { return $this->channel; }
     public function setChannel(?PmsChannel $val): self { $this->channel = $val; return $this; }
 
     public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
     public function setMoneda(?MaestroMoneda $val): self { $this->moneda = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $val): self { $this->pais = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getIdioma(): ?MaestroIdioma { return $this->idioma; }
     public function setIdioma(?MaestroIdioma $val): self { $this->idioma = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read'])]
     public function getCantidadAdultos(): ?int { return $this->cantidadAdultos; }
     public function setCantidadAdultos(?int $val): self { $this->cantidadAdultos = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read'])]
     public function getCantidadNinos(): ?int { return $this->cantidadNinos; }
     public function setCantidadNinos(?int $val): self { $this->cantidadNinos = $val; return $this; }
 
+    #[Groups(['pms_reserva:read'])]
     public function getMontoTotal(): ?string { return $this->montoTotal; }
     public function setMontoTotal(?string $val): self { $this->montoTotal = $val; return $this; }
 
+    #[Groups(['pms_reserva:read'])]
     public function getComisionTotal(): ?string { return $this->comisionTotal; }
     public function setComisionTotal(?string $val): self { $this->comisionTotal = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read'])]
     public function getFechaLlegada(): ?DateTimeInterface { return $this->fechaLlegada; }
     public function setFechaLlegada(?DateTimeInterface $val): self { $this->fechaLlegada = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_reserva:read'])]
     public function getFechaSalida(): ?DateTimeInterface { return $this->fechaSalida; }
     public function setFechaSalida(?DateTimeInterface $val): self { $this->fechaSalida = $val; return $this; }
 
+    #[Groups(['pms_reserva:read', 'pms_reserva:write'])]
     public function isDatosLocked(): bool { return $this->datosLocked; }
     public function setDatosLocked(bool $val): self { $this->datosLocked = $val; return $this; }
 
+    #[Groups(['pms_reserva:read', 'pms_reserva:write'])]
     public function getNota(): ?string { return $this->nota; }
     public function setNota(?string $val): self { $this->nota = $val; return $this; }
 
@@ -322,6 +360,13 @@ class PmsReserva
     public function getUltimaFechaModificacionCanal(): ?DateTimeInterface { return $this->ultimaFechaModificacionCanal; }
     public function setUltimaFechaModificacionCanal(?DateTimeInterface $val): self { $this->ultimaFechaModificacionCanal = $val; return $this; }
 
+    /**
+     * Solo trae `id` (ver Groups en PmsEventoCalendario::getId()): el frontend usa esta
+     * lista para saber qué estancias tiene la reserva y luego pide el detalle completo
+     * de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
+     * editar un evento individual).
+     */
+    #[Groups(['pms_reserva:read'])]
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
     public function addEventosCalendario(PmsEventoCalendario $evento): self {
         if (!$this->eventosCalendario->contains($evento)) {

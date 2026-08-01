@@ -59,13 +59,38 @@ final class PmsEventoCalendarioSecurityListener
      */
     public function preUpdate(PmsEventoCalendario $evento, PreUpdateEventArgs $args): void
     {
-        // 1. Solo aplicamos restricciones de estado manual a reservas OTA
-        if (!$evento->isOta()) {
+        // 0. Si el cambio viene del proceso automático (Webhook/Pull), tiene pase libre
+        // (Beds24 asigna/actualiza el canal real de la reserva durante la sincronización).
+        if ($this->syncContext->isPull()) {
             return;
         }
 
-        // 2. Si el cambio viene del proceso automático (Webhook/Pull), tiene pase libre
-        if ($this->syncContext->isPull()) {
+        // 0b. NUEVA REGLA: INMUTABILIDAD DEL CANAL
+        // El canal se define una sola vez (al crear el evento) y nunca puede
+        // reasignarse manualmente después, sea el evento OTA o directo. Evita que
+        // el frontend/API reclasifique una reserva Airbnb como directa (o viceversa).
+        // Se excluye el caso "valor anterior null" para no romper el saneamiento
+        // automático de PmsEventoCalendarioIntegrityListener::asegurarCanalDirecto().
+        if ($args->hasChangedField('channel') && $args->getOldValue('channel') !== null) {
+            throw new AccessDeniedHttpException(
+                'SEGURIDAD: El canal de un evento no se puede modificar una vez asignado. ' .
+                'Si el canal es incorrecto, corrígelo desde el proceso de sincronización o soporte técnico.'
+            );
+        }
+
+        // 0c. NUEVA REGLA: INMUTABILIDAD DE LA RESERVA PADRE
+        // `reserva` solo se puede asignar al crear el evento (grupo pms_evento:write_create,
+        // exclusivo del Post). Aquí blindamos que ningún PATCH pueda re-parentar un evento
+        // ya vinculado hacia otra reserva. Se permite null -> reserva (ver
+        // PmsEventoCalendarioIntegrityListener y flujos de EasyAdmin que vinculan en dos pasos).
+        if ($args->hasChangedField('reserva') && $args->getOldValue('reserva') !== null) {
+            throw new AccessDeniedHttpException(
+                'SEGURIDAD: Un evento no se puede reasignar a otra reserva una vez vinculado.'
+            );
+        }
+
+        // 1. Solo aplicamos restricciones de estado manual a reservas OTA
+        if (!$evento->isOta()) {
             return;
         }
 
@@ -76,6 +101,17 @@ final class PmsEventoCalendarioSecurityListener
             throw new AccessDeniedHttpException(
                 'SEGURIDAD OTA: No puedes modificar las fechas de llegada o salida de una reserva externa. ' .
                 'Cualquier cambio de fechas debe realizarse directamente en el canal (Booking, Airbnb, etc.).'
+            );
+        }
+
+        // 3b. NUEVA REGLA: INMUTABILIDAD DE LA UNIDAD FÍSICA OTA
+        // Antes solo el controller de EasyAdmin revertía este cambio en memoria (UX).
+        // Lo blindamos aquí también para que cualquier cliente (API, consola, etc.)
+        // quede protegido, no solo el panel.
+        if ($args->hasChangedField('pmsUnidad')) {
+            throw new AccessDeniedHttpException(
+                'SEGURIDAD OTA: No puedes reasignar la unidad física de una reserva externa. ' .
+                'El movimiento de habitación debe hacerse directamente en el canal (Booking, Airbnb, etc.).'
             );
         }
 

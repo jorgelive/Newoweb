@@ -28,6 +28,12 @@ const modulos = [
     bar: 'bg-[#376875]', titleHover: 'group-hover:text-[#376875]',
   },
   {
+    to: '/reservas', title: 'Reservas', icon: 'fa-calendar-days',
+    desc: 'Calendario PMS: estancias, bloqueos y disponibilidad por unidad.',
+    iconBg: 'bg-[#376875]/10', iconColor: 'text-[#376875]',
+    bar: 'bg-[#376875]', titleHover: 'group-hover:text-[#376875]',
+  },
+  {
     to: '/catalogo', title: 'Catálogo de Tours', icon: 'fa-book-open',
     desc: 'Producto pre-armado por segmento, listo para cotizar en minutos.',
     iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
@@ -210,6 +216,7 @@ const handleLogout = async () => {
 .module-card:nth-child(2) { animation-delay: 0.10s; }
 .module-card:nth-child(3) { animation-delay: 0.16s; }
 .module-card:nth-child(4) { animation-delay: 0.22s; }
+.module-card:nth-child(5) { animation-delay: 0.28s; }
 
 .toast-slide-enter-active,
 .toast-slide-leave-active {

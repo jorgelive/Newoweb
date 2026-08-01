@@ -153,6 +153,87 @@ parameters:
                 start: '12:00:00'
                 end: '11:59:00'
 
+        # ==========================================================================
+        # Calendarios SPA (Vue) — sin urledit/urlshow ni returnTo de EasyAdmin.
+        # El evento expone extendedProps.context + ids crudos para que el frontend
+        # arme su propia navegación.
+        # ==========================================================================
+        pms_eventos_no_cancelados_spa:
+            provider: pms_eventos_spa
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: [ ]
+                    not_in: [cancelada]
+                estadoPago:
+                    in: [ ]
+                    not_in: [ ]
+        pms_eventos_todos_spa:
+            provider: pms_eventos_spa
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: [ ]
+                    not_in: [ ]
+                estadoPago:
+                    in: [ ]
+                    not_in: [ ]
+
+        tarifa_rangos_raw_spa:
+            provider: tarifa_ranges_spa
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                id: id
+                resourceRoot: unidad
+                resourceId: unidad.id
+                resourceTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+                price: precio
+                minStay: minStay
+                currency: moneda.codigo
+
+                active: activo
+
+                weight: prioridad
+                important: importante
+            filters:
+                activeOnly: false
+            event:
+                includeCurrency: false
+                titleFormat: '{price} | {minStay}'
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:00'
+        tarifa_rangos_compactados_spa:
+            provider: tarifa_compressed_ranges_spa
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                unit: unidad
+                unitId: unidad.id
+                unitTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+
+                price: precio
+                minStay: minStay
+                currency: moneda.codigo
+
+                important: importante
+                weight: prioridad
+                id: id
+
+                active: activo
+            filters:
+                activeOnly: true
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:00'
+
 services:
 
     _defaults:

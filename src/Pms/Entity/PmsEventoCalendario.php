@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Pms\ApiPlatform\State\PmsEventoCalendarioProcessor;
+use App\Security\Roles;
 use DateTimeInterface;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -23,6 +29,35 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  * ✅ Entidad limpia de hacks temporales. La protección de estados OTA
  * se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
  */
+#[ApiResource(
+    operations: [
+        // App util (Vue) — calendario SPA de reservas. La integridad OTA (fechas,
+        // unidad, estado) queda blindada por PmsEventoCalendarioSecurityListener,
+        // no por este recurso; el processor solo reconstruye los links Beds24.
+        new Get(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            normalizationContext: ['groups' => ['pms_evento:read', 'timestamp:read']],
+        ),
+        new Post(
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear eventos de calendario.',
+            normalizationContext: ['groups' => ['pms_evento:read', 'timestamp:read']],
+            // 'pms_evento:write_create' habilita `reserva` SOLO en este Post (ver la
+            // propiedad más abajo): permite agregar una estancia más (otra casita) a
+            // una reserva ya existente desde el calendario SPA.
+            denormalizationContext: ['groups' => ['pms_evento:write', 'pms_evento:write_create']],
+            processor: PmsEventoCalendarioProcessor::class,
+        ),
+        new Patch(
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar eventos de calendario.',
+            normalizationContext: ['groups' => ['pms_evento:read', 'timestamp:read']],
+            denormalizationContext: ['groups' => ['pms_evento:write']],
+            processor: PmsEventoCalendarioProcessor::class,
+        ),
+    ],
+    routePrefix: '/pms',
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_evento_calendario')]
 #[ORM\HasLifecycleCallbacks]
@@ -67,20 +102,27 @@ class PmsEventoCalendario
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class)]
     #[ORM\JoinColumn(name: 'pms_unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
     #[Assert\NotNull(message: "La unidad es obligatoria.")]
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_evento:read', 'pms_evento:write'])]
     private ?PmsUnidad $pmsUnidad = null;
 
     #[ORM\ManyToOne(targetEntity: PmsReserva::class, inversedBy: 'eventosCalendario')]
     #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: true, columnDefinition: 'BINARY(16)')]
+    // 'pms_evento:write_create' es un grupo EXCLUSIVO del Post (ver ApiResource más abajo):
+    // permite enlazar el evento a una reserva existente solo al crearlo. Nunca se agrega
+    // al Patch, para que un evento no pueda re-parentarse a otra reserva por accidente
+    // (ver también PmsEventoCalendarioSecurityListener::preUpdate).
+    #[Groups(['pms_evento:read', 'pms_evento:write_create'])]
     private ?PmsReserva $reserva = null;
 
     #[ORM\ManyToOne(targetEntity: PmsChannel::class, inversedBy: 'eventosCalendario')]
     #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
     #[Assert\NotNull(message: 'El canal es obligatorio.')]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private ?PmsChannel $channel = null;
 
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     #[Assert\Length(max: 100)]
+    #[Groups(['pms_evento:read'])]
     private ?string $referenciaCanal = null;
 
     #[ORM\Column(type: 'string', length: 20, nullable: true)]
@@ -94,6 +136,7 @@ class PmsEventoCalendario
     private ?DateTimeInterface $fechaModificacionCanal = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private ?string $comentariosHuesped = null;
 
     /* ======================================================
@@ -103,11 +146,13 @@ class PmsEventoCalendario
     #[ORM\ManyToOne(targetEntity: PmsEventoEstado::class)]
     #[ORM\JoinColumn(name: 'estado_id', referencedColumnName: 'id', nullable: false)]
     #[Assert\NotNull(message: "El estado es obligatorio.")]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private ?PmsEventoEstado $estado = null;
 
     #[ORM\ManyToOne(targetEntity: PmsEventoEstadoPago::class)]
     #[ORM\JoinColumn(name: 'estado_pago_id', referencedColumnName: 'id', nullable: false)]
     #[Assert\NotNull(message: "El estado de pago es obligatorio.")]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private ?PmsEventoEstadoPago $estadoPago = null;
 
     /* ======================================================
@@ -116,25 +161,32 @@ class PmsEventoCalendario
 
     #[ORM\Column(type: 'datetime')]
     #[Assert\NotBlank(message: "La fecha de inicio es obligatoria.")]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private ?DateTimeInterface $inicio = null;
 
     #[ORM\Column(type: 'datetime')]
     #[Assert\NotBlank(message: "La fecha de fin es obligatoria.")]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private ?DateTimeInterface $fin = null;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private ?string $descripcion = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private string $monto = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true, options: ['default' => '0.00'])]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private ?string $comision = '0.00';
 
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private int $cantidadAdultos = 0;
 
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private int $cantidadNinos = 0;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
@@ -282,7 +334,7 @@ class PmsEventoCalendario
      * GETTERS Y SETTERS EXPLÍCITOS
      * ====================================================== */
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_evento:read', 'pms_reserva:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -348,6 +400,7 @@ class PmsEventoCalendario
     public function getCantidadNinos(): int { return $this->cantidadNinos; }
     public function setCantidadNinos(int $cantidadNinos): self { $this->cantidadNinos = $cantidadNinos; return $this; }
 
+    #[Groups(['pms_evento:read'])]
     public function isOta(): bool { return $this->isOta; }
     public function setIsOta(bool $isOta): self { $this->isOta = $isOta; return $this; }
 
@@ -460,7 +513,7 @@ class PmsEventoCalendario
      *
      * @return int
      */
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_evento:read'])]
     public function getNoches(): int
     {
         if (null === $this->inicio || null === $this->fin) {

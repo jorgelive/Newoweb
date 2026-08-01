@@ -2,7 +2,10 @@
 
 namespace App\Pms\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -11,6 +14,18 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * Entidad PmsChannel.
  * Primary Key: id (ID Natural: airbnb, booking, directo, etc).
  */
+#[ApiResource(
+    operations: [
+        // Solo lectura: alimenta el selector de canal del calendario SPA (Vue).
+        new GetCollection(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            normalizationContext: ['groups' => ['pms_channel:read']],
+        ),
+    ],
+    routePrefix: '/pms',
+    order: ['orden' => 'ASC'],
+    paginationEnabled: false,
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_channel')]
 #[ORM\HasLifecycleCallbacks]
@@ -73,7 +88,7 @@ class PmsChannel
      * -------------------------------------------------------------------------
      */
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_channel:read', 'pms_evento:read', 'pms_reserva:read'])]
     public function getId(): ?string
     {
         return $this->id;
@@ -102,7 +117,7 @@ class PmsChannel
         return $this;
     }
 
-    #[Groups(['pax_reserva:read'])]
+    #[Groups(['pax_reserva:read', 'pms_channel:read', 'pms_evento:read', 'pms_reserva:read'])]
     public function getNombre(): ?string
     {
         return $this->nombre;
@@ -136,6 +151,7 @@ class PmsChannel
         return $this;
     }
 
+    #[Groups(['pms_channel:read', 'pms_evento:read', 'pms_reserva:read'])]
     public function getColor(): ?string
     {
         return $this->color;

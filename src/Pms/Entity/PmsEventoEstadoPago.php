@@ -4,14 +4,30 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 /**
  * Entidad PmsEventoEstadoPago.
  * Define los niveles de cumplimiento de pago de un evento.
  * IDs Naturales con guion-central (ej: pago-parcial).
  */
+#[ApiResource(
+    operations: [
+        // Solo lectura: alimenta el selector de estado de pago del calendario SPA (Vue).
+        new GetCollection(
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            normalizationContext: ['groups' => ['pms_evento_estado_pago:read']],
+        ),
+    ],
+    routePrefix: '/pms',
+    order: ['orden' => 'ASC'],
+    paginationEnabled: false,
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_evento_estado_pago')]
 #[ORM\HasLifecycleCallbacks]
@@ -104,18 +120,23 @@ class PmsEventoEstadoPago
      * GETTERS Y SETTERS
      * ====================================================== */
 
+    #[Groups(['pms_evento_estado_pago:read', 'pms_evento:read'])]
     public function getId(): ?string { return $this->id; }
     public function setId(string $id): self { $this->id = $id; return $this; }
 
+    #[Groups(['pms_evento_estado_pago:read', 'pms_evento:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
 
+    #[Groups(['pms_evento_estado_pago:read', 'pms_evento:read'])]
     public function getColor(): ?string { return $this->color; }
     public function setColor(?string $color): self { $this->color = $color; return $this; }
 
+    #[Groups(['pms_evento_estado_pago:read', 'pms_evento:read'])]
     public function isColorOverride(): bool { return $this->colorOverride; }
     public function setColorOverride(bool $colorOverride): self { $this->colorOverride = $colorOverride; return $this; }
 
+    #[Groups(['pms_evento_estado_pago:read'])]
     public function getOrden(): ?int { return $this->orden; }
     public function setOrden(?int $orden): self { $this->orden = $orden; return $this; }
 

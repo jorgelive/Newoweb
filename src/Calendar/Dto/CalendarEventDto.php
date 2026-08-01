@@ -37,6 +37,7 @@ final class CalendarEventDto implements JsonSerializable
         public readonly ?string $urlshow = null,
         public readonly string|array|null $tooltip = null,
         public readonly ?int $prioridadImportante = null,
+        public readonly ?array $extendedProps = null,
     ) {}
 
     public function toArray(): array
@@ -75,6 +76,10 @@ final class CalendarEventDto implements JsonSerializable
 
         if ($this->prioridadImportante !== null) {
             $out['prioridadImportante'] = $this->prioridadImportante;
+        }
+
+        if (!empty($this->extendedProps)) {
+            $out['extendedProps'] = $this->extendedProps;
         }
 
         return $out;

@@ -432,6 +432,17 @@ class MessageTemplate
     }
 
     /**
+     * Indica si la plantilla tiene contenido "link" de WhatsApp (api.whatsapp.com)
+     * en español o inglés. Usado por el frontend para filtrar qué plantillas
+     * ofrecer en el selector de "Enviar WhatsApp" de una reserva.
+     */
+    #[Groups(['template:read'])]
+    public function hasWhatsappLinkContent(): bool
+    {
+        return $this->getWhatsappLinkBody('es') !== null || $this->getWhatsappLinkBody('en') !== null;
+    }
+
+    /**
      * Obtiene la configuración del Header para un idioma específico.
      * @return array{format: string, content: string|null}|null
      */

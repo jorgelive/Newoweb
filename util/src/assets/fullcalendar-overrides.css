@@ -1,0 +1,89 @@
+/*
+ * Densidad del calendario de reservas (resourceTimeline), adaptada del legacy
+ * EasyAdmin (assets/styles/fullcalendar.css): sin esto, FullCalendar usa su
+ * tipografía/paddings por defecto, que son mucho más grandes que el legacy y
+ * en mobile hacen que el título se parta en varias líneas y los botones no
+ * entren en una sola fila.
+ */
+
+.fc .fc-header-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0 6px;
+}
+
+.fc .fc-toolbar-chunk {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.fc .fc-button-group {
+    display: inline-flex;
+    gap: 0;
+}
+
+.fc .fc-button {
+    cursor: pointer;
+    padding: 0.35em 0.65em;
+    font-size: 0.78rem;
+    font-weight: 700;
+    min-height: 32px;
+    border-radius: 10px;
+}
+
+.fc .fc-prev-button {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.fc .fc-next-button {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    margin-left: -1px;
+}
+
+/* Grilla de recursos (columna de casitas + filas de la timeline): más compacta
+   para que entren más casitas en pantalla sin necesidad de hacer scroll. */
+.fc .fc-datagrid-cell-cushion {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.fc .fc-timeline-slot-cushion {
+    font-size: 0.7rem;
+}
+
+.fc .fc-datagrid-cell-frame,
+.fc .fc-timeline-lane-frame {
+    min-height: 34px;
+}
+
+.fc .fc-event {
+    font-size: 0.72rem;
+    padding: 1px 4px;
+}
+
+@media (max-width: 480px) {
+    .fc .fc-toolbar-title {
+        font-size: 0.9rem;
+    }
+    .fc .fc-button {
+        padding: 0.3em 0.5em;
+        font-size: 0.7rem;
+        min-height: 28px;
+    }
+}

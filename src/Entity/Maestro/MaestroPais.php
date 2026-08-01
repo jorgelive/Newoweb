@@ -51,11 +51,11 @@ class MaestroPais
     #[ORM\Id]
     #[ORM\Column(type: 'string', length: 2)]
     #[ORM\GeneratedValue(strategy: 'NONE')]
-    #[Groups(['pax:read', 'pais:read', 'file:read', 'file:item:read'])]
+    #[Groups(['pax:read', 'pais:read', 'file:read', 'file:item:read', 'pms_reserva:read'])]
     private ?string $id = null; // ISO 'PE', 'US'...
 
     #[ORM\Column(type: 'string', length: 100)]
-    #[Groups(['pax:read', 'pais:read', 'file:read', 'file:item:read'])]
+    #[Groups(['pax:read', 'pais:read', 'file:read', 'file:item:read', 'pms_reserva:read'])]
     private ?string $nombre = null;
 
     // 🔥 NUEVO: Campo para la Bandera (Emoji)
