@@ -348,6 +348,7 @@ class PmsReserva
     #[Groups(['pax_reserva:read'])]
     public function getUnidadesAggregate(): ?string { return $this->unidadesAggregate; }
     public function setUnidadesAggregate(?string $val): self { $this->unidadesAggregate = $val; return $this; }
+    #[Groups(['pms_reserva:read'])]
     public function getReferenciaCanalAggregate(): ?string { return $this->referenciaCanalAggregate; }
     public function setReferenciaCanalAggregate(?string $val): self { $this->referenciaCanalAggregate = $val; return $this; }
 
@@ -480,6 +481,7 @@ class PmsReserva
     /**
      * 2. EL ARMADOR DE URL MULTI-CANAL
      */
+    #[Groups(['pms_reserva:read'])]
     public function getUrlCanalExtranet(): ?string
     {
         $canalId = $this->getChannel()?->getId(); // Asumiendo que el ID del canal es la constante ('booking', 'airbnb')

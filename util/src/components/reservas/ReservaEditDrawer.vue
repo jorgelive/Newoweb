@@ -2,7 +2,8 @@
 import { ref, computed, watch } from 'vue';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useMaestroStore } from '@/stores/maestroStore';
-import { useChatStore, type ApiTemplate } from '@/stores/chat/chatStore';
+import { getUrls } from '@/services/apiClient';
+import { formatearTelefono } from '@/utils/telefono';
 import {
     PMS_ESTADO,
     PMS_ESTADO_PAGO,
@@ -15,7 +16,6 @@ import {
     toDatetimeLocal,
     fromDatetimeLocal,
     filtrarEstadosDisponibles,
-    abrirWhatsapp,
     resolveEventoColor,
     contrastText,
     COLOR_ESTADO_FALLBACK,
@@ -26,7 +26,6 @@ import {
     type PmsReservaCrearPayload,
 } from '@/types/pmsReservaModel';
 
-type ApiTemplateWA = ApiTemplate & { hasWhatsappLinkContent?: boolean };
 
 const props = defineProps<{
     eventoId?: string | null;
@@ -42,7 +41,6 @@ const emit = defineEmits<{ close: []; saved: [] }>();
 
 const reservasStore = useReservasStore();
 const maestroStore = useMaestroStore();
-const chatStore = useChatStore();
 
 const isCreate = computed(() => !props.eventoId && !!props.createDefaults);
 const isCreateReserva = computed(() => isCreate.value && props.createKind === 'reserva');
@@ -247,29 +245,41 @@ const clienteForm = ref(clienteVacio());
 const muestraCliente = computed(() => !!props.reservaId || isCreateReserva.value);
 
 // ============================================================================
-// ENVÍO DE WHATSAPP (plantillas) — solo aplica a una reserva ya persistida.
-// El backend resuelve el texto en JSON (PmsReservaWhatsappLinkController) y
-// aquí armamos la URL de wa.me y abrimos: evita el viejo flujo de redirect
-// que colapsaba con plantillas largas (cabecera Location demasiado grande).
+// DATOS DE SOLO LECTURA DE LA RESERVA (localizador, referencia OTA, extranet)
+// Réplica de los campos que ya existían en el detalle de EasyAdmin
+// (templates/panel/pms/pms_reserva/fields/*.html.twig), no están en `clienteForm`
+// porque no son editables desde este drawer.
 // ============================================================================
-const plantillasWhatsapp = computed(() =>
-    (chatStore.templates as ApiTemplateWA[]).filter(t => t.hasWhatsappLinkContent)
-);
-const enviandoWhatsappId = ref<string | null>(null);
+const reservaInfo = ref<{
+    localizador: string | null;
+    referenciaCanalAggregate: string | null;
+    urlCanalExtranet: string | null;
+    channelId: string | null;
+}>({ localizador: null, referenciaCanalAggregate: null, urlCanalExtranet: null, channelId: null });
 
-async function enviarWhatsapp(templateId: string): Promise<void> {
-    if (!props.reservaId) return;
-    enviandoWhatsappId.value = templateId;
-    localError.value = null;
+/** Link público de la guía del huésped (mismo path que PmsMessageDataResolver::getMessageVariables() -> guide_url). */
+const guideUrl = computed(() => {
+    if (!reservaInfo.value.localizador) return null;
+    return `${getUrls().pax}/huesped/reserva/${reservaInfo.value.localizador}`;
+});
+
+const vcardUrl = computed(() => {
+    if (!props.reservaId) return null;
+    return `${getUrls().api}/pms/reservas/${props.reservaId}/vcard`;
+});
+
+// Feedback visual "Copiado" (mismo patrón que assets/controllers/panel/clipboard_controller.js).
+const copiadoKey = ref<string | null>(null);
+async function copiar(texto: string, key: string): Promise<void> {
     try {
-        const { telefono, texto } = await reservasStore.fetchWhatsappLink(props.reservaId, templateId);
-        abrirWhatsapp(telefono, texto);
-    } catch (err) {
-        localError.value = extractApiErrorMessage(err, 'No se pudo generar el mensaje de WhatsApp.');
-    } finally {
-        enviandoWhatsappId.value = null;
+        await navigator.clipboard.writeText(texto);
+        copiadoKey.value = key;
+        setTimeout(() => { if (copiadoKey.value === key) copiadoKey.value = null; }, 1500);
+    } catch {
+        localError.value = 'No se pudo copiar al portapapeles.';
     }
 }
+
 
 async function cargarDatos(): Promise<void> {
     isLoadingDrawer.value = true;
@@ -301,8 +311,6 @@ async function cargarDatos(): Promise<void> {
         }
 
         if (props.reservaId) {
-            if (!chatStore.templates.length) chatStore.fetchTemplates();
-
             const reserva = await reservasStore.fetchReserva(props.reservaId);
             clienteForm.value = {
                 nombreCliente: reserva.nombreCliente ?? '',
@@ -314,6 +322,20 @@ async function cargarDatos(): Promise<void> {
                 idioma: reserva.idioma?.id ?? '',
                 nota: reserva.nota ?? '',
                 datosLocked: reserva.datosLocked ?? false,
+            };
+
+            // Campos de solo lectura que no vienen aún en el schema generado
+            // (urlCanalExtranet, referenciaCanalAggregate: ver Groups agregados en PmsReserva).
+            const reservaExtra = reserva as {
+                localizador?: string | null;
+                referenciaCanalAggregate?: string | null;
+                urlCanalExtranet?: string | null;
+            };
+            reservaInfo.value = {
+                localizador: reservaExtra.localizador ?? null,
+                referenciaCanalAggregate: reservaExtra.referenciaCanalAggregate ?? null,
+                urlCanalExtranet: reservaExtra.urlCanalExtranet ?? null,
+                channelId: reserva.channel?.id ?? null,
             };
 
             const ids = idsDeEventos(reserva);
@@ -708,6 +730,34 @@ async function guardar(): Promise<void> {
                         <i class="fas fa-user mr-1"></i> Datos del Titular
                     </h3>
 
+                    <!-- ===== IDENTIFICADORES (localizador + guía, referencia del canal, vCard) =====
+                         WhatsApp, chat interno y el enlace al canal (Booking/Airbnb) viven ahora en
+                         el menú contextual del calendario para no duplicarlos. -->
+                    <div v-if="reservaId" class="mb-3 space-y-2">
+                        <!-- Localizador propio + copiar enlace a la guía del huésped (van juntos) -->
+                        <div v-if="reservaInfo.localizador" class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Localizador</span>
+                            <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-mono font-bold">
+                                {{ reservaInfo.localizador }}
+                            </span>
+                            <button v-if="guideUrl" @click="copiar(guideUrl, 'guide')"
+                                class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-colors"
+                                :class="copiadoKey === 'guide' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'">
+                                <i class="fas" :class="copiadoKey === 'guide' ? 'fa-check' : 'fa-link'"></i>
+                                {{ copiadoKey === 'guide' ? 'Copiado' : 'Copiar enlace' }}
+                            </button>
+                        </div>
+
+                        <!-- Código de referencia del canal externo (OTA), solo informativo -->
+                        <div v-if="reservaInfo.referenciaCanalAggregate" class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Ref. canal</span>
+                            <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-mono font-bold">
+                                {{ reservaInfo.referenciaCanalAggregate }}
+                            </span>
+                        </div>
+
+                    </div>
+
                     <!-- ===== VISTA (modo "Ver") ===== -->
                     <div v-if="readOnly" class="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
                         <div class="grid grid-cols-2 gap-x-4 gap-y-3 p-4">
@@ -721,11 +771,17 @@ async function guardar(): Promise<void> {
                             </div>
                             <div>
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Teléfono</p>
-                                <p class="text-sm font-bold text-slate-800 mt-0.5">{{ clienteForm.telefono || '—' }}</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <p class="text-sm font-bold text-slate-800">{{ formatearTelefono(clienteForm.telefono) || '—' }}</p>
+                                    <a v-if="vcardUrl && clienteForm.telefono" :href="vcardUrl" target="_blank" title="Descargar contacto (vCard)"
+                                        class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-black uppercase tracking-wide transition-colors shrink-0">
+                                        <i class="fas fa-address-card"></i> vCard
+                                    </a>
+                                </div>
                             </div>
                             <div>
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Teléfono 2</p>
-                                <p class="text-sm font-bold text-slate-800 mt-0.5">{{ clienteForm.telefono2 || '—' }}</p>
+                                <p class="text-sm font-bold text-slate-800 mt-0.5">{{ formatearTelefono(clienteForm.telefono2) || '—' }}</p>
                             </div>
                             <div class="col-span-2">
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Email</p>
@@ -763,6 +819,8 @@ async function guardar(): Promise<void> {
                         </label>
                         <label>
                             <span class="text-xs font-bold text-slate-500">Teléfono</span>
+                            <span v-if="formatearTelefono(clienteForm.telefono) && formatearTelefono(clienteForm.telefono) !== clienteForm.telefono"
+                                class="ml-1.5 text-[10px] font-bold text-slate-400">{{ formatearTelefono(clienteForm.telefono) }}</span>
                             <input type="text" v-model="clienteForm.telefono"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
                         </label>
@@ -804,21 +862,6 @@ async function guardar(): Promise<void> {
                     </div>
                 </section>
 
-                <!-- ================= WHATSAPP (vista detalle) ================= -->
-                <!-- Independiente del modo edición/lectura: enviar un mensaje no es un campo del formulario. -->
-                <section v-if="reservaId && plantillasWhatsapp.length">
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                        <i class="fab fa-whatsapp mr-1"></i> Enviar WhatsApp
-                    </h3>
-                    <div class="flex flex-wrap gap-2">
-                        <button v-for="t in plantillasWhatsapp" :key="t.id ?? ''" @click="enviarWhatsapp(t.id ?? '')"
-                            :disabled="enviandoWhatsappId === t.id"
-                            class="flex items-center gap-2 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-700 rounded-lg text-xs font-bold transition-colors">
-                            <i class="fas" :class="enviandoWhatsappId === t.id ? 'fa-circle-notch fa-spin' : 'fa-paper-plane'"></i>
-                            {{ t.name }}
-                        </button>
-                    </div>
-                </section>
             </div>
 
             <footer class="border-t border-slate-200 px-5 py-4 flex items-center justify-end gap-3 shrink-0">

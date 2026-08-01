@@ -21,6 +21,7 @@
     "@vuepic/vue-datepicker": "^14.0.0",
     "axios": "^1.7.9",
     "imask": "^7.6.1",
+    "libphonenumber-js": "^1.13.10",
     "pinia": "^3.0.0",
     "pinia-plugin-persistedstate": "^4.7.1",
     "tippy.js": "^6.3.7",

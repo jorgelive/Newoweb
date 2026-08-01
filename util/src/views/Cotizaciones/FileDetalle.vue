@@ -7,6 +7,7 @@ import { apiClient } from '@/services/apiClient';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { getUrls } from '@/services/apiClient';
 import { ESTADO_FILE_LABELS } from '@/types/cotizacionEditorModel';
+import { formatearTelefono } from '@/utils/telefono';
 
 import type { ApiPais } from '@/types/maestroModel';
 
@@ -75,22 +76,9 @@ const idiomaFileDropdown = ref(false);
 const idiomasDisponibles = computed(() => fileStore.idiomasDisponibles);
 
 // ============================================================================
-// TELÉFONO — máscara de display
+// TELÉFONO — máscara de display (formateo compartido en @/utils/telefono)
 // ============================================================================
 const telefonoFocused = ref(false);
-
-const formatearTelefonoDisplay = (val?: string | null): string => {
-  if (!val) return '';
-  const v = val.trim();
-  // Si ya tiene espacios o + viene formateado del backend, mostrar tal cual
-  if (v.includes(' ') || v.startsWith('+')) return v;
-  const d = v.replace(/\D/g, '');
-  // Perú: 51XXXXXXXXX (11 dígitos) → +51 XXX XXX XXX
-  if (d.startsWith('51') && d.length === 11) return `+51 ${d.slice(2, 5)} ${d.slice(5, 8)} ${d.slice(8)}`;
-  // Celular peruano 9 dígitos → +51 XXX XXX XXX
-  if (d.length === 9 && d.startsWith('9')) return `+51 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
-  return v;
-};
 
 // ============================================================================
 // PAÍS DEL EXPEDIENTE
@@ -587,7 +575,7 @@ const eliminarDocumento = async (iri?: string) => {
                   <div v-if="!telefonoFocused && file.telefono"
                        class="absolute inset-0 flex items-center px-3 text-sm font-bold text-slate-800 pointer-events-none select-none rounded-lg">
                     <i class="fas fa-phone text-[#376875]/40 text-xs mr-2"></i>
-                    {{ formatearTelefonoDisplay(file.telefono) }}
+                    {{ formatearTelefono(file.telefono) }}
                   </div>
                 </div>
               </div>
