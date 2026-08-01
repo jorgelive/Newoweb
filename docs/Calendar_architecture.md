@@ -423,5 +423,63 @@ const calendarOptions = computed(() => ({
 | `src/Calendar/Dto/CalendarResourceDto.php` | DTO → JSON recurso |
 | `src/Calendar/Twig/FullCalendarStimulusExtension.php` | Genera div data-* (solo EasyAdmin) |
 | `assets/controllers/fullcalendar_controller.js` | Stimulus: FC, fetch, scroll, tooltips |
-| `templates/panel/pms/pms_reserva/index.html.twig` | Vista reservas |
-| `templates/panel/pms/pms_tarifa_rango/index.html.twig` | Vista tarifas |
+| `templates/panel/pms/pms_reserva/index.html.twig` | Vista reservas (legacy EasyAdmin) |
+| `templates/panel/pms/pms_tarifa_rango/index.html.twig` | Vista tarifas (legacy EasyAdmin) |
+
+---
+
+## 12. Módulos Vue ya implementados (app `util/`)
+
+Ambos consumen los providers `*_spa` del apartado 5 para PINTAR el calendario, y un
+recurso REST de API Platform propio para EDITAR. Ningún dato de edición pasa por
+`/fullcalendar/load/*`: ese endpoint es de solo lectura.
+
+### Reservas — equivalente de `PmsReservaCrudController`
+
+| Archivo | Responsabilidad |
+|---|---|
+| `util/src/views/Reservas/ReservasView.vue` | Calendario + menú contextual + drag & drop |
+| `util/src/components/reservas/ReservaEditDrawer.vue` | Drawer ver/crear/editar (acordeón de estancias) |
+| `util/src/stores/reservas/reservasStore.ts` | Catálogos + CRUD de evento/reserva |
+| `util/src/types/pmsReservaModel.ts` | Tipos, helpers de IRI/fecha y reglas OTA |
+
+Calendarios: `pms_eventos_no_cancelados_spa`, `pms_eventos_todos_spa`.
+
+### Tarifas — equivalente de `PmsTarifaRangoCrudController`
+
+| Archivo | Responsabilidad |
+|---|---|
+| `util/src/views/Tarifas/TarifasView.vue` | Calendario + menú contextual + drag & drop |
+| `util/src/components/tarifas/TarifaEditDrawer.vue` | Drawer ver/crear/editar/eliminar de un rango |
+| `util/src/components/tarifas/TarifaMasivaDrawer.vue` | Acción "Generar Masivo" |
+| `util/src/stores/tarifas/tarifasStore.ts` | Catálogos (unidad/moneda) + CRUD + masivo |
+| `util/src/types/pmsTarifaModel.ts` | Tipos, helpers de IRI/fecha y presentación |
+
+Calendarios: `tarifa_rangos_raw_spa` (editable) y `tarifa_rangos_compactados_spa` (solo lectura).
+
+Endpoints REST (`PmsTarifaRango`, `routePrefix: /pms`):
+
+```
+GET    /platform/pms/pms_tarifa_rangos            (colección, con filtros unidad/fecha/activo)
+GET    /platform/pms/pms_tarifa_rangos/{id}
+POST   /platform/pms/pms_tarifa_rangos
+PATCH  /platform/pms/pms_tarifa_rangos/{id}
+DELETE /platform/pms/pms_tarifa_rangos/{id}
+POST   /platform/pms/pms_tarifa_rangos/generar-masivo
+```
+
+Puntos que costaron y conviene no re-descubrir:
+
+- **Los compactados no son filas de la tabla.** Son segmentos calculados a partir de
+  los rangos solapados: se pueden abrir (vía `extendedProps.tarifaRangoId`, que apunta
+  al rango ganador) pero NO admiten drag & drop, de ahí el flag `editable` por calendario.
+- **Fechas.** `fechaInicio`/`fechaFin` son columnas `date`. La API las serializa a
+  medianoche UTC, así que el día se extrae por string (`iso.slice(0,10)`), nunca con
+  `new Date().getDate()` — en UTC-5 eso devuelve el día anterior. En el calendario, en
+  cambio, el provider inyecta horas de UI (12:00 → 11:59) y FullCalendar mueve en
+  múltiplos de 24 h, por lo que ahí sí vale leer el día local de `event.start/end`.
+- **El borrado no necesita blindaje.** `Beds24RatesPushQueueListener` encola el push
+  del intervalo afectado también en `scheduledEntityDeletions`, a diferencia de
+  `PmsEventoCalendario`, que sí tiene `isSafeToDelete()`.
+- **`generar-masivo` delega en `GeneradorTarifaMasivaService`**, el mismo servicio que
+  usa EasyAdmin: el processor solo traduce el payload HTTP al DTO interno.

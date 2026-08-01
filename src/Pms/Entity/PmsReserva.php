@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
@@ -69,6 +70,14 @@ use Symfony\Component\Validator\Constraints as Assert;
             normalizationContext: ['groups' => ['pms_reserva:read', 'timestamp:read']],
             denormalizationContext: ['groups' => ['pms_reserva_crear:write']],
             processor: PmsReservaCrearProcessor::class,
+        ),
+        // Borra la reserva y, en cascada, todas sus estancias. El permiso solo abre
+        // la puerta: PmsReservaDeleteListener::preRemove veta la operación si alguna
+        // de sus estancias no es isSafeToDelete() (OTA, Beds24, sync en curso).
+        new Delete(
+            uriTemplate: '/pms/pms_reservas/{id}',
+            security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar reservas.',
         ),
     ],
 )]
@@ -253,6 +262,33 @@ class PmsReserva
             }
         }
         return $bookId ? sprintf('https://beds24.com/control2.php?pagetype=bookingedit&bookid=%s', $bookId) : null;
+    }
+
+    /**
+     * Una reserva solo es borrable si TODAS sus estancias lo son
+     * (misma regla que aplica PmsReservaDeleteListener::preRemove).
+     */
+    #[Groups(['pms_reserva:read'])]
+    public function isSafeToDelete(): bool
+    {
+        return null === $this->getMotivoNoBorrable();
+    }
+
+    /**
+     * Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede.
+     * Devuelve el de la primera estancia que bloquea la operación.
+     */
+    #[Groups(['pms_reserva:read'])]
+    public function getMotivoNoBorrable(): ?string
+    {
+        foreach ($this->eventosCalendario as $evento) {
+            $motivo = $evento->getMotivoNoBorrable();
+            if (null !== $motivo) {
+                return $motivo;
+            }
+        }
+
+        return null;
     }
 
     public function getSyncStatusAggregate(): string {

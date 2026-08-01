@@ -34,6 +34,12 @@ const modulos = [
     bar: 'bg-[#376875]', titleHover: 'group-hover:text-[#376875]',
   },
   {
+    to: '/tarifas', title: 'Tarifas', icon: 'fa-tags',
+    desc: 'Rangos de precio y estancia mínima por unidad, con push automático a Beds24.',
+    iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
+    bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
+  },
+  {
     to: '/catalogo', title: 'Catálogo de Tours', icon: 'fa-book-open',
     desc: 'Producto pre-armado por segmento, listo para cotizar en minutos.',
     iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',

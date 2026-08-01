@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
@@ -54,6 +55,13 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
             normalizationContext: ['groups' => ['pms_evento:read', 'timestamp:read']],
             denormalizationContext: ['groups' => ['pms_evento:write']],
             processor: PmsEventoCalendarioProcessor::class,
+        ),
+        // El permiso solo abre la puerta: quién puede borrar *qué* lo decide
+        // isSafeToDelete() vía PmsEventoCalendarioSecurityListener::preRemove
+        // (OTA, existencia en Beds24, sincronización en curso).
+        new Delete(
+            security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar eventos de calendario.',
         ),
     ],
     routePrefix: '/pms',
@@ -313,21 +321,42 @@ class PmsEventoCalendario
      *
      * @return bool True si se puede eliminar sin causar inconsistencias, false de lo contrario.
      */
+    #[Groups(['pms_evento:read'])]
     public function isSafeToDelete(): bool
     {
-        if ($this->isOta()) return false;
+        return null === $this->getMotivoNoBorrable();
+    }
+
+    /**
+     * Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede.
+     * Fuente única de verdad de isSafeToDelete(): el frontend lo usa para explicar
+     * al operador por qué el botón de eliminar está deshabilitado, en lugar de
+     * dejarlo descubrirlo con un 403 del listener.
+     *
+     * @return string|null
+     */
+    #[Groups(['pms_evento:read'])]
+    public function getMotivoNoBorrable(): ?string
+    {
+        if ($this->isOta()) {
+            return 'Es una reserva de un canal externo (Booking/Airbnb): debe cancelarse directamente en el canal.';
+        }
 
         foreach ($this->beds24Links as $link) {
-            if (null !== $link->getBeds24BookId()) {
-                if (!in_array($this->getEstado()?->getId(), self::ESTADOS_BORRABLES_CON_ID, true)) return false;
+            if (null !== $link->getBeds24BookId()
+                && !in_array($this->getEstado()?->getId(), self::ESTADOS_BORRABLES_CON_ID, true)
+            ) {
+                return 'Ya existe en Beds24: primero debes pasarla a "cancelada" y esperar la sincronización.';
             }
 
             foreach ($link->getQueues() as $queue) {
-                if ($queue->getStatus() === 'processing' || $queue->getLockedAt() !== null) return false;
+                if ($queue->getStatus() === 'processing' || $queue->getLockedAt() !== null) {
+                    return 'Se está sincronizando con Beds24 en este momento. Intenta de nuevo en unos minutos.';
+                }
             }
         }
 
-        return true;
+        return null;
     }
 
     /* ======================================================

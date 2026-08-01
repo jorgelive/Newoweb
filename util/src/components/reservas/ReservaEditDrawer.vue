@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { getUrls } from '@/services/apiClient';
@@ -37,7 +37,7 @@ const props = defineProps<{
     startReadOnly?: boolean;
 }>();
 
-const emit = defineEmits<{ close: []; saved: [] }>();
+const emit = defineEmits<{ close: []; saved: []; deleted: [] }>();
 
 const reservasStore = useReservasStore();
 const maestroStore = useMaestroStore();

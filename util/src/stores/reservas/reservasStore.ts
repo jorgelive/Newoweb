@@ -102,6 +102,21 @@ export const useReservasStore = defineStore('reservasStore', () => {
     };
 
     /**
+     * Elimina una estancia/bloqueo. El backend la veta con 403 si no es borrable
+     * (PmsEventoCalendarioSecurityListener::preRemove -> isSafeToDelete): OTA, ya
+     * existente en Beds24 sin cancelar, o con una sincronización en curso.
+     */
+    const deleteEvento = async (id: string): Promise<void> => {
+        isSaving.value = true;
+        error.value = null;
+        try {
+            await apiClient.delete(`/platform/pms/pms_evento_calendarios/${id}`);
+        } finally {
+            isSaving.value = false;
+        }
+    };
+
+    /**
      * Crea un evento nuevo sin reserva asociada (bloqueo manual del calendario).
      * Equivalente al botón "Crear Bloqueo" de EasyAdmin.
      */
@@ -161,6 +176,20 @@ export const useReservasStore = defineStore('reservasStore', () => {
     };
 
     /**
+     * Elimina la reserva completa (y en cascada todas sus estancias). El backend
+     * la veta con 403 si alguna estancia no es borrable (PmsReservaDeleteListener).
+     */
+    const deleteReserva = async (id: string): Promise<void> => {
+        isSaving.value = true;
+        error.value = null;
+        try {
+            await apiClient.delete(`/platform/pms/pms_reservas/${id}`);
+        } finally {
+            isSaving.value = false;
+        }
+    };
+
+    /**
      * Busca la conversación de chat interno vinculada a una reserva.
      * Devuelve su UUID o null si todavía no existe (igual que el legacy: si no
      * hay fila en msg_conversation, no se ofrece la opción de abrir el chat).
@@ -202,8 +231,10 @@ export const useReservasStore = defineStore('reservasStore', () => {
         fetchEvento,
         patchEvento,
         createEvento,
+        deleteEvento,
         fetchReserva,
         patchReserva,
+        deleteReserva,
         createReservaCompleta,
         fetchConversacionId,
         fetchWhatsappLink,

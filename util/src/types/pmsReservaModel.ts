@@ -31,8 +31,20 @@ import { components } from '@/types/api';
 // TIPOS DE LECTURA
 // ============================================================================
 
-export type PmsEventoCalendario = components['schemas']['PmsEventoCalendario-pms_evento.read_timestamp.read'];
-export type PmsReserva = components['schemas']['PmsReserva-pms_reserva.read_timestamp.read'];
+/**
+ * Reglas de borrado (`safeToDelete` / `motivoNoBorrable`): las expone el backend
+ * en el grupo de lectura (PmsEventoCalendario::isSafeToDelete/getMotivoNoBorrable),
+ * pero todavía no están en el api.d.ts generado — de ahí la extensión manual.
+ * Son la misma verdad que aplica el listener de Doctrine en preRemove: si el
+ * frontend deshabilita el botón, el backend habría respondido 403.
+ */
+export interface PmsBorrableInfo {
+    safeToDelete?: boolean;
+    motivoNoBorrable?: string | null;
+}
+
+export type PmsEventoCalendario = components['schemas']['PmsEventoCalendario-pms_evento.read_timestamp.read'] & PmsBorrableInfo;
+export type PmsReserva = components['schemas']['PmsReserva-pms_reserva.read_timestamp.read'] & PmsBorrableInfo;
 
 export type PmsUnidadOption = components['schemas']['PmsUnidad-pms_unidad.read'];
 export type PmsEventoEstadoOption = components['schemas']['PmsEventoEstado-pms_evento_estado.read'];
