@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, shallowRef } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, shallowRef, onBeforeUnmount } from 'vue';
+import { useRouter, onBeforeRouteLeave } from 'vue-router';
 import FullCalendar from '@fullcalendar/vue3';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -14,7 +14,14 @@ import { apiClient, getUrls } from '@/services/apiClient';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useChatStore, type ApiTemplate } from '@/stores/chat/chatStore';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
-import { abrirWhatsapp, PMS_CHANNEL, type PmsEventoExtendedProps } from '@/types/pmsReservaModel';
+import {
+    abrirWhatsapp,
+    PMS_CHANNEL,
+    PMS_ESTADO,
+    type PmsEventoExtendedProps,
+    type PmsReservaBusquedaItem,
+} from '@/types/pmsReservaModel';
+import { fromDateLocal, sumarDias } from '@/types/pmsTarifaModel';
 import { telefonoParaWhatsapp } from '@/utils/telefono';
 
 // El backend expone `hasWhatsappLinkContent()` pero el serializer de Symfony
@@ -69,6 +76,155 @@ function onCambiarCalendario(): void {
     if (!api) return;
     api.refetchResources();
     api.refetchEvents();
+}
+
+// ============================================================================
+// BUSCADOR DE RESERVAS
+//
+// El calendario solo carga el rango visible: sin buscador no hay forma de dar
+// con la reserva de un huésped sin saber de antemano su mes. El backend
+// (PmsReservaBuscarController) devuelve una fila por estancia y al elegir una
+// el calendario se posiciona en su fecha de inicio.
+// ============================================================================
+const BUSQUEDA_MIN = 2;
+
+const busquedaTexto = ref('');
+const busquedaResultados = ref<PmsReservaBusquedaItem[]>([]);
+const busquedaAbierta = ref(false);
+const buscando = ref(false);
+
+let busquedaDebounce: ReturnType<typeof setTimeout> | null = null;
+// Petición en vuelo: si el usuario sigue tecleando, una respuesta lenta de una
+// consulta vieja pisaría en pantalla a la nueva. Se aborta la anterior.
+let busquedaAbort: AbortController | null = null;
+
+function onBuscarInput(): void {
+    if (busquedaDebounce) clearTimeout(busquedaDebounce);
+
+    if (busquedaTexto.value.trim().length < BUSQUEDA_MIN) {
+        busquedaAbort?.abort();
+        busquedaAbort = null;
+        busquedaResultados.value = [];
+        busquedaAbierta.value = false;
+        buscando.value = false;
+        return;
+    }
+
+    buscando.value = true;
+    busquedaAbierta.value = true;
+    busquedaDebounce = setTimeout(ejecutarBusqueda, 350);
+}
+
+async function ejecutarBusqueda(): Promise<void> {
+    busquedaAbort?.abort();
+    const ctrl = new AbortController();
+    busquedaAbort = ctrl;
+
+    try {
+        busquedaResultados.value = await reservasStore.buscarReservas(busquedaTexto.value.trim(), ctrl.signal);
+    } catch {
+        // Abortada = reemplazada por una búsqueda más nueva: no es un error real.
+        if (ctrl.signal.aborted) return;
+        busquedaResultados.value = [];
+        avisar('No se pudo completar la búsqueda de reservas.');
+    } finally {
+        if (busquedaAbort === ctrl) {
+            buscando.value = false;
+            busquedaAbort = null;
+        }
+    }
+}
+
+function limpiarBusqueda(): void {
+    if (busquedaDebounce) clearTimeout(busquedaDebounce);
+    busquedaAbort?.abort();
+    busquedaAbort = null;
+    busquedaTexto.value = '';
+    busquedaResultados.value = [];
+    busquedaAbierta.value = false;
+    buscando.value = false;
+}
+
+onBeforeUnmount(() => {
+    if (busquedaDebounce) clearTimeout(busquedaDebounce);
+    busquedaAbort?.abort();
+});
+
+/** `YYYY-MM-DD` sin el corrimiento de un día de `new Date('YYYY-MM-DD')` (parsea en UTC). */
+function formatFechaCorta(iso: string | null): string {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
+}
+
+// ============================================================================
+// SALTO AL DÍA EXACTO
+//
+// `gotoDate()` solo coloca el RANGO (el mes): en una vista timeline el scroll
+// horizontal se queda donde estaba, así que la estancia podía caer fuera de
+// pantalla. El desplazamiento fino lo hace `scrollToTime()`, que en timeline
+// cuenta la duración desde el inicio del rango visible — de ahí el cálculo de
+// días entre `view.activeStart` y el día buscado.
+//
+// El rango nuevo puede no estar renderizado en el instante del salto, así que el
+// día queda "pendiente" y se reintenta cuando el calendario avisa: `datesSet`
+// (rango ya montado) y `loading` (fin de la carga de eventos, último intento).
+// ============================================================================
+const MS_POR_DIA = 86_400_000;
+
+/** Día `YYYY-MM-DD` al que hay que desplazarse en cuanto el rango esté listo. */
+let diaPendiente: string | null = null;
+
+/** @returns true si se pudo desplazar (el día ya está dentro del rango visible). */
+function scrollAlDia(fechaIso: string): boolean {
+    const api = calendarApiRef.value?.getApi();
+    if (!api) return false;
+
+    const [y, m, d] = fechaIso.split('-').map(Number);
+    const objetivo = new Date(y, m - 1, d);
+    const inicio = api.view.activeStart;
+    if (!inicio || objetivo < inicio || objetivo >= api.view.activeEnd) return false;
+
+    // Un día de margen para que la barra no quede pegada al borde izquierdo.
+    const dias = Math.round((objetivo.getTime() - inicio.getTime()) / MS_POR_DIA) - 1;
+    api.scrollToTime({ days: Math.max(0, dias) });
+    return true;
+}
+
+/**
+ * Reintenta el salto pendiente después del repintado.
+ * `ultimoIntento` lo descarta aunque falle, para que un día que nunca entra en
+ * el rango no quede acechando y desplace el calendario en una navegación futura.
+ */
+function resolverDiaPendiente(ultimoIntento = false): void {
+    if (!diaPendiente) return;
+    const objetivo = diaPendiente;
+
+    requestAnimationFrame(() => {
+        if (diaPendiente !== objetivo) return;
+        if (scrollAlDia(objetivo) || ultimoIntento) diaPendiente = null;
+    });
+}
+
+/** Lleva el calendario a la estancia elegida (mes y día). */
+function irAResultado(item: PmsReservaBusquedaItem): void {
+    if (!item.inicio) return;
+
+    // El calendario "No canceladas" oculta justo lo que se acaba de encontrar:
+    // si la estancia está cancelada, se pasa a "Todas" o el salto acabaría en
+    // una fila vacía.
+    const debeVerTodas = item.estadoId === PMS_ESTADO.CANCELADA && calendarioActual.value.key !== 'pms_eventos_todos_spa';
+    if (debeVerTodas) calendarioIndex.value = calendarios.findIndex(c => c.key === 'pms_eventos_todos_spa');
+
+    calendarApiRef.value?.getApi()?.gotoDate(item.inicio);
+    if (debeVerTodas) onCambiarCalendario();
+
+    // Si el mes ya era el visible, `gotoDate` no dispara `datesSet` y no habría
+    // reintento: se intenta aquí mismo y solo queda pendiente si aún no cuadra.
+    diaPendiente = item.inicio;
+    resolverDiaPendiente();
+
+    busquedaAbierta.value = false;
 }
 
 // ============================================================================
@@ -215,17 +371,86 @@ async function onEventClick(info: any): Promise<void> {
     }
 }
 
+// ============================================================================
+// TARIFA DEL DÍA (al abrir el menú sobre un hueco libre)
+//
+// No hay endpoint nuevo: se reutiliza el calendario compactado de tarifas, que
+// es justo "el rango ganador" por día (TarifaPricingEngine resuelve los
+// solapamientos por prioridad) y ya filtra por tarifas activas.
+// ============================================================================
+const menuTarifa = ref<{ cargando: boolean; texto: string | null }>({ cargando: false, texto: null });
+
+async function cargarTarifaDelDia(unidadId: string, fecha: string): Promise<void> {
+    menuTarifa.value = { cargando: true, texto: null };
+    try {
+        // `end` es EXCLUSIVO: [D, D+1) es "solo el día D". Con [D, D] el motor
+        // lanza InvalidArgumentException (ver TarifaDailyPriceFlattener::flatten).
+        const r = await apiClient.get('/fullcalendar/load/event/tarifa_rangos_compactados_spa', {
+            params: { start: fecha, end: sumarDias(fecha, 1), _t: Date.now() },
+        });
+        const eventos: any[] = Array.isArray(r.data) ? r.data : (r.data?.data ?? []);
+        const tramo = eventos.find((e) => String(e?.resourceId) === String(unidadId));
+        const props = tramo?.extendedProps;
+
+        // Descartar si el usuario ya cerró o movió el menú mientras se resolvía.
+        if (menu.value?.kind !== 'create' || menu.value.unidadId !== unidadId) return;
+
+        menuTarifa.value = {
+            cargando: false,
+            texto: props?.precio
+                ? `${props.moneda ?? ''} ${props.precio}`.trim() + (props.minStay ? ` · mín. ${props.minStay}N` : '')
+                : null,
+        };
+    } catch {
+        // Silencioso: el menú simplemente muestra "sin tarifa".
+        menuTarifa.value = { cargando: false, texto: null };
+    }
+}
+
+/** Abre el calendario de tarifas posicionado en el día que se estaba mirando. */
+function irATarifas(): void {
+    const fecha = menu.value?.fecha ? fromDateLocal(menu.value.fecha) : null;
+    cerrarMenu();
+    router.push({ path: '/tarifas', query: fecha ? { fecha } : {} });
+}
+
 function onDateClick(info: any): void {
     const resourceId = info.resource?.id;
     if (!resourceId) return;
     const { x, y } = posicionMenu(info.jsEvent);
     menu.value = { x, y, kind: 'create', unidadId: resourceId, fecha: info.date };
     limpiarMenuReserva();
+    cargarTarifaDelDia(resourceId, fromDateLocal(info.date));
 }
 
 function cerrarMenu(): void {
     menu.value = null;
 }
+
+// ============================================================================
+// BOTÓN "ATRÁS" DEL NAVEGADOR
+//
+// En móvil el gesto instintivo para cerrar el drawer (o el menú contextual) es
+// el "atrás" del sistema. Si hay algo abierto encima del calendario, el back lo
+// cierra y se cancela la navegación; solo con el calendario limpio se sale de
+// la vista (al portal). Vue Router restaura la posición del historial cuando el
+// guard devuelve `false`, así que el back sigue disponible para el siguiente
+// intento.
+// ============================================================================
+onBeforeRouteLeave(() => {
+    if (menu.value) {
+        cerrarMenu();
+        return false;
+    }
+    if (drawerVisible.value) {
+        cerrarDrawer();
+        return false;
+    }
+    if (busquedaAbierta.value) {
+        busquedaAbierta.value = false;
+        return false;
+    }
+});
 
 function elegirVerEvento(): void {
     if (menu.value?.eventProps) abrirEdicion(menu.value.eventProps, true);
@@ -377,6 +602,16 @@ const calendarOptions: any = {
             localStorage.setItem(`${FC_STORAGE_KEY}_date`, fechaRef.toISOString().slice(0, 10));
         }
         localStorage.setItem(`${FC_STORAGE_KEY}_view`, info.view.type);
+
+        // El rango ya está montado: si venimos de una búsqueda, es el momento de
+        // desplazar la línea de tiempo hasta el día exacto.
+        resolverDiaPendiente();
+    },
+
+    // Fin de la carga de eventos: último intento por si el rango tardó en
+    // quedar listo (con el flag de "último" para no dejarlo colgado).
+    loading: (cargando: boolean) => {
+        if (!cargando) resolverDiaPendiente(true);
     },
 
     views: {
@@ -434,8 +669,8 @@ const calendarOptions: any = {
     <div class="h-screen bg-[#F8FAFC] flex flex-col font-sans overflow-hidden">
         <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md shrink-0">
             <div class="flex items-center gap-3">
-                <button @click="router.push('/')" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
-                    <i class="fas fa-arrow-left text-sm"></i>
+                <button @click="router.push('/')" title="Volver al inicio" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+                    <i class="fas fa-home text-sm"></i>
                 </button>
                 <div class="overflow-hidden">
                     <h1 class="font-black text-base md:text-xl tracking-tight leading-none">Calendario de Reservas</h1>
@@ -450,6 +685,68 @@ const calendarOptions: any = {
                 <option v-for="(cal, i) in calendarios" :key="cal.key" :value="i">{{ cal.nombre }}</option>
             </select>
         </header>
+
+        <!-- Capta el clic fuera para cerrar los resultados (bajo la barra, sobre el calendario) -->
+        <div v-if="busquedaAbierta" class="fixed inset-0 z-20" @click="busquedaAbierta = false"></div>
+
+        <!-- BUSCADOR: huésped, localizador, referencia del canal o casita -->
+        <div class="relative z-30 bg-white border-b border-slate-200 px-3 md:px-4 py-2 shrink-0">
+            <div class="relative max-w-xl">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input v-model="busquedaTexto" @input="onBuscarInput"
+                    @focus="busquedaResultados.length && (busquedaAbierta = true)"
+                    @keyup.esc="busquedaAbierta = false"
+                    type="text" inputmode="search" autocomplete="off"
+                    placeholder="Buscar reserva por nombre y apellido…"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-9 py-2 text-sm font-bold text-slate-700 placeholder:font-medium placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#376875] focus:ring-2 focus:ring-[#376875]/20 transition-colors">
+                <button v-if="busquedaTexto" @click="limpiarBusqueda" title="Limpiar"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+
+                <!-- Resultados -->
+                <div v-if="busquedaAbierta"
+                    class="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden max-h-[60vh] overflow-y-auto">
+
+                    <div v-if="buscando" class="flex items-center gap-2.5 px-4 py-3 text-sm font-bold text-slate-400">
+                        <i class="fas fa-spinner fa-spin w-4"></i> Buscando…
+                    </div>
+
+                    <p v-else-if="!busquedaResultados.length" class="px-4 py-3 text-xs font-bold text-slate-400">
+                        Sin reservas que coincidan con «{{ busquedaTexto }}».
+                    </p>
+
+                    <template v-else>
+                        <p class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                            {{ busquedaResultados.length }} estancia{{ busquedaResultados.length !== 1 ? 's' : '' }} · toca para ir a esa fecha
+                        </p>
+                        <button v-for="r in busquedaResultados" :key="r.eventoId" @click="irAResultado(r)"
+                            class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0">
+                            <span class="mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 border border-black/10"
+                                :style="{ backgroundColor: r.color || '#94a3b8' }"></span>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-black text-slate-800 truncate">
+                                    {{ r.cliente || 'Sin nombre' }}
+                                </p>
+                                <p class="text-[11px] font-bold text-slate-600 mt-0.5">
+                                    <i class="far fa-calendar mr-1 text-slate-400"></i>
+                                    {{ formatFechaCorta(r.inicio) }} → {{ formatFechaCorta(r.fin) }}
+                                    <span class="text-slate-300 mx-1">·</span>{{ r.noches }}N
+                                    <template v-if="r.unidad"><span class="text-slate-300 mx-1">·</span>{{ r.unidad }}</template>
+                                </p>
+                                <p class="text-[10px] font-bold text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2">
+                                    <span v-if="r.estado" class="uppercase tracking-widest">{{ r.estado }}</span>
+                                    <span v-if="r.pax"><i class="fas fa-users mr-1"></i>{{ r.pax }}</span>
+                                    <span v-if="r.localizador">#{{ r.localizador }}</span>
+                                    <span v-if="r.canal" class="uppercase">{{ r.canal }}</span>
+                                </p>
+                            </div>
+                            <i class="fas fa-arrow-right text-slate-300 text-xs mt-1.5 shrink-0"></i>
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </div>
 
         <div v-if="dragError" class="bg-rose-50 border-b border-rose-200 text-rose-700 text-sm font-bold px-4 py-2">
             <i class="fas fa-exclamation-triangle mr-2"></i>{{ dragError }}
@@ -518,6 +815,20 @@ const calendarOptions: any = {
                     </button>
                 </template>
                 <template v-else>
+                    <!-- Precio vigente de esa casita ese día (rango ganador) -->
+                    <div class="px-4 py-2 border-b border-slate-100">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tarifa del día</p>
+                        <p v-if="menuTarifa.cargando" class="text-xs font-bold text-slate-400 mt-0.5">
+                            <i class="fas fa-spinner fa-spin mr-1"></i> Consultando…
+                        </p>
+                        <p v-else-if="menuTarifa.texto" class="text-sm font-black text-slate-800 mt-0.5">
+                            {{ menuTarifa.texto }}
+                        </p>
+                        <p v-else class="text-xs font-bold text-amber-600 mt-0.5">
+                            <i class="fas fa-triangle-exclamation mr-1"></i> Sin tarifa configurada
+                        </p>
+                    </div>
+
                     <button @click="elegirCrear('bloqueo')"
                         class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                         <i class="fas fa-ban w-4 text-slate-400"></i> Crear Bloqueo
@@ -525,6 +836,10 @@ const calendarOptions: any = {
                     <button @click="elegirCrear('reserva')"
                         class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                         <i class="fas fa-calendar-plus w-4 text-slate-400"></i> Crear Reserva
+                    </button>
+                    <button @click="irATarifas"
+                        class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 border-t border-slate-100">
+                        <i class="fas fa-tags w-4 text-slate-400"></i> Editar tarifas
                     </button>
                 </template>
             </div>

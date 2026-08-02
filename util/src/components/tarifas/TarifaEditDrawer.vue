@@ -23,8 +23,11 @@ import {
 const props = defineProps<{
     /** Id del rango a ver/editar. Si es null, el drawer está en modo creación. */
     tarifaId?: string | null;
-    /** Valores iniciales al crear desde un clic en el calendario. */
-    createDefaults?: { unidadId: string; fecha: string } | null;
+    /**
+     * Valores iniciales al crear. `unidadId` es opcional: al crear desde el
+     * botón de la cabecera no hay casita elegida todavía y la escoge el usuario.
+     */
+    createDefaults?: { unidadId?: string; fechaInicio: string; fechaFin: string } | null;
     /** Abre en modo solo-lectura ("Ver"); se pasa a edición con el botón del header. */
     startReadOnly?: boolean;
 }>();
@@ -133,13 +136,12 @@ async function cargarDatos(): Promise<void> {
             return;
         }
 
-        // Creación: el clic en el calendario fija unidad y día; el rango arranca
-        // como un único día (fin = inicio), que es un rango válido.
-        const fecha = props.createDefaults?.fecha ?? '';
+        // Creación: la selección en el calendario fija casita y rango; desde el
+        // botón de la cabecera llegan solo las fechas y la casita queda vacía.
         form.value = formVacio({
             unidad: props.createDefaults?.unidadId ?? '',
-            fechaInicio: fecha,
-            fechaFin: fecha,
+            fechaInicio: props.createDefaults?.fechaInicio ?? '',
+            fechaFin: props.createDefaults?.fechaFin ?? '',
         });
     } catch (err) {
         localError.value = extractApiErrorMessage(err, 'No se pudo cargar la tarifa.');

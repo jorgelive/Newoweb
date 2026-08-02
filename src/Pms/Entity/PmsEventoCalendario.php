@@ -102,6 +102,17 @@ class PmsEventoCalendario
         PmsEventoEstado::CODIGO_CANCELADA,
     ];
 
+    /**
+     * Estados a los que un pago registrado NO les cambia nada:
+     * - `cancelada` es terminal (un reembolso no resucita una reserva muerta),
+     * - `bloqueo` no es la estancia de un huésped, es calendario cerrado.
+     * El resto sí se auto-confirma (ver requiereAutoConfirmacionPorPago()).
+     */
+    public const ESTADOS_SIN_AUTO_CONFIRMACION = [
+        PmsEventoEstado::CODIGO_CANCELADA,
+        PmsEventoEstado::CODIGO_BLOQUEO,
+    ];
+
 
     /* ======================================================
      * RELACIONES DE NEGOCIO (UUID v7)
@@ -314,6 +325,43 @@ class PmsEventoCalendario
         }
 
         return $isPending ? 'pending' : 'synced';
+    }
+
+    /**
+     * Regla de negocio: una estancia con dinero recibido (pago total, parcial o de
+     * alojamiento) tiene que quedar CONFIRMADA. Nunca se guarda un evento pagado en
+     * "pendiente"/"requerimiento": si el operador lo intenta, se corrige al vuelo.
+     *
+     * Fuente única de verdad de PmsEventoCalendarioIntegrityListener (que la aplica en
+     * prePersist/preUpdate, o sea para CUALQUIER entrypoint: API util, EasyAdmin, consola)
+     * y espejo exacto de `requiereAutoConfirmacionPorPago()` en
+     * util/src/types/pmsReservaModel.ts, que la anticipa en el editor.
+     *
+     * Nota: la regla es asimétrica a propósito. Registrar un pago confirma, pero volver a
+     * "no pagado" NO degrada el estado: quitar un pago mal cargado no debe descancelar ni
+     * despendientizar una reserva que el operador ya trabajó.
+     *
+     * @return bool True si el estado actual debe ser reemplazado por "confirmada".
+     */
+    public function requiereAutoConfirmacionPorPago(): bool
+    {
+        $estadoPagoId = $this->estadoPago?->getId();
+        $estadoId = $this->estado?->getId();
+
+        // Sin relaciones maestras no hay nada que decidir (la validación NotNull ya se queja).
+        if (null === $estadoPagoId || null === $estadoId) {
+            return false;
+        }
+
+        if (!in_array($estadoPagoId, PmsEventoEstadoPago::ESTADOS_PAGO_CONFIABLES, true)) {
+            return false;
+        }
+
+        if (in_array($estadoId, self::ESTADOS_SIN_AUTO_CONFIRMACION, true)) {
+            return false;
+        }
+
+        return $estadoId !== PmsEventoEstado::CODIGO_CONFIRMADA;
     }
 
     /**

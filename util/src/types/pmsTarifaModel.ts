@@ -115,6 +115,53 @@ export interface PmsTarifaExtendedProps {
     tarifaRangoId: string;
     /** Solo lo expone el provider raw. */
     active?: boolean;
+    // Datos crudos para pintar la barra sin re-parsear el título ni pedir la
+    // tarifa por REST (los agregan ambos providers *_spa de tarifas).
+    precio?: string;
+    minStay?: number;
+    /** Símbolo de la moneda ('$', 'S/'...), según `fields.currency` del YAML. */
+    moneda?: string | null;
+    /** Solo lo expone el provider raw. */
+    importante?: boolean;
+}
+
+// ============================================================================
+// COLOR POR CASITA
+// Los eventos de tarifa no tienen un color semántico propio (a diferencia de
+// las reservas, donde el color ES el estado): sin esto, el calendario entero
+// sale del mismo azul por defecto de FullCalendar y no se distingue una fila de
+// otra. Se asigna por `orden` del recurso, que el provider ya calcula tras
+// ordenar las unidades alfabéticamente.
+// ============================================================================
+
+export interface ColorCasita {
+    bg: string;
+    border: string;
+}
+
+export const PALETA_CASITAS: readonly ColorCasita[] = [
+    { bg: '#376875', border: '#2b525c' }, // teal de marca
+    { bg: '#E07845', border: '#b85f34' }, // naranja de marca
+    { bg: '#5B7BA8', border: '#48628544' }, // azul acero
+    { bg: '#6B8E5A', border: '#547046' }, // verde oliva
+    { bg: '#8E6BA8', border: '#715486' }, // morado
+    { bg: '#C2557A', border: '#9b4462' }, // frambuesa
+];
+
+/** Hash estable de un id, para que el color no baile si aún no cargaron los recursos. */
+function hashId(id: string): number {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return h;
+}
+
+/**
+ * Color de la casita. `orden` viene del recurso (alternancia real); si todavía
+ * no está disponible se cae a un hash del id, que es estable entre recargas.
+ */
+export function colorCasita(unidadId: string, orden?: number): ColorCasita {
+    const idx = orden ?? hashId(unidadId);
+    return PALETA_CASITAS[idx % PALETA_CASITAS.length];
 }
 
 // ============================================================================
@@ -161,6 +208,18 @@ export const toDateInput = (iso?: string | null): string => (iso ? iso.slice(0, 
 export const fromDateLocal = (d: Date): string => {
     const pad = (n: number): string => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+/**
+ * Suma días a un 'YYYY-MM-DD' en aritmética UTC (sin sorpresas de horario de
+ * verano). Se usa sobre todo para construir el `end` EXCLUSIVO que espera el
+ * calendario compactado: pedir [D, D] revienta con InvalidArgumentException en
+ * TarifaDailyPriceFlattener ("to > from"), hay que pedir [D, D+1).
+ */
+export const sumarDias = (fecha: string, dias: number): string => {
+    const ms = Date.parse(`${fecha}T00:00:00Z`);
+    if (Number.isNaN(ms)) return fecha;
+    return new Date(ms + dias * 86_400_000).toISOString().slice(0, 10);
 };
 
 /** 'YYYY-MM-DD' -> 'dd/mm/aaaa' para las fichas de solo lectura. */

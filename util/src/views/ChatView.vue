@@ -1097,12 +1097,13 @@ const getDirectChannelId = (channel?: any): string | null => {
     <aside class="fixed inset-y-0 left-0 z-40 w-full md:relative md:w-80 lg:w-95 bg-white border-r border-slate-200 flex flex-col md:translate-x-0" :class="[isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full', isTransitioning ? 'transition-transform duration-300 ease-in-out' : '']">
       <div class="px-6 pt-6 bg-white shrink-0">
         <div class="flex justify-between items-center mb-6">
-          <h1 class="font-black text-2xl tracking-tight text-slate-800">Inbox</h1>
-          <div class="flex items-center gap-2">
-
-            <button @click="router.push({ name: 'home' })" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-[#376875] group transition-all shadow-sm" title="Volver al Inicio">
+          <div class="flex items-center gap-3">
+            <button @click="router.push({ name: 'home' })" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-[#376875] group transition-all shadow-sm shrink-0" title="Volver al Inicio">
               <i class="fas fa-home text-slate-400 group-hover:text-white text-xs"></i>
             </button>
+            <h1 class="font-black text-2xl tracking-tight text-slate-800">Inbox</h1>
+          </div>
+          <div class="flex items-center gap-2">
 
             <button @click="store.fetchConversations()" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-900 group transition-all shadow-sm" title="Actualizar chats">
               <i class="fas fa-sync-alt text-slate-400 group-hover:text-white text-xs" :class="{'fa-spin': store.loadingConversations}"></i>

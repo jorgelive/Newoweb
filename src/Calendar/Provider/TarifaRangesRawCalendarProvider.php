@@ -5,6 +5,7 @@ namespace App\Calendar\Provider;
 
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
+use App\Calendar\Service\CalendarResourceCatalog;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Persistence\ManagerRegistry;
@@ -24,6 +25,7 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
         private readonly ManagerRegistry $managerRegistry,
         private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly UrlGeneratorInterface $router,
+        private readonly CalendarResourceCatalog $resourceCatalog,
     ) {}
 
     public function supports(array $config): bool
@@ -262,23 +264,20 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
 
             $title = $this->scalarToStringOrNull($titleVal) ?? ('Resource ' . $key);
 
-            $out[] = new CalendarResourceDto(id: $id, title: $title);
+            $out[] = new CalendarResourceDto(id: $key, title: $title);
         }
 
-        // 1. Orden Natural Alfabético
-        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
-
-        // 🔥 2. Inyección del índice de Orden
-        $finalOut = [];
-        foreach ($out as $index => $resource) {
-            $finalOut[] = new CalendarResourceDto(
-                id: $resource->id,
-                title: $resource->title,
-                orden: $index
-            );
-        }
-
-        return $finalOut;
+        // Las unidades sin rangos de tarifa en el intervalo desaparecían de la
+        // grilla: el catálogo las repone (ver resources.showAll en el YAML) y
+        // se encarga del orden natural + índice `orden`.
+        return $this->resourceCatalog->merge(
+            $out,
+            $config,
+            $this->resourceCatalog->targetClassOf(
+                (string) $config['entity'],
+                $resourceRootPath !== '' ? $resourceRootPath : $resourceIdPath
+            )
+        );
     }
 
     private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, array $config): array

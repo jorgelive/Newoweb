@@ -14,6 +14,7 @@ import type {
     PmsReservaPatch,
     PmsReservaCrearPayload,
     PmsReservaWhatsappLink,
+    PmsReservaBusquedaItem,
 } from '@/types/pmsReservaModel';
 
 export const useReservasStore = defineStore('reservasStore', () => {
@@ -211,6 +212,20 @@ export const useReservasStore = defineStore('reservasStore', () => {
         return res.data;
     };
 
+    /**
+     * Buscador de reservas por texto libre (nombre/apellido del huésped,
+     * localizador, referencia del canal o casita). Devuelve una fila por
+     * estancia, ordenadas por cercanía a hoy — ver PmsReservaBuscarController.
+     *
+     * `signal` permite cancelar la petición en vuelo cuando el usuario sigue
+     * tecleando: sin eso, una respuesta lenta de una consulta vieja puede pisar
+     * a la nueva en pantalla.
+     */
+    const buscarReservas = async (q: string, signal?: AbortSignal): Promise<PmsReservaBusquedaItem[]> => {
+        const res = await apiClient.get('/pms/reservas/buscar', { params: { q }, signal });
+        return Array.isArray(res.data) ? res.data : [];
+    };
+
     const clearActivo = (): void => {
         eventoActivo.value = null;
         reservaActiva.value = null;
@@ -238,6 +253,7 @@ export const useReservasStore = defineStore('reservasStore', () => {
         createReservaCompleta,
         fetchConversacionId,
         fetchWhatsappLink,
+        buscarReservas,
         clearActivo,
     };
 });

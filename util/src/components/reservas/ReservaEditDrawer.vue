@@ -16,6 +16,8 @@ import {
     toDatetimeLocal,
     fromDatetimeLocal,
     filtrarEstadosDisponibles,
+    requiereAutoConfirmacionPorPago,
+    pagoMandaSobreEstado,
     resolveEventoColor,
     contrastText,
     COLOR_ESTADO_FALLBACK,
@@ -132,7 +134,39 @@ function estadosDisponiblesPara(entry: EventoEntry) {
     const todos = filtrarEstadosDisponibles(reservasStore.estados, entry.isOta, entry.estadoActualId);
     // Una estancia nueva (sin guardar) o cualquier estancia durante la creación
     // del drawer nunca ofrece el estado "bloqueo": estas son reservas reales.
-    return (!entry.eventoId || isCreate.value) ? todos.filter(e => e.id !== PMS_ESTADO.BLOQUEO) : todos;
+    const base = (!entry.eventoId || isCreate.value) ? todos.filter(e => e.id !== PMS_ESTADO.BLOQUEO) : todos;
+
+    // El estado vigente siempre tiene que poder mostrarse, aunque el filtro OTA no
+    // lo ofrezca (caso real: una consulta "abierta" de Airbnb con pago registrado,
+    // que la auto-confirmación pasa a "confirmada"). Sin esto el <select> se queda
+    // en blanco y el guardado mandaría un estado vacío.
+    const actual = estadoObj(entry.form.estado);
+    return actual && !base.some(e => e.id === actual.id) ? [...base, actual] : base;
+}
+
+// En "Nueva Reserva" el backend (PmsReservaCrearProcessor) crea la estancia
+// siempre como pendiente + no pagado y descarta estos dos campos del formulario:
+// aquí no anticipamos una confirmación que no va a ocurrir al guardar.
+const autoConfirmacionNoAplica = computed(() => isCreateReserva.value);
+
+/**
+ * Aplica en el formulario la misma regla que el backend ejecutará al guardar
+ * (PmsEventoCalendarioIntegrityListener): con un pago registrado la estancia
+ * queda "confirmada". Sin esto, el operador elegía "Pago total", guardaba viendo
+ * "Pendiente" y el calendario se recargaba en verde: un cambio invisible hasta
+ * después del guardado.
+ */
+function aplicarAutoConfirmacionPorPago(entry: EventoEntry): void {
+    if (autoConfirmacionNoAplica.value) return;
+
+    if (requiereAutoConfirmacionPorPago(entry.form.estado, entry.form.estadoPago)) {
+        entry.form.estado = PMS_ESTADO.CONFIRMADA;
+    }
+}
+
+/** ¿Mostrar el aviso de que el pago manda sobre el estado de esta estancia? */
+function pagoFuerzaConfirmada(entry: EventoEntry): boolean {
+    return !autoConfirmacionNoAplica.value && pagoMandaSobreEstado(entry.form.estado, entry.form.estadoPago);
 }
 
 function fechasUnidadBloqueadasPara(entry: EventoEntry): boolean {
@@ -643,13 +677,18 @@ async function guardar(): Promise<void> {
                                                 :style="{ backgroundColor: estadoObj(entry.form.estado)?.color || COLOR_ESTADO_FALLBACK }"></span>
                                             Estado
                                         </span>
-                                        <select v-model="entry.form.estado"
+                                        <select v-model="entry.form.estado" @change="aplicarAutoConfirmacionPorPago(entry)"
                                             class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
                                             <option v-for="e in estadosDisponiblesPara(entry)" :key="e.id ?? ''" :value="e.id ?? ''"
                                                 :style="{ backgroundColor: e.color || undefined, color: e.color ? contrastText(e.color) : undefined }">
                                                 {{ e.nombre }}
                                             </option>
                                         </select>
+                                        <!-- Explica por qué el select "rebota" a Confirmada si se intenta bajarlo. -->
+                                        <span v-if="pagoFuerzaConfirmada(entry)"
+                                            class="mt-1 block text-[10px] font-bold text-emerald-600">
+                                            <i class="fas fa-lock text-[9px] mr-1"></i>Con un pago registrado la estancia queda Confirmada.
+                                        </span>
                                     </label>
 
                                     <label>
@@ -658,7 +697,7 @@ async function guardar(): Promise<void> {
                                                 :style="{ backgroundColor: estadoPagoObj(entry.form.estadoPago)?.color || COLOR_ESTADO_FALLBACK }"></span>
                                             Estado de Pago
                                         </span>
-                                        <select v-model="entry.form.estadoPago"
+                                        <select v-model="entry.form.estadoPago" @change="aplicarAutoConfirmacionPorPago(entry)"
                                             class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
                                             <option v-for="ep in reservasStore.estadosPago" :key="ep.id ?? ''" :value="ep.id ?? ''"
                                                 :style="{ backgroundColor: ep.color || undefined, color: ep.color ? contrastText(ep.color) : undefined }">

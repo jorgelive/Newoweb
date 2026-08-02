@@ -165,8 +165,8 @@ const loadMore = (): void => {
     <!-- CABECERA -->
     <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0 z-30">
       <div class="flex items-center gap-4">
-        <RouterLink to="/" class="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
-          <i class="fas fa-arrow-left"></i>
+        <RouterLink to="/" title="Volver al inicio" class="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
+          <i class="fas fa-home"></i>
         </RouterLink>
         <div>
           <h1 class="font-black text-2xl text-slate-800 tracking-tight leading-none mb-1">Cotizaciones</h1>

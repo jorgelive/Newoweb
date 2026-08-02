@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, shallowRef } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import FullCalendar from '@fullcalendar/vue3';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -16,10 +16,12 @@ import TarifaMasivaDrawer from '@/components/tarifas/TarifaMasivaDrawer.vue';
 import {
     PMS_TARIFA_CALENDARIOS,
     fromDateLocal,
+    colorCasita,
     type PmsTarifaExtendedProps,
 } from '@/types/pmsTarifaModel';
 
 const router = useRouter();
+const route = useRoute();
 const tarifasStore = useTarifasStore();
 
 // ============================================================================
@@ -57,7 +59,41 @@ function fcVistaGuardada(): string {
 }
 
 function fcFechaGuardada(): string | undefined {
+    // `?fecha=YYYY-MM-DD` gana sobre lo guardado: es como llega el usuario desde
+    // el calendario de Reservas ("Ver tarifas de este día").
+    const desdeQuery = typeof route.query.fecha === 'string' ? route.query.fecha : null;
+    if (desdeQuery && /^\d{4}-\d{2}-\d{2}$/.test(desdeQuery)) return desdeQuery;
     return localStorage.getItem(`${FC_STORAGE_KEY}_date`) || undefined;
+}
+
+// ============================================================================
+// COLOR POR CASITA
+// El `orden` lo calcula el provider al ordenar los recursos; se cachea al
+// cargarlos para poder teñir los eventos en cuanto llegan (FullCalendar siempre
+// pide recursos antes que eventos, pero colorCasita() tiene fallback por hash
+// para no depender de ese orden).
+// ============================================================================
+const ordenPorUnidad = new Map<string, number>();
+
+function recordarOrden(recursos: any[]): any[] {
+    for (const r of recursos) {
+        if (r?.id !== undefined && typeof r?.orden === 'number') {
+            ordenPorUnidad.set(String(r.id), r.orden);
+        }
+    }
+    return recursos;
+}
+
+function pintarPorCasita(eventos: any[]): any[] {
+    return eventos.map((ev) => {
+        // El provider solo fija color para los rangos INACTIVOS (gris): ese
+        // color sí es semántico y no se pisa.
+        if (ev?.backgroundColor) return ev;
+
+        const unidadId = String(ev?.resourceId ?? '');
+        const color = colorCasita(unidadId, ordenPorUnidad.get(unidadId));
+        return { ...ev, backgroundColor: color.bg, borderColor: color.border };
+    });
 }
 
 // ============================================================================
@@ -65,7 +101,7 @@ function fcFechaGuardada(): string | undefined {
 // ============================================================================
 const drawerVisible = ref(false);
 const drawerTarifaId = ref<string | null>(null);
-const drawerCreateDefaults = ref<{ unidadId: string; fecha: string } | null>(null);
+const drawerCreateDefaults = ref<{ unidadId?: string; fechaInicio: string; fechaFin: string } | null>(null);
 const drawerStartReadOnly = ref(false);
 const masivaVisible = ref(false);
 
@@ -76,11 +112,22 @@ function abrirEdicion(tarifaId: string, readOnly: boolean): void {
     drawerVisible.value = true;
 }
 
-function abrirCreacion(unidadId: string, fecha: Date): void {
+/** `unidadId` opcional: desde el botón de la cabecera la elige el usuario. */
+function abrirCreacion(fechaInicio: string, fechaFin: string, unidadId?: string): void {
     drawerTarifaId.value = null;
     drawerStartReadOnly.value = false;
-    drawerCreateDefaults.value = { unidadId, fecha: fromDateLocal(fecha) };
+    drawerCreateDefaults.value = { unidadId, fechaInicio, fechaFin };
     drawerVisible.value = true;
+}
+
+/**
+ * Alta desde la cabecera. Es el camino que SIEMPRE funciona: cuando las tarifas
+ * cubren toda la línea de tiempo no queda hueco libre donde hacer clic, así que
+ * no puede depender del calendario (ver también `select` y "Crear tarifa aquí").
+ */
+function abrirCreacionLibre(): void {
+    const hoy = fromDateLocal(new Date());
+    abrirCreacion(hoy, hoy);
 }
 
 function cerrarDrawer(): void {
@@ -129,6 +176,8 @@ interface MenuState {
     esCompactado?: boolean;
     unidadId?: string;
     fecha?: Date;
+    /** Precio del tramo sobre el que se hizo clic, para el encabezado del menú. */
+    resumen?: string;
 }
 const menu = ref<MenuState | null>(null);
 
@@ -157,6 +206,29 @@ function cerrarMenu(): void {
     menu.value = null;
 }
 
+// ============================================================================
+// BOTÓN "ATRÁS" DEL NAVEGADOR
+//
+// Igual que en ReservasView: en móvil el gesto instintivo para cerrar el menú o
+// un drawer es el "atrás" del sistema. Se cierra una capa por intento y solo se
+// sale al portal con el calendario limpio. Vue Router restaura la posición del
+// historial al devolver `false`, así que el back sigue disponible después.
+// ============================================================================
+onBeforeRouteLeave(() => {
+    if (menu.value) {
+        cerrarMenu();
+        return false;
+    }
+    if (drawerVisible.value) {
+        cerrarDrawer();
+        return false;
+    }
+    if (masivaVisible.value) {
+        masivaVisible.value = false;
+        return false;
+    }
+});
+
 function onEventClick(info: any): void {
     const props = info.event.extendedProps as PmsTarifaExtendedProps;
     if (!props?.tarifaRangoId) return;
@@ -166,6 +238,11 @@ function onEventClick(info: any): void {
         kind: 'event',
         tarifaId: props.tarifaRangoId,
         esCompactado: props.context === 'tarifaRangoCompactado',
+        resumen: `${props.moneda ?? ''} ${props.precio ?? ''}`.trim(),
+        // Para "Crear tarifa aquí": la casita de la barra y su día de inicio
+        // como valor de arranque. Es el atajo cuando no queda hueco libre.
+        unidadId: info.event.getResources()?.[0]?.id,
+        fecha: info.event.start ?? undefined,
     };
 }
 
@@ -174,6 +251,20 @@ function onDateClick(info: any): void {
     if (!resourceId) return;
     const { x, y } = posicionMenu(info.jsEvent);
     menu.value = { x, y, kind: 'create', unidadId: resourceId, fecha: info.date };
+}
+
+/**
+ * Arrastre sobre la línea de tiempo: crea la tarifa con el rango exacto que se
+ * marcó. `info.end` es EXCLUSIVO en FullCalendar (una celda de un día termina a
+ * las 00:00 del día siguiente), por eso se resta 1 ms antes de leer el día.
+ */
+function onSelect(info: any): void {
+    const unidadId = info.resource?.id;
+    if (!unidadId) return;
+
+    const finInclusivo = new Date(info.end.getTime() - 1);
+    abrirCreacion(fromDateLocal(info.start), fromDateLocal(finInclusivo), unidadId);
+    calendarApiRef.value?.getApi()?.unselect();
 }
 
 function elegirVer(): void {
@@ -187,7 +278,10 @@ function elegirEditar(): void {
 }
 
 function elegirCrear(): void {
-    if (menu.value?.unidadId && menu.value.fecha) abrirCreacion(menu.value.unidadId, menu.value.fecha);
+    if (menu.value?.unidadId && menu.value.fecha) {
+        const fecha = fromDateLocal(menu.value.fecha);
+        abrirCreacion(fecha, fecha, menu.value.unidadId);
+    }
     cerrarMenu();
 }
 
@@ -231,6 +325,13 @@ function onEventResize(info: any): void {
     patchDesdeCalendario(info);
 }
 
+/** Los valores salen de la BD, pero eventContent inyecta HTML: se escapa igual. */
+function escaparHtml(valor: string): string {
+    return valor.replace(/[&<>"']/g, (c) => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+    ));
+}
+
 // ============================================================================
 // FULLCALENDAR OPTIONS
 // ============================================================================
@@ -252,6 +353,12 @@ const calendarOptions = computed<any>(() => ({
     editable: calendarioActual.value.editable,
     eventStartEditable: calendarioActual.value.editable,
     eventDurationEditable: calendarioActual.value.editable,
+    // Arrastrar sobre la línea de tiempo para crear una tarifa con su rango.
+    // selectMinDistance evita que un tap suelto (que abre el menú) se interprete
+    // como selección.
+    selectable: calendarioActual.value.editable,
+    selectMirror: true,
+    selectMinDistance: 5,
     refetchResourcesOnNavigate: true,
     resourceOrder: 'orden',
     eventOrder: '-prioridadImportante,-duration,start',
@@ -303,7 +410,7 @@ const calendarOptions = computed<any>(() => ({
         apiClient.get(`/fullcalendar/load/resource/${calendarioActual.value.key}`, {
             params: { start: fetchInfo.startStr, end: fetchInfo.endStr, _t: Date.now() },
         })
-            .then((r) => success(Array.isArray(r.data) ? r.data : (r.data?.data ?? [])))
+            .then((r) => success(recordarOrden(Array.isArray(r.data) ? r.data : (r.data?.data ?? []))))
             .catch(failure);
     },
 
@@ -311,7 +418,7 @@ const calendarOptions = computed<any>(() => ({
         apiClient.get(`/fullcalendar/load/event/${calendarioActual.value.key}`, {
             params: { start: fetchInfo.startStr, end: fetchInfo.endStr, _t: Date.now() },
         })
-            .then((r) => success(Array.isArray(r.data) ? r.data : (r.data?.data ?? [])))
+            .then((r) => success(pintarPorCasita(Array.isArray(r.data) ? r.data : (r.data?.data ?? []))))
             .catch(failure);
     },
 
@@ -319,6 +426,28 @@ const calendarOptions = computed<any>(() => ({
     eventClick: onEventClick,
     eventDrop: onEventDrop,
     eventResize: onEventResize,
+    select: onSelect,
+
+    /**
+     * Contenido de la barra. El provider ya manda el título listo, pero aquí se
+     * arma con los datos crudos de extendedProps para poder meter iconografía
+     * (etiqueta, estrella de prioritaria, badge de estancia mínima) en vez de
+     * una única cadena de texto plano.
+     */
+    eventContent: (arg: any) => {
+        const p = arg.event.extendedProps as PmsTarifaExtendedProps;
+        if (!p?.precio) return { html: `<div class="fc-tarifa">${escaparHtml(arg.event.title)}</div>` };
+
+        const moneda = p.moneda ? `${escaparHtml(p.moneda)} ` : '';
+        const partes = [
+            p.importante ? '<i class="fas fa-star fc-tarifa-ico fc-tarifa-star"></i>' : '',
+            p.active === false ? '<i class="fas fa-eye-slash fc-tarifa-ico"></i>' : '<i class="fas fa-tag fc-tarifa-ico"></i>',
+            `<span class="fc-tarifa-precio">${moneda}${escaparHtml(p.precio)}</span>`,
+            p.minStay ? `<span class="fc-tarifa-min">${escaparHtml(String(p.minStay))}N</span>` : '',
+        ];
+
+        return { html: `<div class="fc-tarifa">${partes.join('')}</div>` };
+    },
 
     eventDidMount: (info: any) => {
         const tooltipContent = info.event.extendedProps.tooltip;
@@ -334,8 +463,8 @@ const calendarOptions = computed<any>(() => ({
     <div class="h-screen bg-[#F8FAFC] flex flex-col font-sans overflow-hidden">
         <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between gap-3 z-20 shadow-md shrink-0">
             <div class="flex items-center gap-3 min-w-0">
-                <button @click="router.push('/')" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors shrink-0">
-                    <i class="fas fa-arrow-left text-sm"></i>
+                <button @click="router.push('/')" title="Volver al inicio" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors shrink-0">
+                    <i class="fas fa-home text-sm"></i>
                 </button>
                 <div class="overflow-hidden">
                     <h1 class="font-black text-base md:text-xl tracking-tight leading-none">Calendario de Tarifas</h1>
@@ -346,6 +475,12 @@ const calendarOptions = computed<any>(() => ({
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
+                <button @click="abrirCreacionLibre"
+                    class="h-9 px-3 flex items-center gap-1.5 bg-[#376875] hover:bg-[#2d5660] rounded-lg text-xs font-black transition-colors">
+                    <i class="fas fa-plus"></i>
+                    <span class="hidden sm:inline">Nueva</span>
+                </button>
+
                 <button @click="masivaVisible = true"
                     class="h-9 px-3 flex items-center gap-1.5 bg-[#E07845] hover:bg-[#c9663a] rounded-lg text-xs font-black transition-colors">
                     <i class="fas fa-magic"></i>
@@ -373,6 +508,11 @@ const calendarOptions = computed<any>(() => ({
             Vista compactada (solo lectura): son segmentos calculados a partir de los rangos solapados.
             Para mover o redimensionar, cambia a «Todas».
         </div>
+        <div v-else class="bg-slate-100 border-b border-slate-200 text-slate-500 text-[11px] font-bold px-4 py-1.5">
+            <i class="fas fa-hand-pointer mr-2"></i>
+            Arrastra sobre una fila para crear una tarifa con ese rango, o usa «Nueva».
+            Sobre una tarifa existente, el menú ofrece «Crear tarifa aquí».
+        </div>
 
         <main class="flex-1 overflow-y-auto p-3 md:p-4">
             <h3 v-if="calendarTitulo" class="text-center font-black text-slate-800 uppercase tracking-wide text-sm mb-2">
@@ -386,8 +526,9 @@ const calendarOptions = computed<any>(() => ({
             <div class="absolute w-52 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden py-1.5 max-w-[calc(100vw-1rem)]"
                 :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @click.stop>
                 <template v-if="menu.kind === 'event'">
-                    <p v-if="menu.esCompactado" class="px-4 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Rango de origen
+                    <p class="px-4 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        {{ menu.esCompactado ? 'Rango de origen' : 'Tarifa' }}
+                        <span v-if="menu.resumen" class="text-slate-600">· {{ menu.resumen }}</span>
                     </p>
                     <button @click="elegirVer"
                         class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
@@ -396,6 +537,11 @@ const calendarOptions = computed<any>(() => ({
                     <button @click="elegirEditar"
                         class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                         <i class="fas fa-pen w-4 text-slate-400"></i> Editar
+                    </button>
+                    <!-- Atajo cuando la casita no tiene huecos libres donde hacer clic -->
+                    <button v-if="calendarioActual.editable && menu.unidadId && menu.fecha" @click="elegirCrear"
+                        class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 border-t border-slate-100">
+                        <i class="fas fa-plus w-4 text-slate-400"></i> Crear tarifa aquí
                     </button>
                 </template>
                 <template v-else>
@@ -424,3 +570,51 @@ const calendarOptions = computed<any>(() => ({
         />
     </div>
 </template>
+
+<!--
+  Sin `scoped`: el HTML de `eventContent` lo inyecta FullCalendar fuera del
+  árbol que Vue marca con el atributo de scope, así que un bloque scoped no lo
+  alcanzaría. Las clases van prefijadas con `fc-tarifa-` para no colisionar,
+  igual que hace assets/fullcalendar-overrides.css.
+-->
+<style>
+.fc-tarifa {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 0 2px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.fc-tarifa-ico {
+    font-size: 0.62rem;
+    opacity: 0.75;
+    flex-shrink: 0;
+}
+
+.fc-tarifa-star {
+    color: #FFD466;
+    opacity: 1;
+}
+
+.fc-tarifa-precio {
+    font-weight: 800;
+    font-size: 0.74rem;
+    letter-spacing: -0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Badge de estancia mínima: se distingue del precio sin robarle protagonismo. */
+.fc-tarifa-min {
+    flex-shrink: 0;
+    font-size: 0.58rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.22);
+}
+</style>

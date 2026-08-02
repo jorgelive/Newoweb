@@ -1,0 +1,312 @@
+# config/services/services_parameters_pms.yaml
+#
+# SOLO parámetros del módulo PMS (los servicios viven en services_pms.yaml).
+#
+# Las claves de calendario deben empezar por `calendars_` y ser distintas entre
+# módulos para que no se sobrescriban: CalendarConfigResolver escanea todos los
+# parámetros con ese prefijo y los fusiona en un único mapa de calendarios.
+parameters:
+
+    calendars_pms:
+        pms_eventos_no_cancelados:
+            provider: pms_eventos_raw
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: [ ]        # ej: [confirmada, bloqueo]
+                    not_in: [cancelada]    # ej: [cancelada]
+                estadoPago:
+                    in: [ ]        # ej: [no-pagado, pago-parcial]
+                    not_in: [ ]    # ej: [pago-total]
+            # Ver bloque `resources` documentado en pms_eventos_no_cancelados_spa.
+            resources:
+                showAll: true
+                entity: App\Pms\Entity\PmsUnidad
+                titleField: nombre
+                activeField: activo
+                activeOnly: false
+            event:
+                url:
+                    # Si hay reserva -> usa ReservaAdmin
+                    reservaEdit:
+                        role: ROLE_RESERVAS_WRITE
+                        route: panel_dashboard_pms_reserva_edit
+                        params:
+                            tl: es
+
+                    reservaShow:
+                        role: ROLE_RESERVAS_SHOW
+                        route: panel_dashboard_pms_reserva_detail
+                        params:
+                            tl: es
+
+                    # Si NO hay reserva -> usa EventoCalendarioAdmin
+                    eventoCalendarioEdit:
+                        role: ROLE_RESERVAS_WRITE
+                        route: panel_dashboard_pms_evento_calendario_edit
+                        params:
+                            tl: es
+
+                    eventoCalendarioShow:
+                        role: ROLE_RESERVAS_SHOW
+                        route: panel_dashboard_pms_evento_calendario_detail
+                        params:
+                            tl: es
+        pms_eventos_todos:
+            provider: pms_eventos_raw
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: [ ]        # ej: [confirmada, bloqueado]
+                    not_in: [ ]    # ej: [cancelada]
+                estadoPago:
+                    in: [ ]        # ej: [no-pagado, pago-parcial]
+                    not_in: [ ]    # ej: [pago-total]
+            resources:
+                showAll: true
+                entity: App\Pms\Entity\PmsUnidad
+                titleField: nombre
+                activeField: activo
+                activeOnly: false
+            event:
+                url:
+                    # Si hay reserva -> usa ReservaAdmin
+                    reservaEdit:
+                        role: ROLE_RESERVAS_WRITE
+                        route: panel_dashboard_pms_reserva_edit
+                        params:
+                            tl: es
+
+                    reservaShow:
+                        role: ROLE_RESERVAS_SHOW
+                        route: panel_dashboard_pms_reserva_detail
+                        params:
+                            tl: es
+
+                    # Si NO hay reserva -> usa EventoCalendarioAdmin
+                    eventoCalendarioEdit:
+                        role: ROLE_RESERVAS_WRITE
+                        route: panel_dashboard_pms_evento_calendario_edit
+                        params:
+                            tl: es
+
+                    eventoCalendarioShow:
+                        role: ROLE_RESERVAS_SHOW
+                        route: panel_dashboard_pms_evento_calendario_detail
+                        params:
+                            tl: es
+
+        tarifa_rangos_raw:
+            provider: tarifa_ranges_raw
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                id: id
+                resourceRoot: unidad
+                resourceId: unidad.id
+                resourceTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+                price: precio
+                minStay: minStay
+                currency: moneda.codigo
+
+                active: activo
+
+                weight: prioridad          # Mapea a getPeso()
+                important: importante # Mapea a isImportante()
+            filters:
+                activeOnly: false
+            resources:
+                showAll: true
+                entity: App\Pms\Entity\PmsUnidad
+                titleField: nombre
+                activeField: activo
+                activeOnly: false
+            event:
+                includeCurrency: false
+                titleFormat: '{price} | {minStay}'
+                url:
+                    id: id
+                    show:
+                        route: panel_dashboard_pms_tarifa_rango_detail
+                        role: ROLE_RESERVAS_SHOW
+                        params: { tl: 'es' }
+                    edit:
+                        route: panel_dashboard_pms_tarifa_rango_edit
+                        role: ROLE_RESERVAS_WRITE
+                        params: { tl: 'es' }
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:00'
+        tarifa_rangos_compactados:
+            provider: tarifa_compressed_ranges
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                unit: unidad
+                unitId: unidad.id
+                unitTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+
+                price: precio
+                minStay: minStay
+                currency: moneda.codigo
+
+                important: importante
+                weight: prioridad
+                id: id
+
+                active: activo
+            filters:
+                activeOnly: true
+            resources:
+                showAll: true
+                entity: App\Pms\Entity\PmsUnidad
+                titleField: nombre
+                activeField: activo
+                activeOnly: false
+            event:
+                url:
+                    show:
+                        route: panel_dashboard_pms_tarifa_rango_detail
+                        role: ROLE_RESERVAS_SHOW
+                        params: { tl: 'es' }
+                    edit:
+                        route: panel_dashboard_pms_tarifa_rango_edit
+                        role: ROLE_RESERVAS_WRITE
+                        params: { tl: 'es' }
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:00'
+
+        # ==========================================================================
+        # Calendarios SPA (Vue) — sin urledit/urlshow ni returnTo de EasyAdmin.
+        # El evento expone extendedProps.context + ids crudos para que el frontend
+        # arme su propia navegación.
+        # ==========================================================================
+        pms_eventos_no_cancelados_spa:
+            provider: pms_eventos_spa
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: [ ]
+                    not_in: [cancelada]
+                estadoPago:
+                    in: [ ]
+                    not_in: [ ]
+            # ------------------------------------------------------------------
+            # CATÁLOGO DE RECURSOS (filas del calendario) — CalendarResourceCatalog
+            #
+            # showAll: true (por defecto) lista TODAS las casitas aunque no tengan
+            # eventos ni tarifas en el rango visible. Sin esto, una unidad libre
+            # todo el mes desaparecía de la grilla y no se podía reservar sobre ella.
+            #
+            #   showAll       true  -> catálogo completo | false -> sólo las que tienen eventos
+            #   entity        clase del recurso; si se omite se deduce por la asociación
+            #   titleField    campo del título (fallback: __toString())
+            #   activeField   campo booleano de estado; se expone en extendedProps.activo
+            #   activeOnly    false (por defecto) -> también muestra las inactivas
+            #   establecimientoId  opcional, filtra el catálogo por establecimiento
+            # ------------------------------------------------------------------
+            resources:
+                showAll: true
+                entity: App\Pms\Entity\PmsUnidad
+                titleField: nombre
+                activeField: activo
+                activeOnly: false
+        pms_eventos_todos_spa:
+            provider: pms_eventos_spa
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: [ ]
+                    not_in: [ ]
+                estadoPago:
+                    in: [ ]
+                    not_in: [ ]
+            resources:
+                showAll: true
+                entity: App\Pms\Entity\PmsUnidad
+                titleField: nombre
+                activeField: activo
+                activeOnly: false
+
+        tarifa_rangos_raw_spa:
+            provider: tarifa_ranges_spa
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                id: id
+                resourceRoot: unidad
+                resourceId: unidad.id
+                resourceTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+                price: precio
+                minStay: minStay
+                # MaestroMoneda NO tiene getCodigo(): los configs legacy apuntan a
+                # `moneda.codigo` y por eso la moneda nunca se resolvía (siempre null).
+                # El símbolo es además más compacto para la barra del calendario.
+                currency: moneda.simbolo
+
+                active: activo
+
+                weight: prioridad
+                important: importante
+            filters:
+                activeOnly: false
+            resources:
+                showAll: true
+                entity: App\Pms\Entity\PmsUnidad
+                titleField: nombre
+                activeField: activo
+                activeOnly: false
+            event:
+                includeCurrency: true
+                # Los netos al 20%/30% quedan solo en el tooltip: en la barra
+                # tapaban el precio. Siguen disponibles como {neto20}/{neto30}.
+                titleFormat: '{currency} {price} · {minStay}N'
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:00'
+        tarifa_rangos_compactados_spa:
+            provider: tarifa_compressed_ranges_spa
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                unit: unidad
+                unitId: unidad.id
+                unitTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+
+                price: precio
+                minStay: minStay
+                # Ver nota en tarifa_rangos_raw_spa: `moneda.codigo` no existe.
+                currency: moneda.simbolo
+
+                important: importante
+                weight: prioridad
+                id: id
+
+                active: activo
+            filters:
+                activeOnly: true
+            resources:
+                showAll: true
+                entity: App\Pms\Entity\PmsUnidad
+                titleField: nombre
+                activeField: activo
+                activeOnly: false
+            event:
+                includeCurrency: true
+                titleFormat: '{currency} {price} · {minStay}N'
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:00'

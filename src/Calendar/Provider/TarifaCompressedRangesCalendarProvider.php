@@ -5,6 +5,7 @@ namespace App\Calendar\Provider;
 
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
+use App\Calendar\Service\CalendarResourceCatalog;
 use App\Pms\Service\Tarifa\Engine\TarifaPricingEngine;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -40,6 +41,7 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
         private readonly TarifaPricingEngine $pricingEngine,
         private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly UrlGeneratorInterface $router,
+        private readonly CalendarResourceCatalog $resourceCatalog,
     ) {}
 
     public function supports(array $config): bool
@@ -221,23 +223,20 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                 $title = method_exists($unitObj, '__toString') ? (string)$unitObj : ('Unidad ' . (string)$unitKey);
             }
 
-            $out[] = new CalendarResourceDto(id: $unitKey, title: $title);
+            $out[] = new CalendarResourceDto(id: (string) $unitKey, title: $title);
         }
 
-        // 1. Orden Natural Alfabético
-        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
-
-        // 🔥 2. Inyección del índice de Orden
-        $finalOut = [];
-        foreach ($out as $index => $resource) {
-            $finalOut[] = new CalendarResourceDto(
-                id: $resource->id,
-                title: $resource->title,
-                orden: $index
-            );
-        }
-
-        return $finalOut;
+        // Las unidades sin rangos de tarifa en el intervalo desaparecían de la
+        // grilla: el catálogo las repone (ver resources.showAll en el YAML) y
+        // se encarga del orden natural + índice `orden`.
+        return $this->resourceCatalog->merge(
+            $out,
+            $config,
+            $this->resourceCatalog->targetClassOf(
+                (string) $config['entity'],
+                (string) ($config['fields']['unit'] ?? '')
+            )
+        );
     }
 
     /**

@@ -512,7 +512,33 @@ con datos completos.
 
 `shouldIgnoreReservaUpdate()`: si `datosLocked=true` y el changeSet solo contiene campos de `IGNORED_FIELDS_ON_LOCKED_OTA`, no se genera cola Push. Evita sobreescribir el correo proxy de Booking.com o el teléfono proxy de Airbnb.
 
-### 9.5 Validación de establecimiento en config
+### 9.5 Auto-confirmación por pago (PMS, no Beds24)
+
+Regla de negocio del PMS: una estancia con dinero recibido queda **confirmada**.
+
+```
+Fuente de verdad: PmsEventoCalendario::requiereAutoConfirmacionPorPago()
+Aplicación:       PmsEventoCalendarioIntegrityListener (prePersist + preUpdate)
+Espejo en la UI:  util/src/types/pmsReservaModel.ts → requiereAutoConfirmacionPorPago()
+
+estadoPago ∈ {pago-total, pago-parcial, pago-alojamiento}   (ESTADOS_PAGO_CONFIABLES)
+  y estado ∉ {cancelada, bloqueo}                           (ESTADOS_SIN_AUTO_CONFIRMACION)
+  y no estamos en SyncContext::MODE_PULL
+  ⇒ estado = confirmada
+```
+
+Puntos finos:
+
+- Se dispara ante un cambio de `estadoPago` **o** de `estado`: si solo se mirara el pago,
+  bastaba con bajar a "pendiente" una reserva ya pagada para dejarla inconsistente.
+- Es **asimétrica**: registrar un pago confirma; volver a "no pagado" NO degrada el estado.
+- En **Pull** no se aplica: ahí manda el canal y `BookingPullPersister::resolveEstado()`
+  ya resuelve la variante OTA (incluida la protección de los *inquiries* "abiertos").
+- Al mutar en `preUpdate` un campo que ya venía en el changeSet, hay que corregirlo con
+  `PreUpdateEventArgs::setNewValue()`: Doctrine recalcula por diferencia contra
+  `originalEntityData` y **fusiona**, así que una entrada vieja sobreviviría al recálculo.
+
+### 9.6 Validación de establecimiento en config
 
 `resolveEstablecimiento()` valida que el establecimiento de la unidad esté en los establecimientos autorizados por la `Beds24Config` del token. Previene cross-contamination entre propiedades.
 
@@ -541,6 +567,7 @@ con datos completos.
 | Añadir canal de pago total | `PmsChannel` | `CANAL_PAGO_TOTAL` |
 | Cambiar lógica de estado OTA | `BookingPullPersister` | `resolveEstado()` |
 | Cambiar estado de pago inicial | `BookingPullPersister` | `resolveEstadoPagoInicial()` |
+| Cambiar la auto-confirmación por pago (§9.5) | `PmsEventoCalendario` + `util/src/types/pmsReservaModel.ts` | `requiereAutoConfirmacionPorPago()` (hay que tocar **los dos**: son espejo) |
 | Añadir campo nuevo al Pull | `Beds24BookingDto` + `BookingPullPersister` | `fromArray()` + `upsertReservaFull()` |
 | Cambiar qué se envía al espejo | `BookingsPushMappingStrategy` | `buildUpsertPayload()` bloque `$isMirror` |
 | Cambiar ventana de Pull Cron | `Beds24BookingsPullCronJob` | `arrivalFrom/To` |
@@ -550,56 +577,3 @@ con datos completos.
 | Proteger campo Push en OTA | `Beds24BookingsPushQueueListener` | `IGNORED_FIELDS_ON_LOCKED_OTA` |
 | Cambiar idioma por defecto | `MaestroIdioma` | `DEFAULT_IDIOMA` |
 | Cambiar país por defecto | `MaestroPais` | `DEFAULT_PAIS` |
-
----
-
-## 12. Bug Conocido Resuelto — Reserva Fantasma al Cambiar de Unidad
-
-### Síntoma
-
-Cuando Beds24 mueve una reserva a otra habitación (`roomId` cambia en el webhook), el link espejo (`esPrincipal=false`) de la unidad antigua no se borraba de Beds24. Quedaba activo bloqueando esa habitación → reserva fantasma.
-
-### Secuencia que lo provocaba
-
-```
-1. Webhook 1 (roomId=501)
-   → Link1 principal (beds24BookId="83116820") + Link2 espejo (beds24BookId=null)
-
-2. Push worker ejecuta → Link2.beds24BookId = "99999" (booking creado en Beds24)
-
-3. Webhook 2 (misma reserva, roomId=503 — nueva unidad)
-   → internalHydrate() reconstruye links para la nueva unidad
-   → Link2 queda como "leftover" (su virtualCode no existe en la nueva unidad)
-   → factory ejecuta: $unused->setBeds24BookId(null)  ← BORRA el ID "99999"
-   → factory ejecuta: $evento->removeBeds24Link($unused)  ← orphanRemoval → DELETE Doctrine
-
-4. onFlush: PushQueueListener ve Link2 en ScheduledEntityDeletions → acción DELETE
-   → ensureBookIdForDelete() → getBeds24BookId() → null (ya fue borrado)
-   → recoverBookIdFromQueues() → la cola POST original tenía beds24BookIdOriginal=null
-   → sin ID → SKIP DELETE
-
-5. Beds24 conserva booking "99999" → bloquea roomId=502 indefinidamente
-```
-
-### Causa raíz
-
-`setBeds24BookId(null)` se ejecutaba **antes** de `flush()`, destruyendo el ID que el `PushQueueListener` necesitaba leer durante `onFlush` para construir el DELETE hacia Beds24.
-
-### Fix aplicado
-
-`PmsEventoCalendarioFactory::internalHydrate()` línea ~311 — eliminada la llamada a `setBeds24BookId(null)` en el bucle de sobrantes:
-
-```php
-// ANTES (bug):
-foreach ($leftovers as $unused) {
-    $unused->setBeds24BookId(null);      // ← destruía el ID
-    $evento->removeBeds24Link($unused);
-}
-
-// DESPUÉS (fix):
-foreach ($leftovers as $unused) {
-    $evento->removeBeds24Link($unused);  // orphanRemoval=true → DELETE completo de fila
-}
-```
-
-Con `orphanRemoval: true` en la relación `OneToMany`, Doctrine programa un `DELETE` completo de la fila — no necesita nullear columnas individualmente. El `PushQueueListener` lee `beds24BookId` durante `onFlush` (todavía intacto), crea el queue de DELETE, y el push worker borra la reserva de Beds24 antes de que la fila sea eliminada de la BD.

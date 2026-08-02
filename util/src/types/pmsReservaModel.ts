@@ -149,6 +149,35 @@ export interface PmsEventoExtendedProps {
 }
 
 // ============================================================================
+// BUSCADOR DE RESERVAS (GET /pms/reservas/buscar?q=)
+// Una fila por ESTANCIA, no por reserva: la reserva de dos casitas tiene dos
+// tramos con fechas y unidad propias, y es el tramo lo que se busca en el
+// calendario. Ver PmsReservaBuscarController en el backend.
+// ============================================================================
+
+export interface PmsReservaBusquedaItem {
+    eventoId: string;
+    reservaId: string | null;
+    cliente: string | null;
+    localizador: string | null;
+    unidad: string | null;
+    unidadId: string | null;
+    /** `YYYY-MM-DD` (sin hora: las horas del evento son check-in/check-out). */
+    inicio: string | null;
+    fin: string | null;
+    noches: number;
+    pax: number;
+    estado: string | null;
+    /** Código natural del estado (ver PMS_ESTADO): `cancelada`, `confirmada`… */
+    estadoId: string | null;
+    /** Mismo color que pinta la barra en el calendario (pago puede pisar estado). */
+    color: string | null;
+    estadoPago: string | null;
+    canal: string | null;
+    isOta: boolean;
+}
+
+// ============================================================================
 // CÓDIGOS NATURALES (IDs string, deben coincidir con las constantes PHP)
 // ============================================================================
 
@@ -240,6 +269,50 @@ export const OTA_ABIERTO_ESTADOS_SELECCIONABLES: readonly string[] = [
     PMS_ESTADO.ABIERTO,
     PMS_ESTADO.CANCELADA,
 ];
+
+// ============================================================================
+// AUTO-CONFIRMACIÓN POR PAGO
+// Espejo de PmsEventoCalendario::requiereAutoConfirmacionPorPago() (PHP), que el
+// backend aplica en prePersist/preUpdate vía PmsEventoCalendarioIntegrityListener.
+// El editor lo anticipa para que el operador no vea "pendiente" en pantalla y
+// "confirmada" en el calendario después de guardar.
+// ============================================================================
+
+/** Estados de pago que implican dinero recibido (espejo de PmsEventoEstadoPago::ESTADOS_PAGO_CONFIABLES). */
+export const ESTADOS_PAGO_CONFIABLES: readonly string[] = [
+    PMS_ESTADO_PAGO.PAGO_PARCIAL,
+    PMS_ESTADO_PAGO.PAGO_TOTAL,
+    PMS_ESTADO_PAGO.PAGO_ALOJAMIENTO,
+];
+
+/**
+ * Estados a los que un pago NO les cambia nada (espejo de
+ * PmsEventoCalendario::ESTADOS_SIN_AUTO_CONFIRMACION): `cancelada` es terminal y
+ * `bloqueo` no es la estancia de un huésped.
+ */
+export const ESTADOS_SIN_AUTO_CONFIRMACION: readonly string[] = [
+    PMS_ESTADO.CANCELADA,
+    PMS_ESTADO.BLOQUEO,
+];
+
+/** ¿Con este pago el backend va a forzar "confirmada" al guardar? */
+export function requiereAutoConfirmacionPorPago(estadoId: string, estadoPagoId: string): boolean {
+    if (!estadoId || !estadoPagoId) return false;
+    if (!ESTADOS_PAGO_CONFIABLES.includes(estadoPagoId)) return false;
+    if (ESTADOS_SIN_AUTO_CONFIRMACION.includes(estadoId)) return false;
+
+    return estadoId !== PMS_ESTADO.CONFIRMADA;
+}
+
+/**
+ * ¿El pago registrado manda sobre el estado de esta estancia? Es decir: el estado
+ * ya no es libre, salvo para cancelar (cancelada sigue siendo elegible, un
+ * reembolso no resucita ni congela una reserva muerta).
+ */
+export function pagoMandaSobreEstado(estadoId: string, estadoPagoId: string): boolean {
+    return ESTADOS_PAGO_CONFIABLES.includes(estadoPagoId)
+        && !ESTADOS_SIN_AUTO_CONFIRMACION.includes(estadoId);
+}
 
 /**
  * Filtra las opciones de estado disponibles para un evento, replicando

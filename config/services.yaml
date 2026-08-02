@@ -2,6 +2,7 @@
 imports:
 
     - { resource: 'services/services_parameters.yaml' }
+    - { resource: 'services/services_parameters_pms.yaml' }
     - { resource: 'services/services_core.yaml' }
 
     - { resource: 'services/services_calendar.yaml' }

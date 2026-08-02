@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Pms\EventListener;
 
+use App\Exchange\Service\Context\SyncContext;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
-use App\Pms\Entity\PmsEventoEstadoPago;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
@@ -24,6 +24,10 @@ use LogicException;
 #[AsEntityListener(event: Events::preUpdate, method: 'preUpdate', entity: PmsEventoCalendario::class)]
 final class PmsEventoCalendarioIntegrityListener
 {
+    public function __construct(
+        private readonly SyncContext $syncContext
+    ) {}
+
     /**
      * Se ejecuta antes de crear un nuevo registro en la base de datos.
      * Garantiza que la reserva nazca con integridad total.
@@ -54,9 +58,12 @@ final class PmsEventoCalendarioIntegrityListener
             $needsRecompute = true;
         }
 
-        // RED DE SEGURIDAD 2: Automatización de Confirmación por Pago
-        if ($args->hasChangedField('estadoPago')) {
-            if ($this->asegurarEstadoConfirmadoPorPago($evento, $args->getObjectManager())) {
+        // RED DE SEGURIDAD 2: Automatización de Confirmación por Pago.
+        // Se revisa ante CUALQUIER cambio de estado O de estado de pago: mirando solo
+        // `estadoPago` bastaba con reabrir una reserva ya pagada y bajarle el estado a
+        // "pendiente" (sin tocar el pago) para dejarla guardada como pagada-no-confirmada.
+        if ($args->hasChangedField('estadoPago') || $args->hasChangedField('estado')) {
+            if ($this->asegurarEstadoConfirmadoPorPago($evento, $args->getObjectManager(), $args)) {
                 $needsRecompute = true;
             }
         }
@@ -87,43 +94,49 @@ final class PmsEventoCalendarioIntegrityListener
     }
 
     /**
-     * Regla de Negocio Automatizada: Si el estado de pago pasa a ser distinto de "no pagado",
-     * la reserva pasa automáticamente a "Confirmada", SALVO que sea un estado terminal (ej. Cancelada).
+     * Regla de Negocio Automatizada: una estancia con pago registrado (total, parcial o de
+     * alojamiento) queda "Confirmada". La decisión completa —incluidos los estados intocables
+     * (cancelada, bloqueo)— vive en PmsEventoCalendario::requiereAutoConfirmacionPorPago(),
+     * para que backend y editor Vue apliquen exactamente la misma regla.
+     *
+     * Durante un Pull de Beds24 no se toca nada: ahí el estado lo manda el canal y
+     * BookingPullPersister::resolveEstado() ya resuelve la variante OTA (incluida la
+     * protección de las consultas/inquiries "abiertas", que no se auto-confirman jamás).
+     *
+     * @param PreUpdateEventArgs|null $args ChangeSet vivo en preUpdate; null en prePersist.
      *
      * @return bool True si se realizó una mutación en la entidad, False en caso contrario.
      */
-    private function asegurarEstadoConfirmadoPorPago(PmsEventoCalendario $evento, ObjectManager $em): bool
-    {
-        $estadoPago = $evento->getEstadoPago();
-        $estadoActual = $evento->getEstado();
-
-        // Si faltan relaciones maestras, abortamos la regla (prevención de errores)
-        if (!$estadoPago || !$estadoActual) {
+    private function asegurarEstadoConfirmadoPorPago(
+        PmsEventoCalendario $evento,
+        ObjectManager $em,
+        ?PreUpdateEventArgs $args = null
+    ): bool {
+        if ($this->syncContext->isPull()) {
             return false;
         }
 
-        // 🔥 ARMONÍA CON EL SECURITY LISTENER: Respeto absoluto a los Estados Terminales.
-        // Previene excepciones "AccessDenied" si alguien hace un reembolso parcial de una reserva muerta.
-        if ($estadoActual->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
+        if (!$evento->requiereAutoConfirmacionPorPago()) {
             return false;
         }
 
-        if ($estadoPago->getId() !== PmsEventoEstadoPago::ID_SIN_PAGO) {
+        // Usamos getReference para inyectar el estado sin disparar un SELECT a la BD
+        $estadoConfirmada = $em->getReference(PmsEventoEstado::class, PmsEventoEstado::CODIGO_CONFIRMADA);
+        $evento->setEstado($estadoConfirmada);
 
-            // Verificamos que no esté ya confirmada para ahorrar queries y evitar updates redundantes
-            if ($estadoActual->getId() !== PmsEventoEstado::CODIGO_CONFIRMADA) {
-
-                // Usamos getReference para inyectar el estado sin disparar un SELECT a la BD
-                $estadoConfirmada = $em->getReference(PmsEventoEstado::class, PmsEventoEstado::CODIGO_CONFIRMADA);
-
-                if ($estadoConfirmada) {
-                    $evento->setEstado($estadoConfirmada);
-                    return true;
-                }
-            }
+        // ⚠️ No basta con mutar la entidad si `estado` YA venía en el changeSet.
+        // Doctrine recalcula solo por diferencia contra `originalEntityData` (aquí y en
+        // UnitOfWork::executeUpdates, justo después de este listener) y FUSIONA el
+        // resultado con el changeSet previo. Cuando el operador bajó una reserva ya
+        // confirmada a "pendiente", devolverla a "confirmada" no produce diferencia
+        // alguna contra el valor original -> no se genera entrada nueva -> sobrevive la
+        // vieja ["confirmada" => "pendiente"] y el UPDATE grabaría el estado incorrecto.
+        // setNewValue() corrige la entrada existente por referencia.
+        if ($args?->hasChangedField('estado')) {
+            $args->setNewValue('estado', $estadoConfirmada);
         }
 
-        return false;
+        return true;
     }
 
     /**

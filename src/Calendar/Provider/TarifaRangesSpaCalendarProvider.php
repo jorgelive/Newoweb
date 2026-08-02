@@ -5,6 +5,7 @@ namespace App\Calendar\Provider;
 
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
+use App\Calendar\Service\CalendarResourceCatalog;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Persistence\ManagerRegistry;
@@ -26,6 +27,7 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
 {
     public function __construct(
         private readonly ManagerRegistry $managerRegistry,
+        private readonly CalendarResourceCatalog $resourceCatalog,
     ) {}
 
     public function supports(array $config): bool
@@ -48,7 +50,7 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         $eventCfg = isset($config['event']) && is_array($config['event']) ? $config['event'] : [];
 
         $includeCurrency = (bool) ($eventCfg['includeCurrency'] ?? true);
-        $titleFormat = (string) ($eventCfg['titleFormat'] ?? '{currency} {price} | {minStay}');
+        $titleFormat = (string) ($eventCfg['titleFormat'] ?? '{currency} {price} · {minStay}N');
         $priceDecimals = (int) ($eventCfg['priceDecimals'] ?? 2);
 
         $eventTime = (isset($config['eventTime']) && is_array($config['eventTime'])) ? $config['eventTime'] : [];
@@ -131,10 +133,12 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
 
             // 6. Prioridad (scoring de z-order)
             $prioridadScore = 0;
+            $esImportante = false;
 
             if (!empty($fields['important'])) {
                 $val = $this->resolvePath($entity, (string) $fields['important']);
-                if ((bool)$val === true) {
+                $esImportante = ((bool) $val === true);
+                if ($esImportante) {
                     $prioridadScore += 10_000_000;
                 }
             }
@@ -182,10 +186,17 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
                 backgroundColor: $backgroundColor,
                 tooltip: $tooltip,
                 prioridadImportante: $prioridadScore,
+                // Datos crudos, no formateados: el frontend arma su propia UI
+                // (íconos, badge de minStay, color por casita) sin tener que
+                // volver a parsear el título ni pedir la tarifa por REST.
                 extendedProps: [
                     'context' => 'tarifaRango',
                     'tarifaRangoId' => (string) $id,
                     'active' => !$isInactive,
+                    'precio' => $this->formatNumber($price, $priceDecimals),
+                    'minStay' => $minStay,
+                    'moneda' => $currencyCode,
+                    'importante' => $esImportante,
                 ],
             );
         }
@@ -238,21 +249,20 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
 
             $title = $this->scalarToStringOrNull($titleVal) ?? ('Resource ' . $key);
 
-            $out[] = new CalendarResourceDto(id: $id, title: $title);
+            $out[] = new CalendarResourceDto(id: $key, title: $title);
         }
 
-        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
-
-        $finalOut = [];
-        foreach ($out as $index => $resource) {
-            $finalOut[] = new CalendarResourceDto(
-                id: $resource->id,
-                title: $resource->title,
-                orden: $index
-            );
-        }
-
-        return $finalOut;
+        // Las unidades sin rangos de tarifa en el intervalo desaparecían de la
+        // grilla: el catálogo las repone (ver resources.showAll en el YAML) y
+        // se encarga del orden natural + índice `orden`.
+        return $this->resourceCatalog->merge(
+            $out,
+            $config,
+            $this->resourceCatalog->targetClassOf(
+                (string) $config['entity'],
+                $resourceRootPath !== '' ? $resourceRootPath : $resourceIdPath
+            )
+        );
     }
 
     private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, array $config): array
@@ -319,21 +329,29 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         }
     }
 
+    /**
+     * Arma el título del evento a partir del `event.titleFormat` de la config.
+     *
+     * Antes esta función IGNORABA el formato recibido y siempre devolvía el
+     * bloque "precio (neto20 | 20% - neto30 | 30%) NN", que en la barra del
+     * calendario tapaba el dato importante (el precio) con dos números que ya
+     * están en el tooltip. Ahora los placeholders mandan, así que cambiar la
+     * densidad del título es cuestión de tocar el YAML, no el código.
+     *
+     * Placeholders: {price} {currency} {minStay} {neto20} {neto30}
+     */
     private function formatTitle(string $format, float $price, int $minStay, ?string $currency, int $priceDecimals): string
     {
-        $netoBooking = $price * 0.80;
-        $netoAirbnb = $price * 0.70;
+        $titulo = strtr($format, [
+            '{price}'    => $this->formatNumber($price, $priceDecimals),
+            '{currency}' => $currency ?? '',
+            '{minStay}'  => (string) $minStay,
+            '{neto20}'   => $this->formatNumber($price * 0.80, $priceDecimals),
+            '{neto30}'   => $this->formatNumber($price * 0.70, $priceDecimals),
+        ]);
 
-        $strPrice = $this->formatNumber($price, $priceDecimals);
-        $strBooking = $this->formatNumber($netoBooking, $priceDecimals);
-        $strAirbnb = $this->formatNumber($netoAirbnb, $priceDecimals);
-
-        return sprintf('%s (%s | 20%% - %s | 30%%) %dN',
-            $strPrice,
-            $strBooking,
-            $strAirbnb,
-            $minStay
-        );
+        // Si no hay moneda configurada, {currency} deja un hueco al inicio.
+        return trim(preg_replace('/\s+/', ' ', $titulo) ?? $titulo);
     }
 
     private function formatNumber(float $n, int $decimals): string

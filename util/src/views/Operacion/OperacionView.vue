@@ -43,9 +43,10 @@ onMounted(cargarBiblia);
             <div class="flex items-center gap-3">
                 <button
                     @click="router.push('/')"
+                    title="Volver al inicio"
                     class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors"
                 >
-                    <i class="fas fa-arrow-left text-sm"></i>
+                    <i class="fas fa-home text-sm"></i>
                 </button>
                 <div class="overflow-hidden">
                     <h1 class="font-black text-base md:text-xl tracking-tight leading-none">

@@ -6,10 +6,12 @@ namespace App\Calendar\Provider;
 
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
+use App\Calendar\Service\CalendarResourceCatalog;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Entity\PmsUnidad;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -24,6 +26,7 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         private readonly ManagerRegistry $managerRegistry,
         private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly UrlGeneratorInterface $router,
+        private readonly CalendarResourceCatalog $resourceCatalog,
     ) {}
 
     public function supports(array $config): bool
@@ -82,23 +85,13 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             if (isset($seen[$idStr])) continue;
 
             $seen[$idStr] = true;
-            $out[] = new CalendarResourceDto(id: $id, title: (string) $unidad);
+            $out[] = new CalendarResourceDto(id: $idStr, title: (string) $unidad);
         }
 
-        // 1. Orden Natural Alfabético
-        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
-
-        // 🔥 2. Inyección del índice de Orden
-        $finalOut = [];
-        foreach ($out as $index => $resource) {
-            $finalOut[] = new CalendarResourceDto(
-                id: $resource->id,
-                title: $resource->title,
-                orden: $index
-            );
-        }
-
-        return $finalOut;
+        // Las unidades sin eventos en el rango desaparecían de la grilla: el
+        // catálogo las repone (ver resources.showAll en el YAML) y se encarga
+        // del orden natural + índice `orden`.
+        return $this->resourceCatalog->merge($out, $config, PmsUnidad::class);
     }
 
     private function fetchEventos(DateTimeInterface $from, DateTimeInterface $to, array $config): array

@@ -5,6 +5,7 @@ namespace App\Calendar\Provider;
 
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
+use App\Calendar\Service\CalendarResourceCatalog;
 use App\Pms\Service\Tarifa\Engine\TarifaPricingEngine;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -34,6 +35,7 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
     public function __construct(
         private readonly ManagerRegistry $managerRegistry,
         private readonly TarifaPricingEngine $pricingEngine,
+        private readonly CalendarResourceCatalog $resourceCatalog,
     ) {}
 
     public function supports(array $config): bool
@@ -60,6 +62,13 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
         [$sh, $sm, $ss] = $this->parseHms((string)($eventTime['start'] ?? '12:00:00'), [12, 0, 0]);
         [$eh, $em, $es] = $this->parseHms((string)($eventTime['end'] ?? '11:59:59'), [11, 59, 59]);
 
+        // Mismo contrato de título que TarifaRangesSpaCalendarProvider: lo manda
+        // el YAML por placeholders, para que ambas vistas del calendario de
+        // tarifas se vean igual sin tocar dos veces el código.
+        $eventCfg = (isset($config['event']) && is_array($config['event'])) ? $config['event'] : [];
+        $titleFormat = (string) ($eventCfg['titleFormat'] ?? '{currency} {price} · {minStay}N');
+        $includeCurrency = (bool) ($eventCfg['includeCurrency'] ?? true);
+
         // 2) Para cada unidad: engine => rangos compactados
         $events = [];
         foreach ($groups as $unitKey => $group) {
@@ -84,12 +93,7 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
                 $netoBooking = $price * 0.80;
                 $netoAirbnb = $price * 0.70;
 
-                $title = sprintf('%s (%s | 20%% - %s | 30%%) %dN',
-                    number_format($price, 2, '.', ''),
-                    number_format($netoBooking, 2, '.', ''),
-                    number_format($netoAirbnb, 2, '.', ''),
-                    $minStay
-                );
+                $title = $this->formatTitle($titleFormat, $price, (int) $minStay, $includeCurrency ? $currency : null);
 
                 $unitObj = $group['unit'];
                 $tooltip = [
@@ -115,11 +119,10 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
                 }
 
                 if ($sourceId === null && !empty($ranges)) {
+                    // Mismo motivo que en rangeAccessor(): el id es un Uuid, no un
+                    // escalar, y el `is_scalar()` de antes dejaba esto en null.
                     $idPath = (string)($fields['id'] ?? 'id');
-                    $firstId = $this->resolvePath($ranges[0], $idPath);
-                    if (is_scalar($firstId) && (string)$firstId !== '') {
-                        $sourceId = (string)$firstId;
-                    }
+                    $sourceId = $this->scalarToStringOrNull($this->resolvePath($ranges[0], $idPath));
                 }
 
                 // id "estable" del evento sintético: unitKey + index
@@ -140,9 +143,16 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
                     end: $eventEnd,
                     resourceId: $unitKey,
                     tooltip: $tooltip,
+                    // Datos crudos del rango GANADOR de este tramo. Además de la
+                    // UI del calendario, los consume el calendario de Reservas
+                    // para mostrar "el precio de este día" al hacer clic en un
+                    // hueco libre (ver ReservasView.vue).
                     extendedProps: [
                         'context' => 'tarifaRangoCompactado',
                         'tarifaRangoId' => $sourceId,
+                        'precio' => number_format($price, 2, '.', ''),
+                        'minStay' => (int) $minStay,
+                        'moneda' => $currency,
                     ],
                 );
             }
@@ -173,21 +183,20 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
                 $title = method_exists($unitObj, '__toString') ? (string)$unitObj : ('Unidad ' . (string)$unitKey);
             }
 
-            $out[] = new CalendarResourceDto(id: $unitKey, title: $title);
+            $out[] = new CalendarResourceDto(id: (string) $unitKey, title: $title);
         }
 
-        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
-
-        $finalOut = [];
-        foreach ($out as $index => $resource) {
-            $finalOut[] = new CalendarResourceDto(
-                id: $resource->id,
-                title: $resource->title,
-                orden: $index
-            );
-        }
-
-        return $finalOut;
+        // Las unidades sin rangos de tarifa en el intervalo desaparecían de la
+        // grilla: el catálogo las repone (ver resources.showAll en el YAML) y
+        // se encarga del orden natural + índice `orden`.
+        return $this->resourceCatalog->merge(
+            $out,
+            $config,
+            $this->resourceCatalog->targetClassOf(
+                (string) $config['entity'],
+                (string) ($config['fields']['unit'] ?? '')
+            )
+        );
     }
 
     /**
@@ -258,12 +267,17 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
                 continue;
             }
 
-            $unitId = $this->resolvePath($e, $unitIdPath);
-            if (!is_scalar($unitId) || $unitId === '') {
-                $unitId = spl_object_id($unitObj);
-            }
-
-            $key = is_int($unitId) ? $unitId : (string)$unitId;
+            // PmsUnidad::getId() devuelve un Uuid (OBJETO), no un escalar. Con el
+            // viejo `is_scalar()` la comprobación fallaba siempre y el id del
+            // recurso caía a spl_object_id(): un entero efímero del proceso PHP,
+            // distinto en cada request. Eso rompía dos cosas:
+            //   1. Los eventos y los recursos se piden en requests SEPARADOS, así
+            //      que sólo coincidían por casualidad (mismo orden de hidratación).
+            //   2. Ningún otro calendario podía cruzar ese id con una unidad real
+            //      (lo necesita ReservasView para el precio del día).
+            // scalarToStringOrNull() sí resuelve el Uuid por su __toString().
+            $key = $this->scalarToStringOrNull($this->resolvePath($e, $unitIdPath))
+                ?? (string) spl_object_id($unitObj);
 
             if (!isset($groups[$key])) {
                 $groups[$key] = [
@@ -335,7 +349,12 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
 
         $id = null;
         if (isset($fields['id'])) {
-            $id = $this->resolvePath($r, (string)$fields['id']);
+            // Se entrega como STRING a propósito: TarifaDailyPriceFlattener::
+            // computeSourceId() descarta lo que no sea escalar y, con el Uuid
+            // crudo, generaba un sourceId de tipo 'hash:...' en vez de 'id:<uuid>'.
+            // Resultado: getEvents() no podía recuperar el id del rango ganador y
+            // extendedProps.tarifaRangoId salía null (segmento no clicable).
+            $id = $this->scalarToStringOrNull($this->resolvePath($r, (string)$fields['id']));
         }
 
         return [
@@ -348,6 +367,27 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
             'weight' => $weight,
             'id' => $id,
         ];
+    }
+
+    /**
+     * Arma el título del tramo compactado según el `event.titleFormat` del YAML.
+     * Espejo exacto de TarifaRangesSpaCalendarProvider::formatTitle(): los netos
+     * al 20%/30% siguen disponibles como placeholders, pero por defecto viven
+     * solo en el tooltip para no saturar la barra.
+     *
+     * Placeholders: {price} {currency} {minStay} {neto20} {neto30}
+     */
+    private function formatTitle(string $format, float $price, int $minStay, ?string $currency): string
+    {
+        $titulo = strtr($format, [
+            '{price}'    => number_format($price, 2, '.', ''),
+            '{currency}' => $currency ?? '',
+            '{minStay}'  => (string) $minStay,
+            '{neto20}'   => number_format($price * 0.80, 2, '.', ''),
+            '{neto30}'   => number_format($price * 0.70, 2, '.', ''),
+        ]);
+
+        return trim(preg_replace('/\s+/', ' ', $titulo) ?? $titulo);
     }
 
     /**
