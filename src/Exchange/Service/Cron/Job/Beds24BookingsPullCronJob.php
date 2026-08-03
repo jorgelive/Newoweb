@@ -7,6 +7,9 @@ namespace App\Exchange\Service\Cron\Job;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
 use App\Exchange\Service\Cron\CronJobInterface;
+use App\Exchange\Service\Cron\CronPasoAdaptativoInterface;
+use App\Exchange\Service\Cron\PasoAdaptativo;
+use DateTimeImmutable;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Service\Queue\Beds24BookingsPullQueueCreator;
 use DateInterval;
@@ -20,7 +23,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * Delega la creación física a Beds24BookingsPullQueueCreator.
  */
 #[AutoconfigureTag('app.cron_job')]
-final class Beds24BookingsPullCronJob implements CronJobInterface
+final class Beds24BookingsPullCronJob implements CronJobInterface, CronPasoAdaptativoInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -35,6 +38,25 @@ final class Beds24BookingsPullCronJob implements CronJobInterface
     public function getStepInterval(): DateInterval
     {
         return new DateInterval('P14D');
+    }
+
+    // Paso base 14 d, doblando cada 90 d de lejanía, con techo ×8 (112 d).
+    private const int PASO_BASE_DIAS = 14;
+    private const int TRAMO_DIAS     = 90;
+    private const int MULT_MAX       = 8;
+
+    /**
+     * ⚠️ Este job NO implementa CronHorizonteInterface, y es a propósito: pregunta a BEDS24 por
+     * ventana de llegada, no consulta reservas locales. Un horizonte sacado de `MAX(e.fin)` nos
+     * dejaría ciegos justo ante las reservas que aún no tenemos — que son las que este pull
+     * existe para descubrir.
+     *
+     * El paso adaptativo sí es seguro: se siguen cubriendo los 18 meses enteros, sólo que con
+     * menos grano en lo lejano, donde apenas hay llegadas.
+     */
+    public function getStepIntervalDesde(DateTimeImmutable $desde): DateInterval
+    {
+        return PasoAdaptativo::calcular($desde, self::PASO_BASE_DIAS, self::TRAMO_DIAS, self::MULT_MAX);
     }
 
     public function execute(DateTimeInterface $from, DateTimeInterface $to, SymfonyStyle $io): void

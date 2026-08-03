@@ -686,6 +686,69 @@ ProcessBeds24WebhookDispatchHandler            Beds24InvoiceReceiveJob (cron 'be
   `endpoint='bookings/invoices'`, `metodo='GET'` (creada por la migración
   `Version20260802133405`).
 
+### 11.2.1 Barrido del cursor: horizonte real y paso adaptativo
+
+`TimelineEnqueuerService` avanza un cursor por el calendario y le pide a cada job que encole lo
+que encuentre en la ventana. Con dos constantes fijas —el paso del job y un tope de **+18 meses**
+codificado en el servicio— eso funciona sólo si los datos están repartidos de forma uniforme. No
+lo están.
+
+Medido en producción el 2026-08-03:
+
+| | Datos | Horizonte real | Cursor real ese día |
+|---|---|---|---|
+| Tarifas | 23 rangos en 0-60 d · 21 en 60-180 d · **0 más allá** | 2027-01-01 (151 d) | **2028-01-06** |
+| Reservas vivas | 24 en 0-60 d · 2 en 60-180 d · 1 más allá | 2027-02-04 (185 d) | **2027-11-18** |
+
+Los cursores llevaban meses recorriendo calendario donde no había ni una tarifa ni una reserva.
+Dos causas distintas, con arreglos distintos:
+
+**1. El techo de +18 meses era arbitrario** — `CronHorizonteInterface`. Un job que sepa hasta
+dónde llegan sus datos devuelve ese `MAX(fecha)` y el cursor se reinicia ahí. No es una
+heurística: es un límite exacto que se autoajusta solo (al cargar tarifas de 2028, el horizonte
+se extiende sin tocar código). `resolverLimite()` nunca lo deja por debajo de hoy, para que un
+horizonte en el pasado no deje el cursor reiniciándose en bucle sin barrer nada.
+
+**2. Dentro del rango con datos, la densidad puede ser muy desigual** —
+`CronPasoAdaptativoInterface` + `PasoAdaptativo::calcular()`. El paso se **duplica** cada
+`TRAMO_DIAS` de lejanía, con techo en `MULT_MAX`: lo cercano se revisa fino y lo lejano se recorre
+a zancadas.
+
+⚠️ **Los dos son opt-in, y no todas las tareas quieren los dos.** El reparto no es estético, cada
+exclusión tiene un motivo:
+
+| Job | Horizonte | Paso adaptativo | Por qué |
+|---|---|---|---|
+| `beds24_rates_push` | Sí | **No** | Dentro del rango cubierto la densidad es uniforme (23 contra 21): alargar el paso lejano sólo revisaría peor esa parte. El desperdicio estaba en el techo |
+| `beds24_invoice_receive` | Sí | Sí | Reservas vivas 24 / 2 / 1: el desierto está *dentro* del rango con datos |
+| `beds24_message_receive` | Sí | Sí | Ídem |
+| `beds24_bookings_push` | Sí | No | Lee eventos locales, así que el horizonte vale. Con paso base de 1 mes ya son pocas vueltas y doblarlo dejaría lo lejano con granularidad de medio año |
+| `beds24_bookings_pull_arrival` | **No** | Sí | ⚠️ Pregunta a **Beds24** por ventana de llegada, no consulta reservas locales. Un horizonte sacado de `MAX(e.fin)` nos dejaría ciegos ante las reservas que aún no tenemos — que son justo las que este pull existe para descubrir. El paso adaptativo sí es seguro: se sigue cubriendo el rango entero, con menos grano en lo lejano |
+
+**Dónde se configura:** en constantes de cada job (`PASO_BASE_DIAS`, `TRAMO_DIAS`, `MULT_MAX`) y
+en la consulta de `getHorizonteMaximo()`. Nada de esto vive en el servicio ni en configuración
+externa: ajustar el comportamiento es cambiar un número en la clase que lo sufre.
+
+**Resultado medido** (vueltas por ciclo completo):
+
+| Job | Antes | Después |
+|---|---|---|
+| `beds24_invoice_receive` | 79 | **16** |
+| `beds24_message_receive` | 79 | **16** |
+| `beds24_rates_push` | 40 | **11** |
+| `beds24_bookings_pull_arrival` | 40 | **15** |
+| `beds24_bookings_push` | 19 | **7** |
+
+Verificado además con una ejecución real: con el cursor de mensajes en 2027-11-18 (pasado el
+horizonte), el enqueuer lo reinició a 2026-08-02 y encontró **17 reservas** en la primera
+ventana; con el código anterior esa misma ejecución habría barrido 2027-11-18 → 2027-11-25 y
+encontrado **cero**. Casos límite comprobados: cursor en el pasado y cursor a +50 años devuelven
+un paso válido (nunca 0, nunca `INF` — el exponente se acota antes de elevar), y un horizonte en
+el pasado no provoca reinicios en bucle.
+
+**No hace falta reiniciar cursores a mano al desplegar:** los que estén pasados de su horizonte
+se reinician solos en la primera ejecución.
+
 ### 11.3.1 Lote múltiple: varias reservas en una sola petición
 
 Los dos pull en demanda (facturas y mensajes) piden **N reservas por petición** repitiendo el
@@ -1599,7 +1662,9 @@ En los cuatro pasos los 4 cargos siguen en la BD; lo único que cambia es qué s
 | Tocar la conversión de fechas del drawer (§12.5.5) | `util/src/types/pmsReservaModel.ts` | `toDatetimeLocal()` / `fromDatetimeLocal()` / `fechaAInputLocal()` — **nunca** usar `new Date()` con ellas |
 | Buscar la cabecera financiera de una reserva (§12.6) | `PmsInformacionFinancieraRepository` | `findOneByReservaId()` — el tipo `UuidType::NAME` es obligatorio |
 | Filtrar por cualquier relación UUID (§12.6) | — | **No uses `SearchFilter`**: devuelve vacío en silencio. Operación dedicada + provider. |
-| Cambiar ventana del cron financiero | `Beds24InvoiceReceiveJob` | `getStepInterval()` |
+| Cambiar el ritmo del barrido de un cron (§11.2.1) | El job en cuestión | `PASO_BASE_DIAS` / `TRAMO_DIAS` / `MULT_MAX` |
+| Cambiar hasta dónde barre un cron (§11.2.1) | El job en cuestión | `getHorizonteMaximo()` — **no** se lo pongas a `bookings_pull`: lo cegaría |
+| Que un cron nuevo se adapte a la densidad (§11.2.1) | `CronPasoAdaptativoInterface` / `CronHorizonteInterface` | implementarlas es opt-in; sin ellas, paso fijo y tope de +18 meses |
 | Cambiar la clasificación de un cargo (incluida la penalización, §12.7) | `PmsTipoCargo` | `desdeBeds24()` — el caso `PENALIZACION` va **antes** que la regla del subType |
 | Cambiar qué computa una reserva cancelada (§12.7) | `PmsInformacionFinancieraRecalculoService` | `AND (i2.activa = 1 OR c.tipo_cargo = 'penalizacion')` |
 | Cambiar cuándo se anula el cobro automáticamente (§12.7) | `PmsInformacionFinancieraCoherenciaListener` | `aplicarCancelacion()` |

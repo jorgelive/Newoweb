@@ -5,6 +5,7 @@ namespace App\Exchange\Service\Cron\Job;
 
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
+use App\Exchange\Service\Cron\CronHorizonteInterface;
 use App\Exchange\Service\Cron\CronJobInterface;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
@@ -22,7 +23,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * este servicio automáticamente mediante un TaggedIterator.
  */
 #[AutoconfigureTag('app.cron_job')]
-class Beds24BookingsPushJob implements CronJobInterface
+class Beds24BookingsPushJob implements CronJobInterface, CronHorizonteInterface
 {
     private const BATCH_SIZE = 50;
 
@@ -44,6 +45,24 @@ class Beds24BookingsPushJob implements CronJobInterface
     {
         // Avanza de mes en mes en cada ejecución del comando
         return new DateInterval('P1M');
+    }
+
+    /**
+     * Hasta la última salida registrada: este job barre eventos LOCALES con el mismo filtro
+     * (`e.fin >= :from AND e.inicio <= :to`), así que más allá no hay nada que empujar.
+     *
+     * NO lleva paso adaptativo: con un paso base de 1 mes ya son pocas vueltas, y doblarlo
+     * dejaría lo lejano con una granularidad de medio año a cambio de casi nada.
+     */
+    public function getHorizonteMaximo(): ?DateTimeImmutable
+    {
+        $max = $this->em->createQueryBuilder()
+            ->select('MAX(e.fin)')
+            ->from(PmsEventoCalendario::class, 'e')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $max ? new DateTimeImmutable((string) $max) : null;
     }
 
     public function execute(DateTimeImmutable $from, DateTimeImmutable $to, SymfonyStyle $io): void

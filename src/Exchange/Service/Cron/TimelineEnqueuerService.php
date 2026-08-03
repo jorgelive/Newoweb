@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Exchange\Service\Cron;
 
 use App\Exchange\Entity\ExchangeCronCursor;
+use DateInterval;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -82,14 +83,20 @@ class TimelineEnqueuerService
         }
 
         $startDate = DateTimeImmutable::createFromInterface($cursor->getCursorDate());
-        $endDate = $startDate->add($jobService->getStepInterval());
+        $endDate = $startDate->add($this->resolverPaso($jobService, $startDate));
 
-        // Seguridad: Evitar que el cursor avance a fechas irreales (límite: 18 meses al futuro)
-        $limitDate = (new DateTimeImmutable())->modify('+18 months');
+        // Seguridad: evitar que el cursor avance a fechas irreales.
+        //
+        // El tope por defecto (+18 meses) es arbitrario y suele quedar MUY por encima del
+        // horizonte real de los datos, así que el cursor se pasaba la mayor parte del ciclo
+        // barriendo calendario garantizadamente vacío. Un job que sepa hasta dónde llegan sus
+        // datos lo declara con CronHorizonteInterface y el ciclo se ajusta solo.
+        $limitDate = $this->resolverLimite($jobService);
+
         if ($startDate > $limitDate) {
-            $io->warning("Reseteando cursor: demasiado avanzado en el futuro.");
+            $io->note('Fin del horizonte de datos: se reinicia el cursor.');
             $startDate = new DateTimeImmutable('yesterday');
-            $endDate = $startDate->add($jobService->getStepInterval());
+            $endDate = $startDate->add($this->resolverPaso($jobService, $startDate));
         }
 
         $io->title("Timeline Enqueuer: $jobName");
@@ -114,5 +121,37 @@ class TimelineEnqueuerService
         $io->success("Encolado finalizado. Timeline avanzado a {$endDate->format('Y-m-d')}.");
 
         return true;
+    }
+
+    /** Paso del cursor: adaptativo si el job lo implementa, fijo si no. */
+    private function resolverPaso(CronJobInterface $job, DateTimeImmutable $desde): DateInterval
+    {
+        return $job instanceof CronPasoAdaptativoInterface
+            ? $job->getStepIntervalDesde($desde)
+            : $job->getStepInterval();
+    }
+
+    /**
+     * Hasta dónde puede avanzar el cursor antes de reiniciarse.
+     *
+     * Nunca por debajo de hoy: un horizonte en el pasado (o sin datos) dejaría el cursor
+     * reiniciándose en cada ejecución sin llegar a barrer nada.
+     */
+    private function resolverLimite(CronJobInterface $job): DateTimeImmutable
+    {
+        $porDefecto = (new DateTimeImmutable())->modify('+18 months');
+
+        if (!$job instanceof CronHorizonteInterface) {
+            return $porDefecto;
+        }
+
+        $horizonte = $job->getHorizonteMaximo();
+        if ($horizonte === null) {
+            return $porDefecto;
+        }
+
+        $hoy = new DateTimeImmutable('today');
+
+        return $horizonte < $hoy ? $hoy : $horizonte;
     }
 }
