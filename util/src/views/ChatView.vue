@@ -544,7 +544,6 @@ const isBeds24Allowed = computed(() => {
   if (bannedOrigins.includes(origin)) return false;
 
   if (selectedTemplateId.value) {
-    // @ts-ignore
     const tpl = store.templates.find(t => (t['@id'] || t.id) === selectedTemplateId.value);
     if (tpl && !tpl.beds24Active) return false;
   }
@@ -561,7 +560,6 @@ const isWhatsappAllowed = computed(() => {
   const sessionActive = chat.whatsappSessionActive;
 
   if (selectedTemplateId.value) {
-    // @ts-ignore
     const tpl = store.templates.find(t => (t['@id'] || t.id) === selectedTemplateId.value);
     if (!tpl) return false;
 
@@ -664,8 +662,7 @@ const toggleChannel = (channel: string) => {
 };
 
 const selectTemplate = (tpl: ApiTemplate) => {
-  // @ts-ignore
-  selectedTemplateId.value = tpl['@id'] || tpl.id;
+  selectedTemplateId.value = tpl['@id'] || tpl.id || null;
   showTemplateDropdown.value = false;
 
   let newChannels = tpl.channels || [];
@@ -904,8 +901,7 @@ const toggleTranslation = (msg: ApiMessage, event?: Event) => {
   if (event && (event.target as HTMLElement).tagName === 'A') {
     return;
   }
-  if (!hasTranslation(msg)) return;
-  // @ts-ignore
+  if (!hasTranslation(msg) || !msg.id) return;
   translatedMessages.value[msg.id] = !translatedMessages.value[msg.id];
 };
 

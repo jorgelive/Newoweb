@@ -479,6 +479,32 @@ por defecto y pisaría una petición anterior — por eso el salto se emite en e
 `requestAnimationFrame` *posterior* al cambio de rango, y `datesSet` / `loading` reintentan
 el `diaPendiente`.
 
+#### Gotcha PWA iOS — `window.open()` después de un `await` se pierde en silencio
+
+El submenú **"Enviar plantilla"** de WhatsApp resuelve los enlaces de *todas* las plantillas
+al abrirse (`precargarLinksWhatsapp()`, `Promise.allSettled`) y pinta cada una como un `<a
+href>` de verdad. Parece un rodeo — lo natural sería un `<button>` que pida el texto al
+backend y abra WhatsApp — pero ese camino **no funciona en la PWA instalada de iOS**:
+
+> Safari solo permite abrir ventanas **dentro del gesto del usuario**. Un `window.open()`
+> ejecutado tras un `await` ya está fuera de él y iOS lo descarta **sin error y sin ventana**:
+> desde el móvil parece que la app se colgó. En modo standalone (icono en la pantalla de
+> inicio) es sistemático, no intermitente.
+
+Reglas que se siguen de esto, aplicables a cualquier vista de `util/`:
+
+- Todo lo que abra algo externo cuelga de un `<a href target="_blank">` con la URL **ya
+  resuelta antes** de pintarse — nunca de un handler asíncrono. `pmsReservaModel.ts` expone
+  por eso `whatsappUrl()` (construye la URL) y **no** una función que la abra.
+- Si el enlace depende de una llamada, la llamada se hace **al abrir el menú**, no al pulsar
+  la opción. N peticiones pequeñas en paralelo son preferibles a un popup bloqueado.
+- Mientras no haya URL, la fila se pinta inerte (sin `href`, atenuada), no como un botón que
+  parece funcionar y no hace nada.
+
+Quedan `window.open()` en `ChatView.vue` (adjuntos) y `CotizacionEditorView.vue` (vista
+previa): esos sí están dentro del gesto, pero si alguna vez se les mete un `await` delante,
+caen en la misma trampa.
+
 #### El «atrás» del móvil cierra capas (y su acoplamiento con el drawer)
 
 `ReservasView` y `TarifasView` registran `onBeforeRouteLeave`: si hay algo abierto encima

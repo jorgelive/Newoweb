@@ -47,7 +47,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 export const useNotificationStore = defineStore('notificationStore', () => {
 
     const getUrls = () => {
-        // @ts-ignore
         const config = window.OPENPERU_CONFIG || {};
         return {
             api: config.apiUrl || import.meta.env.VITE_API_URL || 'https://api.openperu.pe'

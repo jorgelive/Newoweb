@@ -83,18 +83,40 @@ class PmsGuiaSeccion
      * 🔴 IMPORTANTE: Sobrescribimos getId del Trait para añadirle el Grupo.
      * Si no hacemos esto, la API no devuelve el ID de la sección.
      */
-    #[Groups(['pax_evento:read'])]
+    #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;
     }
 
     /**
-     * 🔥 "Virtual Property": Devuelve los items limpios y ordenados,
-     * ocultando la complejidad de la tabla intermedia 'seccionHasItems'.
+     * Ítems ya filtrados por visibilidad para esta petición. Los llena
+     * PmsGuiaArbolFiltro a partir de getItemsApi(), que devuelve el árbol
+     * completo y no se serializa.
+     *
+     * @var array<int, PmsGuiaItem>
      */
-    #[Groups(['pax_evento:read'])]
+    private array $itemsParaCliente = [];
+
+    public function setItemsParaCliente(array $items): self
+    {
+        $this->itemsParaCliente = $items;
+        return $this;
+    }
+
+    /** @return array<int, PmsGuiaItem> */
+    #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     #[SerializedName('items')]
+    public function getItemsParaCliente(): array
+    {
+        return $this->itemsParaCliente;
+    }
+
+    /**
+     * Ítems activos SIN filtrar por visibilidad, ocultando la complejidad de la
+     * tabla intermedia 'seccionHasItems'. No se serializa: es la entrada de
+     * PmsGuiaArbolFiltro::podarItems().
+     */
     public function getItemsApi(): array
     {
         // 1. Filtramos solo los items activos en esta sección
@@ -113,20 +135,20 @@ class PmsGuiaSeccion
         return $items;
     }
 
-    #[Groups(['pax_evento:read'])]
+    #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getTitulo(): array
     {
         return MaestroIdioma::ordenarParaFormulario($this->titulo);
     }
 
-    #[Groups(['pax_evento:read'])]
+    #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getIcono(): ?string
     {
         return $this->icono;
     }
 
 
-    #[Groups(['pax_evento:read'])]
+    #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     #[SerializedName('tipo')]
     public function getTipo(): ?string
     {
@@ -164,7 +186,7 @@ class PmsGuiaSeccion
         $this->titulo = MaestroIdioma::normalizarParaDB($titulo); return $this;
     }
 
-    #[Groups(['pax_evento:read'])]
+    #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getSubtitulo(): array
     {
         return MaestroIdioma::ordenarParaFormulario($this->subtitulo ?? []);

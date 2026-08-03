@@ -163,6 +163,47 @@ El cliente **no puede ver nombres internos**. Reglas ya implementadas para las t
 
 **Pendiente / no hecho**: aplicar la misma lógica de "3 ítems + flags" al **listado de ítems del itinerario** cliente si hiciera falta (lo implementado cubrió solo las tarjetas de alternativa). Ver detalles en la memoria `vista-cliente-alternativas-titulo`.
 
+### Idioma del cliente: quién manda (`idiomaCliente`)
+
+Es el campo que decide **en qué idioma ve el cliente todo**. Vive por duplicado, y
+esa es la parte que confunde:
+
+| Campo | Gobierna |
+|---|---|
+| `CotizacionFile::$idiomaCliente` | La **portada del expediente** (`PaxFilePortadaView`) |
+| `Cotizacion::$idiomaCliente` (uno por versión) | La **propuesta / guía** (`PaxCotizacionGuiaView`) |
+
+No confundirlo con la relación `CotizacionFile::$idioma` (`MaestroIdioma`), que es
+el idioma del prospecto para uso **interno** y no llega a la vista pública.
+
+Flujo completo:
+
+```
+Alta del expediente (DashboardView)
+    │  el desplegable "Idioma Base" fija AMBOS: la relación `idioma` y `idiomaCliente`
+    ▼
+CotizacionFile.idiomaCliente ──┐
+    │                          │ (herencia al CREAR, crearCotizacionVacia)
+    │                          ▼
+    │                    Cotizacion.idiomaCliente  (por versión, editable en el editor)
+    │                          │
+    ▼                          ▼
+PaxFilePortadaView      PaxCotizacionGuiaView
+        └──── paxCotizacionStore: `maestroStore.setIdioma(...)` ────┘
+                (salvo que el cliente haya elegido idioma a mano:
+                 el flag `paxIdiomaManual` de localStorage gana)
+```
+
+**Regla asimétrica que hay que conocer**: cambiar el idioma del expediente
+**propaga a todas sus cotizaciones**, incluidas las ya enviadas o confirmadas — lo
+hace `CotizacionFileIdiomaClienteListener` (preUpdate). Es decir, un cliente con un
+enlace ya abierto verá la propuesta cambiar de idioma. Es una decisión explícita
+del negocio: manda el expediente. Lo contrario NO ocurre: cambiar el idioma de una
+versión concreta en el editor no toca al expediente ni a sus hermanas.
+
+El listener vive en el backend, y no en la SPA, para que la regla se cumpla venga
+el cambio de donde venga (app util, EasyAdmin o una importación).
+
 ### Los dos interruptores de la guía (y por qué no comparten vocabulario)
 
 `PaxCotizacionGuiaView.vue` tiene dos controles independientes que el usuario confundía
@@ -366,6 +407,7 @@ Reglas al tocar esta zona:
 - **La tarjeta de precio de la guía (colapsada/expandida, textos del pie)** → sección "TARJETA DE PRECIO" de `PaxCotizacionGuiaView.vue` + `finanzasAbiertas` / `hayPanelPrecio`. Ojo con el vocabulario: §6.
 - **Que un tour de catálogo muestre (o no) el total de grupo** → flag `totalesOcultos`: default al crear en `crearCotizacionVacia()` (store), toggle "Ocultar Total de Grupo" en `CotizacionEditorView.vue`, consumo en `ocultarTotales` de `PaxCotizacionGuiaView.vue`. Ver §6.b.
 - **Precio "desde" del escaparate del catálogo** → `preciosDesde[]` (bloque "Precios de Exhibición" del editor) → `PaxCatalogoPortadaView.vue` / `CatalogoDashboard.vue`. No es lo mismo que el flag anterior (§6.b).
+- **En qué idioma ve el cliente la propuesta** → `idiomaCliente` (§6). Alta: `handleCreate` en `DashboardView.vue`. Cambio posterior: selector de `FileDetalle.vue` → propaga `CotizacionFileIdiomaClienteListener`. Por versión: selector del editor.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
 

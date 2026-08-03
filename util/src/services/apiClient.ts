@@ -13,7 +13,6 @@ export interface ErrorSesionMuerta extends Error {
 }
 
 export const getUrls = () => {
-    // @ts-ignore
     const config = window.OPENPERU_CONFIG || {};
     return {
         api: config.apiUrl || import.meta.env.VITE_API_URL || 'https://api.openperu.pe',

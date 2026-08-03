@@ -81,7 +81,7 @@ class PmsGuiaItemGaleria
      * GETTERS Y SETTERS
      * ====================================================== */
 
-    #[Groups(['pax_evento:read'])]
+    #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getImageUrl(): ?string { return $this->imageUrl; }
     public function setImageUrl(?string $url): self { $this->imageUrl = $url; return $this; }
 
@@ -97,7 +97,7 @@ class PmsGuiaItemGaleria
     public function getImageName(): ?string { return $this->imageName; }
     public function setImageName(?string $imageName): void { $this->imageName = $imageName; }
 
-    #[Groups(['pax_evento:read'])]
+    #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getDescripcion(): array
     {
         return MaestroIdioma::ordenarParaFormulario($this->descripcion ?? []);

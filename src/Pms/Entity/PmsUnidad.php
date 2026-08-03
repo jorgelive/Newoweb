@@ -60,6 +60,25 @@ class PmsUnidad
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombre = null;
 
+    /**
+     * Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+     * donde el primer segmento es el slug del establecimiento.
+     *
+     * Es único a nivel global, no por establecimiento: la ruta lo resuelve con
+     * un Link propio de API Platform, que busca la unidad por slug sin cruzarla
+     * con el padre. Un UNIQUE simple hace que ese lookup no pueda devolver dos.
+     *
+     * No sustituye al UUID en la guía del huésped: esa va por localizador de
+     * reserva. El slug es solo del escaparate.
+     */
+    #[ORM\Column(type: 'string', length: 150, unique: true, nullable: true)]
+    #[Assert\Regex(
+        pattern: '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+        message: 'El slug solo admite minúsculas, números y guiones simples (ej. casita-1).'
+    )]
+    #[Assert\Length(max: 150)]
+    private ?string $slug = null;
+
     #[Vich\UploadableField(mapping: 'unidad_images', fileNameProperty: 'imageName')]
     #[Assert\File(
         maxSize: "5M",
@@ -168,14 +187,22 @@ class PmsUnidad
     // GETTERS Y SETTERS BÁSICOS
     // ============================================================
 
+    #[Groups(['pax_catalogo:read'])]
     public function getEstablecimiento(): ?PmsEstablecimiento { return $this->establecimiento; }
     public function setEstablecimiento(?PmsEstablecimiento $val): self { $this->establecimiento = $val; return $this; }
 
-    #[Groups(['pax_reserva:read', 'pms_unidad:read', 'pms_evento:read'])]
+    #[Groups(['pax_reserva:read', 'pms_unidad:read', 'pms_evento:read', 'pax_guia:read', 'pax_catalogo:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $val): self { $this->nombre = $val; return $this; }
 
-    #[Groups(['pax_reserva:read', 'pax_evento:read'])]
+    // `pax_reserva:read` porque el índice de estancias enlaza a la guía por
+    // {localizador}/{unidadSlug}: sin el slug en ese payload no hay forma de
+    // construir el enlace desde PmsReservaView.vue. Es un dato público.
+    #[Groups(['pms_unidad:read', 'pax_reserva:read', 'pax_guia:read', 'pax_catalogo:read'])]
+    public function getSlug(): ?string { return $this->slug; }
+    public function setSlug(?string $val): self { $this->slug = $val; return $this; }
+
+    #[Groups(['pax_reserva:read', 'pax_guia:read', 'pax_catalogo:read'])]
     public function getImageUrl(): ?string { return $this->imageUrl; }
     public function setImageUrl(?string $url): self { $this->imageUrl = $url; return $this; }
 
@@ -194,6 +221,7 @@ class PmsUnidad
     public function getCodigoInterno(): ?string { return $this->codigoInterno; }
     public function setCodigoInterno(?string $val): self { $this->codigoInterno = $val; return $this; }
 
+    #[Groups(['pax_catalogo:read'])]
     public function getCapacidad(): ?int { return $this->capacidad; }
     public function setCapacidad(?int $val): self { $this->capacidad = $val; return $this; }
 

@@ -7,9 +7,8 @@
 //  - PmsUnidad: api.d.ts solo expone `imageUrl`; en runtime también viene `id` y `nombre`.
 //  - PmsReserva.eventosActivosGuia: api.d.ts lo declara string[] pero
 //    el endpoint devuelve objetos PmsEventoCalendario embebidos.
-//  - PmsGuia.titulo y secciones: api.d.ts los tipifica como string[] (columnas
-//    JSON que API Platform no puede introspeccionar); en runtime son objetos.
-//  - GuiaHelperContext: endpoint personalizado, sin schema en api.d.ts.
+//
+// Los tipos del árbol de la guía ya no viven aquí; ver la nota de más abajo.
 // ============================================================================
 
 import type { components } from './api';
@@ -32,6 +31,8 @@ export type PmsChannel = components['schemas']['PmsChannel-pax_reserva.read'];
 export type PmsUnidad = components['schemas']['PmsUnidad-pax_evento.read'] & {
     id?: string;
     nombre?: string;
+    /** Segundo segmento del enlace a la guía: /huesped/reserva/{loc}/{slug}. */
+    slug?: string | null;
 };
 
 // --- PmsEventoCalendario: no tiene schema en api.d.ts; el endpoint los embebe como objetos ---
@@ -60,78 +61,17 @@ export type PmsReserva = Omit<components['schemas']['PmsReserva-pax_reserva.read
     eventosActivosGuia?: PmsEventoCalendario[];
 };
 
-// --- Guía del huésped: secciones e items (no son schemas separados en api.d.ts) ---
-
-export interface PmsGuiaItemGaleria {
-    descripcion?: PmsContenidoTraducible[];
-    imageUrl: string;
-}
-
-export interface PmsGuiaItem {
-    '@type'?: string;
-    '@id'?: string;
-    tipo: 'card' | 'album' | 'alert' | string;
-    titulo: PmsContenidoTraducible[];
-    descripcion?: PmsContenidoTraducible[];
-    icono?: string | null;
-    labelBoton?: PmsContenidoTraducible[];
-    urlBoton?: string;
-    galeria: PmsGuiaItemGaleria[];
-}
-
-export type PmsGuiaSeccionTipo = 'ingreso' | 'descriptivo' | 'normas';
-
-export interface PmsGuiaSeccion {
-    '@type'?: string;
-    '@id'?: string;
-    id: string;
-    icono: string;
-    tipo?: PmsGuiaSeccionTipo | null;
-    titulo: PmsContenidoTraducible[];
-    subtitulo: PmsContenidoTraducible[];
-    items: PmsGuiaItem[];
-}
-
-// PmsGuia: ancla al schema de api.d.ts corrigiendo los campos JSON no introspectables.
-// Se sobreescribe también `unidad` para usar PmsUnidad extendido con id y nombre.
-
-export type PmsGuia = Omit<components['schemas']['PmsGuia-pax_evento.read'], 'titulo' | 'secciones' | 'unidad'> & {
-    unidad?: PmsUnidad;
-    titulo: PmsContenidoTraducible[];
-    secciones: PmsGuiaSeccion[];
-};
-
-// --- GuiaHelperContext: endpoint personalizado, sin schema en api.d.ts ---
-
-export interface GuiaHelperContext {
-    data: {
-        text_fixed: {
-            guest_name?: string;
-            unit_name?: string;
-            booking_ref?: string;
-            [key: string]: string | undefined;
-        };
-        text_translatable: {
-            status_msg?: PmsContenidoTraducible[];
-            [key: string]: PmsContenidoTraducible[] | undefined;
-        };
-        widgets: {
-            wifi_data?: Array<{
-                ssid: string;
-                password: string;
-                ubicacion: PmsContenidoTraducible[] | string;
-                is_locked?: boolean;
-            }>;
-            [clave: string]: unknown;
-        };
-        config: {
-            mode: 'guest' | 'demo';
-            access_status: 'active' | 'pending' | 'expired' | 'unconfirmed' | 'demo';
-            is_locked: boolean;
-            unit_uuid: string;
-            /** Momento en que se abre la guía (ventana de 24 h antes del check-in). */
-            unlock_at?: string;
-            [clave: string]: string | boolean | undefined;
-        };
-    }
-}
+// ============================================================================
+// Los tipos del ÁRBOL de la guía (PmsGuia, PmsGuiaSeccion, PmsGuiaItem) y
+// `GuiaHelperContext` vivían aquí y se han retirado con el contrato viejo.
+//
+// Aquel contrato eran dos peticiones: el CMS por UUID de unidad más un
+// "helper" que traía el diccionario de valores sensibles para que el navegador
+// interpolara los `{{ door_code }}`. Ya no existe ninguno de los dos endpoints.
+//
+// El sustituto para el catálogo público está en `paxCatalogoUnidadModel.ts`.
+// El de la guía del huésped se escribirá contra el grupo `pax_guia:read`
+// (GET /platform/client/pax/pms/pms_guia/{localizador}), cuyo payload llega
+// ya podado por visibilidad y con los placeholders resueltos: no lleva
+// diccionario de valores ni banderas de bloqueo que interpretar.
+// ============================================================================

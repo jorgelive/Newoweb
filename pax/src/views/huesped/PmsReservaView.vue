@@ -6,6 +6,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePmsReservaStore } from '@/stores/huesped/paxHuespedReservaStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
+import type { PmsEventoCalendario } from '@/types/paxHuespedModel';
 
 const props = defineProps<{
   localizador?: string;
@@ -90,12 +91,25 @@ const formatearHora = (fechaStr: string) => {
   });
 };
 
-const verGuiaEvento = (eventoId: string | number) => {
-  // 🔥 ACTUALIZADO: Apunta a la ruta segura de evento
-  router.push({
-    name: 'guia_evento',
-    params: { uuidEvento: eventoId }, // Usamos el nombre de parámetro correcto
-  });
+/**
+ * Abre la guía de UNA estancia.
+ *
+ * Va por `{localizador}/{slug de la unidad}`, no por el UUID del evento: el
+ * identificador que ve el cliente es el localizador que ya recibió por correo
+ * (docs/PmsGuiaHuesped.md §5). La ruta `guia_evento` del contrato anterior se
+ * borró con él — apuntar ahí reventaba el router con "No match for…".
+ *
+ * Sin slug (unidad creada antes de PmsSlugListener) se usa la ruta corta
+ * `/huesped/reserva/{loc}/guia`: el backend devuelve entonces la primera
+ * estancia cronológica, que en una reserva de una sola casita es ésta misma.
+ */
+const verGuiaEvento = (evento: PmsEventoCalendario) => {
+  const slug = evento.pmsUnidad?.slug;
+  router.push(
+      slug
+          ? { name: 'guia_huesped', params: { localizador: props.localizador, unidad: slug } }
+          : { name: 'guia_huesped_corta', params: { localizador: props.localizador } },
+  );
 };
 </script>
 
@@ -240,7 +254,7 @@ const verGuiaEvento = (eventoId: string | number) => {
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-stretch">
 
               <div class="md:col-span-5 md:order-2">
-                <button @click="verGuiaEvento(evento.id)"
+                <button @click="verGuiaEvento(evento)"
                         class="group/btn relative w-full h-full min-h-20 md:min-h-25 rounded-3xl flex flex-col justify-center px-6 py-4 md:py-5 transition-all active:scale-[0.98] shadow-lg shadow-orange-100 hover:shadow-orange-200 bg-[#E07845] hover:bg-[#D06535] overflow-hidden text-left">
                   <i class="fas fa-map-signs absolute -right-2 -bottom-4 text-6xl text-white/10 group-hover/btn:scale-110 group-hover/btn:rotate-12 transition-transform duration-500"></i>
                   <span class="relative z-10 flex items-center justify-between w-full mb-1">

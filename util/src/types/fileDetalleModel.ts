@@ -55,7 +55,17 @@ export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 
     versionesFechas?: { version: number; fechaInicio: string | null }[];
 };
 
-export type ApiCotizacionFileWrite = components['schemas']['CotizacionFile-file.write'] & {
+/**
+ * `idiomaCliente` sale del `Omit` a propósito: el schema lo marca obligatorio
+ * (no es nullable), pero la entidad lo inicializa a `'es'`
+ * (`CotizacionFile::$idiomaCliente`), así que el alta desde el dashboard puede
+ * no mandarlo. Se declara opcional para no obligar a inventar un valor.
+ */
+export type ApiCotizacionFileWrite = Omit<
+    components['schemas']['CotizacionFile-file.write'],
+    'idiomaCliente'
+> & {
+    idiomaCliente?: string;
     pais?: string | null;
     idioma?: string | null;
     email?: string | null;

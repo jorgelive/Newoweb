@@ -43,6 +43,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Cotizacion/`, cotizaciones y catálogo en `util/` y `pax/` | `docs/Cotizaciones.md` |
 | `util/src/components/common/` (componentes de UI reutilizables entre módulos) | `docs/UI_Componentes_Compartidos.md` |
 | `src/Operacion/`, La Biblia y Órdenes de Servicio en `util/` | `docs/Operacion.md` |
+| `src/Pms/Guia/`, entidades `PmsGuia*`, guía del huésped y catálogo en `pax/` | `docs/PmsGuiaHuesped.md` |
 
 Si el módulo que tocas no tiene doc (`src/Travel/`, `src/Agent/`, `src/Pax/`…), **créalo**
 siguiendo el formato de los existentes y agrégalo a esta tabla.

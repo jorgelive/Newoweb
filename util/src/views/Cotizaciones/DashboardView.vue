@@ -122,14 +122,17 @@ const handleCreate = async (): Promise<void> => {
   const paisObj = maestroStore.paises.find((p) => p.id === newFile.value.paisId || p['@id'] === newFile.value.paisId);
   const idiomaObj = maestroStore.idiomas.find((i) => i.id === newFile.value.idiomaId || i['@id'] === newFile.value.idiomaId);
 
-  // Ignoramos tipado estricto si OpenAPI no ha sido indexado completamente en el IDE local
-  // @ts-ignore
   const result = await fileStore.createFile({
     nombreGrupo: newFile.value.nombreGrupo,
     pasajeroPrincipal: newFile.value.pasajeroPrincipal || null,
     email: newFile.value.email || null,
     telefono: newFile.value.telefono || null,
     estado: 'abierto',
+    // El idioma elegido aquí manda sobre TODO lo que verá el cliente: cada
+    // cotización del expediente lo hereda al crearse (crearCotizacionVacia) y
+    // la app pax renderiza la propuesta en ese idioma. Sin esto el expediente
+    // nacía siempre en 'es' (el default de la entidad), aunque se eligiera otro.
+    idiomaCliente: newFile.value.idiomaId || 'es',
     // Composición de IRI para API Platform basadas en la estructura de endpoints
     // Inyectamos el IRI exacto que demanda API Platform
     pais: paisObj ? paisObj['@id'] : null,

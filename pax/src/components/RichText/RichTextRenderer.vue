@@ -1,25 +1,22 @@
 <script setup lang="ts">
-import type { GuiaHelperContext } from '@/types/paxHuespedModel';
 import { computed } from 'vue';
-import { useMaestroStore } from '@/stores/maestroStore';
 import { RichContentEngine, type RenderBlock } from '@/core/RichContentEngine';
 
+/**
+ * Pinta el cuerpo de un ítem de guía o catálogo.
+ *
+ * `content` llega con los placeholders de DATOS ya resueltos por el backend;
+ * aquí solo se expanden los bloques de maquetación. Ver RichContentEngine.
+ */
 const props = defineProps<{
   content: string;
-  context: GuiaHelperContext | null;
+  /** Redes WiFi para `{{ widget: wifi }}`. Vacío = el backend no las liberó. */
+  wifiData?: unknown[];
 }>();
 
-const maestroStore = useMaestroStore();
-
-const engine = computed(() => new RichContentEngine(
-    props.context,
-    maestroStore.traducir
-));
-
 const blocks = computed<RenderBlock[]>(() => {
-  // 🔥 Dependencia reactiva: obliga a recalcular si cambia el idioma
-  const _idioma = maestroStore.idiomaActual;
-  return engine.value.parse(props.content);
+  const engine = new RichContentEngine({ wifiData: props.wifiData ?? [] });
+  return engine.parse(props.content);
 });
 </script>
 

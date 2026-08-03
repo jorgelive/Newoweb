@@ -1,146 +1,74 @@
-// src/stores/paxHuespedGuiaStore.ts
+// src/stores/huesped/paxHuespedGuiaStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { paxHuespedService } from '@/services/paxHuespedService.ts';
-import { useMaestroStore } from '../maestroStore.ts';
-import type { PmsGuia, GuiaHelperContext, PmsContenidoTraducible } from '@/types/paxHuespedModel.ts';
-import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
+import type { GuiaHuespedResponse } from '@/types/paxHuespedGuiaModel';
 
-export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
+const API_BASE = window.OPENPERU_CONFIG?.apiUrl || import.meta.env.VITE_API_URL;
 
-    const maestroStore = useMaestroStore();
+/**
+ * Guía del huésped de una estancia (`/huesped/reserva/:localizador/:unidad`).
+ *
+ * **Sin `persist`, y es deliberado.** El store anterior guardaba el contexto en
+ * localStorage sin caducidad — con los códigos de puerta y la contraseña del
+ * WiFi dentro — y sobrevivía a la estancia: un móvil prestado o robado seguía
+ * abriendo la puerta meses después. Ver docs/PmsGuiaHuesped.md §6. Cada visita
+ * vuelve a pedir el payload; el backend ya decide qué liberar según la ventana,
+ * así que cachearlo sería además servir datos caducados.
+ *
+ * Una petición y un objeto: el árbol llega podado e interpolado, aquí no se
+ * calcula nada.
+ */
+export const usePaxHuespedGuiaStore = defineStore('paxHuespedGuiaStore', () => {
 
-    // Estado
-    const guia = ref<PmsGuia | null>(null);
-    const helperContext = ref<GuiaHelperContext | null>(null);
+    const guia = ref<GuiaHuespedResponse | null>(null);
     const loading = ref(false);
+    /** Código de error para la vista: ERR_404 | ERR_THROTTLE | ERR_CONEXION. */
     const error = ref<string | null>(null);
-    const currentId = ref<string | null>(null);
 
-    // ⏰ Control de Tiempo
-    const lastUpdate = ref<number>(0); // Caché para el contexto (Guest/Public)
-    const lastUpdateGuia = ref<number>(0); // Caché específico para el CMS visual (getPmsGuia)
-
-    // 30 segundos en milisegundos (30 * 1000)
-    const CACHE_TTL = 30000;
-
-    /**
-     * Carga el contexto de la guía y el CMS visual asegurando caché de 30s.
-     * Retiene los datos activos si no hay conexión a internet.
-     * * @param {string} uuid Identificador único de la reserva o propiedad.
-     * @param {'public' | 'guest'} mode Modo de acceso.
-     * @returns {Promise<void>}
-     */
-    const cargarDatosCompletos = async (uuid: string, mode: 'public' | 'guest'): Promise<void> => {
-        const ahora = Date.now();
-        const hayInternet = navigator.onLine; // Chequeo nativo del navegador
-
-        // Evaluaciones de estado y frescura
-        const tiempoTranscurridoContexto = ahora - lastUpdate.value;
-        const contextoExiste = helperContext.value && currentId.value === uuid;
-        const contextoFresco = tiempoTranscurridoContexto < CACHE_TTL;
-
-        const tiempoTranscurridoGuia = ahora - lastUpdateGuia.value;
-        const guiaExiste = guia.value !== null;
-        const guiaFresca = tiempoTranscurridoGuia < CACHE_TTL;
-
-        // 🛑 REGLA ESTRICTA OFFLINE: Si no hay red y tenemos datos, abortamos actualización.
-        if (!hayInternet) {
-            if (contextoExiste || guiaExiste) {
-                console.warn('⚠️ GuiaStore: Sin conexión a internet. Reteniendo la última data activa en caché de forma indefinida.');
-                return;
-            }
-        }
-
-        console.log('🔄 GuiaStore: Validando caché y actualizando datos si es necesario...');
+    const cargar = async (localizador: string, unidad?: string | null): Promise<void> => {
         loading.value = true;
+        error.value = null;
 
-        // 🔥 TRUCO: No borramos 'error' ni 'guia' todavía para mantener la UI visible
-        // mientras carga la nueva versión por detrás.
+        // Sin slug de unidad el backend devuelve la primera estancia cronológica
+        // (ver PmsGuiaHuespedProvider): un enlace corto siempre lleva a algo útil.
+        const ruta = unidad
+            ? `${encodeURIComponent(localizador)}/${encodeURIComponent(unidad)}`
+            : encodeURIComponent(localizador);
 
         try {
-            // Cargar idiomas si faltan (el maestroStore gestiona su propio caché de 30s)
-            if (maestroStore.idiomas.length === 0) {
-                await maestroStore.cargarConfiguracion();
+            const res = await fetch(`${API_BASE}/platform/client/pax/pms/pms_guia/${ruta}`, {
+                headers: { Accept: 'application/ld+json' },
+                // El payload puede llevar códigos de acceso: que no se quede en
+                // ninguna caché intermedia ni en el historial del navegador.
+                cache: 'no-store',
+            });
+
+            if (!res.ok) {
+                // 429 = PmsGuiaThrottle. Merece su propio mensaje: al huésped
+                // legítimo no le pasa nunca (solo los fallos gastan presupuesto),
+                // y si le pasa, "vuelve en unos minutos" es accionable.
+                if (res.status === 429) throw new Error('ERR_THROTTLE');
+                // 404 uniforme: localizador inexistente, estancia sin guía o
+                // guía deshabilitada. Para el huésped es el mismo caso, y esa
+                // indistinción es intencionada (no filtra qué localizadores existen).
+                throw new Error(res.status === 404 ? 'ERR_404' : 'ERR_CONEXION');
             }
 
-            // 1. ACTUALIZACIÓN DEL CONTEXTO (Guest/Public)
-            if (!contextoExiste || !contextoFresco) {
-                let contextData;
-                if (mode === 'guest') {
-                    contextData = await paxHuespedService.getGuiaGuestContext(uuid);
-                } else {
-                    contextData = await paxHuespedService.getGuiaPublicContext(uuid);
-                }
-
-                helperContext.value = contextData;
-                currentId.value = uuid;
-                lastUpdate.value = Date.now();
-                error.value = null;
-            } else {
-                console.log('⚡ GuiaStore: Contexto fresco (< 30s). Ahorrando petición.');
-            }
-
-            // Extraer el ID real de la unidad del contexto actual
-            const unidadRealId = helperContext.value?.data?.config?.unit_uuid;
-            if (!unidadRealId) throw new Error('Datos corruptos: Sin ID de unidad en el contexto.');
-
-            // 2. ACTUALIZACIÓN DE LA GUÍA VISUAL (getPmsGuia)
-            // Actualiza si: no existe, cambió de unidad, o el caché de 30s expiró
-            if (!guiaExiste || guia.value?.unidad?.id !== unidadRealId || !guiaFresca) {
-                const guiaData = await paxHuespedService.getPmsGuia(unidadRealId);
-                guia.value = guiaData;
-                lastUpdateGuia.value = Date.now();
-            } else {
-                console.log('⚡ GuiaStore: CMS visual de Guía fresco (< 30s). Ahorrando petición.');
-            }
+            guia.value = await res.json() as GuiaHuespedResponse;
 
         } catch (err: unknown) {
-            console.error('❌ GuiaStore: Falló la actualización.', err);
-
-            // Si falla el servidor pero teníamos datos, nos los quedamos por seguridad
-            if (contextoExiste || guiaExiste) {
-                console.log('🛡️ GuiaStore: Servidor falló. Manteniendo datos antiguos por seguridad.');
-                error.value = "No se pudo actualizar, mostrando última versión activa guardada.";
-            } else {
-                error.value = (err as Error)?.message || 'Error de conexión crítico.';
-                guia.value = null;
-                helperContext.value = null;
-            }
+            error.value = (err as Error)?.message ?? 'ERR_CONEXION';
+            guia.value = null;
         } finally {
             loading.value = false;
         }
     };
 
-    /**
-     * Extrae y devuelve el string traducido según el idioma actual.
-     * * @param {PmsContenidoTraducible[] | undefined} contenido Arreglo de traducciones.
-     * @returns {string} Texto traducido o cadena vacía si no existe.
-     */
-    const traducir = (contenido: PmsContenidoTraducible[] | undefined): string => {
-        if (!contenido || !Array.isArray(contenido) || contenido.length === 0) return '';
-        const idioma = maestroStore.idiomaActual;
-        const match = contenido.find(c => c.language === idioma);
-        if (match?.content) return match.content;
-        const fallback = contenido.find(c => c.language === 'en') || contenido.find(c => c.language === 'es');
-        return fallback?.content || contenido[0].content || '';
+    /** Borra el payload al salir de la vista: los códigos no siguen en memoria. */
+    const limpiar = (): void => {
+        guia.value = null;
+        error.value = null;
     };
 
-    return {
-        guia,
-        helperContext,
-        loading,
-        error,
-        currentId,
-        lastUpdate,
-        lastUpdateGuia,
-        cargarDatosCompletos,
-        traducir
-    };
-}, {
-    persist: {
-        // Se añade lastUpdateGuia para persistir ambos temporizadores de caché
-        paths: ['guia', 'helperContext', 'currentId', 'lastUpdate', 'lastUpdateGuia'],
-        storage: localStorage,
-    } as PersistenceOptions
+    return { guia, loading, error, cargar, limpiar };
 });

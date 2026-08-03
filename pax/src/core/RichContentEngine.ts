@@ -1,6 +1,5 @@
 // src/core/RichContentEngine.ts
 import { defineAsyncComponent, type Component } from 'vue';
-import type { GuiaHelperContext, PmsContenidoTraducible } from '@/types/paxHuespedModel';
 
 export type BlockType = 'text' | 'component';
 
@@ -12,6 +11,11 @@ export interface RenderBlock {
     content?: string;
 }
 
+/**
+ * Bloques de MAQUETACIÓN que el editor puede insertar en el cuerpo de un ítem:
+ * `{{ video: url }}`, `{{ img: url }}`, `{{ map: coords }}`, `{{ widget: wifi }}`.
+ * Se resuelven aquí porque los componentes Vue viven aquí.
+ */
 const COMPONENT_REGISTRY: Record<string, Component> = {
     'video': defineAsyncComponent(() => import('@/components/RichText/VideoBlock.vue')),
     'img':   defineAsyncComponent(() => import('@/components/RichText/ImageBlock.vue')),
@@ -19,80 +23,61 @@ const COMPONENT_REGISTRY: Record<string, Component> = {
     'widget': defineAsyncComponent(() => import('@/components/GuiaUnidad/WifiCardWidget.vue')),
 };
 
+/**
+ * Parte el cuerpo de un ítem en bloques de texto y bloques de componente.
+ *
+ * LO QUE ESTA CLASE YA NO HACE: interpolar `{{ door_code }}` y compañía. Esa
+ * sustitución vivía aquí (`interpolateString`), y para poder hacerla el backend
+ * tenía que enviarle al navegador el diccionario COMPLETO de valores —códigos
+ * de puerta incluidos— dejando que el front eligiera cuál pintar. Bastaba abrir
+ * las herramientas de desarrollo para leerlos antes de tiempo.
+ *
+ * Ahora los placeholders de DATOS llegan ya resueltos desde PHP
+ * (src/Pms/Guia/PmsGuiaInterpolador.php): el valor real solo sale del servidor
+ * si el acceso lo permite, y si no, en su lugar viene el mensaje de bloqueo.
+ *
+ * OJO al tocar la expresión regular: la de PHP no admite `:` dentro de la clave,
+ * que es justo lo que deja pasar estos bloques. Si se cambia una, se cambia la
+ * otra, o habrá placeholders que un lado sustituye y el otro enseña crudos.
+ */
 export class RichContentEngine {
-    private context: GuiaHelperContext | null;
-    private translator: (c: PmsContenidoTraducible[]) => string;
-
-    constructor(context: GuiaHelperContext | null, translatorFn: (c: PmsContenidoTraducible[]) => string) {
-        this.context = context ?? null;
-        this.translator = translatorFn;
-    }
-
-    // 🔥 INTERPOLACIÓN ROBUSTA (Busca en Fixed -> Translatable)
-    private interpolateString(text: string): string {
-        const fixed = this.context?.data?.text_fixed || {};
-        const translatable = this.context?.data?.text_translatable || {};
-
-        // Regex tolerante a espacios: {{ key }}
-        return text.replace(/{{\s*([a-z0-9_]+)\s*}}/gi, (_, key) => {
-            const lowerKey = key.toLowerCase();
-
-            // 1. Prioridad: Texto Fijo (Strings directos)
-            if (fixed[lowerKey] !== undefined) {
-                return `<span class="font-bold text-indigo-600">${fixed[lowerKey]}</span>`;
-            }
-
-            // 2. Prioridad: Texto Traducible (Arrays)
-            if (translatable[lowerKey] !== undefined) {
-                const val = translatable[lowerKey];
-                if (Array.isArray(val)) {
-                    return `<span class="font-bold text-gray-900">${this.translator(val)}</span>`;
-                }
-            }
-
-            // 3. Fallback: No encontrado
-            return `{{${key}}}`;
-        });
-    }
+    /**
+     * @param datosWidget Datos que reciben los bloques de componente. Hoy solo
+     *   lo usa el widget de WiFi, que en la guía del huésped viene de
+     *   `guia.redesWifi` — y llega vacío si la ventana está cerrada, porque el
+     *   backend no manda contraseñas enmascaradas: no las manda.
+     */
+    constructor(private readonly datosWidget: Record<string, unknown> = {}) {}
 
     public parse(rawText: string): RenderBlock[] {
         if (!rawText) return [];
 
-        // Normalizar WiFi viejo
+        // Normalizar la forma antigua del widget de WiFi.
         const textToProcess = rawText.replace(/{{\s*wifi_data\s*}}/gi, '{{ widget: wifi }}');
 
-        // Regex Componentes: {{ tipo : valor }}
+        // Componentes: {{ tipo : valor }}
         const regex = /{{\s*([a-z]+)\s*:\s*(.+?)\s*}}/gi;
 
         const blocks: RenderBlock[] = [];
         let lastIndex = 0;
-        let match;
+        let match: RegExpExecArray | null;
 
         while ((match = regex.exec(textToProcess)) !== null) {
 
             const textBefore = textToProcess.slice(lastIndex, match.index);
             if (textBefore.trim()) {
-                blocks.push({
-                    id: `txt-${match.index}`,
-                    type: 'text',
-                    content: this.interpolateString(textBefore)
-                });
+                blocks.push({ id: `txt-${match.index}`, type: 'text', content: textBefore });
             }
 
             const type = match[1].toLowerCase();
             const value = match[2].trim();
-            const blockId = `cmp-${match.index}`;
 
             if (COMPONENT_REGISTRY[type]) {
                 blocks.push({
-                    id: blockId,
+                    id: `cmp-${match.index}`,
                     type: 'component',
                     component: COMPONENT_REGISTRY[type],
-                    props: {
-                        src: value,
-                        value: value,
-                        context: this.context
-                    }
+                    props: { src: value, value, ...this.datosWidget },
                 });
             } else {
                 console.warn(`[Engine] Componente desconocido: ${type}`);
@@ -102,11 +87,10 @@ export class RichContentEngine {
         }
 
         if (lastIndex < textToProcess.length) {
-            blocks.push({
-                id: `txt-end`,
-                type: 'text',
-                content: this.interpolateString(textToProcess.slice(lastIndex))
-            });
+            const resto = textToProcess.slice(lastIndex);
+            if (resto.trim()) {
+                blocks.push({ id: 'txt-end', type: 'text', content: resto });
+            }
         }
 
         return blocks;

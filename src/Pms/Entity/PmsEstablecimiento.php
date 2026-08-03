@@ -15,6 +15,7 @@ use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -55,6 +56,18 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     #[Assert\NotBlank(message: 'El nombre comercial es obligatorio.')]
     #[Assert\Length(max: 180)]
     private ?string $nombreComercial = null;
+
+    /**
+     * Primer segmento de la URL pública del catálogo: `/casita/casita-1`.
+     * Lo deriva PmsSlugListener del nombre comercial si se deja vacío.
+     */
+    #[ORM\Column(type: 'string', length: 180, unique: true, nullable: true)]
+    #[Assert\Regex(
+        pattern: '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+        message: 'El slug solo admite minúsculas, números y guiones simples (ej. casita).'
+    )]
+    #[Assert\Length(max: 180)]
+    private ?string $slug = null;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     #[Assert\NotBlank(message: 'La dirección es obligatoria.')]
@@ -143,18 +156,28 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     public function getMetaConfig(): ?MetaConfig { return $this->metaConfig; }
     public function setMetaConfig(?MetaConfig $metaConfig): self { $this->metaConfig = $metaConfig; return $this; }
 
+    #[Groups(['pax_catalogo:read'])]
     public function getNombreComercial(): ?string { return $this->nombreComercial; }
     public function setNombreComercial(?string $nombreComercial): self { $this->nombreComercial = $nombreComercial; return $this; }
+
+    #[Groups(['pax_catalogo:read'])]
+    public function getSlug(): ?string { return $this->slug; }
+    public function setSlug(?string $slug): self { $this->slug = $slug; return $this; }
 
     public function getDireccionLinea1(): ?string { return $this->direccionLinea1; }
     public function setDireccionLinea1(?string $direccionLinea1): self { $this->direccionLinea1 = $direccionLinea1; return $this; }
 
+    #[Groups(['pax_catalogo:read'])]
     public function getCiudad(): ?string { return $this->ciudad; }
     public function setCiudad(?string $ciudad): self { $this->ciudad = $ciudad; return $this; }
 
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }
 
+    // Datos de contacto comercial: alimentan el botón de consulta del catálogo.
+    // Son públicos por naturaleza (están en la web y en las OTA), a diferencia
+    // de codigoCajaPrincipal/Secundaria, que no tienen grupo ninguno.
+    #[Groups(['pax_catalogo:read'])]
     public function getTelefonoPrincipal(): ?string { return $this->telefonoPrincipal; }
     public function setTelefonoPrincipal(?string $telefonoPrincipal): self { $this->telefonoPrincipal = $telefonoPrincipal; return $this; }
 

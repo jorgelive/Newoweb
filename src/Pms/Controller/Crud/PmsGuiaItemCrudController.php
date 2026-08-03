@@ -8,6 +8,7 @@ use App\Panel\Form\Type\TranslationHtmlType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Entity\PmsGuiaItemGaleria;
+use App\Pms\Enum\PmsGuiaVisibilidad;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -149,6 +150,25 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ])
             ->setRequired(true)
             ->setColumns(4);
+
+        // Decide en qué de las dos guías aparece el ítem. Es el campo con más
+        // consecuencias del formulario, así que va arriba y con el aviso de que
+        // "público" significa indexable por cualquiera, sin reserva de por medio.
+        yield ChoiceField::new('visibilidad', 'Quién lo ve')
+            ->setChoices([
+                PmsGuiaVisibilidad::Publico->getLabel() => PmsGuiaVisibilidad::Publico,
+                PmsGuiaVisibilidad::Privado->getLabel() => PmsGuiaVisibilidad::Privado,
+                PmsGuiaVisibilidad::Llegada->getLabel() => PmsGuiaVisibilidad::Llegada,
+            ])
+            ->renderExpanded(false)
+            ->setRequired(true)
+            ->setColumns(6)
+            ->setHelp(
+                '<strong>Público</strong>: sale en el catálogo de la unidad, visible para cualquiera sin reserva. '
+                . '<strong>Privado</strong>: solo el huésped con una estancia vigente. '
+                . '<strong>A la llegada</strong>: además, solo desde 24 h antes del check-in y hasta el check-out '
+                . '(úsalo para códigos de puerta, caja fuerte y WiFi).'
+            );
 
         yield FormField::addPanel('Contenido Dinámico')
             ->setIcon('fa fa-align-left');

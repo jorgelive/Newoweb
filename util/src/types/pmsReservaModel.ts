@@ -221,18 +221,26 @@ export const maestroIdiomaIri = (id: string): string => `/platform/maestro/idiom
 // WHATSAPP (GET /pms/reservas/{id}/whatsapp-link/{templateId})
 // Reemplaza al viejo flujo de redirect de EasyAdmin: el backend solo resuelve
 // el texto (variables reemplazadas) en JSON, y el frontend arma la URL de
-// WhatsApp y hace window.open() — evita que un mensaje largo genere una
-// cabecera `Location` de redirect que colapse en el servidor/proxy.
+// WhatsApp — evita que un mensaje largo genere una cabecera `Location` de
+// redirect que colapse en el servidor/proxy.
 // ============================================================================
 export interface PmsReservaWhatsappLink {
     telefono: string;
     texto: string;
 }
 
-/** Abre WhatsApp Web/App con el texto ya resuelto, sin pasar por un redirect del backend. */
-export function abrirWhatsapp(telefono: string, texto: string): void {
-    const url = `https://api.whatsapp.com/send/?phone=${encodeURIComponent(telefono)}&text=${encodeURIComponent(texto)}&type=phone_number&app_absent=0`;
-    window.open(url, '_blank', 'noopener');
+/**
+ * URL de WhatsApp Web/App con el texto ya resuelto.
+ *
+ * Devuelve la URL en vez de abrirla: la apertura tiene que colgar de un `<a href>`
+ * que el usuario pulse directamente. Un `window.open()` disparado **después** de un
+ * `await` ya no está dentro del gesto del usuario y iOS —sobre todo la PWA en modo
+ * standalone— lo bloquea **sin avisar**: no hay error, simplemente no pasa nada.
+ * Por eso el caller resuelve el enlace ANTES de pintar el botón (ver el submenú de
+ * plantillas en ReservasView.vue).
+ */
+export function whatsappUrl(telefono: string, texto: string): string {
+    return `https://api.whatsapp.com/send/?phone=${encodeURIComponent(telefono)}&text=${encodeURIComponent(texto)}&type=phone_number&app_absent=0`;
 }
 
 // ============================================================================
