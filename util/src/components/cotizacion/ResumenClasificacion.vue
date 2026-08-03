@@ -69,17 +69,17 @@ const montoLinea = (d: LineaDetalleClaseInterna) => {
 };
 
 const labelTarifa = (d: LineaDetalleClaseInterna) =>
-    store.getI18nText(d.tarifaTitulo as any, lang.value) || d.nombreInterno || '';
+    store.getI18nText(d.tarifaTitulo, lang.value) || d.nombreInterno || '';
 
-const labelInclusion = (l: InclusionLinea) => store.getI18nText(l.nombre as any, lang.value);
+const labelInclusion = (l: InclusionLinea) => store.getI18nText(l.nombre, lang.value);
 
 /** Nombre de la tarifa de una alternativa: interno primero (genérico pero siempre
  *  presente), luego el título público. */
 const tarifaLabelAlt = (o: { tarifaNombreInterno: string | null; tarifaTitulo: any }) =>
-    o.tarifaNombreInterno || store.getI18nText(o.tarifaTitulo as any, lang.value);
+    o.tarifaNombreInterno || store.getI18nText(o.tarifaTitulo, lang.value);
 /** Nombre de la estándar reemplazada: mismo criterio. */
 const estandarLabelAlt = (o: { estandarNombreInterno: string | null; estandarTitulo: any }) =>
-    o.estandarNombreInterno || store.getI18nText(o.estandarTitulo as any, lang.value);
+    o.estandarNombreInterno || store.getI18nText(o.estandarTitulo, lang.value);
 
 const seccionesInclusion = (srv: any) => ([
   { key: 'incluidos',   titulo: 'Incluye',     icono: 'fa-check-circle text-emerald-500', lineas: srv.incluidos },
@@ -227,10 +227,10 @@ const totalesInclusiones = computed(() => {
                 <!-- Celda única: servicio (azul acero) arriba, componente (gris) debajo -->
                 <td class="px-2.5 sm:px-3 py-2">
                   <p class="text-[11px] font-black uppercase tracking-tight" style="color:#376875">
-                    {{ store.getI18nText(d.servicioNombre as any, lang) }}
+                    {{ store.getI18nText(d.servicioNombre, lang) }}
                   </p>
                   <p class="text-slate-500 font-medium leading-snug">
-                    {{ store.getI18nText(d.componenteNombre as any, lang) }}
+                    {{ store.getI18nText(d.componenteNombre, lang) }}
                     <span v-if="labelTarifa(d)" class="text-slate-400">({{ labelTarifa(d) }})</span>
                   </p>
                   <p v-if="badgesClasif(d).length || d.comisionOverride" class="flex flex-wrap items-center gap-1 mt-1">
@@ -292,7 +292,7 @@ const totalesInclusiones = computed(() => {
                segmentos comparten los mismos componentes/tarifas del servicio. -->
           <div v-for="srv in fin.inclusiones" :key="srv.servicioId" class="px-3 sm:px-5 py-4">
             <p class="font-black text-sm text-emerald-800 mb-3">
-              {{ store.getI18nText(srv.servicioNombre as any, lang) }}
+              {{ store.getI18nText(srv.servicioNombre, lang) }}
             </p>
 
             <div class="space-y-4">
@@ -320,7 +320,7 @@ const totalesInclusiones = computed(() => {
                          class="ml-6 mt-1 flex flex-wrap items-center gap-1.5">
                       <span v-if="l.tarifaTitulo.length"
                             class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
-                        {{ store.getI18nText(l.tarifaTitulo as any, lang) }}
+                        {{ store.getI18nText(l.tarifaTitulo, lang) }}
                       </span>
                       <span v-for="b in badgesClasif(l)" :key="b.type"
                             class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
@@ -329,9 +329,9 @@ const totalesInclusiones = computed(() => {
                       </span>
                     </div>
                     <div v-for="(t, ti) in l.tarifas" :key="ti" class="ml-6 mt-1 flex flex-wrap items-center gap-1.5">
-                      <span v-if="store.getI18nText(t.tarifaTitulo as any, lang)"
+                      <span v-if="store.getI18nText(t.tarifaTitulo, lang)"
                             class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
-                        {{ store.getI18nText(t.tarifaTitulo as any, lang) }}
+                        {{ store.getI18nText(t.tarifaTitulo, lang) }}
                       </span>
                       <span v-for="b in badgesClasif(t)" :key="b.type"
                             class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
@@ -340,7 +340,7 @@ const totalesInclusiones = computed(() => {
                       </span>
                       <span v-if="!t.esGrupal && t.cantidad > 1" class="text-[10px] font-bold text-slate-400">x {{ t.cantidad }}</span>
                       <span v-if="t.notaRol.length" class="w-full text-[11px] text-slate-400 italic mt-0.5">
-                        {{ store.getI18nText(t.notaRol as any, lang) }}
+                        {{ store.getI18nText(t.notaRol, lang) }}
                       </span>
                     </div>
                   </li>
@@ -382,7 +382,7 @@ const totalesInclusiones = computed(() => {
                   <span v-else class="text-slate-800">{{ tarifaLabelAlt(o) || 'Insumo Logístico' }}</span>
                 </p>
                 <p class="text-[11px] font-black uppercase tracking-tight" style="color:#376875">
-                  {{ store.getI18nText(o.servicioNombre as any, lang) }}
+                  {{ store.getI18nText(o.servicioNombre, lang) }}
                 </p>
                 <p v-if="badgesClasif(o).length" class="mt-1 flex flex-wrap items-center gap-1.5">
                   <span v-for="b in badgesClasif(o)" :key="b.type"
@@ -403,7 +403,7 @@ const totalesInclusiones = computed(() => {
                   </template>
                   <span v-else class="italic line-through">vs. estándar del bloque</span>
                 </p>
-                <p v-if="o.notaRol.length" class="text-[11px] text-slate-500 italic">{{ store.getI18nText(o.notaRol as any, lang) }}</p>
+                <p v-if="o.notaRol.length" class="text-[11px] text-slate-500 italic">{{ store.getI18nText(o.notaRol, lang) }}</p>
                 <div class="mt-2 pt-2 border-t border-slate-200 flex justify-between items-center">
                   <span class="text-[10px] font-bold text-slate-400">std $ {{ n2(o.ventaPorPaxEstandar) }} → alt $ {{ n2(o.ventaPorPaxAlternativa) }}</span>
                   <span class="text-sm font-black" :class="o.deltaVentaPorPax >= 0 ? 'text-purple-700' : 'text-emerald-700'">

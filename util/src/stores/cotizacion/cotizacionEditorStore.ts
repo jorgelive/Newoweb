@@ -1,15 +1,18 @@
 import {defineStore} from 'pinia';
-import {computed, ref} from 'vue';
+import {computed, ref, type Ref} from 'vue';
 import {apiClient} from '@/services/apiClient';
 
 import {
     Catalogos,
     ClasePasajeroInterna,
     CLASIFICACION_SCHEMA_VERSION,
+    ClasificacionFinancieraCliente,
     ClasificacionFinancieraInterna,
     Componente,
+    ComponenteCatalogo,
     ComponenteCompleto,
     ComponentePlaceholder,
+    ComponenteTipo,
     Cotizacion,
     CotizacionFileExtended,
     CotSegmento,
@@ -27,10 +30,16 @@ import {
     InclusionServicio,
     InclusionTarifa,
     Item,
+    Itinerario,
     LineaDetalleClaseInterna,
     ModoFinanciero,
-    NivelInspector, NotaSnapshot,
+    NivelInspector,
+    NodoInspector,
+    NotaSnapshot,
     OpcionUpgradeInterna,
+    PrecioDesdeRango,
+    Proveedor,
+    RecursoHydra,
     Segmento,
     SegmentoComponenteProcesado,
     Servicio,
@@ -56,8 +65,9 @@ import {
 import {ApiIdioma} from '@/types/maestroModel';
 import {components} from "@/types/api";
 
-export const isComponenteCompleto = (c: any): c is Componente => {
-    return c && 'tipo' in c;
+/** Distingue el maestro completo del placeholder ("Sincronizando…") por `tipo`. */
+export const isComponenteCompleto = (c: ComponenteCatalogo | null | undefined): c is Componente => {
+    return !!c && 'tipo' in c;
 };
 
 export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () => {
@@ -93,10 +103,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // 🔥 LÓGICA DE NEGOCIO: ENUMS (Replicado del Backend)
     // ============================================================================
 
+    /**
+     * Id "pelado" de cualquier cosa que identifique a un recurso: una IRI, un id
+     * suelto o el propio objeto (mira `@id`, `id` y `tarifaId`, en ese orden).
+     */
     const extractIdStr = (val: unknown): string => {
         if (!val) return '';
         if (typeof val === 'object') {
-            const obj = val as any;
+            const obj = val as RecursoHydra;
             const raw = obj['@id'] ?? obj.id ?? obj.tarifaId;
             if (raw) return String(raw).split('/').pop() || '';
         }
@@ -107,41 +121,42 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (!compId) return 'extras';
         const cleanId = extractIdStr(compId);
 
-        const maestro = catalogos.value.allComponentes.find(
-            (c) => extractIdStr(c.id || (c as any)['@id'] || '') === cleanId
-        );
+        const maestro = catalogos.value.allComponentes.find((c) => extractIdStr(c) === cleanId);
 
-        return (maestro && isComponenteCompleto(maestro)) ? maestro.tipo : 'extras';
+        return isComponenteCompleto(maestro) ? maestro.tipo : 'extras';
     };
+
+    const tipoComponenteConfig = (tipo: string): ComponenteTipo | undefined =>
+        catalogos.value.tiposComponente.find((t) => t.id === tipo.toLowerCase());
 
     // Compat: firma antigua, ahora derivada del flag negativo del enum.
     const requiereHoraExacta = (tipo?: string): boolean => {
         if(!tipo) return false;
-        const config = catalogos.value.tiposComponente.find((t: any) => t.id === tipo.toLowerCase());
+        const config = tipoComponenteConfig(tipo);
         return config ? !config.sinHorario : false;   // ← flag negativo del enum
     };
 
     // Default del enum para un TIPO: ¿no lleva hora? (solo se consulta al enganchar un maestro).
     const sinHorarioDeTipo = (tipo?: string | null): boolean => {
         if (!tipo) return true; // sin tipo => como 'extras'
-        const config = catalogos.value.tiposComponente.find((t: any) => t.id === tipo.toLowerCase());
+        const config = tipoComponenteConfig(tipo);
         return config ? config.sinHorario : true;
     };
 
     // Runtime: SIEMPRE lee el snapshot del componente, no el maestro.
-    const componenteRequiereHora = (comp: any): boolean => !comp?.sinHorario;
+    const componenteRequiereHora = (comp?: { sinHorario?: boolean | null } | null): boolean => !comp?.sinHorario;
 
     // ============================================================================
     // 🔥 HELPERS Y LÓGICA DE TIEMPO
     // ============================================================================
 
-    const getFechaLimpia = (val: any): string => {
+    const getFechaLimpia = (val: unknown): string => {
         if (!val) return new Date().toISOString().split('T')[0];
         const str = String(val);
         return str.includes('T') ? str.split('T')[0] : str;
     };
 
-    const getHoraLimpia = (val: any): string | null => {
+    const getHoraLimpia = (val: unknown): string | null => {
         if (!val) return null;
         const match = String(val).match(/(?:T|\s|^)([01]\d|2[0-3]):([0-5]\d)/);
         return match ? `${match[1]}:${match[2]}` : null;
@@ -164,53 +179,89 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     };
 
-    const hydrateRelations = async (items: any[], endpointBase?: string) => {
+    /**
+     * Relación de API Platform tal como puede llegar: una IRI suelta, un objeto
+     * "flaco" (solo `@id`) o el recurso ya completo. `hydrateRelations()` las
+     * normaliza a recursos completos.
+     */
+    type RelacionSinHidratar = string | (RecursoHydra & { nombreInterno?: unknown; titulo?: unknown; nombre?: unknown });
+
+    /**
+     * `T` es lo que el llamador sabe que va a recibir (Segmento, Tarifa…). No se
+     * valida en runtime: el contrato lo da el endpoint del que cuelga la relación.
+     */
+    const hydrateRelations = async <T>(items: RelacionSinHidratar[] | null | undefined, endpointBase?: string): Promise<T[]> => {
         if (!items || !Array.isArray(items) || items.length === 0) return [];
 
         // Rama 1: array de IRIs string
         if (typeof items[0] === 'string') {
-            return batchFetchByIds(items as string[], endpointBase);
+            return batchFetchByIds<T>(items as string[], endpointBase);
         }
+
+        const objetos = items.filter((i): i is Exclude<RelacionSinHidratar, string> => typeof i === 'object');
+        const primero = objetos[0];
 
         // Rama 2: array de objetos parciales (solo @id, sin datos completos)
-        if (typeof items[0] === 'object' && items[0]['@id'] && !items[0].nombreInterno && !items[0].titulo && !items[0].nombre) {
-            const iris = items.map((obj: any) => obj['@id']).filter((iri: string) => !iri.includes('.well-known/genid'));
-            const genids = items.filter((obj: any) => obj['@id']?.includes('.well-known/genid'));
+        if (primero && primero['@id'] && !primero.nombreInterno && !primero.titulo && !primero.nombre) {
+            // Los `.well-known/genid` son recursos anónimos (sin IRI resoluble): no
+            // se pueden pedir al backend, se devuelven tal cual.
+            const iris = objetos.map((obj) => obj['@id'] as string).filter((iri) => !iri.includes('.well-known/genid'));
+            const genids = objetos.filter((obj) => obj['@id']?.includes('.well-known/genid'));
 
-            if (iris.length === 0) return [...genids];
+            if (iris.length === 0) return [...genids] as T[];
 
-            const batched = await batchFetchByIds(iris, endpointBase);
-            return [...batched, ...genids];
+            const batched = await batchFetchByIds<T>(iris, endpointBase);
+            return [...batched, ...(genids as T[])];
         }
 
-        return items;
+        return items as T[];
     };
 
 // Helper compartido por ambas ramas
-    const batchFetchByIds = async (iris: string[], endpointBase?: string): Promise<any[]> => {
+    const batchFetchByIds = async <T>(iris: string[], endpointBase?: string): Promise<T[]> => {
         const base = endpointBase || iris[0].substring(0, iris[0].lastIndexOf('/'));
         const ids = iris.map(iri => iri.split('/').pop()!);
 
         try {
             const idsParam = ids.map(id => `id[]=${id}`).join('&');
             const res = await apiClient.get(`${base}?${idsParam}&pagination=false`);
-            const items = res.data['hydra:member'] || res.data['member'] || [];
+            const items: T[] = res.data['hydra:member'] || res.data['member'] || [];
 
             // Mapeo O(n) para indexación rápida
-            const porId = new Map(items.map((item: any) => [extractIdStr(item.id || item['@id']), item]));
+            const porId = new Map(items.map((item) => [extractIdStr(item), item]));
 
             // Retorna respetando estrictamente el orden de entrada de los IRIs originales
-            return ids.map(id => porId.get(id)).filter(Boolean);
+            return ids.map(id => porId.get(id)).filter((item): item is T => !!item);
         } catch (e) {
             // Fallback individual si el batch falla
-            const promises = iris.map(iri => apiClient.get(iri).then(r => r.data).catch(() => iri));
+            const promises = iris.map(iri => apiClient.get(iri).then(r => r.data as T).catch(() => iri as T));
             return Promise.all(promises);
         }
     };
 
-    const getTituloSafe = (entity: any) => {
-        if (entity && entity.titulo && Array.isArray(entity.titulo) && entity.titulo.length > 0) return entity.titulo;
+    /** Título i18n de un maestro, o array vacío si no lo trae (nunca undefined). */
+    const getTituloSafe = (entity: { titulo?: unknown } | null | undefined): I18nContent[] => {
+        if (entity && Array.isArray(entity.titulo) && entity.titulo.length > 0) return entity.titulo as I18nContent[];
         return [];
+    };
+
+    /** Colección de un endpoint Hydra, con las dos formas de clave que devuelve API Platform. */
+    const miembrosHydra = <T>(data: { 'hydra:member'?: T[]; member?: T[] } | null | undefined): T[] =>
+        data?.['hydra:member'] || data?.member || [];
+
+    /** ¿Ya está este recurso en la colección? Compara por id/IRI, no por referencia. */
+    const yaEnColeccion = (coleccion: RecursoHydra[], recurso: RecursoHydra): boolean =>
+        coleccion.some((x) => extractIdStr(x) === extractIdStr(recurso));
+
+    /**
+     * Suma la tarifa al pool global de maestras si no estaba. El pool es la fuente
+     * que consulta el clasificador financiero para resolver `esGrupal` y demás
+     * datos que el snapshot de la cotización no guarda.
+     */
+    const registrarTarifaMaestra = (tarifa: Tarifa): void => {
+        if (!yaEnColeccion(todasLasTarifasMaestras.value, tarifa)) {
+            todasLasTarifasMaestras.value.push(tarifa);
+        }
     };
 
     const mapearItemASnapshot = async (item: Item): Promise<SnapshotItem> => {
@@ -254,13 +305,42 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }));
     };
 
-    const extraerNotasSnapshot = (segmentoMaestro: Segmento): NotaSnapshot[] => {
-        // Aplicamos el mismo casteo interno por si el autogenerado omite la propiedad 'notas'
-        const maestro = segmentoMaestro as Record<string, any>;
+    // Los campos i18n (incluidos los de `notas`) ya vienen corregidos en el tipo
+    // `Segmento` del modelo; aquí solo se añade lo que el schema no declara.
+    type SegmentoMaestro = Segmento & { '@id'?: string };
 
-        if (!maestro.notas || !Array.isArray(maestro.notas)) return [];
+    /**
+     * Relación Itinerario→Segmento del maestro. Según el grupo de serialización
+     * llega como la relación (`{ segmento, dia }`) o como el segmento plano, de
+     * ahí que ambas ramas se contemplen al aplicar una plantilla.
+     */
+    interface RelacionItinerarioSegmento {
+        segmento?: SegmentoMaestro | string;
+        dia?: number;
+    }
 
-        return maestro.notas.map((n: any): NotaSnapshot => ({
+    /**
+     * ProveedorServicio tal como viaja EMBEBIDO en el payload plano de una tarifa
+     * (el maestro completo se pide aparte, ver fetchProveedorServiciosDeProveedor).
+     */
+    interface ProveedorServicioEmbebido extends RecursoHydra {
+        proveedorServicioId?: string | null;
+        nombre?: string | null;
+    }
+
+    type ItinerarioProfundo = Omit<Itinerario, 'titulo'> & {
+        '@id'?: string;
+        titulo?: I18nContent[];
+        segmentos?: RelacionItinerarioSegmento[];
+        itinerarioSegmentos?: RelacionItinerarioSegmento[];
+    };
+
+    const extraerNotasSnapshot = (segmentoMaestro: SegmentoMaestro): NotaSnapshot[] => {
+        const maestro = segmentoMaestro;
+
+        if (!Array.isArray(maestro.notas)) return [];
+
+        return maestro.notas.map((n): NotaSnapshot => ({
             id: crypto.randomUUID(),
             nombreInterno: n.nombreInterno,
             tipo: n.tipo || 'INFO',
@@ -269,14 +349,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }));
     };
 
-    const extraerImagenesSnapshot = (segmentoMaestro: Segmento): ImagenSnapshot[] => {
-        // Usamos un casteo a any (o Record) internamente si la interfaz autogenerada de la API
-        // no expone explícitamente la propiedad 'imagenes', pero mantenemos la firma estricta.
-        const maestro = segmentoMaestro as Record<string, any>;
+    /**
+     * Copia las imágenes del maestro al snapshot del segmento. Se mapea campo a
+     * campo (y no con un JSON.parse a ciegas) porque en el maestro todos son
+     * opcionales, mientras que el snapshot los da por presentes.
+     */
+    const extraerImagenesSnapshot = (segmentoMaestro: SegmentoMaestro): ImagenSnapshot[] => {
+        if (!Array.isArray(segmentoMaestro.imagenes)) return [];
 
-        if (!maestro.imagenes || !Array.isArray(maestro.imagenes)) return [];
-
-        return JSON.parse(JSON.stringify(maestro.imagenes));
+        return segmentoMaestro.imagenes.map((img): ImagenSnapshot => ({
+            orden: img.orden ?? 0,
+            imageUrl: img.imageUrl ?? '',
+            imageName: img.imageName ?? '',
+            imageSize: img.imageSize ?? 0,
+            isPortada: img.isPortada ?? false,
+        }));
     };
 
     const getTarifaLabel = (cat: TarifaLike, lang: string): string => {
@@ -501,10 +588,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const nombreInternoDeComponente = (componente: ComponenteCompleto): string => {
             const maestroId = componente.componenteMaestroId ? extractIdStr(componente.componenteMaestroId) : '';
             if (maestroId) {
-                const maestro = catalogos.value.allComponentes.find(
-                    (c) => extractIdStr(c.id || (c as any)['@id'] || '') === maestroId
-                );
-                const nombre = maestro ? (maestro as any).nombre : '';
+                const maestro = catalogos.value.allComponentes.find((c) => extractIdStr(c) === maestroId);
+                // `nombre` existe tanto en el maestro completo como en el placeholder.
+                const nombre = maestro?.nombre ?? '';
                 if (nombre && nombre !== 'Sincronizando...') return nombre;
             }
             // Fallbacks internos: título override del snapshot, luego segmento.
@@ -1153,7 +1239,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             return dateA.localeCompare(dateB);
         });
 
-        const grupos: Record<string, any[]> = {};
+        const grupos: Record<string, CotServicio[]> = {};
         todosLosServicios.forEach((srv: CotServicio) => {
             const fecha = getFechaLimpia(srv.fechaInicioAbsoluta);
 
@@ -1289,12 +1375,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         try {
             const res = await apiClient.get(`/platform/travel/servicios?nombreInterno=${encodeURIComponent(query)}`);
-            const items = res.data['hydra:member'] || res.data['member'] || [];
 
-            items.forEach((item: any) => {
-                const id = extractIdStr(item.id || item['@id']);
+            miembrosHydra<Servicio>(res.data).forEach((item) => {
                 // Validar que no exista ya en memoria
-                if (!catalogos.value.servicios.some(s => extractIdStr(s.id || (s as any)['@id']) === id)) {
+                if (!yaEnColeccion(catalogos.value.servicios, item)) {
                     catalogos.value.servicios.push(item);
                 }
             });
@@ -1309,11 +1393,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         try {
             // Asumiendo que quieres buscar por nombre comercial
             const res = await apiClient.get(`/platform/travel/proveedores?nombreComercial=${encodeURIComponent(query)}`);
-            const items = res.data['hydra:member'] || res.data['member'] || [];
 
-            items.forEach((item: any) => {
-                const id = extractIdStr(item.id || item['@id']);
-                if (!catalogos.value.proveedores.some(p => extractIdStr(p.id || (p as any)['@id']) === id)) {
+            miembrosHydra<Proveedor>(res.data).forEach((item) => {
+                if (!yaEnColeccion(catalogos.value.proveedores, item)) {
                     catalogos.value.proveedores.push(item);
                 }
             });
@@ -1363,12 +1445,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             if (data.componentes && data.componentes.length > 0) {
                 if (gen !== undefined && gen !== navGen) return;
-                const hydratedComps = await hydrateRelations(data.componentes);
+                const hydratedComps = await hydrateRelations<Componente>(data.componentes);
                 catalogos.value.componentes = hydratedComps;
 
                 const idsParaDetalle: string[] = [];
-                hydratedComps.forEach((c: any) => {
-                    const targetId = extractIdStr(c.id || c['@id']);
+                hydratedComps.forEach((c) => {
+                    const targetId = extractIdStr(c);
                     if (!catalogos.value.allComponentes.some(exist => extractIdStr(exist.id) === targetId)) {
                         catalogos.value.allComponentes.push(c);
                     }
@@ -1381,23 +1463,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     try {
                         const resDetalle = await apiClient.get(`/platform/travel/componentes/batch?${idsParam}&pagination=false`);
                         if (gen !== undefined && gen !== navGen) return;
-                        const detalles = resDetalle.data['hydra:member'] || resDetalle.data['member'] || [];
-
-                        detalles.forEach((detalle: any) => {
-                            const detalleId = extractIdStr(detalle.id || detalle['@id']);
-                            const idx = catalogos.value.allComponentes.findIndex(c => extractIdStr(c.id || c['@id']) === detalleId);
+                        miembrosHydra<Componente>(resDetalle.data).forEach((detalle) => {
+                            const detalleId = extractIdStr(detalle);
+                            const idx = catalogos.value.allComponentes.findIndex(c => extractIdStr(c) === detalleId);
                             if (idx !== -1) {
                                 // Reemplazamos el objeto liviano por el completo (con tarifas, componenteItems)
                                 catalogos.value.allComponentes.splice(idx, 1, detalle);
                             }
 
                             // Precargamos también las tarifas maestras en el pool global
-                            (detalle.tarifas || []).forEach((t: any) => {
-                                const tId = extractIdStr(t.id || t['@id']);
-                                if (!todasLasTarifasMaestras.value.some((pt: any) => extractIdStr(pt.id || pt['@id']) === tId)) {
-                                    todasLasTarifasMaestras.value.push(t);
-                                }
-                            });
+                            (detalle.tarifas || []).forEach(registrarTarifaMaestra);
                         });
                     } catch (e) {
                         console.error('No se pudo precargar el detalle de componentes en batch', e);
@@ -1408,8 +1483,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             const [plantillas, pool] = await Promise.all([
-                hydrateRelations(data.itinerarios || []),
-                hydrateRelations(data.segmentos || [])
+                hydrateRelations<Itinerario>(data.itinerarios || []),
+                hydrateRelations<Segmento>(data.segmentos || [])
             ]);
             if (gen !== undefined && gen !== navGen) return;
             catalogos.value.plantillasItinerario = plantillas;
@@ -1418,29 +1493,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const fetchComponenteDetalles = async (componenteIriOrId: string, gen?: number) => {
+        const componente = componenteActivo.value;
         const id = extractIdStr(componenteIriOrId);
-        const existing = catalogos.value.allComponentes.find(c => extractIdStr(c.id || (c as any)['@id']) === id);
+        const existing = catalogos.value.allComponentes.find(c => extractIdStr(c) === id);
 
         // 🔥 Si el componente ya tiene tarifas cargadas (señal de que ya se completó antes),
         // no volvemos a pedir nada al servidor.
-        const yaCompleto = existing && 'tarifas' in existing && Array.isArray((existing as any).tarifas);
+        const yaCompleto = isComponenteCompleto(existing) && Array.isArray(existing.tarifas);
 
         if (yaCompleto) {
-            const detalle = existing as any;
+            const detalle = existing as Componente;
             catalogos.value.tarifas = detalle.tarifas || [];
 
-            detalle.tarifas?.forEach((t: any) => {
-                const tId = extractIdStr(t.id || t['@id']);
-                if (!todasLasTarifasMaestras.value.some((pt: any) => extractIdStr(pt.id || pt['@id']) === tId)) {
-                    todasLasTarifasMaestras.value.push(t);
-                }
-            });
+            detalle.tarifas?.forEach(registrarTarifaMaestra);
 
-            if (dataActiva.value && inspectorActivo.value === 'componente') {
+            if (componente && inspectorActivo.value === 'componente') {
                 const itemsRaw: Item[] = detalle.componenteItems ?? [];   // ó fetchedComp.componenteItems
-                if (!dataActiva.value.snapshotItems || dataActiva.value.snapshotItems.length === 0) {
+                if (!componente.snapshotItems || componente.snapshotItems.length === 0) {
                     if (gen !== undefined && gen !== navGen) return;
-                    dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
+                    componente.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
                 }
             }
             return; // 🔥 nunca llega al fetch
@@ -1449,7 +1520,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         try {
             const response = await apiClient.get(`/platform/travel/componentes/${id}`);
             if (gen !== undefined && gen !== navGen) return;
-            const fetchedComp = response.data;
+            const fetchedComp = response.data as Componente;
 
             const targetId = extractIdStr(fetchedComp.id);
             const exists = catalogos.value.allComponentes.some(c => extractIdStr(c.id) === targetId);
@@ -1461,20 +1532,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 catalogos.value.allComponentes.push(fetchedComp);
             }
 
-            catalogos.value.tarifas = await hydrateRelations(fetchedComp.tarifas || []);
+            catalogos.value.tarifas = await hydrateRelations<Tarifa>(fetchedComp.tarifas || []);
             if (gen !== undefined && gen !== navGen) return;
 
-            catalogos.value.tarifas.forEach((t: any) => {
-                const tId = extractIdStr(t.id || t['@id']);
-                if (!todasLasTarifasMaestras.value.some((pt: any) => extractIdStr(pt.id || pt['@id']) === tId)) {
-                    todasLasTarifasMaestras.value.push(t);
-                }
-            });
+            catalogos.value.tarifas.forEach(registrarTarifaMaestra);
 
-            if (dataActiva.value && inspectorActivo.value === 'componente') {
+            if (componente && inspectorActivo.value === 'componente') {
                 const itemsRaw = fetchedComp.componenteItems || [];
-                if (!dataActiva.value.snapshotItems || dataActiva.value.snapshotItems.length === 0) {
-                    dataActiva.value.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
+                if (!componente.snapshotItems || componente.snapshotItems.length === 0) {
+                    componente.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
                 }
             }
         } catch (e) {}
@@ -1516,7 +1582,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     s.cotcomponentes.forEach((c: ComponenteCompleto) => {
                         // Backfill defensivo del flag de horario (data previa a la migración del backend)
                         if (c.sinHorario === undefined || c.sinHorario === null) {
-                            c.sinHorario = sinHorarioDeTipo((c as any).tipo);
+                            c.sinHorario = sinHorarioDeTipo(c.tipo);
                         }
 
                         // Maestro del componente (para tipo / requiereHoraExacta)
@@ -1572,21 +1638,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 fetchPromises.push(
                     apiClient.get(`/platform/travel/componentes/batch?${idsParam}&pagination=false`)
                         .then(res => {
-                            const items = res.data['hydra:member'] || res.data['member'] || [];
-                            items.forEach((comp: any) => {
-                                const cid = extractIdStr(comp.id || comp['@id']);
-                                const idx = catalogos.value.allComponentes.findIndex(
-                                    c => extractIdStr(c.id || (c as any)['@id']) === cid
-                                );
+                            miembrosHydra<Componente>(res.data).forEach((comp) => {
+                                const cid = extractIdStr(comp);
+                                const idx = catalogos.value.allComponentes.findIndex(c => extractIdStr(c) === cid);
                                 if (idx === -1) catalogos.value.allComponentes.push(comp);
                                 else catalogos.value.allComponentes.splice(idx, 1, comp);
 
-                                (comp.tarifas || []).forEach((t: any) => {
-                                    const tId = extractIdStr(t.id || t['@id']);
-                                    if (!todasLasTarifasMaestras.value.some((pt: any) => extractIdStr(pt.id || pt['@id']) === tId)) {
-                                        todasLasTarifasMaestras.value.push(t);
-                                    }
-                                });
+                                (comp.tarifas || []).forEach(registrarTarifaMaestra);
                             });
                         })
                         .catch((e) => { console.error('No se pudieron precargar los componentes maestros', e); return null; })
@@ -1635,17 +1693,63 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
 
+    /** IRI de una relación que puede llegar como objeto `{'@id', id}`. */
+    const extractIriDeRelacion = (rel: { '@id'?: string; id?: string }): string | null =>
+        rel['@id'] || rel.id || null;
+
     // Helper: elimina campos hipermedia (@id/@context/@type) en todo el árbol.
     // Colócalo fuera de guardarCotizacion (a nivel de módulo o composable).
-    const stripHypermedia = (obj: any): any => {
-        if (Array.isArray(obj)) return obj.map(stripHypermedia);
+    const stripHypermedia = <T>(obj: T): T => {
+        if (Array.isArray(obj)) return obj.map(stripHypermedia) as T;
         if (obj && typeof obj === 'object') {
-            delete obj['@id'];
-            delete obj['@context'];
-            delete obj['@type'];
-            for (const k of Object.keys(obj)) obj[k] = stripHypermedia(obj[k]);
+            const registro = obj as Record<string, unknown>;
+            delete registro['@id'];
+            delete registro['@context'];
+            delete registro['@type'];
+            for (const k of Object.keys(registro)) registro[k] = stripHypermedia(registro[k]);
         }
         return obj;
+    };
+
+    // ============================================================================
+    // PAYLOAD DE ESCRITURA
+    //
+    // Lo que se manda al backend NO es una `Cotizacion`: el árbol se aplana a IRIs
+    // (file, catalogo, cotsegmento, moneda) y los decimales viajan como string,
+    // que es lo que espera API Platform. Tiparlo aparte evita tener que mentir
+    // sobre la entidad de lectura mientras se construye.
+    // ============================================================================
+    type TarifaPayload = Omit<TarifaSnapshot, 'montoCosto'> & {
+        /** IRI de MaestroMoneda, no el código plano. */
+        moneda: string;
+        montoCosto: string;
+    };
+
+    type ComponentePayload = Omit<ComponenteCompleto, 'cotsegmento' | 'cottarifas'> & {
+        /** IRI del CotizacionSegmento, o null si el componente es suelto. */
+        cotsegmento: string | null;
+        cottarifas?: TarifaPayload[];
+    };
+
+    type ServicioPayload = Omit<CotServicio, 'cotcomponentes'> & {
+        cotcomponentes?: ComponentePayload[];
+    };
+
+    type CotizacionPayload = Omit<Cotizacion,
+        'file' | 'catalogo' | 'cotservicios' | 'idiomaEdicion'
+        | 'clasificacionFinanciera' | 'clasificacionFinancieraCliente'> & {
+        file?: string | null;
+        catalogo?: string | null;
+        cotservicios?: ServicioPayload[];
+        // `null` es intencional: sin resumen financiero se limpia la clasificación
+        // guardada, no se deja la anterior colgando.
+        clasificacionFinanciera?: ClasificacionFinancieraInterna | null;
+        clasificacionFinancieraCliente?: ClasificacionFinancieraCliente | null;
+        // Campos que se borran antes de enviar (derivados o de solo edición local).
+        idiomaEdicion?: string;
+        ganancia?: unknown;
+        createdAt?: string;
+        updatedAt?: string;
     };
 
     /**
@@ -1734,7 +1838,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             // 🔥 Clonado + limpieza de hipermedia (evita que @id resuelva a
             // referencias de Doctrine sin constructor → colección sin inicializar).
-            const payload = stripHypermedia(JSON.parse(JSON.stringify(cotizacion.value)));
+            // El clon arranca como Cotizacion y se va aplanando a payload de escritura.
+            const payload = stripHypermedia(JSON.parse(JSON.stringify(cotizacion.value))) as CotizacionPayload;
 
             // Campos derivados / gestionados por el backend: no deben viajar.
             delete payload.ganancia;
@@ -1743,12 +1848,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             // Formateo del padre (expediente o catálogo de tours)
             if (payload.file && typeof payload.file === 'object') {
-                payload.file = payload.file['@id'] || payload.file.id;
+                payload.file = extractIriDeRelacion(payload.file);
             } else if (payload.file && !payload.file.includes('/platform/')) {
                 payload.file = `/platform/sales/cotizacion_files/${payload.file}`;
             }
             if (payload.catalogo && typeof payload.catalogo === 'object') {
-                payload.catalogo = payload.catalogo['@id'] || payload.catalogo.id;
+                payload.catalogo = extractIriDeRelacion(payload.catalogo);
             } else if (payload.catalogo && !payload.catalogo.includes('/platform/')) {
                 payload.catalogo = `/platform/sales/cotizacion_catalogos/${payload.catalogo}`;
             }
@@ -1756,8 +1861,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // Rangos "Desde" (catálogo): valor decimal como string, nunca number
             if (Array.isArray(payload.preciosDesde)) {
                 payload.preciosDesde = payload.preciosDesde
-                    .filter((r: any) => r && (r.valor !== '' && r.valor !== null && r.valor !== undefined))
-                    .map((r: any) => ({
+                    .filter((r) => r && r.valor !== '' && r.valor !== null && r.valor !== undefined)
+                    .map((r): PrecioDesdeRango => ({
                         titulo: Array.isArray(r.titulo) ? r.titulo : [],
                         moneda: r.moneda || 'USD',
                         valor: String(r.valor),
@@ -1770,7 +1875,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             payload.adelanto = String(payload.adelanto || '0');
             payload.totalCosto = String(resumenFinanciero.value?.totalCostoNeto || '0');
             payload.totalVenta = String(resumenFinanciero.value?.totalVentaBruta || '0');
-            payload.numPax = parseInt(payload.numPax) || 1;
+            payload.numPax = parseInt(String(payload.numPax)) || 1;
             payload.tipoCambio = String(payload.tipoCambio || tipoCambioSugerido.value || 1);
 
             const fin = resumenFinanciero.value;
@@ -1800,7 +1905,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             // Limpieza y formateo del árbol relacional
             if (payload.cotservicios && Array.isArray(payload.cotservicios)) {
-                payload.cotservicios.forEach((servicio: any) => {
+                payload.cotservicios.forEach((servicio) => {
 
                     if (servicio.servicioMaestroId) {
                         servicio.servicioMaestroId = extractIdStr(servicio.servicioMaestroId);
@@ -1812,14 +1917,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     }
 
                     if (servicio.cotsegmentos && Array.isArray(servicio.cotsegmentos)) {
-                        servicio.cotsegmentos.forEach((seg: any) => {
+                        servicio.cotsegmentos.forEach((seg) => {
                             seg.fechaAbsoluta = getFechaLimpia(seg.fechaAbsoluta || servicio.fechaInicioAbsoluta);
                             if (seg.fechaAbsoluta.length === 10) seg.fechaAbsoluta += 'T00:00:00';
                         });
                     }
 
                     if (servicio.cotcomponentes && Array.isArray(servicio.cotcomponentes)) {
-                        servicio.cotcomponentes.forEach((componente: ComponenteCompleto) => {
+                        servicio.cotcomponentes.forEach((componente) => {
                             componente.cantidad = parseInt(String(componente.cantidad)) || 1;
 
                             if (componente.componenteMaestroId) {
@@ -1837,11 +1942,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 }
                             }
 
-                            const segId = componente.cotsegmentoId || (
-                                typeof componente.cotsegmento === 'string'
-                                    ? extractIdStr(componente.cotsegmento)
-                                    : extractIdStr(componente.cotsegmento?.id || componente.cotsegmento?.['@id'])
-                            );
+                            const segId = componente.cotsegmentoId || extractIdStr(componente.cotsegmento);
 
                             componente.cotsegmento = segId
                                 ? `/platform/sales/cotizacion_segmentos/${segId}`
@@ -1850,7 +1951,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             delete componente.cotsegmentoId;
 
                             if (componente.cottarifas && Array.isArray(componente.cottarifas)) {
-                                componente.cottarifas.forEach((tarifa: TarifaSnapshot) => {
+                                componente.cottarifas.forEach((tarifa) => {
                                     tarifa.cantidad = tarifa.cantidad || 1;
                                     tarifa.montoCosto = String(tarifa.montoCosto || '0');
                                     if (tarifa.tarifaMaestraId) {
@@ -1861,7 +1962,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                         : String(tarifa.comisionOverrideSnapshot);
                                     // MaestroMoneda es una relación — enviar IRI, no código plano
                                     const codigoMoneda = normalizarCodigoMoneda(tarifa.moneda);
-                                    (tarifa as any).moneda = `/platform/maestro/monedas/${codigoMoneda}`;
+                                    tarifa.moneda = `/platform/maestro/monedas/${codigoMoneda}`;
                                 });
                             }
                         });
@@ -1904,7 +2005,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                     // Backfill del flag de horario si el backend no lo devolviera
                     if (c.sinHorario === undefined || c.sinHorario === null) {
-                        c.sinHorario = sinHorarioDeTipo((c as any).tipo);
+                        c.sinHorario = sinHorarioDeTipo(c.tipo);
                     }
 
                     if (c.snapshotItems && !Array.isArray(c.snapshotItems)) {
@@ -1993,14 +2094,36 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // ============================================================================
 
     const inspectorActivo = ref<NivelInspector>('resumen');
-    const dataActiva = ref<any>(null);
-    const historialNavegacion = ref<{ nivel: NivelInspector, data: any }[]>([]);
+    const dataActiva = ref<NodoInspector | null>(null) as Ref<NodoInspector | null>;
+    const historialNavegacion = ref<{ nivel: NivelInspector, data: NodoInspector | null }[]>([]);
     const isMobileOpen = ref<boolean>(false);
     const isSegmentEditorOpen = ref<boolean>(false);
 
+    // ============================================================================
+    // ACCESORES TIPADOS DEL NODO ABIERTO
+    //
+    // `dataActiva` es el nodo del árbol que el inspector está editando, y cambia
+    // de TIPO según el nivel (servicio / componente / tarifa). `abrirNivel()`
+    // asigna nivel y nodo siempre juntos, así que `inspectorActivo` es el
+    // discriminante fiable: estos accesores lo comprueban y devuelven null si el
+    // inspector está en otro nivel.
+    //
+    // Todo el store y las vistas leen el nodo por aquí. Tocar `dataActiva` a pelo
+    // vuelve a abrir la puerta a escribir campos de un tipo sobre un nodo de otro,
+    // que es lo que el `any` de antes dejaba pasar sin rechistar.
+    // ============================================================================
+    const servicioActivo = computed<CotServicio | null>(() =>
+        inspectorActivo.value === 'servicio' ? (dataActiva.value as CotServicio) : null);
+
+    const componenteActivo = computed<ComponenteCompleto | null>(() =>
+        inspectorActivo.value === 'componente' ? (dataActiva.value as ComponenteCompleto) : null);
+
+    const tarifaActiva = computed<TarifaSnapshot | null>(() =>
+        inspectorActivo.value === 'tarifa' ? (dataActiva.value as TarifaSnapshot) : null);
+
     let navGen = 0;
 
-    const abrirNivel = async (nivel: NivelInspector, data: any = null): Promise<void> => {
+    const abrirNivel = async (nivel: NivelInspector, data: NodoInspector | null = null): Promise<void> => {
         const gen = ++navGen;
 
         if (nivel === 'servicio' || nivel === 'resumen') historialNavegacion.value = [];
@@ -2017,23 +2140,27 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         // La hidratación del catálogo (tarifas, snapshotItems, etc.) sigue en
         // segundo plano; si para cuando termina el usuario ya navegó a otro
         // lado (gen distinto), esas funciones ya se frenan solas.
-        if (nivel === 'servicio' && data?.servicioMaestroId) {
-            await fetchServicioDetalles(data.servicioMaestroId, gen);
+        const servicio = servicioActivo.value;
+        if (servicio?.servicioMaestroId) {
+            await fetchServicioDetalles(servicio.servicioMaestroId, gen);
         }
-        if (nivel === 'componente' && data?.componenteMaestroId) {
-            await fetchComponenteDetalles(data.componenteMaestroId, gen);
+        const componente = componenteActivo.value;
+        if (componente?.componenteMaestroId) {
+            await fetchComponenteDetalles(componente.componenteMaestroId, gen);
         }
-        if (nivel === 'tarifa' && data?.proveedorMaestroId) {
-            await fetchProveedorServiciosDeProveedor(data.proveedorMaestroId);
+        const tarifa = tarifaActiva.value;
+        if (tarifa?.proveedorMaestroId) {
+            await fetchProveedorServiciosDeProveedor(tarifa.proveedorMaestroId);
         }
     };
 
     const limpiarServicioProveedor = () => {
-        if (dataActiva.value) {
-            dataActiva.value.proveedorServicioMaestroId = null;
-            dataActiva.value.proveedorServicioNombreSnapshot = null;
-            dataActiva.value.proveedorServicioTituloSnapshot = [];
-            dataActiva.value.proveedorServicioUrlSnapshot = null;
+        const tarifa = tarifaActiva.value;
+        if (tarifa) {
+            tarifa.proveedorServicioMaestroId = null;
+            tarifa.proveedorServicioNombreSnapshot = null;
+            tarifa.proveedorServicioTituloSnapshot = [];
+            tarifa.proveedorServicioUrlSnapshot = null;
         }
     };
 
@@ -2057,6 +2184,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             historialNavegacion.value = [];
         }, 300);
     };
+
+    /**
+     * Id del segmento al que pertenece un componente. El backend lo manda de dos
+     * formas según el grupo de serialización: `cotsegmentoId` plano o la relación
+     * `cotsegmento` (IRI u objeto). Devuelve null si el componente es suelto.
+     */
+    const idSegmentoDeComponente = (comp: ComponenteCompleto): string | null =>
+        comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento) : null);
 
     const findServicioByComponenteId = (compId: string) => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return null;
@@ -2123,9 +2258,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 afectaAlActivo = true;
             } else if (inspectorActivo.value === 'componente' || inspectorActivo.value === 'tarifa') {
                 const servicioPadre = cotizacion.value.cotservicios.find((s: CotServicio) => s.id === servicioId);
+                const idAbierto = dataActiva.value?.id;
                 const perteneceAlServicio = servicioPadre?.cotcomponentes?.some((c: ComponenteCompleto) => {
-                    if (c.id === dataActiva.value.id) return true;
-                    return c.cottarifas?.some((t: TarifaSnapshot) => t.id === dataActiva.value.id);
+                    if (c.id === idAbierto) return true;
+                    return c.cottarifas?.some((t: TarifaSnapshot) => t.id === idAbierto);
                 });
                 if (perteneceAlServicio) afectaAlActivo = true;
             }
@@ -2149,8 +2285,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const irAServicioAdyacente = async (direccion: 1 | -1): Promise<void> => {
         const lista = serviciosOrdenados.value;
-        if (!lista.length || !dataActiva.value) return;
-        const idx = lista.findIndex(s => s.id === dataActiva.value.id);
+        const actual = servicioActivo.value;
+        if (!lista.length || !actual) return;
+        const idx = lista.findIndex(s => s.id === actual.id);
         if (idx === -1) return;
         const nuevoIdx = idx + direccion;
         if (nuevoIdx < 0 || nuevoIdx >= lista.length) return;
@@ -2166,8 +2303,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
 
     const servicioActualDeComponente = computed<CotServicio | null>(() => {
-        if (inspectorActivo.value !== 'componente' || !dataActiva.value) return null;
-        return findServicioByComponenteId(dataActiva.value.id);
+        const componente = componenteActivo.value;
+        return componente ? findServicioByComponenteId(componente.id) : null;
     });
 
     const componentesHermanos = computed<ComponenteCompleto[]>(() => {
@@ -2176,8 +2313,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const irAComponenteAdyacente = async (direccion: 1 | -1): Promise<void> => {
         const lista = componentesHermanos.value;
-        if (!lista.length || !dataActiva.value) return;
-        const idx = lista.findIndex(c => c.id === dataActiva.value.id);
+        const actual = componenteActivo.value;
+        if (!lista.length || !actual) return;
+        const idx = lista.findIndex(c => c.id === actual.id);
         if (idx === -1) return;
         const nuevoIdx = idx + direccion;
         if (nuevoIdx < 0 || nuevoIdx >= lista.length) return;
@@ -2262,9 +2400,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const agregarSnapshotItem = (componenteId: string): void => {
-        if (dataActiva.value && dataActiva.value.id === componenteId) {
-            if (!dataActiva.value.snapshotItems) dataActiva.value.snapshotItems = [];
-            dataActiva.value.snapshotItems.push({
+        const componente = componenteActivo.value;
+        if (componente && componente.id === componenteId) {
+            if (!componente.snapshotItems) componente.snapshotItems = [];
+            componente.snapshotItems.push({
                 id: crypto.randomUUID(),
                 nombreSnapshot: [{ language: 'es', content: 'Nueva inclusión' }],
                 incluido: true,
@@ -2283,20 +2422,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const eliminarSnapshotItem = (componenteId: string, itemId: string): void => {
-        if (dataActiva.value && dataActiva.value.id === componenteId) {
-            const item = dataActiva.value.snapshotItems.find((i: SnapshotItem) => i.id === itemId);
+        const componente = componenteActivo.value;
+        if (componente && componente.id === componenteId) {
+            const item = componente.snapshotItems.find((i) => i.id === itemId);
             if (item && item.idComponenteInyectado) {
                 removerComponenteInyectado(item, componenteId);
             }
-            dataActiva.value.snapshotItems = dataActiva.value.snapshotItems.filter((i: SnapshotItem) => i.id !== itemId);
+            componente.snapshotItems = componente.snapshotItems.filter((i) => i.id !== itemId);
         }
     };
 
 
     const agregarDetalleOperativo = (componenteId: string, tipo: DetalleOperativoTipo = DetalleOperativoTipo.CLIENTE): void => {
-        if (dataActiva.value && dataActiva.value.id === componenteId) {
-            if (!dataActiva.value.detallesOperativos) dataActiva.value.detallesOperativos = [];
-            dataActiva.value.detallesOperativos.push({
+        const componente = componenteActivo.value;
+        if (componente && componente.id === componenteId) {
+            if (!componente.detallesOperativos) componente.detallesOperativos = [];
+            componente.detallesOperativos.push({
                 id: crypto.randomUUID(),
                 tipo,
                 detalle: [{ language: 'es', content: '' }]
@@ -2305,8 +2446,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const eliminarDetalleOperativo = (componenteId: string, bloqueId: string): void => {
-        if (dataActiva.value && dataActiva.value.id === componenteId && dataActiva.value.detallesOperativos) {
-            dataActiva.value.detallesOperativos = dataActiva.value.detallesOperativos.filter(
+        const componente = componenteActivo.value;
+        if (componente && componente.id === componenteId && componente.detallesOperativos) {
+            componente.detallesOperativos = componente.detallesOperativos.filter(
                 (b: DetalleOperativoBloque) => b.id !== bloqueId
             );
         }
@@ -2377,7 +2519,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         );
                     }
 
-                    let tarifasParaInyectar: any[] = [];
+                    let tarifasParaInyectar: TarifaLike[] = [];
                     if (compMaestro.tarifas && compMaestro.tarifas.length === 1) {
                         tarifasParaInyectar.push(compMaestro.tarifas[0]);
                     }
@@ -2582,15 +2724,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const getProveedorTarifa = (t: TarifaLike): { id: string | null; nombre: string | null; titulo?: I18nContent[]; url?: string | null; imagenes?: ImagenProveedorSnapshot[] } => {
         if ('proveedor' in t && t.proveedor) {
             const id = extractIdStr(t.proveedor);
-            const encontrado = catalogos.value.proveedores.find(
-                (p) => extractIdStr(p.id || p['@id']) === id
-            );
+            const encontrado = catalogos.value.proveedores.find((p) => extractIdStr(p) === id);
             return {
                 id,
                 nombre: encontrado?.nombreComercial || null,
-                titulo: (encontrado as any)?.titulo,
+                titulo: getTituloSafe(encontrado),
                 url: encontrado?.url || null,
-                imagenes: (encontrado as any)?.proveedorImagenes || []
+                imagenes: encontrado?.proveedorImagenes || []
             };
         }
         if ('provider' in t && t.provider) {
@@ -2608,7 +2748,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * Solo extrae id + nombre; título/url/imágenes se resuelven aparte por UUID cuando se necesiten.
      */
     const getProveedorServicioTarifa = (t: TarifaLike): { id: string | null; nombre: string | null } => {
-        const psRaw = 'proveedorServicio' in t ? (t as any).proveedorServicio : null;
+        const psRaw = 'proveedorServicio' in t ? (t as { proveedorServicio?: ProveedorServicioEmbebido | string | null }).proveedorServicio : null;
         if (!psRaw) return { id: null, nombre: null };
 
         if (typeof psRaw === 'string') {
@@ -2616,7 +2756,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
 
         return {
-            id: extractIdStr(psRaw.proveedorServicioId || psRaw.id || psRaw['@id'] || ''),
+            id: extractIdStr(psRaw.proveedorServicioId || psRaw),
             nombre: psRaw.nombre || null
         };
     };
@@ -2676,7 +2816,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             id: crypto.randomUUID(),
             tarifaMaestraId: getIdMaestroTarifa(tarifa),
             tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
-            nombreInternoSnapshot: 'nombreInterno' in tarifa ? (tarifa as any).nombreInterno || null : null,
+            nombreInternoSnapshot: 'nombreInterno' in tarifa ? tarifa.nombreInterno || null : null,
             cantidad: esGrupal ? 1 : numPax,
             moneda: getMonedaTarifa(tarifa),
             montoCosto: getMontoCostoTarifa(tarifa),
@@ -2717,8 +2857,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
 
     const componenteActualDeTarifa = computed<ComponenteCompleto | null>(() => {
-        if (inspectorActivo.value !== 'tarifa' || !dataActiva.value) return null;
-        return encontrarComponentePorTarifaId(dataActiva.value.id);
+        const tarifa = tarifaActiva.value;
+        if (inspectorActivo.value !== 'tarifa' || !tarifa) return null;
+        return encontrarComponentePorTarifaId(tarifa.id);
     });
 
     const tarifasHermanas = computed<TarifaSnapshot[]>(() => {
@@ -2729,9 +2870,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
     const irATarifaAdyacente = async (direccion: 1 | -1): Promise<void> => {
+        const tarifa = tarifaActiva.value;
         const lista = tarifasHermanas.value;
-        if (!lista.length || !dataActiva.value) return;
-        const idx = lista.findIndex(t => t.id === dataActiva.value.id);
+        if (!lista.length || !tarifa) return;
+        const idx = lista.findIndex(t => t.id === tarifa.id);
         if (idx === -1) return;
         const nuevoIdx = idx + direccion;
         if (nuevoIdx < 0 || nuevoIdx >= lista.length) return;
@@ -2762,12 +2904,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const inyectarComponentesDeSegmento = async (
-        segmentoMaestro: Segmento,
+        segmentoMaestro: SegmentoMaestro,
         diaDelSegmento: number = 1,
         idSegmentoGenerado: string,
         itinerarioId: string | null = null
     ): Promise<void> => {
-        if (!dataActiva.value) return;
+        const servicio = servicioActivo.value;
+        if (!servicio) return;
 
         if (segmentoMaestro.segmentoComponentes && Array.isArray(segmentoMaestro.segmentoComponentes)) {
 
@@ -2819,17 +2962,17 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 let compMaestro = segComp.tempCompObj as Componente;
                 if (!compMaestro) continue;
 
-                const compHidratado = catalogos.value.allComponentes.find((c) => {
-                    if (!c || typeof c !== 'object') return false;
-                    const currentId = String(extractIdStr((c as any).id || (c as any)['@id'] || ''));
-                    return currentId === compId && 'tarifas' in c;
-                });
+                // Se prefiere la copia YA hidratada del catálogo (la que trae tarifas)
+                // sobre el objeto embebido en la relación del segmento, que viene flaco.
+                const compHidratado = catalogos.value.allComponentes.find(
+                    (c) => extractIdStr(c) === compId && 'tarifas' in c
+                );
 
-                if (compHidratado) {
-                    compMaestro = compHidratado as unknown as Componente;
+                if (isComponenteCompleto(compHidratado)) {
+                    compMaestro = compHidratado;
                 }
 
-                let fechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
+                let fechaBase = getFechaLimpia(servicio.fechaInicioAbsoluta);
 
                 if (diaDelSegmento > 1) {
                     const dateObj = new Date(`${fechaBase}T12:00:00Z`);
@@ -2876,16 +3019,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     (compMaestro.componenteItems || []).map(mapearItemASnapshot)
                 );
 
-                const maestroObj = compMaestro as Record<string, unknown>;
                 const nuevoComp: ComponenteCompleto = {
                     id: crypto.randomUUID(),
-                    componenteMaestroId: compMaestro.id || String(maestroObj['@id'] || '') || null,
+                    componenteMaestroId: extractIdStr(compMaestro) || null,
                     nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                     tipo: tipoComp,
                     sinHorario,
                     // Propaga la promoción de la plantilla Travel: la hora de este
                     // componente representa el horario de toda la excursión.
-                    horaServicioCompleto: !!(segComp as any).horaServicioCompleto,
+                    horaServicioCompleto: !!segComp.horaServicioCompleto,
                     cantidad: calcularPernoctes(fHoraInicio, fHoraFin),
                     estado: 'pendiente',
                     modo: segComp.modo || 'incluido',
@@ -2901,16 +3043,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 let tarifasParaInyectar: (components['schemas']['Tarifa-componente.item.read'] | Tarifa)[] = [];
 
-                const tarifaPredObj = segComp.tarifaPredeterminada as Record<string, unknown> | null | undefined;
-                const tarifaDefId = extractIdStr(
-                    segComp.tarifaId ||
-                    String(tarifaPredObj?.id || tarifaPredObj?.['@id'] || '') ||
-                    (typeof segComp.tarifaPredeterminada === 'string' ? segComp.tarifaPredeterminada : '')
-                );
+                // La tarifa por defecto llega como id suelto, como objeto embebido o
+                // como IRI, segun el grupo de serializacion de la relacion.
+                const tarifaDefId = extractIdStr(segComp.tarifaId || segComp.tarifaPredeterminada);
 
                 if (tarifaDefId) {
-                    const tDef = (compMaestro.tarifas || []).find((t: any) => extractIdStr(t.id || t['@id']) === tarifaDefId)
-                        || todasLasTarifasMaestras.value.find((t: any) => extractIdStr(t.id || t['@id']) === tarifaDefId);
+                    const coincideDef = (t: Tarifa): boolean => extractIdStr(t) === tarifaDefId;
+                    const tDef = (compMaestro.tarifas || []).find(coincideDef)
+                        || todasLasTarifasMaestras.value.find(coincideDef);
                     if (tDef) tarifasParaInyectar.push(tDef);
                 } else if (compMaestro.tarifas && compMaestro.tarifas.length === 1 && !['no_incluido', 'reemplazado'].includes(nuevoComp.modo)) {
                     tarifasParaInyectar.push(compMaestro.tarifas[0]);
@@ -2920,42 +3060,44 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     mapearATarifaSnapshot(t, cotizacion.value?.numPax || 1)
                 );
 
-                if (!dataActiva.value.cotcomponentes) {
-                    dataActiva.value.cotcomponentes = [];
+                if (!servicio.cotcomponentes) {
+                    servicio.cotcomponentes = [];
                 }
-                dataActiva.value.cotcomponentes.push(nuevoComp);
+                servicio.cotcomponentes.push(nuevoComp);
             }
 
-            ordenarComponentesCronologicamente(dataActiva.value.cotcomponentes);
-            sincronizarFechaServicio(dataActiva.value);
+            ordenarComponentesCronologicamente(servicio.cotcomponentes ?? []);
+            sincronizarFechaServicio(servicio);
         }
     };
     const aplicarPlantilla = async (plantillaId: string): Promise<void> => {
+        const servicio = servicioActivo.value;
         isLoading.value = true;
         try {
             const endpoint = plantillaId.startsWith('/') ? plantillaId : `/platform/travel/itinerarios/${plantillaId}`;
             const response = await apiClient.get(endpoint);
-            const plantillaProfunda = response.data;
-            if (!dataActiva.value) return;
+            const plantillaProfunda = response.data as ItinerarioProfundo;
+            if (!servicio) return;
 
-            dataActiva.value.itinerarioNombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda)));
+            servicio.itinerarioNombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda)));
             // Referencia interna a la plantilla: habilita el re-sync exacto de flags
             // (p.ej. "hora de servicio completo") por el botón Actualizar.
-            dataActiva.value.itinerarioMaestroId = extractIdStr(plantillaId)
-                || extractIdStr(plantillaProfunda.id || plantillaProfunda['@id']) || null;
-            dataActiva.value.nombrePublicoSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda))); // 👉 NUEVO
-            let ordenMaximo = dataActiva.value.cotsegmentos ? dataActiva.value.cotsegmentos.length : 0;
+            servicio.itinerarioMaestroId = extractIdStr(plantillaId)
+                || extractIdStr(plantillaProfunda) || null;
+            servicio.nombrePublicoSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda))); // 👉 NUEVO
+            let ordenMaximo = servicio.cotsegmentos ? servicio.cotsegmentos.length : 0;
 
-            const arrayRelaciones = plantillaProfunda.segmentos || plantillaProfunda.itinerarioSegmentos || [];
+            const arrayRelaciones: RelacionItinerarioSegmento[] =
+                plantillaProfunda.segmentos || plantillaProfunda.itinerarioSegmentos || [];
 
             if (arrayRelaciones && Array.isArray(arrayRelaciones)) {
-                const segmentosRaw = arrayRelaciones.map((rel: any) => rel.segmento ? rel.segmento : rel);
-                const segmentosReales = await hydrateRelations(segmentosRaw);
+                const segmentosRaw = arrayRelaciones.map((rel) => rel.segmento ?? rel) as RelacionSinHidratar[];
+                const segmentosReales = await hydrateRelations<SegmentoMaestro>(segmentosRaw);
 
                 const compIdsToFetch = new Set<string>();
-                segmentosReales.forEach((seg: any) => {
-                    (seg.segmentoComponentes || []).forEach((sc: any) => {
-                        const cId = extractIdStr(sc.componente?.id || sc.componente?.['@id'] || sc.componente);
+                segmentosReales.forEach((seg) => {
+                    (seg.segmentoComponentes || []).forEach((sc) => {
+                        const cId = extractIdStr(sc.componente);
                         if (cId) compIdsToFetch.add(cId);
                     });
                 });
@@ -2967,17 +3109,17 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const diaDelSegmento = relacionOriginal.dia || 1;
                     const nuevoIdSeg = crypto.randomUUID();
 
-                    let fechaCalculada = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
+                    let fechaCalculada = getFechaLimpia(servicio.fechaInicioAbsoluta);
                     if (diaDelSegmento > 1) {
                         const dateObj = new Date(`${fechaCalculada}T12:00:00Z`);
                         dateObj.setUTCDate(dateObj.getUTCDate() + (diaDelSegmento - 1));
                         fechaCalculada = dateObj.toISOString().split('T')[0];
                     }
 
-                    if (!dataActiva.value.cotsegmentos) dataActiva.value.cotsegmentos = [];
-                    dataActiva.value.cotsegmentos.push({
+                    if (!servicio.cotsegmentos) servicio.cotsegmentos = [];
+                    servicio.cotsegmentos.push({
                         id: nuevoIdSeg,
-                        segmentoMaestroId: extractIdStr(seg.id || seg['@id']),
+                        segmentoMaestroId: extractIdStr(seg),
                         dia: diaDelSegmento,
                         orden: ordenMaximo,
                         fechaAbsoluta: fechaCalculada,
@@ -2998,35 +3140,27 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    const agregarSegmentoIndividual = async (segmentoMaestroRaw: any, itinerarioId: string | null = null): Promise<void> => {
-        if (!dataActiva.value) return;
+    const agregarSegmentoIndividual = async (segmentoMaestroRaw: SegmentoMaestro, itinerarioId: string | null = null): Promise<void> => {
+        const servicio = servicioActivo.value;
+        if (!servicio) return;
 
-        let segmentoMaestro = segmentoMaestroRaw;
-        try {
-            const idStr = extractIdStr(segmentoMaestroRaw.id || segmentoMaestroRaw['@id']);
-            if (idStr) {
-                const res = await apiClient.get(`/platform/travel/segmentos/${idStr}`);
-                segmentoMaestro = res.data;
-            }
-        } catch (e) {
-            console.error("No se pudo profundizar el segmento", e);
-        }
+        const segmentoMaestro = await profundizarSegmento(segmentoMaestroRaw);
 
         const compIdsToFetch = new Set<string>();
-        (segmentoMaestro.segmentoComponentes || []).forEach((sc: any) => {
-            const cId = extractIdStr(sc.componente?.id || sc.componente?.['@id'] || sc.componente);
+        (segmentoMaestro.segmentoComponentes || []).forEach((sc) => {
+            const cId = extractIdStr(sc.componente);
             if (cId) compIdsToFetch.add(cId);
         });
         await Promise.all(Array.from(compIdsToFetch).map(id => fetchComponenteDetalles(id)));
 
-        const ordenNuevo = dataActiva.value.cotsegmentos ? dataActiva.value.cotsegmentos.length + 1 : 1;
+        const ordenNuevo = servicio.cotsegmentos ? servicio.cotsegmentos.length + 1 : 1;
         const nuevoIdSeg = crypto.randomUUID();
-        const fechaCalculada = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
+        const fechaCalculada = getFechaLimpia(servicio.fechaInicioAbsoluta);
 
-        if (!dataActiva.value.cotsegmentos) dataActiva.value.cotsegmentos = [];
-        dataActiva.value.cotsegmentos.push({
+        if (!servicio.cotsegmentos) servicio.cotsegmentos = [];
+        servicio.cotsegmentos.push({
             id: nuevoIdSeg,
-            segmentoMaestroId: extractIdStr(segmentoMaestro.id || segmentoMaestro['@id']),
+            segmentoMaestroId: extractIdStr(segmentoMaestro),
             dia: 1,
             orden: ordenNuevo,
             fechaAbsoluta: fechaCalculada,
@@ -3038,6 +3172,23 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         });
 
         await inyectarComponentesDeSegmento(segmentoMaestro, 1, nuevoIdSeg, itinerarioId);
+    };
+
+    /**
+     * Trae el segmento maestro COMPLETO (con `segmentoComponentes`): el que llega
+     * desde el pool del catálogo suele venir flaco. Si la petición falla se sigue
+     * con lo que había — mejor un segmento sin componentes que romper la inserción.
+     */
+    const profundizarSegmento = async (segmentoMaestroRaw: SegmentoMaestro): Promise<SegmentoMaestro> => {
+        try {
+            const idStr = extractIdStr(segmentoMaestroRaw);
+            if (!idStr) return segmentoMaestroRaw;
+            const res = await apiClient.get(`/platform/travel/segmentos/${idStr}`);
+            return res.data as SegmentoMaestro;
+        } catch (e) {
+            console.error("No se pudo profundizar el segmento", e);
+            return segmentoMaestroRaw;
+        }
     };
 
     /**
@@ -3074,35 +3225,27 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         });
     };
 
-    const procesarInsercionSegmento = async (segmentoMaestroRaw: any, itinerarioId: string | null, accion: 'append' | 'replace' | 'insert', targetId?: string) => {
-        if (!dataActiva.value) return;
-        if (!dataActiva.value.cotsegmentos) dataActiva.value.cotsegmentos = [];
+    const procesarInsercionSegmento = async (segmentoMaestroRaw: SegmentoMaestro, itinerarioId: string | null, accion: 'append' | 'replace' | 'insert', targetId?: string) => {
+        const servicio = servicioActivo.value;
+        if (!servicio) return;
+        if (!servicio.cotsegmentos) servicio.cotsegmentos = [];
 
         if (accion === 'append' || !targetId) {
             await agregarSegmentoIndividual(segmentoMaestroRaw, itinerarioId);
             return;
         }
 
-        let segmentoMaestro = segmentoMaestroRaw;
-        try {
-            const idStr = extractIdStr(segmentoMaestroRaw.id || segmentoMaestroRaw['@id']);
-            if (idStr) {
-                const res = await apiClient.get(`/platform/travel/segmentos/${idStr}`);
-                segmentoMaestro = res.data;
-            }
-        } catch (e) {
-            console.error("No se pudo profundizar el segmento", e);
-        }
+        const segmentoMaestro = await profundizarSegmento(segmentoMaestroRaw);
 
         const compIdsToFetch = new Set<string>();
-        (segmentoMaestro.segmentoComponentes || []).forEach((sc: any) => {
-            const cId = extractIdStr(sc.componente?.id || sc.componente?.['@id'] || sc.componente);
+        (segmentoMaestro.segmentoComponentes || []).forEach((sc) => {
+            const cId = extractIdStr(sc.componente);
             if (cId) compIdsToFetch.add(cId);
         });
         await Promise.all(Array.from(compIdsToFetch).map(id => fetchComponenteDetalles(id)));
 
-        let fechaCalculada = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
-        const index = dataActiva.value.cotsegmentos.findIndex((s: any) => s.id === targetId);
+        let fechaCalculada = getFechaLimpia(servicio.fechaInicioAbsoluta);
+        const index = servicio.cotsegmentos.findIndex((s: CotSegmento) => s.id === targetId);
 
         if (index === -1) {
             await agregarSegmentoIndividual(segmentoMaestro, itinerarioId);
@@ -3110,11 +3253,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
 
         if (accion === 'replace') {
-            const segAfectado = dataActiva.value.cotsegmentos[index];
+            const segAfectado = servicio.cotsegmentos[index];
 
-            if (dataActiva.value.cotcomponentes) {
-                dataActiva.value.cotcomponentes = dataActiva.value.cotcomponentes.filter(
-                    (c: any) => c.cotsegmentoId !== segAfectado.id
+            if (servicio.cotcomponentes) {
+                servicio.cotcomponentes = servicio.cotcomponentes.filter(
+                    (c: ComponenteCompleto) => c.cotsegmentoId !== segAfectado.id
                 );
             }
 
@@ -3128,7 +3271,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         } else if (accion === 'insert') {
             const nuevoIdSeg = crypto.randomUUID();
-            const diaDelSegmento = dataActiva.value.cotsegmentos[index].dia || 1;
+            const diaDelSegmento = servicio.cotsegmentos[index].dia || 1;
 
             if (diaDelSegmento > 1) {
                 const dateObj = new Date(`${fechaCalculada}T12:00:00Z`);
@@ -3138,7 +3281,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const nuevoSeg: CotSegmento = {
                 id: nuevoIdSeg,
-                segmentoMaestroId: extractIdStr(segmentoMaestro.id || segmentoMaestro['@id']),
+                segmentoMaestroId: extractIdStr(segmentoMaestro),
                 dia: diaDelSegmento,
                 orden: 0,
                 fechaAbsoluta: fechaCalculada,
@@ -3149,25 +3292,27 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 sobreescribirTraduccion: false
             };
 
-            dataActiva.value.cotsegmentos.splice(index + 1, 0, nuevoSeg);
-            dataActiva.value.cotsegmentos.forEach((s: any, i: number) => s.orden = i + 1);
+            servicio.cotsegmentos.splice(index + 1, 0, nuevoSeg);
+            servicio.cotsegmentos.forEach((s: CotSegmento, i: number) => s.orden = i + 1);
 
             await inyectarComponentesDeSegmento(segmentoMaestro, diaDelSegmento, nuevoIdSeg, itinerarioId);
         }
     };
 
     const removerCotSegmento = (id: string): void => {
-        if (!dataActiva.value) return;
-        if (dataActiva.value.cotsegmentos) {
-            dataActiva.value.cotsegmentos = dataActiva.value.cotsegmentos.filter((s: any) => s.id !== id);
+        const servicio = servicioActivo.value;
+        if (!servicio) return;
+        if (servicio.cotsegmentos) {
+            servicio.cotsegmentos = servicio.cotsegmentos.filter((s: CotSegmento) => s.id !== id);
         }
-        if (dataActiva.value.cotcomponentes) {
-            dataActiva.value.cotcomponentes = dataActiva.value.cotcomponentes.filter((c: any) => c.cotsegmentoId !== id && c.cotsegmento !== id);
-            sincronizarFechaServicio(dataActiva.value);
+        if (servicio.cotcomponentes) {
+            servicio.cotcomponentes = servicio.cotcomponentes.filter((c: ComponenteCompleto) => c.cotsegmentoId !== id && c.cotsegmento !== id);
+            sincronizarFechaServicio(servicio);
         }
     };
 
     const onServicioMaestroChange = async (val: string | null): Promise<void> => {
+        const servicio = servicioActivo.value;
         if (!val || val === 'null') {
             catalogos.value.componentes = catalogos.value.allComponentes;
             catalogos.value.plantillasItinerario = [];
@@ -3179,28 +3324,29 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         const maestro = catalogos.value.servicios.find((s: Servicio) => extractIdStr(s.id || s['@id']) === targetId);
 
-        if (maestro && dataActiva.value) {
+        if (maestro && servicio) {
             const titulo = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
-            dataActiva.value.nombreSnapshot = titulo;
-            dataActiva.value.nombrePublicoSnapshot = JSON.parse(JSON.stringify(titulo));
+            servicio.nombreSnapshot = titulo;
+            servicio.nombrePublicoSnapshot = JSON.parse(JSON.stringify(titulo));
             await fetchServicioDetalles(val);
         }
     };
 
     const onServicioFechaChange = (): void => {
-        if (!dataActiva.value || !dataActiva.value.fechaInicioAbsoluta) return;
-        const nuevaFechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
+        const servicio = servicioActivo.value;
+        if (!servicio || !servicio.fechaInicioAbsoluta) return;
+        const nuevaFechaBase = getFechaLimpia(servicio.fechaInicioAbsoluta);
 
         let oldFechaBase = '9999-12-31';
-        if (dataActiva.value.cotcomponentes && dataActiva.value.cotcomponentes.length > 0) {
-            dataActiva.value.cotcomponentes.forEach((c: any) => {
+        if (servicio.cotcomponentes && servicio.cotcomponentes.length > 0) {
+            servicio.cotcomponentes.forEach((c: ComponenteCompleto) => {
                 if (c.fechaHoraInicio) {
                     const d = c.fechaHoraInicio.split('T')[0];
                     if (d < oldFechaBase) oldFechaBase = d;
                 }
             });
-        } else if (dataActiva.value.cotsegmentos && dataActiva.value.cotsegmentos.length > 0) {
-            oldFechaBase = dataActiva.value.cotsegmentos[0].fechaAbsoluta;
+        } else if (servicio.cotsegmentos && servicio.cotsegmentos.length > 0) {
+            oldFechaBase = servicio.cotsegmentos[0].fechaAbsoluta;
         }
 
         if (oldFechaBase === '9999-12-31') oldFechaBase = nuevaFechaBase;
@@ -3208,8 +3354,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const diffTime = new Date(`${nuevaFechaBase}T12:00:00Z`).getTime() - new Date(`${oldFechaBase}T12:00:00Z`).getTime();
         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-        if (dataActiva.value.cotcomponentes && Array.isArray(dataActiva.value.cotcomponentes)) {
-            dataActiva.value.cotcomponentes.forEach((comp: any) => {
+        if (servicio.cotcomponentes && Array.isArray(servicio.cotcomponentes)) {
+            servicio.cotcomponentes.forEach((comp: ComponenteCompleto) => {
                 if (comp.fechaHoraInicio) {
                     const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
                     const oldFechaString = comp.fechaHoraInicio.split('T')[0];
@@ -3227,8 +3373,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             });
         }
 
-        if (dataActiva.value.cotsegmentos && Array.isArray(dataActiva.value.cotsegmentos)) {
-            dataActiva.value.cotsegmentos.forEach((seg: any) => {
+        if (servicio.cotsegmentos && Array.isArray(servicio.cotsegmentos)) {
+            servicio.cotsegmentos.forEach((seg: CotSegmento) => {
                 let fechaCalculada = nuevaFechaBase;
                 const diaDelSegmento = seg.dia || 1;
                 if (diaDelSegmento > 1) {
@@ -3240,48 +3386,47 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             });
         }
 
-        if (dataActiva.value.cotcomponentes) {
-            ordenarComponentesCronologicamente(dataActiva.value.cotcomponentes);
+        if (servicio.cotcomponentes) {
+            ordenarComponentesCronologicamente(servicio.cotcomponentes);
         }
     };
     const onComponenteMaestroChange = async (val: string | null): Promise<void> => {
+        const componente = componenteActivo.value;
         if (!val || val === 'null') {
             catalogos.value.tarifas = [];
             return;
         }
 
         const targetId = extractIdStr(val);
-        const maestro = catalogos.value.allComponentes.find(
-            (c) => extractIdStr(c.id || (c as any)['@id'] || '') === targetId
-        );
+        const maestro = catalogos.value.allComponentes.find((c) => extractIdStr(c) === targetId);
 
-        if (maestro && isComponenteCompleto(maestro) && dataActiva.value) {
-            dataActiva.value.tipo = maestro.tipo || 'extras';   // 🔥 snapshot autónomo del tipo
-            dataActiva.value.sinHorario = sinHorarioDeTipo(maestro.tipo);   // 🔥 snapshot del flag de horario
-            dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+        if (isComponenteCompleto(maestro) && componente) {
+            componente.tipo = maestro.tipo || 'extras';   // 🔥 snapshot autónomo del tipo
+            componente.sinHorario = sinHorarioDeTipo(maestro.tipo);   // 🔥 snapshot del flag de horario
+            componente.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
 
-            const reqHora = !dataActiva.value.sinHorario;
-            const fechaDate = dataActiva.value.fechaHoraInicio.split('T')[0];
+            const reqHora = !componente.sinHorario;
+            const fechaDate = componente.fechaHoraInicio.split('T')[0];
 
             if (reqHora) {
-                dataActiva.value.fechaHoraInicio = toDateTimeString(fechaDate, '08:00');
-                dataActiva.value.fechaHoraFin = addDurationToDate(dataActiva.value.fechaHoraInicio, maestro.duracion || 0);
+                componente.fechaHoraInicio = toDateTimeString(fechaDate, '08:00');
+                componente.fechaHoraFin = addDurationToDate(componente.fechaHoraInicio, maestro.duracion || 0);
             } else {
-                dataActiva.value.fechaHoraInicio = toDateTimeString(fechaDate);
-                const endStr = addDurationToDate(dataActiva.value.fechaHoraInicio, maestro.duracion || 0);
-                dataActiva.value.fechaHoraFin = toDateTimeString(endStr.split('T')[0]);
+                componente.fechaHoraInicio = toDateTimeString(fechaDate);
+                const endStr = addDurationToDate(componente.fechaHoraInicio, maestro.duracion || 0);
+                componente.fechaHoraFin = toDateTimeString(endStr.split('T')[0]);
             }
 
-            if (dataActiva.value.fechaHoraInicio && dataActiva.value.fechaHoraFin) {
-                dataActiva.value.cantidad = calcularPernoctes(dataActiva.value.fechaHoraInicio, dataActiva.value.fechaHoraFin);
+            if (componente.fechaHoraInicio && componente.fechaHoraFin) {
+                componente.cantidad = calcularPernoctes(componente.fechaHoraInicio, componente.fechaHoraFin);
             }
 
-            dataActiva.value.snapshotItems = [];
-            dataActiva.value.cottarifas = [];
+            componente.snapshotItems = [];
+            componente.cottarifas = [];
 
             await fetchComponenteDetalles(val);
 
-        } else if (maestro && dataActiva.value) {
+        } else if (maestro && componente) {
             await fetchComponenteDetalles(val);
         }
     };
@@ -3290,10 +3435,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const nuevoDia = parseInt(String(nuevoDiaStr)) || 1;
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
-        const servicio = cotizacion.value.cotservicios.find((s: any) => s.id === servicioId);
+        const servicio = cotizacion.value.cotservicios.find((s) => s.id === servicioId);
         if (!servicio) return;
 
-        const segmento = servicio.cotsegmentos?.find((s: any) => s.id === segmentoId);
+        const segmento = servicio.cotsegmentos?.find((s) => s.id === segmentoId);
         if (!segmento) return;
 
         segmento.dia = nuevoDia;
@@ -3304,10 +3449,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         segmento.fechaAbsoluta = nuevaFechaAbs;
 
         if (servicio.cotcomponentes) {
-            servicio.cotcomponentes.forEach((comp: any) => {
-                const segId = comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento.id || comp.cotsegmento['@id'] || comp.cotsegmento) : null);
-
-                if (segId === segmentoId) {
+            servicio.cotcomponentes.forEach((comp) => {
+                if (idSegmentoDeComponente(comp) === segmentoId) {
                     const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
 
                     if (comp.fechaHoraInicio) comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaAbs);
@@ -3323,47 +3466,47 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
     const actualizarInicioManteniendoRango = (nuevoInicioStr: string): void => {
-        if (!dataActiva.value || !nuevoInicioStr) return;
+        const componente = componenteActivo.value;
+        if (!componente || !nuevoInicioStr) return;
 
-        const duracionMs = getDuracionMs(dataActiva.value.fechaHoraInicio, dataActiva.value.fechaHoraFin);
-        dataActiva.value.fechaHoraInicio = nuevoInicioStr;
+        const duracionMs = getDuracionMs(componente.fechaHoraInicio, componente.fechaHoraFin);
+        componente.fechaHoraInicio = nuevoInicioStr;
 
         const newStartMs = parseNaiveAsUTC(nuevoInicioStr);
-        dataActiva.value.fechaHoraFin = formatNaiveFromUTC(newStartMs + duracionMs);
+        componente.fechaHoraFin = formatNaiveFromUTC(newStartMs + duracionMs);
 
         onComponenteFechasChange(false);
     };
 
 
     const onComponenteFechasChange = (esCambioInicio: boolean = true): void => {
-        if (!dataActiva.value) return;
+        const componente = componenteActivo.value;
+        if (!componente) return;
 
-        if (!componenteRequiereHora(dataActiva.value)) {
-            if (dataActiva.value.fechaHoraInicio) dataActiva.value.fechaHoraInicio = dataActiva.value.fechaHoraInicio.split('T')[0] + 'T00:00:00';
-            if (dataActiva.value.fechaHoraFin) dataActiva.value.fechaHoraFin = dataActiva.value.fechaHoraFin.split('T')[0] + 'T00:00:00';
+        if (!componenteRequiereHora(componente)) {
+            if (componente.fechaHoraInicio) componente.fechaHoraInicio = componente.fechaHoraInicio.split('T')[0] + 'T00:00:00';
+            if (componente.fechaHoraFin) componente.fechaHoraFin = componente.fechaHoraFin.split('T')[0] + 'T00:00:00';
         }
 
-        if (dataActiva.value.fechaHoraInicio && dataActiva.value.fechaHoraFin) {
-            dataActiva.value.cantidad = calcularPernoctes(dataActiva.value.fechaHoraInicio, dataActiva.value.fechaHoraFin);
+        if (componente.fechaHoraInicio && componente.fechaHoraFin) {
+            componente.cantidad = calcularPernoctes(componente.fechaHoraInicio, componente.fechaHoraFin);
         }
 
-        const servicio = findServicioByComponenteId(dataActiva.value.id);
+        const servicio = findServicioByComponenteId(componente.id);
 
-        if (servicio && dataActiva.value.fechaHoraInicio) {
-            const nuevaFechaDateStr = dataActiva.value.fechaHoraInicio.split('T')[0];
-            const currentSegId = dataActiva.value.cotsegmentoId || (dataActiva.value.cotsegmento ? extractIdStr(dataActiva.value.cotsegmento.id || dataActiva.value.cotsegmento['@id'] || dataActiva.value.cotsegmento) : null);
+        if (servicio && componente.fechaHoraInicio) {
+            const nuevaFechaDateStr = componente.fechaHoraInicio.split('T')[0];
+            const currentSegId = idSegmentoDeComponente(componente);
 
             if (currentSegId) {
-                const segmentoPadre = servicio.cotsegmentos?.find((s: any) => s.id === currentSegId);
+                const segmentoPadre = servicio.cotsegmentos?.find((s) => s.id === currentSegId);
 
                 if (segmentoPadre && segmentoPadre.fechaAbsoluta !== nuevaFechaDateStr) {
                     segmentoPadre.fechaAbsoluta = nuevaFechaDateStr;
                     segmentoPadre.dia = calcularDiaRelativo(getFechaLimpia(servicio.fechaInicioAbsoluta), nuevaFechaDateStr);
 
-                    servicio.cotcomponentes?.forEach((comp: any) => {
-                        const hermanoSegId = comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento.id || comp.cotsegmento['@id'] || comp.cotsegmento) : null);
-
-                        if (hermanoSegId === segmentoPadre.id && comp.id !== dataActiva.value.id) {
+                    servicio.cotcomponentes?.forEach((comp) => {
+                        if (idSegmentoDeComponente(comp) === segmentoPadre.id && comp.id !== componente.id) {
                             const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
                             comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaDateStr);
 
@@ -3388,7 +3531,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * usuario selecciona una nueva tarifa desde la interfaz (SearchableSelect).
      *
      * Relaciones críticas y efectos secundarios:
-     * - Sobreescribe múltiples propiedades de `dataActiva.value` (montoCosto, moneda, esGrupal, etc.).
+     * - Sobreescribe múltiples propiedades de `componente` (montoCosto, moneda, esGrupal, etc.).
      * - Depende de `catalogos.value.tarifas` y `todasLasTarifasMaestras.value` para localizar la entidad completa.
      * - Depende de `catalogos.value.proveedores` para resolver e hidratar el nombre comercial del proveedor vinculado.
      *
@@ -3400,77 +3543,80 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * @returns No retorna ningún valor, muta el estado de dataActiva por referencia.
      */
     const onTarifaMaestraChange = (val: string): void => {
+        const tarifa = tarifaActiva.value;
         const targetId = extractIdStr(val);
 
-        const maestro = catalogos.value.tarifas.find((t: any) => extractIdStr(t.id) === targetId || extractIdStr(t['@id']) === targetId)
-            || todasLasTarifasMaestras.value.find((t: any) => extractIdStr(t.id) === targetId || extractIdStr(t['@id']) === targetId);
+        // La tarifa maestra se identifica por `tarifaId` (id del maestro) o por su
+        // IRI; `extractIdStr` mira ambas, así que basta con pasarle el objeto.
+        const coincide = (t: Tarifa): boolean => extractIdStr(t) === targetId || extractIdStr(t.tarifaId) === targetId;
+        const maestro = catalogos.value.tarifas.find(coincide) || todasLasTarifasMaestras.value.find(coincide);
 
-        if (maestro && dataActiva.value) {
+        if (maestro && tarifa) {
 
             const rol = getRolTarifa(maestro);
 
-            dataActiva.value.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
-            dataActiva.value.nombreInternoSnapshot = maestro.nombreInterno || null;
+            tarifa.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+            tarifa.nombreInternoSnapshot = maestro.nombreInterno || null;
 
             if (typeof maestro.moneda === 'object' && maestro.moneda !== null) {
-                dataActiva.value.moneda = maestro.moneda.id || maestro.moneda.nombre || 'USD';
+                tarifa.moneda = maestro.moneda.id || maestro.moneda.nombre || 'USD';
             } else {
-                dataActiva.value.moneda = maestro.moneda || 'USD';
+                tarifa.moneda = maestro.moneda || 'USD';
             }
 
-            dataActiva.value.montoCosto = parseFloat(maestro.monto || '0');
+            tarifa.montoCosto = parseFloat(maestro.monto || '0');
 
 
-            dataActiva.value.rolSnapshot = rol;
-            dataActiva.value.comisionOverrideSnapshot = rol === 'operativo' ? '0.00' : getComisionOverrideTarifa(maestro);
-            dataActiva.value.grupoTarifa = rol === 'operativo' ? null : (dataActiva.value.grupoTarifa ?? 1);
+            tarifa.rolSnapshot = rol;
+            tarifa.comisionOverrideSnapshot = rol === 'operativo' ? '0.00' : getComisionOverrideTarifa(maestro);
+            tarifa.grupoTarifa = rol === 'operativo' ? null : (tarifa.grupoTarifa ?? 1);
 
-            dataActiva.value.modalidadSnapshot = maestro.modalidad || null;
-            dataActiva.value.categoriaSnapshot = maestro.categoria || null;
-            dataActiva.value.procedenciaSnapshot = maestro.procedencia || null;
-            dataActiva.value.edadMinimaSnapshot = maestro.edadMinima ?? null;
-            dataActiva.value.edadMaximaSnapshot = maestro.edadMaxima ?? null;
+            tarifa.modalidadSnapshot = maestro.modalidad || null;
+            tarifa.categoriaSnapshot = maestro.categoria || null;
+            tarifa.procedenciaSnapshot = maestro.procedencia || null;
+            tarifa.edadMinimaSnapshot = maestro.edadMinima ?? null;
+            tarifa.edadMaximaSnapshot = maestro.edadMaxima ?? null;
 
             if (maestro.costoPorGrupo) {
-                dataActiva.value.cantidad = 1;
-                dataActiva.value.esGrupal = true;
+                tarifa.cantidad = 1;
+                tarifa.esGrupal = true;
             } else {
-                dataActiva.value.esGrupal = false;
+                tarifa.esGrupal = false;
             }
 
             if (maestro.proveedor) {
                 const provId = extractIdStr(maestro.proveedor);
-                dataActiva.value.proveedorMaestroId = provId;
+                tarifa.proveedorMaestroId = provId;
 
-                const provCat = catalogos.value.proveedores.find((p: any) => extractIdStr(p.id || p['@id']) === provId);
+                const provCat = catalogos.value.proveedores.find((p) => extractIdStr(p) === provId);
                 if (provCat) {
-                    dataActiva.value.proveedorNombreSnapshot = provCat.nombreComercial;
-                    dataActiva.value.proveedorTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(provCat)));
-                    dataActiva.value.proveedorUrlSnapshot = provCat.url || null;
-                    dataActiva.value.proveedorImagenesSnapshot = mapearImagenesSnapshot((provCat as any).proveedorImagenes);
+                    tarifa.proveedorNombreSnapshot = provCat.nombreComercial ?? null;
+                    tarifa.proveedorTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(provCat)));
+                    tarifa.proveedorUrlSnapshot = provCat.url || null;
+                    tarifa.proveedorImagenesSnapshot = mapearImagenesSnapshot(provCat.proveedorImagenes);
                 } else {
-                    dataActiva.value.proveedorImagenesSnapshot = [];
+                    tarifa.proveedorImagenesSnapshot = [];
                 }
 
                 fetchProveedorServiciosDeProveedor(provId);
             }
 
-            const psRaw = (maestro as any).proveedorServicio;
+            const psRaw = (maestro as { proveedorServicio?: ProveedorServicioEmbebido | null }).proveedorServicio;
             if (psRaw && typeof psRaw === 'object') {
-                dataActiva.value.proveedorServicioMaestroId = extractIdStr(psRaw.proveedorServicioId || psRaw.id || psRaw['@id'] || '');
-                dataActiva.value.proveedorServicioNombreSnapshot = psRaw.nombre || null;
-                dataActiva.value.proveedorServicioTituloSnapshot = [];
-                dataActiva.value.proveedorServicioUrlSnapshot = null;
-                dataActiva.value.proveedorServicioImagenesSnapshot = [];
+                tarifa.proveedorServicioMaestroId = extractIdStr(psRaw.proveedorServicioId || psRaw);
+                tarifa.proveedorServicioNombreSnapshot = psRaw.nombre || null;
+                tarifa.proveedorServicioTituloSnapshot = [];
+                tarifa.proveedorServicioUrlSnapshot = null;
+                tarifa.proveedorServicioImagenesSnapshot = [];
             } else {
-                dataActiva.value.proveedorServicioMaestroId = null;
-                dataActiva.value.proveedorServicioNombreSnapshot = null;
-                dataActiva.value.proveedorServicioTituloSnapshot = [];
-                dataActiva.value.proveedorServicioUrlSnapshot = null;
-                dataActiva.value.proveedorServicioImagenesSnapshot = [];
+                tarifa.proveedorServicioMaestroId = null;
+                tarifa.proveedorServicioNombreSnapshot = null;
+                tarifa.proveedorServicioTituloSnapshot = [];
+                tarifa.proveedorServicioUrlSnapshot = null;
+                tarifa.proveedorServicioImagenesSnapshot = [];
             }
 
-            dataActiva.value.nombreParaProveedorSnapshot = maestro.nombreParaProveedor || maestro.nombreInterno || null;
+            tarifa.nombreParaProveedorSnapshot = maestro.nombreParaProveedor || maestro.nombreInterno || null;
         }
     };
 
@@ -3487,10 +3633,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         try {
             const res = await apiClient.get(`/platform/travel/proveedor-servicios?proveedor_id=${proveedorId}&pagination=false`);
             if (gen !== undefined && gen !== navGen) return;
-            const raw = res.data['hydra:member'] || res.data['member'] || [];
-            catalogos.value.proveedorServicios = raw.map((ps: any) => ({
-                id: extractIdStr(ps.id || ps['@id']),
-                nombre: ps.nombre,
+            const raw = miembrosHydra<RecursoHydra & { nombre?: string }>(res.data);
+            catalogos.value.proveedorServicios = raw.map((ps) => ({
+                id: extractIdStr(ps),
+                nombre: ps.nombre ?? '',
                 proveedorId
             }));
         } catch (e) {
@@ -3505,65 +3651,67 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * el snapshot completo, incluyendo la galería.
      */
     const onProveedorServicioChange = async (val: string | null): Promise<void> => {
+        const tarifa = tarifaActiva.value;
         if (!val || val === 'null') {
-            if (dataActiva.value) {
-                dataActiva.value.proveedorServicioMaestroId = null;
-                dataActiva.value.proveedorServicioNombreSnapshot = null;
-                dataActiva.value.proveedorServicioTituloSnapshot = [];
-                dataActiva.value.proveedorServicioUrlSnapshot = null;
-                dataActiva.value.proveedorServicioImagenesSnapshot = [];
+            if (tarifa) {
+                tarifa.proveedorServicioMaestroId = null;
+                tarifa.proveedorServicioNombreSnapshot = null;
+                tarifa.proveedorServicioTituloSnapshot = [];
+                tarifa.proveedorServicioUrlSnapshot = null;
+                tarifa.proveedorServicioImagenesSnapshot = [];
             }
             return;
         }
         const targetId = extractIdStr(val);
-        if (!dataActiva.value) return;
+        if (!tarifa) return;
 
-        dataActiva.value.proveedorServicioMaestroId = targetId;
+        tarifa.proveedorServicioMaestroId = targetId;
 
         const opcionLocal = catalogos.value.proveedorServicios.find((ps) => ps.id === targetId);
-        if (opcionLocal) dataActiva.value.proveedorServicioNombreSnapshot = opcionLocal.nombre;
+        if (opcionLocal) tarifa.proveedorServicioNombreSnapshot = opcionLocal.nombre;
 
         try {
             const res = await apiClient.get(`/platform/travel/proveedor-servicios/${targetId}`);
-            dataActiva.value.proveedorServicioNombreSnapshot = res.data.nombre;
-            dataActiva.value.proveedorServicioTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(res.data)));
-            dataActiva.value.proveedorServicioUrlSnapshot = res.data.url || null;
-            dataActiva.value.proveedorServicioImagenesSnapshot = mapearImagenesSnapshot(res.data.proveedorServicioImagenes);
+            tarifa.proveedorServicioNombreSnapshot = res.data.nombre;
+            tarifa.proveedorServicioTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(res.data)));
+            tarifa.proveedorServicioUrlSnapshot = res.data.url || null;
+            tarifa.proveedorServicioImagenesSnapshot = mapearImagenesSnapshot(res.data.proveedorServicioImagenes);
         } catch (e) {
             console.error('No se pudo hidratar el servicio-proveedor', e);
         }
     };
 
     const onProveedorChange = (val: string | null): void => {
-        if (dataActiva.value) {
-            dataActiva.value.proveedorServicioMaestroId = null;
-            dataActiva.value.proveedorServicioNombreSnapshot = null;
-            dataActiva.value.proveedorServicioTituloSnapshot = [];
-            dataActiva.value.proveedorServicioUrlSnapshot = null;
-            dataActiva.value.proveedorServicioImagenesSnapshot = [];
+        const tarifa = tarifaActiva.value;
+        if (tarifa) {
+            tarifa.proveedorServicioMaestroId = null;
+            tarifa.proveedorServicioNombreSnapshot = null;
+            tarifa.proveedorServicioTituloSnapshot = [];
+            tarifa.proveedorServicioUrlSnapshot = null;
+            tarifa.proveedorServicioImagenesSnapshot = [];
         }
 
         if (!val || val === 'null') {
-            if (dataActiva.value) {
-                dataActiva.value.proveedorMaestroId = null;
-                dataActiva.value.proveedorNombreSnapshot = null;
-                dataActiva.value.proveedorTituloSnapshot = [];
-                dataActiva.value.proveedorUrlSnapshot = null;
-                dataActiva.value.proveedorImagenesSnapshot = [];
+            if (tarifa) {
+                tarifa.proveedorMaestroId = null;
+                tarifa.proveedorNombreSnapshot = null;
+                tarifa.proveedorTituloSnapshot = [];
+                tarifa.proveedorUrlSnapshot = null;
+                tarifa.proveedorImagenesSnapshot = [];
             }
             catalogos.value.proveedorServicios = [];
             return;
         }
 
         const targetId = extractIdStr(val);
-        const provCat = catalogos.value.proveedores.find((p: any) => extractIdStr(p.id || p['@id']) === targetId);
+        const provCat = catalogos.value.proveedores.find((p) => extractIdStr(p) === targetId);
 
-        if (provCat && dataActiva.value) {
-            dataActiva.value.proveedorMaestroId = targetId;
-            dataActiva.value.proveedorNombreSnapshot = provCat.nombreComercial;
-            dataActiva.value.proveedorTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(provCat)));
-            dataActiva.value.proveedorUrlSnapshot = provCat.url || null;
-            dataActiva.value.proveedorImagenesSnapshot = mapearImagenesSnapshot((provCat as any).proveedorImagenes);
+        if (provCat && tarifa) {
+            tarifa.proveedorMaestroId = targetId;
+            tarifa.proveedorNombreSnapshot = provCat.nombreComercial ?? null;
+            tarifa.proveedorTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(provCat)));
+            tarifa.proveedorUrlSnapshot = provCat.url || null;
+            tarifa.proveedorImagenesSnapshot = mapearImagenesSnapshot(provCat.proveedorImagenes);
 
         }
 
@@ -3571,13 +3719,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const actualizarTextosSegmentos = async (): Promise<void> => {
-        if (!dataActiva.value || !dataActiva.value.cotsegmentos || dataActiva.value.cotsegmentos.length === 0) return;
+        const servicio = servicioActivo.value;
+        if (!servicio || !servicio.cotsegmentos || servicio.cotsegmentos.length === 0) return;
 
         // Extraer IDs maestros únicos de los segmentos actuales en la vista
-        const idsToFetch = Array.from(new Set(
-            dataActiva.value.cotsegmentos
-                .map((s: any) => s.segmentoMaestroId)
-                .filter(Boolean)
+        const idsToFetch: string[] = Array.from(new Set(
+            servicio.cotsegmentos
+                .map((s: CotSegmento) => s.segmentoMaestroId)
+                .filter((id): id is string => !!id)
         ));
 
         if (idsToFetch.length === 0) {
@@ -3588,27 +3737,31 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         isLoading.value = true;
         try {
             // Petición al endpoint en formato id[]=...&id[]=...
-            const idsParam = (idsToFetch as string[]).map((id: string) => `id[]=${id}`).join('&');
+            const idsParam = idsToFetch.map((id) => `id[]=${id}`).join('&');
             const res = await apiClient.get(`/platform/travel/segmentos?${idsParam}&pagination=false`);
-            const segmentosMaestros = res.data['hydra:member'] || res.data['member'] || [];
+            const segmentosMaestros = miembrosHydra<SegmentoMaestro>(res.data);
 
             // Crear diccionario de maestros para búsqueda O(1)
-            const mapaMaestros = new Map();
-            segmentosMaestros.forEach((seg: any) => {
-                mapaMaestros.set(extractIdStr(seg.id || seg['@id']), seg);
+            const mapaMaestros = new Map<string, SegmentoMaestro>();
+            segmentosMaestros.forEach((seg) => {
+                mapaMaestros.set(extractIdStr(seg), seg);
             });
 
             // Id de la plantilla con la que se armó el servicio (si se conoce): permite
             // el match exacto de la fila TravelSegmentoComponente, igual que la inyección.
-            const itinId = extractIdStr(dataActiva.value.itinerarioMaestroId);
+            const itinId = extractIdStr(servicio.itinerarioMaestroId);
 
             // Elige, para un componente ya inyectado, la fila TravelSegmentoComponente
             // del maestro que aporta su configuración.
-            const resolverSegCompDeComponente = (segComps: any[], componenteMaestroId: any, dia: any): any => {
+            const resolverSegCompDeComponente = (
+                segComps: SegmentoComponenteProcesado[],
+                componenteMaestroId: string | null | undefined,
+                dia: number | null | undefined,
+            ): SegmentoComponenteProcesado | null => {
                 const targetId = extractIdStr(componenteMaestroId);
                 if (!targetId) return null;
-                const candidatos = segComps.filter((sc: any) => {
-                    const cId = extractIdStr(sc.componente?.id || sc.componente?.['@id'] || sc.componente);
+                const candidatos = segComps.filter((sc) => {
+                    const cId = extractIdStr(sc.componente);
                     if (cId !== targetId) return false;
                     return sc.dia === undefined || sc.dia === null || sc.dia === dia;
                 });
@@ -3617,29 +3770,29 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 if (itinId) {
                     // Match exacto (como en la inyección): se excluyen filas ligadas a
                     // OTRA plantilla; las de esta plantilla mandan sobre las globales.
-                    const aplicables = candidatos.filter((sc: any) =>
+                    const aplicables = candidatos.filter((sc) =>
                         !sc.itinerarioContexto || extractIdStr(sc.itinerarioContexto) === itinId);
                     if (!aplicables.length) return null;
-                    const deLaPlantilla = aplicables.filter((sc: any) => extractIdStr(sc.itinerarioContexto) === itinId);
+                    const deLaPlantilla = aplicables.filter((sc) => extractIdStr(sc.itinerarioContexto) === itinId);
                     const grupo = deLaPlantilla.length ? deLaPlantilla : aplicables;
-                    return grupo.find((sc: any) => sc.horaServicioCompleto) || grupo[0];
+                    return grupo.find((sc) => sc.horaServicioCompleto) || grupo[0];
                 }
 
                 // Fallback (servicios previos a itinerarioMaestroId): mejor esfuerzo —
                 // prioriza filas ligadas a plantilla y, entre ellas, la promovida.
-                const ligadasAPlantilla = candidatos.filter((sc: any) => sc.itinerarioContexto);
+                const ligadasAPlantilla = candidatos.filter((sc) => sc.itinerarioContexto);
                 const grupo = ligadasAPlantilla.length ? ligadasAPlantilla : candidatos;
-                return grupo.find((sc: any) => sc.horaServicioCompleto) || grupo[0];
+                return grupo.find((sc) => sc.horaServicioCompleto) || grupo[0];
             };
 
             // Actualizar estrictamente los textos, imágenes y el flag de "hora de
             // servicio completo". NO se tocan tarifas, fechas/horas ni el modo
             // comercial, y NO se elimina ningún componente que ya no figure en los
             // segmentos maestros (los sin coincidencia quedan intactos).
-            const componentesDelServicio = dataActiva.value.cotcomponentes || [];
-            dataActiva.value.cotsegmentos.forEach((cotSeg: any) => {
-                if (cotSeg.segmentoMaestroId && mapaMaestros.has(cotSeg.segmentoMaestroId)) {
-                    const maestro = mapaMaestros.get(cotSeg.segmentoMaestroId);
+            const componentesDelServicio: ComponenteCompleto[] = servicio.cotcomponentes || [];
+            servicio.cotsegmentos.forEach((cotSeg: CotSegmento) => {
+                const maestro = cotSeg.segmentoMaestroId ? mapaMaestros.get(cotSeg.segmentoMaestroId) : undefined;
+                if (maestro) {
                     cotSeg.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
                     cotSeg.contenidoSnapshot = JSON.parse(JSON.stringify(maestro.contenido || []));
                     cotSeg.notasSnapshot = extraerNotasSnapshot(maestro);
@@ -3647,8 +3800,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                     const segComps = Array.isArray(maestro.segmentoComponentes) ? maestro.segmentoComponentes : [];
                     componentesDelServicio
-                        .filter((comp: any) => comp.cotsegmentoId === cotSeg.id)
-                        .forEach((comp: any) => {
+                        .filter((comp) => comp.cotsegmentoId === cotSeg.id)
+                        .forEach((comp) => {
                             const segComp = resolverSegCompDeComponente(segComps, comp.componenteMaestroId, cotSeg.dia);
                             if (segComp) {
                                 comp.horaServicioCompleto = !!segComp.horaServicioCompleto;
@@ -3668,6 +3821,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     return {
         catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
+        // Vistas tipadas del nodo abierto: es por donde deben leerlo las vistas.
+        servicioActivo, componenteActivo, tarifaActiva,
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,
         resumenFinanciero, gruposUpgrade, itinerarioDinamico, totalCostoNeto, ventaSugerida,
         getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, calcularPernoctes,

@@ -1368,6 +1368,28 @@ bancario. Se prioriza que el saldo quede en cero, que es lo que se pidió. Para 
 real habría que cambiar `PmsPagoOtaAutomaticoService::sincronizar()` **y aceptar que el saldo deje
 de ser cero**.
 
+### 12.4.6 Regularización de las reservas cobradas antes del módulo financiero
+
+El módulo financiero es posterior a buena parte de las reservas, así que en ellas el hecho de
+estar cobradas vivía **sólo** en `PmsEventoCalendario.estadoPago`. Al estrenar cargos y pagos
+aparecían con saldo pendiente pese a estar cobradas, y ese saldo falso contamina el panel y las
+variables de mensajería (§12.0.3).
+
+`Version20260803210000` les registra un pago en **efectivo** por lo que falta, con fecha el
+**último día del mes de llegada**, dejando el saldo en cero.
+
+Dos criterios que conviene tener presentes si hay que repetir la operación:
+
+- **"Pagada" = ninguna estancia fuera de `pago-total`.** El estado de pago vive en el evento, no
+  en la reserva. Con una sola estancia —el caso normal— equivale a que esa estancia lo esté; en
+  una reserva agrupada exige que lo estén **todas**, que es lo prudente.
+- **Se inserta la diferencia `total_cargos − total_pagos`, no el total.** Una reserva con un
+  abono parcial ya registrado habría quedado con saldo negativo. Por lo mismo, las OTA de pago
+  total que ya cuadró `Version20260803190000` (§12.4.5) tienen diferencia 0 y no entran.
+
+Estos pagos nacen con `es_automatico = 0`: son un dato histórico normal y el operador puede
+editarlos. Se identifican por su `notas` para poder revertirlos en el `down()`.
+
 ## 12.5 Panel financiero en la SPA (`util/`) y patrón de Enums por AJAX
 
 **Archivos relevantes:**

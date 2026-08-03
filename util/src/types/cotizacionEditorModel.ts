@@ -30,9 +30,15 @@ export type MaestroMoneda = components['schemas']['Moneda-componente.item.read']
     '@id'?: string;
 };
 
-export type Proveedor = components['schemas']['Proveedor-proveedor.read'] & {
+/**
+ * El schema autogenerado declara `proveedorImagenes` como `string[]` (IRIs),
+ * pero el grupo de lectura serializa los objetos completos. Se corrige aquí para
+ * que el snapshot de imágenes del proveedor no tenga que pasar por un cast.
+ */
+export type Proveedor = Omit<components['schemas']['Proveedor-proveedor.read'], 'proveedorImagenes'> & {
     id: string;
     '@id'?: string;
+    proveedorImagenes?: ImagenProveedorSnapshot[];
 };
 
 export type Servicio = components['schemas']['Servicio-servicio.item.read'] & {
@@ -74,10 +80,24 @@ export interface PrecioDesdeRango {
     valor: string;
 }
 
+/**
+ * Los campos del `Omit` son los que el schema autogenerado tipa mal (i18n y los
+ * JSON estructurados llegan como `string[]`) o de forma incompleta. Tienen que
+ * ir en el `Omit`, no solo redeclararse debajo: una intersección `string[] & X`
+ * no falla al compilar pero deja un tipo inservible — era justo lo que pasaba
+ * con `preciosDesde` y `clasificacionFinanciera`.
+ */
 export type Cotizacion = Omit<
     components['schemas']['Cotizacion-cotizacion.read_timestamp.read'],
-    'file' | 'cotservicios' | 'resumen'
+    'file' | 'cotservicios' | 'resumen' | 'titulo' | 'preciosDesde'
+    | 'clasificacionFinanciera' | 'clasificacionFinancieraCliente' | 'imagenPortada'
 > & {
+    /**
+     * Override editorial de la portada del tour: el snapshot de la imagen elegida
+     * a mano (espejo de `Cotizacion::$imagenPortada`, columna json). `null` = se
+     * deriva sola del itinerario. El schema la declara `string[]`.
+     */
+    imagenPortada?: ImagenSnapshot | null;
     idiomaEdicion: string;
     titulo?: I18nContent[];
     file?: { id?: string; '@id'?: string; createdAt?: string; updatedAt?: string; } | string | null;
@@ -227,7 +247,27 @@ export type CotizacionFileExtended = Omit<CotizacionFileBase, 'cotizaciones'> & 
     cotizaciones?: Cotizacion[];
 };
 
-export type Segmento = components['schemas']['Segmento-segmento.item.read'];
+/** Nota del maestro de segmento (la del snapshot es `NotaSnapshot`). */
+export interface NotaMaestra {
+    nombreInterno?: string;
+    tipo?: string;
+    titulo?: I18nContent[];
+    contenido?: I18nContent[];
+}
+
+/**
+ * Maestro de segmento. `titulo`, `contenido` y los textos de `notas` son i18n:
+ * el schema autogenerado los declara `string[]` pero llegan objetos
+ * `{language, content}` (ver el aviso de §2 en docs/Cotizaciones.md).
+ */
+export type Segmento = Omit<
+    components['schemas']['Segmento-segmento.item.read'],
+    'titulo' | 'contenido' | 'notas'
+> & {
+    titulo?: I18nContent[];
+    contenido?: I18nContent[];
+    notas?: NotaMaestra[];
+};
 export type TarifaBase = components['schemas']['Tarifa-componente.item.read'];
 
 export type ComponenteCatalogo = Componente | ComponentePlaceholder;
@@ -283,6 +323,20 @@ export type CotSegmento = Omit<
     notasSnapshot?: NotaSnapshot[];
     '@id'?: string;
 };
+
+/**
+ * Identidad mínima de cualquier recurso de API Platform: la IRI (`@id`) y/o el
+ * `id`. Es lo único que hace falta para resolver identificadores, y evita tener
+ * que castear a `any` cada vez que se compara un maestro con su snapshot.
+ *
+ * `tarifaId` va aquí porque las tarifas locales del editor arrastran el id del
+ * maestro en esa clave (ver `Tarifa`), y `extractIdStr()` la contempla.
+ */
+export interface RecursoHydra {
+    id?: string | null;
+    '@id'?: string;
+    tarifaId?: string | null;
+}
 
 export interface ComponenteTipo {
     id: string;
@@ -463,6 +517,17 @@ export const etiquetaGrupoTarifa = (
 };
 
 export type NivelInspector = 'resumen' | 'servicio' | 'componente' | 'tarifa';
+
+/**
+ * Nodo del árbol que el inspector tiene abierto. Cuál de los cuatro es lo dice
+ * `inspectorActivo`: el store asigna nivel y nodo SIEMPRE juntos (ver
+ * `abrirNivel()`), así que el nivel es un discriminante fiable.
+ *
+ * Para leerlo con tipos usa los accesores del store (`servicioActivo`,
+ * `componenteActivo`, `tarifaActiva`), que devuelven null si el inspector está
+ * en otro nivel, en vez de tocar `dataActiva` a pelo.
+ */
+export type NodoInspector = Cotizacion | CotServicio | ComponenteCompleto | TarifaSnapshot;
 
 export type ModoFinanciero = 'incluido' | 'no_incluido' | 'cortesia';
 

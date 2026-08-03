@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "vue-tsc --noEmit",
     "build": "vite build && node scripts/pwa-postbuild.mjs",
     "preview": "vite preview"
   },

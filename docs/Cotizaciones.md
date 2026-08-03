@@ -60,6 +60,24 @@ Los textos multi-idioma son `I18nContent[]` = `[{ language, content }]`.
 - util: `store.getI18nText(arr, lang)` (con fallback).
 - pax: `store.traducir(arr)` (fallback idioma actual → en → es → primero).
 
+> ⚠️ **`util/src/types/api.d.ts` miente en los i18n.** El schema autogenerado
+> declara `titulo`/`contenido`/`descripcion` como `string[]`, pero el backend
+> serializa objetos `{language, content}`: son `I18nContent[]`. Lo mismo con
+> `Proveedor.proveedorImagenes`, declarado `string[]` (IRIs) cuando el grupo de
+> lectura manda los objetos completos.
+>
+> **No lo arregles con `as any`** (era lo que había): corrige el tipo con `Omit<…>`
+> donde se consume — ya hecho en `Proveedor`, `Segmento` y `Cotizacion`
+> (`cotizacionEditorModel.ts`). Al regenerar `api.d.ts` estas correcciones siguen
+> haciendo falta: el generador no las va a inferir.
+>
+> ⚠️ **El campo corregido TIENE que ir en el `Omit`**, no basta con redeclararlo
+> debajo. `Schema & { preciosDesde: PrecioDesdeRango[] }` cuando el schema ya
+> declara `preciosDesde?: string[]` da la intersección `string[] & PrecioDesdeRango[]`:
+> **no falla al compilar** y deja un tipo inservible, así que el error aparece
+> lejos, al usar el campo. Le pasaba a `titulo`, `preciosDesde`,
+> `clasificacionFinanciera` y `clasificacionFinancieraCliente` de `Cotizacion`.
+
 ---
 
 ## 3. Tarifas (`CotizacionCottarifa` / `TarifaSnapshot`)
@@ -267,13 +285,52 @@ el "Num Pax (Base)" sí es el tamaño real que se vende y el total es una cifra 
 
 | Vista | Archivo | Fuente de datos |
 |---|---|---|
-| Editor principal (árbol, tarifas, ítems, upgrades) | `util/.../CotizacionEditorView.vue` | `store.dataActiva`, `store.gruposUpgrade` |
+| Editor principal (árbol, tarifas, ítems, upgrades) | `util/.../CotizacionEditorView.vue` | `store.servicioActivo` / `componenteActivo` / `tarifaActiva`, `store.gruposUpgrade` |
 | Reporte financiero interno ("Incluye/No incluye", upgrades) | `util/.../components/cotizacion/ResumenClasificacion.vue` | `store.resumenFinanciero`, `store.gruposUpgrade` |
 | Vista cliente ("Tu itinerario", "Opciones alternativas") | `pax/.../views/cotizacion/PaxCotizacionGuiaView.vue` | `store.inclusiones`, `store.gruposUpgrade` (de `clasificacionFinancieraCliente`) |
 | Dashboard catálogos (listado, tours por segmento, precio **por rango**) | `util/.../Cotizaciones/CatalogoDashboard.vue` | `cotizacion_catalogos` + `tour.preciosDesde` (sin total de grupo; ver §6.b) |
 | Detalle de expediente (grupo real: manifiesto, versiones, **total vendible**) | `util/.../Cotizaciones/FileDetalle.vue` | `cotizacion_files` + `cot.totalVenta`/`ganancia` (ver §6.b) |
 
 En las 3 tarjetas internas de alternativa se muestra **`Componente · Tarifa`** (nombre interno del maestro + nombre interno de tarifa) y la línea **"Reemplaza"** con la estándar espejo. En pax se muestran solo datos públicos.
+
+### El inspector y `dataActiva`: un ref, cuatro tipos
+
+El panel derecho del editor edita **un nodo del árbol**, y de cuál se trata depende
+del nivel abierto: `dataActiva` es una `Cotizacion`, un `CotServicio`, un
+`ComponenteCompleto` o una `TarifaSnapshot` (tipo `NodoInspector`).
+
+**El discriminante es `inspectorActivo`**, y es fiable porque `abrirNivel()`
+asigna nivel y nodo **siempre juntos** (hay un comentario en el store explicando
+por qué: si se separan, el render intermedio revienta en los `findIndex` de la
+cabecera).
+
+Sobre esa invariante se apoyan los tres accesores del store, que son **la única
+forma correcta de leer el nodo**:
+
+| Accesor | Devuelve | Null cuando |
+|---|---|---|
+| `store.servicioActivo` | `CotServicio` | el inspector no está en 'servicio' |
+| `store.componenteActivo` | `ComponenteCompleto` | el inspector no está en 'componente' |
+| `store.tarifaActiva` | `TarifaSnapshot` | el inspector no está en 'tarifa' |
+
+Reglas al tocar esta zona:
+
+- **No leas `dataActiva` directamente.** Fue `any` durante mucho tiempo y eso
+  dejaba escribir campos de un tipo sobre un nodo de otro sin ningún aviso: así
+  se coló durante meses una cabecera que pintaba `tarifaActiva.nombreSnapshot`,
+  campo que no existe en `TarifaSnapshot` (es `tituloSnapshot`), y que por tanto
+  salía **siempre vacía**.
+- **Cada bloque del template cuelga de su accesor** (`v-if="store.servicioActivo"`,
+  no `v-if="store.inspectorActivo === 'servicio'"`): además de elegir el nivel,
+  garantiza el nodo y deja que `vue-tsc` estreche el subárbol entero.
+- ⚠️ **`vue-tsc` NO estrecha dentro de handlers inline ni de callbacks**
+  (`@input="e => …"`, `findIndex(s => … store.servicioActivo.id)`), aunque el
+  bloque cuelgue del `v-if`. Ahí hay que repetir el guard en la propia expresión
+  o usar `?.`. No es un fallo del código: es el límite del chequeo de plantillas.
+- **En funciones `async` el nodo se captura al entrar**, no se relee después de
+  cada `await`. Si el usuario navega a otro nodo con un fetch en vuelo, la
+  escritura cae sobre el nodo que estaba abierto al lanzar la acción — mismo
+  criterio que el contador `navGen` que ya cortaba las hidrataciones tardías.
 
 ---
 

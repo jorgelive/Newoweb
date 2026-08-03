@@ -7,7 +7,19 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
+import type {
+    CalendarOptions,
+    DatesSetArg,
+    EventClickArg,
+    EventDropArg,
+    EventMountArg,
+    EventSourceFuncArg,
+    EventInput,
+} from '@fullcalendar/core';
+import type { DateClickArg, EventResizeDoneArg } from '@fullcalendar/interaction';
+import type { ResourceFuncArg, ResourceInput } from '@fullcalendar/resource';
 import tippy from 'tippy.js';
+import type { ReferenceElement } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import '@/assets/fullcalendar-overrides.css';
 import { apiClient, getUrls } from '@/services/apiClient';
@@ -17,12 +29,19 @@ import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import {
     abrirWhatsapp,
     fechaAInputLocal,
+    pmsUnidadIri,
     PMS_CHANNEL,
     PMS_ESTADO,
     type PmsEventoExtendedProps,
     type PmsReservaBusquedaItem,
 } from '@/types/pmsReservaModel';
-import { fromDateLocal, sumarDias } from '@/types/pmsTarifaModel';
+import { fromDateLocal, sumarDias, type PmsTarifaExtendedProps } from '@/types/pmsTarifaModel';
+import {
+    coleccionFeed,
+    comoError,
+    type CalendarEventoFeed,
+    type CalendarRecursoFeed,
+} from '@/types/calendarFeedModel';
 import { telefonoParaWhatsapp } from '@/utils/telefono';
 
 // El backend expone `hasWhatsappLinkContent()` pero el serializer de Symfony
@@ -71,9 +90,9 @@ function fcFechaGuardada(): string | undefined {
 }
 
 function onCambiarCalendario(): void {
-    // any: refetchResources() lo agrega @fullcalendar/resource vía plugin,
-    // no está en el tipo base CalendarApi de @fullcalendar/core.
-    const api = calendarApiRef.value?.getApi() as any;
+    // `refetchResources()` lo aporta @fullcalendar/resource, que amplía CalendarApi
+    // vía `declare module`: está tipado mientras el plugin se importe en el archivo.
+    const api = calendarApiRef.value?.getApi();
     if (!api) return;
     api.refetchResources();
     api.refetchEvents();
@@ -353,8 +372,10 @@ function limpiarMenuReserva(): void {
     menuReserva.value = { localizador: null, channelId: null, urlCanalExtranet: null, telefono: null };
 }
 
-async function onEventClick(info: any): Promise<void> {
+async function onEventClick(info: EventClickArg): Promise<void> {
     const { x, y } = posicionMenu(info.jsEvent);
+    // `extendedProps` es un diccionario abierto en FullCalendar: el contrato real
+    // lo fija PmsEventosSpaCalendarProvider::buildContext() en el backend.
     const eventProps = info.event.extendedProps as PmsEventoExtendedProps;
     menu.value = { x, y, kind: 'event', eventProps };
     limpiarMenuReserva();
@@ -394,8 +415,8 @@ async function cargarTarifaDelDia(unidadId: string, fecha: string): Promise<void
         const r = await apiClient.get('/fullcalendar/load/event/tarifa_rangos_compactados_spa', {
             params: { start: fecha, end: sumarDias(fecha, 1), _t: Date.now() },
         });
-        const eventos: any[] = Array.isArray(r.data) ? r.data : (r.data?.data ?? []);
-        const tramo = eventos.find((e) => String(e?.resourceId) === String(unidadId));
+        const eventos = coleccionFeed<CalendarEventoFeed<PmsTarifaExtendedProps>>(r.data);
+        const tramo = eventos.find((e) => String(e.resourceId) === String(unidadId));
         const props = tramo?.extendedProps;
 
         // Descartar si el usuario ya cerró o movió el menú mientras se resolvía.
@@ -420,7 +441,9 @@ function irATarifas(): void {
     router.push({ path: '/tarifas', query: fecha ? { fecha } : {} });
 }
 
-function onDateClick(info: any): void {
+function onDateClick(info: DateClickArg): void {
+    // `resource` lo agrega @fullcalendar/resource sobre DatePointApi: solo llega
+    // en las vistas de recursos (timeline), de ahí el opcional.
     const resourceId = info.resource?.id;
     if (!resourceId) return;
     const { x, y } = posicionMenu(info.jsEvent);
@@ -524,7 +547,7 @@ async function elegirEnviarWhatsapp(templateId: string): Promise<void> {
 function onGuardado(payload?: { reservaIdCreada?: string }): void {
     reservasStore.clearActivo();
 
-    const api = calendarApiRef.value?.getApi() as any;
+    const api = calendarApiRef.value?.getApi();
     api?.refetchEvents();
     api?.refetchResources();
 
@@ -548,13 +571,18 @@ function onGuardado(payload?: { reservaIdCreada?: string }): void {
 // ============================================================================
 const dragError = ref<string | null>(null);
 
-async function onEventDrop(info: any): Promise<void> {
+async function onEventDrop(info: EventDropArg): Promise<void> {
     const extendedProps = info.event.extendedProps as PmsEventoExtendedProps;
+    // `start`/`end` son `Date | null` en el tipo; un evento que se acaba de arrastrar
+    // siempre los tiene, pero si faltasen no hay nada que guardar.
+    if (!info.event.start || !info.event.end) return;
+
     try {
         await reservasStore.patchEvento(extendedProps.eventoId, {
             inicio: info.event.start.toISOString(),
             fin: info.event.end.toISOString(),
-            pmsUnidad: info.newResource ? `/platform/pms/pms_unidads/${info.newResource.id}` : undefined,
+            // `newResource` solo viene si el arrastre cambió de fila (de casita).
+            pmsUnidad: info.newResource ? pmsUnidadIri(info.newResource.id) : undefined,
         });
         dragError.value = null;
     } catch (err) {
@@ -564,8 +592,10 @@ async function onEventDrop(info: any): Promise<void> {
     }
 }
 
-async function onEventResize(info: any): Promise<void> {
+async function onEventResize(info: EventResizeDoneArg): Promise<void> {
     const extendedProps = info.event.extendedProps as PmsEventoExtendedProps;
+    if (!info.event.start || !info.event.end) return;
+
     try {
         await reservasStore.patchEvento(extendedProps.eventoId, {
             inicio: info.event.start.toISOString(),
@@ -582,10 +612,7 @@ async function onEventResize(info: any): Promise<void> {
 // ============================================================================
 // FULLCALENDAR OPTIONS
 // ============================================================================
-// any: @fullcalendar/vue3 y @fullcalendar/core resuelven CalendarOptions/LocaleInput
-// como tipos estructuralmente distintos (dos "chunks" internos separados); es una
-// fricción conocida del paquete, no un error de lógica en estas opciones.
-const calendarOptions: any = {
+const calendarOptions: CalendarOptions = {
     plugins: [resourceTimelinePlugin, dayGridPlugin, listPlugin, interactionPlugin],
     schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
     locale: esLocale,
@@ -604,8 +631,9 @@ const calendarOptions: any = {
      * Marcarlas `editable: false` aquí evita el arrastre en falso — el usuario ni siquiera ve
      * el cursor de "mover" — en vez de dejarle soltar y revertir con un error.
      */
-    eventDataTransform: (evento: any) => {
-        if (evento?.extendedProps?.isOta) {
+    eventDataTransform: (evento: EventInput): EventInput => {
+        const props = evento.extendedProps as PmsEventoExtendedProps | undefined;
+        if (props?.isOta) {
             evento.editable = false;
             evento.startEditable = false;
             evento.durationEditable = false;
@@ -614,7 +642,7 @@ const calendarOptions: any = {
     },
 
     // Red de seguridad por si algún evento llega sin `isOta` resuelto en el transform.
-    eventAllow: (_dropInfo: any, evento: any) => !evento?.extendedProps?.isOta,
+    eventAllow: (_span, evento) => !(evento?.extendedProps as PmsEventoExtendedProps | undefined)?.isOta,
     refetchResourcesOnNavigate: true,
     resourceOrder: 'orden',
     eventOrder: '-prioridadImportante,-duration,start',
@@ -630,12 +658,12 @@ const calendarOptions: any = {
         right: 'resourceTimelineOneMonth,resourceTimelineOneWeek,listMonth',
     },
 
-    datesSet: (info: any) => {
-        const titulo = String(info.view?.title || '');
+    datesSet: (info: DatesSetArg) => {
+        const titulo = String(info.view.title || '');
         calendarTitulo.value = titulo ? titulo.charAt(0).toUpperCase() + titulo.slice(1) : '';
 
         // Persistencia de fecha/vista (ver fcVistaGuardada/fcFechaGuardada arriba).
-        const fechaRef: Date | undefined = info.view?.currentStart || info.start;
+        const fechaRef: Date | undefined = info.view.currentStart || info.start;
         if (fechaRef) {
             localStorage.setItem(`${FC_STORAGE_KEY}_date`, fechaRef.toISOString().slice(0, 10));
         }
@@ -671,20 +699,28 @@ const calendarOptions: any = {
         },
     },
 
-    resources: (fetchInfo: any, success: (r: unknown[]) => void, failure: (e: unknown) => void) => {
+    resources: (
+        fetchInfo: ResourceFuncArg,
+        success: (recursos: ResourceInput[]) => void,
+        failure: (error: Error) => void,
+    ) => {
         apiClient.get(`/fullcalendar/load/resource/${calendarioActual.value.key}`, {
             params: { start: fetchInfo.startStr, end: fetchInfo.endStr, _t: Date.now() },
         })
-            .then((r) => success(Array.isArray(r.data) ? r.data : (r.data?.data ?? [])))
-            .catch(failure);
+            .then((r) => success(coleccionFeed<CalendarRecursoFeed>(r.data)))
+            .catch((err: unknown) => failure(comoError(err)));
     },
 
-    events: (fetchInfo: any, success: (e: unknown[]) => void, failure: (e: unknown) => void) => {
+    events: (
+        fetchInfo: EventSourceFuncArg,
+        success: (eventos: EventInput[]) => void,
+        failure: (error: Error) => void,
+    ) => {
         apiClient.get(`/fullcalendar/load/event/${calendarioActual.value.key}`, {
             params: { start: fetchInfo.startStr, end: fetchInfo.endStr, _t: Date.now() },
         })
-            .then((r) => success(Array.isArray(r.data) ? r.data : (r.data?.data ?? [])))
-            .catch(failure);
+            .then((r) => success(coleccionFeed<CalendarEventoFeed<PmsEventoExtendedProps>>(r.data)))
+            .catch((err: unknown) => failure(comoError(err)));
     },
 
     dateClick: onDateClick,
@@ -693,10 +729,15 @@ const calendarOptions: any = {
     eventDrop: onEventDrop,
     eventResize: onEventResize,
 
-    eventDidMount: (info: any) => {
-        const tooltipContent = info.event.extendedProps.tooltip;
+    eventDidMount: (info: EventMountArg) => {
+        // El provider manda `tooltip` como string o como lista de líneas.
+        const tooltipContent = info.event.extendedProps.tooltip as string | string[] | undefined;
         const finalContent = Array.isArray(tooltipContent) ? tooltipContent.join('<br>') : (tooltipContent || info.event.title);
-        if (info.el._tippy) info.el._tippy.destroy();
+
+        // `_tippy` lo cuelga tippy del propio elemento (ver ReferenceElement en sus
+        // tipos); se destruye antes para no apilar instancias en cada re-render.
+        const el = info.el as ReferenceElement;
+        el._tippy?.destroy();
         tippy(info.el, { content: finalContent, allowHTML: true, appendTo: document.body, placement: 'top' });
         info.el.style.cursor = 'pointer';
     },

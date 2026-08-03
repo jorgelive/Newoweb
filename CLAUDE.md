@@ -74,3 +74,26 @@ requiere doc, dilo en una línea y sigue.
 - Los comentarios explican **por qué**, no qué hace la línea siguiente.
 - Reglas de negocio compartidas: una sola fuente de verdad (método en la entidad), y el
   espejo TS documentado como espejo en ambos lados.
+
+### TypeScript: nada de `any`
+
+**El código nuevo va tipado, siempre.** `any` apaga el compilador justo donde más falta
+hace: un campo renombrado en la API o un callback con otra firma dejan de dar error y
+revientan en producción. No se escribe `any` ni se deja el que ya había al tocar un archivo.
+
+Qué usar en su lugar:
+
+- **Tipos de la librería.** Casi siempre existen y están exportados. FullCalendar, por
+  ejemplo, exporta `CalendarOptions`, `EventClickArg`, `DatesSetArg`, `EventMountArg`…, y
+  `@fullcalendar/resource` amplía `CalendarApi` con `refetchResources()` vía `declare
+  module`: basta importar el plugin para que quede tipado, sin castear a `any`.
+- **Respuestas de la API**: una interfaz que sea espejo del DTO/serializer del backend,
+  citándolo en el comentario (ej. `util/src/types/calendarFeedModel.ts` ↔
+  `src/Calendar/Dto/CalendarEventDto.php`).
+- **`unknown` + estrechamiento** cuando el dato es de verdad desconocido (un `catch`, por
+  ejemplo). `unknown` obliga a comprobar; `any` deja pasar cualquier cosa.
+- **Un cast puntual y comentado** (`x as Tipo`) cuando la librería expone un diccionario
+  abierto y el contrato lo fija el backend: el caso de `event.extendedProps`. El cast se
+  acota a esa línea y el comentario dice quién garantiza la forma.
+
+Verificación: `cd util && npx vue-tsc --noEmit` (idem en `pax/`). Sin errores, siempre.

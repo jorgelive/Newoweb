@@ -5,10 +5,30 @@ import FullCalendar from '@fullcalendar/vue3';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
+import type {
+    CalendarOptions,
+    DateSelectArg,
+    DatesSetArg,
+    EventClickArg,
+    EventContentArg,
+    EventDropArg,
+    EventMountArg,
+    EventSourceFuncArg,
+    EventInput,
+} from '@fullcalendar/core';
+import type { DateClickArg, EventResizeDoneArg } from '@fullcalendar/interaction';
+import type { ResourceFuncArg, ResourceInput } from '@fullcalendar/resource';
 import tippy from 'tippy.js';
+import type { ReferenceElement } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import '@/assets/fullcalendar-overrides.css';
 import { apiClient } from '@/services/apiClient';
+import {
+    coleccionFeed,
+    comoError,
+    type CalendarEventoFeed,
+    type CalendarRecursoFeed,
+} from '@/types/calendarFeedModel';
 import { extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useTarifasStore } from '@/stores/tarifas/tarifasStore';
 import TarifaEditDrawer from '@/components/tarifas/TarifaEditDrawer.vue';
@@ -17,6 +37,7 @@ import {
     PMS_TARIFA_CALENDARIOS,
     fromDateLocal,
     colorCasita,
+    pmsUnidadIri,
     type PmsTarifaExtendedProps,
 } from '@/types/pmsTarifaModel';
 
@@ -38,9 +59,9 @@ const calendarApiRef = shallowRef<InstanceType<typeof FullCalendar> | null>(null
 const calendarTitulo = ref('');
 
 function refrescarCalendario(): void {
-    // any: refetchResources() lo agrega @fullcalendar/resource vía plugin,
-    // no está en el tipo base CalendarApi de @fullcalendar/core.
-    const api = calendarApiRef.value?.getApi() as any;
+    // `refetchResources()` lo aporta @fullcalendar/resource, que amplía CalendarApi
+    // vía `declare module`: está tipado mientras el plugin se importe en el archivo.
+    const api = calendarApiRef.value?.getApi();
     if (!api) return;
     api.refetchResources();
     api.refetchEvents();
@@ -75,22 +96,24 @@ function fcFechaGuardada(): string | undefined {
 // ============================================================================
 const ordenPorUnidad = new Map<string, number>();
 
-function recordarOrden(recursos: any[]): any[] {
+function recordarOrden(recursos: CalendarRecursoFeed[]): CalendarRecursoFeed[] {
     for (const r of recursos) {
-        if (r?.id !== undefined && typeof r?.orden === 'number') {
+        if (typeof r.orden === 'number') {
             ordenPorUnidad.set(String(r.id), r.orden);
         }
     }
     return recursos;
 }
 
-function pintarPorCasita(eventos: any[]): any[] {
+type TarifaEventoFeed = CalendarEventoFeed<PmsTarifaExtendedProps>;
+
+function pintarPorCasita(eventos: TarifaEventoFeed[]): TarifaEventoFeed[] {
     return eventos.map((ev) => {
         // El provider solo fija color para los rangos INACTIVOS (gris): ese
         // color sí es semántico y no se pisa.
-        if (ev?.backgroundColor) return ev;
+        if (ev.backgroundColor) return ev;
 
-        const unidadId = String(ev?.resourceId ?? '');
+        const unidadId = String(ev.resourceId ?? '');
         const color = colorCasita(unidadId, ordenPorUnidad.get(unidadId));
         return { ...ev, backgroundColor: color.bg, borderColor: color.border };
     });
@@ -229,7 +252,9 @@ onBeforeRouteLeave(() => {
     }
 });
 
-function onEventClick(info: any): void {
+function onEventClick(info: EventClickArg): void {
+    // `extendedProps` es un diccionario abierto en FullCalendar: el contrato real
+    // lo fijan los providers *_spa de tarifas en el backend.
     const props = info.event.extendedProps as PmsTarifaExtendedProps;
     if (!props?.tarifaRangoId) return;
     const { x, y } = posicionMenu(info.jsEvent);
@@ -246,7 +271,9 @@ function onEventClick(info: any): void {
     };
 }
 
-function onDateClick(info: any): void {
+function onDateClick(info: DateClickArg): void {
+    // `resource` lo agrega @fullcalendar/resource sobre DatePointApi: solo llega
+    // en las vistas de recursos (timeline), de ahí el opcional.
     const resourceId = info.resource?.id;
     if (!resourceId) return;
     const { x, y } = posicionMenu(info.jsEvent);
@@ -258,7 +285,7 @@ function onDateClick(info: any): void {
  * marcó. `info.end` es EXCLUSIVO en FullCalendar (una celda de un día termina a
  * las 00:00 del día siguiente), por eso se resta 1 ms antes de leer el día.
  */
-function onSelect(info: any): void {
+function onSelect(info: DateSelectArg): void {
     const unidadId = info.resource?.id;
     if (!unidadId) return;
 
@@ -293,9 +320,12 @@ function elegirCrear(): void {
 // se conserva y basta con leer el día local de start/end para reconstruir el
 // rango de fechas real (columnas `date` en la BD).
 // ============================================================================
-async function patchDesdeCalendario(info: any, payloadExtra: Record<string, unknown> = {}): Promise<void> {
+async function patchDesdeCalendario(
+    info: EventDropArg | EventResizeDoneArg,
+    payloadExtra: Record<string, unknown> = {},
+): Promise<void> {
     const props = info.event.extendedProps as PmsTarifaExtendedProps;
-    if (!props?.tarifaRangoId) {
+    if (!props?.tarifaRangoId || !info.event.start || !info.event.end) {
         info.revert();
         return;
     }
@@ -313,15 +343,15 @@ async function patchDesdeCalendario(info: any, payloadExtra: Record<string, unkn
     }
 }
 
-function onEventDrop(info: any): void {
+function onEventDrop(info: EventDropArg): void {
     // Mover a otra fila = cambiar de unidad.
     patchDesdeCalendario(
         info,
-        info.newResource ? { unidad: `/platform/pms/pms_unidads/${info.newResource.id}` } : {},
+        info.newResource ? { unidad: pmsUnidadIri(info.newResource.id) } : {},
     );
 }
 
-function onEventResize(info: any): void {
+function onEventResize(info: EventResizeDoneArg): void {
     patchDesdeCalendario(info);
 }
 
@@ -338,10 +368,7 @@ function escaparHtml(valor: string): string {
 // `computed` (y no un objeto plano como en ReservasView) porque `editable`
 // depende del calendario elegido: los rangos compactados son segmentos
 // calculados y no admiten drag & drop.
-//
-// any: @fullcalendar/vue3 y @fullcalendar/core resuelven CalendarOptions/LocaleInput
-// como tipos estructuralmente distintos; es una fricción conocida del paquete.
-const calendarOptions = computed<any>(() => ({
+const calendarOptions = computed<CalendarOptions>(() => ({
     plugins: [resourceTimelinePlugin, interactionPlugin],
     schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
     locale: esLocale,
@@ -372,11 +399,11 @@ const calendarOptions = computed<any>(() => ({
         right: 'resourceTimelineTwoMonths,resourceTimelineOneMonth',
     },
 
-    datesSet: (info: any) => {
-        const titulo = String(info.view?.title || '');
+    datesSet: (info: DatesSetArg) => {
+        const titulo = String(info.view.title || '');
         calendarTitulo.value = titulo ? titulo.charAt(0).toUpperCase() + titulo.slice(1) : '';
 
-        const fechaRef: Date | undefined = info.view?.currentStart || info.start;
+        const fechaRef: Date | undefined = info.view.currentStart || info.start;
         if (fechaRef) {
             localStorage.setItem(`${FC_STORAGE_KEY}_date`, fechaRef.toISOString().slice(0, 10));
         }
@@ -406,20 +433,28 @@ const calendarOptions = computed<any>(() => ({
         },
     },
 
-    resources: (fetchInfo: any, success: (r: unknown[]) => void, failure: (e: unknown) => void) => {
+    resources: (
+        fetchInfo: ResourceFuncArg,
+        success: (recursos: ResourceInput[]) => void,
+        failure: (error: Error) => void,
+    ) => {
         apiClient.get(`/fullcalendar/load/resource/${calendarioActual.value.key}`, {
             params: { start: fetchInfo.startStr, end: fetchInfo.endStr, _t: Date.now() },
         })
-            .then((r) => success(recordarOrden(Array.isArray(r.data) ? r.data : (r.data?.data ?? []))))
-            .catch(failure);
+            .then((r) => success(recordarOrden(coleccionFeed<CalendarRecursoFeed>(r.data))))
+            .catch((err: unknown) => failure(comoError(err)));
     },
 
-    events: (fetchInfo: any, success: (e: unknown[]) => void, failure: (e: unknown) => void) => {
+    events: (
+        fetchInfo: EventSourceFuncArg,
+        success: (eventos: EventInput[]) => void,
+        failure: (error: Error) => void,
+    ) => {
         apiClient.get(`/fullcalendar/load/event/${calendarioActual.value.key}`, {
             params: { start: fetchInfo.startStr, end: fetchInfo.endStr, _t: Date.now() },
         })
-            .then((r) => success(pintarPorCasita(Array.isArray(r.data) ? r.data : (r.data?.data ?? []))))
-            .catch(failure);
+            .then((r) => success(pintarPorCasita(coleccionFeed<TarifaEventoFeed>(r.data))))
+            .catch((err: unknown) => failure(comoError(err)));
     },
 
     dateClick: onDateClick,
@@ -434,7 +469,7 @@ const calendarOptions = computed<any>(() => ({
      * (etiqueta, estrella de prioritaria, badge de estancia mínima) en vez de
      * una única cadena de texto plano.
      */
-    eventContent: (arg: any) => {
+    eventContent: (arg: EventContentArg) => {
         const p = arg.event.extendedProps as PmsTarifaExtendedProps;
         if (!p?.precio) return { html: `<div class="fc-tarifa">${escaparHtml(arg.event.title)}</div>` };
 
@@ -449,10 +484,15 @@ const calendarOptions = computed<any>(() => ({
         return { html: `<div class="fc-tarifa">${partes.join('')}</div>` };
     },
 
-    eventDidMount: (info: any) => {
-        const tooltipContent = info.event.extendedProps.tooltip;
+    eventDidMount: (info: EventMountArg) => {
+        // El provider manda `tooltip` como string o como lista de líneas.
+        const tooltipContent = info.event.extendedProps.tooltip as string | string[] | undefined;
         const finalContent = Array.isArray(tooltipContent) ? tooltipContent.join('<br>') : (tooltipContent || info.event.title);
-        if (info.el._tippy) info.el._tippy.destroy();
+
+        // `_tippy` lo cuelga tippy del propio elemento (ver ReferenceElement en sus
+        // tipos); se destruye antes para no apilar instancias en cada re-render.
+        const el = info.el as ReferenceElement;
+        el._tippy?.destroy();
         tippy(info.el, { content: finalContent, allowHTML: true, appendTo: document.body, placement: 'top' });
         info.el.style.cursor = 'pointer';
     },

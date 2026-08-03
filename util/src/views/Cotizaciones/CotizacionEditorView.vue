@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
+import { ref, onMounted, computed, watch, onUnmounted, type DirectiveBinding } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
 import { getUrls } from '@/services/apiClient';
@@ -19,7 +19,8 @@ import {
   getEstadoOperativoConfig,
   getProcedenciaUI,
   getTipoNotaUI,
-  getRolTarifaUI, Servicio, TarifaSnapshot, formatRangoEdad,
+  getRolTarifaUI, Servicio, TarifaSnapshot, ImagenSnapshot, formatRangoEdad,
+  CotServicio, CotSegmento, ComponenteCompleto, SnapshotItem, Segmento, OpcionUpgradeInterna, NotaSnapshot,
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE
 } from '@/types/cotizacionEditorModel';
 
@@ -224,14 +225,14 @@ const procesarFechaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') => {
     if (tipo === 'inicio') {
       store.actualizarInicioManteniendoRango(isoString);
     } else {
-      store.dataActiva.fechaHoraFin = isoString;
+      if (store.componenteActivo) store.componenteActivo.fechaHoraFin = isoString;
       store.onComponenteFechasChange(false);
     }
   }
 };
 
 const vStrictMask = {
-  mounted(el: HTMLInputElement, binding: any) {
+  mounted(el: HTMLInputElement, binding: DirectiveBinding<(valor: string) => void>) {
     const mask = IMask(el, {
       mask: 'd/m/Y H:M',
       lazy: false,
@@ -269,14 +270,14 @@ const procesarFechaCortaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') =
     if (tipo === 'inicio') {
       store.actualizarInicioManteniendoRango(isoString);
     } else {
-      store.dataActiva.fechaHoraFin = isoString;
+      if (store.componenteActivo) store.componenteActivo.fechaHoraFin = isoString;
       store.onComponenteFechasChange(false);
     }
   }
 };
 
 const vDateMask = {
-  mounted(el: HTMLInputElement, binding: any) {
+  mounted(el: HTMLInputElement, binding: DirectiveBinding<(valor: string) => void>) {
     const mask = IMask(el, {
       mask: 'd/m/Y',
       lazy: false,
@@ -305,9 +306,13 @@ const idiomasOrdenados = computed(() => {
   );
 });
 
-const cottarifasOrdenadas = computed(() => {
-  if (!store.dataActiva?.cottarifas) return [];
-  return [...store.dataActiva.cottarifas].sort((a: any, b: any) => (a.grupoTarifa ?? Infinity) - (b.grupoTarifa ?? Infinity));
+/** Id del servicio abierto ('' si no hay ninguno): evita el doble `!` en el template. */
+const servicioActivoId = computed<string>(() => store.servicioActivo?.id ?? '');
+
+const cottarifasOrdenadas = computed<TarifaSnapshot[]>(() => {
+  const cottarifas = store.componenteActivo?.cottarifas;
+  if (!cottarifas) return [];
+  return [...cottarifas].sort((a, b) => (a.grupoTarifa ?? Infinity) - (b.grupoTarifa ?? Infinity));
 });
 
 const calcularVentaTarifa = (tarifa: TarifaSnapshot): number => {
@@ -319,11 +324,20 @@ const calcularVentaTarifa = (tarifa: TarifaSnapshot): number => {
   return costoTotal * (1 + comisionPct / 100);
 };
 
+/**
+ * Etiqueta de un maestro en los desplegables. El fallback a `nombre` es
+ * histórico: algunos endpoints antiguos lo devolvían en vez de `nombreInterno`.
+ */
+const etiquetaMaestro = (
+  m: { nombreInterno?: string | null; nombre?: string | null },
+  fallback: string,
+): string => m.nombreInterno || m.nombre || fallback;
+
 const opcionesServicios = computed(() => {
   return store.catalogos.servicios
       .map((s: Servicio) => ({
         value: store.extractIdStr(s.id || s['@id']),
-        label: s.nombreInterno || (s as any).nombre || 'Servicio sin nombre'
+        label: etiquetaMaestro(s, 'Servicio sin nombre')
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
@@ -332,7 +346,7 @@ const opcionesComponentes = computed(() => {
   return store.catalogos.componentes
       .map(c => ({
         value: store.extractIdStr(c),
-        label: c.nombre || (c as any).nombre || 'Insumo sin nombre'
+        label: c.nombre || 'Insumo sin nombre'
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
@@ -360,12 +374,12 @@ const handleNombreProveedorInput = (event: Event) => {
   const val = target.value;
 
   // Actualizamos el modelo
-  if (store.dataActiva) {
-    (store.dataActiva as any).proveedorNombreSnapshot = val;
+  if (store.tarifaActiva) {
+    store.tarifaActiva.proveedorNombreSnapshot = val;
   }
 
   // Ejecutamos la lógica de limpieza
-  if (!val.trim() && !store.dataActiva?.proveedorMaestroId) {
+  if (!val.trim() && !store.tarifaActiva?.proveedorMaestroId) {
     store.limpiarServicioProveedor();
   }
 };
@@ -374,12 +388,12 @@ const opcionesPlantillas = computed(() => {
   return store.catalogos.plantillasItinerario
       .map(p => ({
         value: store.extractIdStr(p),
-        label: p.nombreInterno || (p as any).nombre || 'Plantilla sin nombre'
+        label: etiquetaMaestro(p, 'Plantilla sin nombre')
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
 
-const formatFecha = (fecha?: string) => {
+const formatFecha = (fecha?: string | null) => {
   if (!fecha) return '--';
   return new Date(fecha).toLocaleDateString('es-PE', { weekday: 'long', day: '2-digit', month: 'short', timeZone: 'UTC' });
 };
@@ -402,7 +416,7 @@ const formatMonedaPanel = (monto?: number | string, moneda?: string) => {
   return formatMoneda(num, monedaBase);
 };
 
-const formatRangoServicio = (servicio: any) => {
+const formatRangoServicio = (servicio: CotServicio) => {
   if (!servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return 'Sin logística programada';
 
   let minTimeExact = Infinity;
@@ -417,7 +431,7 @@ const formatRangoServicio = (servicio: any) => {
 
   let tieneHorasValidas = false;
 
-  servicio.cotcomponentes.forEach((c: any) => {
+  servicio.cotcomponentes.forEach((c) => {
     const reqHora = !c.sinHorario;
 
     if (c.fechaHoraInicio) {
@@ -481,38 +495,38 @@ const formatDateOnlyFromISO = (isoString?: string) => {
 
 const plantillaSeleccionada = ref<string | null>(null);
 
-const isComponenteSoloItems = (componente: any) => {
+const isComponenteSoloItems = (componente: ComponenteCompleto) => {
   return !componente.nombreSnapshot || componente.nombreSnapshot.length === 0;
 };
 
-const extractIdStrView = (val: any) => val ? String(val).split('/').pop() : '';
+const extractIdStrView = (val: unknown): string => val ? String(val).split('/').pop() ?? '' : '';
 
-const getNombreMaestroRef = (comp: any) => {
+const getNombreMaestroRef = (comp: ComponenteCompleto | null | undefined): string => {
   if (!comp || !comp.componenteMaestroId) return 'Insumo sin seleccionar';
   const targetId = extractIdStrView(comp.componenteMaestroId);
   if (!targetId) return 'Insumo sin seleccionar';
 
-  const c = store.catalogos.allComponentes.find((cat: any) => extractIdStrView(cat.id) === targetId || extractIdStrView(cat['@id']) === targetId);
+  const c = store.catalogos.allComponentes.find((cat) => store.extractIdStr(cat) === targetId);
 
-  if (c && c.nombre !== 'Sincronizando...') return c.nombre || (c as any).nombre || 'Insumo Genérico';
+  if (c && c.nombre !== 'Sincronizando...') return c.nombre || 'Insumo Genérico';
 
   if (c && c.nombre === 'Sincronizando...') {
-    const snapshotName = store.getI18nText(comp.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es');
+    const snapshotName = store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es');
     return snapshotName ? snapshotName : 'Sincronizando...';
   }
 
   store.fetchComponenteMaestroSilencioso(targetId as string);
 
-  const snapshotName = store.getI18nText(comp.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es');
+  const snapshotName = store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es');
   return snapshotName ? snapshotName : 'Sincronizando...';
 };
 
 // Nombre de tarifa / estándar de una alternativa: interno primero (genérico pero
 // siempre presente), luego el título público.
-const tarifaLabelAlt = (o: any) =>
-    o.tarifaNombreInterno || store.getI18nText(o.tarifaTitulo as any, store.cotizacion?.idiomaEdicion || 'es');
-const estandarLabelAlt = (o: any) =>
-    o.estandarNombreInterno || store.getI18nText(o.estandarTitulo as any, store.cotizacion?.idiomaEdicion || 'es');
+const tarifaLabelAlt = (o: OpcionUpgradeInterna) =>
+    o.tarifaNombreInterno || store.getI18nText(o.tarifaTitulo, store.cotizacion?.idiomaEdicion || 'es');
+const estandarLabelAlt = (o: OpcionUpgradeInterna) =>
+    o.estandarNombreInterno || store.getI18nText(o.estandarTitulo, store.cotizacion?.idiomaEdicion || 'es');
 
 const filtroSegmentos = ref('');
 // ESTADO DEL ACORDEÓN (Móvil) Y EDITORES
@@ -529,16 +543,16 @@ const handleActualizarTextos = async () => {
 
 watch(() => store.isSegmentEditorOpen, (open) => {
   if (open) {
-    activeAccordion.value = store.dataActiva?.cotsegmentos?.length ? 'parrafos' : 'pool';
+    activeAccordion.value = store.servicioActivo?.cotsegmentos?.length ? 'parrafos' : 'pool';
   }
 });
 
 const poolFiltrado = computed(() => {
   if (!filtroSegmentos.value) return store.catalogos.poolSegmentos;
   const q = filtroSegmentos.value.toLowerCase();
-  return store.catalogos.poolSegmentos.filter((seg: any) => {
+  return store.catalogos.poolSegmentos.filter((seg) => {
     const code = (seg.nombreInterno || '').toLowerCase();
-    const title = store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es').toLowerCase();
+    const title = store.getI18nText(seg.titulo, store.cotizacion?.idiomaEdicion || 'es').toLowerCase();
     return code.includes(q) || title.includes(q);
   });
 });
@@ -547,8 +561,9 @@ const poolFiltrado = computed(() => {
 // 🔥 ORDENAMIENTO DE SEGMENTOS AGRUPADOS (Vista Storytelling)
 // ============================================================================
 const segmentosOrdenadosVisualmente = computed(() => {
-  if (!store.dataActiva?.cotsegmentos) return [];
-  return [...store.dataActiva.cotsegmentos].sort((a, b) => {
+  const segmentos = store.servicioActivo?.cotsegmentos;
+  if (!segmentos) return [];
+  return [...segmentos].sort((a, b) => {
     if (a.dia !== b.dia) return a.dia - b.dia;
     return (a.orden || 0) - (b.orden || 0);
   });
@@ -562,11 +577,12 @@ let segDragActivated = false;
 let segPointerStartY = 0;
 
 const reordenarSegmentosVisual = (fromId: string, toId: string) => {
-  if (!store.dataActiva?.id) return;
-  store.reordenarSegmentos(store.dataActiva.id, fromId, toId);
+  const servicioId = store.servicioActivo?.id;
+  if (!servicioId) return;
+  store.reordenarSegmentos(servicioId, fromId, toId);
 };
 
-const onSegmentPointerDown = (e: PointerEvent, seg: any) => {
+const onSegmentPointerDown = (e: PointerEvent, seg: CotSegmento) => {
   segPointerIsDown = true;
   segDragActivated = false;
   segPointerStartY = e.clientY;
@@ -652,16 +668,16 @@ const onDetallePointerUp = () => {
 };
 
 const reordenarSnapshotItems = (fromId: string, toId: string) => {
-  if (!store.dataActiva?.snapshotItems || fromId === toId) return;
-  const items = store.dataActiva.snapshotItems;
-  const fromIdx = items.findIndex((i: any) => i.id === fromId);
-  const toIdx = items.findIndex((i: any) => i.id === toId);
+  const items = store.componenteActivo?.snapshotItems;
+  if (!items || fromId === toId) return;
+  const fromIdx = items.findIndex((i) => i.id === fromId);
+  const toIdx = items.findIndex((i) => i.id === toId);
   if (fromIdx === -1 || toIdx === -1) return;
   const [moved] = items.splice(fromIdx, 1);
   items.splice(toIdx, 0, moved);
 };
 
-const onItemPointerDown = (e: PointerEvent, item: any) => {
+const onItemPointerDown = (e: PointerEvent, item: SnapshotItem) => {
   pointerIsDown = true;
   dragActivated = false;
   pointerStartY = e.clientY;
@@ -712,18 +728,18 @@ const onItemPointerUp = () => {
   if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
 };
 
-const modalInsercion = ref({ isOpen: false, segmentoMaestro: null as any });
-const modalNota = ref({ isOpen: false, nota: null as any });
+const modalInsercion = ref<{ isOpen: boolean; segmentoMaestro: Segmento | null }>({ isOpen: false, segmentoMaestro: null });
+const modalNota = ref<{ isOpen: boolean; nota: NotaSnapshot | null }>({ isOpen: false, nota: null });
 const opcionInsercion = ref<'append'|'insert'|'replace'>('append');
 const targetSegmentoId = ref<string>('');
 const isTotalsDrawerOpen = ref(false);
 
-const abrirModalNota = (nota: any) => {
+const abrirModalNota = (nota: NotaSnapshot) => {
   modalNota.value = { isOpen: true, nota };
 };
 
-const agruparNotasPorTipo = (notas: any[]): Map<string, any[]> => {
-  const mapa = new Map<string, any[]>();
+const agruparNotasPorTipo = (notas: NotaSnapshot[]): Map<string, NotaSnapshot[]> => {
+  const mapa = new Map<string, NotaSnapshot[]>();
   if (!notas || !Array.isArray(notas)) return mapa;
   notas.forEach((nota) => {
     const tipo = nota.tipo || 'OTROS';
@@ -733,15 +749,16 @@ const agruparNotasPorTipo = (notas: any[]): Map<string, any[]> => {
   return mapa;
 };
 
-const prepararInsercion = async (seg: any) => {
-  if (!store.dataActiva?.cotsegmentos?.length) {
+const prepararInsercion = async (seg: Segmento) => {
+  const segmentos = store.servicioActivo?.cotsegmentos;
+  if (!segmentos?.length) {
     await store.procesarInsercionSegmento(seg, plantillaSeleccionada.value, 'append');
     activeAccordion.value = 'parrafos'; // Cambia al acordeón de párrafos
     return;
   }
   modalInsercion.value.segmentoMaestro = seg;
   opcionInsercion.value = 'append';
-  targetSegmentoId.value = store.dataActiva.cotsegmentos[0].id;
+  targetSegmentoId.value = segmentos[0].id;
   modalInsercion.value.isOpen = true;
 };
 
@@ -784,11 +801,12 @@ const onPoolPointerUp = () => {
   setTimeout(() => { tooltipPoolActivo.value = null; }, 1600);
 };
 
-const puedeAplicarPlantilla = computed(() => !store.dataActiva?.cotsegmentos?.length);
+const puedeAplicarPlantilla = computed(() => !store.servicioActivo?.cotsegmentos?.length);
 
 watch(isProveedorOpen, (newVal) => {
-  if (newVal && store.dataActiva?.proveedorMaestroId && store.catalogos.proveedorServicios.length === 0) {
-    store.fetchProveedorServiciosDeProveedor(store.dataActiva.proveedorMaestroId);
+  const proveedorId = store.tarifaActiva?.proveedorMaestroId;
+  if (newVal && proveedorId && store.catalogos.proveedorServicios.length === 0) {
+    store.fetchProveedorServiciosDeProveedor(proveedorId);
   }
 });
 
@@ -810,27 +828,28 @@ const esUrlValida = (raw: string | null | undefined): boolean => {
 };
 
 const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot') => {
-  const valor = store.dataActiva?.[campo];
-  if (valor) store.dataActiva[campo] = normalizarUrl(valor);
+  const tarifa = store.tarifaActiva;
+  const valor = tarifa?.[campo];
+  if (tarifa && valor) tarifa[campo] = normalizarUrl(valor);
 };
 
 // Todas las imágenes de los segmentos del tour, en orden de itinerario
-const imagenesDelTour = computed(() => {
-  const imgs: any[] = [];
-  (store.cotizacion?.cotservicios || []).forEach((s: any) =>
-    (s.cotsegmentos || []).forEach((seg: any) =>
-      ((seg.imagenesSnapshot as any[]) || []).forEach((img: any) => imgs.push(img))));
+const imagenesDelTour = computed<ImagenSnapshot[]>(() => {
+  const imgs: ImagenSnapshot[] = [];
+  (store.cotizacion?.cotservicios || []).forEach((s) =>
+    (s.cotsegmentos || []).forEach((seg) =>
+      (seg.imagenesSnapshot || []).forEach((img) => imgs.push(img))));
   return imgs;
 });
 
-const esPortadaSeleccionada = (img: any): boolean => {
-  const sel = (store.cotizacion as any)?.imagenPortada;
+const esPortadaSeleccionada = (img: ImagenSnapshot): boolean => {
+  const sel = store.cotizacion?.imagenPortada;
   return !!sel && (sel.imageUrl || sel.imageName) === (img.imageUrl || img.imageName);
 };
 
-const seleccionarPortada = (img: any) => {
+const seleccionarPortada = (img: ImagenSnapshot) => {
   if (!store.cotizacion) return;
-  (store.cotizacion as any).imagenPortada = esPortadaSeleccionada(img) ? null : img;
+  store.cotizacion.imagenPortada = esPortadaSeleccionada(img) ? null : img;
 };
 
 const agregarRangoPrecio = () => {
@@ -946,11 +965,11 @@ store.$onAction(({ name, args }) => {
                    @click="store.abrirNivel('servicio', servicio)"
                    class="bg-white border-2 rounded-2xl p-5 shadow-sm transition-all cursor-pointer group relative overflow-hidden"
                    :class="[
-                     store.inspectorActivo === 'servicio' && store.dataActiva?.id === servicio.id ? 'border-[#376875] shadow-md' : 'border-slate-200 hover:border-[#376875]/50',
+                     store.servicioActivo?.id === servicio.id ? 'border-[#376875] shadow-md' : 'border-slate-200 hover:border-[#376875]/50',
                      store.isServicioConAlerta(servicio) ? 'border-red-400 bg-red-50/10' : ''
                    ]">
 
-                <button @click.stop="store.eliminarServicio(servicio.id)" class="absolute right-4 top-4 text-slate-400 hover:text-red-500 transition-colors z-10 bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
+                <button @click.stop="store.eliminarServicio(servicio.id!)" class="absolute right-4 top-4 text-slate-400 hover:text-red-500 transition-colors z-10 bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
                   <i class="fas fa-trash-alt text-sm"></i>
                 </button>
 
@@ -964,22 +983,22 @@ store.$onAction(({ name, args }) => {
                     <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
 
-                      <span v-if="store.getI18nText(servicio.itinerarioNombreSnapshot as any, 'es') !== 'Sin plantilla'">
-                        {{ store.getI18nText(servicio.itinerarioNombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
+                      <span v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
+                        {{ store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}
                       </span>
 
                       <ul v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0" class="flex flex-col gap-0 leading-[1.15] mt-1">
                         <li v-for="seg in [...servicio.cotsegmentos].sort((a, b) => (a.orden || 0) - (b.orden || 0))" :key="seg.id" class="text-[16px] text-slate-800 tracking-tight">
-                          <span v-if="servicio.cotsegmentos.length > 1">- </span>{{ store.getI18nText(seg.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
+                          <span v-if="servicio.cotsegmentos.length > 1">- </span>{{ store.getI18nText(seg.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
                         </li>
                       </ul>
 
                       <span v-else>
-                        {{ store.getI18nText(servicio.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
+                        {{ store.getI18nText(servicio.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
                       </span>
                     </div>
 
-                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot as any, 'es') !== 'Sin plantilla'">
+                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
                       <i class="fas fa-map-signs mr-1"></i> Plantilla Aplicada
                     </p>
                     <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0">
@@ -1108,7 +1127,7 @@ store.$onAction(({ name, args }) => {
               <div v-else class="space-y-2">
                 <div v-for="(rango, idx) in store.cotizacion.preciosDesde" :key="idx"
                      class="bg-white border border-orange-100 rounded-xl p-2.5 flex gap-2 items-center shadow-sm">
-                  <input :value="store.getI18nText(rango.titulo as any, store.cotizacion.idiomaEdicion)"
+                  <input :value="store.getI18nText(rango.titulo, store.cotizacion.idiomaEdicion)"
                          @input="e => store.setI18nText(rango.titulo, store.cotizacion!.idiomaEdicion, (e.target as HTMLInputElement).value)"
                          type="text" placeholder="Perfil (ej: Peruano)"
                          class="flex-1 min-w-0 bg-transparent text-xs font-bold text-slate-700 outline-none border-b border-slate-200 focus:border-orange-400 pb-1">
@@ -1146,7 +1165,7 @@ store.$onAction(({ name, args }) => {
             <div v-if="store.modoCatalogo" class="order-4 shrink-0 bg-teal-50 border border-teal-200 rounded-2xl p-4 shadow-sm">
               <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest mb-1"><i class="fas fa-image mr-1"></i> Portada del Tour</h3>
               <p class="text-[9px] text-teal-500 font-medium mb-3 leading-tight">
-                {{ (store.cotizacion as any).imagenPortada ? 'Portada fija elegida manualmente. Click para volver a automática.' : 'Automática: primera portada del itinerario. Click en una imagen para fijarla.' }}
+                {{ store.cotizacion.imagenPortada ? 'Portada fija elegida manualmente. Click para volver a automática.' : 'Automática: primera portada del itinerario. Click en una imagen para fijarla.' }}
               </p>
               <div v-if="!imagenesDelTour.length" class="text-center py-3 border border-dashed border-teal-200 rounded-xl">
                 <span class="text-[9px] font-black text-teal-300 uppercase tracking-widest">Los segmentos del tour aún no tienen imágenes</span>
@@ -1155,7 +1174,7 @@ store.$onAction(({ name, args }) => {
                 <button v-for="(img, i) in imagenesDelTour" :key="i" @click="seleccionarPortada(img)"
                         class="relative aspect-video rounded-lg overflow-hidden border-2 transition-all"
                         :class="esPortadaSeleccionada(img) ? 'border-teal-500 ring-2 ring-teal-300' : 'border-transparent hover:border-teal-300'">
-                  <img :src="thumbUrl(img.imageUrl, 'travel_thumb_admin')" class="w-full h-full object-cover" loading="lazy">
+                  <img :src="thumbUrl(img.imageUrl, 'travel_thumb_admin')" class="w-full h-full object-cover" loading="lazy" alt="Imagen">
                   <span v-if="img.isPortada" class="absolute top-1 left-1 bg-amber-400 text-white text-[8px] font-black px-1 rounded" title="Portada de su segmento"><i class="fas fa-star"></i></span>
                   <span v-if="esPortadaSeleccionada(img)" class="absolute inset-0 bg-teal-600/30 flex items-center justify-center"><i class="fas fa-check-circle text-white text-lg"></i></span>
                 </button>
@@ -1343,7 +1362,7 @@ store.$onAction(({ name, args }) => {
                   <i class="fas fa-language"></i>
                 </button>
               </div>
-              <input :value="store.getI18nText(store.cotizacion.titulo as any, store.cotizacion.idiomaEdicion)"
+              <input :value="store.getI18nText(store.cotizacion.titulo, store.cotizacion.idiomaEdicion)"
                      @input="e => { if (!store.cotizacion!.titulo) store.cotizacion!.titulo = []; store.setI18nText(store.cotizacion!.titulo, store.cotizacion!.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                      type="text" placeholder="Ej: Cusco — Experiencia Mística"
                      class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
@@ -1361,7 +1380,7 @@ store.$onAction(({ name, args }) => {
                 </button>
               </div>
               <WysiwygEditor
-                  :model-value="store.getI18nText(store.cotizacion?.resumen as any, store.cotizacion?.idiomaEdicion || 'es')"
+                  :model-value="store.getI18nText(store.cotizacion?.resumen, store.cotizacion?.idiomaEdicion || 'es')"
                   @update:model-value="actualizarResumen"
               />
             </div>
@@ -1376,7 +1395,7 @@ store.$onAction(({ name, args }) => {
           store.inspectorActivo === 'resumen' ? 'hidden' : (nivelEditor === 'detalle' ? 'flex' : 'hidden md:flex')
       ]">
 
-        <div v-if="store.inspectorActivo === 'servicio'" class="flex-1 flex flex-col min-h-0">
+        <div v-if="store.servicioActivo" class="flex-1 flex flex-col min-h-0">
           <div class="px-5 py-1 border-b border-emerald-100 flex items-center gap-3 bg-emerald-50 shrink-0">
             <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-emerald-100 text-slate-500 flex items-center justify-center transition-colors shrink-0"><i class="fas fa-arrow-left"></i></button>
 
@@ -1386,21 +1405,21 @@ store.$onAction(({ name, args }) => {
                 Edición de Servicio
               </p>
               <h2 class="text-sm font-black truncate">
-                {{ store.getI18nText(store.dataActiva?.nombrePublicoSnapshot as any, store.cotizacion.idiomaEdicion) || store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}
+                {{ store.getI18nText(store.servicioActivo?.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) || store.getI18nText(store.servicioActivo?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
               </h2>
               <p v-if="store.serviciosOrdenados.length > 1" class="text-[11px] font-bold text-emerald-600/70 mt-0.5">
-                Servicio {{ store.serviciosOrdenados.findIndex(s => s.id === store.dataActiva.id) + 1 }} de {{ store.serviciosOrdenados.length }}
+                Servicio {{ store.serviciosOrdenados.findIndex(s => s.id === store.servicioActivo?.id) + 1 }} de {{ store.serviciosOrdenados.length }}
               </p>
             </div>
 
             <div v-if="store.serviciosOrdenados.length > 1" class="flex flex-col gap-1 shrink-0 self-center">
               <button @click="store.irAServicioAdyacente(-1)"
-                      :disabled="store.serviciosOrdenados.findIndex(s => s.id === store.dataActiva.id) === 0"
+                      :disabled="store.serviciosOrdenados.findIndex(s => s.id === store.servicioActivo?.id) === 0"
                       class="w-9 h-9 rounded-lg bg-white border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
                 <i class="fas fa-chevron-up text-xs"></i>
               </button>
               <button @click="store.irAServicioAdyacente(1)"
-                      :disabled="store.serviciosOrdenados.findIndex(s => s.id === store.dataActiva.id) === store.serviciosOrdenados.length - 1"
+                      :disabled="store.serviciosOrdenados.findIndex(s => s.id === store.servicioActivo?.id) === store.serviciosOrdenados.length - 1"
                       class="w-9 h-9 rounded-lg bg-white border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
                 <i class="fas fa-chevron-down text-xs"></i>
               </button>
@@ -1411,14 +1430,14 @@ store.$onAction(({ name, args }) => {
               <div>
                 <label class="block text-[10px] font-black text-[#E07845] uppercase tracking-widest mb-2"><i class="fas fa-book mr-1"></i> Catálogo Maestro</label>
 
-                <div v-if="store.dataActiva.servicioMaestroId && store.dataActiva.cotcomponentes?.length > 0"
+                <div v-if="store.servicioActivo.servicioMaestroId && (store.servicioActivo.cotcomponentes?.length ?? 0) > 0"
                      class="w-full bg-slate-100 border border-slate-200 text-slate-500 rounded-lg px-3 py-2.5 text-sm font-bold flex justify-between items-center cursor-not-allowed shadow-inner">
-                  <span>{{ store.getI18nText(store.dataActiva.nombreSnapshot as any, store.cotizacion.idiomaEdicion) || 'Servicio Bloqueado' }}</span>
+                  <span>{{ store.getI18nText(store.servicioActivo.nombreSnapshot, store.cotizacion.idiomaEdicion) || 'Servicio Bloqueado' }}</span>
                   <i class="fas fa-lock text-orange-400"></i>
                 </div>
 
                 <SearchableSelect
-                    v-model="store.dataActiva.servicioMaestroId"
+                    v-model="store.servicioActivo.servicioMaestroId"
                     :options="opcionesServicios"
                     placeholder="Buscar servicio..."
                     @change="val => store.onServicioMaestroChange(val)"
@@ -1428,12 +1447,12 @@ store.$onAction(({ name, args }) => {
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
                 <div class="flex gap-2">
-                  <input :value="store.getI18nText(store.dataActiva.nombrePublicoSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
-                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                  <input :value="store.getI18nText(store.servicioActivo.nombrePublicoSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion && store.servicioActivo) store.setI18nText(store.servicioActivo.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
 
-                  <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                  <button @click="store.servicioActivo.sobreescribirTraduccion = !store.servicioActivo.sobreescribirTraduccion"
+                          :class="store.servicioActivo.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
                           class="px-3 border rounded-lg transition-colors shadow-sm" title="Forzar traducción de este título al guardar">
                     <i class="fas fa-language"></i>
                   </button>
@@ -1441,7 +1460,7 @@ store.$onAction(({ name, args }) => {
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="far fa-calendar-alt mr-1"></i> Fecha Ejecución (Milestone)</label>
-                <input v-model="store.dataActiva.fechaInicioAbsoluta" @change="store.onServicioFechaChange" type="date" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
+                <input v-model="store.servicioActivo.fechaInicioAbsoluta" @change="store.onServicioFechaChange" type="date" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
               </div>
             </div>
 
@@ -1449,11 +1468,11 @@ store.$onAction(({ name, args }) => {
               <div class="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest"><i class="fas fa-align-left mr-1"></i> Storytelling</h3>
-                  <p class="text-[10px] text-teal-500 mt-1 font-medium">{{ store.getI18nText(store.dataActiva.itinerarioNombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</p>
+                  <p class="text-[10px] text-teal-500 mt-1 font-medium">{{ store.getI18nText(store.servicioActivo.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
                 </div>
-                <button @click="store.dataActiva.servicioMaestroId && store.abrirEditorSegmentos()"
-                        :disabled="!store.dataActiva.servicioMaestroId"
-                        :class="!store.dataActiva.servicioMaestroId ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' : 'bg-teal-600 hover:bg-teal-700 text-white'"
+                <button @click="store.servicioActivo.servicioMaestroId && store.abrirEditorSegmentos()"
+                        :disabled="!store.servicioActivo.servicioMaestroId"
+                        :class="!store.servicioActivo.servicioMaestroId ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' : 'bg-teal-600 hover:bg-teal-700 text-white'"
                         class="px-3 py-2 rounded-lg text-[10px] font-bold shadow-sm whitespace-nowrap transition-colors">
                   <i class="fas fa-pencil-alt mr-1"></i> Configurar
                 </button>
@@ -1463,11 +1482,11 @@ store.$onAction(({ name, args }) => {
             <div class="border-t border-slate-100 pt-5">
               <h3 class="text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 flex items-center justify-between">
                 <span>Componentes Logísticos</span>
-                <button @click="store.agregarComponente(store.dataActiva.id)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow-sm border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Extra</button>
+                <button @click="store.agregarComponente(servicioActivoId)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow-sm border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Extra</button>
               </h3>
               <div class="space-y-3">
 
-                <div v-for="comp in store.dataActiva.cotcomponentes" :key="comp.id"
+                <div v-for="comp in store.servicioActivo.cotcomponentes" :key="comp.id"
                      @click="store.abrirNivel('componente', comp)"
                      class="bg-white border-2 rounded-xl p-4 shadow-sm cursor-pointer relative group overflow-hidden transition-all flex flex-col min-h-35"
                      :class="[
@@ -1478,7 +1497,7 @@ store.$onAction(({ name, args }) => {
                   <div class="absolute left-0 top-0 bottom-0 w-1.5"
                        :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : (!!comp.sinHorario ? 'bg-slate-300' : 'bg-sky-400')"></div>
 
-                  <button v-if="!store.isComponenteBloqueado(comp)" @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
+                  <button v-if="!store.isComponenteBloqueado(comp)" @click.stop="store.eliminarComponente(servicioActivoId, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
                     <i class="fas fa-trash-alt text-sm"></i>
                   </button>
 
@@ -1546,7 +1565,7 @@ store.$onAction(({ name, args }) => {
     </span>
                       <div v-if="tooltipDetalleActivo === bloque.id"
                            class="absolute z-30 bottom-full left-0 mb-2 w-52 bg-slate-900 text-white text-[10px] font-medium p-2.5 rounded-lg shadow-xl leading-snug">
-                        {{ store.getI18nText(bloque.detalle as any, store.cotizacion.idiomaEdicion) || 'Sin contenido' }}
+                        {{ store.getI18nText(bloque.detalle, store.cotizacion.idiomaEdicion) || 'Sin contenido' }}
                       </div>
                     </div>
                   </div>
@@ -1557,7 +1576,7 @@ store.$onAction(({ name, args }) => {
                       <div class="flex flex-col min-w-0 pr-2">
                         <!-- 🔥 CAMBIO: Renderizar el nombre interno o el título público -->
                         <span class="text-[10px] font-black text-slate-700 uppercase truncate leading-none mb-1">
-                          {{ tarifa.nombreInternoSnapshot || store.getI18nText(tarifa.tituloSnapshot as any, store.cotizacion.idiomaEdicion) || 'Tarifa Manual' }}
+                          {{ tarifa.nombreInternoSnapshot || store.getI18nText(tarifa.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Tarifa Manual' }}
                         </span>
 
                         <span class="text-[9px] font-bold text-slate-400 flex items-center gap-1 leading-none">
@@ -1567,7 +1586,7 @@ store.$onAction(({ name, args }) => {
                       </div>
                       <div class="text-right shrink-0">
                         <span class="text-[11px] font-black" :class="comp.modo === 'no_incluido' ? 'text-slate-400 line-through' : 'text-orange-600'">
-                          {{ formatMoneda(tarifa.montoCosto * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}
+                          {{ formatMoneda(Number(tarifa.montoCosto) * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}
                         </span>
                       </div>
                     </div>
@@ -1585,29 +1604,29 @@ store.$onAction(({ name, args }) => {
           </div>
         </div>
 
-        <div v-else-if="store.inspectorActivo === 'componente'" class="flex-1 flex flex-col min-h-0 bg-sky-50/50">
+        <div v-else-if="store.componenteActivo" class="flex-1 flex flex-col min-h-0 bg-sky-50/50">
           <div class="px-5 py-2 border-b border-sky-200 flex items-center gap-3 bg-sky-600 text-white shrink-0">
             <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-sky-500 flex items-center justify-center transition-colors shrink-0"><i class="fas fa-arrow-left"></i></button>
 
             <div class="flex-1 min-w-0">
               <p class="text-[11px] font-black text-sky-200 uppercase tracking-widest truncate flex items-center gap-1">
                 <i class="fas fa-route"></i>
-                {{ store.getI18nText(store.servicioActualDeComponente?.nombrePublicoSnapshot as any, store.cotizacion.idiomaEdicion) || 'Servicio' }}
+                {{ store.getI18nText(store.servicioActualDeComponente?.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) || 'Servicio' }}
               </p>
-              <h2 class="text-sm font-black truncate">{{ getNombreMaestroRef(store.dataActiva) }}</h2>
+              <h2 class="text-sm font-black truncate">{{ getNombreMaestroRef(store.componenteActivo) }}</h2>
               <p v-if="store.componentesHermanos.length > 1" class="text-[11px] font-bold text-sky-200 mt-0.5">
-                Componente {{ store.componentesHermanos.findIndex(c => c.id === store.dataActiva.id) + 1 }} de {{ store.componentesHermanos.length }}
+                Componente {{ store.componentesHermanos.findIndex(c => c.id === store.componenteActivo?.id) + 1 }} de {{ store.componentesHermanos.length }}
               </p>
             </div>
 
             <div v-if="store.componentesHermanos.length > 1" class="flex flex-col gap-1 shrink-0">
               <button @click="store.irAComponenteAdyacente(-1)"
-                      :disabled="store.componentesHermanos.findIndex(c => c.id === store.dataActiva.id) === 0"
+                      :disabled="store.componentesHermanos.findIndex(c => c.id === store.componenteActivo?.id) === 0"
                       class="w-9 h-9 rounded-lg bg-sky-500/60 hover:bg-sky-400 text-white flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
                 <i class="fas fa-chevron-up text-xs"></i>
               </button>
               <button @click="store.irAComponenteAdyacente(1)"
-                      :disabled="store.componentesHermanos.findIndex(c => c.id === store.dataActiva.id) === store.componentesHermanos.length - 1"
+                      :disabled="store.componentesHermanos.findIndex(c => c.id === store.componenteActivo?.id) === store.componentesHermanos.length - 1"
                       class="w-9 h-9 rounded-lg bg-sky-500/60 hover:bg-sky-400 text-white flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
                 <i class="fas fa-chevron-down text-xs"></i>
               </button>
@@ -1619,8 +1638,8 @@ store.$onAction(({ name, args }) => {
               <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2"><i class="fas fa-box-open mr-1"></i> Insumo Maestro</label>
 
               <SearchableSelect
-                  v-if="!store.isComponenteBloqueado(store.dataActiva)"
-                  v-model="store.dataActiva.componenteMaestroId"
+                  v-if="!store.isComponenteBloqueado(store.componenteActivo)"
+                  v-model="store.componenteActivo.componenteMaestroId"
                   :options="opcionesComponentes"
                   placeholder="Buscar insumo..."
                   @change="val => store.onComponenteMaestroChange(val)"
@@ -1633,7 +1652,7 @@ store.$onAction(({ name, args }) => {
                     </div>
                     <div class="flex flex-col">
                       <span class="text-[9px] font-black text-teal-500 uppercase tracking-widest">Insumo Maestro (Inyectado / Bloqueado)</span>
-                      <span class="text-sm font-black text-teal-900 mt-0.5">{{ getNombreMaestroRef(store.dataActiva) }}</span>
+                      <span class="text-sm font-black text-teal-900 mt-0.5">{{ getNombreMaestroRef(store.componenteActivo) }}</span>
                     </div>
                   </div>
                 </div>
@@ -1644,13 +1663,13 @@ store.$onAction(({ name, args }) => {
               <div class="col-span-2">
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
 
-                <div class="flex gap-2" v-if="!isComponenteSoloItems(store.dataActiva)">
-                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
-                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                <div class="flex gap-2" v-if="!isComponenteSoloItems(store.componenteActivo)">
+                  <input :value="store.getI18nText(store.componenteActivo.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
 
-                  <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                  <button @click="store.componenteActivo.sobreescribirTraduccion = !store.componenteActivo.sobreescribirTraduccion"
+                          :class="store.componenteActivo.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
                           class="px-4 border rounded-xl transition-colors shadow-sm" title="Forzar traducción de este componente">
                     <i class="fas fa-language"></i>
                   </button>
@@ -1668,19 +1687,19 @@ store.$onAction(({ name, args }) => {
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Inicio Exacto *</label>
                   <VueDatePicker
-                      :model-value="store.dataActiva.fechaHoraInicio"
+                      :model-value="store.componenteActivo.fechaHoraInicio"
                       @update:model-value="onInicioChange"
                       :is-24="true"
-                      :enable-time-picker="!store.dataActiva.sinHorario"
-                      :format="!store.dataActiva.sinHorario ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
+                      :enable-time-picker="!store.componenteActivo.sinHorario"
+                      :format="!store.componenteActivo.sinHorario ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
                       model-type="yyyy-MM-dd'T'HH:mm:ss"
                       auto-apply
                   >
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
-                      <input v-if="!store.dataActiva.sinHorario"
+                      <input v-if="!store.componenteActivo.sinHorario"
                              type="text"
                              class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
-                             :value="formatParaMascara(store.dataActiva.fechaHoraInicio)"
+                             :value="formatParaMascara(store.componenteActivo.fechaHoraInicio)"
                              v-strict-mask="(val: string) => procesarFechaMascara(val, 'inicio')"
                              @keydown.enter="onEnter"
                              @keydown.tab="onTab"
@@ -1689,7 +1708,7 @@ store.$onAction(({ name, args }) => {
                       <input v-else
                              type="text"
                              class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
-                             :value="formatFechaCortaParaMascara(store.dataActiva.fechaHoraInicio)"
+                             :value="formatFechaCortaParaMascara(store.componenteActivo.fechaHoraInicio)"
                              v-date-mask="(val: string) => procesarFechaCortaMascara(val, 'inicio')"
                              @keydown.enter="onEnter"
                              @keydown.tab="onTab"
@@ -1703,19 +1722,19 @@ store.$onAction(({ name, args }) => {
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Fin Exacto *</label>
                   <VueDatePicker
                       :key="finPickerKey"
-                      v-model="store.dataActiva.fechaHoraFin"
+                      v-model="store.componenteActivo.fechaHoraFin"
                       @update:model-value="store.onComponenteFechasChange(false)"
                       :is-24="true"
-                      :enable-time-picker="!store.dataActiva.sinHorario"
-                      :format="!store.dataActiva.sinHorario ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
+                      :enable-time-picker="!store.componenteActivo.sinHorario"
+                      :format="!store.componenteActivo.sinHorario ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
                       model-type="yyyy-MM-dd'T'HH:mm:ss"
                       auto-apply
                   >
                     <template #dp-input="{ value, onEnter, onTab, onClear }">
-                      <input v-if="!store.dataActiva.sinHorario"
+                      <input v-if="!store.componenteActivo.sinHorario"
                              type="text"
                              class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
-                             :value="formatParaMascara(store.dataActiva.fechaHoraFin)"
+                             :value="formatParaMascara(store.componenteActivo.fechaHoraFin)"
                              v-strict-mask="(val: string) => procesarFechaMascara(val, 'fin')"
                              @keydown.enter="onEnter"
                              @keydown.tab="onTab"
@@ -1724,7 +1743,7 @@ store.$onAction(({ name, args }) => {
                       <input v-else
                              type="text"
                              class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
-                             :value="formatFechaCortaParaMascara(store.dataActiva.fechaHoraFin)"
+                             :value="formatFechaCortaParaMascara(store.componenteActivo.fechaHoraFin)"
                              v-date-mask="(val: string) => procesarFechaCortaMascara(val, 'fin')"
                              @keydown.enter="onEnter"
                              @keydown.tab="onTab"
@@ -1737,40 +1756,40 @@ store.$onAction(({ name, args }) => {
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Cantidad / Noches</label>
-                <input v-model="store.dataActiva.cantidad" type="number" readonly class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black text-center outline-none shadow-inner cursor-not-allowed">
+                <input v-model="store.componenteActivo.cantidad" type="number" readonly class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black text-center outline-none shadow-inner cursor-not-allowed">
               </div>
 
               <div class="col-span-2 grid grid-cols-1 gap-3">
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo Comercial</label>
                   <div class="relative">
-                    <select v-model="store.dataActiva.modo"
-                            @change="store.onCambioModoComponente(store.dataActiva)"
+                    <select v-model="store.componenteActivo.modo"
+                            @change="store.onCambioModoComponente(store.componenteActivo)"
                             class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
-                            :class="[getModoItemConfig(store.dataActiva.modo).bg, getModoItemConfig(store.dataActiva.modo).text, getModoItemConfig(store.dataActiva.modo).border]">
+                            :class="[getModoItemConfig(store.componenteActivo.modo).bg, getModoItemConfig(store.componenteActivo.modo).text, getModoItemConfig(store.componenteActivo.modo).border]">
                       <option value="incluido">Incluido</option>
                       <option value="no_incluido">No incluido</option>
                       <option value="cortesia">Cortesía</option>
                       <option value="reemplazado">Reemplazado</option>
                     </select>
                     <i class="fas absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs"
-                       :class="[getModoItemConfig(store.dataActiva.modo).icon, getModoItemConfig(store.dataActiva.modo).text]"></i>
+                       :class="[getModoItemConfig(store.componenteActivo.modo).icon, getModoItemConfig(store.componenteActivo.modo).text]"></i>
                   </div>
                 </div>
 
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Estado del Servicio</label>
                   <div class="relative">
-                    <select v-model="store.dataActiva.estado"
+                    <select v-model="store.componenteActivo.estado"
                             class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
-                            :class="[getEstadoComponenteConfig(store.dataActiva.estado).bg, getEstadoComponenteConfig(store.dataActiva.estado).text, getEstadoComponenteConfig(store.dataActiva.estado).border]">
+                            :class="[getEstadoComponenteConfig(store.componenteActivo.estado).bg, getEstadoComponenteConfig(store.componenteActivo.estado).text, getEstadoComponenteConfig(store.componenteActivo.estado).border]">
                       <option value="pendiente">Pendiente</option>
                       <option value="confirmado">Confirmado</option>
                       <option value="reconfirmado">Reconfirmado</option>
                       <option value="cancelado">Cancelado</option>
                     </select>
                     <i class="fas absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs"
-                       :class="[getEstadoComponenteConfig(store.dataActiva.estado).icon, getEstadoComponenteConfig(store.dataActiva.estado).text]"></i>
+                       :class="[getEstadoComponenteConfig(store.componenteActivo.estado).icon, getEstadoComponenteConfig(store.componenteActivo.estado).text]"></i>
                   </div>
                 </div>
               </div>
@@ -1779,14 +1798,14 @@ store.$onAction(({ name, args }) => {
             <div class="border-t border-sky-100 pt-5 mt-4">
               <h3 class="text-[10px] font-black text-sky-700 uppercase tracking-widest mb-3 flex items-center justify-between">
                 <span><i class="fas fa-list-check mr-1"></i> Inclusiones / Upsells</span>
-                <button @click="store.agregarSnapshotItem(store.dataActiva.id)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Ítem</button>
+                <button @click="store.agregarSnapshotItem(store.componenteActivo.id)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Ítem</button>
               </h3>
 
               <div class="space-y-2">
-                <div v-if="!store.dataActiva.snapshotItems?.length" class="text-[10px] font-bold text-slate-400 uppercase text-center py-2 border border-dashed border-slate-200 rounded-lg">
+                <div v-if="!store.componenteActivo.snapshotItems?.length" class="text-[10px] font-bold text-slate-400 uppercase text-center py-2 border border-dashed border-slate-200 rounded-lg">
                   No hay ítems registrados
                 </div>
-                <div v-else v-for="item in store.dataActiva.snapshotItems" :key="item.id"
+                <div v-else v-for="item in store.componenteActivo.snapshotItems" :key="item.id"
                      :data-item-id="item.id"
                      class="flex flex-col gap-1 bg-white p-2.5 rounded-xl border shadow-sm transition-all"
                      :class="[
@@ -1806,10 +1825,10 @@ store.$onAction(({ name, args }) => {
                     </div>
 
                     <input type="checkbox" v-model="item.incluido"
-                           @change="store.toggleUpsellComponent(item, store.dataActiva)"
+                           @change="store.toggleUpsellComponent(item, store.componenteActivo)"
                            class="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
 
-                    <input :value="store.getI18nText(item.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
+                    <input :value="store.getI18nText(item.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
                            @input="e => { if(store.cotizacion) store.setI18nText(item.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                            class="text-xs font-bold text-slate-700 w-full outline-none bg-transparent"
                            :class="(!item.incluido && item.modo === 'no_incluido') ? 'line-through text-slate-400' : (!item.incluido && item.modo === 'opcional') ? 'text-slate-500 italic' : ''"
@@ -1824,7 +1843,7 @@ store.$onAction(({ name, args }) => {
                       <i class="fas fa-language text-sm"></i>
                     </button>
 
-                    <button @click="store.eliminarSnapshotItem(store.dataActiva.id, item.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1">
+                    <button @click="store.eliminarSnapshotItem(store.componenteActivo.id, item.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1">
                       <i class="fas fa-times text-sm"></i>
                     </button>
                   </div>
@@ -1842,12 +1861,12 @@ store.$onAction(({ name, args }) => {
                   <i class="fas fa-clipboard-list"></i> Detalles Operativos
                 </span>
                 <span class="flex items-center gap-2">
-                  <button @click.stop="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                  <button @click.stop="store.componenteActivo.sobreescribirTraduccion = !store.componenteActivo.sobreescribirTraduccion"
+                          :class="store.componenteActivo.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
                           class="px-2 py-1 border rounded-lg transition-colors shadow-sm" title="Forzar traducción de todo el componente al guardar">
                     <i class="fas fa-language text-xs"></i>
                   </button>
-                  <span @click.stop="store.agregarDetalleOperativo(store.dataActiva.id)"
+                  <span @click.stop="store.agregarDetalleOperativo(store.componenteActivo.id)"
                         class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold border border-sky-200 hover:bg-sky-200 transition-colors normal-case tracking-normal cursor-pointer">
                     + Añadir Detalle
                   </span>
@@ -1855,21 +1874,21 @@ store.$onAction(({ name, args }) => {
               </button>
 
               <div v-show="detallesOperativosAbierto" class="space-y-2">
-                <div v-if="!store.dataActiva.detallesOperativos?.length" class="text-[10px] font-bold text-slate-400 uppercase text-center py-2 border border-dashed border-slate-200 rounded-lg">
+                <div v-if="!store.componenteActivo.detallesOperativos?.length" class="text-[10px] font-bold text-slate-400 uppercase text-center py-2 border border-dashed border-slate-200 rounded-lg">
                   Sin detalles operativos
                 </div>
-                <div v-else v-for="bloque in store.dataActiva.detallesOperativos" :key="bloque.id"
+                <div v-else v-for="bloque in store.componenteActivo.detallesOperativos" :key="bloque.id"
                      class="flex gap-2 items-start bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
                   <select v-model="bloque.tipo" class="shrink-0 w-32 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-[10px] font-bold text-slate-600 outline-none">
                     <option value="cliente">Detalles</option>
                     <option value="operativa">Operativa</option>
                   </select>
-                  <textarea :value="store.getI18nText(bloque.detalle as any, store.cotizacion?.idiomaEdicion || 'es')"
+                  <textarea :value="store.getI18nText(bloque.detalle, store.cotizacion?.idiomaEdicion || 'es')"
                             @input="e => { if(store.cotizacion) store.setI18nText(bloque.detalle, store.cotizacion.idiomaEdicion, (e.target as HTMLTextAreaElement).value) }"
                             rows="2"
                             class="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none resize-none"
                             placeholder="Contenido..."></textarea>
-                  <button @click="store.eliminarDetalleOperativo(store.dataActiva.id, bloque.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1 shrink-0">
+                  <button @click="store.eliminarDetalleOperativo(store.componenteActivo.id, bloque.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1 shrink-0">
                     <i class="fas fa-times text-sm"></i>
                   </button>
                 </div>
@@ -1881,17 +1900,17 @@ store.$onAction(({ name, args }) => {
                 <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest">
                   <span>Tarifas / Costos</span>
                 </h3>
-                <span v-if="store.isComponenteConAlerta(store.dataActiva)" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[9px] font-bold border border-red-200">
+                <span v-if="store.isComponenteConAlerta(store.componenteActivo)" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[9px] font-bold border border-red-200">
                     <i class="fas fa-exclamation-circle mr-1"></i> Faltan Pax
                 </span>
-                <button @click="store.agregarTarifa(store.dataActiva.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
+                <button @click="store.agregarTarifa(store.componenteActivo.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
               </div>
               <div class="space-y-3">
                 <div v-for="(tarifa, idx) in cottarifasOrdenadas" :key="tarifa.id || idx" @click="store.abrirNivel('tarifa', tarifa)"
                      class="bg-white border-2 border-orange-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-orange-400 relative group overflow-hidden transition-all">
                   <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="getRolTarifaUI(tarifa.rolSnapshot).bg.replace('bg-', 'bg-').replace('-50','-400')"></div>
 
-                  <button @click.stop="store.eliminarTarifa(store.dataActiva.id, tarifa.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 p-1 bg-slate-50 w-6 h-6 rounded-full flex items-center justify-center">
+                  <button @click.stop="store.eliminarTarifa(store.componenteActivo.id, tarifa.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 p-1 bg-slate-50 w-6 h-6 rounded-full flex items-center justify-center">
                     <i class="fas fa-trash-alt text-xs"></i>
                   </button>
 
@@ -1921,7 +1940,7 @@ store.$onAction(({ name, args }) => {
                       </div>
                     </div>
                     <div class="text-right shrink-0">
-                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(tarifa.montoCosto * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
+                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(Number(tarifa.montoCosto) * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
                       <p class="text-xs font-black text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
                         <i class="fas fa-tag text-[9px]"></i>
                         {{ formatMoneda(calcularVentaTarifa(tarifa), tarifa.moneda) }}
@@ -1948,7 +1967,7 @@ store.$onAction(({ name, args }) => {
 
 
 
-        <div v-else-if="store.inspectorActivo === 'tarifa'" class="flex-1 flex flex-col min-h-0 bg-white">
+        <div v-else-if="store.tarifaActiva" class="flex-1 flex flex-col min-h-0 bg-white">
           <div class="px-5 py-1 border-b border-orange-200 flex items-center gap-3 bg-orange-50 shrink-0 shadow-sm z-10">
             <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-orange-200 text-orange-600 flex items-center justify-center transition-colors shrink-0"><i class="fas fa-arrow-left"></i></button>
 
@@ -1956,20 +1975,20 @@ store.$onAction(({ name, args }) => {
               <p class="text-[11px] font-black text-orange-400 uppercase tracking-widest truncate flex items-center gap-1">
                 <i class="fas fa-box-open"></i> {{ getNombreMaestroRef(store.componenteActualDeTarifa) }}
               </p>
-              <h2 class="text-sm font-black text-slate-800 truncate">{{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</h2>
+              <h2 class="text-sm font-black text-slate-800 truncate">{{ store.getI18nText(store.tarifaActiva?.tituloSnapshot, store.cotizacion.idiomaEdicion) }}</h2>
               <p v-if="store.tarifasHermanas.length > 1" class="text-[11px] font-bold text-slate-400 mt-0.5">
-                Tarifa {{ store.tarifasHermanas.findIndex(t => t.id === store.dataActiva.id) + 1 }} de {{ store.tarifasHermanas.length }}
+                Tarifa {{ store.tarifasHermanas.findIndex(t => t.id === store.tarifaActiva?.id) + 1 }} de {{ store.tarifasHermanas.length }}
               </p>
             </div>
 
             <div v-if="store.tarifasHermanas.length > 1" class="flex flex-col gap-1 shrink-0">
               <button @click="store.irATarifaAdyacente(-1)"
-                      :disabled="store.tarifasHermanas.findIndex(t => t.id === store.dataActiva.id) === 0"
+                      :disabled="store.tarifasHermanas.findIndex(t => t.id === store.tarifaActiva?.id) === 0"
                       class="w-9 h-9 rounded-lg bg-white border border-orange-200 text-orange-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
                 <i class="fas fa-chevron-up text-xs"></i>
               </button>
               <button @click="store.irATarifaAdyacente(1)"
-                      :disabled="store.tarifasHermanas.findIndex(t => t.id === store.dataActiva.id) === store.tarifasHermanas.length - 1"
+                      :disabled="store.tarifasHermanas.findIndex(t => t.id === store.tarifaActiva?.id) === store.tarifasHermanas.length - 1"
                       class="w-9 h-9 rounded-lg bg-white border border-orange-200 text-orange-600 flex items-center justify-center shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all">
                 <i class="fas fa-chevron-down text-xs"></i>
               </button>
@@ -1983,30 +2002,30 @@ store.$onAction(({ name, args }) => {
 
               <div class="flex gap-2 items-center">
                 <SearchableSelect
-                    v-model="store.dataActiva.tarifaMaestraId"
+                    v-model="store.tarifaActiva.tarifaMaestraId"
                     :options="opcionesTarifas"
                     placeholder="Precio manual..."
                     :darkMode="false"
                     @update:model-value="val => store.onTarifaMaestraChange(val)"
                     class="flex-1"
                 />
-                <button v-if="store.dataActiva.tarifaMaestraId"
-                        @click="store.dataActiva.tarifaMaestraId = null"
+                <button v-if="store.tarifaActiva.tarifaMaestraId"
+                        @click="store.tarifaActiva.tarifaMaestraId = null"
                         class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
                         title="Desvincular tarifa maestra">
                   <i class="fas fa-times"></i>
                 </button>
               </div>
 
-              <div v-if="store.dataActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
-                <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t) === store.extractIdStr(store.dataActiva.tarifaMaestraId))]">
+              <div v-if="store.tarifaActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
+                <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t) === store.extractIdStr(store.tarifaActiva?.tarifaMaestraId))]">
               <span v-if="catT" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
-                <span class="mr-1">{{ getProcedenciaUI((catT as any).procedencia).icon }}</span>
-                  {{ getProcedenciaUI((catT as any).procedencia).label }}
+                <span class="mr-1">{{ getProcedenciaUI(catT?.procedencia).icon }}</span>
+                  {{ getProcedenciaUI(catT?.procedencia).label }}
                 </span>
-                  <span v-if="catT && formatRangoEdad((catT as any).edadMinima, (catT as any).edadMaxima)" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
+                  <span v-if="catT && formatRangoEdad(catT?.edadMinima, catT?.edadMaxima)" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
                 <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
-                {{ formatRangoEdad((catT as any).edadMinima, (catT as any).edadMaxima) }}
+                {{ formatRangoEdad(catT?.edadMinima, catT?.edadMaxima) }}
               </span>
                 </template>
               </div>
@@ -2015,15 +2034,15 @@ store.$onAction(({ name, args }) => {
             <div class="grid grid-cols-3 gap-4 items-start">
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">Cant (Pax) *</label>
-                <input v-model="store.dataActiva.cantidad"
+                <input v-model="store.tarifaActiva.cantidad"
                        type="number"
-                       :readonly="store.dataActiva.esGrupal"
-                       :class="store.dataActiva.esGrupal ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' : 'bg-white text-slate-800 border-slate-300 focus:ring-2 focus:ring-orange-500'"
+                       :readonly="store.tarifaActiva.esGrupal"
+                       :class="store.tarifaActiva.esGrupal ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' : 'bg-white text-slate-800 border-slate-300 focus:ring-2 focus:ring-orange-500'"
                        class="w-full rounded-xl px-4 py-2 text-sm font-bold text-center outline-none shadow-sm border">
-                <p v-if="store.dataActiva.esGrupal" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo</p>
+                <p v-if="store.tarifaActiva.esGrupal" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo</p>
 
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1 mt-3">Comisión Propia (%)</label>
-                <input v-model.number="store.dataActiva.comisionOverrideSnapshot" type="number" step="0.1" placeholder="Usa la global"
+                <input v-model.number="store.tarifaActiva.comisionOverrideSnapshot" type="number" step="0.1" placeholder="Usa la global"
                        class="w-full bg-amber-50 border border-amber-300 text-amber-700 rounded-xl px-4 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-amber-500 shadow-sm">
                 <p class="text-[10px] text-slate-600 mt-1 ml-1">Vacío = usa la global.</p>
               </div>
@@ -2032,18 +2051,18 @@ store.$onAction(({ name, args }) => {
                 <div class="flex justify-between items-center">
                   <div>
                     <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5">Moneda</label>
-                    <select v-model="store.dataActiva.moneda" class="bg-transparent text-slate-800 font-bold text-xs outline-none border-b border-slate-300 pb-1 appearance-none focus:border-orange-500 transition-colors">
+                    <select v-model="store.tarifaActiva.moneda" class="bg-transparent text-slate-800 font-bold text-xs outline-none border-b border-slate-300 pb-1 appearance-none focus:border-orange-500 transition-colors">
                       <option v-for="m in store.catalogos.monedas" :key="m.id" :value="m.id">{{ m.id }}</option>
                     </select>
                   </div>
                   <div>
                     <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 text-right">Costo Unitario</label>
-                    <input v-model.number="store.dataActiva.montoCosto" type="number" step="0.01" class="w-28 bg-slate-50 border border-slate-300 text-orange-600 rounded-xl px-3 py-2 text-lg font-black text-right focus:border-orange-500 outline-none shadow-inner">
+                    <input v-model.number="store.tarifaActiva.montoCosto" type="number" step="0.01" class="w-28 bg-slate-50 border border-slate-300 text-orange-600 rounded-xl px-3 py-2 text-lg font-black text-right focus:border-orange-500 outline-none shadow-inner">
                   </div>
                 </div>
                 <div class="flex justify-end items-baseline gap-1.5 mt-3 pt-3 border-t border-slate-100">
                   <span class="text-[9px] text-slate-500 font-bold uppercase">Subtotal Neto:</span>
-                  <span class="text-orange-600 text-sm font-black">{{ formatMoneda(store.dataActiva.montoCosto * store.dataActiva.cantidad, store.dataActiva.moneda) }}</span>
+                  <span class="text-orange-600 text-sm font-black">{{ formatMoneda(Number(store.tarifaActiva.montoCosto) * store.tarifaActiva.cantidad, store.tarifaActiva.moneda) }}</span>
                 </div>
               </div>
             </div>
@@ -2051,18 +2070,18 @@ store.$onAction(({ name, args }) => {
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2 mt-2">
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Interno (Operativo) *</label>
-                <input v-model="store.dataActiva.nombreInternoSnapshot"
+                <input v-model="store.tarifaActiva.nombreInternoSnapshot"
                        type="text" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-inner mb-4"
                        placeholder="Ej: Adulto Extranjero...">
 
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre para cliente *</label>
                 <div class="flex gap-2">
-                  <input :value="store.getI18nText(store.dataActiva.tituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
-                         @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                  <input :value="store.getI18nText(store.tarifaActiva.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion && store.tarifaActiva) store.setI18nText(store.tarifaActiva.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm">
 
-                  <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                  <button @click="store.tarifaActiva.sobreescribirTraduccion = !store.tarifaActiva.sobreescribirTraduccion"
+                          :class="store.tarifaActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
                           class="px-4 border rounded-xl transition-colors shadow-sm" title="Forzar traducción">
                     <i class="fas fa-language"></i>
                   </button>
@@ -2075,28 +2094,28 @@ store.$onAction(({ name, args }) => {
                     <i class="fas fa-calculator text-emerald-500"></i> Modalidad de Cálculo
                   </p>
                   <p class="text-[10px] text-slate-500 mt-1">
-                    {{ store.dataActiva.tarifaMaestraId ? 'Bloqueado por Catálogo Maestro' : 'Define si el costo es por persona o por el total' }}
+                    {{ store.tarifaActiva.tarifaMaestraId ? 'Bloqueado por Catálogo Maestro' : 'Define si el costo es por persona o por el total' }}
                   </p>
                 </div>
 
                 <div class="flex gap-4 mt-4">
                   <button type="button"
-                          @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = false)"
-                          :disabled="!!store.dataActiva.tarifaMaestraId"
+                          @click="!store.tarifaActiva.tarifaMaestraId && (store.tarifaActiva.esGrupal = false)"
+                          :disabled="!!store.tarifaActiva.tarifaMaestraId"
                           :class="[
-                          !store.dataActiva.esGrupal ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
-                          store.dataActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
+                          !store.tarifaActiva.esGrupal ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
+                          store.tarifaActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
                       ]"
                           class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-user text-xs mb-1"></i>
                     <span class="text-[8px] font-black uppercase">Unitario (Pax)</span>
                   </button>
                   <button type="button"
-                          @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = true)"
-                          :disabled="!!store.dataActiva.tarifaMaestraId"
+                          @click="!store.tarifaActiva.tarifaMaestraId && (store.tarifaActiva.esGrupal = true)"
+                          :disabled="!!store.tarifaActiva.tarifaMaestraId"
                           :class="[
-                          store.dataActiva.esGrupal ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
-                          store.dataActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
+                          store.tarifaActiva.esGrupal ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
+                          store.tarifaActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
                       ]"
                           class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-users text-xs mb-1"></i>
@@ -2112,7 +2131,7 @@ store.$onAction(({ name, args }) => {
                 <div class="grid grid-cols-2 gap-3">
                   <div>
                     <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Modalidad</label>
-                    <select v-model="store.dataActiva.modalidadSnapshot"
+                    <select v-model="store.tarifaActiva.modalidadSnapshot"
                             class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
                       <option :value="null">Sin modalidad</option>
                       <option v-for="opt in enumOptions(MODALIDAD_CONFIG)" :key="opt.value" :value="opt.value">
@@ -2122,7 +2141,7 @@ store.$onAction(({ name, args }) => {
                   </div>
                   <div>
                     <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Categoría</label>
-                    <select v-model="store.dataActiva.categoriaSnapshot"
+                    <select v-model="store.tarifaActiva.categoriaSnapshot"
                             class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
                       <option :value="null">Sin categoria</option>
                       <option v-for="opt in enumOptions(CATEGORIA_CONFIG)" :key="opt.value" :value="opt.value">
@@ -2139,16 +2158,16 @@ store.$onAction(({ name, args }) => {
                     <i class="fas fa-layer-group text-teal-500"></i> Rol y Agrupamiento
                   </p>
                   <span class="text-[9px] font-black px-2 py-1 rounded border uppercase"
-                        :class="[getRolTarifaUI(store.dataActiva.rolSnapshot).bg, getRolTarifaUI(store.dataActiva.rolSnapshot).text, getRolTarifaUI(store.dataActiva.rolSnapshot).border]">
-                <i class="fas" :class="getRolTarifaUI(store.dataActiva.rolSnapshot).icon"></i>
-                {{ getRolTarifaUI(store.dataActiva.rolSnapshot).label }}
+                        :class="[getRolTarifaUI(store.tarifaActiva.rolSnapshot).bg, getRolTarifaUI(store.tarifaActiva.rolSnapshot).text, getRolTarifaUI(store.tarifaActiva.rolSnapshot).border]">
+                <i class="fas" :class="getRolTarifaUI(store.tarifaActiva.rolSnapshot).icon"></i>
+                {{ getRolTarifaUI(store.tarifaActiva.rolSnapshot).label }}
               </span>
                 </div>
 
                 <!-- req 1: el rol sólo aplica cuando el componente está "Incluido"; en los
                      demás modos manda el modo, así que las tarifas "Alternativa" ya pasaron
                      a "Estándar" apenas el componente dejó de estar incluido. -->
-                <div v-if="store.dataActiva.rolSnapshot !== 'operativo' && (store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido'"
+                <div v-if="store.tarifaActiva.rolSnapshot !== 'operativo' && (store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido'"
                      class="mb-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
                   <i class="fas fa-triangle-exclamation text-amber-500 mt-0.5"></i>
                   <span class="text-[10px] font-bold text-amber-700 leading-tight">
@@ -2157,7 +2176,7 @@ store.$onAction(({ name, args }) => {
                   </span>
                 </div>
 
-                <div v-if="store.dataActiva.rolSnapshot === 'operativo'" class="mb-3 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
+                <div v-if="store.tarifaActiva.rolSnapshot === 'operativo'" class="mb-3 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
                   <i class="fas fa-lock text-slate-400 mt-0.5"></i>
                   <span class="text-[10px] font-bold text-slate-500 leading-tight">Rol Operativo — heredado del catálogo maestro. No se elige a mano ni participa del selector de opciones del cliente.</span>
                 </div>
@@ -2167,19 +2186,19 @@ store.$onAction(({ name, args }) => {
                   <div class="flex-1">
                     <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Rol Comercial</label>
                     <div class="flex gap-2">
-                      <button @click="store.dataActiva.grupoTarifa != null && store.marcarTarifaComoEstandar(store.dataActiva.id)"
-                              :disabled="store.dataActiva.grupoTarifa == null"
+                      <button @click="store.tarifaActiva.grupoTarifa != null && store.marcarTarifaComoEstandar(store.tarifaActiva.id)"
+                              :disabled="store.tarifaActiva.grupoTarifa == null"
                               :class="[
-                              store.dataActiva.rolSnapshot === 'estandar' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-blue-50',
-                              store.dataActiva.grupoTarifa == null ? 'opacity-40 cursor-not-allowed' : ''
+                              store.tarifaActiva.rolSnapshot === 'estandar' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-blue-50',
+                              store.tarifaActiva.grupoTarifa == null ? 'opacity-40 cursor-not-allowed' : ''
                           ]"
                               class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
                         <i class="fas fa-star mr-1"></i> Estándar
                       </button>
-                      <button @click="(store.componenteActualDeTarifa?.modo || 'incluido') === 'incluido' && (store.dataActiva.rolSnapshot = 'alternativa')"
+                      <button @click="(store.componenteActualDeTarifa?.modo || 'incluido') === 'incluido' && (store.tarifaActiva.rolSnapshot = 'alternativa')"
                               :disabled="(store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido'"
                               :class="[
-                              store.dataActiva.rolSnapshot === 'alternativa' ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-teal-50',
+                              store.tarifaActiva.rolSnapshot === 'alternativa' ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-teal-50',
                               (store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido' ? 'opacity-40 cursor-not-allowed' : ''
                           ]"
                               class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
@@ -2190,19 +2209,19 @@ store.$onAction(({ name, args }) => {
 
                   <div class="w-24 shrink-0">
                     <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Grupo</label>
-                    <input v-model.number="store.dataActiva.grupoTarifa" type="number" min="1" placeholder="Ej: 1"
+                    <input v-model.number="store.tarifaActiva.grupoTarifa" type="number" min="1" placeholder="Ej: 1"
                            class="w-full bg-white border border-slate-300 rounded-lg px-2 py-2 text-sm font-black text-center outline-none focus:ring-2 focus:ring-teal-500 shadow-sm">
                   </div>
                 </div>
 
-                <p v-if="store.dataActiva.rolSnapshot !== 'operativo' && store.dataActiva.grupoTarifa == null" class="text-[9px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-3">
+                <p v-if="store.tarifaActiva.rolSnapshot !== 'operativo' && store.tarifaActiva.grupoTarifa == null" class="text-[9px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-3">
                   <i class="fas fa-exclamation-triangle mr-1"></i> Sin grupo asignado — no se puede marcar como estándar hasta definir un grupo.
                 </p>
 
                 <div class="mt-3">
                   <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nota Aclaratoria (horarios, condiciones...)</label>
-                  <textarea :value="store.getI18nText(store.dataActiva.notaRol as any, store.cotizacion?.idiomaEdicion || 'es')"
-                            @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.notaRol, store.cotizacion.idiomaEdicion, (e.target as HTMLTextAreaElement).value) }"
+                  <textarea :value="store.getI18nText(store.tarifaActiva.notaRol, store.cotizacion?.idiomaEdicion || 'es')"
+                            @input="e => { if(store.cotizacion && store.tarifaActiva) store.setI18nText(store.tarifaActiva.notaRol, store.cotizacion.idiomaEdicion, (e.target as HTMLTextAreaElement).value) }"
                             rows="2"
                             class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500 shadow-sm resize-none"
                             placeholder="Ej: Sale 06:00am, llega 10:00am..."></textarea>
@@ -2218,16 +2237,16 @@ store.$onAction(({ name, args }) => {
                       <i class="fas fa-truck-loading"></i> Datos del Proveedor
 
                     </label>
-                    <p class="text-sm font-bold flex items-center gap-2" :class="store.dataActiva.proveedorNombreSnapshot ? 'text-slate-800' : 'text-slate-400 italic'">
-                      {{ store.dataActiva.proveedorNombreSnapshot || 'Sin proveedor asignado' }}
+                    <p class="text-sm font-bold flex items-center gap-2" :class="store.tarifaActiva.proveedorNombreSnapshot ? 'text-slate-800' : 'text-slate-400 italic'">
+                      {{ store.tarifaActiva.proveedorNombreSnapshot || 'Sin proveedor asignado' }}
                     </p>
                   </div>
 
                   <div class="flex items-center gap-3">
-                <span v-if="store.dataActiva.proveedorMaestroId" class="text-[8px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded border border-emerald-200 uppercase font-black hidden sm:inline-block">
+                <span v-if="store.tarifaActiva.proveedorMaestroId" class="text-[8px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded border border-emerald-200 uppercase font-black hidden sm:inline-block">
                   Catálogo
                 </span>
-                    <span v-else-if="store.dataActiva.proveedorNombreSnapshot" class="text-[8px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded border border-sky-200 uppercase font-black hidden sm:inline-block">
+                    <span v-else-if="store.tarifaActiva.proveedorNombreSnapshot" class="text-[8px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded border border-sky-200 uppercase font-black hidden sm:inline-block">
                   Libre
                 </span>
                     <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0 border border-slate-200">
@@ -2243,14 +2262,14 @@ store.$onAction(({ name, args }) => {
 
                     <div class="flex items-center justify-between mb-4 bg-orange-50/50 p-2 rounded-lg border border-orange-100">
                       <label class="flex items-center gap-2 cursor-pointer w-full">
-                        <input type="checkbox" v-model="store.dataActiva.proveedorOculto" class="w-4 h-4 text-orange-600 border-slate-300 rounded focus:ring-orange-500">
+                        <input type="checkbox" v-model="store.tarifaActiva.proveedorOculto" class="w-4 h-4 text-orange-600 border-slate-300 rounded focus:ring-orange-500">
                         <span class="text-[10px] font-bold text-slate-700 uppercase">Ocultar este proveedor al cliente</span>
                       </label>
                     </div>
 
                     <div class="flex gap-2 items-center">
                       <SearchableSelect
-                          v-model="store.dataActiva.proveedorMaestroId"
+                          v-model="store.tarifaActiva.proveedorMaestroId"
                           :options="opcionesProveedores"
                           placeholder="Seleccionar proveedor del catálogo..."
                           :darkMode="false"
@@ -2258,7 +2277,7 @@ store.$onAction(({ name, args }) => {
                           @search="val => store.buscarProveedoresAsincrono(val)"
                           class="flex-1"
                       />
-                      <button v-if="store.dataActiva.proveedorMaestroId"
+                      <button v-if="store.tarifaActiva.proveedorMaestroId"
                               @click="store.onProveedorChange(null)"
                               class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
                               title="Deseleccionar Proveedor">
@@ -2271,13 +2290,13 @@ store.$onAction(({ name, args }) => {
                         Título Público del Proveedor
                       </label>
                       <div class="flex gap-2">
-                        <input :value="store.getI18nText(store.dataActiva.proveedorTituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
-                               @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.proveedorTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                        <input :value="store.getI18nText(store.tarifaActiva.proveedorTituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                               @input="e => { if(store.cotizacion && store.tarifaActiva) store.setI18nText(store.tarifaActiva.proveedorTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                                type="text"
                                class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
                                placeholder="Nombre del proveedor de cara al cliente..." />
-                        <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-                                :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200'"
+                        <button @click="store.tarifaActiva.sobreescribirTraduccion = !store.tarifaActiva.sobreescribirTraduccion"
+                                :class="store.tarifaActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200'"
                                 class="px-3 border rounded-lg transition-colors shadow-sm" title="Forzar traducción">
                           <i class="fas fa-language"></i>
                         </button>
@@ -2286,13 +2305,13 @@ store.$onAction(({ name, args }) => {
                       <div class="flex items-center gap-2 mt-3">
                         <i class="fas fa-building text-slate-400 text-xs w-4 shrink-0 text-center" title="URL a nivel Proveedor"></i>
                         <div class="flex-1">
-                          <input v-model="store.dataActiva.proveedorUrlSnapshot"
+                          <input v-model="store.tarifaActiva.proveedorUrlSnapshot"
                                  @blur="onUrlBlur('proveedorUrlSnapshot')"
                                  type="url"
-                                 :class="!esUrlValida(store.dataActiva.proveedorUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-orange-500'"
+                                 :class="!esUrlValida(store.tarifaActiva.proveedorUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-orange-500'"
                                  class="w-full bg-white border rounded-lg px-3 py-2 text-xs focus:ring-2 outline-none shadow-sm"
                                  placeholder="URL del proveedor (sitio, microsite, doc)..." />
-                          <p v-if="!esUrlValida(store.dataActiva.proveedorUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
+                          <p v-if="!esUrlValida(store.tarifaActiva.proveedorUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
                             <i class="fas fa-exclamation-circle mr-1"></i> URL inválida.
                           </p>
                         </div>
@@ -2302,7 +2321,7 @@ store.$onAction(({ name, args }) => {
                     <div class="mt-4 pt-3 border-t border-slate-100">
                       <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
                       <input
-                          :value="store.dataActiva?.proveedorNombreSnapshot"
+                          :value="store.tarifaActiva?.proveedorNombreSnapshot"
                           @input="handleNombreProveedorInput"
                           type="text"
                           class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
@@ -2323,8 +2342,8 @@ store.$onAction(({ name, args }) => {
 
                     <div class="flex gap-2 items-center">
                       <SearchableSelect
-                          v-if="store.dataActiva.proveedorMaestroId"
-                          v-model="store.dataActiva.proveedorServicioMaestroId"
+                          v-if="store.tarifaActiva.proveedorMaestroId"
+                          v-model="store.tarifaActiva.proveedorServicioMaestroId"
                           :options="store.catalogos.proveedorServicios.map(ps => ({ value: ps.id, label: ps.nombre }))"
                           placeholder="Buscar servicio del proveedor..."
                           :darkMode="false"
@@ -2336,7 +2355,7 @@ store.$onAction(({ name, args }) => {
                         <i class="fas fa-info-circle"></i> Selecciona un proveedor arriba para ver sus servicios
                       </div>
 
-                      <button v-if="store.dataActiva.proveedorServicioMaestroId"
+                      <button v-if="store.tarifaActiva.proveedorServicioMaestroId"
                               @click="store.onProveedorServicioChange(null)"
                               class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm"
                               title="Quitar servicio">
@@ -2353,7 +2372,7 @@ store.$onAction(({ name, args }) => {
                       <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">
                         Nombre Interno del Servicio
                       </label>
-                      <input v-model="store.dataActiva.proveedorServicioNombreSnapshot"
+                      <input v-model="store.tarifaActiva.proveedorServicioNombreSnapshot"
                              type="text"
                              class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-teal-500 outline-none shadow-sm"
                              placeholder="Ej: Habitación Matrimonial Standard..." />
@@ -2364,13 +2383,13 @@ store.$onAction(({ name, args }) => {
                         Título Público del Servicio
                       </label>
                       <div class="flex gap-2">
-                        <input :value="store.getI18nText(store.dataActiva.proveedorServicioTituloSnapshot as any, store.cotizacion?.idiomaEdicion || 'es')"
-                               @input="e => { if(store.cotizacion) store.setI18nText(store.dataActiva.proveedorServicioTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                        <input :value="store.getI18nText(store.tarifaActiva.proveedorServicioTituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                               @input="e => { if(store.cotizacion && store.tarifaActiva) store.setI18nText(store.tarifaActiva.proveedorServicioTituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                                type="text"
                                class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-teal-500 outline-none shadow-sm"
                                placeholder="Título público del servicio..." />
-                        <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
-                                :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200'"
+                        <button @click="store.tarifaActiva.sobreescribirTraduccion = !store.tarifaActiva.sobreescribirTraduccion"
+                                :class="store.tarifaActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200'"
                                 class="px-3 border rounded-lg transition-colors shadow-sm" title="Forzar traducción">
                           <i class="fas fa-language"></i>
                         </button>
@@ -2380,13 +2399,13 @@ store.$onAction(({ name, args }) => {
                     <div class="flex items-center gap-2 mt-3">
                       <i class="fas fa-door-open text-teal-400 text-xs w-4 shrink-0 text-center" title="URL a nivel Servicio del Proveedor"></i>
                       <div class="flex-1">
-                        <input v-model="store.dataActiva.proveedorServicioUrlSnapshot"
+                        <input v-model="store.tarifaActiva.proveedorServicioUrlSnapshot"
                                @blur="onUrlBlur('proveedorServicioUrlSnapshot')"
                                type="url"
-                               :class="!esUrlValida(store.dataActiva.proveedorServicioUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-teal-500'"
+                               :class="!esUrlValida(store.tarifaActiva.proveedorServicioUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-teal-500'"
                                class="w-full bg-white border rounded-lg px-3 py-2 text-xs focus:ring-2 outline-none shadow-sm"
                                placeholder="URL del servicio (ej: ficha de la habitación)..." />
-                        <p v-if="!esUrlValida(store.dataActiva.proveedorServicioUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
+                        <p v-if="!esUrlValida(store.tarifaActiva.proveedorServicioUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
                           <i class="fas fa-exclamation-circle mr-1"></i> URL inválida.
                         </p>
                       </div>
@@ -2394,13 +2413,13 @@ store.$onAction(({ name, args }) => {
                   </fieldset>
 
 
-                  <template v-if="store.dataActiva.proveedorNombreSnapshot">
+                  <template v-if="store.tarifaActiva.proveedorNombreSnapshot">
                     <div class="mt-5 pt-4 border-t border-slate-200">
                       <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center justify-between">
                         <span>Nombre para la Reserva (Email)</span>
                         <i class="fas fa-paper-plane text-slate-400"></i>
                       </label>
-                      <input v-model="store.dataActiva.nombreParaProveedorSnapshot"
+                      <input v-model="store.tarifaActiva.nombreParaProveedorSnapshot"
                              type="text"
                              class="w-full bg-emerald-50/50 border border-emerald-200 text-emerald-700 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm"
                              placeholder="Ej: Cena Buffet Tunupa / 2 Pax..." />
@@ -2470,7 +2489,7 @@ store.$onAction(({ name, args }) => {
           <header class="bg-teal-600 text-white px-6 py-4 flex justify-between items-center">
             <div>
               <h2 class="font-black text-lg flex items-center gap-2"><i class="fas fa-book-open"></i> Constructor de Storytelling</h2>
-              <p class="text-[11px] font-bold text-teal-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.dataActiva?.nombreSnapshot as any, store.cotizacion.idiomaEdicion) }}</p>
+              <p class="text-[11px] font-bold text-teal-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.servicioActivo?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
             </div>
             <button @click="store.cerrarEditorSegmentos()" class="w-8 h-8 rounded-full bg-teal-500 hover:bg-teal-400 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
           </header>
@@ -2522,8 +2541,8 @@ store.$onAction(({ name, args }) => {
                          @pointercancel="onPoolPointerUp">
                       <div class="flex-1 min-w-0">
                         <div class="text-[9px] font-black text-teal-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
-                        <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo as any, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
-                        <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido as any, store.cotizacion?.idiomaEdicion || 'es')"></div>
+                        <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
+                        <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido, store.cotizacion?.idiomaEdicion || 'es')"></div>
                       </div>
                       <button @click="prepararInsercion(seg)" class="text-teal-600 hover:bg-teal-200 bg-teal-50 md:bg-transparent md:hover:bg-teal-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-teal-100"><i class="fas fa-plus"></i></button>
                     </div>
@@ -2564,7 +2583,7 @@ store.$onAction(({ name, args }) => {
                     </div>
                   </div>
 
-                  <div v-if="!store.dataActiva?.cotsegmentos?.length" class="border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center">
+                  <div v-if="!store.servicioActivo?.cotsegmentos?.length" class="border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center">
                     <i class="fas fa-align-center text-4xl mb-4 opacity-50"></i>
                     <p class="text-sm font-bold uppercase tracking-widest">El servicio no tiene textos</p>
                   </div>
@@ -2604,7 +2623,7 @@ store.$onAction(({ name, args }) => {
                               <label class="text-[9px] md:text-[10px] font-black text-teal-600 uppercase tracking-widest whitespace-nowrap">Día Relativo</label>
                               <input type="number" min="1"
                                      v-model="cotSeg.dia"
-                                     @change="store.onSegmentoDiaChange(store.dataActiva.id, cotSeg.id, cotSeg.dia)"
+                                     @change="store.onSegmentoDiaChange(servicioActivoId, cotSeg.id, cotSeg.dia)"
                                      class="w-12 bg-slate-50 border border-slate-300 rounded px-1 py-1 text-xs font-black text-center outline-none focus:ring-2 focus:ring-teal-500 text-slate-800">
                             </div>
 
@@ -2648,7 +2667,7 @@ store.$onAction(({ name, args }) => {
                                         </div>
                                         <div class="px-2 py-1 md:px-2.5 md:py-1.5 flex-1 min-w-0 flex flex-col justify-center">
                                           <span class="text-[9px] md:text-[10px] font-bold text-slate-700 block truncate w-full max-w-30 md:max-w-40">
-                                            {{ store.getI18nText(nota.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || nota.nombreInterno }}
+                                            {{ store.getI18nText(nota.titulo, store.cotizacion?.idiomaEdicion || 'es') || nota.nombreInterno }}
                                           </span>
                                         </div>
                                         <button @click.stop="cotSeg.notasSnapshot.splice(cotSeg.notasSnapshot.indexOf(nota), 1)"
@@ -2839,10 +2858,10 @@ store.$onAction(({ name, args }) => {
           </div>
           <div class="p-6 overflow-y-auto flex-1">
             <h4 class="text-lg font-black text-slate-800 mb-4 leading-tight">
-              {{ store.getI18nText(modalNota.nota?.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || modalNota.nota?.nombreInterno }}
+              {{ store.getI18nText(modalNota.nota?.titulo, store.cotizacion?.idiomaEdicion || 'es') || modalNota.nota?.nombreInterno }}
             </h4>
             <div class="prose prose-sm max-w-none text-slate-600 leading-relaxed"
-                 v-html="store.getI18nText(modalNota.nota?.contenido as any, store.cotizacion?.idiomaEdicion || 'es')">
+                 v-html="store.getI18nText(modalNota.nota?.contenido, store.cotizacion?.idiomaEdicion || 'es')">
             </div>
           </div>
           <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end shrink-0">
@@ -2861,7 +2880,7 @@ store.$onAction(({ name, args }) => {
           </div>
           <div class="p-5 space-y-4">
             <p class="text-xs font-bold text-slate-500">
-              Insertando: <span class="text-teal-600">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo as any, store.cotizacion?.idiomaEdicion || 'es') || modalInsercion.segmentoMaestro?.nombreInterno }}</span>
+              Insertando: <span class="text-teal-600">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo, store.cotizacion?.idiomaEdicion || 'es') || modalInsercion.segmentoMaestro?.nombreInterno }}</span>
             </p>
 
             <div class="space-y-2">
@@ -2884,8 +2903,8 @@ store.$onAction(({ name, args }) => {
                 {{ opcionInsercion === 'insert' ? 'Insertar después de:' : 'Párrafo a reemplazar:' }}
               </label>
               <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500">
-                <option v-for="(cotSeg, idx) in store.dataActiva?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
-                  {{ (idx as number) + 1 }}. {{ store.getI18nText(cotSeg.nombreSnapshot as any, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
+                <option v-for="(cotSeg, idx) in store.servicioActivo?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
+                  {{ (idx as number) + 1 }}. {{ store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
                 </option>
               </select>
             </div>
