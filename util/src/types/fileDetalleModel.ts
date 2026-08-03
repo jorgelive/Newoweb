@@ -18,7 +18,13 @@ export type ApiCotizacionFilepasajero = Omit<components['schemas']['CotizacionFi
 // ============================================================================
 // DOCUMENTO
 // ============================================================================
-export type ApiCotizacionFiledocumento = components['schemas']['CotizacionFiledocumento-file.read_file.item.read_timestamp.read'] & {
+// `nombre` va en el Omit a propósito: el schema lo declara `string[]` y sin
+// quitarlo la intersección da `string[] & I18nContent[]`, un tipo inservible
+// (ver el aviso de §2 en docs/Cotizaciones.md).
+export type ApiCotizacionFiledocumento = Omit<
+    components['schemas']['CotizacionFiledocumento-file.read_file.item.read_timestamp.read'],
+    'nombre'
+> & {
     '@id'?: string;
     id?: string;
     nombre?: I18nContent[];
@@ -106,8 +112,12 @@ export const getDocIdLabel = (val?: string | null): string =>
 // Cotizacion tal como viaja embebida en el listado de versiones del File
 // (schema propio y más liviano que el Cotizacion completo del editor —
 // sin cotservicios, idiomaEdicion, clasificacionFinanciera, etc.).
-export type ApiCotizacionVersion = components['schemas']['Cotizacion.jsonld-file.read_file.item.read_timestamp.read'] & {
+export type ApiCotizacionVersion = Omit<
+    components['schemas']['Cotizacion.jsonld-file.read_file.item.read_timestamp.read'],
+    'titulo' | 'resumen'
+> & {
     '@id'?: string;
     idiomaCliente?: string;
-    titulo?: { language?: string; content?: string }[];
+    titulo?: I18nContent[];
+    resumen?: I18nContent[];
 };

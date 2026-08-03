@@ -122,14 +122,16 @@ export interface GuiaHelperContext {
                 ubicacion: PmsContenidoTraducible[] | string;
                 is_locked?: boolean;
             }>;
-            [key: string]: any;
+            [clave: string]: unknown;
         };
         config: {
             mode: 'guest' | 'demo';
             access_status: 'active' | 'pending' | 'expired' | 'unconfirmed' | 'demo';
             is_locked: boolean;
             unit_uuid: string;
-            [key: string]: any;
+            /** Momento en que se abre la guía (ventana de 24 h antes del check-in). */
+            unlock_at?: string;
+            [clave: string]: string | boolean | undefined;
         };
     }
 }

@@ -7,6 +7,11 @@ export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
     _silentAuthCheck?: boolean;
 }
 
+/** Error que marca "el backend devolvió el formulario de login": sesión muerta. */
+export interface ErrorSesionMuerta extends Error {
+    isSessionDead?: boolean;
+}
+
 export const getUrls = () => {
     // @ts-ignore
     const config = window.OPENPERU_CONFIG || {};
@@ -48,7 +53,7 @@ let failedQueue: { resolve: Function, reject: Function, config: CustomAxiosReque
  * Si recibe un error, rechaza todas (ej: usuario canceló login).
  * Si no, las reintenta automáticamente usando las credenciales renovadas.
  */
-export const processQueue = (error: any = null) => {
+export const processQueue = (error: unknown = null) => {
     failedQueue.forEach(prom => {
         if (error) prom.reject(error);
         else prom.resolve(apiClient(prom.config));
@@ -76,8 +81,10 @@ apiClient.interceptors.response.use(
                     failedQueue.push({ resolve, reject, config: originalRequest });
                 });
             }
-            const sessionDeadError = new Error('Sesión expirada (HTML detectado)');
-            (sessionDeadError as any).isSessionDead = true;
+            // `isSessionDead` lo lee sessionAuth.checkSession() para distinguir
+            // "el firewall devolvió el login en HTML" de un error de red normal.
+            const sessionDeadError: ErrorSesionMuerta = new Error('Sesión expirada (HTML detectado)');
+            sessionDeadError.isSessionDead = true;
             return Promise.reject(sessionDeadError);
         }
         return response;

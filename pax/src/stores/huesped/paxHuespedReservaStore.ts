@@ -57,7 +57,7 @@ export const usePmsReservaStore = defineStore('pmsReservaStore', () => {
                 lastUpdate.value = Date.now();
                 error.value = null;
 
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Error en pmsReservaStore:", err);
 
                 // CASO C: Error de red pero ya teníamos datos
@@ -65,7 +65,7 @@ export const usePmsReservaStore = defineStore('pmsReservaStore', () => {
                     error.value = "Mostrando copia local (no se pudo actualizar).";
                 } else {
                     // Si no había nada, mostramos el error fatal
-                    error.value = err.message || 'Error al conectar con el servidor';
+                    error.value = (err as Error)?.message || 'Error al conectar con el servidor';
                     reserva.value = null;
                 }
             } finally {

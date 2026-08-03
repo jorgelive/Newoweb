@@ -6,6 +6,8 @@ import { useAttachmentStore } from '../attachmentStore.ts';
 import { useNotificationStore } from '../notificationStore.ts';
 import type { components } from '@/types/api';
 import { apiClient, getUrls, processQueue, type CustomAxiosRequestConfig } from '@/services/apiClient.ts';
+import { esErrorSilencioso } from '@/services/apiError';
+import { miembrosHydra, hayPaginaSiguiente, uuidDe, mismaEntidad, type RecursoHydra } from '@/services/hydra';
 import { isSessionExpired, checkSession } from '@/services/sessionAuth.ts';
 
 // ============================================================================
@@ -24,7 +26,21 @@ type BaseApiConversation = components['schemas']['Conversation-conversation.read
 export type ApiConversation = Omit<BaseApiConversation, 'contextMilestones'> & {
     '@id'?: string;
     '@type'?: string;
-    contextMilestones?: { start?: string; end?: string; booked_at?: string; eta?: string; } | any;
+    /**
+     * Hitos del contexto (reserva/cotización). El PMS manda un JSON con claves
+     * variables según el tipo, de ahí el índice abierto; las cuatro conocidas se
+     * declaran para que la UI las autocomplete.
+     *
+     * Antes esto era `{...} | any`, que en TypeScript colapsa TODA la unión a
+     * `any` y dejaba el campo sin tipar del todo.
+     */
+    contextMilestones?: {
+        start?: string;
+        end?: string;
+        booked_at?: string;
+        eta?: string;
+        [clave: string]: string | undefined;
+    };
 };
 
 /**
@@ -37,13 +53,14 @@ export type ApiMessage = Omit<BaseApiMessage, 'metadata' | 'template' | 'channel
     '@id'?: string;
     '@type'?: string;
     metadata?: {
-        beds24?: { sent_at?: string; delivered_at?: string; read_at?: string; error?: string; [key: string]: any; };
-        whatsappMeta?: { sent_at?: string; delivered_at?: string; read_at?: string; error_code?: string; error_reason?: string; reactions?: Record<string, string>; [key: string]: any; };
+        beds24?: { sent_at?: string; delivered_at?: string; read_at?: string; error?: string; [key: string]: unknown; };
+        whatsappMeta?: { sent_at?: string; delivered_at?: string; read_at?: string; error_code?: string; error_reason?: string; reactions?: Record<string, string>; [key: string]: unknown; };
         dispatch_errors?: string[];
         dispatch_warnings?: string[];
-        [key: string]: any;
+        [key: string]: unknown;
     };
-    template?: any;
+    /** IRI cuando llega como referencia, u objeto embebido con el nombre. */
+    template?: string | (RecursoHydra & { name?: string }) | null;
     channel?: { id: string; name: string } | string | null;
     whatsappMetaSendQueues?: ApiMessageQueue[] | string[];
     beds24SendQueues?: ApiMessageQueue[] | string[];
@@ -60,17 +77,8 @@ export type ApiMessage = Omit<BaseApiMessage, 'metadata' | 'template' | 'channel
 // (de la conversación en el inbox y de cada mensaje en el chat).
 // Solución: comparar SIEMPRE por el UUID (campo `id`, o el último segmento
 // del "@id" como fallback).
-const uuidOf = (entity: any): string | null => {
-    if (!entity) return null;
-    if (typeof entity === 'string') return entity.split('/').pop() || null;
-    if (entity.id) return String(entity.id);
-    if (entity['@id']) return String(entity['@id']).split('/').pop() || null;
-    return null;
-};
-const sameEntity = (a: any, b: any): boolean => {
-    const ua = uuidOf(a);
-    return !!ua && ua === uuidOf(b);
-};
+const uuidOf = uuidDe;
+const sameEntity = mismaEntidad;
 
 export const useChatStore = defineStore('chatStore', () => {
 
@@ -214,15 +222,9 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
     // UTILERÍAS API PLATFORM
     // ============================================================================
-    const extractData = (response: any) => {
-        const data = response.data;
-        return data['hydra:member'] || data['member'] || (Array.isArray(data) ? data : []);
-    };
+    const extractData = <T>(response: { data: unknown }): T[] => miembrosHydra<T>(response.data);
 
-    const hasNextPage = (response: any) => {
-        const view = response.data['hydra:view'] || response.data['view'];
-        return !!(view && (view['hydra:next'] || view['next']));
-    };
+    const hasNextPage = (response: { data: unknown }): boolean => hayPaginaSiguiente(response.data);
 
     // ============================================================================
     // SESIÓN (sin cambios)
@@ -235,7 +237,7 @@ export const useChatStore = defineStore('chatStore', () => {
     const fetchTemplates = async () => {
         try {
             const response = await apiClient.get('/platform/message/templates');
-            templates.value = extractData(response);
+            templates.value = extractData<ApiTemplate>(response);
         } catch (err) {}
     };
 
@@ -257,7 +259,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
         try {
             const response = await apiClient.get(`/platform/message/conversations?order[lastMessageAt]=desc&page=${pageToFetch}`);
-            const data = extractData(response) as ApiConversation[];
+            const data = extractData<ApiConversation>(response);
             if (loadMore) {
                 // FIX #4: la paginación + eventos de Mercure entre páginas puede
                 // traer una conversación que ya subió al tope del inbox → dedup.
@@ -269,9 +271,9 @@ export const useChatStore = defineStore('chatStore', () => {
 
             hasMoreConversations.value = hasNextPage(response);
             conversationsPage.value = pageToFetch;
-        } catch (err: any) {
+        } catch (err: unknown) {
             // Ignoramos errores 401/HTML ya que el apiClient centralizado los maneja.
-            if (err.response?.status !== 401 && !err.message?.includes('HTML')) {
+            if (!esErrorSilencioso(err)) {
                 error.value = 'Error al sincronizar chats';
             }
         } finally {
@@ -482,7 +484,7 @@ export const useChatStore = defineStore('chatStore', () => {
                 if (found && !conversations.value.some(c => sameEntity(c, found))) {
                     conversations.value.unshift(found);
                 }
-            } catch (err: any) {
+            } catch {
                 loadingMessages.value = false;
                 error.value = 'Conversación no encontrada.';
                 return;
@@ -504,7 +506,7 @@ export const useChatStore = defineStore('chatStore', () => {
             // FIX #6: si el usuario cambió de chat mientras cargaba, descartar
             if (uuidOf(currentConversation.value) !== id) return;
 
-            messages.value = extractData(response).reverse();
+            messages.value = extractData<ApiMessage>(response).reverse();
             hasMoreMessages.value = hasNextPage(response);
 
             connectToMercure(id);
@@ -525,7 +527,7 @@ export const useChatStore = defineStore('chatStore', () => {
             const response = await apiClient.get(`/platform/message/conversations/${currentConversation.value.id}/messages?order[createdAt]=desc&page=${nextPage}`);
             // FIX #4: un mensaje nuevo llegado por Mercure desplaza la paginación
             // (page 2 puede repetir el último de page 1) → dedup por UUID.
-            const olderMessages = (extractData(response) as ApiMessage[])
+            const olderMessages = extractData<ApiMessage>(response)
                 .filter(om => !messages.value.some(m => sameEntity(m, om)))
                 .reverse();
 
@@ -594,7 +596,7 @@ export const useChatStore = defineStore('chatStore', () => {
     const fetchLatestMessagesForStalk = async (conversationId: string): Promise<ApiMessage[]> => {
         try {
             const response = await apiClient.get(`/platform/message/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
-            const data = extractData(response) as ApiMessage[];
+            const data = extractData<ApiMessage>(response);
 
             const realHistoryMessages = data.filter(m => m.scheduledForFuture !== true && m.status !== 'pending' && m.status !== 'queued' && m.status !== 'cancelled');
             const latest5 = realHistoryMessages.slice(0, 5);
@@ -661,8 +663,8 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
     watch(() => conversations.value.filter(c => (c.unreadCount ?? 0) > 0).length, (unreadCount) => {
         if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {
-            if (unreadCount > 0) (navigator as any).setAppBadge(unreadCount).catch(() => {});
-            else (navigator as any).clearAppBadge().catch(() => {});
+            if (unreadCount > 0) navigator.setAppBadge(unreadCount).catch(() => {});
+            else navigator.clearAppBadge().catch(() => {});
         }
         // Limpiamos las notificaciones persistentes del OS si ya se leyeron todos los chats
         if (unreadCount === 0 && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {

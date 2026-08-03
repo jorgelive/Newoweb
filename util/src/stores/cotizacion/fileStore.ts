@@ -1,11 +1,28 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
+import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
 import {ApiCotizacionFile, ApiCotizacionFileWrite, I18nContent} from '@/types/fileDetalleModel.ts';
 
 // ============================================================================
 // TIPOS AUTOGENERADOS Y EXTENDIDOS (HÍBRIDOS)
 // ============================================================================
+
+/**
+ * Datos de un pasajero del manifiesto tal como los manda el formulario. `file`
+ * (la IRI del expediente) solo viaja al crear: en la edición el destino ya lo
+ * fija la IRI del propio pasajero.
+ */
+export interface PasajeroPayload {
+    nombre?: string;
+    apellido?: string;
+    pais?: string;
+    sexo?: string;
+    tipodocumento?: string;
+    numerodocumento?: string;
+    fechanacimiento?: string;
+    file?: string;
+}
 
 export interface ApiIdioma {
     id: string;         // código de idioma: 'es', 'en', 'pt'...
@@ -67,9 +84,9 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             hasNextPage.value = !!(viewData && (viewData['hydra:next'] || viewData['next']));
             currentPage.value = page;
 
-        } catch (err: any) {
-            if (err.response?.status !== 401 && !err.message?.includes('HTML')) {
-                error.value = err.response?.data?.['hydra:description'] || 'Error de red al cargar los expedientes.';
+        } catch (err: unknown) {
+            if (!esErrorSilencioso(err)) {
+                error.value = extractApiErrorMessage(err, 'Error de red al cargar los expedientes.');
             }
         } finally {
             loadingFiles.value = false;
@@ -115,8 +132,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             // pero Symfony lo ignorará de forma segura gracias a 'deserialize: false'.
             await apiClient.post(`/platform/sales/client/cotizacion/${id}/clonar`, {});
             return true;
-        } catch (err: any) {
-            error.value = err.response?.data?.['hydra:description'] || err.response?.data?.detail || 'Error al clonar la versión de la cotización.';
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al clonar la versión de la cotización.');
             return false;
         }
     };
@@ -129,8 +146,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             const response = await apiClient.post<ApiCotizacionFile>('/platform/sales/cotizacion_files', payload);
             files.value.unshift(response.data);
             return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.['hydra:description'] || err.response?.data?.detail || 'Error al crear el expediente.';
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al crear el expediente.');
             return null;
         } finally {
             loadingFiles.value = false;
@@ -150,9 +167,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
                 files.value[index] = { ...files.value[index], ...response.data };
             }
             return response.data;
-        } catch (err: any) {
-            // El interceptor ya maneja los errores globales, aquí solo gestionamos la UI
-            error.value = err.response?.data?.['hydra:description'] || 'Error al actualizar.';
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al actualizar.');
             return null;
         } finally {
             loadingFiles.value = false;
@@ -183,8 +199,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         try {
             await apiClient.patch(iri, { version });
             return true;
-        } catch (err: any) {
-            error.value = err.response?.data?.['hydra:description'] || 'Error al actualizar la versión.';
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al actualizar la versión.');
             return false;
         }
     };
@@ -193,10 +209,10 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * Extrae un preview truncado y sin HTML de un campo AutoTranslate (I18nContent[]).
      * Usado para previsualizar `resumen` en la tarjeta de versión sin abrir el motor.
      */
-    const extraerResumenPreview = (resumen: any, idiomaPreferido = 'es', maxLen = 90): string => {
+    const extraerResumenPreview = (resumen: I18nContent[] | null | undefined, idiomaPreferido = 'es', maxLen = 90): string => {
         if (!resumen || !Array.isArray(resumen) || resumen.length === 0) return '';
 
-        const match = resumen.find((r: any) => r.language === idiomaPreferido) || resumen[0];
+        const match = resumen.find((r) => r.language === idiomaPreferido) || resumen[0];
         const texto = match?.content || '';
 
         const sinHtml = texto.replace(/<[^>]*>/g, '').trim();
@@ -214,8 +230,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             return true;
-        } catch (err: any) {
-            error.value = err.response?.data?.['hydra:description'] || 'Error al subir el documento.';
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al subir el documento.');
             return false;
         }
     };
@@ -228,8 +244,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         try {
             await apiClient.patch(iri, payload);
             return true;
-        } catch (err: any) {
-            error.value = err.response?.data?.['hydra:description'] || 'Error al actualizar el documento.';
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al actualizar el documento.');
             return false;
         }
     };
@@ -243,24 +259,24 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
-    const addPassenger = async (payload: any): Promise<boolean> => {
+    const addPassenger = async (payload: PasajeroPayload): Promise<boolean> => {
         error.value = null;
         try {
             await apiClient.post('/platform/sales/cotizacion_filepasajeros', payload);
             return true;
-        } catch (err: any) {
-            error.value = err.response?.data?.['hydra:description'] || 'Error al registrar el pasajero.';
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al registrar el pasajero.');
             return false;
         }
     };
 
-    const updatePassenger = async (iri: string, payload: any): Promise<boolean> => {
+    const updatePassenger = async (iri: string, payload: PasajeroPayload): Promise<boolean> => {
         error.value = null;
         try {
             await apiClient.patch(iri, payload);
             return true;
-        } catch (err: any) {
-            error.value = err.response?.data?.['hydra:description'] || 'Error al actualizar el pasajero.';
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al actualizar el pasajero.');
             return false;
         }
     };

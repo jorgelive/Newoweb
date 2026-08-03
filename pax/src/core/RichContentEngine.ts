@@ -1,17 +1,18 @@
 // src/core/RichContentEngine.ts
-import { defineAsyncComponent } from 'vue';
+import { defineAsyncComponent, type Component } from 'vue';
+import type { GuiaHelperContext, PmsContenidoTraducible } from '@/types/paxHuespedModel';
 
 export type BlockType = 'text' | 'component';
 
 export interface RenderBlock {
     id: string;
     type: BlockType;
-    component?: any;
-    props?: any;
+    component?: Component;
+    props?: Record<string, unknown>;
     content?: string;
 }
 
-const COMPONENT_REGISTRY: Record<string, any> = {
+const COMPONENT_REGISTRY: Record<string, Component> = {
     'video': defineAsyncComponent(() => import('@/components/RichText/VideoBlock.vue')),
     'img':   defineAsyncComponent(() => import('@/components/RichText/ImageBlock.vue')),
     'map':   defineAsyncComponent(() => import('@/components/RichText/MapBlock.vue')),
@@ -19,11 +20,11 @@ const COMPONENT_REGISTRY: Record<string, any> = {
 };
 
 export class RichContentEngine {
-    private context: any;
-    private translator: (c: any) => string;
+    private context: GuiaHelperContext | null;
+    private translator: (c: PmsContenidoTraducible[]) => string;
 
-    constructor(context: any, translatorFn: (c: any) => string) {
-        this.context = context || {};
+    constructor(context: GuiaHelperContext | null, translatorFn: (c: PmsContenidoTraducible[]) => string) {
+        this.context = context ?? null;
         this.translator = translatorFn;
     }
 

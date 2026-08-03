@@ -1,12 +1,14 @@
 <script setup lang="ts">
 /* src/components/GuiaUnidad/GuiaUnidadItemCard.vue */
 import { computed } from 'vue';
+import type { PmsGuiaItem, GuiaHelperContext } from '@/types/paxHuespedModel';
+import type { usePmsGuiaStore } from '@/stores/huesped/paxHuespedGuiaStore';
 import RichTextRenderer from '@/components/RichText/RichTextRenderer.vue';
 
 const props = defineProps<{
-  item: any;
-  context: any;
-  store: any;
+  item: PmsGuiaItem;
+  context: GuiaHelperContext | null;
+  store: ReturnType<typeof usePmsGuiaStore>;
 }>();
 
 // Texto traducido

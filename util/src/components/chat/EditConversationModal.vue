@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useChatStore, type ApiConversation } from '@/stores/chat/chatStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
+import { uuidDe } from '@/services/hydra';
 
 const props = defineProps<{ conversation: ApiConversation }>();
 const emit = defineEmits<{ close: [] }>();
@@ -31,7 +32,7 @@ const form = ref({
 
 const resetForm = () => {
   const c = props.conversation;
-  const idiomaRef = (c as any).idioma as string | undefined;
+  const idiomaRef = c.idioma;
   form.value = {
     status: c.status || 'open',
     guestName: c.guestName || '',
@@ -51,8 +52,7 @@ onMounted(() => {
 watch(() => props.conversation, resetForm);
 
 const conversationUuid = computed(() => {
-  const c = props.conversation as any;
-  return c.id || (c['@id'] ? String(c['@id']).split('/').pop() : null);
+  return uuidDe(props.conversation);
 });
 
 const handleSave = async () => {
@@ -60,7 +60,7 @@ const handleSave = async () => {
   saving.value = true;
   errorMsg.value = '';
 
-  const idiomaObj = maestroStore.idiomas.find((i: any) => i.id === form.value.idiomaId);
+  const idiomaObj = maestroStore.idiomas.find((i) => i.id === form.value.idiomaId);
 
   const payload: Record<string, any> = {
     status: form.value.status,
@@ -187,8 +187,8 @@ const formatDateTime = (iso?: string | null) => {
             <div><dt class="text-slate-400 font-bold uppercase text-[9px]">Vence sesión WA</dt><dd class="font-bold text-slate-700">{{ formatDateTime(conversation.whatsappSessionValidUntil) }}</dd></div>
             <div v-if="conversation.contextFinancialTotal != null"><dt class="text-slate-400 font-bold uppercase text-[9px]">Total</dt><dd class="font-bold text-slate-700">{{ conversation.contextFinancialTotal }} ({{ conversation.contextFinancialIsCleared ? 'saldado' : 'pendiente' }})</dd></div>
             <div v-if="conversation.contextItems?.length"><dt class="text-slate-400 font-bold uppercase text-[9px]">Items</dt><dd class="font-bold text-slate-700">{{ conversation.contextItems.join(', ') }}</dd></div>
-            <div v-if="(conversation.contextMilestones as any)?.start"><dt class="text-slate-400 font-bold uppercase text-[9px]">Inicio</dt><dd class="font-bold text-slate-700">{{ formatDateTime((conversation.contextMilestones as any)?.start) }}</dd></div>
-            <div v-if="(conversation.contextMilestones as any)?.end"><dt class="text-slate-400 font-bold uppercase text-[9px]">Fin</dt><dd class="font-bold text-slate-700">{{ formatDateTime((conversation.contextMilestones as any)?.end) }}</dd></div>
+            <div v-if="conversation.contextMilestones?.start"><dt class="text-slate-400 font-bold uppercase text-[9px]">Inicio</dt><dd class="font-bold text-slate-700">{{ formatDateTime(conversation.contextMilestones?.start) }}</dd></div>
+            <div v-if="conversation.contextMilestones?.end"><dt class="text-slate-400 font-bold uppercase text-[9px]">Fin</dt><dd class="font-bold text-slate-700">{{ formatDateTime(conversation.contextMilestones?.end) }}</dd></div>
           </dl>
         </div>
       </div>

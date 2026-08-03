@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { isSessionExpired, renewSession } from '@/services/sessionAuth';
 import { processQueue } from '@/services/apiClient';
+import { extractApiErrorMessage } from '@/services/apiError';
 
 import { useNotificationStore } from '@/stores/notificationStore';
 
@@ -30,8 +31,8 @@ const handleSessionRenewal = async () => {
     loginPassword.value = '';
     processQueue(null);
     await notificationStore.subscribeToPushNotifications();
-  } catch (err: any) {
-    loginError.value = err.response?.data?.message || 'Credenciales inválidas. Inténtalo de nuevo.';
+  } catch (err: unknown) {
+    loginError.value = extractApiErrorMessage(err, 'Credenciales inválidas. Inténtalo de nuevo.');
     processQueue(err);
   } finally {
     isLoggingIn.value = false;

@@ -95,7 +95,7 @@ export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
                 console.log('⚡ GuiaStore: CMS visual de Guía fresco (< 30s). Ahorrando petición.');
             }
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('❌ GuiaStore: Falló la actualización.', err);
 
             // Si falla el servidor pero teníamos datos, nos los quedamos por seguridad
@@ -103,7 +103,7 @@ export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
                 console.log('🛡️ GuiaStore: Servidor falló. Manteniendo datos antiguos por seguridad.');
                 error.value = "No se pudo actualizar, mostrando última versión activa guardada.";
             } else {
-                error.value = err.message || 'Error de conexión crítico.';
+                error.value = (err as Error)?.message || 'Error de conexión crítico.';
                 guia.value = null;
                 helperContext.value = null;
             }

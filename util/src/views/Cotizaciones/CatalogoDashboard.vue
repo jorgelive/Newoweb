@@ -3,7 +3,24 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { apiClient, getUrls } from '@/services/apiClient';
 import { thumbUrl } from '@/services/imageThumb';
-import { ESTADO_COTIZACION_CONFIG } from '@/types/cotizacionEditorModel';
+import {
+  ESTADO_COTIZACION_CONFIG,
+  type Cotizacion,
+  type I18nContent,
+  type ImagenSnapshot,
+  type PrecioDesdeRango,
+} from '@/types/cotizacionEditorModel';
+
+/**
+ * Tour dentro de un catálogo. Es una `Cotizacion` normal más las dos props
+ * VIRTUALES que añade CotizacionCatalogoAdminProvider en el Get del catálogo
+ * (grupo `catalogo:item:read`): no se persisten, las resuelve TourTarjetaResolver
+ * — ver §6.b de docs/Cotizaciones.md.
+ */
+type TourCatalogo = Cotizacion & {
+  imagenTarjeta?: ImagenSnapshot | null;
+  numDias?: number | null;
+};
 
 interface CatalogoResumen {
   id?: string;
@@ -15,7 +32,7 @@ interface CatalogoResumen {
   activo?: boolean;
   orden?: number;
   createdAt?: string;
-  cotizaciones?: any[];
+  cotizaciones?: TourCatalogo[];
 }
 
 const router = useRouter();
@@ -81,7 +98,7 @@ const t18 = (arr?: { language?: string; content?: string }[] | null): string => 
 };
 
 /** Resumen HTML → texto plano corto para previews. */
-const resumenPreview = (arr?: any[]): string =>
+const resumenPreview = (arr?: I18nContent[] | null): string =>
   t18(arr).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
 /** Rangos de precio "Desde X" del tour de catálogo, cada uno con su título
@@ -89,14 +106,14 @@ const resumenPreview = (arr?: any[]): string =>
  *  grupo (ver FileDetalle.vue), un tour de catálogo NO tiene un total vendible:
  *  el pax por rango no está definido, así que lo informativo es el precio de
  *  cada rango (extranjero/peruano, adulto/niño), no un `totalVenta` de grupo. */
-const rangosDesde = (tour: any): { titulo: string; moneda: string; valor: any }[] =>
-  (tour.preciosDesde || []).map((r: any) => ({
+const rangosDesde = (tour: TourCatalogo): { titulo: string; moneda: string; valor: string }[] =>
+  (tour.preciosDesde || []).map((r: PrecioDesdeRango) => ({
     titulo: t18(r.titulo),
     moneda: r.moneda,
     valor: r.valor,
   }));
 
-const formatMonto = (valor: any): string => {
+const formatMonto = (valor: string | number | null | undefined): string => {
   const n = Number(valor);
   return Number.isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(valor ?? '');
 };
@@ -108,11 +125,11 @@ const formatMonto = (valor: any): string => {
  * TourTarjetaResolver. El `imagenPortada` suelto queda de respaldo por si la
  * respuesta viniera sin enriquecer.
  */
-const portadaTour = (tour: any): string =>
+const portadaTour = (tour: TourCatalogo): string =>
   tour.imagenTarjeta?.imageUrl || tour.imagenPortada?.imageUrl || '';
 
 /** "3 días" / "1 día" — null si el tour aún no tiene itinerario. */
-const diasLabel = (tour: any): string | null =>
+const diasLabel = (tour: TourCatalogo): string | null =>
   tour.numDias ? `${tour.numDias} ${tour.numDias === 1 ? 'día' : 'días'}` : null;
 
 /** Reordena el catálogo en el listado y persiste el nuevo orden. */
@@ -260,8 +277,8 @@ const copiarLink = async (cat: CatalogoResumen) => {
   }
 };
 
-const abrirTour = (cotizacionId: string) => {
-  if (!seleccionado.value) return;
+const abrirTour = (cotizacionId?: string | null) => {
+  if (!seleccionado.value || !cotizacionId) return;
   router.push(`/catalogo/${extractId(seleccionado.value)}/version/${cotizacionId}`);
 };
 
@@ -271,7 +288,7 @@ const nuevoTour = () => {
 };
 
 const getEstadoUI = (estado?: string) =>
-  (ESTADO_COTIZACION_CONFIG as any)[estado || ''] || {
+  ESTADO_COTIZACION_CONFIG[estado as keyof typeof ESTADO_COTIZACION_CONFIG] || {
     label: estado || 'Pendiente', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200', icon: 'fa-circle',
   };
 

@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import type { GuiaHelperContext } from '@/types/paxHuespedModel';
 import { computed } from 'vue';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { RichContentEngine, type RenderBlock } from '@/core/RichContentEngine';
 
 const props = defineProps<{
   content: string;
-  context: any;
+  context: GuiaHelperContext | null;
 }>();
 
 const maestroStore = useMaestroStore();

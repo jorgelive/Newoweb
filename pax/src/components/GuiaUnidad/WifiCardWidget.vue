@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useMaestroStore } from '@/stores/maestroStore';
+import type { GuiaHelperContext } from '@/types/paxHuespedModel';
+
+/** Una red del widget WiFi (misma forma en la guía estática y en el helper). */
+type RedWifi = NonNullable<GuiaHelperContext['data']['widgets']['wifi_data']>[number];
 
 const props = defineProps<{
-  wifiData?: any[];
-  context?: any;
+  wifiData?: RedWifi[];
+  context?: GuiaHelperContext | null;
 }>();
 
 const maestroStore = useMaestroStore();
@@ -51,8 +55,11 @@ const copiarAlPortapapeles = (texto: string, index: number) => {
  * Asegura la correcta traducción de la ubicación usando el store maestro.
  * Útil porque el backend envía un array [{language: 'es', content: 'Salón'}, ...]
  */
-const traducirUbicacion = (ubicacion: any) => {
-  return maestroStore.traducir ? maestroStore.traducir(ubicacion) : (ubicacion || 'WiFi');
+const traducirUbicacion = (ubicacion: RedWifi['ubicacion']) => {
+  // El backend manda el array i18n, pero las guías antiguas traen un string
+  // suelto: en ese caso no hay nada que traducir.
+  if (typeof ubicacion === 'string') return ubicacion || 'WiFi';
+  return maestroStore.traducir ? maestroStore.traducir(ubicacion) : 'WiFi';
 };
 </script>
 

@@ -17,6 +17,7 @@ import {
   getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS,
   type ApiCotizacionFile,
   type ApiCotizacionFilepasajero,
+  type ApiCotizacionFiledocumento,
   type ApiCotizacionVersion
 } from '@/types/fileDetalleModel';
 
@@ -113,15 +114,19 @@ const copiarLink = async () => {
 // ============================================================================
 // HELPER NOMBRE DOCUMENTO  (formato AutoTranslate: [{content, language}])
 // ============================================================================
-const getDocNombre = (doc: any, lang = idiomaActivo.value): string => {
+const getDocNombre = (doc: ApiCotizacionFiledocumento | null | undefined, lang = idiomaActivo.value): string => {
   if (!doc?.nombre) return '';
   if (Array.isArray(doc.nombre)) {
-    return doc.nombre.find((n: any) => n.language === lang)?.content
-        || doc.nombre.find((n: any) => n.language === 'es')?.content
+    return doc.nombre.find((n) => n.language === lang)?.content
+        || doc.nombre.find((n) => n.language === 'es')?.content
         || doc.nombre[0]?.content
         || '';
   }
-  return typeof doc.nombre === 'object' ? (doc.nombre[lang] || doc.nombre.es || '') : String(doc.nombre);
+  // Formato legacy: `nombre` como mapa `{es: '…', en: '…'}`. El backend ya no lo
+  // emite (ahora es AutoTranslate), pero puede quedar en documentos antiguos, así
+  // que el fallback se conserva — de ahí el estrechamiento manual.
+  const legado = doc.nombre as unknown as Record<string, string> | string;
+  return typeof legado === 'object' ? (legado[lang] || legado.es || '') : String(legado);
 };
 
 const editandoVersion = ref<string | null>(null);
@@ -244,7 +249,7 @@ const docForm = ref({
   nombre: '', tipodocumento: '', vencimiento: '', sobreescribirTraduccion: false, fileObject: null as File | null
 });
 
-const extractIdStr = (val: any) => val ? String(val).split('/').pop() : '';
+const extractIdStr = (val: unknown): string => val ? String(val).split('/').pop() ?? '' : '';
 
 const fetchCatalogos = async () => {
   try {
@@ -402,7 +407,7 @@ const abrirDocModal = () => {
   showDocModal.value = true;
 };
 
-const abrirEdicionDoc = (doc: any) => {
+const abrirEdicionDoc = (doc: ApiCotizacionFiledocumento) => {
   docEditandoIri.value = doc['@id'] || `/platform/sales/cotizacion_filedocumentos/${extractIdStr(doc.id)}`;
   docForm.value = {
     nombre: getDocNombre(doc, 'es'),   // siempre editamos la fuente en español
@@ -733,13 +738,13 @@ const eliminarDocumento = async (iri?: string) => {
                   <div class="min-w-0">
                     <div class="flex items-center gap-2 leading-none flex-wrap">
                       <p class="text-sm sm:text-base font-black text-slate-800">
-                        {{ t18((cot as any).titulo) || `Versión ${cot.version}` }}
+                        {{ t18(cot.titulo) || `Versión ${cot.version}` }}
                       </p>
                       <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 uppercase shrink-0">{{ cot.estado || 'Pendiente' }}</span>
                       <span class="text-[9px] font-black bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100 uppercase shrink-0">{{ cot.monedaGlobal || 'USD' }}</span>
                     </div>
                     <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate max-w-35 sm:max-w-xs">
-                      {{ resumenPreview(cot.resumen as any) }}
+                      {{ resumenPreview(cot.resumen) }}
                     </p>
                   </div>
                 </div>

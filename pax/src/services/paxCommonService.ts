@@ -1,4 +1,5 @@
 import type {MaestroIdioma} from "@/types/maestroModel.ts";
+import type { PmsContenidoTraducible } from '@/types/paxHuespedModel';
 
 
 const API_BASE = window.OPENPERU_CONFIG?.apiUrl || import.meta.env.VITE_API_URL;
@@ -21,14 +22,14 @@ export const paxCommonService = {
         }
     },
 
-    async getPaxUiTextos(): Promise<Record<string, any>> {
+    async getPaxUiTextos(): Promise<Record<string, PmsContenidoTraducible[]>> {
         try {
             const res = await fetch(`${API_BASE}/platform/public/pax/ui_i18n`, {headers: {'Accept': 'application/ld+json'}});
             if (!res.ok) return {};
             const data = await res.json();
             const list = data['member'] || data['hydra:member'] || [];
-            const dic: Record<string, any> = {};
-            list.forEach((i: any) => {
+            const dic: Record<string, PmsContenidoTraducible[]> = {};
+            (list as Array<{ id?: string; contenido?: PmsContenidoTraducible[] }>).forEach((i) => {
                 if (i.id && i.contenido) dic[i.id] = i.contenido;
             });
             return dic;

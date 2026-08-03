@@ -38,7 +38,7 @@ export const useMaestroStore = defineStore('maestroStore', () => {
             // Ordenamiento por prioridad del idioma (por seguridad de visualización)
             idiomas.value.sort((a, b) => (b.prioridad ?? 0) - (a.prioridad ?? 0));
 
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error cargando tablas maestras:', err);
             error.value = 'No se pudieron cargar los catálogos del sistema.';
         } finally {

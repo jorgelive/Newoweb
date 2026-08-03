@@ -22,7 +22,7 @@ import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
-import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero } from '@/types/paxCotizacionModel';
+import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
 
 
 
@@ -129,7 +129,7 @@ const hhmm = (iso?: string | null): string | null =>
  * ¿El componente lleva hora? Ahora por el flag del snapshot.
  * Fallback legacy (data sin el flag aún): la hora es real si no es 00:00.
  */
-const compConHora = (c: any): boolean => {
+const compConHora = (c: PaxCotComponente): boolean => {
   if (typeof c?.sinHorario === 'boolean') return !c.sinHorario;
   const t = hhmm(c?.fechaHoraInicio);
   return !!t && t !== '00:00';
@@ -175,9 +175,9 @@ const fechaChip = (iso: string) => {
 // ── Itinerario de vista (segmentos → bloques por día) ────────────────────────
 interface BloqueVista {
   key: string;
-  servicio: any;
-  segmento: any;
-  componentes: any[];
+  servicio: PaxCotServicio;
+  segmento: PaxCotSegmento;
+  componentes: PaxCotComponente[];
   horaInicio: string | null;       // derivada del primer componente con hora
   horaFin: string | null;          // derivada del último componente con hora
   // Horario global de la excursión (componente promovido a "servicio completo").
@@ -201,7 +201,7 @@ interface DiaVista {
 }
 
 const itinerarioVista = computed<DiaVista[]>(() => {
-  const cot: any = store.cotizacion;
+  const cot = store.cotizacion;
   if (!cot?.cotservicios?.length) return [];
 
   const porFecha = new Map<string, BloqueVista[]>();
@@ -211,17 +211,17 @@ const itinerarioVista = computed<DiaVista[]>(() => {
   };
 
   for (const servicio of cot.cotservicios) {
-    const segs = [...(servicio.cotsegmentos ?? [])].sort((a: any, b: any) => (a.dia - b.dia) || (a.orden - b.orden));
+    const segs = [...(servicio.cotsegmentos ?? [])].sort((a, b) => (a.dia - b.dia) || (a.orden - b.orden));
 
     for (const segmento of segs) {
-      const comps = (servicio.cotcomponentes ?? []).filter((c: any) => c.cotsegmento?.id === segmento.id);
+      const comps = (servicio.cotcomponentes ?? []).filter((c) => c.cotsegmento?.id === segmento.id);
 
       // Hora dinámica del segmento: min inicio / max fin de componentes con hora real.
       // Se excluyen los componentes promovidos a "servicio completo": su hora no
       // pertenece a este segmento sino a toda la excursión (se muestra aparte).
-      const conHora = comps.filter((c: any) => compConHora(c) && !c.horaServicioCompleto);
-      const inicios = conHora.map((c: any) => c.fechaHoraInicio).filter(Boolean) as string[];
-      const fines   = conHora.map((c: any) => c.fechaHoraFin).filter(Boolean) as string[];
+      const conHora = comps.filter((c) => compConHora(c) && !c.horaServicioCompleto);
+      const inicios = conHora.map((c) => c.fechaHoraInicio).filter(Boolean) as string[];
+      const fines   = conHora.map((c) => c.fechaHoraFin).filter(Boolean) as string[];
       const horaInicio = inicios.length ? hhmm(inicios.sort()[0]) : null;
       const horaFin    = fines.length   ? hhmm(fines.sort()[fines.length - 1]) : null;
 
@@ -360,11 +360,11 @@ const totalDiasViaje = computed(() =>
 // ── Horarios de componentes ──────────────────────────────────────────────────
 const compsConHora = (b: BloqueVista) =>
     b.componentes
-        .filter((c: any) => compConHora(c) && c.fechaHoraInicio)
-        .sort((a: any, b2: any) => a.fechaHoraInicio.localeCompare(b2.fechaHoraInicio));
+        .filter((c) => compConHora(c) && c.fechaHoraInicio)
+        .sort((a, b2) => (a.fechaHoraInicio ?? '').localeCompare(b2.fechaHoraInicio ?? ''));
 
 
-const horaRango = (c: any) => {
+const horaRango = (c: PaxCotComponente) => {
   if (!compConHora(c)) return null;
   const hi = hhmm(c.fechaHoraInicio);
   const hf = hhmm(c.fechaHoraFin);
@@ -372,8 +372,8 @@ const horaRango = (c: any) => {
 };
 
 // ── Imágenes de segmento (galería) ───────────────────────────────────────────
-const imagenesDe = (segmento: any): { imageUrl: string }[] =>
-    (segmento.imagenesSnapshot ?? []).filter((i: any) => i.imageUrl);
+const imagenesDe = (segmento: PaxCotSegmento): { imageUrl: string }[] =>
+    (segmento.imagenesSnapshot ?? []).filter((i) => i.imageUrl);
 
 const desplazarGaleria = (ev: Event, dir: number) => {
   const wrap = (ev.currentTarget as HTMLElement).closest('[data-galeria]');
@@ -397,24 +397,24 @@ const toggle = (set: Set<string>, key: string) => { set.has(key) ? set.delete(ke
 const modoResumen = ref(false);
 
 /** ¿La descripción es lo bastante larga como para truncarla? */
-const descEsLarga = (segmento: any) => (store.traducir(segmento.contenidoSnapshot) || '').length > 450;
+const descEsLarga = (segmento: PaxCotSegmento) => (store.traducir(segmento.contenidoSnapshot) || '').length > 450;
 
 // ── i18n helper (clave estable para lookups) ─────────────────────────────────
-const contenidoEs = (i18n: any[] | undefined): string =>
-    i18n?.find((c: any) => c.language === 'es')?.content ?? i18n?.[0]?.content ?? '';
+const contenidoEs = (i18n: I18n | undefined): string =>
+    i18n?.find((c) => c.language === 'es')?.content ?? i18n?.[0]?.content ?? '';
 
 // ── Proveedores visibles (modal "ver más") ───────────────────────────────────
 interface ProveedorInfo {
-  titulo: any[];
+  titulo: I18n;
   url: string | null;
   imagenes: { imageUrl: string }[];
-  servicioTitulo: any[];
+  servicioTitulo: I18n;
   servicioImagenes: { imageUrl: string }[];
 }
 
 const proveedorPorTarifa = computed(() => {
   const m = new Map<string, ProveedorInfo>();
-  const cot: any = store.cotizacion;
+  const cot = store.cotizacion;
   for (const srv of cot?.cotservicios ?? []) {
     for (const comp of srv.cotcomponentes ?? []) {
       for (const t of comp.cottarifas ?? []) {
@@ -422,9 +422,9 @@ const proveedorPorTarifa = computed(() => {
           m.set(`${srv.id}::${contenidoEs(t.tituloSnapshot)}`, {
             titulo: t.proveedorTituloSnapshot,
             url: t.proveedorUrlSnapshot ?? null,
-            imagenes: (t.proveedorImagenesSnapshot ?? []).filter((i: any) => i.imageUrl),
+            imagenes: (t.proveedorImagenesSnapshot ?? []).filter((i) => i.imageUrl),
             servicioTitulo: t.proveedorServicioTituloSnapshot ?? [],
-            servicioImagenes: (t.proveedorServicioImagenesSnapshot ?? []).filter((i: any) => i.imageUrl),
+            servicioImagenes: (t.proveedorServicioImagenesSnapshot ?? []).filter((i) => i.imageUrl),
           });
         }
       }
@@ -521,7 +521,7 @@ const seccionesInclusion = (srv: { incluidos: PaxInclusionItem[]; noIncluidos: P
  * cuya `fecha` cae en ese día. Todo tiene fecha, así que el reparto es exacto.
  * `largo` decide si el panel arranca semicolapsado con "mostrar más".
  */
-type InclusionServicioDia = { servicioId: string; nombre: any; secciones: ReturnType<typeof seccionesInclusion> };
+type InclusionServicioDia = { servicioId: string; nombre: I18n; secciones: ReturnType<typeof seccionesInclusion> };
 const inclusionesPorDia = computed(() => {
   const m = new Map<string, { servicios: InclusionServicioDia[]; largo: boolean }>();
 
@@ -562,11 +562,11 @@ const inclusionesPorDia = computed(() => {
 // ── Modal de inclusiones del servicio COMPLETO (todos los días) ──────────────
 interface InclusionModal {
   servicioId: string;
-  nombre: any;
+  nombre: I18n;
   secciones: ReturnType<typeof seccionesInclusion>;
 }
 const modalInclusiones = ref<InclusionModal | null>(null);
-const abrirInclusiones = (servicioId: string, nombre: any) => {
+const abrirInclusiones = (servicioId: string, nombre: I18n) => {
   const srv = inclusionPorServicio.value.get(servicioId);
   if (!srv) return;
   modalInclusiones.value = { servicioId, nombre, secciones: seccionesInclusion(srv) };
@@ -582,12 +582,15 @@ const abrirInclusiones = (servicioId: string, nombre: any) => {
  */
 interface ChipLinea { titulo: string; badges: ReturnType<typeof modCatBadges>; proveedor: ProveedorInfo | null; count: number }
 const chipsDeLinea = (l: PaxInclusionItem, servicioId: string): ChipLinea[] => {
-  const conProveedor = (tarifaTitulo: any) =>
+  const conProveedor = (tarifaTitulo: I18n) =>
       proveedorPorTarifa.value.get(`${servicioId}::${contenidoEs(tarifaTitulo)}`) ?? null;
 
   // Datos crudos por tarifa (o la propia línea si no trae tarifas)
-  const fuentes = (l.tarifas.length ? (l.tarifas as PaxTarifaFinanciera[]) : [l as any])
-      .map((t: any) => ({
+  // Si la línea no trae tarifas, la propia línea hace de fuente: ambas
+  // comparten los campos de clasificación que se pintan en el chip.
+  const origenes: (PaxTarifaFinanciera | PaxInclusionItem)[] = l.tarifas.length ? l.tarifas : [l];
+  const fuentes = origenes
+      .map((t) => ({
         titulo: store.traducir(t.tarifaTitulo),
         modalidad: (t.modalidad ?? null) as string | null,
         categoria: (t.categoria ?? null) as string | null,

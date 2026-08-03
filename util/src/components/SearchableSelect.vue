@@ -44,7 +44,7 @@
       <ul class="max-h-64 overflow-y-auto py-1 custom-scrollbar">
         <li
             v-for="opt in filteredOptions"
-            :key="opt.value"
+            :key="opt.value ?? opt.label"
             @click="select(opt)"
             class="px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between"
             :class="[
@@ -64,11 +64,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue';
+import { ref, computed, nextTick, watch, type DirectiveBinding } from 'vue';
+
+/**
+ * Valor de una opción: siempre un identificador (id o IRI), o null cuando no hay
+ * selección. El componente no necesita saber nada más del dominio.
+ */
+type OpcionValor = string | number | null | undefined;
 
 const props = withDefaults(defineProps<{
-  modelValue: any;
-  options: { value: any, label: string }[];
+  modelValue: OpcionValor;
+  options: { value: OpcionValor, label: string }[];
   placeholder?: string;
   darkMode?: boolean;
   // 🆕 opcionales — no afectan a las instancias existentes
@@ -126,7 +132,7 @@ const close = () => {
   isOpen.value = false;
 };
 
-const select = (opt: any) => {
+const select = (opt: { value: OpcionValor; label: string }) => {
   emit('update:modelValue', opt.value);
   emit('change', opt.value);
   touched.value = true;
@@ -155,17 +161,19 @@ const validate = (): boolean => {
 defineExpose({ validate, isValid: computed(() => !(props.required && isEmpty.value)) });
 
 // Directiva simple para cerrar al hacer clic fuera
+type ElementoConClickFuera = HTMLElement & { clickOutsideEvent?: (event: Event) => void };
+
 const vClickOutside = {
-  mounted(el: any, binding: any) {
+  mounted(el: ElementoConClickFuera, binding: DirectiveBinding<() => void>) {
     el.clickOutsideEvent = (event: Event) => {
-      if (!(el === event.target || el.contains(event.target))) {
+      if (!(el === event.target || el.contains(event.target as Node))) {
         binding.value();
       }
     };
     document.addEventListener('click', el.clickOutsideEvent);
   },
-  unmounted(el: any) {
-    document.removeEventListener('click', el.clickOutsideEvent);
+  unmounted(el: ElementoConClickFuera) {
+    if (el.clickOutsideEvent) document.removeEventListener('click', el.clickOutsideEvent);
   },
 };
 </script>

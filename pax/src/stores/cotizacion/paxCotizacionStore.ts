@@ -1,4 +1,5 @@
 // src/stores/pax/paxCotizacionStore.ts
+import axios from 'axios';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { paxCotizacionService } from '@/services/paxCotizacionService';
@@ -57,15 +58,16 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
         }
     };
 
-    const manejarError = (err: any, teniamosDatos: boolean) => {
+    const manejarError = (err: unknown, teniamosDatos: boolean) => {
         console.error('❌ PaxCotizacionStore:', err);
         if (teniamosDatos) {
             error.value = 'No se pudo actualizar, mostrando última versión guardada.';
             return;
         }
-        error.value = err?.response?.status === 404
+        const esNoEncontrado = axios.isAxiosError(err) && err.response?.status === 404;
+        error.value = esNoEncontrado
             ? 'Localizador o propuesta no encontrada.'
-            : (err.message || 'Error de conexión crítico.');
+            : ((err as Error)?.message || 'Error de conexión crítico.');
         throw err;
     };
 
@@ -113,7 +115,7 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
                 if (idiomaFile && maestroStore.idiomaActual !== idiomaFile && !localStorage.getItem('paxIdiomaManual')) {
                     maestroStore.setIdioma(idiomaFile);
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 if (!datosExisten) { portada.value = null; currentLocalizador.value = null; }
                 manejarError(err, datosExisten);
             } finally {
@@ -163,7 +165,7 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
                 if (idiomaCliente && maestroStore.idiomaActual !== idiomaCliente && !localStorage.getItem('paxIdiomaManual')) {
                     maestroStore.setIdioma(idiomaCliente);
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 if (!datosExisten) { detalle.value = null; currentVersion.value = null; }
                 manejarError(err, datosExisten);
             } finally {
@@ -213,7 +215,7 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
                 if (idiomaCat && maestroStore.idiomaActual !== idiomaCat && !localStorage.getItem('paxIdiomaManual')) {
                     maestroStore.setIdioma(idiomaCat);
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 if (!datosExisten) { portadaCatalogo.value = null; }
                 manejarError(err, datosExisten);
             } finally {
@@ -262,7 +264,7 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
                 if (idiomaTour && maestroStore.idiomaActual !== idiomaTour && !localStorage.getItem('paxIdiomaManual')) {
                     maestroStore.setIdioma(idiomaTour);
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 if (!datosExisten) { detalle.value = null; currentVersion.value = null; }
                 manejarError(err, datosExisten);
             } finally {

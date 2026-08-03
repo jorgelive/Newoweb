@@ -46,7 +46,7 @@ let failedQueue: { resolve: Function, reject: Function, config: CustomAxiosReque
  * Si recibe un error, rechaza todas (ej: usuario canceló login).
  * Si no, las reintenta automáticamente usando las credenciales renovadas.
  */
-export const processQueue = (error: any = null) => {
+export const processQueue = (error: unknown = null) => {
     failedQueue.forEach(prom => {
         if (error) prom.reject(error);
         else prom.resolve(apiClient(prom.config));

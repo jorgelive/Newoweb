@@ -96,4 +96,15 @@ Qué usar en su lugar:
   abierto y el contrato lo fija el backend: el caso de `event.extendedProps`. El cast se
   acota a esa línea y el comentario dice quién garantiza la forma.
 
-Verificación: `cd util && npx vue-tsc --noEmit` (idem en `pax/`). Sin errores, siempre.
+Dos trampas que ya costaron caro, porque **no fallan al compilar**:
+
+- **Una unión con `any` colapsa el tipo entero.** `{ start?: string; ... } | any` es `any`
+  a secas: las llaves de la izquierda no tipan nada. Si un campo admite formas distintas,
+  enuméralas todas o usa un índice `[clave: string]: unknown`.
+- **Redeclarar un campo del schema sin quitarlo del `Omit`** da una intersección
+  inservible (`string[] & I18nContent[]`), y el error aparece lejos, al usarlo. Ver el
+  aviso de §2 en `docs/Cotizaciones.md`.
+
+Verificación: `cd util && npm run typecheck` (idem en `pax/`) — es `vue-tsc --noEmit`, la
+misma comprobación que corre el build. Sin errores, siempre. Ojo: la inspección propia de
+PhpStorm sobre `.vue` es menos fiable que `vue-tsc`; ante una discrepancia, manda el script.

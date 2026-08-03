@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
-import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation } from '@/stores/chat/chatStore.ts';
+import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation, type ApiAttachment, type ApiMessageQueue } from '@/stores/chat/chatStore.ts';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import EditConversationModal from '@/components/chat/EditConversationModal.vue';
@@ -762,10 +762,9 @@ const getChannelIcons = (msg: ApiMessage) => {
   return icons.length ? icons : [{ class: 'fas fa-comment-dots', color: 'text-slate-400' }];
 };
 
-const getTemplateName = (templateData: any) => {
+const getTemplateName = (templateData: ApiMessage['template']) => {
   if (!templateData) return null;
   if (typeof templateData === 'string') {
-    // @ts-ignore
     const found = store.templates.find(t => (t['@id'] || t.id) === templateData);
     return found ? found.name : 'Plantilla Automática';
   }
@@ -824,7 +823,7 @@ const formatFullDate = (iso?: string) => {
 // AGRUPACIÓN DE MENSAJES
 // ============================================================================
 const groupedMessages = computed(() => {
-  const groups: Record<string, any[]> = {};
+  const groups: Record<string, ApiMessage[]> = {};
 
   let sourceList: ApiMessage[] = [];
 
@@ -867,14 +866,14 @@ const getOriginClass = (origin?: string | null) => {
   return colors[origin?.toLowerCase() || ''] || 'bg-[#376875]';
 };
 
-const isImageAttachment = (att: any): boolean => {
+const isImageAttachment = (att: ApiAttachment | string): boolean => {
   if (typeof att === 'string') return false;
   if (att.mimeType && att.mimeType.startsWith('image/')) return true;
   const name = att.originalName || att.fileUrl || '';
   return /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
 };
 
-const handleAttachmentClick = (att: any) => {
+const handleAttachmentClick = (att: ApiAttachment | string) => {
   if (typeof att === 'string') {
     window.open(att, '_blank');
     return;
@@ -965,14 +964,23 @@ const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | nul
   return null;
 };
 
-const getQueueStatus = (queues?: any[]) => {
+/**
+ * Estado visual de un canal a partir de su ÚLTIMA cola de envío. Las colas
+ * llegan como objeto o como IRI según el grupo de serialización: una IRI suelta
+ * significa que se encoló y no hay más detalle, o sea "enviado".
+ */
+const getQueueStatus = (queues?: ApiMessageQueue[] | string[]) => {
   if (!queues || queues.length === 0) return null;
   const lastQueue = queues[queues.length - 1];
   if (typeof lastQueue === 'string') return 'sent';
   if (lastQueue.status === 'failed') return 'failed';
   if (lastQueue.status === 'cancelled') return 'cancelled';
-  if (lastQueue.deliveryStatus === 'read') return 'read';
-  if (lastQueue.deliveryStatus === 'delivered') return 'delivered';
+  // `deliveryStatus` solo existe en la cola de WhatsApp Meta; la de Beds24 no
+  // reporta acuse de entrega, de ahí el estrechamiento.
+  if ('deliveryStatus' in lastQueue) {
+    if (lastQueue.deliveryStatus === 'read') return 'read';
+    if (lastQueue.deliveryStatus === 'delivered') return 'delivered';
+  }
   return lastQueue.status || 'sent';
 };
 
@@ -984,7 +992,7 @@ const getWhatsappStatus = (msg: ApiMessage) => {
     if (waMeta.delivered_at) return 'delivered';
     if (waMeta.sent_at) return 'sent';
   }
-  return getQueueStatus(msg.whatsappMetaSendQueues as any[]) || 'queued';
+  return getQueueStatus(msg.whatsappMetaSendQueues) || 'queued';
 };
 
 const getBeds24Status = (msg: ApiMessage) => {
@@ -995,10 +1003,10 @@ const getBeds24Status = (msg: ApiMessage) => {
     if (bedsMeta.delivered_at) return 'delivered';
     if (bedsMeta.sent_at) return 'sent';
   }
-  return getQueueStatus(msg.beds24SendQueues as any[]) || 'queued';
+  return getQueueStatus(msg.beds24SendQueues) || 'queued';
 };
 
-const getDirectChannelId = (channel?: any): string | null => {
+const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
   if (!channel) return null;
   if (typeof channel === 'string') {
     if (channel.includes('whatsapp')) return 'whatsapp_meta';
@@ -1358,7 +1366,7 @@ const getDirectChannelId = (channel?: any): string | null => {
                         <template v-else>
                           <div class="flex items-center gap-2">
 
-                            <span v-if="getDispatchError(msg, 'whatsapp') || msg.whatsappMetaSendQueues?.length > 0 || msg.metadata?.whatsappMeta?.sent_at || msg.metadata?.whatsappMeta?.error_code"
+                            <span v-if="getDispatchError(msg, 'whatsapp') || (msg.whatsappMetaSendQueues?.length ?? 0) > 0 || msg.metadata?.whatsappMeta?.sent_at || msg.metadata?.whatsappMeta?.error_code"
                                   class="flex items-center gap-0.5 ml-2 cursor-help"
                                   :title="getDispatchError(msg, 'whatsapp') || 'WhatsApp'"
                                   @touchstart="startErrorLongPress(getDispatchError(msg, 'whatsapp'), $event)"
@@ -1373,7 +1381,7 @@ const getDirectChannelId = (channel?: any): string | null => {
                               <MessageStatusIcon v-else :status="getWhatsappStatus(msg)" />
                             </span>
 
-                            <span v-if="getDispatchError(msg, 'beds24') || msg.beds24SendQueues?.length > 0 || msg.metadata?.beds24?.sent_at || msg.metadata?.beds24?.error"
+                            <span v-if="getDispatchError(msg, 'beds24') || (msg.beds24SendQueues?.length ?? 0) > 0 || msg.metadata?.beds24?.sent_at || msg.metadata?.beds24?.error"
                                   class="flex items-center gap-0.5 ml-2 cursor-help"
                                   :title="getDispatchError(msg, 'beds24') || 'Beds24'"
                                   @touchstart="startErrorLongPress(getDispatchError(msg, 'beds24'), $event)"

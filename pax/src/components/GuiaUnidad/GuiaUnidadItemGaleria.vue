@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import type { PmsGuiaItem, GuiaHelperContext } from '@/types/paxHuespedModel';
+import type { usePmsGuiaStore } from '@/stores/huesped/paxHuespedGuiaStore';
 /* src/components/GuiaUnidad/GuiaUnidadItemGaleria.vue */
 import { computed, ref } from 'vue';
 import RichTextRenderer from '@/components/RichText/RichTextRenderer.vue';
 import VueEasyLightbox from 'vue-easy-lightbox';
 
 const props = defineProps<{
-  item: any;
-  context: any;
-  store: any;
+  item: PmsGuiaItem;
+  context: GuiaHelperContext | null;
+  store: ReturnType<typeof usePmsGuiaStore>;
 }>();
 
 // --- ESTADO DEL LIGHTBOX ---
@@ -17,7 +19,7 @@ const indexRef = ref(0);
 // Extraemos solo las URLs para pasarlas al lightbox
 const imagesList = computed(() => {
   if (!props.item.galeria) return [];
-  return props.item.galeria.map((foto: any) => foto.imageUrl);
+  return props.item.galeria.map((foto) => foto.imageUrl);
 });
 
 // Función para abrir el modal en la foto específica

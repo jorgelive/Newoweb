@@ -119,8 +119,8 @@ const handleCreate = async (): Promise<void> => {
   // 🔥 FIX: Búsqueda dinámica del IRI real.
   // Extraemos el '@id' directamente del catálogo descargado para no tener que adivinar
   // las rutas pluralizadas de API Platform (ej. /paises en vez de /maestro_pais)
-  const paisObj = maestroStore.paises.find((p: any) => p.id === newFile.value.paisId || p['@id'] === newFile.value.paisId);
-  const idiomaObj = maestroStore.idiomas.find((i: any) => i.id === newFile.value.idiomaId || i['@id'] === newFile.value.idiomaId);
+  const paisObj = maestroStore.paises.find((p) => p.id === newFile.value.paisId || p['@id'] === newFile.value.paisId);
+  const idiomaObj = maestroStore.idiomas.find((i) => i.id === newFile.value.idiomaId || i['@id'] === newFile.value.idiomaId);
 
   // Ignoramos tipado estricto si OpenAPI no ha sido indexado completamente en el IDE local
   // @ts-ignore

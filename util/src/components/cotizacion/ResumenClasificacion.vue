@@ -17,6 +17,7 @@ import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorSt
 import {
   filasResumenGeneral,
   LineaDetalleClaseInterna, InclusionLinea,
+  ClasePasajeroInterna, OpcionUpgradeInterna, InclusionServicio,
   clasificacionBadges, CLASIF_BADGE_CLASE
 } from '@/types/cotizacionEditorModel';
 
@@ -44,13 +45,13 @@ const MODO_UI: Record<string, { label: string; badge: string }> = {
   opcional:    { label: 'Opcional',    badge: 'bg-amber-50 text-amber-700 border-amber-200' }
 };
 
-const filasPorModo = (clase: any) => ([
+const filasPorModo = (clase: ClasePasajeroInterna) => ([
   { key: 'normal',   label: 'Normal',   ...clase.resumenPorModo.normal },
   { key: 'ctaPax',   label: 'Cta Pax',  ...clase.resumenPorModo.ctaPax },
   { key: 'cortesia', label: 'Cortesía', ...clase.resumenPorModo.cortesia }
 ].filter(f => f.costoSoles !== 0 || f.ventaSoles !== 0));
 
-const rangoEdadLabel = (clase: any) => {
+const rangoEdadLabel = (clase: ClasePasajeroInterna) => {
   if (clase.edadMin <= 0 && clase.edadMax >= 120) return 'Sin restricción de edad';
   if (clase.edadMin > 0 && clase.edadMax < 120) return `${clase.edadMin} - ${clase.edadMax} años`;
   if (clase.edadMin > 0) return `desde ${clase.edadMin} años`;
@@ -75,13 +76,13 @@ const labelInclusion = (l: InclusionLinea) => store.getI18nText(l.nombre, lang.v
 
 /** Nombre de la tarifa de una alternativa: interno primero (genérico pero siempre
  *  presente), luego el título público. */
-const tarifaLabelAlt = (o: { tarifaNombreInterno: string | null; tarifaTitulo: any }) =>
+const tarifaLabelAlt = (o: OpcionUpgradeInterna) =>
     o.tarifaNombreInterno || store.getI18nText(o.tarifaTitulo, lang.value);
 /** Nombre de la estándar reemplazada: mismo criterio. */
-const estandarLabelAlt = (o: { estandarNombreInterno: string | null; estandarTitulo: any }) =>
+const estandarLabelAlt = (o: OpcionUpgradeInterna) =>
     o.estandarNombreInterno || store.getI18nText(o.estandarTitulo, lang.value);
 
-const seccionesInclusion = (srv: any) => ([
+const seccionesInclusion = (srv: InclusionServicio) => ([
   { key: 'incluidos',   titulo: 'Incluye',     icono: 'fa-check-circle text-emerald-500', lineas: srv.incluidos },
   { key: 'noIncluidos', titulo: 'No incluye',  icono: 'fa-times-circle text-red-500',     lineas: srv.noIncluidos },
   { key: 'cortesias',   titulo: 'Cortesía',    icono: 'fa-gift text-sky-500',             lineas: srv.cortesias },

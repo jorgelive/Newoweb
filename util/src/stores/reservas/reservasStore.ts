@@ -258,18 +258,6 @@ export const useReservasStore = defineStore('reservasStore', () => {
     };
 });
 
-// ============================================================================
-// HELPER: mensaje de error legible desde una respuesta de API Platform
-// (ConstraintViolationListError en 422, AccessDeniedHttpException en 403, etc.)
-// ============================================================================
-export function extractApiErrorMessage(err: unknown, fallback = 'Ocurrió un error inesperado.'): string {
-    const data = (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
-    if (!data) return fallback;
-
-    const violations = data['violations'] as Array<{ propertyPath?: string; message?: string }> | undefined;
-    if (Array.isArray(violations) && violations.length > 0) {
-        return violations.map(v => (v.propertyPath ? `${v.propertyPath}: ${v.message}` : v.message)).join(' | ');
-    }
-
-    return (data['detail'] as string) || (data['hydra:description'] as string) || (data['title'] as string) || fallback;
-}
+// El helper vive ahora en services/apiError.ts (lo comparten todos los stores).
+// Se re-exporta para no romper los imports existentes desde este módulo.
+export { extractApiErrorMessage } from '@/services/apiError';
