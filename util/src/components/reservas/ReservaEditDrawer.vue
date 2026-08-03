@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { getUrls } from '@/services/apiClient';
-import { formatearTelefono } from '@/utils/telefono';
+import { formatearTelefono, telefonoParaWhatsapp } from '@/utils/telefono';
 import ReservaFinanzasPanel from '@/components/reservas/ReservaFinanzasPanel.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
@@ -52,6 +53,7 @@ const emit = defineEmits<{
     deleted: [];
 }>();
 
+const router = useRouter();
 const reservasStore = useReservasStore();
 const maestroStore = useMaestroStore();
 
@@ -468,6 +470,66 @@ const guideUrl = computed(() => {
     return `${getUrls().pax}/huesped/reserva/${reservaInfo.value.localizador}`;
 });
 
+// ============================================================================
+// CABECERA: titular, pax y accesos directos de contacto
+// ============================================================================
+
+/** Estancia sobre la que informa la cabecera: la abierta en el acordeón. */
+const entryActiva = computed(() => eventos.value[activeIndex.value] ?? eventos.value[0] ?? null);
+
+/**
+ * Titular de la reserva. En un bloqueo no hay cliente, así que se cae a la casita:
+ * es lo único que identifica ese tramo de calendario.
+ */
+const tituloCabecera = computed(() => {
+    const nombre = [clienteForm.value.nombreCliente, clienteForm.value.apellidoCliente]
+        .filter(Boolean).join(' ').trim();
+    if (nombre) return nombre;
+    return entryActiva.value ? nombreUnidad(entryActiva.value) : '—';
+});
+
+/** `x2 +1` = 2 adultos y 1 niño; el `+` solo aparece si hay niños. */
+const paxResumen = computed(() => {
+    const entry = entryActiva.value;
+    if (!entry) return null;
+    const adultos = entry.form.cantidadAdultos || 0;
+    const ninos = entry.form.cantidadNinos || 0;
+    return `x${adultos}${ninos ? ` +${ninos}` : ''}`;
+});
+
+/** Conversación directa de WhatsApp con el huésped (mismo criterio que el menú del calendario). */
+const whatsappUrl = computed(() => {
+    const numero = telefonoParaWhatsapp(clienteForm.value.telefono || clienteForm.value.telefono2);
+    return numero ? `https://wa.me/${numero}` : null;
+});
+
+const abriendoChat = ref(false);
+
+async function abrirChatInterno(): Promise<void> {
+    if (!props.reservaId) return;
+
+    abriendoChat.value = true;
+    try {
+        const convId = await reservasStore.fetchConversacionId(props.reservaId);
+        if (!convId) {
+            localError.value = 'Esta reserva todavía no tiene una conversación de chat.';
+            return;
+        }
+
+        // El drawer se cierra ANTES de navegar a propósito: ReservasView cancela la
+        // salida de ruta mientras haya un drawer abierto (onBeforeRouteLeave, para
+        // que el «atrás» del móvil cierre el formulario en vez de salir), así que un
+        // push con el drawer todavía abierto se lo tragaría el guard.
+        emit('close');
+        // ChatView solo reacciona a `route.query.id`, no a un param de ruta.
+        await router.push({ path: '/chat', query: { id: convId } });
+    } catch {
+        localError.value = 'No se pudo abrir el chat interno.';
+    } finally {
+        abriendoChat.value = false;
+    }
+}
+
 const vcardUrl = computed(() => {
     if (!props.reservaId) return null;
     return `${getUrls().api}/pms/reservas/${props.reservaId}/vcard`;
@@ -739,20 +801,39 @@ async function guardar(): Promise<void> {
 
         <!-- Panel -->
         <div class="relative w-full max-w-lg h-full bg-white shadow-2xl flex flex-col animate-slide-in">
-            <header class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between shrink-0">
-                <div>
-                    <h2 class="font-black text-base tracking-tight">
-                        <template v-if="isCreateReserva">Nueva Reserva</template>
-                        <template v-else-if="isCreate">Nuevo Bloqueo</template>
-                        <template v-else-if="readOnly">Ver Estancia</template>
-                        <template v-else>Editar Estancia</template>
-                    </h2>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                        <span v-if="hayOta" class="text-amber-400"><i class="fas fa-lock mr-1"></i>Sincronizado por OTA</span>
-                        <span v-else>Reserva PMS</span>
+            <!-- El modo (Ver/Editar) pasa a línea secundaria: quien abre el drawer ya
+                 sabe qué pulsó, y el dato que de verdad ubica la ficha es el titular. -->
+            <header class="bg-slate-900 text-white px-5 py-3 flex items-center justify-between gap-3 shrink-0">
+                <div class="min-w-0">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <span>
+                            <template v-if="isCreateReserva">Nueva Reserva</template>
+                            <template v-else-if="isCreate">Nuevo Bloqueo</template>
+                            <template v-else-if="readOnly">Ver Estancia</template>
+                            <template v-else>Editar Estancia</template>
+                        </span>
+                        <span v-if="hayOta" class="text-amber-400"><i class="fas fa-lock mr-1"></i>OTA</span>
                     </p>
+                    <h2 class="font-black text-base tracking-tight truncate mt-0.5">
+                        {{ tituloCabecera }}
+                        <span v-if="paxResumen" class="text-slate-400 font-bold text-xs ml-1">{{ paxResumen }}</span>
+                    </h2>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <!-- Conversación directa con el huésped (sin plantilla), igual que el
+                         menú contextual del calendario. -->
+                    <a v-if="whatsappUrl" :href="whatsappUrl" target="_blank" rel="noopener"
+                        title="Abrir WhatsApp con el huésped"
+                        class="group w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-emerald-600 rounded-full transition-colors">
+                        <i class="fab fa-whatsapp text-emerald-400 group-hover:text-white text-sm"></i>
+                    </a>
+                    <button v-if="reservaId" type="button" @click="abrirChatInterno" :disabled="abriendoChat"
+                        title="Abrir chat interno"
+                        class="group w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-[#376875] rounded-full transition-colors disabled:opacity-50">
+                        <i class="fas text-sm text-slate-300 group-hover:text-white"
+                            :class="abriendoChat ? 'fa-spinner fa-spin' : 'fa-comment-dots'"></i>
+                    </button>
+
                     <button v-if="readOnly" @click="habilitarEdicion"
                         class="px-3 h-8 flex items-center gap-1.5 bg-[#376875] hover:bg-[#2d5660] rounded-full transition-colors text-xs font-black">
                         <i class="fas fa-pen text-[11px]"></i> Editar

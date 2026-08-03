@@ -800,7 +800,7 @@ const calendarOptions: any = {
         <!-- Menú contextual: Ver/Editar sobre un evento, Bloqueo/Reserva sobre espacio vacío -->
         <div v-if="menu" class="fixed inset-0 z-30" @click="cerrarMenu" @contextmenu.prevent="cerrarMenu">
             <div class="absolute bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden py-1.5 max-w-[calc(100vw-1rem)] max-h-[70vh] overflow-y-auto"
-                :class="menu.kind === 'whatsapp' ? 'w-[280px]' : 'w-52'"
+                :class="menu.kind === 'whatsapp' ? 'w-70' : 'w-52'"
                 :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @click.stop>
                 <template v-if="menu.kind === 'event'">
                     <button @click="elegirVerEvento"

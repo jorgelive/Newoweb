@@ -438,12 +438,61 @@ recurso REST de API Platform propio para EDITAR. Ningún dato de edición pasa p
 
 | Archivo | Responsabilidad |
 |---|---|
-| `util/src/views/Reservas/ReservasView.vue` | Calendario + menú contextual + drag & drop |
+| `util/src/views/Reservas/ReservasView.vue` | Calendario + menú contextual + drag & drop + buscador |
 | `util/src/components/reservas/ReservaEditDrawer.vue` | Drawer ver/crear/editar (acordeón de estancias) |
-| `util/src/stores/reservas/reservasStore.ts` | Catálogos + CRUD de evento/reserva |
+| `util/src/stores/reservas/reservasStore.ts` | Catálogos + CRUD de evento/reserva + búsqueda |
 | `util/src/types/pmsReservaModel.ts` | Tipos, helpers de IRI/fecha y reglas OTA |
+| `src/Pms/Controller/Api/PmsReservaBuscarController.php` | `GET /pms/reservas/buscar?q=` (buscador del calendario) |
 
 Calendarios: `pms_eventos_no_cancelados_spa`, `pms_eventos_todos_spa`.
+
+#### Buscador de reservas y salto al día
+
+El feed del calendario **solo carga el rango visible** (`e.inicio < :to AND e.fin > :from`,
+ver `PmsEventosSpaCalendarProvider::fetchEventos()`): sin buscador no hay forma de dar con
+la reserva de un huésped sin saber de antemano su mes. Esa es la razón de ser de
+`PmsReservaBuscarController`, y por eso **no filtra por rango de fechas**.
+
+Decisiones que no se ven en el código:
+
+- **Devuelve estancias, no reservas.** Una reserva de dos casitas son dos
+  `PmsEventoCalendario` con fechas y unidad propias; el salto en el calendario es a un
+  tramo concreto, no a la reserva. De ahí una fila por estancia en el desplegable.
+- **Un término = una palabra, AND entre términos**, cada uno contra
+  `CONCAT(nombreCliente, ' ', apellidoCliente)`, localizador, `referenciaCanal` y nombre de
+  casita. Así "juan perez" encuentra al huésped aunque nombre y apellido vivan en columnas
+  distintas, y "perez casita" no devuelve a todos los Pérez.
+- **Orden por cercanía a hoy** (`ABS(DATE_DIFF(e.inicio, CURRENT_DATE()))`), no por fecha
+  descendente: lo que se busca casi siempre es la reserva de estos días.
+- **`estadoId` viaja al frontend** para un caso concreto: si la estancia encontrada está
+  cancelada y el calendario activo es "No canceladas", `irAResultado()` cambia a "Todas"
+  antes de saltar. Sin eso el salto acaba en una fila vacía y parece que la búsqueda mintió.
+
+**Gotcha de FullCalendar — el día, no solo el mes.** `gotoDate()` coloca el *rango* (el
+mes) pero no toca el scroll horizontal de la línea de tiempo. El desplazamiento fino es
+`scrollToTime({ days: n })`, que en vistas timeline cuenta desde `view.activeStart`; de ahí
+el cálculo de días de `scrollAlDia()`. La vieja limitación de "hay que esperar a que
+renderice" **está resuelta en FC 6**: `ScrollResponder` (en `@fullcalendar/core`) encola la
+petición y la reintenta en cada update hasta que el timeline tiene coordenadas. El matiz que
+sí queda: con `scrollTimeReset` (activo por defecto) un cambio de rango re-dispara el scroll
+por defecto y pisaría una petición anterior — por eso el salto se emite en el
+`requestAnimationFrame` *posterior* al cambio de rango, y `datesSet` / `loading` reintentan
+el `diaPendiente`.
+
+#### El «atrás» del móvil cierra capas (y su acoplamiento con el drawer)
+
+`ReservasView` y `TarifasView` registran `onBeforeRouteLeave`: si hay algo abierto encima
+del calendario (menú contextual → drawer → resultados de búsqueda), el back cierra **una
+capa** y cancela la navegación devolviendo `false`; solo con el calendario limpio se sale al
+portal. Es el gesto instintivo en móvil para cerrar un formulario. Vue Router restaura la
+posición del historial al abortar, así que el back sigue disponible para el siguiente
+intento.
+
+⚠️ **Consecuencia no obvia:** el guard cancela *cualquier* salida de ruta, no solo el back.
+Todo `router.push()` disparado desde dentro del drawer tiene que **cerrarlo antes** o el
+guard se lo traga. Es lo que hace `ReservaEditDrawer::abrirChatInterno()` (emite `close` y
+luego navega a `/chat?id=`). Si mañana se añade otro botón que navegue desde el drawer,
+mismo requisito.
 
 ### Tarifas — equivalente de `PmsTarifaRangoCrudController`
 
