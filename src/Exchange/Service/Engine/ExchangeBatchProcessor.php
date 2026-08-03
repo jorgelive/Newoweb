@@ -29,7 +29,19 @@ final class ExchangeBatchProcessor
         $mapping = $task->getMappingStrategy()->map($batch);
 
         // 1. Auditoría del REQUEST
-        $jsonRequest = json_encode($mapping->payload);
+        //
+        // Se guarda método + URL + payload, no sólo el payload: en un GET los parámetros
+        // pueden ir en la URL (los pull de Beds24 construyen ahí el `bookingId` repetido,
+        // §11.3.1) y la auditoría se quedaba en un `[]` que no decía nada. Con la URL queda
+        // registrado qué se pidió exactamente, que es lo que se busca al depurar.
+        //
+        // La autenticación de Beds24 viaja en cabeceras, así que aquí no se filtra ningún token.
+        $jsonRequest = json_encode([
+            'method'  => $mapping->method,
+            'url'     => $mapping->fullUrl,
+            'payload' => $mapping->payload,
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
         foreach ($batch->getItems() as $item) {
             $item->setLastRequestRaw($jsonRequest);
         }

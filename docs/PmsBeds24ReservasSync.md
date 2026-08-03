@@ -732,6 +732,13 @@ y usando `$item->getTargetBookId()`. Tampoco hay riesgo de mezclar cuentas de Be
 petición: `claimRunnable()` sondea un candidato y trae sólo los que comparten `config_id` **y**
 `endpoint_id`, así que el lote es homogéneo por construcción.
 
+**Efecto colateral en la auditoría.** `ExchangeBatchProcessor` guardaba en `lastRequestRaw` sólo
+`$mapping->payload`; al pasar los `bookingId` a la URL, el campo quedaba en `[]`. Ahora guarda
+`{method, url, payload}`, lo que además tapa un hueco que ya existía: **en cualquier GET la
+auditoría nunca registró a qué URL se llamó**. Afecta a todas las colas, es sólo de lectura (nadie
+parsea ese campo, se muestra en el panel) y la autenticación de Beds24 va en cabeceras, así que no
+se filtra ningún token.
+
 ### 11.4 Moneda, tipo de cambio y clasificación (enriquecimiento local)
 
 Beds24 **no** envía moneda ni tipo de cambio en los invoiceItems; el `subType` es grueso (el 11
