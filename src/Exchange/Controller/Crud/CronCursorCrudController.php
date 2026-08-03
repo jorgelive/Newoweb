@@ -15,8 +15,12 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * CronCursorCrudController.
@@ -56,13 +60,64 @@ class CronCursorCrudController extends BaseCrudController
      */
     public function configureActions(Actions $actions): Actions
     {
+        $reiniciar = Action::new('reiniciarCursor', 'Reiniciar', 'fa fa-rotate-left')
+            ->linkToCrudAction('reiniciarCursorAction')
+            ->setCssClass('btn btn-warning text-dark')
+            // Si ya está en el arranque (o aún no tiene fecha), el botón no aporta nada.
+            // La comparación se hace explícita en vez de fiarse de cómo compara PHP null
+            // contra un objeto DateTime.
+            ->displayIf(static function (ExchangeCronCursor $c): bool {
+                $fecha = $c->getCursorDate();
+
+                return $fecha !== null && $fecha > new DateTimeImmutable('yesterday');
+            });
+
         $actions
             ->disable(Action::NEW, Action::EDIT, Action::DELETE)
-            ->add(Crud::PAGE_INDEX, Action::DETAIL);
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, $reiniciar)
+            ->add(Crud::PAGE_DETAIL, $reiniciar);
 
         return parent::configureActions($actions)
             ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
-            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW);
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+            // Reiniciar SÍ escribe: no basta con permiso de lectura.
+            ->setPermission('reiniciarCursor', Roles::RESERVAS_WRITE);
+    }
+
+    /**
+     * Devuelve el cursor al arranque (ayer) para forzar un barrido completo desde el principio.
+     *
+     * Para qué sirve en la práctica: si se cargan tarifas o reservas de fechas ya superadas por
+     * el cursor, ese tramo no se vuelve a barrer hasta que el ciclo dé la vuelta entera. Este
+     * botón corta la espera.
+     *
+     * No hace falta usarlo cuando el cursor se pasa del horizonte de datos: eso lo detecta y
+     * corrige solo `TimelineEnqueuerService` en la siguiente ejecución (§11.2.1). Este botón es
+     * para el caso contrario — adelantar un barrido que aún no tocaba.
+     */
+    public function reiniciarCursorAction(AdminContext $context, EntityManagerInterface $em): Response
+    {
+        /** @var ExchangeCronCursor $cursor */
+        $cursor = $context->getEntity()->getInstance();
+
+        $anterior = $cursor->getCursorDate()?->format('Y-m-d') ?? '—';
+        $nueva = new DateTimeImmutable('yesterday');
+
+        $cursor->setCursorDate($nueva);
+        $em->flush();
+
+        $this->addFlash('success', sprintf(
+            'Cursor de «%s» reiniciado: %s → %s. El siguiente barrido empezará desde ahí.',
+            $cursor->getJobName(),
+            $anterior,
+            $nueva->format('Y-m-d')
+        ));
+
+        return $this->redirect(
+            $context->getReferrer()
+            ?? $this->adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl()
+        );
     }
 
     /**

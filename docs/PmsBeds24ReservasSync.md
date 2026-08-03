@@ -749,6 +749,13 @@ el pasado no provoca reinicios en bucle.
 **No hace falta reiniciar cursores a mano al desplegar:** los que estén pasados de su horizonte
 se reinician solos en la primera ejecución.
 
+Aun así, el panel *Monitoreo de Crons* tiene un botón **Reiniciar**
+(`CronCursorCrudController::reiniciarCursorAction()`, requiere `RESERVAS_WRITE`) que devuelve el
+cursor a ayer. Su caso de uso es **el contrario** al anterior: cuando se cargan tarifas o reservas
+de fechas que el cursor **ya dejó atrás**, ese tramo no se vuelve a barrer hasta que el ciclo dé
+la vuelta entera. El botón adelanta ese barrido. Para un cursor disparado al futuro no hace falta:
+eso se corrige solo.
+
 ### 11.3.1 Lote múltiple: varias reservas en una sola petición
 
 Los dos pull en demanda (facturas y mensajes) piden **N reservas por petición** repitiendo el
