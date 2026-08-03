@@ -43,6 +43,23 @@ const formatMonto = (valor: string): string => {
 
 /** Rango principal (el primero) para el precio grande de la card. */
 const rangoPrincipal = (tour: PaxTourResumen) => tour.preciosDesde?.[0] ?? null;
+
+/**
+ * Tinte del marcador cuando el tour no tiene foto. Rota por posición para que
+ * una lista sin imágenes no parezca una pila de cajas rotas: cada tarjeta se
+ * lee como distinta aunque ninguna tenga portada todavía.
+ */
+const TINTES = [
+  'from-emerald-200 via-teal-300 to-teal-500',
+  'from-sky-200 via-blue-300 to-indigo-400',
+  'from-orange-100 via-amber-200 to-orange-300',
+  'from-violet-200 via-purple-300 to-fuchsia-400',
+];
+const tinte = (i: number): string => TINTES[i % TINTES.length];
+
+/** Texto plano del resumen para el recorte de 2 líneas de la tarjeta. */
+const resumenPlano = (tour: PaxTourResumen): string =>
+  store.traducir(tour.resumen).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 </script>
 
 <template>
@@ -94,78 +111,79 @@ const rangoPrincipal = (tour: PaxTourResumen) => tour.preciosDesde?.[0] ?? null;
         </div>
       </header>
 
-      <!-- Cards de tours -->
-      <main class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-20">
-        <article v-for="tour in store.tours" :key="tour.version"
-                 class="bg-white rounded-4xl border border-slate-200 shadow-lg shadow-slate-300/40 mb-8 overflow-hidden group hover:shadow-xl hover:shadow-[#376875]/10 hover:border-slate-300 transition-all duration-500">
+      <!-- Cards de tours: la tarjeta ENTERA es el enlace al programa. El botón
+           naranja a todo ancho se retiró — con una tarjeta por experiencia, repetir
+           un CTA gigante en cada una competía con la foto y alargaba el scroll; el
+           precio "Desde" con la flecha ya dice a dónde se va. -->
+      <main class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-10 pb-20 space-y-6 md:space-y-7">
+        <article v-for="(tour, idx) in store.tours" :key="tour.version"
+                 @click="verTour(tour.version)"
+                 class="group bg-white rounded-3xl border border-slate-200/70 shadow-[0_10px_30px_rgb(15,23,42,0.06)] hover:shadow-[0_18px_45px_rgb(55,104,117,0.15)] hover:border-slate-300 hover:-translate-y-0.5 overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.995]">
 
           <!-- Portada -->
-          <div class="relative aspect-[16/7] bg-slate-100 overflow-hidden">
+          <div class="relative aspect-video overflow-hidden bg-slate-100">
             <img v-if="tour.imagenPortada?.imageUrl"
                  :src="thumbUrl(tour.imagenPortada.imageUrl, 'travel_cliente')"
                  :alt="store.traducir(tour.titulo)"
                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy">
-            <div v-else class="w-full h-full bg-gradient-to-br from-[#376875] to-[#1f4550] flex items-center justify-center">
-              <i class="fas fa-mountain text-5xl text-white/20"></i>
-            </div>
+            <div v-else class="w-full h-full bg-linear-to-br" :class="tinte(idx)"></div>
 
             <!-- Degradado para legibilidad del título flotante -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent"></div>
+            <div class="absolute inset-0 bg-linear-to-t from-black/85 via-black/20 to-transparent"></div>
 
-            <span v-if="tour.numDias" class="absolute top-4 left-4 bg-white/95 backdrop-blur text-[#376875] text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow">
-              <i class="fas fa-route mr-1 text-[#E07845]"></i>
+            <span v-if="tour.numDias" class="absolute top-4 left-4 bg-white/95 backdrop-blur text-[#376875] text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
+              <i class="fas fa-route mr-1.5 text-[#E07845]"></i>
               {{ tour.numDias }} {{ tour.numDias === 1 ? (maestroStore.t('cat_dia') || 'día') : (maestroStore.t('cat_dias') || 'días') }}
             </span>
 
-            <!-- Título flotante sobre la foto -->
-            <div class="absolute bottom-0 left-0 right-0 p-4 md:p-5">
-              <h2 class="inline-block bg-black/35 backdrop-blur-md rounded-xl px-3.5 py-2 text-lg md:text-2xl font-black text-white tracking-tight leading-tight max-w-full">
-                {{ store.traducir(tour.titulo) || `Tour ${tour.version}` }}
-              </h2>
-            </div>
+            <!-- Título flotante: sin caja, directo sobre el degradado -->
+            <h2 class="absolute bottom-0 left-0 right-0 px-5 pb-4 md:px-6 md:pb-5 text-xl md:text-3xl font-black text-white tracking-tight leading-tight line-clamp-2 drop-shadow-lg">
+              {{ store.traducir(tour.titulo) || `Tour ${tour.version}` }}
+            </h2>
           </div>
 
-          <div class="p-6 md:p-8">
-            <!-- Precio "Desde" principal -->
-            <div v-if="!tour.precioOculto && rangoPrincipal(tour)" class="flex justify-end mb-3">
-              <div class="text-right shrink-0">
-                <p class="text-[9px] text-[#376875]/50 font-black uppercase tracking-widest">
-                  {{ maestroStore.t('cat_desde') || 'Desde' }}
-                </p>
-                <p class="text-lg md:text-xl font-black text-[#E07845] leading-tight whitespace-nowrap tabular-nums">
-                  {{ rangoPrincipal(tour)!.moneda }} {{ formatMonto(rangoPrincipal(tour)!.valor) }}
-                </p>
-              </div>
-            </div>
+          <!-- Cuerpo opcional. Resumen y rangos son campos que la mayoría de los tours
+               no tiene (`resumen` nace como []), así que van en un contenedor único: si
+               falta uno, el otro conserva el mismo aire respecto a la foto, y si faltan
+               los dos el pie queda pegado a la portada — que es el caso del diseño. -->
+          <div v-if="resumenPlano(tour) || (!tour.precioOculto && tour.preciosDesde?.length > 1)"
+               class="px-5 md:px-6 pt-4 space-y-3">
+            <!-- Resumen comercial: dos líneas, en gris, sin robar peso al pie -->
+            <p v-if="resumenPlano(tour)" class="text-[13px] leading-relaxed text-slate-500 line-clamp-2">
+              {{ resumenPlano(tour) }}
+            </p>
 
-            <!-- Resumen comercial i18n -->
-            <div v-if="store.traducir(tour.resumen)"
-                 class="prose prose-sm max-w-none text-slate-600 mb-5 prose-strong:text-[#376875] prose-a:text-[#E07845]"
-                 v-html="store.traducir(tour.resumen)" />
-
-            <!-- Rangos de precio por perfil -->
-            <div v-if="!tour.precioOculto && tour.preciosDesde?.length > 1" class="flex flex-wrap gap-2 mb-6">
+            <!-- Rangos por perfil, cuando hay más de uno -->
+            <div v-if="!tour.precioOculto && tour.preciosDesde?.length > 1" class="flex flex-wrap gap-1.5">
               <span v-for="(rango, i) in tour.preciosDesde" :key="i"
-                    class="text-[11px] font-bold bg-slate-50 border border-slate-200 text-slate-600 px-3 py-1.5 rounded-full">
+                    class="text-[11px] font-bold bg-slate-50 border border-slate-200 text-slate-500 px-2.5 py-1 rounded-full">
                 {{ store.traducir(rango.titulo) }}
                 <span class="font-black text-[#376875] ml-1 tabular-nums">{{ rango.moneda }} {{ formatMonto(rango.valor) }}</span>
               </span>
             </div>
+          </div>
 
-            <!-- CTA -->
-            <button @click="verTour(tour.version)"
-                    class="group/btn relative w-full rounded-3xl flex items-center justify-between gap-4 px-6 py-5 transition-all active:scale-[0.98] shadow-lg shadow-orange-100 hover:shadow-orange-200 bg-[#E07845] hover:bg-[#D06535] overflow-hidden text-left">
-              <i class="fas fa-map-signs absolute -right-3 -bottom-4 text-6xl text-white/10 group-hover/btn:scale-110 group-hover/btn:rotate-12 transition-transform duration-500"></i>
-              <span class="relative z-10 min-w-0">
-                <span class="block text-[14px] font-black uppercase tracking-[0.15em] text-white">
-                  {{ maestroStore.t('cat_btn_ver_tour') || 'Ver programa' }}
-                </span>
-                <span class="block text-white/80 text-[12px] font-medium leading-tight mt-1">
-                  {{ maestroStore.t('cat_cta_sub') || 'Día a día, incluye y precios' }}
-                </span>
+          <!-- Pie: la acción a la izquierda, el precio "desde" a la derecha -->
+          <div class="px-5 md:px-6 py-4 flex items-center justify-between gap-4">
+            <span class="text-[13px] md:text-sm font-medium text-slate-500 group-hover:text-[#376875] transition-colors min-w-0 truncate">
+              {{ maestroStore.t('cat_ver_detalles') || 'Ver detalles de la experiencia' }}
+            </span>
+
+            <span v-if="!tour.precioOculto && rangoPrincipal(tour)" class="text-right shrink-0">
+              <span class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                {{ maestroStore.t('cat_desde') || 'Desde' }}
               </span>
-              <i class="fas fa-arrow-right text-white relative z-10 shrink-0 group-hover/btn:translate-x-1 transition-transform"></i>
-            </button>
+              <span class="flex items-center gap-2 text-lg md:text-xl font-black text-[#E07845] leading-tight whitespace-nowrap tabular-nums">
+                {{ rangoPrincipal(tour)!.moneda }} {{ formatMonto(rangoPrincipal(tour)!.valor) }}
+                <i class="fas fa-arrow-right text-base group-hover:translate-x-1 transition-transform"></i>
+              </span>
+            </span>
+
+            <!-- Sin precio visible: la flecha sigue marcando que la tarjeta lleva a algún sitio -->
+            <span v-else class="shrink-0 flex items-center gap-2 text-[11px] font-black text-[#E07845] uppercase tracking-widest">
+              {{ maestroStore.t('cat_btn_ver_tour') || 'Ver programa' }}
+              <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+            </span>
           </div>
         </article>
       </main>

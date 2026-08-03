@@ -685,6 +685,13 @@ const mvDelta = (deltaUsd: number) => {
       : `$ ${n2(abs)}`;
 };
 
+/**
+ * ¿Se pinta la tarjeta de precio? Hay tarjeta si hay precio o si hay alternativas
+ * (éstas son descriptivas y se muestran aunque el precio esté oculto). El hero la
+ * consulta para reservar el aire del solape: sin tarjeta, no hay hueco que dejar.
+ */
+const hayPanelPrecio = computed(() => !!(store.precioVisible && totalViaje.value) || gruposUpgrade.value.length > 0);
+
 const adelantoVista = computed(() => {
   const cot = store.cotizacion;
   if (!cot) return '';
@@ -768,296 +775,251 @@ const adelantoVista = computed(() => {
               </p>
             </div>
 
-            <!-- Precio + selector de moneda. Un solo trigger abre el panel de detalle
-                 (precio por pasajero + opciones alternativas). Se muestra si hay precio
-                 O si hay alternativas -- si el precio está oculto, cambia a un botón sin
-                 montos, para que el panel de alternativas siga siendo alcanzable. -->
-            <div v-if="(store.precioVisible && totalViaje) || gruposUpgrade.length" class="flex flex-col items-end gap-2.5 shrink-0">
-
-              <!-- BOTÓN PRINCIPAL FINANCIERO -->
+            <!-- SELECTOR DE MONEDA (efecto cristal). Se queda en el hero y no dentro de
+                 la tarjeta de precio: las filas de esa tarjeta son <button> y no pueden
+                 anidar otro botón. -->
+            <div v-if="store.precioVisible" class="flex items-center bg-white/15 backdrop-blur-md border border-white/30 rounded-xl p-0.5 gap-0.5 shrink-0 shadow-[0_4px_12px_rgb(0,0,0,0.05)]">
               <button
-                  @click="finanzasAbiertas = !finanzasAbiertas"
-                  class="group relative text-right transition-all duration-300 ease-out focus:outline-none min-w-55 sm:min-w-65"
-              >
-                <!-- Fondo Soft Card con hover/active states -->
-                <span
-                    class="absolute inset-0 bg-linear-to-br from-white to-slate-50/95 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border transition-all duration-300 group-hover:shadow-[0_12px_40px_rgb(55,104,117,0.15)] group-hover:border-white"
-                    :class="finanzasAbiertas ? 'border-[#376875]/20 ring-4 ring-[#376875]/10 scale-[0.98]' : 'border-white/60'"
-                ></span>
-
-                <!-- Contenido -->
-                <span class="relative z-10 px-5 pt-4 pb-3.5 flex flex-col gap-1.5">
-
-                  <!-- ESTADO 1: Hay precio visible -->
-                  <template v-if="store.precioVisible && totalViaje">
-
-                    <!-- Etiqueta superior -->
-                    <div class="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                      <i class="fas fa-user-tag text-[#E07845] opacity-90 text-[10px]"></i>
-                      <template v-if="claseDominante">{{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}</template>
-                      <template v-else>{{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}</template>
-                    </div>
-
-                    <!-- Precio principal -->
-                    <div class="text-2xl md:text-3xl font-extrabold tabular-nums tracking-tight leading-none text-[#376875] flex items-center justify-end gap-2 drop-shadow-sm">
-                      <template v-if="claseDominante">
-                        {{ mv(claseDominante.resumenPorModo.normal.ventaSoles, claseDominante.resumenPorModo.normal.ventaDolares) }}
-                      </template>
-                      <template v-else>{{ mv(totalViaje.soles, totalViaje.dolares) }}</template>
-                    </div>
-
-                    <!-- Total del viaje (Separado por línea fina) -->
-                    <div v-if="claseDominante && !ocultarTotales" class="mt-2 pt-2 border-t border-slate-200/60 flex justify-end">
-                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider tabular-nums flex items-center gap-1.5">
-                        {{ maestroStore.t('cot_precio_total') || 'Total del viaje' }}:
-                        <span class="text-slate-600 font-extrabold text-[11px]">{{ mv(totalViaje.soles, totalViaje.dolares) }}</span>
-                      </span>
-                    </div>
-                  </template>
-
-                  <!-- ESTADO 2: Solo Opciones Alternativas -->
-                  <template v-else>
-                    <div class="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">
-                      <i class="fas fa-shuffle text-[#E07845] opacity-90"></i>
-                      {{ maestroStore.t('cot_opciones_alternativas') || 'Opciones alternativas' }}
-                    </div>
-                    <div class="text-base font-extrabold text-[#376875] tracking-tight flex items-center justify-end gap-2">
-                      {{ maestroStore.t('cot_ver_opciones') || 'Ver opciones' }}
-                    </div>
-                  </template>
-
-                  <!-- Píldora de acción inferior (CTA) - Ahora con min-w y centrado absoluto -->
-                  <span class="mt-1 flex justify-end">
-                    <span class="inline-flex justify-center items-center gap-1.5 bg-slate-100/50 rounded-full px-3 py-1 border border-slate-200/60 transition-colors group-hover:bg-[#E07845]/10 group-hover:border-[#E07845]/20 min-w-27.5">
-                      <i class="fas fa-hand-pointer text-[8px] text-[#E07845]"></i>
-                      <span class="text-[8px] font-bold text-[#E07845] uppercase tracking-widest text-center">
-                        {{ finanzasAbiertas ? (maestroStore.t('cot_ocultar_detalle') || 'Ocultar') : (maestroStore.t('cot_ver_detalle') || 'Ver detalle') }}
-                      </span>
-                      <i class="fas fa-chevron-down text-[9px] text-[#E07845] transition-transform duration-300"
-                         :class="finanzasAbiertas ? 'rotate-180' : 'group-hover:translate-y-0.5'"></i>
-                    </span>
-                  </span>
-
-                </span>
-              </button>
-
-              <!-- SELECTOR DE MONEDA (Efecto cristal) -->
-              <div v-if="store.precioVisible" class="flex items-center bg-white/15 backdrop-blur-md border border-white/30 rounded-xl p-0.5 gap-0.5 shadow-[0_4px_12px_rgb(0,0,0,0.05)]">
-                <button
-                    @click="monedaVista = 'PEN'"
-                    :class="monedaVista === 'PEN' ? 'bg-white text-[#376875] shadow-sm font-extrabold' : 'text-white/80 hover:text-white font-bold'"
-                    class="px-3.5 py-1.5 rounded-[10px] text-[10px] tracking-widest transition-all"
-                >S/</button>
-                <button
-                    @click="monedaVista = 'USD'"
-                    :class="monedaVista === 'USD' ? 'bg-white text-[#376875] shadow-sm font-extrabold' : 'text-white/80 hover:text-white font-bold'"
-                    class="px-3.5 py-1.5 rounded-[10px] text-[10px] tracking-widest transition-all"
-                >$</button>
-              </div>
+                  @click="monedaVista = 'PEN'"
+                  :class="monedaVista === 'PEN' ? 'bg-white text-[#376875] shadow-sm font-extrabold' : 'text-white/80 hover:text-white font-bold'"
+                  class="px-3.5 py-1.5 rounded-[10px] text-[10px] tracking-widest transition-all"
+              >S/</button>
+              <button
+                  @click="monedaVista = 'USD'"
+                  :class="monedaVista === 'USD' ? 'bg-white text-[#376875] shadow-sm font-extrabold' : 'text-white/80 hover:text-white font-bold'"
+                  class="px-3.5 py-1.5 rounded-[10px] text-[10px] tracking-widest transition-all"
+              >$</button>
             </div>
           </div>
 
-          <!-- Toggle Detalle / Resumen (botón partido): afecta a TODO el itinerario.
-               'Resumen' colapsa descripciones y fotos, dejando títulos, subtítulos y horas. -->
-          <div class="mt-5 md:mt-6 flex justify-center sm:justify-start">
-            <div class="inline-flex items-center bg-white/12 backdrop-blur-md border border-white/25 rounded-2xl p-1 gap-1 shadow-[0_8px_24px_rgb(0,0,0,0.12)]">
-              <button
-                  @click="modoResumen = false"
-                  :class="!modoResumen ? 'bg-white text-[#376875] shadow-md' : 'text-white/75 hover:text-white'"
-                  class="inline-flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[11px] md:text-xs font-black uppercase tracking-widest transition-all"
-              >
-                <i class="fas fa-align-left text-[#E07845]" :class="!modoResumen ? '' : 'opacity-70'"></i>
-                {{ maestroStore.t('cot_modo_detalle') || 'Detalle' }}
-              </button>
-              <button
-                  @click="modoResumen = true"
-                  :class="modoResumen ? 'bg-white text-[#376875] shadow-md' : 'text-white/75 hover:text-white'"
-                  class="inline-flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[11px] md:text-xs font-black uppercase tracking-widest transition-all"
-              >
-                <i class="fas fa-list-ul text-[#E07845]" :class="modoResumen ? '' : 'opacity-70'"></i>
-                {{ maestroStore.t('cot_modo_resumen') || 'Resumen' }}
-              </button>
-            </div>
-          </div>
+          <!-- Aire para que la tarjeta de precio (que va después del header, con margen
+               negativo) solape el borde inferior del hero sin pegarse a la línea de
+               "N días · N pax". Hueco real = este alto + padding inferior del hero (20/32px)
+               menos el margen negativo de la tarjeta (36/44px) → ~16px móvil, ~28px desktop. -->
+          <div v-if="hayPanelPrecio" class="h-8 md:h-10"></div>
         </div>
       </header>
 
-      <!-- ══ PANEL DE DETALLE: precio por pasajero + opciones alternativas, un solo
-           contenedor colapsable. El precio por pasajero requiere store.precioVisible;
-           las alternativas NO (solo el delta de cada una sigue gateado más abajo) --
-           así el panel sigue siendo útil (y alcanzable, ver trigger del header)
-           aunque el precio esté oculto. ══ -->
-      <section
-          v-if="finanzasAbiertas && ((store.precioVisible && totalViaje) || gruposUpgrade.length)"
-          class="bg-[#F8FAFC] border-b border-slate-200/60 py-5 md:py-7"
-      >
-        <div class="max-w-3xl mx-auto px-4">
-        <div class="bg-white rounded-3xl shadow-xl shadow-[#376875]/15 border border-emerald-100 p-5 md:p-7 space-y-7">
+      <!-- ══ TARJETA DE PRECIO ══════════════════════════════════════════════════
+           Un solo control, dos estados: colapsada muestra el agregado (precio por
+           pasajero + total del viaje); expandida, el desglose por perfil de pasajero
+           y las alternativas. Cuelga del hero con margen negativo.
 
-          <div v-if="store.precioVisible && totalViaje">
-            <h2 class="pl-1 text-emerald-700/80 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2 mb-4">
-              <i class="fas fa-user-tag"></i>
-              {{ maestroStore.t('cot_precio_por_pasajero') || 'Precio por pasajero' }}
-            </h2>
+           Terminología: aquí se habla de PERFILES/PRECIOS, nunca de "detalle" ni
+           "resumen" — esas dos palabras son el modo de lectura del itinerario (abajo)
+           y usarlas en los dos sitios hacía que parecieran el mismo interruptor. ══ -->
+      <section v-if="hayPanelPrecio" class="relative z-20 max-w-3xl mx-auto px-4 -mt-9 md:-mt-11">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_12px_40px_rgb(55,104,117,0.15)] overflow-hidden">
 
-            <!-- Perfiles de pasajero (venta unitaria; el total está en el header) -->
-            <div class="space-y-3">
-              <div
-                  v-for="clase in clasesPasajeros"
-                  :key="clase.tipo"
-                  class="bg-emerald-50/60 rounded-2xl border border-emerald-100 p-4 md:p-5"
-              >
-                <div class="flex items-center justify-between gap-4">
-                  <div>
-                    <span class="inline-block px-3 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[11px] font-black uppercase tracking-widest mb-1.5">
-                      <template v-if="!ocultarTotales">{{ clase.cantidad }}x </template>{{ clase.tipoPaxNombre }}
-                    </span>
-                    <p class="text-xs font-black text-[#376875] bg-[#376875]/6 border border-[#376875]/10 rounded-lg px-2.5 py-1 inline-block">
-                      <i class="fas fa-user-clock mr-1 text-[#E07845]"></i>{{ rangoEdadLabel(clase) }}
-                    </p>
-                  </div>
-                  <div class="text-right shrink-0">
-                    <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">
-                      {{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}
-                    </p>
-                    <p class="text-xl md:text-2xl font-black text-gray-800 tabular-nums leading-none">
-                      {{ mv(clase.resumenPorModo.normal.ventaSoles, clase.resumenPorModo.normal.ventaDolares) }}
-                    </p>
-                    <p v-if="!ocultarTotales" class="text-[11px] font-black text-slate-500 mt-1 tabular-nums">
-                      × {{ clase.cantidad }} {{ maestroStore.t('cot_pax') || 'pax' }}
-                      <span class="text-slate-300">·</span>
-                      {{ mv(clase.resumenPorModo.normal.ventaSoles * clase.cantidad, clase.resumenPorModo.normal.ventaDolares * clase.cantidad) }}
-                    </p>
-                  </div>
-                </div>
+          <!-- FILA RESUMEN (también actúa de disparador) -->
+          <button
+              @click="finanzasAbiertas = !finanzasAbiertas"
+              class="w-full text-left px-5 pt-4 pb-3.5 focus:outline-none hover:bg-slate-50/60 transition-colors"
+              :aria-expanded="finanzasAbiertas"
+          >
+            <template v-if="store.precioVisible && totalViaje">
+              <div class="flex items-center justify-between gap-4">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                  <i class="fas fa-user-tag text-[#E07845] opacity-90 text-[10px]"></i>
+                  <template v-if="finanzasAbiertas">{{ maestroStore.t('cot_precio_por_pasajero') || 'Precio por pasajero' }}</template>
+                  <template v-else-if="claseDominante">{{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}</template>
+                  <template v-else>{{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}</template>
+                </span>
 
-                <!-- Cortesías del perfil (si las hay) -->
-                <p
-                    v-if="clase.resumenPorModo.cortesia.ventaDolares > 0"
-                    class="mt-3 text-[11px] font-bold text-sky-600 bg-sky-50 border border-sky-100 rounded-xl px-3 py-2 inline-block"
-                >
-                  <i class="fas fa-gift mr-1"></i>
-                  {{ maestroStore.t('cot_incluye_cortesias') || 'Incluye cortesías valorizadas en' }}
-                  {{ mv(clase.resumenPorModo.cortesia.ventaSoles * clase.cantidad, clase.resumenPorModo.cortesia.ventaDolares * clase.cantidad) }}
-                </p>
+                <!-- Colapsada: el precio representativo. Expandida se calla, porque el
+                     desglose de abajo ya lo dice perfil por perfil. -->
+                <span v-if="!finanzasAbiertas"
+                      class="text-2xl md:text-3xl font-extrabold tabular-nums tracking-tight leading-none text-[#376875] shrink-0">
+                  <template v-if="claseDominante">
+                    {{ mv(claseDominante.resumenPorModo.normal.ventaSoles, claseDominante.resumenPorModo.normal.ventaDolares) }}
+                  </template>
+                  <template v-else>{{ mv(totalViaje.soles, totalViaje.dolares) }}</template>
+                </span>
               </div>
-            </div>
 
-            <!-- Total del viaje (suma de todos los rangos). Oculto en modo catálogo
-                 unitario: allí el precio es un menú por perfil, no un total de grupo. -->
-            <div v-if="totalViaje && !ocultarTotales" class="mt-3 flex items-center justify-between bg-[#376875] text-white rounded-2xl px-4 py-3.5 shadow-sm">
-              <span class="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                <i class="fas fa-sack-dollar text-emerald-300"></i>
-                {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
-              </span>
-              <span class="text-lg md:text-xl font-black tabular-nums">{{ mv(totalViaje.soles, totalViaje.dolares) }}</span>
-            </div>
-          </div>
+              <!-- Total del viaje: sólo colapsada (expandida tiene su propia barra) y
+                   sólo si el tour se vende como grupo -- ver totalesOcultos. -->
+              <div v-if="!finanzasAbiertas && claseDominante && !ocultarTotales"
+                   class="mt-2 pt-2 border-t border-slate-200/60 flex justify-end">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider tabular-nums flex items-center gap-1.5">
+                  {{ maestroStore.t('cot_precio_total') || 'Total del viaje' }}:
+                  <span class="text-slate-600 font-extrabold text-[11px]">{{ mv(totalViaje.soles, totalViaje.dolares) }}</span>
+                </span>
+              </div>
+            </template>
 
-          <!-- Opciones alternativas: independiente del precio. Nombre/tarifa/badges
-               son descriptivos, no dinero -- se muestran aunque precioOculto=true.
-               Solo el monto del delta se gatea por precioVisible. -->
-          <div v-if="gruposUpgrade.length">
-            <h2 class="pl-1 text-[#376875]/70 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2 mb-4">
-              <i class="fas fa-shuffle text-[#E07845]"></i>
-              {{ maestroStore.t('cot_opciones_alternativas') || 'Opciones alternativas' }}
-            </h2>
-            <div v-for="grupo in gruposUpgrade" :key="(grupo.esOpcion ? 'o' : 'a') + grupo.indice" class="mb-5 last:mb-0">
+            <!-- Sin precio visible: la tarjeta sigue existiendo para llegar a las alternativas -->
+            <template v-else>
+              <div class="flex items-center justify-between gap-4">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                  <i class="fas fa-shuffle text-[#E07845] opacity-90"></i>
+                  {{ maestroStore.t('cot_opciones_alternativas') || 'Opciones alternativas' }}
+                </span>
+              </div>
+            </template>
+          </button>
+
+          <!-- ── CONTENIDO EXPANDIDO ── -->
+          <div v-if="finanzasAbiertas" class="px-4 md:px-5 pb-4 space-y-6">
+
+            <div v-if="store.precioVisible && totalViaje">
+              <!-- Perfiles de pasajero (venta unitaria; el total va en la barra de abajo) -->
               <div class="space-y-3">
                 <div
-                    v-for="(up, ui) in grupo.opciones"
-                    :key="ui"
-                    class="bg-orange-50/50 rounded-2xl border border-orange-100 p-4 md:p-5"
+                    v-for="clase in clasesPasajeros"
+                    :key="clase.tipo"
+                    class="bg-emerald-50/60 rounded-2xl border border-emerald-100 p-4 md:p-5"
                 >
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="min-w-0">
-                      <p class="text-sm font-black text-gray-800 leading-snug">
-                        {{ store.traducir(up.componenteNombre) }}
-                      </p>
-                      <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
-                        {{ store.traducir(up.servicioNombre) }}
-                      </p>
-                      <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider"
-                              :class="grupo.esOpcion ? 'bg-amber-100 text-amber-700' : 'bg-[#E07845]/10 text-[#E07845]'">
-                          <i class="fas" :class="grupo.esOpcion ? 'fa-circle-question' : 'fa-shuffle'"></i>
-                          {{ labelGrupoUpgrade(grupo) }}
-                        </span>
-                        <span v-if="store.traducir(up.tarifaTitulo)"
-                              class="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200/80 rounded-md px-1.5 py-0.5">
-                          {{ store.traducir(up.tarifaTitulo) }}
-                        </span>
-                        <span
-                            v-for="b in modCatBadges(up)"
-                            :key="b.key"
-                            class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider"
-                            :class="b.cls"
-                        >
-                          {{ b.icon }} {{ b.label }}
-                        </span>
-                      </div>
-
-                      <!-- Estándar reemplazada: tachada + atenuada (solo datos públicos) -->
-                      <p v-if="up.tieneEstandarEspejo && (store.traducir(up.estandarTitulo) || modCatBadges({ modalidad: up.estandarModalidad, categoria: up.estandarCategoria }).length)"
-                         class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
-                        <span class="text-[9px] font-black uppercase tracking-wider text-slate-400">
-                          {{ maestroStore.t('cot_reemplaza') || 'Reemplaza' }}
-                        </span>
-                        <span v-if="store.traducir(up.estandarTitulo)" class="line-through">{{ store.traducir(up.estandarTitulo) }}</span>
-                        <span
-                            v-for="b in modCatBadges({ modalidad: up.estandarModalidad, categoria: up.estandarCategoria })"
-                            :key="'std-' + b.key"
-                            class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider bg-slate-100 text-slate-400 border-slate-200 line-through"
-                        >
-                          {{ b.icon }} {{ b.label }}
-                        </span>
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <span class="inline-block px-3 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[11px] font-black uppercase tracking-widest mb-1.5">
+                        <template v-if="!ocultarTotales">{{ clase.cantidad }}x </template>{{ clase.tipoPaxNombre }}
+                      </span>
+                      <p class="text-xs font-black text-[#376875] bg-[#376875]/6 border border-[#376875]/10 rounded-lg px-2.5 py-1 inline-block">
+                        <i class="fas fa-user-clock mr-1 text-[#E07845]"></i>{{ rangoEdadLabel(clase) }}
                       </p>
                     </div>
-
-                    <!-- Delta de venta: SOLO si el precio es visible. Es dinero,
-                         igual que el resto del panel financiero. -->
-                    <div v-if="store.precioVisible" class="text-right shrink-0">
-                      <span
-                          class="inline-flex flex-col items-end rounded-xl px-3 py-2"
-                          :class="(up.deltaVentaPorPax ?? 0) < 0
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-[#E07845]/10 text-[#E07845]'"
-                      >
-                        <span class="text-[8px] font-black uppercase tracking-widest opacity-80">
-                          <i class="fas mr-0.5" :class="(up.deltaVentaPorPax ?? 0) < 0 ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'"></i>
-                          {{ (up.deltaVentaPorPax ?? 0) < 0
-                            ? (maestroStore.t('cot_descuento') || 'Descuento')
-                            : (maestroStore.t('cot_adicional') || 'Adicional') }}
-                          · {{ maestroStore.t('cot_por_persona') || 'c/u' }}
-                        </span>
-                        <span class="text-xl md:text-2xl font-black tabular-nums leading-tight">{{ mvDelta(up.deltaVentaPorPax ?? 0) }}</span>
-                      </span>
-                      <p class="text-[9px] font-bold text-slate-400 mt-1 tabular-nums">
-                        {{ maestroStore.t('cot_total') || 'Total' }} {{ mvDelta(up.deltaVentaTotal ?? 0) }}
+                    <div class="text-right shrink-0">
+                      <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">
+                        {{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}
+                      </p>
+                      <p class="text-xl md:text-2xl font-black text-gray-800 tabular-nums leading-none">
+                        {{ mv(clase.resumenPorModo.normal.ventaSoles, clase.resumenPorModo.normal.ventaDolares) }}
+                      </p>
+                      <p v-if="!ocultarTotales" class="text-[11px] font-black text-slate-500 mt-1 tabular-nums">
+                        × {{ clase.cantidad }} {{ maestroStore.t('cot_pax') || 'pax' }}
+                        <span class="text-slate-300">·</span>
+                        {{ mv(clase.resumenPorModo.normal.ventaSoles * clase.cantidad, clase.resumenPorModo.normal.ventaDolares * clase.cantidad) }}
                       </p>
                     </div>
                   </div>
 
-                  <!-- Nota de la alternativa -->
+                  <!-- Cortesías del perfil (si las hay) -->
                   <p
-                      v-if="up.notaRol?.length"
-                      class="mt-2.5 text-[11px] font-medium text-slate-500 bg-white border border-slate-100 rounded-xl px-3 py-2 italic"
+                      v-if="clase.resumenPorModo.cortesia.ventaDolares > 0"
+                      class="mt-3 text-[11px] font-bold text-sky-600 bg-sky-50 border border-sky-100 rounded-xl px-3 py-2 inline-block"
                   >
-                    <i class="fas fa-circle-info mr-1 text-slate-400 not-italic"></i>
-                    {{ store.traducir(up.notaRol) }}
+                    <i class="fas fa-gift mr-1"></i>
+                    {{ maestroStore.t('cot_incluye_cortesias') || 'Incluye cortesías valorizadas en' }}
+                    {{ mv(clase.resumenPorModo.cortesia.ventaSoles * clase.cantidad, clase.resumenPorModo.cortesia.ventaDolares * clase.cantidad) }}
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <!-- Pie: pax/días (si hay precio) + adelanto + cerrar -->
-          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3"
-               :class="store.precioVisible && totalViaje ? 'justify-between' : 'justify-end'">
-            <p v-if="store.precioVisible && totalViaje" class="text-emerald-700/70 text-[11px] font-bold">
-              <template v-if="!ocultarTotales">{{ paxLabel }} · </template>{{ diasLabel }}
-            </p>
-            <div class="flex items-center gap-3">
+              <!-- Total del viaje (suma de todos los rangos). Oculto en modo catálogo
+                   unitario: allí el precio es un menú por perfil, no un total de grupo. -->
+              <div v-if="totalViaje && !ocultarTotales" class="mt-3 flex items-center justify-between bg-[#376875] text-white rounded-2xl px-4 py-3.5 shadow-sm">
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                  <i class="fas fa-sack-dollar text-emerald-300"></i>
+                  {{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}
+                </span>
+                <span class="text-lg md:text-xl font-black tabular-nums">{{ mv(totalViaje.soles, totalViaje.dolares) }}</span>
+              </div>
+            </div>
+
+            <!-- Opciones alternativas: independiente del precio. Nombre/tarifa/badges
+                 son descriptivos, no dinero -- se muestran aunque precioOculto=true.
+                 Solo el monto del delta se gatea por precioVisible. -->
+            <div v-if="gruposUpgrade.length" class="pt-1">
+              <h2 class="pl-1 text-[#376875]/70 font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-2 mb-4">
+                <i class="fas fa-shuffle text-[#E07845]"></i>
+                {{ maestroStore.t('cot_opciones_alternativas') || 'Opciones alternativas' }}
+              </h2>
+              <div v-for="grupo in gruposUpgrade" :key="(grupo.esOpcion ? 'o' : 'a') + grupo.indice" class="mb-5 last:mb-0">
+                <div class="space-y-3">
+                  <div
+                      v-for="(up, ui) in grupo.opciones"
+                      :key="ui"
+                      class="bg-orange-50/50 rounded-2xl border border-orange-100 p-4 md:p-5"
+                  >
+                    <div class="flex items-start justify-between gap-4">
+                      <div class="min-w-0">
+                        <p class="text-sm font-black text-gray-800 leading-snug">
+                          {{ store.traducir(up.componenteNombre) }}
+                        </p>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                          {{ store.traducir(up.servicioNombre) }}
+                        </p>
+                        <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+                                :class="grupo.esOpcion ? 'bg-amber-100 text-amber-700' : 'bg-[#E07845]/10 text-[#E07845]'">
+                            <i class="fas" :class="grupo.esOpcion ? 'fa-circle-question' : 'fa-shuffle'"></i>
+                            {{ labelGrupoUpgrade(grupo) }}
+                          </span>
+                          <span v-if="store.traducir(up.tarifaTitulo)"
+                                class="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200/80 rounded-md px-1.5 py-0.5">
+                            {{ store.traducir(up.tarifaTitulo) }}
+                          </span>
+                          <span
+                              v-for="b in modCatBadges(up)"
+                              :key="b.key"
+                              class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider"
+                              :class="b.cls"
+                          >
+                            {{ b.icon }} {{ b.label }}
+                          </span>
+                        </div>
+
+                        <!-- Estándar reemplazada: tachada + atenuada (solo datos públicos) -->
+                        <p v-if="up.tieneEstandarEspejo && (store.traducir(up.estandarTitulo) || modCatBadges({ modalidad: up.estandarModalidad, categoria: up.estandarCategoria }).length)"
+                           class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                          <span class="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                            {{ maestroStore.t('cot_reemplaza') || 'Reemplaza' }}
+                          </span>
+                          <span v-if="store.traducir(up.estandarTitulo)" class="line-through">{{ store.traducir(up.estandarTitulo) }}</span>
+                          <span
+                              v-for="b in modCatBadges({ modalidad: up.estandarModalidad, categoria: up.estandarCategoria })"
+                              :key="'std-' + b.key"
+                              class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-wider bg-slate-100 text-slate-400 border-slate-200 line-through"
+                          >
+                            {{ b.icon }} {{ b.label }}
+                          </span>
+                        </p>
+                      </div>
+
+                      <!-- Delta de venta: SOLO si el precio es visible. Es dinero,
+                           igual que el resto del panel financiero. -->
+                      <div v-if="store.precioVisible" class="text-right shrink-0">
+                        <span
+                            class="inline-flex flex-col items-end rounded-xl px-3 py-2"
+                            :class="(up.deltaVentaPorPax ?? 0) < 0
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-[#E07845]/10 text-[#E07845]'"
+                        >
+                          <span class="text-[8px] font-black uppercase tracking-widest opacity-80">
+                            <i class="fas mr-0.5" :class="(up.deltaVentaPorPax ?? 0) < 0 ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'"></i>
+                            {{ (up.deltaVentaPorPax ?? 0) < 0
+                              ? (maestroStore.t('cot_descuento') || 'Descuento')
+                              : (maestroStore.t('cot_adicional') || 'Adicional') }}
+                            · {{ maestroStore.t('cot_por_persona') || 'c/u' }}
+                          </span>
+                          <span class="text-xl md:text-2xl font-black tabular-nums leading-tight">{{ mvDelta(up.deltaVentaPorPax ?? 0) }}</span>
+                        </span>
+                        <p v-if="!ocultarTotales" class="text-[9px] font-bold text-slate-400 mt-1 tabular-nums">
+                          {{ maestroStore.t('cot_total') || 'Total' }} {{ mvDelta(up.deltaVentaTotal ?? 0) }}
+                        </p>
+                      </div>
+                    </div>
+
+                    <!-- Nota de la alternativa -->
+                    <p
+                        v-if="up.notaRol?.length"
+                        class="mt-2.5 text-[11px] font-medium text-slate-500 bg-white border border-slate-100 rounded-xl px-3 py-2 italic"
+                    >
+                      <i class="fas fa-circle-info mr-1 text-slate-400 not-italic"></i>
+                      {{ store.traducir(up.notaRol) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pie: pax/días (si hay precio) + adelanto -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3"
+                 :class="store.precioVisible && totalViaje ? 'justify-between' : 'justify-end'">
+              <p v-if="store.precioVisible && totalViaje" class="text-emerald-700/70 text-[11px] font-bold">
+                <template v-if="!ocultarTotales">{{ paxLabel }} · </template>{{ diasLabel }}
+              </p>
               <div
                   v-if="store.precioVisible && Number(store.cotizacion.adelanto) > 0"
                   class="bg-slate-50 rounded-2xl border border-slate-200 px-4 py-2.5"
@@ -1069,18 +1031,49 @@ const adelantoVista = computed(() => {
                   {{ adelantoVista }}
                 </p>
               </div>
-              <button
-                  @click="finanzasAbiertas = false"
-                  class="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition-colors"
-                  :aria-label="maestroStore.t('cot_cerrar') || 'Cerrar'"
-              >
-                <i class="fas fa-chevron-up text-sm"></i>
-              </button>
             </div>
           </div>
-        </div>
+
+          <!-- ── PIE-DISPARADOR ── Repite el toggle al final: cuando el desglose está
+               abierto, el control de arriba queda fuera de pantalla. -->
+          <button
+              @click="finanzasAbiertas = !finanzasAbiertas"
+              class="w-full border-t border-dashed border-slate-200 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#E07845] hover:bg-[#E07845]/5 transition-colors flex items-center justify-center gap-1.5"
+              :aria-expanded="finanzasAbiertas"
+          >
+            <i class="fas text-[9px]" :class="finanzasAbiertas ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
+            {{ finanzasAbiertas
+              ? (maestroStore.t('cot_ocultar_precios') || 'Toca para ocultar')
+              : (maestroStore.t('cot_ver_precios_perfil') || (store.precioVisible && totalViaje
+                  ? 'Toca para ver precios por perfil'
+                  : 'Toca para ver opciones')) }}
+          </button>
         </div>
       </section>
+
+      <!-- Modo de lectura del ITINERARIO (no confundir con la tarjeta de precio):
+           'Resumen' colapsa descripciones y fotos, dejando títulos, subtítulos y horas.
+           Afecta a todos los días. -->
+      <div class="max-w-3xl mx-auto px-4 mt-5 md:mt-6 mb-4 flex justify-center sm:justify-start">
+        <div class="inline-flex items-center bg-slate-100 border border-slate-200 rounded-2xl p-1 gap-1">
+          <button
+              @click="modoResumen = false"
+              :class="!modoResumen ? 'bg-[#376875] text-white shadow-md shadow-[#376875]/20' : 'text-[#376875]/60 hover:text-[#376875]'"
+              class="inline-flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[11px] md:text-xs font-black uppercase tracking-widest transition-all"
+          >
+            <i class="fas fa-align-left" :class="!modoResumen ? 'text-[#E07845]' : 'text-[#E07845]/70'"></i>
+            {{ maestroStore.t('cot_modo_detalle') || 'Detalle' }}
+          </button>
+          <button
+              @click="modoResumen = true"
+              :class="modoResumen ? 'bg-[#376875] text-white shadow-md shadow-[#376875]/20' : 'text-[#376875]/60 hover:text-[#376875]'"
+              class="inline-flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[11px] md:text-xs font-black uppercase tracking-widest transition-all"
+          >
+            <i class="fas fa-list-ul" :class="modoResumen ? 'text-[#E07845]' : 'text-[#E07845]/70'"></i>
+            {{ maestroStore.t('cot_modo_resumen') || 'Resumen' }}
+          </button>
+        </div>
+      </div>
 
       <!-- Day-nav sticky con flechas -->
       <nav class="sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200/60 shadow-sm">
@@ -1187,7 +1180,7 @@ const adelantoVista = computed(() => {
                 <i class="fas fa-list-check text-[#E07845]"></i>
                 {{ item.totalSegmentosServicio > 1
                   ? (maestroStore.t('cot_inclusiones_tour') || '¿Qué incluye el tour?')
-                  : (maestroStore.t('cot_inclusiones_servicio') || 'Inclusiones del servicio') }}
+                  : (maestroStore.t('cot_inclusiones_servicio') || '¿Qué incluye este servicio?') }}
                 <i class="fas fa-circle-arrow-right text-[10px] text-[#E07845]"></i>
               </button>
             </div>

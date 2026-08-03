@@ -1,23 +1,96 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+/**
+ * Centro de Operaciones — La Biblia (cuadro de tráfico) y Órdenes de Servicio.
+ *
+ * Las filas provienen de OperacionServicio, el snapshot que genera
+ * CotizacionConfirmadaEventListener al confirmar una cotización. Es un snapshot:
+ * editar la cotización después NO actualiza estas filas. Ver docs/Operacion.md.
+ *
+ * El listener no filtra por tipo de componente: entra todo lo que tenga tarifa y
+ * fecha, incluidos alojamientos, desayunos, cortesías y componentes cancelados. Por
+ * eso la vista muestra tipo/modo/estado del componente y deja filtrar: primero se ve
+ * qué está llegando, después se decide qué se deja de generar.
+ */
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { useOperacionStore } from '@/stores/operacion/operacionStore';
+import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion } from '@/stores/operacion/operacionStore';
+import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
     getEstadoOsConfig,
     getEstadoReservaConfig,
     getEstadoOperacionConfig,
+    getTipoComponenteConfig,
+    getModoComponenteConfig,
+    getEstadoComponenteConfig,
+    ESTADO_RESERVA_CONFIG,
+    ESTADO_OPERACION_CONFIG,
+    TIPOS_COMPONENTE,
+    type FiltrosBiblia,
+    type OperacionServicio,
+    type OperacionOrdenServicio,
 } from '@/types/operacionModel';
 
 const router = useRouter();
 const operacionStore = useOperacionStore();
 
 const activeTab = ref<'biblia' | 'ordenes'>('biblia');
-const filtroFecha = ref<string>(new Date().toISOString().split('T')[0]);
 
-const serviciosFiltrados = computed(() => operacionStore.servicios);
+// ============================================================================
+// FILTROS
+//
+// FechaHoraPicker trabaja con "YYYY-MM-DDTHH:mm"; la API espera "YYYY-MM-DD".
+// El recorte se hace con slice y nunca con Date: no hay que aplicar zona horaria
+// a una fecha de servicio (ver docs/UI_Componentes_Compartidos.md §1.3).
+// ============================================================================
+const hoyIso = (): string => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
+const sumarDias = (iso: string, dias: number): string => {
+    const [a, m, d] = iso.split('-').map(Number);
+    const fecha = new Date(a, m - 1, d + dias);
+    return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
+};
+
+const desde = ref<string>(`${hoyIso()}T00:00`);
+const hasta = ref<string>(`${hoyIso()}T00:00`);
+const tiposSeleccionados = ref<string[]>([]);
+const filtroEstadoReserva = ref<string>('');
+const filtroEstadoOperacion = ref<string>('');
+const mostrarFiltrosAvanzados = ref<boolean>(false);
+
+// Expediente / cotización
+const terminoExpediente = ref<string>('');
+const resultadosExpediente = ref<ExpedienteOpcion[]>([]);
+const expedienteSeleccionado = ref<ExpedienteOpcion | null>(null);
+const cotizacionesDelExpediente = ref<CotizacionOpcion[]>([]);
+const cotizacionSeleccionada = ref<string>('');
+const buscandoExpediente = ref<boolean>(false);
+
+const filtrosActivos = computed<FiltrosBiblia>(() => ({
+    desde: desde.value ? desde.value.slice(0, 10) : undefined,
+    hasta: hasta.value ? hasta.value.slice(0, 10) : undefined,
+    fileId: expedienteSeleccionado.value?.id,
+    cotizacionId: cotizacionSeleccionada.value || undefined,
+    tipos: tiposSeleccionados.value.length ? tiposSeleccionados.value : undefined,
+    estadoReserva: filtroEstadoReserva.value || undefined,
+    estadoOperacion: filtroEstadoOperacion.value || undefined,
+}));
+
+const hayFiltrosExtra = computed(() =>
+    tiposSeleccionados.value.length > 0
+    || !!filtroEstadoReserva.value
+    || !!filtroEstadoOperacion.value
+    || !!expedienteSeleccionado.value
+);
+
+// ============================================================================
+// CARGA
+// ============================================================================
 const cargarBiblia = async () => {
-    await operacionStore.fetchServicios({ fechaServicio: filtroFecha.value });
+    seleccionados.value = [];
+    await operacionStore.fetchServicios(filtrosActivos.value);
 };
 
 const cargarOrdenes = async () => {
@@ -28,6 +101,298 @@ const cambiarTab = async (tab: 'biblia' | 'ordenes') => {
     activeTab.value = tab;
     if (tab === 'biblia') await cargarBiblia();
     else await cargarOrdenes();
+};
+
+const aplicarPreset = async (preset: 'hoy' | 'manana' | 'semana') => {
+    const base = hoyIso();
+    if (preset === 'hoy') {
+        desde.value = `${base}T00:00`;
+        hasta.value = `${base}T00:00`;
+    } else if (preset === 'manana') {
+        const m = sumarDias(base, 1);
+        desde.value = `${m}T00:00`;
+        hasta.value = `${m}T00:00`;
+    } else {
+        desde.value = `${base}T00:00`;
+        hasta.value = `${sumarDias(base, 6)}T00:00`;
+    }
+    await cargarBiblia();
+};
+
+const limpiarFiltros = async () => {
+    tiposSeleccionados.value = [];
+    filtroEstadoReserva.value = '';
+    filtroEstadoOperacion.value = '';
+    expedienteSeleccionado.value = null;
+    cotizacionSeleccionada.value = '';
+    cotizacionesDelExpediente.value = [];
+    terminoExpediente.value = '';
+    resultadosExpediente.value = [];
+    await cargarBiblia();
+};
+
+const alternarTipo = async (tipo: string) => {
+    const i = tiposSeleccionados.value.indexOf(tipo);
+    if (i === -1) tiposSeleccionados.value.push(tipo);
+    else tiposSeleccionados.value.splice(i, 1);
+    await cargarBiblia();
+};
+
+// ── Buscador de expediente (debounce manual, sin dependencias) ──────────────
+let temporizadorBusqueda: ReturnType<typeof setTimeout> | null = null;
+
+watch(terminoExpediente, (termino) => {
+    if (temporizadorBusqueda) clearTimeout(temporizadorBusqueda);
+    if (termino.trim().length < 2) {
+        resultadosExpediente.value = [];
+        return;
+    }
+    buscandoExpediente.value = true;
+    temporizadorBusqueda = setTimeout(async () => {
+        resultadosExpediente.value = await operacionStore.buscarExpedientes(termino);
+        buscandoExpediente.value = false;
+    }, 300);
+});
+
+const elegirExpediente = async (exp: ExpedienteOpcion) => {
+    expedienteSeleccionado.value = exp;
+    terminoExpediente.value = '';
+    resultadosExpediente.value = [];
+    cotizacionSeleccionada.value = '';
+    cotizacionesDelExpediente.value = await operacionStore.fetchCotizacionesDeExpediente(exp.id);
+    await cargarBiblia();
+};
+
+const quitarExpediente = async () => {
+    expedienteSeleccionado.value = null;
+    cotizacionSeleccionada.value = '';
+    cotizacionesDelExpediente.value = [];
+    await cargarBiblia();
+};
+
+// ============================================================================
+// AGRUPACIÓN POR DÍA
+//
+// El backend ya ordena por fechaServicio y horaRecojoReal. Aquí sólo se parte en
+// días y se empujan al final los servicios sin hora, ordenados por prioridad
+// operativa (guiado/transporte antes que tickets): un cuadro de tráfico se lee
+// de arriba abajo por hora, y lo que no tiene hora estorba en medio.
+// ============================================================================
+interface GrupoDia {
+    fecha: string;
+    servicios: OperacionServicio[];
+}
+
+const serviciosPorDia = computed<GrupoDia[]>(() => {
+    const mapa = new Map<string, OperacionServicio[]>();
+
+    for (const s of operacionStore.servicios) {
+        const fecha = (s.fechaServicio ?? '').slice(0, 10) || 'sin-fecha';
+        if (!mapa.has(fecha)) mapa.set(fecha, []);
+        mapa.get(fecha)!.push(s);
+    }
+
+    return [...mapa.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([fecha, servicios]) => ({
+            fecha,
+            servicios: [...servicios].sort((a, b) => {
+                const ha = a.horaRecojoReal || '';
+                const hb = b.horaRecojoReal || '';
+                if (ha && hb) return ha.localeCompare(hb);
+                if (ha) return -1;
+                if (hb) return 1;
+                return (a.prioridadOperativa ?? 9) - (b.prioridadOperativa ?? 9);
+            }),
+        }));
+});
+
+const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+const etiquetaDia = (iso: string): string => {
+    if (iso === 'sin-fecha') return 'Sin fecha';
+    const [a, m, d] = iso.split('-').map(Number);
+    const fecha = new Date(a, m - 1, d);
+    const sufijo = iso === hoyIso() ? ' · HOY' : '';
+    return `${DIAS[fecha.getDay()]} ${d} ${MESES[m - 1]}${sufijo}`;
+};
+
+// ============================================================================
+// EDICIÓN EN LÍNEA
+// ============================================================================
+const guardando = ref<string | null>(null);
+
+const guardarCampo = async (servicio: OperacionServicio, payload: Record<string, unknown>) => {
+    if (!servicio.id) return;
+    guardando.value = servicio.id;
+    try {
+        await operacionStore.actualizarServicio(servicio.id, payload);
+    } catch {
+        // El store ya registra el error; se recarga para no dejar la fila mintiendo.
+        await cargarBiblia();
+    } finally {
+        guardando.value = null;
+    }
+};
+
+/**
+ * La hora se edita con un input de texto y no con <input type="time">: el nativo
+ * cambia a AM/PM según el idioma del sistema y aquí se trabaja siempre en 24 h,
+ * el mismo motivo por el que las fechas usan FechaHoraPicker.
+ */
+const PATRON_HORA = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+const editarHora = async (servicio: OperacionServicio, evento: Event) => {
+    const input = evento.target as HTMLInputElement;
+    const valor = input.value.trim();
+
+    if (valor === '') {
+        await guardarCampo(servicio, { horaRecojoReal: null });
+        return;
+    }
+    if (!PATRON_HORA.test(valor)) {
+        input.value = servicio.horaRecojoReal ?? '';
+        return;
+    }
+    await guardarCampo(servicio, { horaRecojoReal: valor });
+};
+
+const editarProveedor = async (servicio: OperacionServicio, evento: Event) => {
+    const valor = (evento.target as HTMLInputElement).value.trim();
+    if (valor === (servicio.proveedorNombreManual ?? '')) return;
+    await guardarCampo(servicio, { proveedorNombreManual: valor || null });
+};
+
+// ============================================================================
+// SELECCIÓN Y GENERACIÓN DE ORDEN DE SERVICIO
+// ============================================================================
+const seleccionados = ref<string[]>([]);
+
+const alternarSeleccion = (id?: string | null) => {
+    if (!id) return;
+    const i = seleccionados.value.indexOf(id);
+    if (i === -1) seleccionados.value.push(id);
+    else seleccionados.value.splice(i, 1);
+};
+
+const serviciosSeleccionados = computed(() =>
+    operacionStore.servicios.filter(s => s.id && seleccionados.value.includes(s.id))
+);
+
+/**
+ * Una OS es una solicitud a UN proveedor sobre UN expediente: agrupar servicios de
+ * expedientes o proveedores distintos produciría un documento que nadie puede firmar.
+ */
+const conflictoSeleccion = computed<string | null>(() => {
+    const sel = serviciosSeleccionados.value;
+    if (sel.length === 0) return null;
+
+    const files = new Set(sel.map(s => s.file?.id ?? ''));
+    if (files.size > 1) return 'Los servicios seleccionados son de expedientes distintos.';
+
+    const proveedores = new Set(sel.map(s => s.proveedorNombreManual ?? ''));
+    if (proveedores.size > 1) return 'Los servicios seleccionados son de proveedores distintos.';
+
+    const monedas = new Set(sel.map(s => s.monedaCotizada?.id ?? ''));
+    if (monedas.size > 1) return 'Los servicios seleccionados están en monedas distintas.';
+
+    if (sel.some(s => s.ordenServicio)) return 'Algún servicio ya pertenece a una Orden de Servicio.';
+
+    return null;
+});
+
+const mostrarModalOs = ref<boolean>(false);
+const guardandoOs = ref<boolean>(false);
+const errorOs = ref<string | null>(null);
+const formOs = ref({ numeroOs: '', proveedorNombreManual: '', totalOs: '0.00', monedaId: '' });
+
+const abrirModalOs = () => {
+    const sel = serviciosSeleccionados.value;
+    if (sel.length === 0 || conflictoSeleccion.value) return;
+
+    const total = sel.reduce((acc, s) => acc + Number(s.costoCotizado ?? 0), 0);
+    const hoy = hoyIso().replace(/-/g, '');
+
+    formOs.value = {
+        // Sugerencia: numeroOs es unique y no tiene generador en el backend.
+        numeroOs: `OS-${hoy}-${String(Math.floor(Math.random() * 900) + 100)}`,
+        proveedorNombreManual: sel[0].proveedorNombreManual ?? '',
+        totalOs: total.toFixed(2),
+        monedaId: sel[0].monedaCotizada?.id ?? '',
+    };
+    errorOs.value = null;
+    mostrarModalOs.value = true;
+};
+
+const confirmarOs = async () => {
+    const sel = serviciosSeleccionados.value;
+    if (sel.length === 0) return;
+
+    const fileId = sel[0].file?.id;
+    if (!fileId || !formOs.value.monedaId) {
+        errorOs.value = 'Faltan el expediente o la moneda del servicio; revisa el snapshot.';
+        return;
+    }
+
+    guardandoOs.value = true;
+    errorOs.value = null;
+    try {
+        await operacionStore.crearOrdenServicio(
+            {
+                numeroOs: formOs.value.numeroOs,
+                file: `/platform/sales/cotizacion_files/${fileId}`,
+                proveedorMaestroId: sel[0].proveedorMaestroId ?? null,
+                proveedorNombreManual: formOs.value.proveedorNombreManual || null,
+                estadoOs: 'borrador',
+                monedaOs: `/platform/maestro/monedas/${formOs.value.monedaId}`,
+                totalOs: formOs.value.totalOs,
+            },
+            sel.map(s => s.id!).filter(Boolean)
+        );
+        mostrarModalOs.value = false;
+        seleccionados.value = [];
+        await cargarBiblia();
+    } catch {
+        errorOs.value = 'No se pudo crear la Orden de Servicio. Revisa que el número no esté repetido.';
+    } finally {
+        guardandoOs.value = false;
+    }
+};
+
+// ============================================================================
+// BITÁCORA DE MENSAJES DE UNA OS
+// ============================================================================
+const ordenActiva = ref<OperacionOrdenServicio | null>(null);
+const cuerpoMensaje = ref<string>('');
+const enviandoMensaje = ref<boolean>(false);
+
+const abrirMensajes = async (orden: OperacionOrdenServicio) => {
+    ordenActiva.value = orden;
+    cuerpoMensaje.value = '';
+    if (orden.id) await operacionStore.fetchMensajesPorOrden(orden.id);
+};
+
+const enviarMensaje = async () => {
+    const texto = cuerpoMensaje.value.trim();
+    if (!texto || !ordenActiva.value?.id) return;
+
+    enviandoMensaje.value = true;
+    try {
+        await operacionStore.registrarMensaje({
+            ordenServicio: `/platform/ops/operacion_orden_servicios/${ordenActiva.value.id}`,
+            tipo: 'email',
+            cuerpoHtml: texto,
+        });
+        cuerpoMensaje.value = '';
+    } finally {
+        enviandoMensaje.value = false;
+    }
+};
+
+const formatearFecha = (iso?: string | null): string => {
+    if (!iso) return '';
+    return `${iso.slice(8, 10)}/${iso.slice(5, 7)} ${iso.slice(11, 16)}`;
 };
 
 onMounted(cargarBiblia);
@@ -88,26 +453,197 @@ onMounted(cargarBiblia);
             <section v-if="activeTab === 'biblia'" class="flex flex-col min-h-full">
 
                 <!-- Barra de filtros pegajosa -->
-                <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-4 md:px-6 py-3 flex flex-wrap items-center gap-3 shrink-0">
-                    <div class="flex items-center bg-white border border-slate-200 rounded-xl px-3 py-2 gap-2 shadow-sm">
-                        <i class="fas fa-calendar-day text-[#376875] text-xs"></i>
-                        <input
-                            type="date"
-                            v-model="filtroFecha"
-                            class="bg-transparent text-sm font-bold text-slate-700 outline-none"
-                        />
+                <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-4 md:px-6 py-3 shrink-0">
+
+                    <!-- Fila 1: rango + presets + acciones -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="grid gap-2 shrink-0" style="grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr))">
+                            <label class="flex flex-col gap-1">
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</span>
+                                <FechaHoraPicker
+                                    :model-value="desde"
+                                    solo-fecha
+                                    @update:model-value="(v: string) => { desde = v; if (hasta < v) hasta = v; cargarBiblia(); }"
+                                />
+                            </label>
+                            <label class="flex flex-col gap-1">
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hasta</span>
+                                <FechaHoraPicker
+                                    :model-value="hasta"
+                                    solo-fecha
+                                    :min-date="desde"
+                                    @update:model-value="(v: string) => { hasta = v; cargarBiblia(); }"
+                                />
+                            </label>
+                        </div>
+
+                        <div class="flex items-center gap-1 self-end">
+                            <button
+                                v-for="p in [{ k: 'hoy', l: 'Hoy' }, { k: 'manana', l: 'Mañana' }, { k: 'semana', l: '7 días' }]"
+                                :key="p.k"
+                                @click="aplicarPreset(p.k as 'hoy' | 'manana' | 'semana')"
+                                class="px-2.5 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 transition-colors shadow-sm"
+                            >
+                                {{ p.l }}
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-2 ml-auto self-end">
+                            <button
+                                @click="mostrarFiltrosAvanzados = !mostrarFiltrosAvanzados"
+                                :class="hayFiltrosExtra ? 'bg-[#376875] text-white border-[#376875]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'"
+                                class="flex items-center gap-2 px-3 py-2 border rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
+                            >
+                                <i class="fas fa-filter"></i>
+                                <span class="hidden sm:inline">Filtros</span>
+                                <span v-if="hayFiltrosExtra" class="bg-white/25 px-1.5 rounded">•</span>
+                            </button>
+                            <button
+                                @click="cargarBiblia"
+                                :disabled="operacionStore.isLoading"
+                                class="flex items-center gap-2 px-4 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
+                            >
+                                <i class="fas fa-rotate" :class="{ 'fa-spin': operacionStore.isLoading }"></i>
+                                <span class="hidden sm:inline">Actualizar</span>
+                            </button>
+                        </div>
                     </div>
-                    <button
-                        @click="cargarBiblia"
-                        :disabled="operacionStore.isLoading"
-                        class="flex items-center gap-2 px-4 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
-                    >
-                        <i class="fas fa-rotate" :class="{ 'fa-spin': operacionStore.isLoading }"></i>
-                        <span class="hidden sm:inline">Actualizar</span>
-                    </button>
-                    <span class="ml-auto text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        {{ serviciosFiltrados.length }} servicio{{ serviciosFiltrados.length !== 1 ? 's' : '' }}
-                    </span>
+
+                    <!-- Fila 2: filtros avanzados -->
+                    <div v-if="mostrarFiltrosAvanzados" class="mt-3 pt-3 border-t border-slate-200 flex flex-col gap-3">
+
+                        <!-- Expediente y cotización -->
+                        <div class="flex flex-wrap items-end gap-2">
+                            <div class="relative flex flex-col gap-1 min-w-[16rem]">
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Expediente</span>
+
+                                <div v-if="expedienteSeleccionado" class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
+                                    <i class="fas fa-folder-open text-[#376875] text-xs"></i>
+                                    <span class="text-sm font-bold text-slate-700 truncate">{{ expedienteSeleccionado.nombreGrupo }}</span>
+                                    <button @click="quitarExpediente" class="ml-auto text-slate-400 hover:text-rose-600">
+                                        <i class="fas fa-xmark"></i>
+                                    </button>
+                                </div>
+
+                                <template v-else>
+                                    <input
+                                        v-model="terminoExpediente"
+                                        type="text"
+                                        placeholder="Buscar por nombre de grupo…"
+                                        class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
+                                    />
+                                    <div
+                                        v-if="resultadosExpediente.length || buscandoExpediente"
+                                        class="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 max-h-56 overflow-y-auto"
+                                    >
+                                        <p v-if="buscandoExpediente" class="px-3 py-2 text-xs text-slate-400">
+                                            <i class="fas fa-spinner fa-spin mr-1"></i> Buscando…
+                                        </p>
+                                        <button
+                                            v-for="exp in resultadosExpediente"
+                                            :key="exp.id"
+                                            @click="elegirExpediente(exp)"
+                                            class="w-full text-left px-3 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0"
+                                        >
+                                            <p class="text-sm font-bold text-slate-700">{{ exp.nombreGrupo }}</p>
+                                            <p v-if="exp.pasajeroPrincipal" class="text-[10px] text-slate-400">{{ exp.pasajeroPrincipal }}</p>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <label v-if="cotizacionesDelExpediente.length" class="flex flex-col gap-1 min-w-[14rem]">
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cotización</span>
+                                <select
+                                    v-model="cotizacionSeleccionada"
+                                    @change="cargarBiblia"
+                                    class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
+                                >
+                                    <option value="">Todas las versiones</option>
+                                    <option v-for="c in cotizacionesDelExpediente" :key="c.id" :value="c.id">
+                                        v{{ c.version ?? '?' }} · {{ c.titulo || 'Sin título' }} ({{ c.estado }})
+                                    </option>
+                                </select>
+                            </label>
+
+                            <label class="flex flex-col gap-1">
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reserva</span>
+                                <select
+                                    v-model="filtroEstadoReserva"
+                                    @change="cargarBiblia"
+                                    class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
+                                >
+                                    <option value="">Cualquiera</option>
+                                    <option v-for="(cfg, k) in ESTADO_RESERVA_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+                                </select>
+                            </label>
+
+                            <label class="flex flex-col gap-1">
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Operación</span>
+                                <select
+                                    v-model="filtroEstadoOperacion"
+                                    @change="cargarBiblia"
+                                    class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
+                                >
+                                    <option value="">Cualquiera</option>
+                                    <option v-for="(cfg, k) in ESTADO_OPERACION_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+                                </select>
+                            </label>
+
+                            <button
+                                @click="limpiarFiltros"
+                                class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-rose-600 transition-colors"
+                            >
+                                Limpiar
+                            </button>
+                        </div>
+
+                        <!-- Chips de tipo -->
+                        <div class="flex flex-wrap gap-1.5">
+                            <button
+                                v-for="t in TIPOS_COMPONENTE"
+                                :key="t.value"
+                                @click="alternarTipo(t.value)"
+                                :class="tiposSeleccionados.includes(t.value)
+                                    ? 'bg-slate-900 text-white border-slate-900'
+                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                                class="flex items-center gap-1.5 px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                            >
+                                <i :class="[t.icon, 'text-[10px]']"></i>
+                                {{ t.label }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Fila 3: contador y selección -->
+                    <div class="mt-2 flex items-center gap-3">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            {{ operacionStore.servicios.length }} servicio{{ operacionStore.servicios.length !== 1 ? 's' : '' }}
+                        </span>
+
+                        <template v-if="seleccionados.length">
+                            <span class="text-[10px] font-black text-[#376875] uppercase tracking-widest">
+                                {{ seleccionados.length }} seleccionado{{ seleccionados.length !== 1 ? 's' : '' }}
+                            </span>
+                            <span v-if="conflictoSeleccion" class="text-[10px] font-bold text-rose-600">
+                                <i class="fas fa-triangle-exclamation mr-1"></i>{{ conflictoSeleccion }}
+                            </span>
+                            <button
+                                @click="abrirModalOs"
+                                :disabled="!!conflictoSeleccion"
+                                class="ml-auto flex items-center gap-2 px-4 py-1.5 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
+                            >
+                                <i class="fas fa-file-invoice"></i>
+                                Generar OS
+                            </button>
+                            <button
+                                @click="seleccionados = []"
+                                class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-700"
+                            >
+                                Quitar
+                            </button>
+                        </template>
+                    </div>
                 </div>
 
                 <!-- Spinner -->
@@ -119,101 +655,177 @@ onMounted(cargarBiblia);
                 </div>
 
                 <!-- Empty state -->
-                <div v-else-if="serviciosFiltrados.length === 0" class="flex-1 flex items-center justify-center py-16">
+                <div v-else-if="operacionStore.servicios.length === 0" class="flex-1 flex items-center justify-center py-16">
                     <div class="text-center">
                         <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
                             <i class="fas fa-car-side text-2xl text-slate-300"></i>
                         </div>
                         <p class="font-black text-slate-500 uppercase tracking-widest text-xs mb-1">Sin logística</p>
-                        <p class="text-sm text-slate-400">No hay servicios programados para esta fecha.</p>
+                        <p class="text-sm text-slate-400">No hay servicios programados con estos filtros.</p>
                     </div>
                 </div>
 
-                <!-- Tabla -->
-                <div v-else class="px-4 md:px-6 py-4">
-                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <!-- Tabla agrupada por día -->
+                <div v-else class="px-4 md:px-6 py-4 flex flex-col gap-5">
+                    <div v-for="grupo in serviciosPorDia" :key="grupo.fecha">
 
-                        <!-- Vista tabla (md+) -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-slate-50 border-b border-slate-200">
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Hora</th>
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Servicio</th>
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:table-cell">Pax</th>
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden md:table-cell">Proveedor</th>
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Reserva</th>
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:table-cell">Operación</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <tr
-                                        v-for="servicio in serviciosFiltrados"
-                                        :key="servicio.id"
-                                        class="hover:bg-slate-50/80 transition-colors group"
-                                    >
-                                        <!-- Hora -->
-                                        <td class="px-4 py-4 whitespace-nowrap align-top">
-                                            <span class="text-sm font-black text-slate-900 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 tabular-nums">
-                                                {{ servicio.horaRecojoReal || '--:--' }}
-                                            </span>
-                                        </td>
+                        <h2 class="flex items-center gap-2 mb-2 px-1">
+                            <i class="fas fa-calendar-day text-[#376875] text-xs"></i>
+                            <span class="text-xs font-black text-slate-700 uppercase tracking-widest">{{ etiquetaDia(grupo.fecha) }}</span>
+                            <span class="text-[10px] font-bold text-slate-400">({{ grupo.servicios.length }})</span>
+                            <span class="flex-1 h-px bg-slate-200"></span>
+                        </h2>
 
-                                        <!-- Servicio + proveedor inline en móvil -->
-                                        <td class="px-4 py-4 align-top">
-                                            <p class="text-sm font-black text-slate-800 leading-tight">
-                                                {{ servicio.descripcionServicio }}
-                                            </p>
-                                            <p class="text-[10px] font-bold text-slate-400 mt-1 md:hidden">
-                                                <i class="fas fa-user mr-1"></i>
-                                                {{ servicio.proveedorNombreManual || 'Por asignar' }}
-                                            </p>
-                                            <!-- Estado operación en móvil (< sm) -->
-                                            <span
-                                                class="mt-1.5 sm:hidden inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black rounded-lg border"
-                                                :class="[getEstadoOperacionConfig(servicio.estadoOperacion).bg, getEstadoOperacionConfig(servicio.estadoOperacion).text, getEstadoOperacionConfig(servicio.estadoOperacion).border]"
-                                            >
-                                                <i :class="['text-[9px]', getEstadoOperacionConfig(servicio.estadoOperacion).icon]"></i>
-                                                {{ getEstadoOperacionConfig(servicio.estadoOperacion).label }}
-                                            </span>
-                                        </td>
+                        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-200">
+                                            <th class="px-3 py-3 w-8"></th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Hora</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Servicio</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden lg:table-cell">Expediente</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:table-cell">Pax</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden md:table-cell">Proveedor</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Reserva</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:table-cell">Operación</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr
+                                            v-for="servicio in grupo.servicios"
+                                            :key="servicio.id"
+                                            :class="[
+                                                seleccionados.includes(servicio.id ?? '') ? 'bg-[#376875]/5' : '',
+                                                servicio.estadoComponente === 'cancelado' || servicio.modoComponente === 'reemplazado' ? 'opacity-55' : '',
+                                            ]"
+                                            class="hover:bg-slate-50/80 transition-colors"
+                                        >
+                                            <!-- Selección -->
+                                            <td class="px-3 py-3 align-top">
+                                                <input
+                                                    type="checkbox"
+                                                    :checked="seleccionados.includes(servicio.id ?? '')"
+                                                    @change="alternarSeleccion(servicio.id)"
+                                                    class="mt-1 w-4 h-4 accent-[#376875] cursor-pointer"
+                                                />
+                                            </td>
 
-                                        <!-- Pax -->
-                                        <td class="px-4 py-4 hidden sm:table-cell whitespace-nowrap align-top">
-                                            <span class="text-xs font-black text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
-                                                <i class="fas fa-users text-slate-400 mr-1"></i>{{ servicio.cantidadPax }}
-                                            </span>
-                                        </td>
+                                            <!-- Hora editable -->
+                                            <td class="px-3 py-3 whitespace-nowrap align-top">
+                                                <input
+                                                    :value="servicio.horaRecojoReal ?? ''"
+                                                    @change="editarHora(servicio, $event)"
+                                                    placeholder="--:--"
+                                                    maxlength="5"
+                                                    class="w-[4.5rem] text-sm font-black text-slate-900 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 tabular-nums text-center outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
+                                                />
+                                            </td>
 
-                                        <!-- Proveedor -->
-                                        <td class="px-4 py-4 hidden md:table-cell align-top">
-                                            <span class="text-sm font-bold text-slate-700">
-                                                {{ servicio.proveedorNombreManual || 'Por asignar' }}
-                                            </span>
-                                        </td>
+                                            <!-- Servicio -->
+                                            <td class="px-3 py-3 align-top">
+                                                <div class="flex items-start gap-2">
+                                                    <i
+                                                        :class="[getTipoComponenteConfig(servicio.tipoComponente).icon, getTipoComponenteConfig(servicio.tipoComponente).text, 'mt-0.5 text-sm w-4 text-center']"
+                                                        :title="getTipoComponenteConfig(servicio.tipoComponente).label"
+                                                    ></i>
+                                                    <div class="min-w-0">
+                                                        <p class="text-sm font-black text-slate-800 leading-tight">
+                                                            {{ servicio.descripcionServicio }}
+                                                        </p>
+                                                        <p v-if="servicio.contextoServicio" class="text-[10px] font-bold text-slate-400 mt-0.5 truncate">
+                                                            <i class="fas fa-diagram-project mr-1"></i>{{ servicio.contextoServicio }}
+                                                        </p>
 
-                                        <!-- Estado reserva -->
-                                        <td class="px-4 py-4 whitespace-nowrap align-top">
-                                            <span
-                                                :class="['px-2 py-1 inline-flex items-center gap-1 text-[10px] font-black rounded-lg border', getEstadoReservaConfig(servicio.estadoReserva).bg, getEstadoReservaConfig(servicio.estadoReserva).text, getEstadoReservaConfig(servicio.estadoReserva).border]"
-                                            >
-                                                <i :class="['text-[9px]', getEstadoReservaConfig(servicio.estadoReserva).icon]"></i>
-                                                <span class="hidden sm:inline">{{ getEstadoReservaConfig(servicio.estadoReserva).label }}</span>
-                                            </span>
-                                        </td>
+                                                        <!-- Badges de clasificación: sólo cuando dicen algo -->
+                                                        <div class="flex flex-wrap gap-1 mt-1">
+                                                            <span
+                                                                v-if="getModoComponenteConfig(servicio.modoComponente) && servicio.modoComponente !== 'incluido'"
+                                                                :class="['px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border', getModoComponenteConfig(servicio.modoComponente)!.bg, getModoComponenteConfig(servicio.modoComponente)!.text, getModoComponenteConfig(servicio.modoComponente)!.border]"
+                                                            >
+                                                                <i :class="['fas text-[8px]', getModoComponenteConfig(servicio.modoComponente)!.icon]"></i>
+                                                                {{ getModoComponenteConfig(servicio.modoComponente)!.label }}
+                                                            </span>
+                                                            <span
+                                                                v-if="servicio.estadoComponente === 'cancelado'"
+                                                                :class="['px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border', getEstadoComponenteConfig(servicio.estadoComponente)!.bg, getEstadoComponenteConfig(servicio.estadoComponente)!.text, getEstadoComponenteConfig(servicio.estadoComponente)!.border]"
+                                                            >
+                                                                <i :class="['fas text-[8px]', getEstadoComponenteConfig(servicio.estadoComponente)!.icon]"></i>
+                                                                Cancelado en cotización
+                                                            </span>
+                                                            <span
+                                                                v-if="servicio.ordenServicio"
+                                                                class="px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border bg-[#E07845]/10 text-[#E07845] border-[#E07845]/30"
+                                                            >
+                                                                <i class="fas fa-file-invoice text-[8px]"></i> En OS
+                                                            </span>
+                                                        </div>
 
-                                        <!-- Estado operación -->
-                                        <td class="px-4 py-4 hidden sm:table-cell whitespace-nowrap align-top">
-                                            <span
-                                                :class="['px-2 py-1 inline-flex items-center gap-1 text-[10px] font-black rounded-lg border', getEstadoOperacionConfig(servicio.estadoOperacion).bg, getEstadoOperacionConfig(servicio.estadoOperacion).text, getEstadoOperacionConfig(servicio.estadoOperacion).border]"
-                                            >
-                                                <i :class="['text-[9px]', getEstadoOperacionConfig(servicio.estadoOperacion).icon]"></i>
-                                                {{ getEstadoOperacionConfig(servicio.estadoOperacion).label }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                                        <!-- Contexto compacto en móvil -->
+                                                        <p class="text-[10px] font-bold text-slate-400 mt-1 lg:hidden">
+                                                            <i class="fas fa-folder-open mr-1"></i>{{ servicio.file?.nombreGrupo || 'Sin expediente' }}
+                                                        </p>
+                                                        <p class="text-[10px] font-bold text-slate-400 mt-0.5 md:hidden">
+                                                            <i class="fas fa-user mr-1"></i>{{ servicio.proveedorNombreManual || 'Por asignar' }}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Expediente -->
+                                            <td class="px-3 py-3 hidden lg:table-cell align-top">
+                                                <p class="text-sm font-bold text-slate-700 truncate max-w-[12rem]">
+                                                    {{ servicio.file?.nombreGrupo || '—' }}
+                                                </p>
+                                                <p v-if="servicio.file?.pasajeroPrincipal" class="text-[10px] font-bold text-slate-400 truncate max-w-[12rem]">
+                                                    {{ servicio.file.pasajeroPrincipal }}
+                                                </p>
+                                            </td>
+
+                                            <!-- Pax -->
+                                            <td class="px-3 py-3 hidden sm:table-cell whitespace-nowrap align-top">
+                                                <span class="text-xs font-black text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+                                                    <i class="fas fa-users text-slate-400 mr-1"></i>{{ servicio.cantidadPax }}
+                                                </span>
+                                            </td>
+
+                                            <!-- Proveedor editable -->
+                                            <td class="px-3 py-3 hidden md:table-cell align-top">
+                                                <input
+                                                    :value="servicio.proveedorNombreManual ?? ''"
+                                                    @change="editarProveedor(servicio, $event)"
+                                                    placeholder="Por asignar"
+                                                    class="w-full max-w-[11rem] text-sm font-bold text-slate-700 bg-transparent px-2 py-1 rounded-lg border border-transparent hover:border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
+                                                />
+                                            </td>
+
+                                            <!-- Estado reserva editable -->
+                                            <td class="px-3 py-3 whitespace-nowrap align-top">
+                                                <select
+                                                    :value="servicio.estadoReserva"
+                                                    @change="guardarCampo(servicio, { estadoReserva: ($event.target as HTMLSelectElement).value })"
+                                                    :disabled="guardando === servicio.id"
+                                                    :class="['px-2 py-1 text-[10px] font-black rounded-lg border cursor-pointer outline-none appearance-none', getEstadoReservaConfig(servicio.estadoReserva).bg, getEstadoReservaConfig(servicio.estadoReserva).text, getEstadoReservaConfig(servicio.estadoReserva).border]"
+                                                >
+                                                    <option v-for="(cfg, k) in ESTADO_RESERVA_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+                                                </select>
+                                            </td>
+
+                                            <!-- Estado operación editable -->
+                                            <td class="px-3 py-3 hidden sm:table-cell whitespace-nowrap align-top">
+                                                <select
+                                                    :value="servicio.estadoOperacion"
+                                                    @change="guardarCampo(servicio, { estadoOperacion: ($event.target as HTMLSelectElement).value })"
+                                                    :disabled="guardando === servicio.id"
+                                                    :class="['px-2 py-1 text-[10px] font-black rounded-lg border cursor-pointer outline-none appearance-none', getEstadoOperacionConfig(servicio.estadoOperacion).bg, getEstadoOperacionConfig(servicio.estadoOperacion).text, getEstadoOperacionConfig(servicio.estadoOperacion).border]"
+                                                >
+                                                    <option v-for="(cfg, k) in ESTADO_OPERACION_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -222,7 +834,6 @@ onMounted(cargarBiblia);
             <!-- PESTAÑA: ÓRDENES DE SERVICIO -------------------------------->
             <section v-else-if="activeTab === 'ordenes'" class="flex flex-col min-h-full">
 
-                <!-- Barra superior -->
                 <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-4 md:px-6 py-3 flex items-center gap-3 shrink-0">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-list-check text-[#E07845]"></i>
@@ -238,7 +849,6 @@ onMounted(cargarBiblia);
                     </button>
                 </div>
 
-                <!-- Spinner -->
                 <div v-if="operacionStore.isLoading" class="flex-1 flex items-center justify-center py-16">
                     <div class="text-center">
                         <i class="fas fa-spinner fa-spin text-3xl text-[#E07845] mb-3"></i>
@@ -246,18 +856,16 @@ onMounted(cargarBiblia);
                     </div>
                 </div>
 
-                <!-- Empty state -->
                 <div v-else-if="operacionStore.ordenesServicio.length === 0" class="flex-1 flex items-center justify-center py-16">
                     <div class="text-center">
                         <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
                             <i class="fas fa-file-invoice text-2xl text-slate-300"></i>
                         </div>
                         <p class="font-black text-slate-500 uppercase tracking-widest text-xs mb-1">Sin órdenes</p>
-                        <p class="text-sm text-slate-400">No hay órdenes de servicio recientes.</p>
+                        <p class="text-sm text-slate-400">Selecciona servicios en La Biblia y pulsa «Generar OS».</p>
                     </div>
                 </div>
 
-                <!-- Tabla OS -->
                 <div v-else class="px-4 md:px-6 py-4">
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                         <div class="overflow-x-auto">
@@ -277,12 +885,10 @@ onMounted(cargarBiblia);
                                         :key="orden.id"
                                         class="hover:bg-slate-50/80 transition-colors"
                                     >
-                                        <!-- OS # -->
                                         <td class="px-4 py-4 whitespace-nowrap align-top">
                                             <span class="text-sm font-black text-[#376875]">{{ orden.numeroOs }}</span>
                                         </td>
 
-                                        <!-- Proveedor + total inline en móvil -->
                                         <td class="px-4 py-4 align-top">
                                             <p class="text-sm font-bold text-slate-800">
                                                 {{ orden.proveedorNombreManual || 'No definido' }}
@@ -293,26 +899,26 @@ onMounted(cargarBiblia);
                                             </p>
                                         </td>
 
-                                        <!-- Total -->
                                         <td class="px-4 py-4 hidden sm:table-cell whitespace-nowrap align-top">
                                             <span class="text-sm font-black text-slate-800">
                                                 <span class="text-[10px] font-bold text-slate-400 mr-1">{{ orden.monedaOs?.id || 'USD' }}</span>{{ orden.totalOs }}
                                             </span>
                                         </td>
 
-                                        <!-- Estado OS -->
                                         <td class="px-4 py-4 whitespace-nowrap align-top">
                                             <span
                                                 :class="['px-2 py-1 inline-flex items-center gap-1 text-[10px] font-black rounded-lg border', getEstadoOsConfig(orden.estadoOs).bg, getEstadoOsConfig(orden.estadoOs).text, getEstadoOsConfig(orden.estadoOs).border]"
                                             >
-                                                <i :class="['text-[9px]', getEstadoOsConfig(orden.estadoOs).icon]"></i>
+                                                <i :class="['fas text-[9px]', getEstadoOsConfig(orden.estadoOs).icon]"></i>
                                                 {{ getEstadoOsConfig(orden.estadoOs).label }}
                                             </span>
                                         </td>
 
-                                        <!-- Acciones -->
                                         <td class="px-4 py-4 text-right align-top">
-                                            <button class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm">
+                                            <button
+                                                @click="abrirMensajes(orden)"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
+                                            >
                                                 <i class="fas fa-message text-[9px]"></i>
                                                 <span class="hidden sm:inline">Mensajes</span>
                                             </button>
@@ -326,5 +932,131 @@ onMounted(cargarBiblia);
             </section>
 
         </main>
+
+        <!-- ================================================================
+             MODAL: GENERAR ORDEN DE SERVICIO
+             ================================================================ -->
+        <div v-if="mostrarModalOs" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+                <header class="bg-slate-900 text-white px-5 py-3 flex items-center gap-2">
+                    <i class="fas fa-file-invoice text-[#E07845]"></i>
+                    <h3 class="font-black text-sm tracking-tight">Generar Orden de Servicio</h3>
+                </header>
+
+                <div class="p-5 flex flex-col gap-3">
+                    <p class="text-xs text-slate-500">
+                        Se agruparán <strong class="text-slate-800">{{ seleccionados.length }}</strong> servicios
+                        del expediente <strong class="text-slate-800">{{ serviciosSeleccionados[0]?.file?.nombreGrupo }}</strong>.
+                    </p>
+
+                    <label class="flex flex-col gap-1">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Número de OS</span>
+                        <input
+                            v-model="formOs.numeroOs"
+                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#376875]"
+                        />
+                    </label>
+
+                    <label class="flex flex-col gap-1">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Proveedor</span>
+                        <input
+                            v-model="formOs.proveedorNombreManual"
+                            placeholder="Nombre del proveedor"
+                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#376875]"
+                        />
+                    </label>
+
+                    <label class="flex flex-col gap-1">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            Total ({{ formOs.monedaId || '—' }})
+                        </span>
+                        <input
+                            v-model="formOs.totalOs"
+                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-black text-slate-700 tabular-nums outline-none focus:ring-2 focus:ring-[#376875]"
+                        />
+                        <span class="text-[10px] text-slate-400">Suma de los costos cotizados; ajústalo si negociaste otro precio.</span>
+                    </label>
+
+                    <p v-if="errorOs" class="text-xs font-bold text-rose-600">
+                        <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorOs }}
+                    </p>
+                </div>
+
+                <footer class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                    <button
+                        @click="mostrarModalOs = false"
+                        class="px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-800"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        @click="confirmarOs"
+                        :disabled="guardandoOs"
+                        class="px-5 py-2 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-lg shadow-sm"
+                    >
+                        <i v-if="guardandoOs" class="fas fa-spinner fa-spin mr-1"></i>
+                        Crear
+                    </button>
+                </footer>
+            </div>
+        </div>
+
+        <!-- ================================================================
+             MODAL: BITÁCORA DE MENSAJES
+             ================================================================ -->
+        <div v-if="ordenActiva" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
+                <header class="bg-slate-900 text-white px-5 py-3 flex items-center gap-2">
+                    <i class="fas fa-message text-[#376875]"></i>
+                    <h3 class="font-black text-sm tracking-tight">
+                        Bitácora · {{ ordenActiva.numeroOs }}
+                    </h3>
+                    <button @click="ordenActiva = null" class="ml-auto text-slate-400 hover:text-white">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </header>
+
+                <div class="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
+                    <p v-if="operacionStore.mensajesActivos.length === 0" class="text-xs text-slate-400 text-center py-6">
+                        Todavía no se ha enviado nada a este proveedor.
+                    </p>
+                    <article
+                        v-for="mensaje in operacionStore.mensajesActivos"
+                        :key="mensaje.id ?? mensaje.createdAt"
+                        class="border border-slate-200 rounded-xl p-3 bg-slate-50"
+                    >
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                            {{ mensaje.tipo }} · {{ formatearFecha(mensaje.createdAt) }}
+                        </p>
+                        <div class="text-sm text-slate-700 whitespace-pre-wrap" v-html="mensaje.cuerpoHtml"></div>
+                    </article>
+                </div>
+
+                <footer class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex flex-col gap-2">
+                    <textarea
+                        v-model="cuerpoMensaje"
+                        rows="3"
+                        placeholder="Escribe la solicitud al proveedor…"
+                        class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] resize-none"
+                    ></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button
+                            @click="ordenActiva = null"
+                            class="px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-800"
+                        >
+                            Cerrar
+                        </button>
+                        <button
+                            @click="enviarMensaje"
+                            :disabled="enviandoMensaje || !cuerpoMensaje.trim()"
+                            class="px-5 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-40 text-white text-xs font-black uppercase tracking-widest rounded-lg shadow-sm"
+                        >
+                            <i v-if="enviandoMensaje" class="fas fa-spinner fa-spin mr-1"></i>
+                            Registrar
+                        </button>
+                    </div>
+                </footer>
+            </div>
+        </div>
     </div>
 </template>

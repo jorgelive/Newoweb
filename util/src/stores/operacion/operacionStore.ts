@@ -8,8 +8,25 @@ import type {
     OperacionMensaje,
     OperacionOrdenServicioWrite,
     OperacionServicioWrite,
-    OperacionMensajeWrite
+    OperacionMensajeWrite,
+    FiltrosBiblia
 } from '@/types/operacionModel';
+import { construirParamsBiblia } from '@/types/operacionModel';
+
+/** Expediente reducido para el selector de filtros de La Biblia. */
+export interface ExpedienteOpcion {
+    id: string;
+    nombreGrupo: string;
+    pasajeroPrincipal?: string | null;
+}
+
+/** Cotización reducida para el selector de filtros de La Biblia. */
+export interface CotizacionOpcion {
+    id: string;
+    version?: number | null;
+    titulo?: string | null;
+    estado?: string | null;
+}
 
 export const useOperacionStore = defineStore('operacionStore', () => {
     // ============================================================================
@@ -34,21 +51,79 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * Obtiene el listado de servicios operativos según filtros.
      *
      * Este método existe para alimentar "La Biblia" (el cuadro de tráfico diario).
-     * Permite filtrar por expediente, por fecha exacta o por órdenes de servicio
-     * específicas, garantizando que el equipo de tráfico solo vea la logística activa.
+     * Permite filtrar por rango de fechas, expediente, cotización, tipo de componente
+     * y estados, garantizando que el equipo de tráfico solo vea la logística activa.
      *
-     * @param {Record<string, string>} filtros - Parámetros de búsqueda (ej. { fecha_servicio: '2026-09-14' }).
+     * El orden lo impone el backend (fechaServicio ASC, horaRecojoReal ASC declarado en
+     * el #[ApiResource]); no reordenar aquí salvo para agrupar en pantalla.
      */
-    const fetchServicios = async (filtros: Record<string, string> = {}): Promise<void> => {
+    const fetchServicios = async (filtros: FiltrosBiblia = {}): Promise<void> => {
         isLoading.value = true;
         try {
-            const response = await apiClient.get('/platform/ops/operacion_servicios', { params: filtros });
+            // Sin paramsSerializer a propósito: las claves multivalor ya llevan los
+            // corchetes puestos (`tipoComponente[]`) y el serializador por defecto de
+            // axios las repite tal cual. Con `indexes: null` los corchetes se pierden
+            // y PHP se queda sólo con el último valor, filtrando por un tipo en vez de N.
+            const response = await apiClient.get('/platform/ops/operacion_servicios', {
+                params: construirParamsBiblia(filtros),
+            });
             servicios.value = response.data['hydra:member'] || response.data['member'] || [];
         } catch (error) {
             console.error('Error al cargar la Biblia de operaciones:', error);
             throw error;
         } finally {
             isLoading.value = false;
+        }
+    };
+
+    /**
+     * Busca expedientes por nombre para el selector de filtros.
+     *
+     * No se reutiliza cotizacionFileStore.fetchFiles() a propósito: ese store mantiene
+     * el listado paginado de la pantalla de expedientes y buscar desde aquí lo
+     * sobreescribiría, cambiando lo que ve el usuario en otra vista.
+     */
+    const buscarExpedientes = async (termino: string): Promise<ExpedienteOpcion[]> => {
+        const nombre = termino.trim();
+        if (nombre.length < 2) return [];
+
+        try {
+            const response = await apiClient.get('/platform/sales/cotizacion_files', {
+                params: { nombre, itemsPerPage: 10 },
+            });
+            const miembros = response.data['hydra:member'] || response.data['member'] || [];
+
+            return miembros.map((f: Record<string, unknown>) => ({
+                id: String(f.id ?? ''),
+                nombreGrupo: String(f.nombreGrupo ?? 'Sin nombre'),
+                pasajeroPrincipal: (f.pasajeroPrincipal as string | null) ?? null,
+            }));
+        } catch (error) {
+            console.error('Error al buscar expedientes:', error);
+            return [];
+        }
+    };
+
+    /**
+     * Carga las cotizaciones (versiones) de un expediente.
+     *
+     * Sólo el GET de item de CotizacionFile expone la colección `cotizaciones`
+     * (grupo file:item:read), de ahí que haga falta una llamada aparte.
+     */
+    const fetchCotizacionesDeExpediente = async (fileId: string): Promise<CotizacionOpcion[]> => {
+        try {
+            const response = await apiClient.get(`/platform/sales/cotizacion_files/${fileId}`);
+            const cotizaciones = response.data.cotizaciones || [];
+
+            return cotizaciones.map((c: Record<string, unknown>) => ({
+                id: String(c.id ?? ''),
+                version: (c.version as number | null) ?? null,
+                titulo: (c.titulo as string | null) ?? null,
+                estado: (c.estado as string | null) ?? null,
+            }));
+        } catch (error) {
+            console.error('Error al cargar cotizaciones del expediente:', error);
+            return [];
         }
     };
 
@@ -189,6 +264,8 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         ordenesServicio,
         mensajesActivos,
         fetchServicios,
+        buscarExpedientes,
+        fetchCotizacionesDeExpediente,
         actualizarServicio,
         fetchOrdenesServicio,
         crearOrdenServicio,

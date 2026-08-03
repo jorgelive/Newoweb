@@ -9,13 +9,16 @@
 //
 // Notas de diseño:
 //  - MaestroMoneda-operacion.write = Record<string,never> en el schema porque
-//    la entidad no expone campos en operacion:write; en runtime se pasa IRI string.
-//  - CotizacionFile/Cottarifa/Cotservicio/Cotcomponente embebidos en lectura son
-//    stubs (solo createdAt/updatedAt + @id JSON-LD); los campos útiles vienen
-//    del @id IRI, no del objeto embebido.
+//    la entidad no expone campos en operacion:write; en runtime se pasa IRI string
+//    con la forma '/platform/maestro/monedas/{id}'.
+//  - `file` SÍ trae nombreGrupo y pasajeroPrincipal: CotizacionFile los publica en
+//    el grupo operacion:item:read justamente para que La Biblia sepa de quién es
+//    cada fila. Cottarifa/Cotservicio/Cotcomponente siguen siendo stubs (solo
+//    @id + timestamps); su información útil está denormalizada en el snapshot
+//    (contextoServicio, tipoComponente, modoComponente, estadoComponente).
 //  - operacionServicios dentro de OperacionOrdenServicio son stubs vacíos en
 //    operacion:read (campos de OperacionServicio usan operacion:item:read);
-//    usar cargarServiciosPorOrden() para datos completos.
+//    filtrar por ordenServicio para datos completos.
 // ============================================================================
 
 import { components } from '@/types/api';
@@ -95,6 +98,117 @@ export const ESTADO_OPERACION_CONFIG: Record<EstadoOperacionValue, EstadoUIConfi
     'en-proceso': { label: 'En Proceso', bg: 'bg-sky-50',     text: 'text-sky-700',     border: 'border-sky-200',     icon: 'fa-gears' },
     'completado': { label: 'Completado', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
     'cancelado':  { label: 'Cancelado',  bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    icon: 'fa-times-circle' },
+};
+
+// ============================================================================
+// TIPO DE COMPONENTE — espejo de App\Travel\Enum\ComponenteTipoEnum
+//
+// ⚠️ Espejo: si añades un case en ComponenteTipoEnum (PHP) añádelo también aquí.
+// `prioridad` NO se replica: viene calculada del backend en `prioridadOperativa`
+// (OperacionServicio::getPrioridadOperativa()), que es la única fuente de verdad.
+// ============================================================================
+
+export interface TipoComponenteConfig {
+    label: string;
+    icon: string;
+    /** Color del icono en la fila; el badge de estado va aparte. */
+    text: string;
+}
+
+export const TIPO_COMPONENTE_CONFIG: Record<string, TipoComponenteConfig> = {
+    transporte:             { label: 'Transporte',   icon: 'fas fa-van-shuttle',       text: 'text-sky-600' },
+    guiado:                 { label: 'Guiado',       icon: 'fas fa-person-chalkboard', text: 'text-indigo-600' },
+    pool:                   { label: 'Pool',         icon: 'fas fa-people-group',      text: 'text-teal-600' },
+    privada:                { label: 'Privada',      icon: 'fas fa-user-group',        text: 'text-teal-700' },
+    tren:                   { label: 'Tren',         icon: 'fas fa-train',             text: 'text-purple-600' },
+    vuelo:                  { label: 'Vuelo',        icon: 'fas fa-plane',             text: 'text-blue-600' },
+    alojamiento:            { label: 'Alojamiento',  icon: 'fas fa-bed',               text: 'text-amber-600' },
+    alimentacion_fijo:      { label: 'Comida',       icon: 'fas fa-utensils',          text: 'text-orange-600' },
+    alimentacion_variable:  { label: 'Comida',       icon: 'fas fa-mug-saucer',        text: 'text-orange-500' },
+    ticket_fijo:            { label: 'Ticket',       icon: 'fas fa-ticket',            text: 'text-rose-600' },
+    ticket_variable:        { label: 'Ticket',       icon: 'fas fa-ticket-simple',     text: 'text-rose-500' },
+    personal_extra:         { label: 'Personal',     icon: 'fas fa-user-plus',         text: 'text-slate-600' },
+    extras:                 { label: 'Extra',        icon: 'fas fa-plus',              text: 'text-slate-500' },
+};
+
+const TIPO_DESCONOCIDO: TipoComponenteConfig = {
+    label: 'Sin tipo', icon: 'fas fa-circle-question', text: 'text-slate-400',
+};
+
+export const getTipoComponenteConfig = (v?: string | null): TipoComponenteConfig =>
+    TIPO_COMPONENTE_CONFIG[v ?? ''] ?? TIPO_DESCONOCIDO;
+
+/** Opciones para el selector de tipo, en el orden en que se declaran arriba. */
+export const TIPOS_COMPONENTE = Object.entries(TIPO_COMPONENTE_CONFIG)
+    .map(([value, cfg]) => ({ value, label: cfg.label, icon: cfg.icon }));
+
+// ============================================================================
+// MODO Y ESTADO DEL COMPONENTE — espejo de ComponenteModoEnum / ComponenteEstadoEnum
+//
+// Se muestran en La Biblia porque el listener NO los filtra: entra todo lo que
+// tenga tarifa y fecha, incluidos no_incluido, cortesía, reemplazado y cancelado.
+// Verlos es el paso previo a decidir qué se deja de generar. Ver docs/Operacion.md §3.
+// ============================================================================
+
+export const MODO_COMPONENTE_CONFIG: Record<string, EstadoUIConfig> = {
+    incluido:    { label: 'Incluido',    bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
+    no_incluido: { label: 'No incluido', bg: 'bg-slate-100',  text: 'text-slate-500',   border: 'border-slate-200',   icon: 'fa-ban' },
+    cortesia:    { label: 'Cortesía',    bg: 'bg-violet-50',  text: 'text-violet-700',  border: 'border-violet-200',  icon: 'fa-gift' },
+    reemplazado: { label: 'Reemplazado', bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    icon: 'fa-arrow-right-arrow-left' },
+};
+
+export const ESTADO_COMPONENTE_CONFIG: Record<string, EstadoUIConfig> = {
+    pendiente:    { label: 'Pendiente',    bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   icon: 'fa-clock' },
+    confirmado:   { label: 'Confirmado',   bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
+    reconfirmado: { label: 'Reconfirmado', bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200',    icon: 'fa-check-double' },
+    cancelado:    { label: 'Cancelado',    bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    icon: 'fa-times-circle' },
+};
+
+export const getModoComponenteConfig = (v?: string | null): EstadoUIConfig | null =>
+    v ? (MODO_COMPONENTE_CONFIG[v] ?? null) : null;
+
+export const getEstadoComponenteConfig = (v?: string | null): EstadoUIConfig | null =>
+    v ? (ESTADO_COMPONENTE_CONFIG[v] ?? null) : null;
+
+// ============================================================================
+// FILTROS DE LA BIBLIA
+//
+// Los nombres de los parámetros de query viven aquí y no repartidos por la vista:
+// dependen de qué #[ApiFilter] declara OperacionServicio (DateFilter usa
+// fechaServicio[after]/[before], SearchFilter usa el nombre pelado) y cambiarlos
+// en el backend obliga a tocar un solo sitio.
+// ============================================================================
+
+export interface FiltrosBiblia {
+    /** 'YYYY-MM-DD' inclusive. */
+    desde?: string;
+    /** 'YYYY-MM-DD' inclusive. */
+    hasta?: string;
+    /** UUID del expediente. */
+    fileId?: string;
+    /** UUID de la cotización. */
+    cotizacionId?: string;
+    tipos?: string[];
+    estadoReserva?: string;
+    estadoOperacion?: string;
+}
+
+export const construirParamsBiblia = (f: FiltrosBiblia): Record<string, string | string[]> => {
+    const params: Record<string, string | string[]> = { itemsPerPage: '200' };
+
+    // DateFilter: [after]/[before] son inclusivos (>=, <=); los strictly_* no lo son.
+    if (f.desde) params['fechaServicio[after]'] = f.desde;
+    if (f.hasta) params['fechaServicio[before]'] = f.hasta;
+
+    if (f.fileId) params['file'] = f.fileId;
+    if (f.cotizacionId) params['cotizacionServicio.cotizacion'] = f.cotizacionId;
+    if (f.estadoReserva) params['estadoReserva'] = f.estadoReserva;
+    if (f.estadoOperacion) params['estadoOperacion'] = f.estadoOperacion;
+
+    // SearchFilter admite multivalor con la forma prop[]=a&prop[]=b
+    if (f.tipos?.length) params['tipoComponente[]'] = f.tipos;
+
+    return params;
 };
 
 export const getEstadoOsConfig = (v?: string | null): EstadoUIConfig =>

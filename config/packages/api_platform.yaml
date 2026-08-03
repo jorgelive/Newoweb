@@ -10,6 +10,10 @@ api_platform:
             - '%kernel.project_dir%/src/Message/Entity'
             - '%kernel.project_dir%/src/Travel/Entity'
             - '%kernel.project_dir%/src/Cotizacion/Entity'
+            # Sin esta línea los #[ApiFilter] de Operacion no se compilan a servicios:
+            # AttributeFilterPass sólo recorre los directorios listados aquí, así que los
+            # filtros se ignoran en silencio y las colecciones salen sin filtrar.
+            - '%kernel.project_dir%/src/Operacion/Entity'
             # Descomenta estas líneas si luego quieres exponer APIs de estos módulos:
             # - '%kernel.project_dir%/src/Exchange/Entity'
 

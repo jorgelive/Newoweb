@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Operation;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionCatalogo;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Cotizacion\Service\TourTarjetaResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 
@@ -29,8 +30,10 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  */
 final class CotizacionCatalogoPublicProvider implements ProviderInterface
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly TourTarjetaResolver $tarjetas,
+    ) {
     }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?CotizacionCatalogo
@@ -70,7 +73,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
         }
 
         // Portadas automáticas: imágenes de los segmentos en orden de itinerario
-        $portadas = $this->calcularPortadas(array_column($filas, 'id'));
+        $portadas = $this->tarjetas->portadasDerivadas(array_column($filas, 'id'));
 
         $catalogo->setToursParaCliente(array_map(static function (array $f) use ($portadas): array {
             $oculto = (bool) $f['precioOculto'];
@@ -89,8 +92,8 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
                 // Rangos comerciales de exhibición ("Desde X" por perfil); el financiero real no se expone
                 'preciosDesde'      => $oculto ? [] : ($f['preciosDesde'] ?? []),
                 // Override editorial primero; si no, la derivada del itinerario
-                'imagenPortada'     => $f['imagenPortada'] ?? $portadas[(string) $f['id']] ?? null,
-                'numDias'           => self::calcularNumDias($f['fechaMin'], $f['fechaMax']),
+                'imagenPortada'     => $f['imagenPortada'] ?? $portadas[TourTarjetaResolver::clave($f['id'])] ?? null,
+                'numDias'           => TourTarjetaResolver::numDias($f['fechaMin'], $f['fechaMax']),
             ];
         }, $filas));
 
@@ -109,73 +112,5 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
         }
 
         return $catalogo;
-    }
-
-    /**
-     * Deriva la portada automática por tour: primera imagen marcada isPortada
-     * recorriendo los segmentos en orden de itinerario; si ninguna lo está,
-     * la primera imagen disponible.
-     *
-     * @param array<int, mixed> $cotIds
-     * @return array<string, array> Mapa cotizacionId => imagen (snapshot)
-     */
-    private function calcularPortadas(array $cotIds): array
-    {
-        if ($cotIds === []) {
-            return [];
-        }
-
-        $filas = $this->em->createQuery(<<<'DQL'
-            SELECT IDENTITY(s.cotizacion) AS cotId, seg.imagenesSnapshot
-            FROM App\Cotizacion\Entity\CotizacionSegmento seg
-            JOIN seg.cotservicio s
-            WHERE s.cotizacion IN (:ids)
-            ORDER BY s.fechaInicioAbsoluta ASC, seg.orden ASC
-        DQL)
-            ->setParameter('ids', $cotIds)
-            ->getArrayResult();
-
-        $portadas = [];
-        $fallbacks = [];
-        foreach ($filas as $fila) {
-            $cotId = (string) $fila['cotId'];
-            foreach ((array) ($fila['imagenesSnapshot'] ?? []) as $img) {
-                if (!is_array($img)) {
-                    continue;
-                }
-                $fallbacks[$cotId] ??= $img;
-                if (!isset($portadas[$cotId]) && ($img['isPortada'] ?? false)) {
-                    $portadas[$cotId] = $img;
-                }
-            }
-        }
-
-        return $portadas + $fallbacks;
-    }
-
-    /**
-     * Días del tour a partir del span de fechas nominales del itinerario.
-     * Las fechas nominales son consistentes entre sí, por lo que el span
-     * (max - min + 1) equivale a la duración real del programa.
-     */
-    private static function calcularNumDias(mixed $min, mixed $max): ?int
-    {
-        $aFecha = static function (mixed $v): ?\DateTimeImmutable {
-            if ($v instanceof \DateTimeInterface) {
-                return \DateTimeImmutable::createFromInterface($v);
-            }
-            if (is_string($v) && $v !== '') {
-                return new \DateTimeImmutable(substr($v, 0, 10));
-            }
-            return null;
-        };
-
-        $fMin = $aFecha($min);
-        $fMax = $aFecha($max);
-        if (!$fMin || !$fMax) {
-            return null;
-        }
-
-        return (int) $fMin->diff($fMax)->format('%a') + 1;
     }
 }

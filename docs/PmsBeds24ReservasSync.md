@@ -1322,6 +1322,52 @@ Esto también arregló un fallo latente: el subtotal por estancia sumaba importe
 distintas y los etiquetaba con la moneda de la cabecera, así que un cargo de S/. 1425 aparecía
 como `US$ 1425.00` en la cabecera de su grupo.
 
+### 12.4.5 Depósito automático de las OTA de pago total
+
+En los canales de `PmsChannel::CANAL_PAGO_TOTAL` (hoy **Airbnb y VRBO**) el dinero no lo cobramos
+nosotros: la OTA cobra al huésped y **deposita en la cuenta bancaria**. No hay ningún pago que
+teclear, así que esas reservas figuraban impagadas aunque estuvieran cobradas al 100 %.
+
+`PmsPagoOtaAutomaticoService` crea y mantiene ese pago, dejando el saldo en **0**:
+
+| | Valor | Por qué |
+|---|---|---|
+| Importe | `totalCargos` | Es lo que deja el saldo en cero, que es la regla pedida |
+| Fecha | Llegada **+ 1 día** | Es cuando la OTA libera el depósito |
+| Medio | Transferencia bancaria | Es como entra |
+| Moneda | La de la cabecera | Así no necesita tipo de cambio y no depende de §12.2 |
+
+⚠️ **No se genera al crear la cabecera**, aunque sea lo intuitivo: en ese momento la reserva aún
+no tiene cargos (llegan después por webhook o por el pull de invoiceItems, §11) y el pago habría
+nacido en `0.00`. Se sincroniza **después de cada recálculo**, que es cuando el importe ya se
+conoce — y como al crearlo cambia `total_pagos`, el listener **vuelve a recalcular**.
+
+**El depósito es de SÓLO LECTURA.** Editarlo o borrarlo lanza `DomainException` con un mensaje
+que dice dónde está la verdad: *corrige los cargos, que el depósito los sigue*.
+
+Esa decisión salió de un fallo detectado al probarlo. El primer diseño desmarcaba el pago cuando
+el operador lo editaba, para respetar su criterio. Resultado: al perder la marca, el sincronizador
+no encontraba depósito automático y **creaba otro** — dos pagos y el saldo en −100. La raíz era
+que un solo booleano intentaba significar dos cosas a la vez ("es el depósito del canal" y "lo
+gestiona el sistema"). Se resolvió quitándole al pago la condición de dato editable: **es un
+reflejo de los cargos**, no un dato propio.
+
+`referencia` y `notas` sí se pueden anotar: no afectan al saldo.
+
+**Si los cargos desaparecen, el depósito se borra solo** (o si la reserva se anula y no queda ni
+penalización). Sin cargos no se inventa un depósito.
+
+**Backfill:** `Version20260803190000` añade `es_automatico` y crea los depósitos que faltaban.
+Inserta la **diferencia** `total_cargos − total_pagos`, no el total: una reserva con un pago
+parcial ya registrado a mano habría quedado con saldo negativo. Y cuadra la caché de totales a
+mano, porque el rollup es SQL crudo y no se dispara desde una migración.
+
+⚠️ **Tensión conocida, decidida a favor del saldo cero:** las OTA depositan **neto de su
+comisión**, así que el importe del depósito no es literalmente lo que aparece en el extracto
+bancario. Se prioriza que el saldo quede en cero, que es lo que se pidió. Para reflejar el neto
+real habría que cambiar `PmsPagoOtaAutomaticoService::sincronizar()` **y aceptar que el saldo deje
+de ser cero**.
+
 ## 12.5 Panel financiero en la SPA (`util/`) y patrón de Enums por AJAX
 
 **Archivos relevantes:**
@@ -1633,7 +1679,9 @@ En los cuatro pasos los 4 cargos siguen en la BD; lo único que cambia es qué s
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
 | Cambiar ventana anti-dup | `Beds24WebhookController` | `600` (seg) y `15000` (ms) |
-| Añadir canal de pago total | `PmsChannel` | `CANAL_PAGO_TOTAL` |
+| Añadir canal de pago total | `PmsChannel` | `CANAL_PAGO_TOTAL` — también decide qué canales generan depósito automático (§12.4.5) |
+| Cambiar el importe/fecha del depósito de OTA (§12.4.5) | `PmsPagoOtaAutomaticoService` | `sincronizar()` / `fechaDeposito()` |
+| Permitir editar el depósito automático (§12.4.5) | `PmsInformacionFinancieraCoherenciaListener` | `assertPagoAutomaticoNoEditable()` |
 | Cambiar lógica de estado OTA | `BookingPullPersister` | `resolveEstado()` |
 | Cambiar estado de pago inicial | `BookingPullPersister` | `resolveEstadoPagoInicial()` |
 | Cambiar la auto-confirmación por pago (§9.5) | `PmsEventoCalendario` + `util/src/types/pmsReservaModel.ts` | `requiereAutoConfirmacionPorPago()` (hay que tocar **los dos**: son espejo) |

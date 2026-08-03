@@ -123,6 +123,10 @@ class Cotizacion
      * El catálogo funciona como un menú de precios por unidad — "peruanos tal
      * precio, extranjeros tal precio" — no como cotización de un grupo concreto.
      * Sólo tiene sentido en modo catálogo; el precio unitario sí se sigue viendo.
+     *
+     * El default false es el de un expediente de grupo. En catálogo el editor lo crea
+     * ya activo (cotizacionEditorStore::crearCotizacionVacia) y sólo se apaga a mano
+     * cuando el tour se vende como salida de grupo fijo.
      */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
@@ -189,6 +193,22 @@ class Cotizacion
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $imagenPortada = null;
+
+    /**
+     * Portada efectiva del tour para pintar su tarjeta: el override editorial
+     * si existe, y si no la derivada del itinerario. NO se persiste — la llena
+     * CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
+     * contexto donde se pintan tarjetas de tour en el panel interno.
+     */
+    #[Groups(['catalogo:item:read'])]
+    private ?array $imagenTarjeta = null;
+
+    /**
+     * Duración del tour (span de fechas nominales). Virtual, mismo origen que
+     * $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
+     */
+    #[Groups(['catalogo:item:read'])]
+    private ?int $numDias = null;
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
     #[ORM\Column(type: 'decimal', precision: 10, scale: 4, options: ['default' => '1.0000'])]
@@ -286,6 +306,12 @@ class Cotizacion
 
     public function getImagenPortada(): ?array { return $this->imagenPortada; }
     public function setImagenPortada(?array $imagenPortada): self { $this->imagenPortada = $imagenPortada; return $this; }
+
+    // Virtuales de tarjeta (ver CotizacionCatalogoAdminProvider)
+    public function getImagenTarjeta(): ?array { return $this->imagenTarjeta; }
+    public function setImagenTarjeta(?array $imagenTarjeta): self { $this->imagenTarjeta = $imagenTarjeta; return $this; }
+    public function getNumDias(): ?int { return $this->numDias; }
+    public function setNumDias(?int $numDias): self { $this->numDias = $numDias; return $this; }
 
     public function getVersion(): int { return $this->version; }
     public function setVersion(int $version): self { $this->version = $version; return $this; }

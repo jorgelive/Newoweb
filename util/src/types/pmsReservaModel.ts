@@ -98,11 +98,11 @@ export type PmsEventoCalendarioPatch = Partial<components['schemas']['PmsEventoC
 
 /**
  * POST /pms_evento_calendarios — crear un bloqueo manual, o una estancia más
- * (`reserva` IRI) en otra casita para una reserva ya existente. `reserva` no
- * está en el schema generado todavía (grupo pms_evento:write_create, ver
- * backend); solo es válido en creación, nunca en el PATCH.
+ * (`reserva` IRI) en otra casita para una reserva ya existente. `reserva` sólo
+ * es válido en creación (grupo pms_evento:write_create), nunca en el PATCH; por
+ * eso el POST usa este schema y no el de escritura genérico.
  */
-export type PmsEventoCalendarioCreate = components['schemas']['PmsEventoCalendario-pms_evento.write'] & { reserva?: string };
+export type PmsEventoCalendarioCreate = components['schemas']['PmsEventoCalendario-pms_evento.write_pms_evento.write_create'];
 
 /** PATCH /pms_reservas/{id} — todos los campos opcionales. */
 export type PmsReservaPatch = Partial<components['schemas']['PmsReserva-pms_reserva.write.jsonMergePatch']>;

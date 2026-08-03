@@ -42,9 +42,10 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Calendar/`, vistas de calendario de `util/` (Reservas, Tarifas) | `docs/Calendar_architecture.md` |
 | `src/Cotizacion/`, cotizaciones y catálogo en `util/` y `pax/` | `docs/Cotizaciones.md` |
 | `util/src/components/common/` (componentes de UI reutilizables entre módulos) | `docs/UI_Componentes_Compartidos.md` |
+| `src/Operacion/`, La Biblia y Órdenes de Servicio en `util/` | `docs/Operacion.md` |
 
-Si el módulo que tocas no tiene doc (`src/Operacion/`, `src/Travel/`, `src/Agent/`,
-`src/Pax/`…), **créalo** siguiendo el formato de los existentes y agrégalo a esta tabla.
+Si el módulo que tocas no tiene doc (`src/Travel/`, `src/Agent/`, `src/Pax/`…), **créalo**
+siguiendo el formato de los existentes y agrégalo a esta tabla.
 
 ### Formato
 

@@ -12,6 +12,8 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCotservicio;
@@ -23,6 +25,7 @@ use App\Operacion\Enum\EstadoOperacionEnum;
 use App\Operacion\Enum\EstadoReservaEnum;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
+use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
@@ -54,12 +57,33 @@ use Symfony\Component\Uid\Uuid;
     ],
     routePrefix: '/ops',
     normalizationContext: ['groups' => ['operacion:item:read', 'timestamp:read']],
-    denormalizationContext: ['groups' => ['operacion:write']]
+    denormalizationContext: ['groups' => ['operacion:write']],
+    // La Biblia se lee siempre en orden de despacho: primero el día, luego la hora.
+    // Sin esto la colección llega en orden arbitrario de la BD y el cuadro es inservible.
+    order: ['fechaServicio' => 'ASC', 'horaRecojoReal' => 'ASC'],
+    paginationClientItemsPerPage: true,
+    paginationItemsPerPage: 100
 )]
-#[ApiFilter(SearchFilter::class, properties: ['ordenServicio' => 'exact', 'file' => 'exact', 'fechaServicio' => 'exact'])]
+#[ApiFilter(SearchFilter::class, properties: [
+    'ordenServicio'                 => 'exact',
+    'file'                          => 'exact',
+    // Filtro por cotización: navega la asociación cotservicio → cotizacion.
+    'cotizacionServicio.cotizacion' => 'exact',
+    'estadoReserva'                 => 'exact',
+    'estadoOperacion'               => 'exact',
+    'proveedorMaestroId'            => 'exact',
+    'tipoComponente'                => 'exact',
+    'modoComponente'                => 'exact',
+    'estadoComponente'              => 'exact',
+])]
+// fechaServicio necesita DateFilter, no SearchFilter: 'exact' sólo permite un día suelto
+// y el tráfico se planifica por rango (fechaServicio[after] / fechaServicio[before]).
+#[ApiFilter(DateFilter::class, properties: ['fechaServicio'])]
+#[ApiFilter(OrderFilter::class, properties: ['fechaServicio', 'horaRecojoReal', 'tipoComponente', 'descripcionServicio'])]
 #[ORM\Entity]
 #[ORM\Table(name: 'operacion_servicio')]
 #[ORM\Index(columns: ['fecha_servicio'], name: 'idx_ops_servicio_fecha')]
+#[ORM\Index(columns: ['tipo_componente'], name: 'idx_ops_servicio_tipo')]
 #[ORM\HasLifecycleCallbacks]
 class OperacionServicio
 {
@@ -110,6 +134,38 @@ class OperacionServicio
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 255)]
     private string $descripcionServicio;
+
+    /**
+     * Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español.
+     *
+     * Se denormaliza en vez de serializar el cotservicio embebido porque su nombre vive en
+     * un array i18n; el tráfico sólo necesita la etiqueta en español para saber a qué bloque
+     * del itinerario pertenece la fila.
+     */
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $contextoServicio = null;
+
+    /**
+     * Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum).
+     *
+     * Se guarda como string suelto y no como enumType porque el origen también lo es
+     * (?string): tipos legacy o vacíos no deben reventar la generación de La Biblia.
+     * Es lo que permite distinguir un traslado de un desayuno sin volver a la cotización.
+     */
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    private ?string $tipoComponente = null;
+
+    /** Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    private ?string $modoComponente = null;
+
+    /** Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    private ?string $estadoComponente = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'integer')]
@@ -189,6 +245,31 @@ class OperacionServicio
 
     public function getDescripcionServicio(): string { return $this->descripcionServicio; }
     public function setDescripcionServicio(string $descripcionServicio): self { $this->descripcionServicio = $descripcionServicio; return $this; }
+
+    public function getContextoServicio(): ?string { return $this->contextoServicio; }
+    public function setContextoServicio(?string $contextoServicio): self { $this->contextoServicio = $contextoServicio; return $this; }
+
+    public function getTipoComponente(): ?string { return $this->tipoComponente; }
+    public function setTipoComponente(?string $tipoComponente): self { $this->tipoComponente = $tipoComponente; return $this; }
+
+    public function getModoComponente(): ?string { return $this->modoComponente; }
+    public function setModoComponente(?string $modoComponente): self { $this->modoComponente = $modoComponente; return $this; }
+
+    public function getEstadoComponente(): ?string { return $this->estadoComponente; }
+    public function setEstadoComponente(?string $estadoComponente): self { $this->estadoComponente = $estadoComponente; return $this; }
+
+    /**
+     * Prioridad de despacho heredada de ComponenteTipoEnum::prioridad().
+     *
+     * Se expone calculada (no se persiste) para que la vista ordene las filas sin horario
+     * por relevancia operativa — guiado/transporte antes que tickets — sin duplicar la
+     * tabla de prioridades en TypeScript. Los tipos desconocidos van al final.
+     */
+    #[Groups(['operacion:item:read'])]
+    public function getPrioridadOperativa(): int
+    {
+        return ComponenteTipoEnum::tryFrom($this->tipoComponente ?? '')?->prioridad() ?? 9;
+    }
 
     public function getCantidadPax(): int { return $this->cantidadPax; }
     public function setCantidadPax(int $cantidadPax): self { $this->cantidadPax = $cantidadPax; return $this; }

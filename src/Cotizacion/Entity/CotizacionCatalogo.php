@@ -13,6 +13,7 @@ use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Patch;
+use App\Api\Provider\Cotizacion\CotizacionCatalogoAdminProvider;
 use App\Api\Provider\Cotizacion\CotizacionCatalogoPublicProvider;
 use App\Cotizacion\Enum\CatalogoTipoClienteEnum;
 use App\Entity\Trait\IdTrait;
@@ -44,9 +45,12 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             normalizationContext: ['groups' => ['catalogo:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
         ),
+        // Detalle interno (panel CatalogoDashboard.vue + editor de tours).
+        // El provider añade a cada tour su portada derivada y sus días.
         new Get(
             normalizationContext: ['groups' => ['catalogo:read', 'catalogo:item:read', 'file:item:read', 'timestamp:read']],
-            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            provider: CotizacionCatalogoAdminProvider::class,
         ),
         // PORTADA pública: Catálogo + cards de tours (liviano)
         new Get(

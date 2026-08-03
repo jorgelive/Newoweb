@@ -1624,7 +1624,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             totalVenta: '0.00',
             precioOculto: false,
             proveedorOculto: false,
-            totalesOcultos: false,
+            // En catálogo nace activo: un tour no es un grupo concreto, así que su
+            // "total de viaje" (numPax base × precio) no es vendible — ver docs §6.b.
+            totalesOcultos: modoCatalogo.value,
             titulo: [],
             resumen: [],
             sobreescribirTraduccion: false,

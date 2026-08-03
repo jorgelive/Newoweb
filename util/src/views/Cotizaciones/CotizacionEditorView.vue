@@ -1130,8 +1130,8 @@ store.$onAction(({ name, args }) => {
 
             <div v-if="store.modoCatalogo" class="order-5 shrink-0 bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
               <div>
-                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-user-tag mr-1"></i> Precios Unitarios (Sin Totales)</h3>
-                <p class="text-[9px] text-orange-400 mt-1 font-medium leading-tight pr-4">Menú de precios por perfil (peruano, extranjero, niño…). Oculta al cliente el "2X", el "× N pax" y el precio total del viaje: sirve como guía, no como cotización de un grupo concreto.</p>
+                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-user-tag mr-1"></i> Ocultar Total de Grupo</h3>
+                <p class="text-[9px] text-orange-400 mt-1 font-medium leading-tight pr-4">Suprime en la vista del cliente el "2X" del perfil, el "× N pax · total" y la barra "Precio total del viaje". El precio por pasajero se sigue viendo. Actívalo salvo que el tour se venda como salida de grupo fijo (el Num Pax base es entonces el tamaño real).</p>
               </div>
               <button @click="store.cotizacion.totalesOcultos = !store.cotizacion.totalesOcultos"
                       :class="[

@@ -21,6 +21,7 @@ use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
+use Symfony\Component\Uid\Uuid;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
@@ -107,11 +108,14 @@ class CotizacionFile
     use TimestampTrait;
     use LocatorTrait;
 
-    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_file:read'])]
+    // operacion:item:read — La Biblia embebe el file en cada servicio. Sin estos dos campos
+    // en el grupo, la API lo serializa como stub (@id + timestamps) y el cuadro de tráfico
+    // no puede decir de quién es la fila. Ver docs/Operacion.md §6.
+    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_file:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreGrupo = null;
 
-    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_file:read'])]
+    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_file:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $pasajeroPrincipal = null;
 
@@ -286,6 +290,19 @@ class CotizacionFile
 
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }
+
+    /**
+     * Se redeclara sobre IdTrait sólo para publicar el id en operacion:item:read.
+     *
+     * La Biblia necesita construir el IRI del expediente (agrupar servicios en una Orden
+     * de Servicio) desde el objeto embebido; sin esto habría que parsear el identificador
+     * JSON-LD, que no viaja en los tipos generados de TypeScript.
+     *
+     * Ojo: el lector de anotaciones de Doctrine sigue activo y parsea estos docblocks;
+     * escribir la arroba de JSON-LD aquí rompe el arranque con un "annotation never imported".
+     */
+    #[Groups(['operacion:item:read'])]
+    public function getId(): ?Uuid { return $this->id; }
 
     public function getIdioma(): ?MaestroIdioma { return $this->idioma; }
     public function setIdioma(?MaestroIdioma $idioma): self { $this->idioma = $idioma; return $this; }

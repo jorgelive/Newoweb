@@ -145,6 +145,38 @@ El cliente **no puede ver nombres internos**. Reglas ya implementadas para las t
 
 **Pendiente / no hecho**: aplicar la misma lógica de "3 ítems + flags" al **listado de ítems del itinerario** cliente si hiciera falta (lo implementado cubrió solo las tarjetas de alternativa). Ver detalles en la memoria `vista-cliente-alternativas-titulo`.
 
+### Los dos interruptores de la guía (y por qué no comparten vocabulario)
+
+`PaxCotizacionGuiaView.vue` tiene dos controles independientes que el usuario confundía
+porque ambos decían "detalle":
+
+| Control | Estado | Qué conmuta | Vocabulario |
+|---|---|---|---|
+| **Tarjeta de precio** (cuelga del hero con margen negativo) | `finanzasAbiertas` | Colapsada: agregado (precio por pasajero + total del viaje). Expandida: desglose por **perfil** de pasajero, barra de total y alternativas. | "precios", "perfil". **Nunca** "detalle"/"resumen". |
+| **Modo de lectura** (píldoras bajo la tarjeta) | `modoResumen` | Cuánto texto del **itinerario** se pinta: `Detalle` (descripciones y fotos) vs `Resumen` (títulos, subtítulos y horas). | "Detalle"/"Resumen", exclusivo de esta píldora. |
+
+- La tarjeta es **una sola pieza con dos disparadores** (fila superior y pie): abierta, la
+  fila de arriba se sale de pantalla, así que el pie repite el toggle. No son `<button>`
+  anidados — por eso el **selector de moneda vive en el hero** y no dentro de la tarjeta.
+- Claves i18n del pie: `cot_ver_precios_perfil` / `cot_ocultar_precios`; el encabezado
+  expandido reutiliza `cot_precio_por_pasajero`. Si el precio está oculto pero hay
+  alternativas, la tarjeta sigue existiendo y el pie ofrece "ver opciones".
+
+> **Gotcha i18n — el fallback esconde el hueco.** `maestroStore.t('clave')` devuelve vacío si
+> no hay fila en `pax_ui_i18n`, y el template cae al literal `|| 'Texto en español'`. En
+> castellano no se nota nada; el cliente extranjero ve esa cadena suelta en español entre el
+> resto traducido. **Toda clave nueva necesita su fila sembrada por migración** (patrón:
+> `Version20260803140000`, `INSERT … AS nuevo ON DUPLICATE KEY UPDATE` que respeta lo ya
+> editado a mano). Para detectar las que falten:
+> ```bash
+> grep -rhoE "\.t\(\s*'[a-z0-9_]+'" pax/src | grep -oE "'[a-z0-9_]+'" | tr -d "'" | sort -u
+> php bin/console dbal:run-sql "SELECT id FROM pax_ui_i18n"   # y se cruzan ambas listas
+> ```
+> Antes de inventar una clave, mira si ya existe una equivalente: `cot_precio_por_pasajero`
+> ya estaba y se reutilizó en vez de crear `cot_precios_por_perfil`.
+- `hayPanelPrecio` decide si hay tarjeta; el hero lo consulta para reservar el aire del
+  solape. Si se toca uno, se toca el otro.
+
 ---
 
 ## 6.b Catálogo de Tours vs. Expediente de grupo (dos dashboards, dos lógicas)
@@ -161,6 +193,73 @@ No confundirlos: lo que en uno es el dato principal, en el otro sobra.
 
 - `CatalogoDashboard.vue` es solo **lectura/resumen**: lista los tours de cada catálogo y muestra sus rangos de precio. Los valores se editan en el motor del tour (`/catalogo/:cat/version/:id`).
 - `preciosDesde` es un JSON de la entidad `Cotizacion`; cada rango = `{ titulo: I18nContent[], moneda, valor }`. Se rinde por rango (una línea cada uno) con el helper `rangosDesde(tour)`; el título va en el idioma activo vía `t18()`.
+
+### Tarjeta del tour: portada y duración (`TourTarjetaResolver`)
+
+Ni la portada ni los días son columnas de `Cotizacion`:
+
+- **Portada** = `imagenPortada` (override editorial, se fija a mano en el editor) **o**, si es
+  null, la primera imagen con `isPortada` recorriendo los segmentos en orden de itinerario; y
+  si ninguna la tiene, la primera imagen que aparezca.
+- **Días** = span de las fechas nominales del itinerario (`max - min + 1`).
+
+Ambas reglas viven **solo** en `src/Cotizacion/Service/TourTarjetaResolver.php`, que las
+resuelve **en lote con queries escalares** — recorrer `getCotservicios()` por tour hidrataría
+el árbol completo de cada uno. Dos consumidores:
+
+| Consumidor | Provider | Cómo llega al front |
+|---|---|---|
+| Catálogo público (pax) | `CotizacionCatalogoPublicProvider` | `toursParaCliente[].imagenPortada` / `.numDias` |
+| Panel interno (`CatalogoDashboard.vue`) | `CotizacionCatalogoAdminProvider` | props **virtuales** `Cotizacion::$imagenTarjeta` / `$numDias`, grupo `catalogo:item:read` |
+
+El panel pinta las tarjetas con el mismo lenguaje visual que el cliente (foto, chip de días,
+título flotante, "Desde") para revisar el producto sin abrir el enlace público; encima añade
+lo interno: orden, `T{version}`, estado y pax base. Diferencia deliberada: el provider público
+filtra por estados públicos, el interno **no** — en el panel un borrador también luce su foto.
+
+**Anatomía de la tarjeta** (`PaxCatalogoPortadaView.vue`, espejada en `CatalogoDashboard.vue`):
+foto 16:9 (`aspect-video`, igual que el filtro `travel_cliente`) → chip de días arriba-izquierda → título **sin caja**, sobre el degradado →
+resumen recortado a 2 líneas → chips de rangos si hay más de uno → pie con la acción a la
+izquierda (`cat_ver_detalles`) y el "Desde" con la flecha a la derecha. **La tarjeta entera es
+el enlace**: no hay botón CTA dentro. El botón naranja a todo ancho se retiró — repetido en
+cada experiencia competía con la foto y alargaba el scroll.
+
+Sin foto **no** se pinta un marcador gris: se rota un degradado de color por posición
+(`TINTES`), para que un catálogo aún sin portadas se lea como una lista de tarjetas distintas
+y no como imágenes rotas.
+
+> **Gotcha — UUID binario en DQL (costó una portada que nunca se vio).** `IDENTITY(s.cotizacion)`
+> devuelve el UUID **binario crudo de 16 bytes**, mientras que `c.id` hidrata como objeto `Uuid`
+> (`(string)` → forma con guiones). Casar ambos con `(string)` a secas **no coincide nunca**: el
+> mapa sale vacío, no hay error, y la portada derivada simplemente "no aparece". Del mismo modo,
+> un `WHERE ... IN (:ids)` con objetos `Uuid` sin tipo de parámetro devuelve **cero filas en
+> silencio**. Por eso el servicio normaliza todo id que entra o sale por `TourTarjetaResolver::clave()`
+> y liga el `IN` con `ArrayParameterType::BINARY`. Cualquier query nueva sobre ids de cotización
+> debe hacer lo mismo.
+
+### Dos precios que no son el mismo (no confundirlos)
+
+En modo catálogo conviven dos cosas que suenan igual y viven en cajas distintas del editor:
+
+| | `preciosDesde[]` — "Precios de Exhibición (Desde)" | `totalesOcultos` — "Ocultar Total de Grupo" |
+|---|---|---|
+| Qué es | **Dato**: rangos comerciales escritos a mano (perfil + moneda + valor). | **Flag de render**: no crea ningún precio. |
+| Dónde se pinta | Sólo el escaparate: `PaxCatalogoPortadaView.vue` y `CatalogoDashboard.vue`. **No** entra en la guía. | Sólo la guía: `PaxCotizacionGuiaView.vue`. |
+| Efecto | Muestra "desde $X" por perfil. | Suprime el `2X` del perfil, el `× N pax · total` y la barra "Precio total del viaje". El precio **por pasajero** sigue visible. |
+
+**El flag no está hardcodeado por `esCatalogo`.** En pax, `esCatalogo` (`route.meta`) sólo gobierna
+identidad y fechas — "Día N" en vez de fecha absoluta (`formatearFecha()`, `fechaChip()`), chips de
+tarifa colapsados a valor unánime, "Volver al catálogo" en vez de `nombreGrupo`. El precio va por otra
+vía: `ocultarTotales` depende **únicamente** de `cotizacion.totalesOcultos`. Si el flag está apagado,
+un tour de catálogo muestra el total de un grupo que no existe.
+
+Por eso `cotizacionEditorStore::crearCotizacionVacia()` lo crea **activo cuando `modoCatalogo`**, y
+`Version20260803120000` hace backfill (`totales_ocultos = 1 WHERE catalogo_id IS NOT NULL`) de los
+tours anteriores al cambio. Se apaga a mano sólo en el caso legítimo: **salida de grupo fijo**, donde
+el "Num Pax (Base)" sí es el tamaño real que se vende y el total es una cifra vendible.
+
+> Espejo PHP ↔ TS: la semántica vive en el docblock de `Cotizacion::$totalesOcultos` y en el comentario
+> de `ocultarTotales` en `PaxCotizacionGuiaView.vue`. Si cambia la regla, se tocan los dos.
 
 ---
 
@@ -206,6 +305,10 @@ En las 3 tarjetas internas de alternativa se muestra **`Componente · Tarifa`** 
 - **Nombre interno del componente** → helper `nombreInternoDeComponente` (store). **Título público / por ítems** → `tituloClienteDeComponente` (store).
 - **Badges modalidad/categoría** → `modCatBadges` (`cotizacionEditorModel.ts` en util; local en `PaxCotizacionGuiaView.vue` en pax).
 - **Serialización pública / ocultar precio o proveedor** → `src/Cotizacion/Serializer/CotizacionPublicNormalizer.php` + grupos `pax_cotizacion:read` en las entidades.
+- **Portada o duración de un tour de catálogo (en el panel o en pax)** → `TourTarjetaResolver` (§6.b). Nunca reimplementar la derivación en la entidad ni en el front.
+- **La tarjeta de precio de la guía (colapsada/expandida, textos del pie)** → sección "TARJETA DE PRECIO" de `PaxCotizacionGuiaView.vue` + `finanzasAbiertas` / `hayPanelPrecio`. Ojo con el vocabulario: §6.
+- **Que un tour de catálogo muestre (o no) el total de grupo** → flag `totalesOcultos`: default al crear en `crearCotizacionVacia()` (store), toggle "Ocultar Total de Grupo" en `CotizacionEditorView.vue`, consumo en `ocultarTotales` de `PaxCotizacionGuiaView.vue`. Ver §6.b.
+- **Precio "desde" del escaparate del catálogo** → `preciosDesde[]` (bloque "Precios de Exhibición" del editor) → `PaxCatalogoPortadaView.vue` / `CatalogoDashboard.vue`. No es lo mismo que el flag anterior (§6.b).
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
 

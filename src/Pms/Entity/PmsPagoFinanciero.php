@@ -123,6 +123,21 @@ class PmsPagoFinanciero
     #[Groups(['pms_pago:read', 'pms_pago:write', 'pms_pago:patch'])]
     private ?string $notas = null;
 
+    /**
+     * ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)?
+     *
+     * Airbnb y VRBO cobran al huésped y nos depositan: no hay un pago que registrar a mano, y
+     * sin él la reserva aparecía eternamente como impagada. El sistema lo crea y lo mantiene
+     * cuadrado con los cargos.
+     *
+     * La marca existe para poder ENCONTRARLO después sin adivinar por medio de pago o
+     * referencia. Y se apaga sola en cuanto el operador toca el importe, la fecha o el medio:
+     * a partir de ahí manda su criterio y el sistema deja de pisarlo.
+     */
+    #[ORM\Column(name: 'es_automatico', type: 'boolean', options: ['default' => false])]
+    #[Groups(['pms_pago:read'])]
+    private bool $esAutomatico = false;
+
     public function __construct()
     {
         $this->id = Uuid::v7();
@@ -182,4 +197,7 @@ class PmsPagoFinanciero
 
     public function getNotas(): ?string { return $this->notas; }
     public function setNotas(?string $notas): self { $this->notas = $notas; return $this; }
+
+    public function isEsAutomatico(): bool { return $this->esAutomatico; }
+    public function setEsAutomatico(bool $esAutomatico): self { $this->esAutomatico = $esAutomatico; return $this; }
 }

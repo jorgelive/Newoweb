@@ -12,6 +12,7 @@ use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Finance\MonedaBaseRebaseContext;
 use App\Pms\Service\Finance\PmsCargosAutomaticosService;
+use App\Pms\Service\Finance\PmsPagoOtaAutomaticoService;
 use App\Pms\Service\Finance\PmsInformacionFinancieraRecalculoService;
 use App\Pms\Service\Finance\MonedaResolver;
 use DomainException;
@@ -66,6 +67,7 @@ final class PmsInformacionFinancieraCoherenciaListener
         private readonly MonedaResolver $monedaResolver,
         private readonly PmsCargosAutomaticosService $cargosAutomaticos,
         private readonly MonedaBaseRebaseContext $rebaseContext,
+        private readonly PmsPagoOtaAutomaticoService $pagoOta,
     ) {}
 
     public function onFlush(OnFlushEventArgs $args): void
@@ -83,6 +85,10 @@ final class PmsInformacionFinancieraCoherenciaListener
                 $changeSet = $uow->getEntityChangeSet($entity);
                 $this->assertMonedaNoBloqueada($entity, $changeSet);
                 $this->assertTipoCambioNoBloqueado($entity, $changeSet);
+
+                if ($entity instanceof PmsPagoFinanciero) {
+                    $this->assertPagoAutomaticoNoEditable($entity, $changeSet);
+                }
             }
         }
 
@@ -90,6 +96,17 @@ final class PmsInformacionFinancieraCoherenciaListener
         foreach ($uow->getScheduledEntityDeletions() as $entity) {
             if ($entity instanceof PmsCargoFinanciero) {
                 $this->assertCargoBorrable($entity);
+            }
+            // Borrar el depósito automático no sirve de nada: el siguiente recálculo lo
+            // recrearía. Se bloquea para que el operador no pelee contra el sistema.
+            if ($entity instanceof PmsPagoFinanciero
+                && $entity->isEsAutomatico()
+                && !$this->pagoOta->estaSincronizando()
+            ) {
+                throw new DomainException(
+                    'No se puede eliminar el depósito automático del canal: se regenera solo '
+                    . 'mientras la reserva tenga cargos. Para que desaparezca, quita los cargos.'
+                );
             }
         }
 
@@ -237,9 +254,79 @@ final class PmsInformacionFinancieraCoherenciaListener
             $ids = array_unique([...$ids, ...$this->generarCargosAutomaticos($eventoIds, $em)]);
 
             $this->recalculoService->recalcular($ids, $em);
+
+            // El depósito de las OTA de pago total va DESPUÉS del recálculo: su importe es el
+            // total de cargos, que hasta aquí no se conoce. Si toca algo hay que recalcular
+            // otra vez, porque acaba de cambiar `total_pagos` (§12.8).
+            if ($this->sincronizarPagosOta($ids, $em)) {
+                $this->recalculoService->recalcular($ids, $em);
+            }
         } finally {
             $this->isFlushing = false;
         }
+    }
+
+    /**
+     * Cuadra el depósito automático de las reservas de Airbnb/VRBO.
+     *
+     * @param string[] $ids
+     * @return bool true si alguna cabecera cambió y hay que rehacer el rollup
+     */
+    private function sincronizarPagosOta(array $ids, EntityManagerInterface $em): bool
+    {
+        if ($ids === []) {
+            return false;
+        }
+
+        $tocado = false;
+
+        foreach ($ids as $id) {
+            $info = $em->getRepository(PmsInformacionFinanciera::class)->find($id);
+            if (!$info instanceof PmsInformacionFinanciera) {
+                continue;
+            }
+
+            // El rollup es SQL crudo: la entidad en memoria puede traer totales viejos.
+            $em->refresh($info);
+
+            if ($this->pagoOta->sincronizar($info)) {
+                $tocado = true;
+            }
+        }
+
+        if ($tocado) {
+            $em->flush();
+        }
+
+        return $tocado;
+    }
+
+    /**
+     * El depósito automático de una OTA de pago total NO se edita a mano (§12.8).
+     *
+     * No es un dato propio: es el reflejo de los cargos, y el sistema lo mantiene cuadrado en
+     * cada recálculo. Permitir editarlo daría una falsa sensación de control —el siguiente
+     * cargo que llegara del canal lo devolvería a su sitio— así que se bloquea con un mensaje
+     * que dice dónde está la verdad.
+     *
+     * El propio servicio sí lo mueve, y lo declara con `estaSincronizando()`.
+     */
+    private function assertPagoAutomaticoNoEditable(PmsPagoFinanciero $pago, array $changeSet): void
+    {
+        if (!$pago->isEsAutomatico() || $this->pagoOta->estaSincronizando()) {
+            return;
+        }
+
+        $camposBloqueados = ['monto', 'fechaPago', 'medioPago', 'comisionPorcentaje', 'moneda'];
+        if (array_intersect($camposBloqueados, array_keys($changeSet)) === []) {
+            return; // referencia/notas sí se pueden anotar
+        }
+
+        throw new DomainException(
+            'Este pago es el depósito automático del canal (Airbnb/VRBO cobran y depositan) y '
+            . 'se mantiene cuadrado con los cargos. Si el importe no coincide con lo que entró '
+            . 'en la cuenta, corrige los CARGOS de la reserva: el depósito los sigue.'
+        );
     }
 
     /**

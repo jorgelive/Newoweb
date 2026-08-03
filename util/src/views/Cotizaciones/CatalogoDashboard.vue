@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { apiClient, getUrls } from '@/services/apiClient';
+import { thumbUrl } from '@/services/imageThumb';
 import { ESTADO_COTIZACION_CONFIG } from '@/types/cotizacionEditorModel';
 
 interface CatalogoResumen {
@@ -94,6 +95,25 @@ const rangosDesde = (tour: any): { titulo: string; moneda: string; valor: any }[
     moneda: r.moneda,
     valor: r.valor,
   }));
+
+const formatMonto = (valor: any): string => {
+  const n = Number(valor);
+  return Number.isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(valor ?? '');
+};
+
+/**
+ * Portada de la tarjeta: la MISMA imagen que verá el cliente en el catálogo
+ * público. `imagenTarjeta` la resuelve el backend (override editorial, y si no
+ * la primera imagen del itinerario) — ver CotizacionCatalogoAdminProvider y
+ * TourTarjetaResolver. El `imagenPortada` suelto queda de respaldo por si la
+ * respuesta viniera sin enriquecer.
+ */
+const portadaTour = (tour: any): string =>
+  tour.imagenTarjeta?.imageUrl || tour.imagenPortada?.imageUrl || '';
+
+/** "3 días" / "1 día" — null si el tour aún no tiene itinerario. */
+const diasLabel = (tour: any): string | null =>
+  tour.numDias ? `${tour.numDias} ${tour.numDias === 1 ? 'día' : 'días'}` : null;
 
 /** Reordena el catálogo en el listado y persiste el nuevo orden. */
 const moverCatalogo = async (idx: number, dir: -1 | 1) => {
@@ -251,7 +271,9 @@ const nuevoTour = () => {
 };
 
 const getEstadoUI = (estado?: string) =>
-  (ESTADO_COTIZACION_CONFIG as any)[estado || ''] || { label: estado || 'Pendiente' };
+  (ESTADO_COTIZACION_CONFIG as any)[estado || ''] || {
+    label: estado || 'Pendiente', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200', icon: 'fa-circle',
+  };
 
 onMounted(() => {
   fetchCatalogos();
@@ -320,7 +342,11 @@ onMounted(() => {
              :class="seleccionado && extractId(seleccionado) === extractId(cat) ? 'border-[#376875]' : 'border-slate-200 hover:border-[#376875]/40'">
 
           <div @click="seleccionar(cat)" class="p-5 cursor-pointer flex flex-wrap items-center gap-3 justify-between">
-            <div class="flex items-center gap-4 min-w-0">
+            <!-- flex-1 para que el nombre se recorte antes de empujar la barra de acciones,
+                 pero con suelo (min-w-52): sin él encoge hasta 0 y el contenido se DESBORDA
+                 por debajo de los botones — el contenedor nunca envuelve porque el ítem
+                 flexible siempre "cabe". El mínimo obliga a envolver antes de solaparse. -->
+            <div class="flex items-center gap-4 flex-1 min-w-52">
               <div class="flex flex-col gap-0.5 shrink-0" @click.stop>
                 <button @click="moverCatalogo(catIdx, -1)" :disabled="catIdx === 0"
                         class="w-6 h-6 rounded bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center disabled:opacity-30 hover:bg-slate-100 transition-colors">
@@ -347,7 +373,9 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0" @click.stop>
+            <!-- ml-auto: si aun así envuelve (móvil), la barra se pega a la derecha en
+                 lugar de quedar suelta a la izquierda con el hueco al costado. -->
+            <div class="flex flex-wrap items-center justify-end gap-2 shrink-0 ml-auto" @click.stop>
               <button @click="abrirEdicion(cat)"
                       class="w-9 h-9 flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-500 transition-colors shadow-sm"
                       title="Editar nombre y modalidad">
@@ -365,10 +393,13 @@ onMounted(() => {
                 <i class="fas fa-external-link-alt text-xs"></i>
               </a>
 
-              <span class="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"
-                    :class="cat.activo ? 'text-teal-600' : 'text-slate-400'">
-                <i class="fas" :class="cat.activo ? 'fa-eye' : 'fa-eye-slash'"></i>
-                <span class="hidden sm:inline">{{ cat.activo ? 'Visible' : 'Oculto' }}</span>
+              <!-- El icono lleva su propio tamaño: hereda el 9px de la etiqueta, y cuando
+                   ésta se oculta el ojo quedaba diminuto y sin peso frente al toggle. -->
+              <span class="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest"
+                    :class="cat.activo ? 'text-teal-600' : 'text-slate-400'"
+                    :title="cat.activo ? 'Catálogo visible al público' : 'Catálogo oculto'">
+                <i class="fas text-sm" :class="cat.activo ? 'fa-eye' : 'fa-eye-slash'"></i>
+                <span class="hidden lg:inline">{{ cat.activo ? 'Visible' : 'Oculto' }}</span>
               </span>
               <button @click="toggleActivo(cat)"
                       :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none', cat.activo ? 'bg-teal-600' : 'bg-slate-300']"
@@ -385,10 +416,15 @@ onMounted(() => {
           <!-- Tours del catálogo seleccionado -->
           <div v-if="seleccionado && extractId(seleccionado) === extractId(cat)" class="border-t border-slate-100 bg-slate-50/60 p-5">
 
-            <div class="flex items-center justify-between mb-4">
-              <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest"><i class="fas fa-route mr-1 text-[#E07845]"></i> Tours del Catálogo</h4>
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div class="min-w-0">
+                <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest"><i class="fas fa-route mr-1 text-[#E07845]"></i> Tours del Catálogo</h4>
+                <p class="text-[10px] font-bold text-slate-400 mt-0.5">
+                  {{ toursOrdenados.length }} {{ toursOrdenados.length === 1 ? 'experiencia' : 'experiencias' }} · Ref: {{ cat.localizador }}
+                </p>
+              </div>
               <button @click="nuevoTour"
-                      class="flex items-center gap-2 px-3 py-2 bg-[#376875] hover:bg-[#2c5560] text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm">
+                      class="flex items-center gap-2 px-3 py-2 bg-[#376875] hover:bg-[#2c5560] text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm shrink-0">
                 <i class="fas fa-plus"></i> Nuevo Tour
               </button>
             </div>
@@ -401,45 +437,100 @@ onMounted(() => {
               <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Sin tours aún — crea el primero</p>
             </div>
 
-            <div v-else class="space-y-2">
-              <div v-for="(tour, idx) in toursOrdenados" :key="tour.id"
-                   @click="abrirTour(tour.id)"
-                   class="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:border-[#376875]/50 transition-all shadow-sm group">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="flex flex-col gap-0.5 shrink-0" @click.stop>
-                    <button @click="moverTour(idx, -1)" :disabled="idx === 0"
-                            class="w-6 h-6 rounded bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center disabled:opacity-30 hover:bg-slate-100 transition-colors">
+            <!-- Tarjetas con el mismo lenguaje visual que el catálogo público (foto,
+                 días, título flotante, "desde"): así se revisa de un vistazo cómo va a
+                 verse el producto, sin abrir el enlace del cliente. Lo que añade el panel
+                 son los controles internos: orden, versión, estado y pax base. -->
+            <div v-else class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <article v-for="(tour, idx) in toursOrdenados" :key="tour.id"
+                       class="group bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-[#376875]/10 hover:border-[#376875]/40 transition-all duration-300 flex flex-col">
+
+                <!-- Portada -->
+                <div @click="abrirTour(tour.id)"
+                     class="relative aspect-video bg-slate-100 overflow-hidden cursor-pointer shrink-0">
+                  <img v-if="portadaTour(tour)" :src="thumbUrl(portadaTour(tour), 'travel_thumb_admin')"
+                       :alt="t18(tour.titulo)" loading="lazy"
+                       class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                  <div v-else class="w-full h-full bg-linear-to-br from-[#376875] to-[#1f4550] flex flex-col items-center justify-center gap-1.5">
+                    <i class="fas fa-mountain text-3xl text-white/25"></i>
+                    <span class="text-[8px] font-black uppercase tracking-widest text-white/40">Itinerario sin fotos</span>
+                  </div>
+
+                  <div class="absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-transparent pointer-events-none"></div>
+
+                  <!-- Versión y duración -->
+                  <div class="absolute top-3 left-3 flex items-center gap-1.5">
+                    <span class="bg-slate-900/85 backdrop-blur text-white text-[9px] font-black px-2 py-1 rounded-lg tracking-widest">T{{ tour.version }}</span>
+                    <span v-if="diasLabel(tour)" class="bg-white/95 backdrop-blur text-[#376875] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg">
+                      <i class="fas fa-route mr-1 text-[#E07845]"></i>{{ diasLabel(tour) }}
+                    </span>
+                  </div>
+
+                  <!-- Reordenar: sobre la foto para no robarle sitio al pie -->
+                  <div class="absolute top-3 right-3 flex flex-col gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity" @click.stop>
+                    <button @click="moverTour(idx, -1)" :disabled="idx === 0" title="Subir en el catálogo"
+                            class="w-7 h-7 rounded-lg bg-white/90 backdrop-blur border border-white/60 text-slate-600 flex items-center justify-center disabled:opacity-30 hover:bg-white transition-colors shadow-sm">
                       <i class="fas fa-chevron-up text-[9px]"></i>
                     </button>
-                    <button @click="moverTour(idx, 1)" :disabled="idx === toursOrdenados.length - 1"
-                            class="w-6 h-6 rounded bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center disabled:opacity-30 hover:bg-slate-100 transition-colors">
+                    <button @click="moverTour(idx, 1)" :disabled="idx === toursOrdenados.length - 1" title="Bajar en el catálogo"
+                            class="w-7 h-7 rounded-lg bg-white/90 backdrop-blur border border-white/60 text-slate-600 flex items-center justify-center disabled:opacity-30 hover:bg-white transition-colors shadow-sm">
                       <i class="fas fa-chevron-down text-[9px]"></i>
                     </button>
                   </div>
-                  <span class="bg-slate-900 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-black shrink-0">T{{ tour.version }}</span>
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <p class="text-xs font-black text-slate-700">{{ t18(tour.titulo) || `Tour ${tour.version}` }}</p>
-                      <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 uppercase shrink-0">{{ getEstadoUI(tour.estado).label }}</span>
-                    </div>
-                    <p v-if="resumenPreview(tour.resumen)" class="text-[10px] font-medium text-slate-400 mt-0.5 truncate max-w-xs">{{ resumenPreview(tour.resumen) }}</p>
-                    <p class="text-[10px] font-bold text-slate-400 mt-0.5">{{ tour.numPax }} pax base</p>
+
+                  <!-- Título flotante -->
+                  <div class="absolute bottom-0 left-0 right-0 p-3.5 pointer-events-none">
+                    <h5 class="text-sm font-black text-white leading-tight line-clamp-2 drop-shadow-md">
+                      {{ t18(tour.titulo) || `Tour ${tour.version}` }}
+                    </h5>
+                    <p v-if="resumenPreview(tour.resumen)" class="text-[10px] font-medium text-white/70 truncate mt-1">
+                      {{ resumenPreview(tour.resumen) }}
+                    </p>
                   </div>
                 </div>
-                <div class="flex items-center gap-4 shrink-0">
-                  <div class="text-right">
-                    <p class="text-[8px] font-black text-orange-400 uppercase tracking-widest mb-1">Precio por rango</p>
-                    <div v-if="rangosDesde(tour).length" class="flex flex-col items-end gap-0.5">
-                      <div v-for="(r, i) in rangosDesde(tour)" :key="i" class="flex items-baseline gap-2">
-                        <span v-if="r.titulo" class="text-[10px] font-bold text-slate-500">{{ r.titulo }}</span>
-                        <span class="text-[11px] font-black text-orange-600 leading-tight">{{ r.moneda }} {{ r.valor }}</span>
-                      </div>
-                    </div>
-                    <p v-else class="text-[11px] font-black text-slate-300 leading-tight">Sin rangos</p>
+
+                <!-- Pie: metadatos internos + precio de exhibición -->
+                <div class="p-4 flex flex-col gap-3 grow">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest"
+                          :class="[getEstadoUI(tour.estado).bg, getEstadoUI(tour.estado).text, getEstadoUI(tour.estado).border]">
+                      <i class="fas mr-1" :class="getEstadoUI(tour.estado).icon"></i>{{ getEstadoUI(tour.estado).label }}
+                    </span>
+                    <span class="text-[10px] font-bold text-slate-400">
+                      <i class="fas fa-user-group mr-1 text-slate-300"></i>{{ tour.numPax }} pax base
+                    </span>
                   </div>
-                  <i class="fas fa-chevron-right text-slate-300 group-hover:text-[#376875] transition-colors"></i>
+
+                  <div class="flex items-end justify-between gap-3 mt-auto">
+                    <div class="min-w-0">
+                      <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Desde</p>
+                      <template v-if="rangosDesde(tour).length">
+                        <p class="text-lg font-black text-[#E07845] leading-none tabular-nums whitespace-nowrap">
+                          {{ rangosDesde(tour)[0].moneda }} {{ formatMonto(rangosDesde(tour)[0].valor) }}
+                        </p>
+                        <p v-if="rangosDesde(tour)[0].titulo" class="text-[9px] font-bold text-slate-400 truncate mt-1">
+                          {{ rangosDesde(tour)[0].titulo }}
+                        </p>
+                      </template>
+                      <p v-else class="text-[13px] font-black text-slate-300 leading-none mt-0.5">Sin rangos</p>
+                    </div>
+
+                    <button @click="abrirTour(tour.id)"
+                            class="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-[#376875] border border-slate-200 hover:border-[#376875] text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-white transition-colors">
+                      Abrir <i class="fas fa-arrow-right text-[9px] group-hover:translate-x-0.5 transition-transform"></i>
+                    </button>
+                  </div>
+
+                  <!-- Resto de rangos por perfil -->
+                  <div v-if="rangosDesde(tour).length > 1" class="flex flex-wrap gap-1.5 pt-2.5 border-t border-slate-100">
+                    <span v-for="(r, i) in rangosDesde(tour).slice(1)" :key="i"
+                          class="text-[9px] font-bold bg-slate-50 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-full">
+                      {{ r.titulo }}
+                      <span class="font-black text-[#376875] ml-0.5 tabular-nums">{{ r.moneda }} {{ formatMonto(r.valor) }}</span>
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </article>
             </div>
           </div>
         </div>
