@@ -27,7 +27,7 @@ import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/rese
 import { useChatStore, type ApiTemplate } from '@/stores/chat/chatStore';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import {
-    abrirWhatsapp,
+    whatsappUrl,
     fechaAInputLocal,
     pmsUnidadIri,
     PMS_CHANNEL,
@@ -516,31 +516,64 @@ async function elegirChatInterno(): Promise<void> {
 
 const cargandoPlantillas = ref(false);
 
+const plantillasWhatsapp = computed(() => (chatStore.templates as ApiTemplateWA[]).filter(t => t.whatsappLinkContent));
+
+// ============================================================================
+// PLANTILLAS DE WHATSAPP — POR QUÉ EL ENLACE SE RESUELVE ANTES DE PINTARLO
+//
+// El flujo anterior era: pulsar plantilla → `await` al backend para resolver el
+// texto → `window.open()`. En iOS, y en particular en la PWA instalada (standalone),
+// ese `window.open()` ya no cuenta como parte del gesto del usuario y el sistema lo
+// descarta EN SILENCIO: sin error, sin ventana, el usuario cree que la app se colgó.
+//
+// Solución: al abrir el submenú se resuelven los enlaces de todas las plantillas y
+// cada una se pinta como un `<a href>` de verdad. El toque del usuario navega
+// directamente — no hay ventana emergente que bloquear. Son N peticiones pequeñas en
+// paralelo, y sólo de las plantillas con contenido de enlace (suelen ser un puñado).
+// ============================================================================
+
+/** templateId -> URL de WhatsApp ya resuelta. Vacío mientras carga o si falló. */
+const whatsappLinks = ref<Record<string, string>>({});
+
+async function precargarLinksWhatsapp(reservaId: string): Promise<void> {
+    const plantillas = plantillasWhatsapp.value;
+    // allSettled: que una plantilla rota (variable sin resolver, teléfono ausente)
+    // no deje sin enlace a las demás.
+    const resueltos = await Promise.allSettled(
+        plantillas.map(t => reservasStore.fetchWhatsappLink(reservaId, t.id ?? '')),
+    );
+
+    // El usuario pudo cerrar el menú o cambiar de reserva mientras se resolvía.
+    if (menu.value?.kind !== 'whatsapp' || menu.value.eventProps?.reservaId !== reservaId) return;
+
+    const mapa: Record<string, string> = {};
+    resueltos.forEach((r, i) => {
+        const id = plantillas[i]?.id;
+        if (id && r.status === 'fulfilled') mapa[id] = whatsappUrl(r.value.telefono, r.value.texto);
+    });
+    whatsappLinks.value = mapa;
+
+    if (plantillas.length && !Object.keys(mapa).length) {
+        const primero = resueltos.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+        avisar(extractApiErrorMessage(primero?.reason, 'No se pudo generar el mensaje de WhatsApp.'));
+    }
+}
+
 async function elegirAbrirWhatsapp(): Promise<void> {
     // Cambiamos de submenú primero para que el usuario vea feedback inmediato.
     if (menu.value) menu.value = { ...menu.value, kind: 'whatsapp' };
-    if (chatStore.templates.length) return;
+    const reservaId = menu.value?.eventProps?.reservaId;
+    if (!reservaId) return;
+
+    whatsappLinks.value = {};
     cargandoPlantillas.value = true;
     try {
-        await chatStore.fetchTemplates();
+        if (!chatStore.templates.length) await chatStore.fetchTemplates();
+        await precargarLinksWhatsapp(reservaId);
     } catch {
         avisar('No se pudieron cargar las plantillas de WhatsApp.');
     } finally {
         cargandoPlantillas.value = false;
-    }
-}
-
-const plantillasWhatsapp = computed(() => (chatStore.templates as ApiTemplateWA[]).filter(t => t.whatsappLinkContent));
-
-async function elegirEnviarWhatsapp(templateId: string): Promise<void> {
-    const reservaId = menu.value?.eventProps?.reservaId;
-    cerrarMenu();
-    if (!reservaId) return;
-    try {
-        const { telefono, texto } = await reservasStore.fetchWhatsappLink(reservaId, templateId);
-        abrirWhatsapp(telefono, texto);
-    } catch (err) {
-        avisar(extractApiErrorMessage(err, 'No se pudo generar el mensaje de WhatsApp.'));
     }
 }
 
@@ -888,10 +921,17 @@ const calendarOptions: CalendarOptions = {
                     <p v-else-if="!plantillasWhatsapp.length" class="px-4 py-2.5 text-xs font-bold text-slate-400">
                         No hay plantillas de WhatsApp configuradas.
                     </p>
-                    <button v-for="t in plantillasWhatsapp" :key="t.id ?? ''" @click="elegirEnviarWhatsapp(t.id ?? '')"
-                        class="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50">
+                    <!-- <a> real con el enlace ya resuelto: el toque del usuario navega sin
+                         window.open(), que la PWA de iOS bloquea en silencio (ver el bloque
+                         de comentarios del script). Sin enlace, la fila queda inerte. -->
+                    <a v-for="t in plantillasWhatsapp" :key="t.id ?? ''"
+                        :href="whatsappLinks[t.id ?? ''] || undefined"
+                        :target="whatsappLinks[t.id ?? ''] ? '_blank' : undefined" rel="noopener"
+                        @click="whatsappLinks[t.id ?? ''] && cerrarMenu()"
+                        class="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm font-bold text-slate-700"
+                        :class="whatsappLinks[t.id ?? ''] ? 'hover:bg-slate-50 cursor-pointer' : 'opacity-40 cursor-not-allowed'">
                         <i class="fab fa-whatsapp w-4 text-emerald-500 shrink-0"></i> <span class="truncate">{{ t.name }}</span>
-                    </button>
+                    </a>
                 </template>
                 <template v-else>
                     <!-- Precio vigente de esa casita ese día (rango ganador) -->
