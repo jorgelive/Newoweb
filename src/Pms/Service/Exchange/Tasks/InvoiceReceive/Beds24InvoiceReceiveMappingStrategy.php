@@ -11,70 +11,112 @@ use App\Exchange\Service\Mapping\MappingStrategyInterface;
 
 final readonly class Beds24InvoiceReceiveMappingStrategy implements MappingStrategyInterface
 {
+    /**
+     * Una sola petición para TODAS las reservas del lote.
+     *
+     * Beds24 acepta el parámetro repetido (`?bookingId=A&bookingId=B`) y devuelve todo
+     * mezclado; cada línea trae su `bookingId`, que es lo que permite repartirlo después.
+     *
+     * ⚠️ La query se construye a mano en `fullUrl` y NO se pasa por `payload`: el cliente
+     * hace `'query' => $payload`, y Symfony serializa un array como `bookingId[0]=…`, que
+     * Beds24 no interpreta como parámetro repetido. Encaja igual con el bucle de paginación,
+     * porque al saltar de página el cliente sustituye la URL y vacía el payload.
+     */
     public function map(HomogeneousBatch $batch): MappingResult
     {
         $config = $batch->getConfig();
         $endpoint = $batch->getEndpoint();
 
-        // El lote es estrictamente 1 (getMaxBatchSize()).
-        $job = $batch->getItems()[0];
+        $partes = [];
+        $correlacion = [];
+
+        foreach ($batch->getItems() as $job) {
+            $bookId = (string) $job->getTargetBookId();
+            if ($bookId === '') {
+                continue;
+            }
+            $partes[] = 'bookingId=' . rawurlencode($bookId);
+            // Lista y no valor único: dos ítems en cola podrían apuntar al mismo booking.
+            $correlacion[$bookId][] = (string) $job->getId();
+        }
 
         $fullUrl = rtrim($config->getBaseUrl(), '/') . '/' . ltrim((string) $endpoint->getEndpoint(), '/');
+        if ($partes !== []) {
+            $fullUrl .= '?' . implode('&', $partes);
+        }
 
         return new MappingResult(
             method: (string) $endpoint->getMetodo(),
             fullUrl: $fullUrl,
-            payload: ['bookingId' => $job->getTargetBookId()], // Symfony lo envía como query en GET
+            payload: [],
             config: $config,
-            correlationMap: ['job' => (string) $job->getId()]
+            correlationMap: $correlacion
         );
     }
 
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
-        $jobId = $mapping->correlationMap['job'];
+        /** @var array<string, string[]> $correlacion bookingId => ids de cola */
+        $correlacion = $mapping->correlationMap;
 
-        // Error estructurado desde la API
+        // Error estructurado desde la API: falla el lote entero, no hay nada que repartir.
         if (isset($apiResponse['success']) && $apiResponse['success'] === false) {
             $msg = $apiResponse['message'] ?? 'Error desconocido desde Beds24';
-            return [$jobId => new ItemResult($jobId, false, $msg)];
+            $fallos = [];
+            foreach ($correlacion as $jobIds) {
+                foreach ($jobIds as $jobId) {
+                    $fallos[$jobId] = new ItemResult($jobId, false, $msg);
+                }
+            }
+            return $fallos;
         }
 
-        // 🔥 GOTCHA: a diferencia de los mensajes (cuyo 'data' ya es una lista plana de
-        // mensajes), aquí 'data' es una lista de FACTURAS, cada una con su propio arreglo
-        // 'invoiceItems'. Aplanamos a una lista de invoiceItems propagando invoiceId /
-        // invoiceDate de la factura padre a cada línea (el webhook no los trae).
-        $facturas = $apiResponse['data'] ?? [];
-        $items = [];
+        // 🔥 GOTCHA: a diferencia de los mensajes (cuyo 'data' ya es una lista plana), aquí
+        // 'data' es una lista de FACTURAS, cada una con su propio arreglo 'invoiceItems'.
+        // Se aplana propagando invoiceId / invoiceDate de la factura padre a cada línea (el
+        // webhook no los trae). Con varias reservas en la misma petición, Beds24 devuelve un
+        // único envoltorio con las líneas de todas mezcladas.
+        $porBooking = [];
 
-        foreach ($facturas as $factura) {
+        foreach ($apiResponse['data'] ?? [] as $factura) {
             if (!is_array($factura)) {
                 continue;
             }
 
             $invoiceId = $factura['invoiceId'] ?? null;
             $invoiceDate = $factura['invoiceDate'] ?? null;
-            $lineas = $factura['invoiceItems'] ?? [];
 
-            foreach ($lineas as $linea) {
+            foreach ($factura['invoiceItems'] ?? [] as $linea) {
                 if (!is_array($linea)) {
                     continue;
                 }
-                // Propagamos la cabecera de la factura si la línea no la trae.
                 $linea['invoiceId']   ??= $invoiceId;
                 $linea['invoiceDate'] ??= $invoiceDate;
-                $items[] = $linea;
+
+                // ⚠️ El cast a string es obligatorio: PHP convierte a int las claves
+                // numéricas de un array, y `getTargetBookId()` devuelve string. Sin él,
+                // la búsqueda de abajo no encuentra nada y TODAS las reservas parecen vacías.
+                $porBooking[(string) ($linea['bookingId'] ?? '')][] = $linea;
             }
         }
 
-        return [
-            $jobId => new ItemResult(
-                queueItemId: $jobId,
-                success: true,
-                message: null,
-                remoteId: null,
-                extraData: $items
-            )
-        ];
+        // Se recorre la CORRELACIÓN, no el 'data': una reserva sin facturas no deja ningún
+        // rastro en la respuesta, y si no le devolviéramos resultado, el orquestador la
+        // mandaría a handleFailure() y se reintentaría para siempre. Vacío es un éxito
+        // legítimo: significa "esta reserva no tiene facturas".
+        $resultados = [];
+        foreach ($correlacion as $bookId => $jobIds) {
+            foreach ($jobIds as $jobId) {
+                $resultados[$jobId] = new ItemResult(
+                    queueItemId: $jobId,
+                    success: true,
+                    message: null,
+                    remoteId: null,
+                    extraData: $porBooking[(string) $bookId] ?? []
+                );
+            }
+        }
+
+        return $resultados;
     }
 }

@@ -124,7 +124,13 @@ export interface PmsInformacionFinanciera {
      * cancelada en la OTA sigue adelante como directa (§12.7).
      */
     activa?: boolean;
+    /** Moneda BASE (contable): en ella se expresan totalCargos/totalPagos/saldo. */
     moneda?: PmsFinanzasMonedaRef | null;
+    /**
+     * ¿Se puede cambiar la moneda base? Sólo en reservas directas puras: si algún cargo
+     * vino del canal, la moneda la manda el canal (§12.4.4). Lo decide el backend.
+     */
+    monedaBaseEditable?: boolean;
     /** Totales YA convertidos a la moneda de la cabecera por el listener de coherencia. */
     totalCargos?: string;
     totalPagos?: string;
@@ -147,6 +153,12 @@ export interface PmsCargoFinancieroPatch {
     totalLinea?: string | null;
     /** IRI de la estancia, o null para dejarlo como cargo general de la reserva. */
     evento?: string | null;
+    /**
+     * SÓLO para rellenar el que faltaba: un cargo en otra moneda sin tipo de cambio aporta
+     * 0 al saldo y hay que poder arreglarlo. Si el cargo ya tenía TC, el backend rechaza el
+     * cambio con DomainException (§12.4). `moneda` sigue sin poder parchearse nunca.
+     */
+    tipoCambio?: string | null;
 }
 
 /**
@@ -202,6 +214,82 @@ export function netoDesdeTotal(total: string | number, porcentaje: string | numb
     const t = Number(total) || 0;
     const p = Number(porcentaje) || 0;
     return (t / (1 + p / 100)).toFixed(2);
+}
+
+// ============================================================================
+// CONVERSIÓN ENTRE MONEDAS PARA LA VISTA DUAL
+//
+// ⚠️ ESPEJO de PmsInformacionFinancieraRecalculoService::expresionConvertida() (SQL).
+// Si cambia la regla de conversión, **hay que tocar los dos archivos**.
+//
+// Regla: cada registro se convierte con SU PROPIO tipo de cambio, nunca con uno global.
+// Convertir el total ya sumado con la cotización de hoy daría una cifra que nadie pactó:
+// si al huésped se le cobró S/. 1425 con TC 3.750, en la vista de soles tiene que salir
+// 1425 exactos, no el resultado de ir y volver por dólares con otra cotización.
+//
+// Consecuencia esperada (no es un fallo): con registros a tipos de cambio distintos, el
+// total en soles NO es el total en dólares multiplicado por ningún número. Son dos sumas
+// de cifras reales, cada una en su moneda.
+// ============================================================================
+
+/** Un registro convertible: importe + moneda + su tipo de cambio snapshoteado. */
+interface RegistroConvertible {
+    moneda?: PmsFinanzasMonedaRef | null;
+    tipoCambio?: string | null;
+}
+
+/**
+ * Importe de un registro expresado en `monedaDestino`.
+ *
+ * Devuelve `null` cuando NO se puede convertir con honestidad — moneda distinta y sin tipo
+ * de cambio —, que es el equivalente del "aporta 0" del backend, pero distinguible de un
+ * cero real para poder avisar en la interfaz.
+ */
+export function importeEnMoneda(
+    registro: RegistroConvertible,
+    importe: string | number | null | undefined,
+    monedaDestino?: string | null,
+): number | null {
+    const valor = Number(importe ?? 0);
+    if (!Number.isFinite(valor)) return null;
+
+    const origen = registro.moneda?.id ?? null;
+    if (!monedaDestino || !origen || origen === monedaDestino) return valor;
+
+    const tc = Number(registro.tipoCambio ?? 0);
+    if (!tc) return null;
+
+    // El TC siempre se guarda como venta USD→PEN, así que la dirección la marcan las monedas.
+    if (origen === 'USD' && monedaDestino === 'PEN') return valor * tc;
+    if (origen === 'PEN' && monedaDestino === 'USD') return valor / tc;
+
+    // Par no soportado (p. ej. EUR→PEN): no se inventa una cotización cruzada.
+    return null;
+}
+
+/** Resultado de sumar una colección en una moneda concreta. */
+export interface TotalEnMoneda {
+    total: number;
+    /** Registros que no se pudieron convertir (sin TC o par no soportado). */
+    sinConvertir: number;
+}
+
+/** Suma registros en `monedaDestino`, contando aparte los que no se pudieron convertir. */
+export function sumarEnMoneda<T extends RegistroConvertible>(
+    registros: readonly T[],
+    importeDe: (r: T) => string | number | null | undefined,
+    monedaDestino?: string | null,
+): TotalEnMoneda {
+    let total = 0;
+    let sinConvertir = 0;
+
+    for (const r of registros) {
+        const v = importeEnMoneda(r, importeDe(r), monedaDestino);
+        if (v === null) sinConvertir++;
+        else total += v;
+    }
+
+    return { total, sinConvertir };
 }
 
 /**

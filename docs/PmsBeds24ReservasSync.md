@@ -19,6 +19,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 11. [Camino D — Sincronización Financiera (invoiceItems)](#11-camino-d--sincronización-financiera-invoiceitems)
 12. [Coherencia Financiera — Rollup Multi-moneda y Candado](#12-coherencia-financiera--rollup-multi-moneda-y-candado)
     · [12.0.1 Cargos automáticos de una estancia directa](#1201-cargos-automáticos-de-una-estancia-directa)
+    · [12.4.3 Vista dual soles / dólares](#1243-vista-dual-soles--dólares)
     · [12.6 Gotcha: SearchFilter y UUID binario](#126--gotcha-searchfilter-no-funciona-sobre-relaciones-con-uuid-binario)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
@@ -685,6 +686,52 @@ ProcessBeds24WebhookDispatchHandler            Beds24InvoiceReceiveJob (cron 'be
   `endpoint='bookings/invoices'`, `metodo='GET'` (creada por la migración
   `Version20260802133405`).
 
+### 11.3.1 Lote múltiple: varias reservas en una sola petición
+
+Los dos pull en demanda (facturas y mensajes) piden **N reservas por petición** repitiendo el
+parámetro: `?bookingId=A&bookingId=B&bookingId=C`. Beds24 devuelve todo mezclado y cada línea
+trae su `bookingId`, que es lo que permite repartirlo.
+
+**Por qué durante un tiempo el lote fue 1.** El comentario decía "para evitar cortes por
+paginación", pero eso ya lo resuelve `Beds24ExchangeClient`: recorre `pages.nextPageLink` en
+bucle y **fusiona los `data`** antes de entregárselos a la estrategia. El motivo real de que no
+se pudiera subir era otro: las estrategias estaban escritas para un solo ítem
+(`$batch->getItems()[0]`) y devolvían **un único `ItemResult`**. Con un lote mayor, los demás
+ítems no encontraban resultado en el orquestador (`$results[$itemId] ?? null`) y acababan en
+`handleFailure()`. No se perdían datos: se marcaban fallidos 9 de cada 10.
+
+Cuatro cosas que hay que respetar al tocar estas estrategias:
+
+1. **La query se construye a mano en `fullUrl`, no en `payload`.** El cliente hace
+   `'query' => $payload` y Symfony serializa un array como `bookingId[0]=…`, que Beds24 no
+   interpreta como parámetro repetido. Además encaja con la paginación: al saltar de página el
+   cliente sustituye la URL y vacía el payload.
+2. **`correlationMap` es `bookingId => [idsDeCola]`**, una lista y no un valor único, por si dos
+   ítems en cola apuntaran al mismo booking.
+3. ⚠️ **Se recorre la CORRELACIÓN, no el `data`.** Una reserva sin facturas (o sin mensajes) **no
+   deja ningún rastro en la respuesta**. Si sólo se devolviera resultado para los `bookingId` que
+   aparecen, esas reservas irían a `handleFailure()` y **se reintentarían para siempre**. Vacío es
+   un éxito legítimo.
+4. ⚠️ **`(string) $bookingId` al agrupar.** PHP convierte a `int` las claves numéricas de un
+   array y `getTargetBookId()` devuelve string; sin el cast, el `??` no encuentra nada y *todas*
+   las reservas parecen vacías. Es el mismo tropiezo que ya hubo en
+   `ProcessBeds24WebhookDispatchHandler::handleInvoiceItems()`.
+
+**Qué limita el tamaño del lote — y no es la paginación.** El lote entero comparte una
+transacción y **un solo lock**, cuyo TTL fija el provider (60 s en facturas y mensajes). Una
+respuesta con muchas páginas puede pasarse de ese TTL, y entonces el watchdog de
+`AbstractExchangeRepository::claimRunnable()` marca **todo el lote** como `failed`. Por eso está
+en 10 y no en 50.
+
+**Verificado** (2026-08-03) contra respuestas reales de Beds24: 3 reservas pedidas + 1 inexistente
+→ facturas repartidas 1 / 3 / 1 y la cuarta con éxito y 0 ítems; mensajes 3 / 1 / 2 y la cuarta
+igual; con `success: false` fallan las cuatro con el mensaje de la API.
+
+**No hace falta tocar los handlers ni los persisters:** siguen recibiendo los datos de UNA reserva
+y usando `$item->getTargetBookId()`. Tampoco hay riesgo de mezclar cuentas de Beds24 en una misma
+petición: `claimRunnable()` sondea un candidato y trae sólo los que comparten `config_id` **y**
+`endpoint_id`, así que el lote es homogéneo por construcción.
+
 ### 11.4 Moneda, tipo de cambio y clasificación (enriquecimiento local)
 
 Beds24 **no** envía moneda ni tipo de cambio en los invoiceItems; el `subType` es grueso (el 11
@@ -1058,6 +1105,146 @@ reserva tiene más de una casita; con una sola se preselecciona sin preguntar.
 `ON DELETE SET NULL` en la FK: si se borra la estancia, el cargo sobrevive como cargo general en
 lugar de irse con ella — es dinero registrado, no un dato derivado.
 
+### 12.4.2 El tipo de cambio SÍ se puede rellenar (pero no cambiar)
+
+Excepción deliberada al candado anterior. Un registro en moneda distinta a la cabecera y **sin
+tipo de cambio aporta 0 al total** (§12.2). Si el candado sobre `tipoCambio` fuera total, la
+única forma de arreglar un cargo así sería borrarlo y rehacerlo — y en un cargo sincronizado
+desde Beds24 eso ni siquiera es posible (§12.4.1).
+
+```
+old=null, new=X   → PERMITIDO   (reparación: el cargo empieza a sumar)
+old=X,    new=X   → PERMITIDO   (no es un cambio)
+old=X,    new=Y   → BLOQUEADO   (es la foto del día; corregirla falsearía el histórico)
+```
+
+Lo aplica `PmsInformacionFinancieraCoherenciaListener::assertTipoCambioNoBloqueado()`, y por eso
+`tipoCambio` está en el grupo `pms_cargo:patch` mientras `moneda` sigue fuera. La SPA sólo envía
+el campo cuando el cargo no lo tenía.
+
+**Este era un bug real, no una hipótesis.** El formulario de alta de cargos tenía el campo de
+tipo de cambio con su aviso, pero **sin autocompletado** (el de pagos sí lo tenía). El operador
+registraba un cargo de S/. 1425.00 y el panel seguía enseñando `US$ 0.00` en Cargos. Verificado
+en local: cargo en PEN sin TC → `totalCargos` no se movía de 250.00; al rellenar TC=3.411 pasó a
+667.77 (250 + 1425/3.411); al intentar cambiarlo a 3.900, `DomainException`.
+
+Arreglado en tres frentes, porque el fallo era de diseño de formulario, no de cálculo:
+
+1. `autocompletarTipoCambioCargo()` rellena la venta del día al abrir el formulario y al cambiar
+   de moneda — igual que en pagos, pero con la fecha de hoy (el cargo se crea hoy).
+2. `errorCargo` **bloquea el guardado** si la moneda difiere y no hay TC. Un aviso que se puede
+   ignorar no sirve: el operador ya lo había ignorado.
+3. La fila del cargo y el subtotal del grupo marcan en ámbar los que no suman, con el enlace
+   mental a la acción ("edítalo para completarlo").
+
+### 12.4.3 Vista dual soles / dólares
+
+La moneda **contable** es una sola: la de la cabecera. El conmutador del panel es de
+**presentación**, no cambia ningún dato ni llama al servidor.
+
+La regla que lo hace coherente: **cada registro se convierte con su propio tipo de cambio, nunca
+con una cotización global**. Reconvertir el total ya sumado daría una cifra que nadie pactó — si
+al huésped se le cobró S/. 1425 con TC 3.750, la vista en soles debe enseñar 1425 exactos.
+
+⚠️ **Consecuencia esperada, no un fallo:** con registros a tipos de cambio distintos, el total en
+soles **no** es el total en dólares multiplicado por ningún número. Son dos sumas de cifras
+reales, cada una en su moneda. El panel lo dice explícitamente en la franja bajo el conmutador,
+en vez de dejar que el operador lo descubra cuadrando a mano.
+
+Implementación: `sumarEnMoneda()` / `importeEnMoneda()` en `util/src/types/pmsFinanzasModel.ts`,
+**espejo en TS** de `PmsInformacionFinancieraRecalculoService::expresionConvertida()` (SQL) —
+incluida la regla de anulación de §12.7. Si cambia la conversión, hay que tocar **los dos**.
+En la moneda contable NO se recalcula nada: se usan los totales del backend tal cual, para que la
+vista por defecto no discrepe del servidor por un redondeo distinto.
+
+El conmutador **sólo aparece si hay registros en otra moneda**: en una reserva enteramente en
+dólares sería ruido.
+
+### 12.4.4 Moneda base configurable (sólo directas puras)
+
+El cliente directo peruano cierra el trato **en soles**. Hasta aquí la contabilidad era siempre
+dólares y los soles se veían por conversión, lo que dejaba la moneda del trato como algo
+implícito. Ahora la moneda base (`PmsInformacionFinanciera.moneda`) se puede fijar por reserva,
+y con eso queda **determinista**: los formularios de cargo y de pago proponen esa moneda por
+defecto, con la otra siempre disponible al tipo de cambio.
+
+**Sólo en reservas DIRECTAS PURAS.** El criterio de `PmsInformacionFinanciera::isMonedaBaseEditable()`
+no es el canal de la reserva sino **el origen de los cargos**: basta un cargo sincronizado desde
+Beds24 para bloquearlo. En una OTA la moneda la manda el canal, reescribirla falsearía la verdad
+histórica (§11), y además un cargo sincronizado no se puede borrar para deshacer el estropicio.
+
+Qué hace `PmsMonedaBaseService::cambiar()`:
+
+| | Qué pasa | Por qué |
+|---|---|---|
+| **Cargos** | Se **reescribe** el importe en la moneda nueva y la descripción conserva `(orig. USD 250.00 · TC 3.500)` | Es nuestra tarificación, y en una directa pura todos son manuales. La anotación es la traza mínima para auditar sin montar una tabla de histórico |
+| **Pagos** | **No se tocan.** Sólo se les rellena el `tipoCambio` si les faltaba | Un pago es un hecho: el dinero entró en una moneda concreta. Reescribirlo haría que el registro y el recibo del huésped dejaran de coincidir |
+| **Cabecera** | Cambia `moneda` y el listener recalcula los totales | — |
+
+**Es una operación, no un campo.** `POST /pms/pms_informacion_financieras/{id}/moneda-base`
+(`PmsCambiarMonedaBaseProcessor`), no un PATCH sobre `moneda`: tiene efectos, necesita un tipo de
+cambio que no es atributo de la cabecera, y un PATCH daría la falsa impresión de que se revierte
+poniendo el campo de vuelta. Un `DomainException` se traduce a **422** con el mensaje visible
+para el operador.
+
+⚠️ **Levanta los candados de §12.4 y §12.4.2** — reescribe la moneda de un cargo, que es
+justo lo que esos candados prohíben. Para que la excepción sea explícita y no se cuele desde
+cualquier sitio, se exige declararla entrando en `MonedaBaseRebaseContext::durante()`; el listener
+sólo levanta el candado si `estaRebasando()`. Mismo patrón que `SyncContext` (§9.2).
+
+**Verificado** (2026-08-03): directa con cargo de 250.00 USD y pagos de 230 USD / 10 USD / 300 PEN
+→ al pasar a base PEN con TC 3.500, el cargo quedó en `875.00 PEN` con la anotación del original,
+los pagos intactos y los que estaban en USD con TC 3.500 rellenado; la ida y vuelta a USD devolvió
+el cargo a 250.00. Sobre una reserva OTA, `isMonedaBaseEditable()` da `false` y el servicio lanza
+`DomainException`.
+
+#### Gotcha: `MonedaResolver` cacheaba entidades desligadas
+
+Salió al probar esto. El resolver cachea las `MaestroMoneda` por instancia para evitar N+1, pero
+la caché sobrevivía a un `em->clear()`: la instancia seguía viva en PHP mientras el EntityManager
+ya no la conocía, y asignarla a un cargo reventaba con *"A new entity was found through the
+relationship … that was not configured to cascade persist"*. Ahora la caché se descarta si
+`em->contains()` dice que la entidad está desligada.
+
+**No era sólo un problema del banco de pruebas:** cualquier proceso largo que llame a
+`em->clear()` —los workers de messenger, el cron, los persisters por lotes— podía toparse con
+ello.
+
+#### Barras de acción pegadas (sticky) de los formularios
+
+Los formularios de pago y de cargo manual son largos (medio, fecha, comisión, TC, referencia,
+notas), y en móvil su botón de guardar quedaba fuera de pantalla: el operador acababa usando el
+"Guardar Cambios" del drawer, que es mucho más visible. Ahora su barra de acción queda pegada
+**justo encima** de esa barra del drawer mientras el formulario está abierto.
+
+Que eso funcione costó esquivar **dos trampas de `position: sticky`**, y las dos son fáciles de
+reintroducir sin darse cuenta porque no dan ningún error:
+
+1. **Ningún ancestro puede tener `overflow` distinto de `visible`.** Un `overflow-hidden` se
+   convierte en el scrollport de referencia del sticky y, como no scrollea, el elemento no se
+   pega a nada. El panel tenía tres (`<section>` raíz y los dos acordeones), todos puestos para
+   recortar esquinas redondeadas. Se sustituyeron por redondeo elemento a elemento
+   (`rounded-t-xl` en la cabecera — completo si la sección está cerrada — y `rounded-b-xl` en la
+   propia barra sticky, que es el último elemento).
+2. **La barra no puede ser un ítem del grid.** El bloque contenedor de un sticky dentro de un
+   CSS grid es su **celda**, que mide exactamente lo que el elemento: sin recorrido, no hay
+   desplazamiento posible. Por eso cada formulario es ahora un envoltorio con el
+   `grid grid-cols-2` **dentro** y la barra como hermana **fuera** de él.
+
+El scrollport real es el `flex-1 overflow-y-auto` del drawer (`ReservaEditDrawer.vue`), y su
+`<footer>` es hermano suyo, no descendiente: por eso `bottom-0` deja la barra justo por encima
+del "Guardar Cambios" sin necesidad de compensar su altura a mano.
+
+⚠️ **Gotcha al añadir estado al panel:** `cargar()` resetea `monedaVista`, y el
+`watch(() => props.reservaId, cargar, { immediate: true })` ejecuta `cargar()` **durante el
+setup**. Cualquier `ref` que `cargar()` toque debe declararse **antes** de ese watch, o revienta
+con `Cannot access 'X' before initialization` al abrir el panel. `vue-tsc` da verde igualmente:
+TypeScript no modela el *temporal dead zone*, así que esto sólo se caza abriendo la pantalla.
+
+Esto también arregló un fallo latente: el subtotal por estancia sumaba importes crudos de monedas
+distintas y los etiquetaba con la moneda de la cabecera, así que un cargo de S/. 1425 aparecía
+como `US$ 1425.00` en la cabecera de su grupo.
+
 ## 12.5 Panel financiero en la SPA (`util/`) y patrón de Enums por AJAX
 
 **Archivos relevantes:**
@@ -1386,6 +1573,8 @@ En los cuatro pasos los 4 cargos siguen en la BD; lo único que cambia es qué s
 | Añadir campo nuevo a un cargo financiero | `PmsCargoFinanciero` + `Beds24InvoiceItemDto` + `Beds24InvoiceReceivePersister` | `hidratar()` / `fromArray()` |
 | Cambiar qué campos se actualizan al re-sincronizar un cargo | `Beds24InvoiceReceivePersister` | `aplicarCambiosVolatiles()` |
 | Cambiar el aplanado de facturas del pull | `Beds24InvoiceReceiveMappingStrategy` | `parseResponse()` |
+| Cambiar cuántas reservas van por petición (§11.3.1) | `Beds24InvoiceReceiveTask` / `Beds24ReceiveTask` | `getMaxBatchSize()` — el techo lo pone el TTL del lock, no la paginación |
+| Tocar el reparto por bookingId (§11.3.1) | `Beds24InvoiceReceiveMappingStrategy` / `Beds24ReceiveMappingStrategy` | `map()` + `parseResponse()` — recorre la correlación, **nunca** el `data` |
 | Cambiar cómo se agrupan los invoiceItems del webhook | `ProcessBeds24WebhookDispatchHandler` | `handleInvoiceItems()` |
 | Cambiar qué booking se consulta por reserva/grupo (§11.6) | `PmsBeds24InvoiceTargetFinder` | `findTargetsForPeriod()` (hoy: el `beds24MasterId`) |
 | Saber a qué estancia pertenece un cargo de un grupo (§11.6) | `PmsCargoFinanciero` + `PmsInformacionFinanciera` | `beds24BookingId` / `getEstancias()` |
@@ -1408,6 +1597,11 @@ En los cuatro pasos los 4 cargos siguen en la BD; lo único que cambia es qué s
 | Cambiar qué computa una reserva cancelada (§12.7) | `PmsInformacionFinancieraRecalculoService` | `AND (i2.activa = 1 OR c.tipo_cargo = 'penalizacion')` |
 | Cambiar cuándo se anula el cobro automáticamente (§12.7) | `PmsInformacionFinancieraCoherenciaListener` | `aplicarCancelacion()` |
 | Cambiar la moneda por defecto (hoy USD) | `MonedaResolver` | `resolve()` |
+| Cambiar quién puede fijar la moneda base (§12.4.4) | `PmsInformacionFinanciera` | `isMonedaBaseEditable()` (hoy: ningún cargo sincronizado ni estancia OTA) |
+| Cambiar qué se reescribe al fijar la moneda base (§12.4.4) | `PmsMonedaBaseService` | `cambiar()` — cargos sí, pagos nunca |
+| Cambiar la anotación del importe original (§12.4.4) | `PmsMonedaBaseService` | `anotarOriginal()` |
+| Añadir un par de monedas al rebase (§12.4.4) | `PmsMonedaBaseService` | `convertir()` — hoy sólo USD↔PEN |
+| Levantar los candados de moneda desde otro sitio (§12.4.4) | `MonedaBaseRebaseContext` | `durante()` — **no** debilites los `assert*` del listener |
 | Cambiar qué tipo de cambio se snapshotea (venta/promedio/compra) | `TipoCambioDelDia` | `venta()` |
 | Cambiar el % de comisión de tarjeta (hoy 5.5%) | `PmsMedioPago` | `comisionPorcentaje()` |
 | Cambiar la fórmula del recargo / total cobrado (§11.5) | `PmsPagoFinanciero` + `util/src/types/pmsFinanzasModel.ts` | `getMontoComision()` / `totalConComision()` (son **espejo**: tocar los dos) |
@@ -1416,6 +1610,13 @@ En los cuatro pasos los 4 cargos siguen en la BD; lo único que cambia es qué s
 | Cambiar el rollup de totales / la conversión entre monedas (§12) | `PmsInformacionFinancieraRecalculoService` | `recalcular()` / `expresionConvertida()` |
 | Cambiar cuándo se dispara el recálculo (§12) | `PmsInformacionFinancieraCoherenciaListener` | `onFlush()` / `collectInformacionId()` |
 | Cambiar o quitar el candado de moneda en cargos/pagos (§12.4) | `PmsInformacionFinancieraCoherenciaListener` | `assertMonedaNoBloqueada()` |
+| Cambiar el candado del tipo de cambio (§12.4.2) | `PmsInformacionFinancieraCoherenciaListener` | `assertTipoCambioNoBloqueado()` — hoy permite null→X |
+| Cambiar de dónde sale el TC automático de un cargo (§12.4.2) | `ReservaFinanzasPanel.vue` | `autocompletarTipoCambioCargo()` (hoy: venta de hoy) |
+| Relajar el bloqueo de guardado sin TC (§12.4.2) | `ReservaFinanzasPanel.vue` | `errorCargo` |
+| Cambiar la conversión de la vista dual (§12.4.3) | `util/src/types/pmsFinanzasModel.ts` + `PmsInformacionFinancieraRecalculoService` | `importeEnMoneda()` / `expresionConvertida()` (son **espejo**: tocar los dos) |
+| Cambiar cuándo aparece el conmutador de moneda (§12.4.3) | `ReservaFinanzasPanel.vue` | `monedaAlterna` |
+| Tocar el redondeo o el layout del panel (§12.4.3) | `ReservaFinanzasPanel.vue` | **No reintroduzcas `overflow-hidden`** ni metas la barra de acción en el grid: rompe el sticky sin dar error |
+| Añadir un par de monedas a la vista dual (§12.4.3) | `util/src/types/pmsFinanzasModel.ts` | `importeEnMoneda()` — hoy sólo USD↔PEN, el resto devuelve null |
 | Añadir un tipo de cargo o medio de pago (label/color/icono) | `PmsTipoCargo` / `PmsMedioPago` | nuevo `case` + `label()` + `color()`/`icono()` (la SPA lo recoge sola) |
 | Exponer un enum PMS nuevo al frontend (§12.5.1) | `PmsEnumAjaxController` | nueva ruta `#[Route]` + `cacheable()` |
 | Cambiar qué campos del cargo puede corregir el operador | `PmsCargoFinanciero` | grupo `pms_cargo:write` |

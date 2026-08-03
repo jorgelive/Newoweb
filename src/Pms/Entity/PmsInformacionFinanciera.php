@@ -9,6 +9,8 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use App\Api\Processor\Pms\PmsCambiarMonedaBaseProcessor;
 use App\Api\Provider\Pms\PmsInformacionFinancieraPorReservaProvider;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
@@ -57,6 +59,16 @@ use Symfony\Component\Uid\Uuid;
         new Patch(
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar la información financiera.',
+        ),
+        // Cambio de moneda base. Operación propia y no un PATCH sobre `moneda` porque tiene
+        // efectos (reescribe cargos, rellena TC, recalcula) y necesita un tipo de cambio que
+        // no es un campo de la cabecera (§12.4.4).
+        new Post(
+            uriTemplate: '/pms_informacion_financieras/{id}/moneda-base',
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para cambiar la moneda base.',
+            deserialize: false,
+            processor: PmsCambiarMonedaBaseProcessor::class,
         ),
     ],
     routePrefix: '/pms',
@@ -200,6 +212,35 @@ class PmsInformacionFinanciera
         }
 
         return number_format($total, 2, '.', '');
+    }
+
+    /**
+     * ¿Se puede cambiar la moneda base (contable) de esta reserva?
+     *
+     * Sólo en reservas DIRECTAS PURAS. El criterio no es el canal de la reserva sino **el origen
+     * de los cargos**, que es lo que de verdad importa: si algún cargo vino de Beds24, su moneda
+     * la manda el canal y reescribirla falsearía la verdad histórica (§11). Un cargo sincronizado
+     * es, además, imposible de borrar para deshacer el estropicio.
+     *
+     * Se serializa para que la SPA sepa si pintar el selector; el backend lo vuelve a comprobar
+     * en `PmsMonedaBaseService::cambiar()`, que es la defensa real.
+     */
+    #[Groups(['pms_finanzas:read'])]
+    public function isMonedaBaseEditable(): bool
+    {
+        foreach ($this->cargos as $cargo) {
+            if (!$cargo->isManual()) {
+                return false;
+            }
+        }
+
+        foreach ($this->reserva?->getEventosCalendario() ?? [] as $evento) {
+            if ($evento->isOta()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     #[Groups(['pms_finanzas:read'])]

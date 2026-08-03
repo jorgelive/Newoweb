@@ -28,6 +28,8 @@ import {
     idDeIri,
     totalConComision,
     netoDesdeTotal,
+    sumarEnMoneda,
+    importeEnMoneda,
     type PmsCargoFinanciero,
     type PmsCargoFinancieroCreate,
     type PmsPagoFinanciero,
@@ -54,6 +56,16 @@ const panelAnulado = computed(() => finanzas.info?.activa === false);
 /** 🔒 Candado: mientras esté cerrado, los cargos son de solo lectura. */
 const cargosDesbloqueados = ref(false);
 
+/**
+ * Moneda en la que se están MIRANDO los totales (null = la de la cabecera). Ver el bloque
+ * "VISTA DUAL" más abajo, donde vive el resto de la lógica.
+ *
+ * ⚠️ Se declara AQUÍ, y no junto a sus computed, porque `cargar()` la resetea y el watch de
+ * abajo llama a `cargar()` con `immediate: true`. Declararla después daba un TDZ
+ * ("Cannot access 'monedaVista' before initialization") que TypeScript no detecta.
+ */
+const monedaVista = ref<string | null>(null);
+
 function toggleSeccion(s: 'cargos' | 'pagos'): void {
     seccionAbierta.value = seccionAbierta.value === s ? null : s;
 }
@@ -64,6 +76,8 @@ async function cargar(): Promise<void> {
     // Al cambiar de reserva el panel vuelve a colapsarse: cada una se abre por decisión propia.
     panelAbierto.value = false;
     seccionAbierta.value = null;
+    // La vista siempre arranca en la moneda contable: es la que da fe.
+    monedaVista.value = null;
     try {
         await Promise.all([finanzas.fetchEnums(), finanzas.fetchPorReserva(props.reservaId)]);
     } catch (err) {
@@ -96,8 +110,142 @@ function fechaLegible(iso?: string | null): string {
     return y && m && d ? `${d}/${m}/${y}` : '—';
 }
 
+// ============================================================================
+// VISTA DUAL SOLES / DÓLARES
+//
+// La moneda CONTABLE es siempre la de la cabecera: es la que persiste el backend en
+// `totalCargos`/`totalPagos` y la que da fe. Este conmutador es sólo de PRESENTACIÓN.
+//
+// Los totales de la otra moneda se recalculan aquí registro a registro (sumarEnMoneda),
+// no reconvirtiendo el total: ver el bloque de espejo en pmsFinanzasModel.ts. Por eso
+// cambiar de vista no dispara ninguna llamada al servidor.
+// ============================================================================
+
+/** La otra moneda del par, si la reserva tiene registros que la justifiquen. */
+const monedaAlterna = computed<string | null>(() => {
+    const base = monedaCabecera.value?.id;
+    if (!base) return null;
+
+    // Sólo se ofrece el conmutador si de verdad hay dinero en la otra moneda: en una
+    // reserva enteramente en dólares, el botón sería ruido.
+    const registros = [...(finanzas.info?.cargos ?? []), ...(finanzas.info?.pagos ?? [])];
+    const otras = new Set(
+        registros.map(r => r.moneda?.id).filter((id): id is string => !!id && id !== base),
+    );
+
+    if (otras.size === 1) return [...otras][0];
+    // Con más de una moneda extranjera no hay "la otra": se ofrece el par habitual.
+    return otras.has('PEN') ? 'PEN' : (otras.size ? [...otras][0] : null);
+});
+
+const monedaMostrada = computed(() => monedaVista.value ?? monedaCabecera.value?.id ?? null);
+const enMonedaContable = computed(() => monedaMostrada.value === monedaCabecera.value?.id);
+
+/** Ref de moneda (símbolo incluido) de la vista activa, para pintar los importes. */
+const monedaVistaRef = computed(() => {
+    if (enMonedaContable.value) return monedaCabecera.value;
+    const id = monedaMostrada.value;
+    return finanzas.monedas.find(m => m.id === id) ?? (id ? { id } : null);
+});
+
+const cargosVista = computed(() => finanzas.info?.cargos ?? []);
+const pagosVista = computed(() => finanzas.info?.pagos ?? []);
+
+/**
+ * Totales de la vista activa.
+ *
+ * En la moneda contable se usan los del backend tal cual (son la verdad persistida); en la
+ * otra se suman los registros. Así la vista por defecto nunca discrepa del servidor por un
+ * redondeo distinto.
+ */
+const totalesVista = computed(() => {
+    const info = finanzas.info;
+    if (!info) return { cargos: 0, pagos: 0, saldo: 0, sinConvertir: 0 };
+
+    if (enMonedaContable.value) {
+        return {
+            cargos: Number(info.totalCargos ?? 0),
+            pagos: Number(info.totalPagos ?? 0),
+            saldo: Number(info.saldo ?? 0),
+            sinConvertir: 0,
+        };
+    }
+
+    const destino = monedaMostrada.value;
+    // Anulada: sólo la penalización computa, igual que el rollup del backend (§12.7).
+    const cargosComputables = info.activa === false
+        ? cargosVista.value.filter(c => c.tipoCargo === 'penalizacion')
+        : cargosVista.value;
+
+    const cargos = sumarEnMoneda(cargosComputables, c => c.totalLinea ?? c.monto, destino);
+    const pagos = sumarEnMoneda(pagosVista.value, p => p.monto, destino);
+
+    return {
+        cargos: cargos.total,
+        pagos: pagos.total,
+        saldo: cargos.total - pagos.total,
+        sinConvertir: cargos.sinConvertir + pagos.sinConvertir,
+    };
+});
+
+/** Importe ya formateado en la moneda de la vista. */
+function importeVista(valor: number): string {
+    return importeConMoneda(valor.toFixed(2), monedaVistaRef.value);
+}
+
+// ============================================================================
+// MONEDA BASE (contable, PERSISTIDA)
+//
+// Distinta del conmutador de arriba: aquí sí se cambia el dato. Sólo en reservas
+// directas puras — lo decide el backend en `monedaBaseEditable` y lo vuelve a
+// comprobar al ejecutar la operación (§12.4.4).
+// ============================================================================
+
+const cambiandoMonedaBase = ref(false);
+
+const puedeCambiarMonedaBase = computed(
+    () => !props.readOnly && finanzas.info?.monedaBaseEditable === true,
+);
+
+/** Monedas ofrecidas como base. Se limita al par que el conversor sabe cruzar. */
+const monedasBase = computed(() => finanzas.monedas.filter(m => m.id === 'USD' || m.id === 'PEN'));
+
+/**
+ * Cambia la moneda contable de la reserva.
+ *
+ * Se confirma a propósito: reescribe los importes de los cargos. El texto dice exactamente
+ * qué va a pasar con cargos y pagos, porque son cosas distintas y no es evidente.
+ */
+async function cambiarMonedaBase(nueva: string): Promise<void> {
+    const actual = monedaCabecera.value?.id;
+    if (!nueva || nueva === actual) return;
+
+    const nCargos = cargosVista.value.length;
+    const nPagos = pagosVista.value.length;
+
+    const confirmado = window.confirm(
+        `¿Pasar la contabilidad de esta reserva de ${actual} a ${nueva}?\n\n`
+        + `· Los ${nCargos} cargo(s) se reexpresan en ${nueva} al tipo de cambio de hoy. `
+        + `La descripción conserva el importe original.\n`
+        + `· Los ${nPagos} pago(s) NO se tocan: el dinero entró en su moneda y ahí se queda.\n\n`
+        + `Los nuevos cargos y pagos pasarán a proponerse en ${nueva}.`
+    );
+    if (!confirmado) return;
+
+    error.value = null;
+    cambiandoMonedaBase.value = true;
+    try {
+        await finanzas.cambiarMonedaBase(nueva);
+        monedaVista.value = null;
+    } catch (err) {
+        error.value = extractApiErrorMessage(err, 'No se pudo cambiar la moneda base.');
+    } finally {
+        cambiandoMonedaBase.value = false;
+    }
+}
+
 /** El saldo manda el color del resumen: en verde si ya no se debe nada. */
-const saldoPositivo = computed(() => Number(finanzas.info?.saldo ?? 0) > 0.005);
+const saldoPositivo = computed(() => totalesVista.value.saldo > 0.005);
 
 /**
  * Activa/anula el cobro de la reserva (§12.7). Anular NO borra nada: los cargos siguen
@@ -127,7 +275,10 @@ interface GrupoCargos {
     titulo: string | null;
     subtitulo: string | null;
     cargos: PmsCargoFinanciero[];
+    /** Convertido a la moneda de la vista; NO es la suma cruda de importes (§12.2). */
     subtotal: number;
+    /** Cargos del grupo que no se pudieron convertir (sin TC). */
+    subtotalIncompleto: boolean;
 }
 
 /** Cargos que no se imputan a ninguna estancia concreta (van a la reserva en conjunto). */
@@ -169,12 +320,19 @@ const gruposCargos = computed<GrupoCargos[]>(() => {
                 subtitulo: est ? `${fechaLegible(est.inicio)} → ${fechaLegible(est.fin)}` : null,
                 cargos: [],
                 subtotal: 0,
+                subtotalIncompleto: false,
             });
         }
 
         const g = grupos.get(clave)!;
         g.cargos.push(c);
-        g.subtotal += Number(c.totalLinea ?? c.monto ?? 0);
+
+        // Se convierte a la moneda de la vista antes de sumar. Antes se sumaba el importe
+        // crudo y se etiquetaba con la moneda de la cabecera: un cargo de S/. 1425 aparecía
+        // como "US$ 1425.00" en el subtotal del grupo.
+        const enVista = importeEnMoneda(c, c.totalLinea ?? c.monto, monedaMostrada.value);
+        if (enVista === null) g.subtotalIncompleto = true;
+        else g.subtotal += enVista;
     }
 
     return [...grupos.values()];
@@ -233,6 +391,8 @@ function abrirNuevoCargo(): void {
         // Con una sola casita no hay nada que elegir: se preselecciona.
         evento: estancias.length === 1 ? estancias[0].eventoId : '',
     };
+    // Si la moneda por defecto ya difiere de la cabecera, el TC se pide de entrada.
+    void autocompletarTipoCambioCargo();
 }
 
 function cancelarEdicionCargo(): void {
@@ -245,8 +405,29 @@ const monedaCargoEsExtranjera = computed(
     () => !!monedaCabecera.value?.id && cargoForm.value.moneda !== monedaCabecera.value.id,
 );
 
+/**
+ * Motivo por el que el cargo no se puede guardar todavía, o null si está listo.
+ * Se valida ANTES de enviar: un cargo en otra moneda sin TC entra en la BD aportando 0.00
+ * al saldo, y eso se ve como "el cargo no se reflejó en el precio".
+ */
+const errorCargo = computed<string | null>(() => {
+    if (!cargoForm.value.totalLinea) return 'Falta el importe.';
+    if (monedaCargoEsExtranjera.value && !cargoForm.value.tipoCambio) {
+        return `Falta el tipo de cambio: sin él, un cargo en ${cargoForm.value.moneda} no suma al total en ${monedaCabecera.value?.id}.`;
+    }
+    return null;
+});
+
+/** ¿Este cargo ya guardado se quedó sin TC y por eso no suma? Se puede reparar. */
+function cargoSinTipoCambio(c: PmsCargoFinanciero): boolean {
+    const base = monedaCabecera.value?.id;
+    return !!base && !!c.moneda?.id && c.moneda.id !== base && !c.tipoCambio;
+}
+
 /** Lógica de guardado del cargo. PROPAGA el error para que el drawer pueda no cerrarse. */
 async function guardarCargoOrThrow(): Promise<void> {
+    if (errorCargo.value) throw new Error(errorCargo.value);
+
     if (cargoNuevoAbierto.value) {
         const infoId = finanzas.info?.id;
         if (!infoId) return;
@@ -262,12 +443,18 @@ async function guardarCargoOrThrow(): Promise<void> {
         };
         await finanzas.createCargo(payload);
     } else if (cargoEditandoId.value) {
-        // `moneda`/`tipoCambio` no viajan: quedan fijos tras registrar el importe.
+        // `moneda` no viaja: queda fija tras registrar el importe. `tipoCambio` SÓLO viaja si
+        // el cargo no lo tenía — es la reparación de un cargo que no sumaba; cambiarlo cuando
+        // ya existe lo rechaza el backend (§12.4).
+        const original = cargosVista.value.find(c => c.id === cargoEditandoId.value);
         await finanzas.patchCargo(cargoEditandoId.value, {
             tipoCargo: cargoForm.value.tipoCargo || null,
             descripcion: cargoForm.value.descripcion || null,
             totalLinea: cargoForm.value.totalLinea || null,
             evento: cargoForm.value.evento ? pmsEventoIri(cargoForm.value.evento) : null,
+            ...(original && !original.tipoCambio && cargoForm.value.tipoCambio
+                ? { tipoCambio: cargoForm.value.tipoCambio }
+                : {}),
         });
     }
     cancelarEdicionCargo();
@@ -399,21 +586,48 @@ const monedaPagoEsExtranjera = computed(
  */
 const cargandoTipoCambio = ref(false);
 
+/** Consulta la venta del día. Devuelve null si no se pudo (nunca lanza). */
+async function consultarVenta(fecha: string): Promise<string | null> {
+    try {
+        const res = await apiClient.post('/platform/maestro/tipo-cambio/consultar', { fecha });
+        // `venta` es la punta que se snapshotea en el resto del módulo (§11.4).
+        const venta = res.data?.venta;
+        return venta ? String(venta) : null;
+    } catch {
+        return null;
+    }
+}
+
 async function autocompletarTipoCambio(): Promise<void> {
     if (!monedaPagoEsExtranjera.value || pagoForm.value.tipoCambio) return;
 
     cargandoTipoCambio.value = true;
     try {
-        const res = await apiClient.post('/platform/maestro/tipo-cambio/consultar', {
-            fecha: pagoForm.value.fechaPago,
-        });
-        // `venta` es la punta que se snapshotea en el resto del módulo (§11.4).
-        const venta = res.data?.venta;
-        if (venta && !pagoForm.value.tipoCambio) {
-            pagoForm.value.tipoCambio = String(venta);
-        }
-    } catch {
-        /* silencioso: queda vacío y el aviso del formulario explica el efecto */
+        const venta = await consultarVenta(pagoForm.value.fechaPago);
+        if (venta && !pagoForm.value.tipoCambio) pagoForm.value.tipoCambio = venta;
+    } finally {
+        cargandoTipoCambio.value = false;
+    }
+}
+
+/**
+ * Mismo autocompletado para los CARGOS.
+ *
+ * Faltaba, y era justo el agujero por el que un cargo en soles acababa aportando 0.00 al
+ * saldo: el campo existía con su aviso, pero había que teclear el tipo de cambio a mano y
+ * el aviso pasaba desapercibido. Ahora se rellena solo y, si aun así queda vacío, el
+ * guardado se bloquea (`errorCargo`) en vez de aceptar un cargo que no suma.
+ *
+ * No hay fecha en el formulario de cargo: el cargo se está creando hoy, así que se usa la
+ * cotización de hoy — el mismo criterio que `TipoCambioDelDia` en el backend.
+ */
+async function autocompletarTipoCambioCargo(): Promise<void> {
+    if (!monedaCargoEsExtranjera.value || cargoForm.value.tipoCambio) return;
+
+    cargandoTipoCambio.value = true;
+    try {
+        const venta = await consultarVenta(hoyInput());
+        if (venta && !cargoForm.value.tipoCambio) cargoForm.value.tipoCambio = venta;
     } finally {
         cargandoTipoCambio.value = false;
     }
@@ -502,16 +716,24 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
 </script>
 
 <template>
-    <section class="rounded-2xl overflow-hidden shadow-sm ring-1"
+    <!-- ⚠️ SIN `overflow-hidden`, a propósito: rompería el `position: sticky` de las barras de
+         acción de los formularios (un ancestro con overflow distinto de visible se convierte en
+         el scrollport de referencia, y como no scrollea, el sticky no se pega a nada). El
+         redondeo se hace elemento a elemento en lugar de recortando el contenedor. -->
+    <section class="rounded-2xl shadow-sm ring-1"
         :class="panelAnulado ? 'ring-amber-300' : 'ring-[#376875]/25'">
 
         <!-- Cabecera del acordeón: siempre visible y con el saldo a la vista, que es el dato
              que se busca al abrir una reserva. Arranca colapsado para no tapar la estancia. -->
         <button type="button" @click="panelAbierto = !panelAbierto"
             class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors"
-            :class="panelAnulado
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
-                : 'bg-gradient-to-r from-[#376875] to-[#2d5660] hover:from-[#2d5660] hover:to-[#24454e]'">
+            :class="[
+                panelAnulado
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
+                    : 'bg-gradient-to-r from-[#376875] to-[#2d5660] hover:from-[#2d5660] hover:to-[#24454e]',
+                // Colapsado la cabecera ES el panel entero, así que se redondea por los cuatro lados.
+                panelAbierto ? 'rounded-t-2xl' : 'rounded-2xl',
+            ]">
             <span class="flex items-center gap-2.5 min-w-0 text-white">
                 <i class="fas fa-chevron-right text-[11px] transition-transform shrink-0"
                     :class="{ 'rotate-90': panelAbierto }"></i>
@@ -529,17 +751,17 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                  `tabular-nums` mantiene las dos alineadas al apilarlas. -->
             <span v-if="finanzas.info" class="flex flex-col items-end gap-0.5 shrink-0">
                 <span class="px-2 py-0.5 rounded-md bg-white text-emerald-600 text-[11px] font-black tabular-nums">
-                    {{ importeConMoneda(finanzas.info.totalCargos, monedaCabecera) }}
+                    {{ importeVista(totalesVista.cargos) }}
                 </span>
                 <span class="px-2 py-0.5 rounded-md bg-white text-[11px] font-black tabular-nums"
                     :class="saldoPositivo ? 'text-rose-600' : 'text-emerald-600'">
-                    {{ importeConMoneda(finanzas.info.saldo, monedaCabecera) }}
+                    {{ importeVista(totalesVista.saldo) }}
                 </span>
             </span>
             <i v-else-if="finanzas.isLoading" class="fas fa-spinner fa-spin text-white/80 text-sm shrink-0"></i>
         </button>
 
-        <div v-show="panelAbierto" class="bg-white px-4 py-4">
+        <div v-show="panelAbierto" class="bg-white px-4 py-4 rounded-b-2xl">
 
         <div v-if="finanzas.isLoading" class="flex items-center gap-2 text-sm font-bold text-slate-400 px-1 py-3">
             <i class="fas fa-spinner fa-spin"></i> Cargando finanzas…
@@ -580,25 +802,80 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     <div class="px-3 py-3 text-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Cargos</p>
                         <p class="text-sm font-black text-slate-800 mt-0.5">
-                            {{ importeConMoneda(finanzas.info.totalCargos, monedaCabecera) }}
+                            {{ importeVista(totalesVista.cargos) }}
                         </p>
                     </div>
                     <div class="px-3 py-3 text-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Pagado</p>
                         <p class="text-sm font-black text-emerald-600 mt-0.5">
-                            {{ importeConMoneda(finanzas.info.totalPagos, monedaCabecera) }}
+                            {{ importeVista(totalesVista.pagos) }}
                         </p>
                     </div>
                     <div class="px-3 py-3 text-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Saldo</p>
                         <p class="text-sm font-black mt-0.5" :class="saldoPositivo ? 'text-rose-600' : 'text-emerald-600'">
-                            {{ importeConMoneda(finanzas.info.saldo, monedaCabecera) }}
+                            {{ importeVista(totalesVista.saldo) }}
                         </p>
                     </div>
                 </div>
+
+                <!-- ===== MONEDA BASE (contable, persistida) =====
+                     Sólo en directas puras. En una reserva con cargos del canal ni siquiera
+                     se pinta: la moneda la manda la OTA. -->
+                <div v-if="puedeCambiarMonedaBase"
+                    class="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-100 bg-white">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-wide">
+                        <i class="fas fa-scale-balanced mr-1"></i>Moneda base
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <i v-if="cambiandoMonedaBase" class="fas fa-circle-notch fa-spin text-slate-300 text-[11px]"></i>
+                        <select :value="monedaCabecera?.id"
+                            @change="cambiarMonedaBase(($event.target as HTMLSelectElement).value)"
+                            :disabled="cambiandoMonedaBase || finanzas.isSaving"
+                            class="border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-black text-slate-600 disabled:opacity-50">
+                            <option v-for="m in monedasBase" :key="m.id ?? ''" :value="m.id ?? ''">
+                                {{ m.id }}{{ m.simbolo ? ` (${m.simbolo})` : '' }}
+                            </option>
+                        </select>
+                    </span>
+                </div>
+
+                <!-- ===== CONMUTADOR DE MONEDA (sólo presentación) =====
+                     Aparece únicamente si hay registros en otra moneda: en una reserva
+                     enteramente en dólares no hay nada que conmutar. -->
+                <div v-if="monedaAlterna" class="flex items-center gap-1 px-3 py-2 border-t border-slate-100 bg-white">
+                    <button type="button" @click="monedaVista = null"
+                        class="flex-1 px-3 py-1.5 rounded-lg text-[11px] font-black transition-colors"
+                        :class="enMonedaContable ? 'bg-[#376875] text-white' : 'text-slate-400 hover:bg-slate-50'">
+                        {{ monedaCabecera?.id }}
+                    </button>
+                    <button type="button" @click="monedaVista = monedaAlterna"
+                        class="flex-1 px-3 py-1.5 rounded-lg text-[11px] font-black transition-colors"
+                        :class="!enMonedaContable ? 'bg-[#376875] text-white' : 'text-slate-400 hover:bg-slate-50'">
+                        {{ monedaAlterna }}
+                    </button>
+                </div>
+
+                <!-- Aviso honesto: los dos totales no guardan proporción entre sí. -->
+                <p v-if="!enMonedaContable"
+                    class="px-3 py-1.5 text-[10px] font-bold text-[#376875] bg-[#376875]/5 border-t border-slate-100">
+                    <i class="fas fa-eye mr-1"></i>
+                    Vista en {{ monedaMostrada }}: cada importe se convierte con
+                    <b>su propio</b> tipo de cambio, no con una cotización única. La contabilidad
+                    de la reserva sigue en {{ monedaCabecera?.id }}.
+                </p>
+
+                <p v-if="totalesVista.sinConvertir"
+                    class="px-3 py-1.5 text-[10px] font-black text-amber-700 bg-amber-50 border-t border-amber-100">
+                    <i class="fas fa-triangle-exclamation mr-1"></i>
+                    {{ totalesVista.sinConvertir }}
+                    {{ totalesVista.sinConvertir === 1 ? 'registro no suma' : 'registros no suman' }}:
+                    les falta el tipo de cambio. Edítalos para completarlo.
+                </p>
+
                 <p class="px-3 py-1.5 text-[10px] font-bold text-slate-400 border-t border-slate-100 bg-white flex items-center justify-between gap-2">
                     <span>
-                        Totales en {{ monedaCabecera?.nombre ?? monedaCabecera?.id ?? 'USD' }}.
+                        Contabilidad en {{ monedaCabecera?.nombre ?? monedaCabecera?.id ?? 'USD' }}.
                         Los importes en otra moneda se convierten con el tipo de cambio de cada registro.
                     </span>
                     <!-- Anular a mano: por ejemplo, un no-show que el canal no marcó. -->
@@ -611,9 +888,11 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
             </div>
 
             <!-- ===== ACORDEÓN: CARGOS ===== -->
-            <div class="border border-slate-200 rounded-xl overflow-hidden mb-3">
+            <!-- Sin overflow-hidden: ver la nota del <section> raíz (rompe el sticky). -->
+            <div class="border border-slate-200 rounded-xl mb-3">
                 <button type="button" @click="toggleSeccion('cargos')"
-                    class="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 text-left transition-colors">
+                    class="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 text-left transition-colors"
+                    :class="seccionAbierta === 'cargos' ? 'rounded-t-xl' : 'rounded-xl'">
                     <span class="flex items-center gap-2 text-sm font-bold text-slate-700">
                         <i class="fas fa-chevron-right text-[10px] text-slate-400 transition-transform"
                             :class="{ 'rotate-90': seccionAbierta === 'cargos' }"></i>
@@ -660,7 +939,9 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 </span>
                             </span>
                             <span class="text-[11px] font-black text-slate-600 shrink-0">
-                                {{ importeConMoneda(String(g.subtotal), monedaCabecera) }}
+                                <i v-if="g.subtotalIncompleto" class="fas fa-triangle-exclamation text-amber-500 mr-1"
+                                    title="Falta el tipo de cambio de algún cargo: el subtotal está incompleto."></i>
+                                {{ importeVista(g.subtotal) }}
                             </span>
                         </div>
 
@@ -684,6 +965,16 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <p class="text-[10px] font-bold text-slate-400 mt-1">
                                     {{ fechaLegible(c.fechaCreacionBeds24) }}
                                     <template v-if="c.tipoCambio"> · TC {{ c.tipoCambio }}</template>
+                                    <!-- Equivalente en la otra moneda, para no tener que calcularlo de cabeza. -->
+                                    <template v-if="c.tipoCambio && c.moneda?.id !== monedaMostrada">
+                                        · ≈ {{ importeVista(importeEnMoneda(c, c.totalLinea ?? c.monto, monedaMostrada) ?? 0) }}
+                                    </template>
+                                </p>
+                                <p v-if="cargoSinTipoCambio(c)"
+                                    class="text-[10px] font-black text-amber-600 mt-1 leading-snug">
+                                    <i class="fas fa-triangle-exclamation mr-1"></i>
+                                    Sin tipo de cambio: este cargo <b>no suma</b> al total en
+                                    {{ monedaCabecera?.id }}. Edítalo para completarlo.
                                 </p>
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
@@ -731,10 +1022,27 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"
                                     class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
                             </label>
-                            <div class="flex items-end justify-end gap-2">
+                            <!-- Reparación: sólo aparece si el cargo se guardó SIN tipo de cambio.
+                                 Uno que ya lo tenga no se puede tocar (es la foto del día). -->
+                            <label v-if="cargoSinTipoCambio(c)" class="col-span-2">
+                                <span class="text-[11px] font-bold text-slate-500">
+                                    Tipo de cambio
+                                    <i v-if="cargandoTipoCambio" class="fas fa-circle-notch fa-spin ml-1 text-slate-300"></i>
+                                </span>
+                                <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio"
+                                    placeholder="Ej. 3.750" @focus="autocompletarTipoCambioCargo"
+                                    class="mt-1 w-full border border-amber-300 rounded-lg px-3 py-2 text-sm" />
+                                <span class="mt-1 block text-[10px] font-bold text-amber-600">
+                                    Al completarlo, este cargo empezará a sumar al total en {{ monedaCabecera?.id }}.
+                                </span>
+                            </label>
+                            <p v-if="errorCargo" class="col-span-2 text-[10px] font-black text-amber-600">
+                                <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorCargo }}
+                            </p>
+                            <div class="col-span-2 flex items-center justify-end gap-2">
                                 <button type="button" @click="cancelarEdicionCargo"
                                     class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
-                                <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving"
+                                <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving || !!errorCargo"
                                     class="px-3 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-lg text-xs font-black">
                                     <i class="fas" :class="finanzas.isSaving ? 'fa-circle-notch fa-spin' : 'fa-check'"></i> Guardar
                                 </button>
@@ -743,8 +1051,11 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </div>
                     </template>
 
-                    <!-- Alta de un cargo manual (reservas directas) -->
-                    <div v-if="cargoNuevoAbierto" class="px-4 py-3 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-2">
+                    <!-- Alta de un cargo manual (reservas directas).
+                         Mismo envoltorio que el formulario de pago: el grid va dentro y la barra
+                         de acción fuera, o el sticky no tendría recorrido dentro de su celda. -->
+                    <div v-if="cargoNuevoAbierto" class="bg-slate-50 border-t border-slate-100">
+                    <div class="px-4 py-3 grid grid-cols-2 gap-2">
                         <label class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">Tipo</span>
                             <select v-model="cargoForm.tipoCargo"
@@ -777,7 +1088,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         </label>
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Moneda</span>
-                            <select v-model="cargoForm.moneda"
+                            <select v-model="cargoForm.moneda" @change="autocompletarTipoCambioCargo"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
                                 <option v-for="m in finanzas.monedas" :key="m.id ?? ''" :value="m.id ?? ''">
                                     {{ m.id }}{{ m.simbolo ? ` (${m.simbolo})` : '' }}
@@ -785,18 +1096,35 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             </select>
                         </label>
                         <label v-if="monedaCargoEsExtranjera" class="col-span-2">
-                            <span class="text-[11px] font-bold text-slate-500">Tipo de cambio</span>
+                            <span class="text-[11px] font-bold text-slate-500">
+                                Tipo de cambio
+                                <i v-if="cargandoTipoCambio" class="fas fa-circle-notch fa-spin ml-1 text-slate-300"></i>
+                            </span>
                             <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio" placeholder="Ej. 3.750"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
-                            <span v-if="!cargoForm.tipoCambio" class="mt-1 block text-[10px] font-bold text-amber-600">
-                                <i class="fas fa-triangle-exclamation text-[9px] mr-1"></i>
-                                Sin tipo de cambio este cargo no suma al saldo (moneda distinta a la reserva).
+                            <!-- Equivalente en vivo: quita la duda de "¿cuánto es esto en dólares?". -->
+                            <span v-if="cargoForm.tipoCambio && cargoForm.totalLinea"
+                                class="mt-1 block text-[10px] font-bold text-slate-400">
+                                Equivale a
+                                {{ importeConMoneda(
+                                    String(importeEnMoneda(
+                                        { moneda: { id: cargoForm.moneda }, tipoCambio: cargoForm.tipoCambio },
+                                        cargoForm.totalLinea, monedaCabecera?.id) ?? 0),
+                                    monedaCabecera) }}
+                                en la contabilidad de la reserva.
                             </span>
                         </label>
-                        <div class="col-span-2 flex items-center justify-end gap-2">
+                        <p v-if="errorCargo" class="col-span-2 text-[10px] font-black text-amber-600 leading-snug">
+                            <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorCargo }}
+                        </p>
+                    </div>
+
+                        <!-- Pie sticky, mismo criterio que el del formulario de pago. -->
+                        <div class="sticky -bottom-4 px-4 py-2.5 bg-slate-50/95 backdrop-blur
+                                    border-t border-slate-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
                             <button type="button" @click="cancelarEdicionCargo"
                                 class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
-                            <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving || !cargoForm.totalLinea"
+                            <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving || !!errorCargo"
                                 class="px-4 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-lg text-xs font-black">
                                 <i class="fas" :class="finanzas.isSaving ? 'fa-circle-notch fa-spin' : 'fa-check'"></i> Agregar cargo
                             </button>
@@ -811,9 +1139,11 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
             </div>
 
             <!-- ===== ACORDEÓN: PAGOS ===== -->
-            <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <!-- Sin overflow-hidden: ver la nota del <section> raíz (rompe el sticky). -->
+            <div class="border border-slate-200 rounded-xl">
                 <button type="button" @click="toggleSeccion('pagos')"
-                    class="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 text-left transition-colors">
+                    class="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 text-left transition-colors"
+                    :class="seccionAbierta === 'pagos' ? 'rounded-t-xl' : 'rounded-xl'">
                     <span class="flex items-center gap-2 text-sm font-bold text-slate-700">
                         <i class="fas fa-chevron-right text-[10px] text-slate-400 transition-transform"
                             :class="{ 'rotate-90': seccionAbierta === 'pagos' }"></i>
@@ -863,8 +1193,12 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         </div>
                     </div>
 
-                    <!-- Formulario de alta / edición -->
-                    <div v-if="pagoFormAbierto" class="px-4 py-3 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-2">
+                    <!-- Formulario de alta / edición.
+                         El envoltorio NO es el grid: la barra de acción sticky va fuera de él.
+                         En un CSS grid el bloque contenedor de un `sticky` es su propia celda,
+                         que mide exactamente lo que el elemento: sin recorrido, no se pega. -->
+                    <div v-if="pagoFormAbierto" class="bg-slate-50 border-t border-slate-100">
+                    <div class="px-4 py-3 grid grid-cols-2 gap-2">
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Monto neto</span>
                             <input type="text" inputmode="decimal" v-model="pagoForm.monto" @input="refrescarTotalDesdeMonto"
@@ -945,7 +1279,18 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             <textarea v-model="pagoForm.notas" rows="2"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea>
                         </label>
-                        <div class="col-span-2 flex items-center justify-end gap-2">
+                    </div>
+
+                        <!-- Pie STICKY: el formulario de pago es largo (medio, fecha, comisión, TC,
+                             referencia, notas) y en móvil el botón quedaba fuera de pantalla, así
+                             que se acababa usando el "Guardar Cambios" del drawer. Ahora queda
+                             pegado justo ENCIMA de esa barra mientras se rellena el formulario.
+
+                             `-bottom-4` (y no `bottom-0`) compensa el `py-4` del contenedor con
+                             scroll del drawer: con 0 quedaba un hueco blanco de 1rem entre las
+                             dos barras. Si cambia ese padding, hay que cambiar esto. -->
+                        <div class="sticky -bottom-4 px-4 py-2.5 bg-slate-50/95 backdrop-blur
+                                    border-t border-slate-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
                             <button type="button" @click="cerrarPagoForm"
                                 class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
                             <button type="button" @click="guardarPago" :disabled="finanzas.isSaving || !pagoForm.monto"

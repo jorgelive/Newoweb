@@ -10,6 +10,7 @@ use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Finance\MonedaBaseRebaseContext;
 use App\Pms\Service\Finance\PmsCargosAutomaticosService;
 use App\Pms\Service\Finance\PmsInformacionFinancieraRecalculoService;
 use App\Pms\Service\Finance\MonedaResolver;
@@ -64,6 +65,7 @@ final class PmsInformacionFinancieraCoherenciaListener
         private readonly PmsInformacionFinancieraRecalculoService $recalculoService,
         private readonly MonedaResolver $monedaResolver,
         private readonly PmsCargosAutomaticosService $cargosAutomaticos,
+        private readonly MonedaBaseRebaseContext $rebaseContext,
     ) {}
 
     public function onFlush(OnFlushEventArgs $args): void
@@ -78,7 +80,9 @@ final class PmsInformacionFinancieraCoherenciaListener
         // 1. CANDADO DE MONEDA — sólo aplica a filas que YA EXISTÍAN (updates).
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
             if ($entity instanceof PmsCargoFinanciero || $entity instanceof PmsPagoFinanciero) {
-                $this->assertMonedaNoBloqueada($entity, $uow->getEntityChangeSet($entity));
+                $changeSet = $uow->getEntityChangeSet($entity);
+                $this->assertMonedaNoBloqueada($entity, $changeSet);
+                $this->assertTipoCambioNoBloqueado($entity, $changeSet);
             }
         }
 
@@ -284,6 +288,12 @@ final class PmsInformacionFinancieraCoherenciaListener
      */
     private function assertMonedaNoBloqueada(PmsCargoFinanciero|PmsPagoFinanciero $entity, array $changeSet): void
     {
+        // Cambiar la moneda base reescribe los cargos a propósito (§12.4.4). Es la única
+        // excepción, y quien la ejerce lo declara entrando en el contexto de rebase.
+        if ($this->rebaseContext->estaRebasando()) {
+            return;
+        }
+
         if (!array_key_exists('moneda', $changeSet)) {
             return;
         }
@@ -300,6 +310,42 @@ final class PmsInformacionFinancieraCoherenciaListener
             . 'La moneda queda fija al momento de registrar el importe y su tipo de cambio.',
             $tipo,
             (string) $entity->getId()
+        ));
+    }
+
+    /**
+     * Mismo candado para el tipo de cambio, con UNA excepción deliberada: rellenar el que está
+     * vacío sí se permite.
+     *
+     * Un registro sin TC en moneda distinta a la cabecera aporta **0** al saldo (§12.2). Si el
+     * candado fuera total, la única forma de arreglarlo sería borrarlo y rehacerlo — y en un
+     * cargo sincronizado desde Beds24 eso ni siquiera es posible.
+     */
+    private function assertTipoCambioNoBloqueado(PmsCargoFinanciero|PmsPagoFinanciero $entity, array $changeSet): void
+    {
+        if ($this->rebaseContext->estaRebasando()) {
+            return;
+        }
+
+        if (!array_key_exists('tipoCambio', $changeSet)) {
+            return;
+        }
+
+        [$old, $new] = $changeSet['tipoCambio'];
+
+        // null → X es la reparación; X → X es un no-cambio.
+        if ($old === null || $old === '' || (float) $old === (float) $new) {
+            return;
+        }
+
+        $tipo = $entity instanceof PmsCargoFinanciero ? 'cargo' : 'pago';
+        throw new DomainException(sprintf(
+            'No se puede cambiar el tipo de cambio de un %s financiero que ya lo tenía (id=%s, %s → %s). '
+            . 'Es la foto del día en que se registró el importe; corregirlo falsearía el histórico.',
+            $tipo,
+            (string) $entity->getId(),
+            (string) $old,
+            (string) $new
         ));
     }
 

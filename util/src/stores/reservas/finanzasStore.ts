@@ -124,6 +124,29 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
         }
     };
 
+    /**
+     * Cambia la MONEDA BASE (contable) de la reserva.
+     *
+     * No es un PATCH sobre `moneda`: el backend reescribe los cargos en la moneda nueva
+     * (anotando el importe original en la descripción), rellena los tipos de cambio que
+     * falten en los pagos —que NO se convierten— y recalcula los totales. Sólo funciona en
+     * reservas directas puras; en las demás responde 422 (§12.4.4).
+     */
+    const cambiarMonedaBase = async (moneda: string, tipoCambio?: string | null): Promise<void> => {
+        const id = info.value?.id;
+        if (!id) return;
+        isSaving.value = true;
+        try {
+            await apiClient.post(
+                `/platform/pms/pms_informacion_financieras/${id}/moneda-base`,
+                { moneda, tipoCambio: tipoCambio || null },
+            );
+            await recargar();
+        } finally {
+            isSaving.value = false;
+        }
+    };
+
     /** Sólo los cargos manuales son borrables: el backend veta los de Beds24. */
     const deleteCargo = async (id: string): Promise<void> => {
         isSaving.value = true;
@@ -183,6 +206,7 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
         createCargo,
         deleteCargo,
         setActiva,
+        cambiarMonedaBase,
         createPago,
         patchPago,
         deletePago,

@@ -24,8 +24,19 @@ final readonly class Beds24ReceiveTask implements ExchangeTaskInterface
 
     public function getMaxBatchSize(): int
     {
-        // 🔥 DECISIÓN ARQUITECTÓNICA: Lote de 1 para evitar cortes por paginación en Beds24
-        return 1;
+        /*
+         * Reservas por petición. Beds24 acepta `bookingId` repetido y devuelve los mensajes
+         * de todas mezclados; Beds24ReceiveMappingStrategy los reparte por su `bookingId`.
+         *
+         * Estuvo en 1 por los cortes de paginación, pero eso lo resuelve Beds24ExchangeClient
+         * recorriendo `pages.nextPageLink` y fusionando los `data`. El límite real es el lock
+         * de 60 s que comparte el lote (TTL de Beds24ReceiveQueueProvider): un historial largo
+         * son varias páginas, y pasarse del TTL haría que el watchdog marcara todo `failed`.
+         *
+         * Los mensajes pesan más que las facturas (86 en tres reservas es normal), así que se
+         * queda en 10 y no más.
+         */
+        return 10;
     }
 
     public function getSyncMode(): string

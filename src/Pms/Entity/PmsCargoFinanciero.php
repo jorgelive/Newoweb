@@ -139,9 +139,16 @@ class PmsCargoFinanciero
     #[Groups(['pms_cargo:read', 'pms_cargo:write'])]
     private ?MaestroMoneda $moneda = null;
 
-    /** Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+    /**
+     * Tipo de cambio venta USD→PEN del día de registro (snapshot histórico).
+     *
+     * Está en `pms_cargo:patch` a propósito, al contrario que `moneda`: un cargo guardado SIN
+     * tipo de cambio aporta 0 al saldo (§12.2), y si no se pudiera parchear habría que borrarlo
+     * y rehacerlo para arreglarlo. El listener sólo permite rellenarlo cuando está vacío;
+     * cambiar uno ya puesto sigue bloqueado (§12.4).
+     */
     #[ORM\Column(name: 'tipo_cambio', type: 'decimal', precision: 10, scale: 3, nullable: true)]
-    #[Groups(['pms_cargo:read', 'pms_cargo:write'])]
+    #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
     private ?string $tipoCambio = null;
 
     #[ORM\Column(type: 'text', nullable: true)]

@@ -27,7 +27,12 @@ final class MonedaResolver
             $id = MaestroMoneda::DB_ID_USD;
         }
 
-        if (isset($this->cache[$id])) {
+        // ⚠️ La caché se descarta si la entidad quedó DESLIGADA del EntityManager. Pasa en
+        // cuanto alguien llama a `em->clear()` (procesos largos: workers de messenger, cron,
+        // persisters por lotes): la instancia cacheada sigue viva en PHP pero el EM ya no la
+        // conoce, y asignarla a un cargo revienta con "A new entity was found through the
+        // relationship ... that was not configured to cascade persist".
+        if (isset($this->cache[$id]) && $this->em->contains($this->cache[$id])) {
             return $this->cache[$id];
         }
 
