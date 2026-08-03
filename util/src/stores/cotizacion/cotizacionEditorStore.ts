@@ -1268,7 +1268,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const fetchCatalogos = async () => {
         try {
             const [resTipos, resMonedas] = await Promise.all([
-                apiClient.get('/cotizacion/user/maestros-enum/componente-tipos'),
+                apiClient.get('/tipo/user/enum/travel/componente-tipos'),
                 apiClient.get('/platform/maestro/monedas'),
             ]);
 

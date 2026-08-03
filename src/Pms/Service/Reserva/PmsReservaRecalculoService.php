@@ -7,6 +7,7 @@ use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageConversationFactory;
 use App\Message\Service\Queue\MessageRuleEngine;
 use App\Pms\Entity\PmsEventoEstado;
+use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Message\PmsReservaMessageContext;
 use Doctrine\DBAL\ParameterType;
@@ -124,7 +125,10 @@ SQL;
                     $entityManager->refresh($reserva);
 
                     // Envolvemos la reserva en su adaptador de contexto para el sistema de mensajería
-                    $context = new PmsReservaMessageContext($reserva);
+                    $context = new PmsReservaMessageContext(
+                        $reserva,
+                        $entityManager->getRepository(PmsInformacionFinanciera::class)->findOneBy(['reserva' => $reserva])
+                    );
 
                     // Los bloqueos puros de calendario (agenda cerrada, sin huésped real) no deben
                     // generar ni actualizar conversaciones de chat. Los inquiries ("abierto", ej. Airbnb)

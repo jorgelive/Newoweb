@@ -179,7 +179,9 @@ final class BookingPullPersister implements ResetInterface
             reserva: $reserva,
             existingLink: $existingLink,
             // (Obs #2) Pasamos el ID normalizado
-            bookIdStr: $bookingIdStr
+            bookIdStr: $bookingIdStr,
+            // Un espejo no puede escribir los datos de la estancia que comparte (§6.4)
+            isLinkPrincipal: $isLinkPrincipal
         );
 
         return [
@@ -397,12 +399,23 @@ final class BookingPullPersister implements ResetInterface
     /**
      * @return string 'created' | 'updated'
      */
+    /**
+     * @param bool $isLinkPrincipal ¿El booking entrante es el DUEÑO del evento, o un espejo?
+     *
+     * Los links espejo cuelgan del MISMO PmsEventoCalendario que el principal (§6.2), pero en
+     * Beds24 son reservas distintas y —por diseño del Push (§7.2)— huecas: llegan con
+     * `price: 0`, `commission: 0`, `firstName: "(M) …"` y `channel: "direct"`, porque esos
+     * campos nunca se les envían. Si el Pull de un espejo escribiera los campos autoritativos,
+     * machacaría los datos reales del evento compartido: el monto se iba a 0 y el canal de una
+     * reserva de Booking.com pasaba a "directo" (ver §6.4 del doc).
+     */
     private function upsertEvento(
         Beds24BookingDto $booking,
         PmsUnidadBeds24Map $map,
         ?PmsReserva $reserva,
         ?PmsEventoBeds24Link $existingLink,
-        string $bookIdStr
+        string $bookIdStr,
+        bool $isLinkPrincipal
     ): string {
         $evento = null;
         $action = 'updated';
@@ -439,52 +452,67 @@ final class BookingPullPersister implements ResetInterface
             $evento->setReserva($reserva);
         }
 
-        $est = $evento->getPmsUnidad()->getEstablecimiento();
+        // =====================================================================
+        // DATOS AUTORITATIVOS DE LA ESTANCIA — sólo los escribe el link PRINCIPAL.
+        //
+        // Un espejo no tiene ninguna verdad que aportar sobre la estancia: sus datos son los
+        // que nosotros le mandamos, recortados. Su Pull sólo debe refrescar el `lastSeenAt`
+        // de su propio link (más abajo), que es lo que confirma que sigue vivo en Beds24.
+        //
+        // Excepción `$action === 'created'`: si el evento se acaba de crear no hay datos
+        // previos que proteger y saltar el bloque dejaría una entidad incompleta (estado y
+        // fechas son obligatorios). Es un caso anómalo —un espejo no debería estrenar
+        // evento—, pero se prefiere una fila completa a una corrupta.
+        // =====================================================================
+        if ($isLinkPrincipal || $action === 'created') {
+            $est = $evento->getPmsUnidad()->getEstablecimiento();
 
-        $evento->setInicio($this->eventoFactory->resolveFechaConHora(
-            fechaYmd: $booking->arrival,
-            establecimiento: $est,
-            isCheckIn: true
-        ));
+            $evento->setInicio($this->eventoFactory->resolveFechaConHora(
+                fechaYmd: $booking->arrival,
+                establecimiento: $est,
+                isCheckIn: true
+            ));
 
-        $evento->setFin($this->eventoFactory->resolveFechaConHora(
-            fechaYmd: $booking->departure,
-            establecimiento: $est,
-            isCheckIn: false
-        ));
+            $evento->setFin($this->eventoFactory->resolveFechaConHora(
+                fechaYmd: $booking->departure,
+                establecimiento: $est,
+                isCheckIn: false
+            ));
 
-        $evento->setEstadoBeds24($booking->status);
-        $evento->setSubestadoBeds24($booking->subStatus);
-        $evento->setRateDescription($booking->rateDescription);
+            $evento->setEstadoBeds24($booking->status);
+            $evento->setSubestadoBeds24($booking->subStatus);
+            $evento->setRateDescription($booking->rateDescription);
 
-        // 💡 FIX: Capturamos el estado calculado en una variable para poder pasarlo luego a EstadoPago
-        $estadoReal = $this->resolveEstado($booking);
-        $evento->setEstado($estadoReal);
+            // 💡 FIX: Capturamos el estado calculado en una variable para poder pasarlo luego a EstadoPago
+            $estadoReal = $this->resolveEstado($booking);
+            $evento->setEstado($estadoReal);
 
-        //ahora el channel el del evento
-        $evento->setReferenciaCanal($booking->apiReference);
-        $evento->setChannel($this->resolveChannel($booking));
-        $evento->setHoraLlegadaCanal($booking->arrivalTime);
-        $evento->setFechaReservaCanal($booking->bookingTime);
-        $evento->setFechaModificacionCanal($booking->modifiedTime);
-        $evento->setComentariosHuesped($booking->comments);
+            //ahora el channel el del evento
+            $evento->setReferenciaCanal($booking->apiReference);
+            $evento->setChannel($this->resolveChannel($booking));
+            $evento->setHoraLlegadaCanal($booking->arrivalTime);
+            $evento->setFechaReservaCanal($booking->bookingTime);
+            $evento->setFechaModificacionCanal($booking->modifiedTime);
+            $evento->setComentariosHuesped($booking->comments);
 
 
-        if ($evento->getEstadoPago() === null) {
-            // 💡 FIX: Pasamos el segundo argumento (estadoReal) requerido por la nueva firma del método
-            $evento->setEstadoPago($this->resolveEstadoPagoInicial($booking, $estadoReal));
+            if ($evento->getEstadoPago() === null) {
+                // 💡 FIX: Pasamos el segundo argumento (estadoReal) requerido por la nueva firma del método
+                $evento->setEstadoPago($this->resolveEstadoPagoInicial($booking, $estadoReal));
+            }
+
+            $evento->setCantidadAdultos($booking->numAdult ?? 1);
+            $evento->setCantidadNinos($booking->numChild ?? 0);
+            $evento->setMonto($this->normalizeDecimal($booking->price));
+            $evento->setComision($this->normalizeDecimal($booking->commission));
+
+            $titulo = trim(($booking->firstName ?? '') . ' ' . ($booking->lastName ?? ''));
+            $evento->setTituloCache($titulo ?: null);
         }
-
-        $evento->setCantidadAdultos($booking->numAdult ?? 1);
-        $evento->setCantidadNinos($booking->numChild ?? 0);
-        $evento->setMonto($this->normalizeDecimal($booking->price));
-        $evento->setComision($this->normalizeDecimal($booking->commission));
-
-        $titulo = trim(($booking->firstName ?? '') . ' ' . ($booking->lastName ?? ''));
-        $evento->setTituloCache($titulo ?: null);
 
         // Actualizar LastSeen (Obs #9: Iteración inevitable si no hay repo method, pero controlada)
         // Optimizacion: Si acabamos de crear, sabemos cual es. Si es update, iteramos.
+        // Esto SÍ corre siempre: es justo lo que aporta el Pull de un espejo.
         foreach ($evento->getBeds24Links() as $l) {
             $matchById       = $l->getBeds24BookId() === $bookIdStr;
             $matchByIdentity = $existingLink !== null && $l === $existingLink;
@@ -496,8 +524,14 @@ final class BookingPullPersister implements ResetInterface
                 $l->setBeds24BookId($bookIdStr);
             }
             $l->setLastSeenAt(new DateTimeImmutable());
-            $l->setReferenciaCanal($booking->apiReference);
-            $l->setChannel($this->resolveChannel($booking));
+
+            // El canal/referencia del link espejo se dejan en NULL a propósito: son de la OTA
+            // real, y el espejo se creó vía API como "direct" (mismo criterio con el que la
+            // migración Version20260731042857 pobló sólo los links principales).
+            if ($isLinkPrincipal) {
+                $l->setReferenciaCanal($booking->apiReference);
+                $l->setChannel($this->resolveChannel($booking));
+            }
             $this->cacheLinks[$bookIdStr] = $l;
             break;
         }

@@ -9,8 +9,10 @@ use App\Exchange\Service\Context\SyncContext;
 use App\Message\Dto\Beds24MessageDto;
 use App\Message\Service\Exchange\Tasks\Beds24Receive\Beds24ReceivePersister;
 use App\Pms\Dispatch\ProcessBeds24WebhookDispatch;
+use App\Pms\Dto\Beds24InvoiceItemDto;
 use App\Pms\Entity\PmsBeds24WebhookAudit;
 use App\Pms\Service\Beds24\Webhook\Beds24WebhookBookingFastTrackService;
+use App\Pms\Service\Exchange\Tasks\InvoiceReceive\Beds24InvoiceReceivePersister;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -27,6 +29,7 @@ final readonly class ProcessBeds24WebhookDispatchHandler
         private EntityManagerInterface $em,
         private Beds24WebhookBookingFastTrackService $bookingService,
         private Beds24ReceivePersister $messagePersister,
+        private Beds24InvoiceReceivePersister $invoicePersister,
         private SyncContext $syncContext,
         private LoggerInterface $logger
     ) {}
@@ -102,9 +105,16 @@ final readonly class ProcessBeds24WebhookDispatchHandler
                 $globalErrors = array_merge($globalErrors, $messageResult['errors']);
             }
 
-            // 3. ACTUALIZAR AUDITORÍA
+            // 3. PROCESAR INFORMACIÓN FINANCIERA (invoiceItems)
+            if (isset($payload['invoiceItems'])) {
+                $invoiceResult = $this->handleInvoiceItems($payload['invoiceItems']);
+                $responseDetails['invoices'] = $invoiceResult['processed'];
+                $globalErrors = array_merge($globalErrors, $invoiceResult['errors']);
+            }
+
+            // 4. ACTUALIZAR AUDITORÍA
             $finalStatus = empty($globalErrors) ? PmsBeds24WebhookAudit::STATUS_PROCESSED : PmsBeds24WebhookAudit::STATUS_PARTIAL_ERROR;
-            if (!empty($globalErrors) && empty($responseDetails['bookings']) && empty($responseDetails['messages'])) {
+            if (!empty($globalErrors) && empty($responseDetails['bookings']) && empty($responseDetails['messages']) && empty($responseDetails['invoices'])) {
                 $finalStatus = PmsBeds24WebhookAudit::STATUS_ERROR;
             }
 
@@ -211,6 +221,60 @@ final readonly class ProcessBeds24WebhookDispatchHandler
                 ];
             }
         }
+        return ['processed' => $processedIds, 'errors' => $errors];
+    }
+
+    /**
+     * Procesa los conceptos financieros (invoiceItems) recibidos en el webhook.
+     *
+     * En el webhook los invoiceItems vienen top-level y cada uno trae su propio bookingId.
+     * Los agrupamos por bookingId y delegamos cada grupo al persister, que hace find-or-create
+     * de la cabecera financiera de la reserva. Espejo de handleMessages().
+     *
+     * @param mixed $invoiceData Nodo 'invoiceItems' del payload
+     * @return array{processed: string[], errors: array<array{invoice_id: string, error: string}>}
+     */
+    private function handleInvoiceItems(mixed $invoiceData): array
+    {
+        if (!is_array($invoiceData)) {
+            return ['processed' => [], 'errors' => []];
+        }
+
+        // Agrupamos los invoiceItems por bookingId para hacer un upsert por reserva.
+        $porBooking = [];
+        foreach ($invoiceData as $data) {
+            if (!is_array($data) || !isset($data['id'])) {
+                continue;
+            }
+            $bookingId = isset($data['bookingId']) ? (string) $data['bookingId'] : '';
+            if ($bookingId === '') {
+                continue;
+            }
+            $porBooking[$bookingId][] = Beds24InvoiceItemDto::fromArray($data);
+        }
+
+        $processedIds = [];
+        $errors = [];
+
+        foreach ($porBooking as $bookingId => $dtos) {
+            // PHP castea las claves de array numéricas a int; forzamos string para el persister.
+            $bookingId = (string) $bookingId;
+            try {
+                $this->invoicePersister->upsertCargos($bookingId, $dtos);
+                foreach ($dtos as $dto) {
+                    if ($dto->id) {
+                        $processedIds[] = $dto->id;
+                    }
+                }
+            } catch (Throwable $e) {
+                $this->logger->error("Error procesando invoiceItems Beds24 desde Worker", ['exception' => $e, 'booking_id' => $bookingId]);
+                $errors[] = [
+                    'invoice_id' => (string) $bookingId,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
         return ['processed' => $processedIds, 'errors' => $errors];
     }
 

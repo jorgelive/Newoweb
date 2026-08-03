@@ -1,0 +1,316 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Pms\Entity;
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Link;
+use ApiPlatform\Metadata\Patch;
+use App\Api\Provider\Pms\PmsInformacionFinancieraPorReservaProvider;
+use App\Entity\Maestro\MaestroMoneda;
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
+use App\Pms\Enum\PmsTipoCargo;
+use App\Pms\Repository\PmsInformacionFinancieraRepository;
+use App\Security\Roles;
+use DateTimeInterface;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Uid\Uuid;
+
+/**
+ * Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation).
+ *
+ * Es el registro "padre" que agrupa los conceptos financieros (PmsCargoFinanciero) que
+ * Beds24 reporta para una reserva: alojamiento, limpieza, cargo por servicio, pagos, etc.
+ * Análogo a la conversación que agrupa mensajes. Hay una por PmsReserva (1:1 lógico).
+ */
+#[ApiResource(
+    operations: [
+        new GetCollection(security: "is_granted('" . Roles::RESERVAS_SHOW . "')"),
+        new Get(security: "is_granted('" . Roles::RESERVAS_SHOW . "')"),
+        // Acceso por reserva. NO se usa un SearchFilter sobre la relación `reserva`: con
+        // estos UUID binarios no vincula el tipo Doctrine y devuelve siempre vacío sin
+        // error (§12.6). El provider delega en un repositorio que sí tipa el parámetro.
+        new Get(
+            uriTemplate: '/pms_informacion_financieras/por-reserva/{reservaId}',
+            // `uriVariables` es OBLIGATORIO en una variable que no es el identificador del
+            // recurso: sin declararla, API Platform intenta casarla con el `id` de
+            // PmsInformacionFinanciera y responde 404 "Invalid uri variables" antes incluso
+            // de llegar al provider. Mismo patrón que la operación `{localizador}` de PmsReserva.
+            uriVariables: [
+                'reservaId' => new Link(
+                    fromClass: PmsReserva::class,
+                    identifiers: ['id'],
+                ),
+            ],
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            provider: PmsInformacionFinancieraPorReservaProvider::class,
+        ),
+        // Sólo para que el operador reactive/anule los cargos de una reserva cancelada
+        // en la OTA que en realidad sigue adelante como directa (§12.7).
+        new Patch(
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar la información financiera.',
+        ),
+    ],
+    routePrefix: '/pms',
+    // Se incluyen los grupos de los hijos y de moneda para que el panel financiero
+    // de la SPA cargue todo el árbol (cabecera + cargos + pagos) en una sola llamada.
+    normalizationContext: ['groups' => [
+        'pms_finanzas:read', 'pms_cargo:read', 'pms_pago:read', 'maestro:moneda:read',
+    ]],
+    denormalizationContext: ['groups' => ['pms_finanzas:write']],
+)]
+#[ORM\Entity(repositoryClass: PmsInformacionFinancieraRepository::class)]
+#[ORM\Table(name: 'pms_informacion_financiera')]
+#[ORM\HasLifecycleCallbacks]
+class PmsInformacionFinanciera
+{
+    use IdTrait;
+    use TimestampTrait;
+
+    #[ORM\ManyToOne(targetEntity: PmsReserva::class)]
+    #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: false, unique: true)]
+    private ?PmsReserva $reserva = null;
+
+    /** Moneda principal de la reserva (resolver contra maestro; default USD). */
+    #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
+    #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: true)]
+    #[Groups(['pms_finanzas:read'])]
+    private ?MaestroMoneda $moneda = null;
+
+    /**
+     * Cache de la suma de los cargos de Beds24 (PmsCargoFinanciero con tipo=charge), convertidos
+     * a esta moneda. Recalculado por PmsInformacionFinancieraCoherenciaListener.
+     */
+    #[ORM\Column(name: 'total_cargos', type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Groups(['pms_finanzas:read'])]
+    private string $totalCargos = '0.00';
+
+    /**
+     * Cache de la suma de nuestros pagos propios (PmsPagoFinanciero), convertidos a esta moneda.
+     * Recalculado por PmsInformacionFinancieraCoherenciaListener.
+     */
+    #[ORM\Column(name: 'total_pagos', type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Groups(['pms_finanzas:read'])]
+    private string $totalPagos = '0.00';
+
+    /**
+     * ¿Los cargos de la estancia siguen contando para el saldo?
+     *
+     * Se separa a propósito del estado de la reserva en Beds24, porque no siempre coinciden:
+     * un huésped que negocia pasar a **reserva directa** cancela en la OTA, y Beds24 manda
+     * `status: cancelled` con `price: 0` — pero la estancia SÍ ocurre y hay que cobrarla.
+     *
+     * - `true`  → suman todos los cargos (caso normal, y también el de la directa negociada).
+     * - `false` → sólo suma la PENALIZACIÓN (el "Cancel Fee"): es lo que de verdad se debe
+     *   tras una cancelación real. Los cargos de la estancia **no se borran**, siguen en la
+     *   BD y visibles en el panel; simplemente dejan de computar.
+     *
+     * Lo baja automáticamente `PmsInformacionFinancieraCoherenciaListener` al detectar la
+     * TRANSICIÓN a cancelada, pero el operador puede volver a subirlo y su decisión se
+     * respeta: los webhooks repetidos no vuelven a tocarlo (ver §12.7).
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    #[Groups(['pms_finanzas:read', 'pms_finanzas:write'])]
+    private bool $activa = true;
+
+    #[ORM\Column(name: 'last_synced_at', type: 'datetime', nullable: true)]
+    #[Groups(['pms_finanzas:read'])]
+    private ?DateTimeInterface $lastSyncedAt = null;
+
+    /** @var Collection<int, PmsCargoFinanciero> */
+    #[ORM\OneToMany(mappedBy: 'informacionFinanciera', targetEntity: PmsCargoFinanciero::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['fechaCreacionBeds24' => 'ASC'])]
+    #[Groups(['pms_finanzas:read'])]
+    private Collection $cargos;
+
+    /**
+     * Pagos efectivamente recibidos por nosotros (efectivo, yape, tarjeta, etc.).
+     * A diferencia de los cargos (que vienen de Beds24), los pagos son registros propios.
+     *
+     * @var Collection<int, PmsPagoFinanciero>
+     */
+    #[ORM\OneToMany(mappedBy: 'informacionFinanciera', targetEntity: PmsPagoFinanciero::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['fechaPago' => 'ASC'])]
+    #[Groups(['pms_finanzas:read'])]
+    private Collection $pagos;
+
+    public function __construct()
+    {
+        $this->id = Uuid::v7();
+        $this->cargos = new ArrayCollection();
+        $this->pagos = new ArrayCollection();
+    }
+
+    // =========================================================================
+    // GETTERS Y SETTERS
+    // =========================================================================
+
+    #[Groups(['pms_finanzas:read'])]
+    public function getId(): ?Uuid { return $this->id; }
+
+    public function getReserva(): ?PmsReserva { return $this->reserva; }
+    public function setReserva(?PmsReserva $reserva): self { $this->reserva = $reserva; return $this; }
+
+    public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
+    public function setMoneda(?MaestroMoneda $moneda): self { $this->moneda = $moneda; return $this; }
+
+    public function getTotalCargos(): string { return $this->totalCargos; }
+    public function setTotalCargos(string $totalCargos): self { $this->totalCargos = $totalCargos; return $this; }
+
+    public function getTotalPagos(): string { return $this->totalPagos; }
+    public function setTotalPagos(string $totalPagos): self { $this->totalPagos = $totalPagos; return $this; }
+
+    /**
+     * Saldo pendiente en la moneda de la cabecera: cargos menos pagos (ambos ya convertidos
+     * a esta moneda por el listener de coherencia). Cálculo en tiempo de lectura.
+     */
+    #[Groups(['pms_finanzas:read'])]
+    public function getSaldo(): string
+    {
+        return number_format((float) $this->totalCargos - (float) $this->totalPagos, 2, '.', '');
+    }
+
+    /**
+     * Suma de los cargos de un tipo concreto, en la moneda de la cabecera.
+     *
+     * Respeta la misma regla que el rollup (§12.7): si la reserva está anulada sólo cuenta la
+     * PENALIZACIÓN. Se usa para desglosar el importe en las plantillas de mensajería
+     * (alojamiento / limpieza / servicio) sin que el operador tenga que escribirlo a mano.
+     */
+    public function getTotalPorTipo(PmsTipoCargo $tipo): string
+    {
+        if (!$this->activa && $tipo !== PmsTipoCargo::PENALIZACION) {
+            return '0.00';
+        }
+
+        $total = 0.0;
+        foreach ($this->cargos as $cargo) {
+            if ($cargo->getTipoCargo() !== $tipo || !$cargo->esCargo()) {
+                continue;
+            }
+            $total += (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0');
+        }
+
+        return number_format($total, 2, '.', '');
+    }
+
+    #[Groups(['pms_finanzas:read'])]
+    public function getTotalAlojamiento(): string { return $this->getTotalPorTipo(PmsTipoCargo::ALOJAMIENTO); }
+
+    #[Groups(['pms_finanzas:read'])]
+    public function getTotalLimpieza(): string { return $this->getTotalPorTipo(PmsTipoCargo::LIMPIEZA); }
+
+    #[Groups(['pms_finanzas:read'])]
+    public function getTotalServicio(): string { return $this->getTotalPorTipo(PmsTipoCargo::SERVICIO); }
+
+    public function isActiva(): bool { return $this->activa; }
+    public function setActiva(bool $activa): self { $this->activa = $activa; return $this; }
+
+    public function getLastSyncedAt(): ?DateTimeInterface { return $this->lastSyncedAt; }
+    public function setLastSyncedAt(?DateTimeInterface $at): self { $this->lastSyncedAt = $at; return $this; }
+
+    /**
+     * @return Collection<int, PmsCargoFinanciero>
+     */
+    public function getCargos(): Collection { return $this->cargos; }
+
+    public function addCargo(PmsCargoFinanciero $cargo): self
+    {
+        if (!$this->cargos->contains($cargo)) {
+            $this->cargos->add($cargo);
+            $cargo->setInformacionFinanciera($this);
+        }
+        return $this;
+    }
+
+    public function removeCargo(PmsCargoFinanciero $cargo): self
+    {
+        if ($this->cargos->removeElement($cargo)) {
+            if ($cargo->getInformacionFinanciera() === $this) {
+                $cargo->setInformacionFinanciera(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, PmsPagoFinanciero>
+     */
+    public function getPagos(): Collection { return $this->pagos; }
+
+    public function addPago(PmsPagoFinanciero $pago): self
+    {
+        if (!$this->pagos->contains($pago)) {
+            $this->pagos->add($pago);
+            $pago->setInformacionFinanciera($this);
+        }
+        return $this;
+    }
+
+    public function removePago(PmsPagoFinanciero $pago): self
+    {
+        if ($this->pagos->removeElement($pago)) {
+            if ($pago->getInformacionFinanciera() === $this) {
+                $pago->setInformacionFinanciera(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Estancias de la reserva indexadas por su ID de booking en Beds24.
+     *
+     * Necesario para las RESERVAS AGRUPADAS (§11.6): un grupo de Booking.com genera una sola
+     * cabecera con los cargos de varios bookings mezclados, y lo único que los distingue es
+     * `PmsCargoFinanciero.beds24BookingId`. Sin este mapa el panel mostraría dos veces
+     * "[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]" (Beds24 no resuelve la plantilla) sin forma
+     * de saber qué casita es cada una.
+     *
+     * Se devuelve SIEMPRE una entrada por estancia, tenga o no booking en Beds24: en una
+     * reserva directa no hay `beds24BookingId`, pero la estancia existe igual y sus cargos
+     * manuales se le imputan por `eventoId`. Ese `eventoId` es la clave con la que la UI
+     * agrupa, venga el cargo del canal o lo haya escrito un operador.
+     *
+     * @return array<int, array{eventoId: string, beds24BookingId: string|null, unidad: string|null, inicio: string|null, fin: string|null}>
+     */
+    #[Groups(['pms_finanzas:read'])]
+    public function getEstancias(): array
+    {
+        $estancias = [];
+
+        foreach ($this->reserva?->getEventosCalendario() ?? [] as $evento) {
+            $bookId = null;
+
+            foreach ($evento->getBeds24Links() as $link) {
+                // Sólo el link principal lleva el bookId real; los espejos nacen sin él (§6.3).
+                if ($link->isEsPrincipal() && $link->getBeds24BookId() !== null) {
+                    $bookId = $link->getBeds24BookId();
+                    break;
+                }
+            }
+
+            $estancias[] = [
+                'eventoId' => (string) $evento->getId(),
+                'beds24BookingId' => $bookId,
+                'unidad' => $evento->getPmsUnidad()?->getNombre(),
+                'inicio' => $evento->getInicio()?->format('Y-m-d'),
+                'fin' => $evento->getFin()?->format('Y-m-d'),
+            ];
+        }
+
+        return $estancias;
+    }
+
+    // NOTA: total_cargos y total_pagos NO se recalculan aquí. Los mantiene
+    // PmsInformacionFinancieraCoherenciaListener (Doctrine onFlush/postFlush), que convierte
+    // cada cargo/pago a la moneda de esta cabecera con su propio tipo de cambio antes de sumar.
+    // Ver PmsInformacionFinancieraRecalculoService.
+}

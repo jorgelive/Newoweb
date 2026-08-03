@@ -16,7 +16,11 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 8. [Motor de Exchange — ExchangeOrchestrator](#8-motor-de-exchange--exchangeorchestrator)
 9. [Anti-duplicación y Seguridad](#9-anti-duplicación-y-seguridad)
 10. [Políticas de Reintento y Error](#10-políticas-de-reintento-y-error)
-11. [Dónde tocar para cambiar X](#11-dónde-tocar-para-cambiar-x)
+11. [Camino D — Sincronización Financiera (invoiceItems)](#11-camino-d--sincronización-financiera-invoiceitems)
+12. [Coherencia Financiera — Rollup Multi-moneda y Candado](#12-coherencia-financiera--rollup-multi-moneda-y-candado)
+    · [12.0.1 Cargos automáticos de una estancia directa](#1201-cargos-automáticos-de-una-estancia-directa)
+    · [12.6 Gotcha: SearchFilter y UUID binario](#126--gotcha-searchfilter-no-funciona-sobre-relaciones-con-uuid-binario)
+13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
 ---
 
@@ -289,14 +293,16 @@ BookingPullPersister::upsert(Beds24Config $config, Beds24BookingDto $dto)
      Fallback: resolveOrCreateStubReserva()
        → new PmsReserva() con nombre "Pendiente Sync (Grupo)"
 
-7. upsertEvento($dto, $map, $reserva, $existingLink, $bookIdStr)
+7. upsertEvento($dto, $map, $reserva, $existingLink, $bookIdStr, $isLinkPrincipal)
    → Si existingLink: actualiza evento existente
    → Si nuevo:  PmsEventoCalendarioFactory::createFromBeds24Import()
                   └─ internalHydrate() → crea PmsEventoBeds24Link por cada mapa activo
-   → Asigna: inicio/fin con horas del establecimiento, estado, channel,
-             cantidadAdultos, monto, comision, tituloCache...
-   → resolveEstado(): lógica OTA (Airbnb/pago total → fuerza CONFIRMADA)
-   → resolveEstadoPago(): pago total si canal en PmsChannel::CANAL_PAGO_TOTAL
+   → SOLO si $isLinkPrincipal (un espejo no escribe la estancia compartida, §6.4):
+       Asigna: inicio/fin con horas del establecimiento, estado, channel,
+               cantidadAdultos, monto, comision, tituloCache...
+       resolveEstado(): lógica OTA (Airbnb/pago total → fuerza CONFIRMADA)
+       resolveEstadoPago(): pago total si canal en PmsChannel::CANAL_PAGO_TOTAL
+   → Siempre: refresca lastSeenAt del link entrante
    → em->persist($evento)
 
 8. Devuelve: ['status'=>'success', 'action'=>'created'|'updated', 'message'=>...]
@@ -317,6 +323,19 @@ BookingPullPersister::upsert(Beds24Config $config, Beds24BookingDto $dto)
 Todas usan el patrón `array_key_exists` + sentinel `false` para cachear negativos.
 
 ---
+
+### 5.3 Gotcha: teléfonos de OTA sin el "+"
+
+Las OTAs entregan el teléfono **con código de país pero sin el `+`**: Booking.com mandó
+`5561998210624` (Brasil). El formateador del frontend (`util/src/utils/telefono.ts`) asume Perú
+cuando el número no empieza por `+`, así que lo leía como peruano, lo daba por inválido, lo
+mostraba crudo y —peor— `telefonoParaWhatsapp()` devolvía `null`, con lo que **desaparecía el
+botón de WhatsApp** para ese huésped.
+
+`interpretar()` prueba dos lecturas en orden: primero **nacional** del país por defecto (un
+`984123456` peruano sigue resolviéndose ahí, sin cambio de comportamiento) y, si falla, como
+**internacional al que le falta el `+`**. El segundo intento exige 8-15 dígitos para no convertir
+notas de texto en teléfonos; un `012345` o un "no tiene" siguen sin botón, que es lo correcto.
 
 ## 6. El Mecanismo de Espejo Virtual
 
@@ -377,6 +396,47 @@ internalHydrate(evento, externalBookId, externalRoomId)
 El link espejo nace sin ID porque Beds24 todavía no sabe de esa reserva en el listing espejo. El flujo Push (§7) crea la reserva espejo en Beds24 y sella el ID vía `BookingsPushHandler::handleSuccess()`.
 
 ---
+
+### 6.4 Sólo el link principal escribe los datos de la estancia
+
+Los links espejo cuelgan del **mismo** `PmsEventoCalendario` que el principal (§6.2), pero en
+Beds24 son reservas distintas. Y son huecas por diseño del Push (§7.2): llegan con `price: 0`,
+`commission: 0`, `firstName: "(M) …"` y `channel: "direct"`, porque esos campos nunca se les
+envían. Un espejo **no tiene ninguna verdad que aportar sobre la estancia**.
+
+Por eso `BookingPullPersister::upsertEvento()` recibe `$isLinkPrincipal` y encierra todo el
+bloque de campos autoritativos —`monto`, `comision`, `tituloCache`, `channel`,
+`referenciaCanal`, `rateDescription`, `comentariosHuesped`, `estadoBeds24`, estado y fechas—
+tras esa condición. Del Pull de un espejo sólo sobrevive el `lastSeenAt` de su propio link, que
+es exactamente lo que aporta: confirmar que sigue vivo en Beds24.
+
+```
+Pull del espejo (price 0, channel direct, "(M) Susan"):
+  ANTES:    montoTotal = 241.14 | Casita 4  monto=91.59  canal=booking  titulo=Susan Acuña
+  DESPUÉS:  montoTotal = 241.14 | Casita 4  monto=91.59  canal=booking  titulo=Susan Acuña  ✅ sin cambios
+
+Re-pull del PRINCIPAL con precio nuevo (91.59 → 120.00):
+  DESPUÉS:  montoTotal = 269.55 | Casita 4  monto=120.00 comision=18.00                     ✅ sí aplica
+```
+
+**Sin esta condición** (comportamiento anterior) el espejo dejaba `monto=0.00`, `comision=0.00`,
+`titulo="(M) Susan Acuña"` y convertía el canal de `booking` a `directo`; `montoTotal` caía de
+241.14 a 149.55 en cada pasada del cron.
+
+Dos matices del arreglo:
+
+- **Excepción `$action === 'created'`:** si el evento se acaba de crear no hay datos previos que
+  proteger, y saltar el bloque dejaría una entidad incompleta (estado y fechas son obligatorios).
+  Un espejo no debería estrenar evento nunca, pero ante la anomalía se prefiere una fila completa
+  a una corrupta.
+- **`channel`/`referenciaCanal` del propio link** también quedan tras la condición: en un link
+  espejo se dejan en `NULL`, mismo criterio con el que la migración `Version20260731042857` sólo
+  pobló los principales.
+
+**Por qué el descuadre no se veía antes:** `montoTotal` (suma de eventos) era la única fuente, así
+que no había contra qué contrastarlo. Con la cabecera financiera (§12) hay un testigo
+independiente —`totalCargos`, que sale de los `invoiceItems` y el espejo no toca—, y cualquier
+reaparición del problema salta como un `saldo` que no cuadra.
 
 ## 7. Camino C — Push de vuelta a Beds24
 
@@ -559,7 +619,752 @@ Puntos finos:
 
 ---
 
-## 11. Dónde tocar para cambiar X
+## 11. Camino D — Sincronización Financiera (invoiceItems)
+
+Beds24 reporta en el mismo payload un nodo `invoiceItems` con los conceptos que se le cobran al
+huésped: **alojamiento** (`subType` 8), **limpieza** y **cargo por servicio** (`subType` 11),
+comisiones, pagos, etc. Este camino los persiste replicando **exactamente** la arquitectura de
+Mensajes (§3.2 / cron de mensajes): un registro **padre** por reserva + N **hijos** por concepto,
+alimentado por los **dos** caminos (webhook en tiempo real y pull en-demanda por cron), porque el
+webhook de Beds24 **no reintenta**.
+
+### 11.1 Mapeo espejo Mensajes ↔ Finanzas
+
+| Mensajes (`src/Message/`)                         | Finanzas (`src/Pms/`)                                  |
+|---|---|
+| `MessageConversation` (padre, por reserva)        | `PmsInformacionFinanciera` (padre, por reserva, 1:1)   |
+| `Message` (hijo = 1 mensaje)                       | `PmsCargoFinanciero` (hijo = 1 invoiceItem)            |
+| `Beds24MessageDto`                                 | `App\Pms\Dto\Beds24InvoiceItemDto`                     |
+| `Beds24ReceiveQueue` (cola pull)                   | `App\Pms\Entity\Beds24InvoiceReceiveQueue`             |
+| `Beds24ReceivePersister::upsertMessages()`         | `Beds24InvoiceReceivePersister::upsertCargos()`        |
+| Task `beds24_message_receive`                      | Task `beds24_invoice_receive`                          |
+| Cron `Beds24MessageReceiveJob` (endpoint `GET_MESSAGES`) | Cron `Beds24InvoiceReceiveJob` (endpoint `GET_INVOICES`) |
+| — (no aplica)                                      | `PmsPagoFinanciero` (pagos propios, no vienen de Beds24) |
+
+El **task-set** de pull vive en `src/Pms/Service/Exchange/Tasks/InvoiceReceive/`
+(`Task`, `QueueProvider`, `MappingStrategy`, `Handler`, `Persister`) y el enqueuer en
+`src/Pms/Service/Queue/Beds24InvoiceReceiveEnqueuer.php`. El cron **reutiliza**
+`PmsBeds24MessageTargetFinder::findTargetsForPeriod()` (mismo generador de reservas activas por
+periodo, no se duplica esa lógica).
+
+### 11.2 Flujo
+
+```
+WEBHOOK (tiempo real)                          PULL / CRON (relleno, sin reintentos del webhook)
+─────────────────────                          ──────────────────────────────────────────────────
+ProcessBeds24WebhookDispatchHandler            Beds24InvoiceReceiveJob (cron 'beds24_invoice_receive')
+  handleInvoiceItems($payload['invoiceItems'])   └─ PmsBeds24MessageTargetFinder → enqueue por reserva
+    agrupa por bookingId                        ExchangeOrchestrator::run('beds24_invoice_receive')
+        │                                         └─ MappingStrategy → GET bookings/invoices?bookingId=..
+        ▼                                            └─ parseResponse: APLANA data[] (facturas)→items
+   Beds24InvoiceReceivePersister::upsertCargos(bookingId, dtos[])  ◄──────────────────────┘
+     1. reserva = PmsReservaRepository::findByAnyBeds24Id(bookId)   (no encontrada → RuntimeException)
+     2. info = PmsInformacionFinancieraFactory::upsertForReserva()  (find-or-create padre)
+     3. upsert por 'beds24ItemId' (dedupe): nuevo → persist | existente → sólo campos volátiles
+     4. info.recalcularTotales() + lastSyncedAt; flush
+```
+
+### 11.3 Gotchas
+
+- **`data` del endpoint on-demand NO es plano.** A diferencia de mensajes (cuyo `data` ya es la
+  lista de mensajes), `GET bookings/invoices` devuelve `data[]` = **facturas anidadas**, cada una
+  con `invoiceId`, `invoiceDate` y su propio `invoiceItems[]`.
+  `Beds24InvoiceReceiveMappingStrategy::parseResponse()` **aplana** a lista de invoiceItems
+  propagando `invoiceId`/`invoiceDate` de la factura padre a cada línea.
+- **El webhook no trae `invoiceId`/`invoiceDate`.** Sus `invoiceItems` vienen top-level (cada uno
+  con su `bookingId`). Por eso ambos campos son nullable en `PmsCargoFinanciero`, y el persister
+  los **enriquece** después: si primero llegó por webhook (sin factura) y luego el pull trae la
+  factura, `aplicarCambiosVolatiles()` rellena los huecos sin duplicar la fila.
+- **Verdad histórica:** el cargo se guarda tal cual llega (subTipo/descripción/monto). La
+  clasificación (`tipoCargo`) es una **capa encima** que estandariza, no reemplaza esos datos crudos.
+- **Dedupe:** índice único `uq_cargo_info_item (informacion_id, beds24_item_id)`. Reejecutar el
+  pull es idempotente (stats `skipped`).
+- **FKs unidireccionales:** `Beds24InvoiceReceiveQueue` apunta a `Beds24Config`/`ExchangeEndpoint`
+  sin `inversedBy`, a propósito, para no tocar esas entidades del módulo Exchange.
+- **Endpoint requerido:** fila `ExchangeEndpoint` provider `beds24`, `accion='GET_INVOICES'`,
+  `endpoint='bookings/invoices'`, `metodo='GET'` (creada por la migración
+  `Version20260802133405`).
+
+### 11.4 Moneda, tipo de cambio y clasificación (enriquecimiento local)
+
+Beds24 **no** envía moneda ni tipo de cambio en los invoiceItems; el `subType` es grueso (el 11
+mezcla limpieza y servicio) y las descripciones son plantillas idénticas en Booking y Airbnb. Por
+eso el persister enriquece cada cargo con datos **locales** al crearlo (y hace *backfill* en filas
+viejas vía `aplicarCambiosVolatiles()`, sin pisar snapshots existentes):
+
+- **Moneda** → `MonedaResolver::resolve(?code)` (`src/Pms/Service/Finance/`). Regla: si no llega
+  código → **USD** (`MaestroMoneda::DB_ID_USD`). Aplica a `PmsInformacionFinanciera`,
+  `PmsCargoFinanciero` y `PmsPagoFinanciero` (todos referencian `App\Entity\Maestro\MaestroMoneda`).
+- **Tipo de cambio** → `TipoCambioDelDia::venta()` (`src/Pms/Service/Finance/`), que **reutiliza**
+  `App\Service\TipocambioManager` (cachea en BD, cae a SUNAT / último disponible). Se snapshotea la
+  **venta** USD→PEN del día en cada cargo/pago (decimal 10,3). Se resuelve **una sola vez por
+  llamada** a `upsertCargos()` (evita N+1 y golpes repetidos a SUNAT). Nunca rompe la persistencia:
+  si falla, queda `null`. Se usa sobre todo para valorizar pagos en soles.
+- **Clasificación** → enum `PmsTipoCargo` (`ALOJAMIENTO`/`LIMPIEZA`/`SERVICIO`/`OTRO`), fuente única
+  `PmsTipoCargo::desdeBeds24($descripcion, $subTipo)`: `subType 8 → ALOJAMIENTO`; luego por
+  descripción; resto `OTRO`. Expone `labelKey()` para i18n.
+
+### 11.5 Pagos propios — `PmsPagoFinanciero`
+
+A diferencia de los cargos (que vienen de Beds24), los **pagos** son registros nuestros de dinero
+efectivamente recibido. Cuelgan de la misma cabecera (`PmsInformacionFinanciera::pagos`). Campos:
+`medioPago` (enum `PmsMedioPago`: efectivo, plin/yape, tarjeta de crédito, western union,
+transferencia bancaria, paypal), `moneda`, `tipoCambio` (venta del día), `comision`, `fechaPago`,
+`referencia`, `notas`.
+
+- **Comisión de tarjeta: se guarda el PORCENTAJE, no el importe.** `comisionPorcentaje` (5.50 =
+  5.5%) es el dato que define la operación; si luego se corrige el monto, el recargo sigue siendo
+  correcto sin recalcularlo. El valor por defecto lo propone `PmsMedioPago::comisionPorcentaje()`
+  (5.5 en tarjeta, 0 en el resto) y el operador puede pisarlo.
+
+  Los importes se **derivan**, nunca se persisten:
+
+  | Campo | Qué es | Cómo se obtiene |
+  |---|---|---|
+  | `monto` | **Neto**: lo que abona la estancia | Persistido. **Es el único que entra al rollup** |
+  | `montoComision()` | Importe del recargo | `monto × pct / 100` |
+  | `montoTotalCobrado()` | Lo que se pasa por la tarjeta | `monto + montoComision()` |
+
+  Por qué el rollup suma el neto y no el total: el recargo cubre el coste de la pasarela, no la
+  estancia del huésped. Si la reserva vale 100 y paga con tarjeta, se le cobran 105.50 pero su
+  deuda baja 100.
+
+  En el panel, "Total cobrado" es un campo **no persistido y bidireccional**: al escribir el neto
+  se recalcula el total, y al escribir el total se recalcula el neto
+  (`totalConComision()` / `netoDesdeTotal()` en `pmsFinanzasModel.ts`, **espejo** de los métodos
+  PHP — si cambia la fórmula hay que tocar los dos).
+
+- **Tipo de cambio automático:** al elegir una moneda distinta a la de la reserva (o cambiar la
+  fecha del pago), el panel consulta `POST /platform/maestro/tipo-cambio/consultar` —el mismo
+  servicio que ya usaba el editor de cotizaciones— y rellena la **venta** del día. Nunca pisa un
+  valor escrito a mano, y si el servicio falla queda vacío: el aviso de "sin TC no suma al saldo"
+  ya explica la consecuencia.
+- **Tipo de cambio a guardar:** se eligió **venta** SUNAT (ver `TipoCambioDelDia`). Para cambiar a
+  promedio/compra se toca ese único servicio.
+- **Multi-moneda:** el rollup a la cabecera (`totalCargos`/`totalPagos`/`getSaldo()`) y el candado
+  de moneda se explican en la §12 (`PmsInformacionFinancieraCoherenciaListener`) — no son
+  responsabilidad de esta entidad ni del persister.
+
+### 11.6 Reservas agrupadas (booking group) — una cabecera, varios bookings
+
+Un grupo de Booking.com (`bookingGroup.master` + `ids`) produce **una** `PmsReserva` con **N**
+`PmsEventoCalendario` (uno por habitación). En lo financiero eso significa **una sola cabecera**
+con los cargos de todos los bookings mezclados: `Beds24InvoiceReceivePersister::upsertCargos()`
+resuelve la reserva con `findByAnyBeds24Id()`, que acepta tanto el `masterId` como cualquier
+`beds24BookId` de sus links — así que todos los webhooks del grupo caen en el mismo padre.
+
+Verificado con un grupo real de 2 bookings (90853942 master + 90853943):
+
+```
+RESERVA  master=90853942  montoTotal=241.14  eventos=2  cabeceras=1
+  CABECERA totalCargos=241.14  nCargos=6
+    166408917 book=90853942 alojamiento  66.60   |  166408920 book=90853943 alojamiento 117.00
+    166408918 book=90853942 servicio      9.99   |  166408921 book=90853943 servicio     17.55
+    166408919 book=90853942 limpieza     15.00   |  166408922 book=90853943 limpieza     15.00
+```
+
+El `montoTotal` de la reserva (suma de `evento.monto`) y el `totalCargos` de la cabecera
+coinciden: son dos rollups independientes que deben cuadrar.
+
+**🔥 GOTCHA — el pull del master devuelve el grupo entero.** `GET /bookings/invoices` no se
+comporta igual según a quién se le pregunte:
+
+```
+?bookingId=90853942  (master) → 6 invoiceItems  (los de AMBOS bookings del grupo)
+?bookingId=90853943  (hija)   → 3 invoiceItems  (sólo los suyos)
+```
+
+No duplica nada porque el índice único `uq_cargo_info_item (informacion_id, beds24_item_id)` los
+absorbe (`{"imported":0,"skipped":6}` al reejecutar).
+
+**Cómo lo aprovecha el cron.** Preguntar por cada habitación devolvía los mismos items N veces:
+inocuo, pero N-1 llamadas desperdiciadas contra una API con límite de peticiones. Por eso el cron
+de facturas usa su propio finder, `PmsBeds24InvoiceTargetFinder`, que agrupa los links **por
+reserva** y encola **un job por reserva** eligiendo siempre el `beds24MasterId`:
+
+```
+Antes (finder de mensajes): targets = [90853942, 90853943]   → 2 llamadas
+Ahora (finder de facturas): targets = [90853942]             → 1 llamada
+```
+
+⚠️ **Siempre el master, nunca una hija:** una hija devuelve un subconjunto, así que elegirla
+perdería los cargos de las demás habitaciones. Si el master aún no se conoce (sync a medias),
+se cae al primer link disponible. El cron de **mensajes** conserva su finder original: los
+mensajes sí son de cada booking y ahí hay que ir uno a uno.
+
+**Para distinguir a qué estancia pertenece cada cargo** está `beds24BookingId`, y
+`PmsInformacionFinanciera::getEstancias()` da el mapa `bookingId → casita/fechas` que necesita
+la UI. Sin eso, dos habitaciones del mismo grupo se ven con descripciones idénticas
+(`[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]`, que Beds24 no resuelve) y no hay forma de saber cuál
+es cuál. En el panel, `ReservaFinanzasPanel.vue` agrupa los cargos por estancia con subtotal:
+
+```
+▸ Casita 4   2027-03-08 → 2027-03-10        91.59
+    alojamiento 66.60 · servicio 9.99 · limpieza 15.00
+▸ Casita 2   2027-03-08 → 2027-03-10       149.55
+    alojamiento 117.00 · servicio 17.55 · limpieza 15.00
+```
+
+Con **una sola estancia** (el caso normal) no se pinta cabecera de grupo: sería ruido. Los cargos
+manuales, que no tienen `beds24BookingId`, caen en un bloque propio ("Cargos manuales").
+
+## 12. Coherencia Financiera — Rollup Multi-moneda y Candado
+
+**Archivos relevantes:**
+- `src/Pms/EventListener/PmsInformacionFinancieraCoherenciaListener.php`
+- `src/Pms/Service/Finance/PmsInformacionFinancieraRecalculoService.php`
+
+### 12.0 Auto-provisión de la cabecera (reservas directas)
+
+La cabecera financiera sólo nacía por la sincronización de `invoiceItems` (§11), así que una
+**reserva directa nunca la tenía**: sin registro padre no hay dónde colgar costos ni pagos y el
+panel quedaba inutilizable.
+
+Ahora `PmsInformacionFinancieraCoherenciaListener::crearCabeceraPara()` la crea en el mismo
+flush en que se inserta la `PmsReserva` (`onFlush` + `computeChangeSet()`, igual que
+`Beds24BookingsPushQueueCreator`), con la moneda base (`MonedaResolver::resolve(null)` → USD)
+y totales en cero.
+
+- **Se hace para TODA reserva, no sólo las directas.** Es idempotente (la relación es 1:1 y
+  `PmsInformacionFinancieraFactory::upsertForReserva()` hace find-or-create), y además desbloquea
+  registrar un pago en una reserva OTA cuyas facturas todavía no han llegado del canal.
+- **Reservas antiguas:** la migración `Version20260802235500` hizo el *backfill* de las que ya
+  existían sin cabecera (280 filas), respetando las que ya tenían datos.
+
+### 12.0.1 Cargos automáticos de una estancia directa
+
+Tener la cabecera (§12.0) resuelve *dónde* colgar los importes, pero en una directa seguían
+entrando a mano. `PmsCargosAutomaticosService::generarParaEvento()` los arma solo al insertarse
+la estancia:
+
+| Concepto | Origen del importe | ¿Se genera? |
+|---|---|---|
+| `ALOJAMIENTO` | Suma del precio de **cada noche** del tarifario | Sí, si hay tarifas |
+| `LIMPIEZA` | Fijo, `PmsCargosAutomaticosService::TARIFA_LIMPIEZA` (hoy `15.00`) | Siempre |
+| `SERVICIO` | — | **Nunca: en las directas se exonera** |
+
+La ausencia del cargo por servicio es una **regla de negocio deliberada**, no un olvido: las OTA
+lo cobran y lo mandan en sus `invoiceItems` (§11), pero a los huéspedes directos se les exonera.
+
+**Alojamiento = precio por día, no tarifa plana.** Se reutiliza
+`TarifaPricingEngine::buildDailyPricesForIntervalWithFallback()` — el mismo motor que pinta el
+calendario de tarifas —, así que el importe respeta temporadas, prioridades y solapamientos
+*exactamente igual que lo que el operador ve en pantalla*. El intervalo es `[llegada, salida)`:
+la noche de salida no se cobra, que es justo el contrato del flattener (`to` exclusivo).
+
+⚠️ **Gotcha — el flattener OMITE los días que no sabe precisar.** No devuelve `0`, devuelve un
+mapa más corto: quien sume precios a ciegas cobra menos noches de las reales sin enterarse. De
+ahí dos defensas:
+
+1. **Fallback a la tarifa base de la unidad** (`PmsUnidad::isTarifaBaseActiva()` /
+   `getTarifaBasePrecio()`), el mismo que usa el push de tarifas a Beds24
+   (`Beds24RatesPushQueueCreator::createFallbackProvider()`). Sin él, una estancia en fechas sin
+   ningún `PmsTarifaRango` — habitual en fechas lejanas — generaría un cargo de cero.
+   Por eso se usa la variante `…WithFallback()`: la versión sin fallback no acepta el proveedor.
+2. **Guarda de cobertura:** si aun con el fallback faltan noches (`count($preciosDiarios) <
+   $nochesEsperadas`), **no se crea el cargo** y se registra en el log.
+
+`$nochesEsperadas` se cuenta **a día truncado, no a instante**: la estancia va de las 14:00 a las
+10:00, así que un `diff()` crudo de dos noches daría "1 día y 20 horas" → 1 (§12.5.5). El
+flattener trunca a medianoche y aquí se cuenta igual (`aDia()`).
+
+**Cuándo aplica** (`PmsCargosAutomaticosService::aplica()`):
+
+- Sólo estancias de **canal directo**. Una OTA recibe sus cargos del canal; duplicarlos falsearía
+  el saldo.
+- Nunca sobre un **bloqueo**: no es una venta.
+- Requiere unidad + fechas.
+
+**Grados de fallo — nunca se inventa un importe.** Si la cobertura queda incompleta o el motor de
+precios revienta, se registra en el log y **no se crea el cargo de alojamiento** (la limpieza sí).
+El operador lo añade a mano. Romper el guardado de la reserva por un problema del tarifario sería
+peor que un cargo faltante.
+
+**Verificado** (2026-08-02) sobre una directa de 2 noches en Casita 1: cabecera USD, alojamiento
+`140.00` (2 × 70.00 del tarifario), limpieza `15.00`, servicio `0.00`, saldo `155.00`; re-guardar
+la reserva no duplicó cargos.
+
+**Ambos nacen como cargos MANUALES** (sin `beds24ItemId`, §12.4.1): el operador puede corregirlos
+o borrarlos sin pelearse con la sincronización. Y es **idempotente por estancia** —
+`yaTieneCargos()` mira si ya hay cargos imputados a ese evento—, así que un segundo guardado del
+drawer no duplica el alojamiento.
+
+**Orden dentro del flush (gotcha):**
+
+```
+onFlush   → paso 5: recolecta los PmsEventoCalendario INSERTADOS que pasan `aplica()`
+postFlush → generarCargosAutomaticos()  ← PRIMERO: crea los cargos y hace su propio flush
+            recalcular($ids)            ← DESPUÉS, con los IDs de cabecera que devolvió
+```
+
+El orden importa: si el rollup corriera antes, el saldo recién creado saldría en cero hasta el
+siguiente guardado. Ese `flush()` interno vuelve a disparar `onFlush`, pero el guardia
+`isFlushing` lo corta — por eso `generarCargosAutomaticos()` **devuelve** las cabeceras tocadas
+en vez de confiar en que el listener las recolecte sola.
+
+### 12.0.2 Desglose por tipo en la cabecera
+
+`PmsInformacionFinanciera::getTotalPorTipo(PmsTipoCargo)` (con los atajos serializados
+`getTotalAlojamiento()`, `getTotalLimpieza()`, `getTotalServicio()`) suma los cargos de un solo
+concepto, en la moneda de la cabecera.
+
+⚠️ **Es un espejo en PHP del SQL del rollup** (`PmsInformacionFinancieraRecalculoService`) y
+replica su regla de anulación: **con `activa = false` sólo cuenta la `PENALIZACION`** (§12.7).
+Si se cambia esa condición hay que tocar **los dos sitios**, o el desglose dejará de cuadrar con
+`totalCargos`.
+
+### 12.0.3 Los importes de mensajería salen de la cabecera, no de `PmsReserva`
+
+`PmsReserva::montoTotal` es un agregado de `PmsEventoCalendario.monto`, un campo que **sólo
+rellenan las OTA**. En una reserva directa vale `0.00`, así que una plantilla de WhatsApp que
+dijera *"el total de su reserva es {{total_amount}}"* mandaba **"0.00"** al huésped. Además nunca
+supo desglosar alojamiento / limpieza / servicio, ni cuánto queda por pagar.
+
+Las variables financieras de `PmsMessageDataResolver::getMessageVariables()` ahora leen la
+cabecera:
+
+| Variable | Origen |
+|---|---|
+| `total_amount` | `PmsInformacionFinanciera::getTotalCargos()` |
+| `accommodation_amount` | `getTotalAlojamiento()` |
+| `cleaning_fee` | `getTotalLimpieza()` |
+| `service_fee` | `getTotalServicio()` |
+| `paid_amount` | `getTotalPagos()` |
+| `balance` | `getSaldo()` |
+| `currency` | `getMoneda()?->getId()` |
+
+Sin cabecera devuelven `'0.00'` en vez de reventar. `getPreviewMessageVariables()` trae los
+mismos nombres con valores dummy — **hay que añadirlos en los dos sitios**, porque el set de
+preview es el que se manda a Meta como `example` al crear la plantilla; una variable que falte
+ahí hace que Meta rechace la plantilla.
+
+**Verificado** (2026-08-02): en una OTA, `total_amount` coincide con el `montoTotal` de siempre
+(246.15) y ahora se desglosa 201.00 + 15.00 + 30.15; en una directa que antes daba `0.00`,
+devuelve 250.00 con 240.00 pagados y 10.00 de saldo.
+
+**`PmsReservaMessageContext` también.** `getFinancialTotal()` e `isFinancialCleared()` alimentan
+`MessageConversation::setContextFinancials()`, que es lo que consulta el motor de reglas. La
+cabecera **se inyecta por constructor** (segundo argumento, opcional) en vez de resolverse dentro:
+
+- El adaptador no tiene `EntityManager` — envuelve una entidad, nada más.
+- Añadir la relación inversa en `PmsReserva` **no** era la salida fácil: el lado inverso de un
+  `OneToOne` no se puede proxiar, así que Doctrine cargaría la cabecera en **cada** hidratación de
+  reserva y penalizaría el calendario entero por un dato que sólo usa el chat.
+- Si llega `null` se cae a `montoTotal` (comportamiento anterior). Los dos sitios que construyen
+  el contexto (`Beds24ReceivePersister::upsertMessages()` y
+  `PmsReservaRecalculoService::recalcularDesdeEventos()`) ya la pasan.
+
+`isFinancialCleared()` exige `totalCargos > 0` antes de mirar el saldo: sin cargos el saldo
+también es cero, y dar por saldada una reserva recién creada haría que el chat se saltara los
+mensajes de cobro.
+
+⚠️ **`contextData.financials` es una FOTO, las variables no.** Las variables se resuelven en el
+momento del envío, así que siempre van frescas. El snapshot de la conversación sólo se refresca
+cuando algo vuelve a llamar a `upsertFromContext()` — registrar un pago actualiza el rollup pero
+**no** re-sincroniza la conversación. Si una regla del chat llega a depender del saldo al céntimo,
+hay que disparar ese upsert desde el listener financiero.
+
+### 12.1 Problema
+
+Cargos (de Beds24) y pagos (propios) pueden llegar en monedas distintas entre sí y distintas de la
+moneda de la cabecera (`PmsInformacionFinanciera.moneda`, ej. un hotel que cotiza en soles pero
+recibe un pago en dólares). Sumarlos a lo bruto sin convertir daría un total sin sentido.
+
+### 12.2 Regla de coherencia
+
+Los totales de la cabecera (`totalCargos`, `totalPagos`) se expresan **siempre en la moneda de la
+cabecera**. Cada hijo se convierte a esa moneda usando **su propio** `tipoCambio` (venta USD→PEN,
+snapshoteado al crearlo — ver §11.4) antes de sumar:
+
+```
+Cabecera en PEN + cargo de 100 USD (TC snapshoteado 3.5)  → aporta 350.00 PEN al total
+Cabecera en USD + pago de 100 PEN (TC snapshoteado 3.5)   → aporta  28.57 USD al total (100 / 3.5)
+Cabecera en USD + cargo de 100 USD                        → aporta 100.00 USD (misma moneda, sin convertir)
+```
+
+Si un hijo está en moneda distinta a la cabecera y **no tiene TC** (no se pudo obtener el día que
+se registró), aporta **0** al total en vez de inventar una cifra — mismo criterio conservador que
+`TipoCambioDelDia::venta()` devolviendo `null`.
+
+### 12.3 Cuándo se recalcula (Doctrine onFlush/postFlush)
+
+```
+PmsInformacionFinancieraCoherenciaListener   (mismo patrón que PmsReservaRecalculoListener)
+  onFlush   → detecta inserciones/updates/deletes de PmsCargoFinanciero / PmsPagoFinanciero,
+              y cambios de 'moneda' en la propia cabecera. Recolecta los IDs de cabecera afectados.
+  postFlush → PmsInformacionFinancieraRecalculoService::recalcular($ids, $em)
+              UPDATE ... SQL crudo (mismo patrón que PmsReservaRecalculoService): agrega
+              cargos (tipo=charge) y pagos por informacion_id, convirtiendo cada fila a la
+              moneda de su cabecera antes de sumar. Sin flush de entidades: es SQL directo.
+```
+
+Cambiar la moneda de la **cabecera** es seguro: el siguiente flush reconvierte todos sus hijos a
+la nueva moneda automáticamente (no hace falta bloquearla).
+
+### 12.4 Candado de moneda en cargos y pagos
+
+Cambiar la moneda de un **cargo o pago que ya existe en BD** (es un UPDATE, no un INSERT) está
+**bloqueado**: `PmsInformacionFinancieraCoherenciaListener::onFlush()` revisa el changeset de
+Doctrine y lanza `DomainException` si el campo `moneda` cambia de un valor no nulo a otro.
+
+```
+old=null,  new=X   → PERMITIDO   (backfill: primer seteo de moneda en una fila antigua sin moneda)
+old=USD,   new=PEN → BLOQUEADO   (ya se registró en USD con su propio TC; cambiarla sin
+                                   remontar monto/TC dejaría el registro inconsistente)
+```
+
+- **Por qué el candado es sólo sobre hijos, no sobre la cabecera:** la moneda de un cargo/pago está
+  atada a un `monto` + `tipoCambio` capturados en ese instante — mutarla invalidaría esa foto. La
+  moneda de la cabecera es sólo la *unidad de reporte* del rollup; cambiarla no toca ningún dato
+  capturado, sólo hace que el rollup se re-exprese en otra moneda.
+- **UX:** `PmsPagoFinancieroCrudController` deshabilita el campo `moneda` en la página de edición
+  (`Crud::PAGE_EDIT`) para que el operador nunca choque con la excepción — el candado del listener
+  es la defensa real, el campo deshabilitado es sólo higiene de formulario.
+- **Los cargos de Beds24** ya son de sólo lectura en el panel (§11), así que en la práctica el
+  candado los protege del *backfill* automático del persister, no de ediciones manuales.
+
+### 12.4.1 Cargos manuales vs sincronizados
+
+Para que una reserva directa pueda tener costos, `PmsCargoFinanciero.beds24ItemId` es
+**NULL-able**: `NULL` identifica un cargo **manual** creado por el operador. MySQL admite varios
+`NULL` en un índice único, así que el dedupe de los cargos de Beds24
+(`uq_cargo_info_item`) sigue intacto.
+
+| | Cargo de Beds24 | Cargo manual (`beds24ItemId = NULL`) |
+|---|---|---|
+| Origen | Sincronización (§11) | `POST /pms_cargo_financieros` |
+| `isManual()` | `false` | `true` (se serializa como `manual`) |
+| Editar | Sí, pero **tras abrir el candado** en la UI | Sí, sin candado |
+| Borrar | **Nunca** (`assertCargoBorrable()` lanza `DomainException`) | Sí |
+
+Por qué un cargo de Beds24 no se puede borrar: el siguiente pull lo recrearía igual, y mientras
+tanto el saldo quedaría desfasado. Corregirlo (Patch) sí tiene sentido; borrarlo no.
+
+**Invariantes de un cargo manual** (`PmsCargoFinanciero::aplicarDefectosDeCargoManual()`,
+`prePersist`): se le fuerza `tipo = 'charge'` — sin eso el rollup, que suma sólo los `charge`,
+lo ignoraría y el cargo no afectaría al saldo — y `fechaCreacionBeds24 = ahora`, que es el campo
+por el que se ordena la colección.
+
+**Imputación a una estancia.** Una reserva puede tener varias casitas también siendo directa. Los
+cargos de Beds24 se atribuyen por `beds24BookingId`, pero un cargo manual no tiene booking del
+canal: para eso está `PmsCargoFinanciero.evento` (FK nullable a `PmsEventoCalendario`), que el
+operador elige en el panel. `NULL` = cargo de la reserva en conjunto.
+
+La UI **no agrupa por dos claves distintas**: `getEstancias()` devuelve el `eventoId` de cada
+estancia junto a su `beds24BookingId`, y el panel traduce ambas familias a esa única clave
+(`ReservaFinanzasPanel.vue::claveEstancia()`). El `<select>` de estancia sólo aparece si la
+reserva tiene más de una casita; con una sola se preselecciona sin preguntar.
+
+`ON DELETE SET NULL` en la FK: si se borra la estancia, el cargo sobrevive como cargo general en
+lugar de irse con ella — es dinero registrado, no un dato derivado.
+
+## 12.5 Panel financiero en la SPA (`util/`) y patrón de Enums por AJAX
+
+**Archivos relevantes:**
+- `src/Api/Controller/Tipo/PmsEnumAjaxController.php`
+- `util/src/components/reservas/ReservaFinanzasPanel.vue`
+- `util/src/stores/reservas/finanzasStore.ts` · `util/src/types/pmsFinanzasModel.ts`
+
+### 12.5.1 Enums expuestos por AJAX (patrón a replicar)
+
+Las etiquetas, colores, iconos y reglas de negocio de un enum PHP **no se duplican en
+TypeScript**: se sirven desde un controlador AJAX y el frontend los consume. Es el mismo patrón
+de `TravelEnumAjaxController` (`/tipo/user/enum/travel/componente-tipos`), ahora también para PMS:
+
+```
+GET /tipo/user/enum/pms/tipos-cargo   → [{ id, label, color }]            (PmsTipoCargo)
+GET /tipo/user/enum/pms/medios-pago   → [{ id, label, icono,
+                                           comisionPorcentaje }]           (PmsMedioPago)
+```
+
+- El prefijo `/tipo/user/...` hereda las reglas del firewall (no lleva security propio).
+- Respuestas con `setSharedMaxAge(3600)`: la forma de un enum casi nunca cambia.
+- Para **añadir un caso** basta tocar el enum PHP (`case` + `label()` + `color()`/`icono()`):
+  la SPA lo recoge sola, sin tocar TS.
+
+**Qué SÍ conviene migrar a este patrón:** metadatos de presentación (label, color, icono) y
+reglas atadas a un `case` (`comisionPorcentaje()`, `sinHorario()`, `prioridad()`).
+
+**Qué NO** (y por qué): `PMS_ESTADO`, `PMS_ESTADO_PAGO` y `PMS_CHANNEL` de
+`util/src/types/pmsReservaModel.ts` son **identificadores**, no metadatos. Se usan en funciones
+puras y síncronas (`filtrarEstadosDisponibles()`, `requiereAutoConfirmacionPorPago()`) y como
+literales `as const` para el estrechado de tipos. Cargarlos por red los volvería asíncronos y
+perderían el tipado literal, a cambio de nada: sus **etiquetas y colores ya vienen de la API**
+(son filas de `PmsEventoEstado` / `PmsChannel`, servidas con `nombre` y `color`), así que hoy
+no hay duplicación que eliminar.
+
+### 12.5.2 Panel financiero del drawer
+
+`ReservaFinanzasPanel.vue` se monta dentro de `ReservaEditDrawer.vue` **solo si hay
+`reservaId`**: durante la creación la reserva todavía no existe, así que no hay cabecera a la
+que colgar nada.
+
+Va **arriba del todo**, por delante de la estancia y del titular, y **arranca colapsado**: lo
+primero que se consulta al abrir una reserva es cuánto debe, pero desplegado ocupa demasiado
+para dejarlo fijo. Por eso su cabecera —en degradado teal, o **ámbar si el cobro está
+anulado** (§12.7)— ya muestra el **saldo** sin necesidad de abrirlo, en verde si está saldado y
+en rojo si queda pendiente. Al cambiar de reserva vuelve a colapsarse.
+
+Dentro: un resumen (Cargos · Pagado · Saldo, en la moneda de la cabecera) y dos acordeones,
+**Cargos** y **Pagos**.
+
+**Gotcha del alta de una reserva directa.** Como el panel exige `reservaId`, al crear no aparece;
+y si el drawer se cerrara al guardar, habría que buscar la reserva otra vez en el calendario para
+cargarle los costos — justo el flujo normal de una directa, que no recibe cargos del canal. Por
+eso `guardar()` devuelve el id creado en el evento `saved` y `ReservasView::onGuardado()`
+**deja el drawer abierto** en modo edición sobre esa reserva. Para el resto de casos (bloqueo,
+edición) el drawer se cierra como siempre.
+
+**Varias casitas al crear.** `PmsReservaCrearProcessor` sólo admite UNA estancia por payload, así
+que el drawer crea la reserva con la primera y las demás del acordeón las cuelga después con
+`createEvento(... reserva: <IRI>)` — el mismo camino que la edición usa para una estancia añadida
+a mano. `permiteVariasEstancias` habilita el botón "Agregar estancia" (en creación de reserva y en
+edición, nunca en un bloqueo); el acordeón sólo se pinta al llegar a la segunda estancia, porque
+con una sola las cabeceras plegables sobran.
+
+### 12.5.3 Color de las estancias y drag & drop de las OTA
+
+- **Cada estancia se tiñe con el color de su estado** (`resolveEventoColor()`, el mismo que usa
+  el calendario): cabecera al ~18% de opacidad, cuerpo al ~4% y borde al ~35%
+  (`CABECERA_ALPHA` / `CUERPO_ALPHA` / `BORDE_ALPHA` en `ReservaEditDrawer.vue`). El salto de
+  tono entre cabecera y cuerpo es lo que marca dónde acaba una estancia y empieza la siguiente
+  cuando hay varias apiladas; el cuerpo queda muy tenue para no restar contraste a los campos.
+- **Las estancias OTA no se arrastran ni se redimensionan en el calendario.** `eventDataTransform`
+  les pone `editable: false` cuando `extendedProps.isOta`, con `eventAllow` como red de
+  seguridad. Antes se podían arrastrar y el backend las rechazaba con 403 (§3): el evento volvía
+  a su sitio tras un error. Ahora ni siquiera aparece el cursor de "mover".
+- El aviso de "las fechas las gestiona el canal" es **una nota gris discreta**, no un banner de
+  alerta: es contexto permanente de toda reserva OTA, no una incidencia.
+
+### 12.5.4 Fechas del drawer: arrastre del check-out y validación
+
+- **Rango por defecto: 2 noches** (`RANGO_POR_DEFECTO_DIAS`). Está duplicado a propósito en
+  `ReservasView.vue` (clic en el calendario) y `ReservaEditDrawer.vue` (botón "Agregar estancia"):
+  son dos puntos de entrada distintos, **hay que tocar los dos**.
+- **Al mover el check-in, el check-out se arrastra los mismos días conservando su hora**
+  (`onCambiarInicio()`). Correr una reserva de semana no obliga a recalcular la salida: la
+  duración se mantiene y la hora de check-out del establecimiento no se toca. Cambiar sólo la
+  *hora* del check-in no mueve el check-out (el desplazamiento se mide en días naturales).
+- **Los campos usan `FechaHoraPicker`** (24 h, con máscara), no el `<input type="datetime-local">`
+  nativo — ver `docs/UI_Componentes_Compartidos.md` §1, incluido el `minmax(11rem, 1fr)` que hace
+  que check-in y check-out salten de línea solos en móvil.
+- **Validaciones que cortan antes de la red** (`errorFechas()` y `errorUnidad()`): marcan el campo
+  en rojo, explican el motivo y **desactivan el botón de guardar** (`hayErroresEstancia`).
+  - `fin > inicio` — el backend lo rechaza con 422.
+  - **unidad obligatoria** — sin ella el POST daba un `400 Bad Request` seco, sin pista de qué
+    faltaba. El `<select>` lleva además una opción vacía explícita («— Elegir casita —»): sin ella
+    mostraba la primera casita de la lista aunque el modelo estuviese vacío, y el operador creía
+    haberla elegido.
+- **Clonar fechas de la estancia anterior** (`clonarFechasDeAnterior()`): al añadir una estancia
+  las fechas **encadenan** (empieza donde acabó la anterior), que es lo correcto para una mudanza
+  de casita a mitad de viaje. El botón de copiar en la barra cubre el otro caso frecuente: dos
+  casitas ocupadas **en paralelo** por el mismo grupo.
+- **`monto` y `comision` ya NO se editan ni se muestran en el drawer.** El dinero de la reserva
+  vive en el panel de Finanzas (cargos + pagos); tenerlo en los dos sitios daba dos cifras que
+  podían contradecirse. Los campos siguen en el modelo y se envían **sin tocar**, para no pisar
+  lo que sincroniza el canal en una estancia OTA.
+
+  ⚠️ **Consecuencia a tener presente:** en una reserva **directa** nadie escribe ya `evento.monto`,
+  así que `PmsReserva::montoTotal` se queda en `0.00` mientras el importe real está en
+  `total_cargos`. Eso afecta a lo que lee `montoTotal` fuera del panel:
+  `PmsReservaMessageContext::getFinancialTotal()` (contexto del chat) y la variable
+  `total_amount` de `PmsMessageDataResolver` (plantillas de mensajería). En reservas OTA no
+  cambia nada, porque ahí el monto lo sigue escribiendo el pull. Si esas plantillas deben
+  reflejar el importe real de una directa, el arreglo es que esos dos puntos lean la cabecera
+  financiera en vez de `montoTotal`.
+- **Gotcha de zona horaria:** los `datetime-local` se parsean con `parseLocal()`, nunca con
+  `new Date(str)` — ese constructor lee `"YYYY-MM-DD"` como UTC y en Perú (UTC-5) devuelve el día
+  anterior.
+
+### 12.5.5 ⚠️ `inicio`/`fin` son HORA DE PARED, no instantes
+
+`pms_evento_calendario.inicio` y `.fin` son columnas `datetime` **sin zona**, y el backend las
+escribe con la hora de recepción del establecimiento (`resolveFechaConHora()`: check-in 14:00,
+check-out 10:00). **"Las 14:00" significa las 14:00 en recepción**, no un instante universal.
+
+El frontend las trataba como instantes: `new Date(iso)` al leer y `.toISOString()` al escribir.
+En Lima (UTC-5) eso producía:
+
+```
+BD 14:00  →  API "14:00+00:00"  →  el formulario mostraba 09:00
+y al corregirlo a 14:00 a mano, la BD acababa guardando 19:00
+```
+
+El desfase no se acumulaba entre guardados, pero **la hora mostrada era falsa** y las estancias
+editadas a mano quedaban descuadradas respecto a las que crea la sincronización de Beds24.
+
+**Regla:** en `util/`, estas fechas se manejan siempre como **cadena de hora de pared**
+(`"YYYY-MM-DDTHH:mm"`) y **nunca pasan por `new Date()`**:
+
+| Helper (`pmsReservaModel.ts`) | Qué hace |
+|---|---|
+| `toDatetimeLocal(iso)` | Recorta la cadena del backend; ignora segundos y offset |
+| `fromDatetimeLocal(local)` | Devuelve `"…T14:00:00"` **sin `Z` ni offset** |
+| `fechaAInputLocal(date)` | `Date` → hora de pared, sin convertir a UTC |
+
+Los **productores** también: `ReservasView::abrirCreacion()` y `agregarEvento()` construyen la
+cadena con `fechaAInputLocal()`, no con `toISOString()` — si uno solo de los dos lados convierte,
+el desfase vuelve. Verificado estable en `America/Lima`, `UTC`, `Europe/Madrid` y `Asia/Tokyo`,
+y con la API sirviendo `+00:00`, `-05:00` o sin offset.
+
+- **Candado de habilitación en Cargos:** el bloque nace **bloqueado**; hay que marcar "Habilitar
+  edición" para corregir un cargo **sincronizado** (verdad histórica del canal, §11: editarlo es
+  excepcional). Los **cargos manuales no pasan por el candado** — son nuestros, se editan y borran
+  directamente (§12.4.1). El botón "Agregar cargo manual" tampoco lo requiere: dar de alta un costo
+  es el flujo normal de una reserva directa.
+- **Pagos: siempre globales a la reserva, nunca por estancia.** `PmsPagoFinanciero` cuelga de la
+  cabecera y no tiene FK a `PmsEventoCalendario`, a diferencia de los cargos. Es deliberado: el
+  huésped paga **una vez por la reserva**, no por apartamento — un depósito de 100 USD sobre un
+  grupo de dos casitas no se reparte de forma no ambigua entre ellas, y forzar la elección
+  inventaría un dato que nadie tiene. El desglose por casita vive en los **cargos** (qué se
+  cobra); los pagos responden a "cuánto entró", y el `saldo` de la cabecera cruza ambos.
+- **Pagos:** alta, edición y borrado libres (`PmsPagoFinanciero` sí expone `Post`/`Patch`/`Delete`).
+  Al elegir el medio de pago se **sugiere** la comisión con el `comisionPorcentaje()` del enum
+  (5.5% en tarjeta); el operador puede pisarla.
+- **Candado de moneda en la UI:** al **editar** un pago el `<select>` de moneda va `disabled`, y
+  el PATCH ni siquiera la envía — el grupo `pms_pago:patch` la excluye (§12.4). Así el operador
+  no choca nunca con el `DomainException` del listener, que sigue siendo la defensa real.
+- **Aviso de moneda sin TC:** si el pago va en una moneda distinta a la de la cabecera y se deja
+  el tipo de cambio vacío, el panel avisa de que ese pago **no sumará al saldo** (es la regla
+  conservadora del rollup, §12.2).
+
+Los totales del resumen **no se calculan en el front**: se leen de la cabecera, que mantiene el
+listener de coherencia. Tras cualquier alta/edición el store recarga la cabecera
+(`finanzasStore.recargar()`) para reflejar el nuevo saldo.
+
+**"Guardar Cambios" arrastra los formularios del panel.** El botón principal del drawer es mucho
+más visible que los botoncitos de cada formulario financiero, así que es el que se acaba
+pulsando: antes, un cargo o un pago tecleado pero sin confirmar se perdía en silencio al cerrar.
+Ahora el panel expone `guardarPendientes()` (vía `defineExpose`) y `ReservaEditDrawer::guardar()`
+lo invoca **al final**, después de la estancia y el titular:
+
+- Se ejecuta el último para que un fallo aquí no deje a medias lo principal; lo ya guardado
+  arriba es idempotente al reintentar.
+- Si falla, se muestra el error y el drawer **no se cierra** — así no se pierde lo tecleado.
+- Los formularios **vacíos se ignoran**: uno abierto por descuido no debe bloquear el guardado
+  con un error de validación.
+- Los botones propios de cada formulario siguen ahí, para guardar sin cerrar el drawer.
+
+## 12.6 ⚠️ Gotcha: `SearchFilter` no funciona sobre relaciones con UUID binario
+
+**Síntoma:** `GET /pms_informacion_financieras?reserva=<uuid>` devuelve `totalItems: 0` aunque la
+fila exista y un `SELECT` a mano la encuentre. **Sin ningún error**: ni 400, ni excepción, ni log.
+
+**Causa:** las FK de UUID son `BINARY(16)`. El `SearchFilter` de API Platform vincula el valor sin
+declarar el tipo Doctrine, así que MySQL acaba comparando texto contra binario y nunca casa.
+Comprobado en DQL sobre la misma fila:
+
+| Vinculación | Filas |
+|---|---|
+| `i.reserva = 'uuid-string'` | **0** |
+| `i.reserva = $uuid` (objeto, sin tipo) | **0** |
+| `i.reserva = $uuid` con `UuidType::NAME` | **1** ✅ |
+| `findOneBy(['reserva' => $entidad])` | **1** ✅ |
+
+Que el objeto `Uuid` *sin tipo* también falle es lo importante: significa que **pasar la IRI
+tampoco arregla nada** (la IRI se resuelve justo a ese objeto). El filtro es inservible aquí.
+
+**Solución adoptada:** operación dedicada en vez de filtro.
+
+```
+GET /platform/pms/pms_informacion_financieras/por-reserva/{reservaId}
+  → PmsInformacionFinancieraPorReservaProvider
+      → PmsInformacionFinancieraRepository::findOneByReservaId()
+          → setParameter('reserva', $uuid, UuidType::NAME)   ← el tipo es obligatorio
+```
+
+⚠️ **Segundo gotcha, en la propia operación:** una variable de URI que **no** es el identificador
+del recurso hay que declararla en `uriVariables` con un `Link`. Sin eso API Platform intenta
+casar `{reservaId}` con el `id` de `PmsInformacionFinanciera` y responde
+`404 "Invalid uri variables"` **antes de llegar al provider** — el `security` ni se evalúa, así
+que el síntoma es idéntico estando o no autenticado. El patrón correcto ya estaba en la
+operación `{localizador}` de `PmsReserva`:
+
+```php
+uriVariables: ['reservaId' => new Link(fromClass: PmsReserva::class, identifiers: ['id'])],
+```
+
+⚠️ **Tercer gotcha, encadenado al anterior:** al declarar ese `Link`, API Platform **castea la
+variable al tipo del identificador**, así que al provider llega un objeto
+`Symfony\Component\Uid\Uuid`, **no una cadena**. Una guarda `if (!is_string($x)) return null;`
+la descarta y produce otro `404` — indistinguible del "no existe", aunque la fila esté en la
+tabla. `PmsInformacionFinancieraPorReservaProvider` normaliza `Uuid|string` a texto antes de
+consultar.
+
+Los tres fallos daban **el mismo síntoma** (colección vacía o 404 sin error) por causas
+distintas: tipo Doctrine sin declarar, `uriVariables` sin declarar y tipo PHP inesperado. Ante
+un 404 en este endpoint, comprobar los tres.
+
+Devuelve el recurso en singular (la relación es 1:1 con la reserva) y 404 si aún no tiene
+cabecera, que el store trata como "panel vacío", no como error.
+
+**Se retiraron los dos `SearchFilter` afectados** (`PmsInformacionFinanciera.reserva` y
+`PmsPagoFinanciero.informacionFinanciera`): dejar un filtro que siempre responde vacío es una
+trampa peor que no tenerlo.
+
+> **Antes de filtrar por una relación UUID en cualquier recurso**, comprueba que devuelve algo.
+> `PmsTarifaRango.unidad` tiene un `SearchFilter` con el mismo patrón y, si alguien lo usa desde
+> el frontend, se encontrará con este mismo silencio.
+
+## 12.7 Cancelaciones: el flag `activa` y la PENALIZACIÓN
+
+### 12.7.1 El problema
+
+Al cancelar, Beds24 manda `status: cancelled` con `price: 0` **y un invoiceItem nuevo**
+("Cancel Fee") con un id propio — no reemplaza a los anteriores. Como el persister sólo hace
+upsert y nunca borra, los cargos originales se conservan (bien: **no se pierde historia**) pero
+el total pasaría a sumar la estancia completa **más** la penalización:
+
+```
+Antes:   746.40  (636 + 95.40 + 15)
+Cancela: 746.40 + 62.20 = 808.60   ← se cobraría la estancia Y la penalización
+```
+
+Además, el "Cancel Fee" llega con `subType: 8`, el mismo del alojamiento, así que sin más se
+clasificaba como una noche más.
+
+### 12.7.2 La regla
+
+`PmsInformacionFinanciera.activa` (bool, default `true`) decide qué computa:
+
+| `activa` | Qué suma `total_cargos` |
+|---|---|
+| `true` | **Todos** los cargos (caso normal) |
+| `false` | **Sólo** los de tipo `PENALIZACION` |
+
+Los cargos **nunca se borran**: siguen en la tabla y visibles en el panel, sólo dejan de contar.
+
+`PmsTipoCargo::PENALIZACION` se detecta **antes** que la regla del `subType` (por descripción:
+`cancel`, `penaliz`, `no show`), justo porque comparte el `subType 8` con el alojamiento.
+
+### 12.7.3 Por qué el flag y no el estado de Beds24
+
+Porque **no siempre coinciden**. Un huésped que negocia pasarse a **reserva directa** cancela en
+la OTA para ahorrarse la comisión: Beds24 dice "cancelada" pero la estancia ocurre y hay que
+cobrarla. Atar el cobro al estado del canal daría un saldo de 0 en una estancia que sí se sirve.
+
+Por eso el flag es persistido e independiente:
+
+- `PmsInformacionFinancieraCoherenciaListener::aplicarCancelacion()` lo baja **sólo en la
+  TRANSICIÓN** a cancelada (mira el changeSet de `estado`), y sólo si **todas** las estancias de
+  la reserva quedan canceladas — en un grupo, que caiga una casita no anula el cobro de las otras.
+- Como actúa en la transición y no en el estado, un webhook que repite `cancelled` **no vuelve a
+  tocarlo**: la decisión del operador gana. Mismo criterio asimétrico que `datosLocked` (§9.3).
+- En el panel: aviso ámbar + botón "Reactivar cobro" cuando está anulada, y un "Anular cobro"
+  discreto para el caso inverso (un no-show que el canal no marcó).
+
+Verificado con la reserva 86182399 (Van der Meer, 746.40 + fee de 62.20):
+
+```
+1) Activa                        activa=SÍ  totalCargos=746.40
+2) Cancelada (fee 62.20)         activa=NO  totalCargos= 62.20   ← sólo la penalización
+3) El operador la reactiva       activa=SÍ  totalCargos=808.60   ← vuelve a cobrarse todo
+4) Webhook repite "cancelled"    activa=SÍ  totalCargos=808.60   ← NO pisa la decisión
+```
+
+En los cuatro pasos los 4 cargos siguen en la BD; lo único que cambia es qué suma.
+
+## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
@@ -569,6 +1374,7 @@ Puntos finos:
 | Cambiar estado de pago inicial | `BookingPullPersister` | `resolveEstadoPagoInicial()` |
 | Cambiar la auto-confirmación por pago (§9.5) | `PmsEventoCalendario` + `util/src/types/pmsReservaModel.ts` | `requiereAutoConfirmacionPorPago()` (hay que tocar **los dos**: son espejo) |
 | Añadir campo nuevo al Pull | `Beds24BookingDto` + `BookingPullPersister` | `fromArray()` + `upsertReservaFull()` |
+| Cambiar qué campos puede escribir un espejo (§6.4) | `BookingPullPersister` | `upsertEvento()` → bloque `if ($isLinkPrincipal ...)` |
 | Cambiar qué se envía al espejo | `BookingsPushMappingStrategy` | `buildUpsertPayload()` bloque `$isMirror` |
 | Cambiar ventana de Pull Cron | `Beds24BookingsPullCronJob` | `arrivalFrom/To` |
 | Cambiar reintento Push | `BookingsPushHandler` | `handleFailure()` → `$delayMinutes` |
@@ -577,3 +1383,54 @@ Puntos finos:
 | Proteger campo Push en OTA | `Beds24BookingsPushQueueListener` | `IGNORED_FIELDS_ON_LOCKED_OTA` |
 | Cambiar idioma por defecto | `MaestroIdioma` | `DEFAULT_IDIOMA` |
 | Cambiar país por defecto | `MaestroPais` | `DEFAULT_PAIS` |
+| Añadir campo nuevo a un cargo financiero | `PmsCargoFinanciero` + `Beds24InvoiceItemDto` + `Beds24InvoiceReceivePersister` | `hidratar()` / `fromArray()` |
+| Cambiar qué campos se actualizan al re-sincronizar un cargo | `Beds24InvoiceReceivePersister` | `aplicarCambiosVolatiles()` |
+| Cambiar el aplanado de facturas del pull | `Beds24InvoiceReceiveMappingStrategy` | `parseResponse()` |
+| Cambiar cómo se agrupan los invoiceItems del webhook | `ProcessBeds24WebhookDispatchHandler` | `handleInvoiceItems()` |
+| Cambiar qué booking se consulta por reserva/grupo (§11.6) | `PmsBeds24InvoiceTargetFinder` | `findTargetsForPeriod()` (hoy: el `beds24MasterId`) |
+| Saber a qué estancia pertenece un cargo de un grupo (§11.6) | `PmsCargoFinanciero` + `PmsInformacionFinanciera` | `beds24BookingId` / `getEstancias()` |
+| Cambiar la agrupación de cargos por casita en la UI (§11.6) | `ReservaFinanzasPanel.vue` | `gruposCargos` / `claveEstancia()` |
+| Imputar un cargo manual a una estancia (§11.5) | `PmsCargoFinanciero` | FK `evento` (`NULL` = toda la reserva) |
+| Cambiar qué pasa tras crear una reserva directa (§12.5.2) | `ReservasView.vue` | `onGuardado()` → `payload.reservaIdCreada` |
+| Cambiar el país asumido / el parseo de teléfonos (§5.3) | `util/src/utils/telefono.ts` | `PAIS_POR_DEFECTO` / `interpretar()` |
+| Permitir varias casitas al crear (§12.5.2) | `ReservaEditDrawer.vue` | `permiteVariasEstancias` |
+| Que el panel financiero arranque abierto (§12.5.2) | `ReservaFinanzasPanel.vue` | `panelAbierto` |
+| Cambiar qué arrastra "Guardar Cambios" del panel (§12.5.2) | `ReservaFinanzasPanel.vue` + `ReservaEditDrawer.vue` | `guardarPendientes()` / llamada en `guardar()` |
+| Cambiar el tinte de las estancias (§12.5.3) | `ReservaEditDrawer.vue` | `CABECERA_ALPHA` / `CUERPO_ALPHA` / `BORDE_ALPHA` |
+| Permitir arrastrar estancias OTA en el calendario (§12.5.3) | `ReservasView.vue` | `eventDataTransform` / `eventAllow` |
+| Cambiar el rango por defecto de una estancia (§12.5.4) | `ReservasView.vue` + `ReservaEditDrawer.vue` | `RANGO_POR_DEFECTO_DIAS` (hay que tocar **los dos**) |
+| Cambiar el arrastre del check-out o la validación de fechas (§12.5.4) | `ReservaEditDrawer.vue` | `onCambiarInicio()` / `errorFechas()` |
+| Tocar la conversión de fechas del drawer (§12.5.5) | `util/src/types/pmsReservaModel.ts` | `toDatetimeLocal()` / `fromDatetimeLocal()` / `fechaAInputLocal()` — **nunca** usar `new Date()` con ellas |
+| Buscar la cabecera financiera de una reserva (§12.6) | `PmsInformacionFinancieraRepository` | `findOneByReservaId()` — el tipo `UuidType::NAME` es obligatorio |
+| Filtrar por cualquier relación UUID (§12.6) | — | **No uses `SearchFilter`**: devuelve vacío en silencio. Operación dedicada + provider. |
+| Cambiar ventana del cron financiero | `Beds24InvoiceReceiveJob` | `getStepInterval()` |
+| Cambiar la clasificación de un cargo (incluida la penalización, §12.7) | `PmsTipoCargo` | `desdeBeds24()` — el caso `PENALIZACION` va **antes** que la regla del subType |
+| Cambiar qué computa una reserva cancelada (§12.7) | `PmsInformacionFinancieraRecalculoService` | `AND (i2.activa = 1 OR c.tipo_cargo = 'penalizacion')` |
+| Cambiar cuándo se anula el cobro automáticamente (§12.7) | `PmsInformacionFinancieraCoherenciaListener` | `aplicarCancelacion()` |
+| Cambiar la moneda por defecto (hoy USD) | `MonedaResolver` | `resolve()` |
+| Cambiar qué tipo de cambio se snapshotea (venta/promedio/compra) | `TipoCambioDelDia` | `venta()` |
+| Cambiar el % de comisión de tarjeta (hoy 5.5%) | `PmsMedioPago` | `comisionPorcentaje()` |
+| Cambiar la fórmula del recargo / total cobrado (§11.5) | `PmsPagoFinanciero` + `util/src/types/pmsFinanzasModel.ts` | `getMontoComision()` / `totalConComision()` (son **espejo**: tocar los dos) |
+| Cambiar de dónde sale el tipo de cambio del panel (§11.5) | `ReservaFinanzasPanel.vue` | `autocompletarTipoCambio()` (hoy: `venta` de `/maestro/tipo-cambio/consultar`) |
+| Añadir un medio de pago | `PmsMedioPago` | nuevo `case` + `labelKey()` |
+| Cambiar el rollup de totales / la conversión entre monedas (§12) | `PmsInformacionFinancieraRecalculoService` | `recalcular()` / `expresionConvertida()` |
+| Cambiar cuándo se dispara el recálculo (§12) | `PmsInformacionFinancieraCoherenciaListener` | `onFlush()` / `collectInformacionId()` |
+| Cambiar o quitar el candado de moneda en cargos/pagos (§12.4) | `PmsInformacionFinancieraCoherenciaListener` | `assertMonedaNoBloqueada()` |
+| Añadir un tipo de cargo o medio de pago (label/color/icono) | `PmsTipoCargo` / `PmsMedioPago` | nuevo `case` + `label()` + `color()`/`icono()` (la SPA lo recoge sola) |
+| Exponer un enum PMS nuevo al frontend (§12.5.1) | `PmsEnumAjaxController` | nueva ruta `#[Route]` + `cacheable()` |
+| Cambiar qué campos del cargo puede corregir el operador | `PmsCargoFinanciero` | grupo `pms_cargo:write` |
+| Cambiar qué campos del pago se pueden editar tras crearlo | `PmsPagoFinanciero` | grupo `pms_pago:patch` |
+| Cambiar el candado de edición de cargos en la UI (§12.5.2) | `ReservaFinanzasPanel.vue` | `cargosDesbloqueados` / `puedeEditarCargo()` |
+| Cambiar cuándo se auto-crea la cabecera financiera (§12.0) | `PmsInformacionFinancieraCoherenciaListener` | `crearCabeceraPara()` |
+| Permitir/impedir borrar un cargo (§12.4.1) | `PmsInformacionFinancieraCoherenciaListener` | `assertCargoBorrable()` |
+| Cambiar los valores por defecto de un cargo manual (§12.4.1) | `PmsCargoFinanciero` | `aplicarDefectosDeCargoManual()` |
+| Cambiar la tarifa de limpieza de las directas (hoy 15.00, §12.0.1) | `PmsCargosAutomaticosService` | `TARIFA_LIMPIEZA` |
+| Empezar a cobrar el servicio en las directas (§12.0.1) | `PmsCargosAutomaticosService` | `generarParaEvento()` — hoy omite `SERVICIO` a propósito |
+| Cambiar qué estancias estrenan cargos automáticos (§12.0.1) | `PmsCargosAutomaticosService` | `aplica()` (hoy: directas, sin bloqueos) |
+| Cambiar cómo se calcula el alojamiento por noche (§12.0.1) | `PmsCargosAutomaticosService` | `calcularAlojamiento()` → `TarifaPricingEngine::buildDailyPricesForIntervalWithFallback()` |
+| Cambiar el relleno de días sin tarifa (§12.0.1) | `PmsCargosAutomaticosService` | `fallbackProvider` (hoy: tarifa base de la unidad) |
+| Cambiar el orden cargos-automáticos ↔ rollup (§12.0.1) | `PmsInformacionFinancieraCoherenciaListener` | `postFlush()` / `generarCargosAutomaticos()` |
+| Cambiar el desglose de importes por tipo (§12.0.2) | `PmsInformacionFinanciera` + `PmsInformacionFinancieraRecalculoService` | `getTotalPorTipo()` (es **espejo** del SQL: tocar los dos) |
+| Añadir una variable financiera a las plantillas (§12.0.3) | `PmsMessageDataResolver` | `getMessageVariables()` **y** `getPreviewMessageVariables()` (Meta exige el `example`) |
+| Cambiar el total que ve el motor de reglas del chat (§12.0.3) | `PmsReservaMessageContext` | `getFinancialTotal()` / `isFinancialCleared()` |
+| Pasar la cabecera al contexto de mensajería (§12.0.3) | `Beds24ReceivePersister` + `PmsReservaRecalculoService` | 2º argumento de `new PmsReservaMessageContext()` |

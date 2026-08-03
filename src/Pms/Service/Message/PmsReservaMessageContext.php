@@ -7,6 +7,7 @@ namespace App\Pms\Service\Message;
 use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\MessageContextInterface;
 use App\Pms\Entity\PmsEventoEstado;
+use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -20,8 +21,16 @@ use Throwable;
  */
 class PmsReservaMessageContext implements MessageContextInterface
 {
+    /**
+     * La cabecera financiera se INYECTA en vez de resolverse aquí dentro: este adaptador no
+     * tiene EntityManager, y añadir la relación inversa en PmsReserva obligaría a Doctrine a
+     * cargar la cabecera en cada hidratación de reserva (el lado inverso de un OneToOne no se
+     * puede proxiar), lo que penalizaría el calendario entero por un dato que sólo usa el chat.
+     * Si llega null se cae al `montoTotal` de la reserva, que es lo que había antes.
+     */
     public function __construct(
-        private readonly PmsReserva $reserva
+        private readonly PmsReserva $reserva,
+        private readonly ?PmsInformacionFinanciera $informacionFinanciera = null
     ) {}
 
     // =========================================================================
@@ -200,18 +209,29 @@ class PmsReservaMessageContext implements MessageContextInterface
 
     /**
      * Monto financiero total de la reserva.
+     *
+     * Sale de la cabecera financiera (§12): `montoTotal` sólo se rellena en las OTA, así que
+     * en una reserva directa daba 0 aunque tuviera cargos registrados.
      */
     public function getFinancialTotal(): ?float
     {
-        return (float) $this->reserva->getMontoTotal();
+        return (float) ($this->informacionFinanciera?->getTotalCargos() ?? $this->reserva->getMontoTotal());
     }
 
     /**
      * Indica si la reserva ya ha sido pagada en su totalidad.
+     *
+     * Exige que HAYA algo que cobrar: sin cargos el saldo también es cero, y dar por saldada
+     * una reserva recién creada haría que el chat saltara mensajes de cobro.
      */
     public function isFinancialCleared(): bool
     {
-        return false;
+        $info = $this->informacionFinanciera;
+        if (!$info || (float) $info->getTotalCargos() <= 0.0) {
+            return false;
+        }
+
+        return (float) $info->getSaldo() <= 0.0;
     }
 
     // =========================================================================

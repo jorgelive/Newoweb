@@ -130,4 +130,27 @@ final class TarifaPricingEngine
     ): array {
         return $this->flattener->flatten($rangos, $from, $to, $rangeAccessor, $priorityComparator);
     }
+
+    /**
+     * Igual que buildDailyPricesForInterval(), pero rellenando los días sin rango con el
+     * fallback (tarifa base de la unidad). Sin fallback, esos días **no aparecen** en el mapa:
+     * quien sume precios acabaría cobrando de menos sin enterarse.
+     *
+     * @param array<int, object|array<string,mixed>> $rangos
+     * @param callable $rangeAccessor fn($r): array{start:DateTimeInterface, end:DateTimeInterface, price:float|int|string, minStay?:int|null, currency?:string|null, important?:bool, weight?:int, id?:int|string|null}
+     * @param callable|null $priorityComparator fn($a,$b): int
+     * @param callable|null $fallbackProvider fn(DateTimeInterface $day): ?array{price:float|int|string, minStay?:int|null, currency?:string|null, sourceId?:string|null}
+     *
+     * @return array<string, array{price:float, minStay:int, currency:?string, sourceId:string}>
+     */
+    public function buildDailyPricesForIntervalWithFallback(
+        array $rangos,
+        DateTimeInterface $from,
+        DateTimeInterface $to,
+        callable $rangeAccessor,
+        ?callable $priorityComparator = null,
+        ?callable $fallbackProvider = null
+    ): array {
+        return $this->flattener->flatten($rangos, $from, $to, $rangeAccessor, $priorityComparator, $fallbackProvider);
+    }
 }

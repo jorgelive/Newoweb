@@ -38,6 +38,7 @@ use App\Panel\Controller\Crud\MessengerMessageCrudController;
 use App\Panel\Controller\Crud\PushSubscriptionCrudController;
 use App\Panel\Controller\Crud\UserCrudController;
 use App\Pax\Controller\Crud\UiI18nCrudController;
+use App\Pms\Controller\Crud\Beds24InvoiceReceiveQueueCrudController;
 use App\Pms\Controller\Crud\PmsBeds24WebhookAuditCrudController;
 use App\Pms\Controller\Crud\PmsBookingsPullQueueCrudController;
 use App\Pms\Controller\Crud\PmsBookingsPushQueueCrudController;
@@ -53,6 +54,9 @@ use App\Pms\Controller\Crud\PmsGuiaCrudController;
 use App\Pms\Controller\Crud\PmsGuiaItemCrudController;
 use App\Pms\Controller\Crud\PmsGuiaItemGaleriaCrudController;
 use App\Pms\Controller\Crud\PmsGuiaSeccionCrudController;
+use App\Pms\Controller\Crud\PmsCargoFinancieroCrudController;
+use App\Pms\Controller\Crud\PmsInformacionFinancieraCrudController;
+use App\Pms\Controller\Crud\PmsPagoFinancieroCrudController;
 use App\Pms\Controller\Crud\PmsRatesPushQueueCrudController;
 use App\Pms\Controller\Crud\PmsReservaCrudController;
 use App\Pms\Controller\Crud\PmsReservaHuespedCrudController;
@@ -145,6 +149,14 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(PmsTarifaRangoCrudController::class, 'Tarifas', 'fa fa-tags'),
             ])
             ->setPermission(Roles::RESERVAS_WRITE);
+
+        yield MenuItem::subMenu('Finanzas', 'fa fa-money-check-dollar')
+            ->setSubItems([
+                MenuItem::linkTo(PmsInformacionFinancieraCrudController::class, 'Información Financiera', 'fa fa-file-invoice-dollar'),
+                MenuItem::linkTo(PmsCargoFinancieroCrudController::class, 'Cargos (Beds24)', 'fa fa-receipt'),
+                MenuItem::linkTo(PmsPagoFinancieroCrudController::class, 'Pagos Recibidos', 'fa fa-hand-holding-dollar'),
+            ])
+            ->setPermission(Roles::RESERVAS_SHOW);
 
         // =========================================================================
         // SECCIÓN NUEVA: AGENCIA & TOURS (TRAVEL)
@@ -271,6 +283,7 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(WhatsappMetaSendQueueCrudController::class, 'Salida WhatsApp', 'fa fa-paper-plane'),
                 MenuItem::linkTo(Beds24SendQueueCrudController::class, 'Salida Beds24', 'fa fa-cloud-upload-alt'),
                 MenuItem::linkTo(Beds24ReceiveQueueCrudController::class, 'Entrada Beds24', 'fa fa-cloud-download-alt'),
+                MenuItem::linkTo(Beds24InvoiceReceiveQueueCrudController::class, 'Entrada Facturas Beds24', 'fa fa-file-invoice-dollar'),
             ])
             ->setPermission(Roles::ADMIN);
 

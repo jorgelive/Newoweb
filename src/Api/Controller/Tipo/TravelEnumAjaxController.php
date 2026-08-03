@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Api\Controller\Cotizacion;
+namespace App\Api\Controller\Tipo;
 
 use App\Travel\Enum\ComponenteTipoEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,8 +13,8 @@ use Symfony\Component\Routing\Annotation\Route;
  * Controlador AJAX para exponer metadatos de Enums al frontend.
  * Se agrupa bajo el prefijo 'user' para heredar las reglas del firewall.
  */
-#[Route('/cotizacion/user/maestros-enum', name: 'cotizacion_user_maestros_enum')]
-class MaestrosEnumAjaxController extends AbstractController
+#[Route('/tipo/user/enum/travel', name: 'tipo_user_enum_travel')]
+class TravelEnumAjaxController extends AbstractController
 {
     /**
      * Expone las reglas de negocio de los tipos de componentes (si requieren hora, prioridad, etc).

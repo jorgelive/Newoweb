@@ -16,6 +16,7 @@ import { useChatStore, type ApiTemplate } from '@/stores/chat/chatStore';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import {
     abrirWhatsapp,
+    fechaAInputLocal,
     PMS_CHANNEL,
     PMS_ESTADO,
     type PmsEventoExtendedProps,
@@ -246,21 +247,26 @@ function abrirEdicion(props: PmsEventoExtendedProps, readOnly: boolean): void {
     drawerVisible.value = true;
 }
 
+/** Noches que abarca una estancia recién creada (espejo de agregarEvento() en el drawer). */
+const RANGO_POR_DEFECTO_DIAS = 2;
+
 function abrirCreacion(unidadId: string, fechaClic: Date, kind: 'bloqueo' | 'reserva'): void {
     const inicio = new Date(fechaClic);
     inicio.setHours(14, 0, 0, 0);
     const fin = new Date(inicio);
-    fin.setDate(fin.getDate() + 1);
+    fin.setDate(fin.getDate() + RANGO_POR_DEFECTO_DIAS);
     fin.setHours(10, 0, 0, 0);
 
     drawerEventoId.value = null;
     drawerReservaId.value = null;
     drawerCreateKind.value = kind;
     drawerStartReadOnly.value = false;
+    // Hora de pared, NO `toISOString()`: estas fechas son 14:00/10:00 en recepción, no
+    // instantes universales (ver el bloque de fechas en pmsReservaModel.ts).
     drawerCreateDefaults.value = {
         unidadId,
-        inicio: inicio.toISOString(),
-        fin: fin.toISOString(),
+        inicio: fechaAInputLocal(inicio),
+        fin: fechaAInputLocal(fin),
     };
     drawerVisible.value = true;
 }
@@ -515,12 +521,26 @@ async function elegirEnviarWhatsapp(templateId: string): Promise<void> {
     }
 }
 
-function onGuardado(): void {
-    drawerVisible.value = false;
+function onGuardado(payload?: { reservaIdCreada?: string }): void {
     reservasStore.clearActivo();
+
     const api = calendarApiRef.value?.getApi() as any;
     api?.refetchEvents();
     api?.refetchResources();
+
+    // Reserva directa recién creada: en vez de cerrar, el drawer se queda abierto sobre ella
+    // en modo edición. Es el único momento en que se puede cargar su información financiera
+    // sin tener que volver a buscarla en el calendario (una directa no recibe cargos del canal).
+    if (payload?.reservaIdCreada) {
+        drawerEventoId.value = null;
+        drawerReservaId.value = payload.reservaIdCreada;
+        drawerCreateDefaults.value = null;
+        drawerCreateKind.value = null;
+        drawerStartReadOnly.value = false;
+        return;
+    }
+
+    drawerVisible.value = false;
 }
 
 // ============================================================================
@@ -577,6 +597,24 @@ const calendarOptions: any = {
     editable: true,
     eventStartEditable: true,
     eventDurationEditable: true,
+
+    /**
+     * Las estancias sincronizadas por una OTA NO se arrastran ni se redimensionan: sus fechas
+     * y su unidad las manda el canal (el backend rechaza el PATCH con 403, ver §3 del doc).
+     * Marcarlas `editable: false` aquí evita el arrastre en falso — el usuario ni siquiera ve
+     * el cursor de "mover" — en vez de dejarle soltar y revertir con un error.
+     */
+    eventDataTransform: (evento: any) => {
+        if (evento?.extendedProps?.isOta) {
+            evento.editable = false;
+            evento.startEditable = false;
+            evento.durationEditable = false;
+        }
+        return evento;
+    },
+
+    // Red de seguridad por si algún evento llega sin `isOta` resuelto en el transform.
+    eventAllow: (_dropInfo: any, evento: any) => !evento?.extendedProps?.isOta,
     refetchResourcesOnNavigate: true,
     resourceOrder: 'orden',
     eventOrder: '-prioridadImportante,-duration,start',

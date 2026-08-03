@@ -8,6 +8,7 @@ use App\Message\Contract\MessageDataResolverInterface;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -96,6 +97,12 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         $pais = $reserva->getPais();
         $localizador = $reserva->getLocalizador();
 
+        // Los importes salen de la CABECERA FINANCIERA, no de PmsReserva::getMontoTotal():
+        // ese campo sólo se rellena en las OTA (y a veces incompleto), así que en una directa
+        // la plantilla decía "su total es 0.00". Ver §12.0.2.
+        $info = $this->entityManager->getRepository(PmsInformacionFinanciera::class)
+            ->findOneBy(['reserva' => $reserva]);
+
         return [
             'guest_name'            => $reserva->getNombreCliente(),
             'guest_full_name'       => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
@@ -104,7 +111,13 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'checkout_date'         => $reserva->getFechaSalida()?->format('d/m/Y') ?? '',
             'nights'                => $reserva->getNoches(),
             'pax_total'             => $reserva->getPaxTotal(),
-            'total_amount'          => $reserva->getMontoTotal() ?? '0.00',
+            'total_amount'          => $info?->getTotalCargos() ?? '0.00',
+            'accommodation_amount'  => $info?->getTotalAlojamiento() ?? '0.00',
+            'cleaning_fee'          => $info?->getTotalLimpieza() ?? '0.00',
+            'service_fee'           => $info?->getTotalServicio() ?? '0.00',
+            'paid_amount'           => $info?->getTotalPagos() ?? '0.00',
+            'balance'               => $info?->getSaldo() ?? '0.00',
+            'currency'              => (string) ($info?->getMoneda()?->getId() ?? ''),
             'property_name'         => $reserva->getNombreHotel(),
             'room_name'             => $reserva->getNombreHabitacion(),
             'channel_name'          => $canal ? $canal->getNombre() : 'Directo',
@@ -137,6 +150,12 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'nights'                => 4,
             'pax_total'             => 2,
             'total_amount'          => '150.00',
+            'accommodation_amount'  => '120.00',
+            'cleaning_fee'          => '15.00',
+            'service_fee'           => '15.00',
+            'paid_amount'           => '50.00',
+            'balance'               => '100.00',
+            'currency'              => 'USD',
             'property_name'         => 'Centro Cusco Inti',
             'room_name'             => 'Casita Principal',
             'channel_name'          => 'Booking.com',

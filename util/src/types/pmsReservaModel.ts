@@ -240,18 +240,49 @@ export function abrirWhatsapp(telefono: string, texto: string): void {
 // ============================================================================
 
 /** ISO ("2025-03-01T14:00:00+00:00") -> valor para <input type="datetime-local"> ("2025-03-01T14:00"). */
+// ============================================================================
+// FECHAS DE ESTANCIA: SON HORA DE PARED, NO INSTANTES
+//
+// `inicio` y `fin` viven en columnas `datetime` SIN zona horaria, y el backend las
+// escribe con la hora de recepción del establecimiento (check-in 14:00, check-out 10:00
+// — ver PmsEventoCalendarioFactory::resolveFechaConHora()). "Las 14:00" significa las
+// 14:00 en la recepción, no un instante universal.
+//
+// Por eso estas conversiones **nunca pasan por `new Date()`**: ese constructor las trata
+// como instantes y les aplica el offset del navegador. Con la implementación anterior
+// —`new Date(iso)` al leer y `.toISOString()` al escribir— en Lima (UTC-5) pasaba esto:
+//
+//     BD 14:00  →  API "14:00+00:00"  →  el formulario mostraba 09:00
+//     y al guardar 14:00 a mano, la BD acababa con 19:00
+//
+// El desfase no se acumulaba, pero la hora mostrada era falsa y los eventos editados a
+// mano quedaban descuadrados respecto a los que crea la sincronización de Beds24.
+// Trabajando con la cadena en crudo, la hora que ve el operador es la que hay en la BD.
+// ============================================================================
+
+/** ISO del backend ("2025-03-01T14:00:00+00:00") -> valor de <input type="datetime-local">. */
 export const toDatetimeLocal = (iso?: string | null): string => {
     if (!iso) return '';
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '';
-    const pad = (n: number): string => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    // Acepta separador "T" o espacio; ignora deliberadamente segundos y offset.
+    const m = String(iso).match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+    return m ? `${m[1]}T${m[2]}` : '';
 };
 
-/** Valor de <input type="datetime-local"> ("2025-03-01T14:00") -> ISO para el backend. */
+/**
+ * Valor de <input type="datetime-local"> ("2025-03-01T14:00") -> cadena para el backend.
+ * Se manda SIN zona ni sufijo `Z`: es la hora de pared tal cual, que es lo que Doctrine
+ * guardará literalmente en la columna.
+ */
 export const fromDatetimeLocal = (local: string): string => {
-    const d = new Date(local);
-    return d.toISOString();
+    if (!local) return '';
+    const m = local.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+    return m ? `${m[1]}T${m[2]}:00` : local;
+};
+
+/** Date del navegador -> hora de pared "YYYY-MM-DDTHH:mm", sin convertir a UTC. */
+export const fechaAInputLocal = (d: Date): string => {
+    const pad = (n: number): string => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 // ============================================================================

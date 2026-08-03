@@ -13,6 +13,7 @@ use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Factory\MessageConversationFactory;
 use App\Message\Service\MessageJsonMerger;
 use App\Message\Service\Translation\GuestLanguageDetectorService;
+use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Repository\PmsReservaRepository;
 use App\Pms\Service\Message\PmsReservaMessageContext;
@@ -54,7 +55,10 @@ readonly class Beds24ReceivePersister
             throw new RuntimeException("Reserva Beds24 $targetBookId no encontrada.");
         }
 
-        $context = new PmsReservaMessageContext($reserva);
+        $context = new PmsReservaMessageContext(
+            $reserva,
+            $this->em->getRepository(PmsInformacionFinanciera::class)->findOneBy(['reserva' => $reserva])
+        );
         $conversation = $this->conversationFactory->upsertFromContext($context);
         $channel = $this->em->getReference(MessageChannel::class, 'beds24');
 

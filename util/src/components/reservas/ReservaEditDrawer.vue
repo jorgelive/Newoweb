@@ -4,6 +4,8 @@ import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/rese
 import { useMaestroStore } from '@/stores/maestroStore';
 import { getUrls } from '@/services/apiClient';
 import { formatearTelefono } from '@/utils/telefono';
+import ReservaFinanzasPanel from '@/components/reservas/ReservaFinanzasPanel.vue';
+import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
     PMS_ESTADO,
     PMS_ESTADO_PAGO,
@@ -15,6 +17,7 @@ import {
     pmsChannelIri,
     toDatetimeLocal,
     fromDatetimeLocal,
+    fechaAInputLocal,
     filtrarEstadosDisponibles,
     requiereAutoConfirmacionPorPago,
     pagoMandaSobreEstado,
@@ -39,7 +42,15 @@ const props = defineProps<{
     startReadOnly?: boolean;
 }>();
 
-const emit = defineEmits<{ close: []; saved: []; deleted: [] }>();
+const emit = defineEmits<{
+    close: [];
+    /**
+     * `reservaIdCreada` sólo viaja al crear una reserva directa: la vista deja el drawer
+     * abierto sobre ella para poder cargarle finanzas en el acto (ver ReservasView.onGuardado).
+     */
+    saved: [payload?: { reservaIdCreada?: string }];
+    deleted: [];
+}>();
 
 const reservasStore = useReservasStore();
 const maestroStore = useMaestroStore();
@@ -53,6 +64,14 @@ const localError = ref<string | null>(null);
 const readOnly = ref(!!props.startReadOnly);
 function habilitarEdicion(): void {
     readOnly.value = false;
+}
+
+/**
+ * Vuelve a la ficha de solo lectura. Muestra los valores que hay AHORA en el formulario,
+ * estén guardados o no: es una vista previa, no una recarga desde el servidor.
+ */
+function verSoloLectura(): void {
+    readOnly.value = true;
 }
 
 // ============================================================================
@@ -80,6 +99,40 @@ interface EventoEntry {
     estadoActualId: string | null;
     channelNombre: string;
     form: EventoFormData;
+    /**
+     * Último valor conocido de `form.inicio`. No es un dato del formulario: sirve para saber
+     * CUÁNTOS días se movió el check-in y arrastrar el check-out la misma distancia
+     * (ver `onCambiarInicio`). Sin él, al cambiar el inicio no hay contra qué medir el salto.
+     */
+    inicioPrevio: string;
+}
+
+/** Noches que abarca una estancia nueva (espejo de RANGO_POR_DEFECTO_DIAS en ReservasView). */
+const RANGO_POR_DEFECTO_DIAS = 2;
+
+// ============================================================================
+// UTILIDADES DE `datetime-local` ("YYYY-MM-DDTHH:mm")
+//
+// Se manipulan como fecha LOCAL, nunca con `new Date(str)` a secas: ese constructor
+// interpreta "YYYY-MM-DD" como UTC y en Perú (UTC-5) devuelve el día anterior.
+// ============================================================================
+function parseLocal(dt: string): Date | null {
+    if (!dt) return null;
+    const [fecha, hora] = dt.split('T');
+    const [y, m, d] = fecha.split('-').map(Number);
+    const [hh, mm] = (hora ?? '00:00').split(':').map(Number);
+    if ([y, m, d].some(Number.isNaN)) return null;
+    return new Date(y, m - 1, d, hh || 0, mm || 0);
+}
+
+/** Alias del helper compartido: una sola definición de "Date -> hora de pared". */
+const aDatetimeLocal = fechaAInputLocal;
+
+/** Días naturales entre dos fechas, ignorando la hora. */
+function diasEntre(desde: Date, hasta: Date): number {
+    const a = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
+    const b = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+    return Math.round((b.getTime() - a.getTime()) / 86_400_000);
 }
 
 function formVacio(overrides: Partial<EventoFormData> = {}): EventoFormData {
@@ -105,6 +158,7 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
         isOta: !!evento.ota,
         estadoActualId: evento.estado?.id ?? null,
         channelNombre: evento.channel?.nombre ?? '—',
+        inicioPrevio: toDatetimeLocal(evento.inicio),
         form: {
             pmsUnidad: evento.pmsUnidad?.id ?? '',
             estado: evento.estado?.id ?? '',
@@ -127,7 +181,21 @@ const activeIndex = ref(0);
 // Solo mostramos acordeón (cabeceras plegables + botón agregar) cuando estamos
 // editando una reserva ya persistida. En creación (bloqueo o reserva nueva)
 // hay una única estancia y no tiene sentido la envoltura de acordeón.
-const esMultiEvento = computed(() => !isCreate.value && !!props.reservaId);
+/**
+ * ¿Esta reserva admite varias estancias? Sí al crear una reserva completa (un grupo puede
+ * ocupar varias casitas desde el minuto uno) y al editar una ya guardada. Un BLOQUEO no:
+ * es un único tramo de calendario.
+ */
+const permiteVariasEstancias = computed(() => isCreateReserva.value || (!isCreate.value && !!props.reservaId));
+
+/**
+ * ¿Se pinta la envoltura de acordeón? En una reserva ya guardada siempre (así se ha visto
+ * siempre); al crear, sólo en cuanto se añade la segunda estancia — con una sola, las
+ * cabeceras plegables serían ruido sobre un formulario que ya se ve entero.
+ */
+const esMultiEvento = computed(
+    () => permiteVariasEstancias.value && (!isCreate.value || eventos.value.length > 1),
+);
 const hayOta = computed(() => eventos.value.some(e => e.isOta));
 
 function estadosDisponiblesPara(entry: EventoEntry) {
@@ -225,26 +293,129 @@ function colorEntry(entry: EventoEntry): string {
     return resolveEventoColor(estadoObj(entry.form.estado), estadoPagoObj(entry.form.estadoPago));
 }
 
+/**
+ * Sufijos de opacidad (canal alfa en hex) que se concatenan al color del estado.
+ *
+ * La cabecera va más saturada que el cuerpo a propósito: con varias estancias apiladas, ese
+ * salto de tono es lo que marca dónde acaba una y empieza la siguiente. El cuerpo queda muy
+ * tenue para no restar contraste a los campos del formulario que lleva encima.
+ */
+const CABECERA_ALPHA = '2E'; // ~18%
+const CUERPO_ALPHA   = '0A'; // ~4%
+const BORDE_ALPHA    = '59'; // ~35%
+
+// ============================================================================
+// FECHAS: arrastre del check-out y validación del rango
+// ============================================================================
+
+/**
+ * Al mover el check-in, el check-out se desplaza los MISMOS días, conservando su hora.
+ * Así el operador que corre una reserva de semana no tiene que recalcular la salida: la
+ * duración de la estancia se mantiene y la hora de check-out del establecimiento no se toca.
+ *
+ * Si el inicio se empuja más allá del fin (o el fin quedaba vacío), se recompone con el
+ * rango por defecto, que siempre deja una estancia válida.
+ */
+function onCambiarInicio(entry: EventoEntry): void {
+    const nuevo = parseLocal(entry.form.inicio);
+    if (!nuevo) return;
+
+    const previo = parseLocal(entry.inicioPrevio);
+    const fin = parseLocal(entry.form.fin);
+
+    if (previo && fin) {
+        const desplazamiento = diasEntre(previo, nuevo);
+        if (desplazamiento !== 0) {
+            const finNuevo = new Date(fin);
+            finNuevo.setDate(finNuevo.getDate() + desplazamiento); // conserva hora y minutos
+            entry.form.fin = aDatetimeLocal(finNuevo);
+        }
+    }
+
+    // Red de seguridad: nunca dejar un rango imposible tras el arrastre.
+    const finFinal = parseLocal(entry.form.fin);
+    if (!finFinal || finFinal <= nuevo) {
+        const recompuesto = new Date(nuevo);
+        recompuesto.setDate(recompuesto.getDate() + RANGO_POR_DEFECTO_DIAS);
+        if (finFinal) recompuesto.setHours(finFinal.getHours(), finFinal.getMinutes(), 0, 0);
+        entry.form.fin = aDatetimeLocal(recompuesto);
+    }
+
+    entry.inicioPrevio = entry.form.inicio;
+}
+
+/** ¿El rango de esta estancia es imposible? Devuelve el motivo, o null si está bien. */
+function errorFechas(entry: EventoEntry): string | null {
+    const inicio = parseLocal(entry.form.inicio);
+    const fin = parseLocal(entry.form.fin);
+    if (!inicio || !fin) return 'Falta la fecha de entrada o de salida.';
+    if (fin <= inicio) return 'La salida debe ser posterior a la entrada.';
+    return null;
+}
+
+/**
+ * La unidad es obligatoria: sin ella el backend responde 400 y el drawer se quedaba
+ * mostrando un error genérico. Se valida aquí para señalar el campo concreto.
+ * En estancias OTA no se comprueba: el canal ya la fijó y el select va bloqueado.
+ */
+function errorUnidad(entry: EventoEntry): string | null {
+    if (fechasUnidadBloqueadasPara(entry)) return null;
+    return entry.form.pmsUnidad ? null : 'Elige la casita de esta estancia.';
+}
+
+/** El guardado se bloquea mientras cualquier estancia esté incompleta. */
+const hayErrorFechas = computed(() => eventos.value.some(e => errorFechas(e) !== null));
+const hayErrorUnidad = computed(() => eventos.value.some(e => errorUnidad(e) !== null));
+const hayErroresEstancia = computed(() => hayErrorFechas.value || hayErrorUnidad.value);
+
+/**
+ * Copia fechas y horas de la estancia anterior a la de índice `i`.
+ *
+ * Al añadir una estancia, las fechas por defecto ENCADENAN (empiezan donde acabó la
+ * anterior), que es lo correcto para una mudanza de casita a mitad de viaje. Pero el otro
+ * caso es igual de común: dos casitas ocupadas **en paralelo** por el mismo grupo. Este
+ * botón resuelve ese segundo caso sin teclear las fechas de nuevo.
+ */
+function clonarFechasDeAnterior(i: number): void {
+    const anterior = eventos.value[i - 1];
+    const actual = eventos.value[i];
+    if (!anterior || !actual) return;
+
+    actual.form.inicio = anterior.form.inicio;
+    actual.form.fin = anterior.form.fin;
+    actual.inicioPrevio = anterior.form.inicio;
+}
+
+/** Sólo tiene sentido ofrecerlo si hay una estancia anterior de la que copiar. */
+function puedeClonarFechas(entry: EventoEntry, i: number): boolean {
+    return i > 0 && !readOnly.value && !fechasUnidadBloqueadasPara(entry);
+}
+
 function toggleAcordeon(i: number): void {
     activeIndex.value = activeIndex.value === i ? -1 : i;
 }
 
 function agregarEvento(): void {
     const ultimo = eventos.value[eventos.value.length - 1];
-    const inicio = ultimo?.form.fin ? new Date(fromDatetimeLocal(ultimo.form.fin)) : new Date();
+    // `parseLocal` y no `new Date(fromDatetimeLocal(...))`: la salida de la estancia anterior
+    // es hora de pared; pasarla por UTC desplazaría el día de entrada de la nueva.
+    const inicio = parseLocal(ultimo?.form.fin ?? '') ?? new Date();
     inicio.setHours(14, 0, 0, 0);
     const fin = new Date(inicio);
-    fin.setDate(fin.getDate() + 1);
+    fin.setDate(fin.getDate() + RANGO_POR_DEFECTO_DIAS);
     fin.setHours(10, 0, 0, 0);
+
+    const inicioLocal = aDatetimeLocal(inicio);
 
     eventos.value.push({
         eventoId: null,
         isOta: false,
         estadoActualId: null,
         channelNombre: 'Directo',
+        inicioPrevio: inicioLocal,
         form: formVacio({
-            inicio: toDatetimeLocal(inicio.toISOString()),
-            fin: toDatetimeLocal(fin.toISOString()),
+            inicio: inicioLocal,
+            fin: aDatetimeLocal(fin),
         }),
     });
     activeIndex.value = eventos.value.length - 1;
@@ -332,6 +503,7 @@ async function cargarDatos(): Promise<void> {
                 isOta: false,
                 estadoActualId: null,
                 channelNombre: 'Directo',
+                inicioPrevio: toDatetimeLocal(props.createDefaults.inicio),
                 form: formVacio({
                     pmsUnidad: props.createDefaults.unidadId,
                     estado: isCreateReserva.value ? PMS_ESTADO.PENDIENTE : PMS_ESTADO.BLOQUEO,
@@ -424,8 +596,35 @@ function payloadCreacion(entry: EventoEntry, estado: string): PmsEventoCalendari
     };
 }
 
+/**
+ * Referencia al panel financiero, para arrastrar sus formularios a medio escribir al pulsar
+ * "Guardar Cambios". Ese botón es mucho más visible que los pequeños de cada formulario del
+ * panel, así que es el que se acaba usando: sin esto, un cargo o un pago tecleado pero no
+ * confirmado se perdía en silencio al cerrar el drawer.
+ */
+const finanzasPanel = ref<{ guardarPendientes: () => Promise<void> } | null>(null);
+
+/** El id de la reserva recién creada; según el formato de respuesta llega en `id` o en `@id`. */
+function extraerId(reserva: unknown): string | null {
+    const r = reserva as { id?: string; '@id'?: string } | null;
+    if (r?.id) return r.id;
+    const iri = r?.['@id'];
+    return iri ? (iri.split('/').pop() ?? null) : null;
+}
+
 async function guardar(): Promise<void> {
     localError.value = null;
+
+    // Se corta antes de tocar la red: el backend rechaza ambos casos (400 / 422), pero
+    // avisando aquí se señala el campo concreto y no se pierde el formulario.
+    if (hayErrorUnidad.value) {
+        localError.value = 'Falta elegir la casita en alguna estancia.';
+        return;
+    }
+    if (hayErrorFechas.value) {
+        localError.value = 'Revisa las fechas: la salida debe ser posterior a la entrada.';
+        return;
+    }
 
     try {
         if (isCreateReserva.value) {
@@ -448,7 +647,25 @@ async function guardar(): Promise<void> {
                 monto: entry.form.monto,
                 comision: entry.form.comision,
             };
-            await reservasStore.createReservaCompleta(payload);
+            const creada = await reservasStore.createReservaCompleta(payload);
+            const idCreada = extraerId(creada);
+
+            // El endpoint de creación sólo admite UNA estancia (PmsReservaCrearProcessor).
+            // Las demás casitas del acordeón se crean después, colgadas de la reserva recién
+            // nacida — mismo camino que usa la edición para una estancia añadida a mano.
+            if (idCreada && eventos.value.length > 1) {
+                for (const extra of eventos.value.slice(1)) {
+                    const payloadExtra = payloadCreacion(extra, extra.form.estado);
+                    payloadExtra.reserva = pmsReservaIri(idCreada);
+                    await reservasStore.createEvento(payloadExtra);
+                }
+            }
+
+            // La reserva directa nace sin cargos (no hay canal que los mande). En vez de
+            // cerrar y obligar a buscarla de nuevo en el calendario, devolvemos su id para
+            // que la vista reabra el drawer en modo edición, ya con el panel financiero.
+            emit('saved', idCreada ? { reservaIdCreada: idCreada } : undefined);
+            return;
         } else if (isCreate.value) {
             // Bloqueo manual: el canal SIEMPRE es directo, no es seleccionable ni negociable.
             await reservasStore.createEvento(payloadCreacion(eventos.value[0], PMS_ESTADO.BLOQUEO));
@@ -503,6 +720,11 @@ async function guardar(): Promise<void> {
             }
         }
 
+        // Al final, para que un fallo aquí no deje a medias la estancia y el titular: si esto
+        // revienta, se muestra el error y el drawer NO se cierra, así no se pierde lo tecleado
+        // en el panel. Lo ya guardado arriba es idempotente al reintentar.
+        await finanzasPanel.value?.guardarPendientes();
+
         emit('saved');
     } catch (err) {
         localError.value = extractApiErrorMessage(err, 'No se pudo guardar. Revisa los datos e intenta de nuevo.');
@@ -535,6 +757,11 @@ async function guardar(): Promise<void> {
                         class="px-3 h-8 flex items-center gap-1.5 bg-[#376875] hover:bg-[#2d5660] rounded-full transition-colors text-xs font-black">
                         <i class="fas fa-pen text-[11px]"></i> Editar
                     </button>
+                    <!-- Vuelta a la ficha de lectura. No aparece al crear: todavía no hay nada que ver. -->
+                    <button v-else-if="!isCreate" @click="verSoloLectura"
+                        class="px-3 h-8 flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 rounded-full transition-colors text-xs font-black">
+                        <i class="fas fa-eye text-[11px]"></i> Ver
+                    </button>
                     <button @click="emit('close')" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
                         <i class="fas fa-times text-sm"></i>
                     </button>
@@ -551,11 +778,18 @@ async function guardar(): Promise<void> {
                     <i class="fas fa-exclamation-triangle mr-2"></i>{{ localError }}
                 </div>
 
-                <div v-if="hayOta" class="bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-xl px-4 py-3">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    Fechas y unidad son de solo lectura en las estancias sincronizadas por un canal externo (Booking/Airbnb).
-                    Cualquier cambio de fechas o habitación debe hacerse directamente en el canal.
-                </div>
+                <!-- Nota discreta: es contexto permanente de una reserva OTA, no una alerta. -->
+                <p v-if="hayOta" class="text-[11px] text-slate-400 leading-snug">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Fechas y unidad las gestiona el canal; para cambiarlas, hazlo en Booking/Airbnb.
+                </p>
+
+                <!-- ================= FINANZAS =================
+                     Va ARRIBA del todo y colapsada: es lo primero que se consulta al abrir una
+                     reserva (¿cuánto debe?), pero ocupa mucho desplegada. Solo sobre una reserva
+                     ya persistida: la cabecera financiera no existe mientras se está creando. -->
+                <ReservaFinanzasPanel v-if="reservaId" ref="finanzasPanel"
+                    :reserva-id="reservaId" :read-only="readOnly" />
 
                 <!-- ================= ESTANCIA(S) ================= -->
                 <section>
@@ -564,28 +798,55 @@ async function guardar(): Promise<void> {
                     </h3>
 
                     <div class="space-y-3">
+                        <!-- Cada estancia se tiñe con el color de SU estado: la cabecera más
+                             saturada y el cuerpo apenas insinuado, para que se vea de un vistazo
+                             dónde empieza y acaba cada una sin leer las fechas. -->
                         <div v-for="(entry, i) in eventos" :key="entry.eventoId ?? `nuevo-${i}`"
-                            class="border border-slate-200 rounded-xl overflow-hidden">
+                            class="rounded-xl overflow-hidden border"
+                            :style="{ borderColor: colorEntry(entry) + BORDE_ALPHA }">
 
-                            <button v-if="esMultiEvento" type="button" @click="toggleAcordeon(i)"
-                                class="w-full flex items-center justify-between gap-2 px-4 py-3 hover:brightness-95 text-left transition-[filter]"
-                                :style="{ borderLeft: `5px solid ${colorEntry(entry)}`, backgroundColor: colorEntry(entry) + '14' }">
-                                <span class="flex items-center gap-2 text-sm font-bold text-slate-700 min-w-0">
-                                    <i class="fas fa-chevron-right text-[10px] text-slate-400 transition-transform shrink-0"
-                                        :class="{ 'rotate-90': activeIndex === i }"></i>
-                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: colorEntry(entry) }"></span>
-                                    <span class="truncate">{{ nombreUnidad(entry) }}</span>
-                                    <span class="text-slate-400 font-normal text-xs whitespace-nowrap">
-                                        {{ fechaCorta(entry.form.inicio) }} → {{ fechaCorta(entry.form.fin) }} · {{ paxTotal(entry) }} pax
+                            <!-- Barra: `div` y no `button`, porque lleva dentro el botón de clonar
+                                 fechas (un <button> anidado es HTML inválido y roba el clic). -->
+                            <div v-if="esMultiEvento" class="flex items-stretch"
+                                :style="{ borderLeft: `5px solid ${colorEntry(entry)}`, backgroundColor: colorEntry(entry) + CABECERA_ALPHA }">
+                                <button type="button" @click="toggleAcordeon(i)"
+                                    class="flex-1 min-w-0 flex items-center gap-2 px-4 py-3 hover:brightness-95 text-left transition-[filter]">
+                                    <span class="flex items-center gap-2 text-sm font-bold text-slate-700 min-w-0">
+                                        <i class="fas fa-chevron-right text-[10px] text-slate-400 transition-transform shrink-0"
+                                            :class="{ 'rotate-90': activeIndex === i }"></i>
+                                        <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: colorEntry(entry) }"></span>
+                                        <span class="truncate">{{ nombreUnidad(entry) }}</span>
+                                        <!-- Las fechas son el dato que más se consulta de la cabecera:
+                                             van en el mismo peso que la casita, con el pax en gris. -->
+                                        <span class="text-slate-700 font-bold text-xs whitespace-nowrap">
+                                            {{ fechaCorta(entry.form.inicio) }} → {{ fechaCorta(entry.form.fin) }}
+                                            <span class="text-slate-400 font-medium">· {{ paxTotal(entry) }} pax</span>
+                                        </span>
+                                        <span v-if="!entry.eventoId" class="text-emerald-600 text-[10px] font-black uppercase shrink-0">Nuevo</span>
                                     </span>
-                                    <span v-if="!entry.eventoId" class="text-emerald-600 text-[10px] font-black uppercase shrink-0">Nuevo</span>
-                                </span>
-                            </button>
+                                </button>
 
-                            <div v-show="!esMultiEvento || activeIndex === i" class="p-4">
-                                <div v-if="esMultiEvento" class="text-[11px] font-bold text-slate-400 mb-3">
-                                    <i class="fas fa-home mr-1"></i> {{ nombreUnidad(entry) }}
-                                    · {{ fechaCorta(entry.form.inicio) }} → {{ fechaCorta(entry.form.fin) }}
+                                <!-- Las fechas por defecto ENCADENAN (mudanza de casita). Esto cubre el
+                                     otro caso frecuente: dos casitas ocupadas en paralelo. -->
+                                <button v-if="puedeClonarFechas(entry, i)" type="button"
+                                    @click="clonarFechasDeAnterior(i)"
+                                    title="Usar las mismas fechas y horas que la estancia anterior"
+                                    class="px-3 flex items-center text-slate-400 hover:text-[#376875] hover:bg-white/40 transition-colors shrink-0">
+                                    <!-- Doble calendario: dos iconos superpuestos. FontAwesome no trae
+                                         uno "calendario duplicado", así que se compone; leerlo como
+                                         "copiar fechas" es más directo que un icono de copiar genérico. -->
+                                    <span class="relative inline-block w-[15px] h-[13px]">
+                                        <i class="far fa-calendar text-[11px] absolute left-0 top-0 opacity-45"></i>
+                                        <i class="fas fa-calendar text-[11px] absolute left-[4px] top-[2px]"></i>
+                                    </span>
+                                </button>
+                            </div>
+
+                            <div v-show="!esMultiEvento || activeIndex === i" class="p-4"
+                                :style="{ backgroundColor: colorEntry(entry) + CUERPO_ALPHA }">
+                                <div v-if="esMultiEvento" class="text-[11px] font-bold text-slate-500 mb-3">
+                                    <i class="fas fa-home mr-1 text-slate-400"></i> {{ nombreUnidad(entry) }}
+                                    · <span class="text-slate-700">{{ fechaCorta(entry.form.inicio) }} → {{ fechaCorta(entry.form.fin) }}</span>
                                     · {{ paxTotal(entry) }} pax
                                 </div>
 
@@ -628,14 +889,8 @@ async function guardar(): Promise<void> {
                                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Pax</p>
                                             <p class="text-sm font-bold text-slate-800 mt-0.5">{{ entry.form.cantidadAdultos }} adultos · {{ entry.form.cantidadNinos }} niños</p>
                                         </div>
-                                        <div v-if="entry.form.monto && entry.form.monto !== '0.00'">
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Monto</p>
-                                            <p class="text-sm font-bold text-slate-800 mt-0.5">{{ entry.form.monto }}</p>
-                                        </div>
-                                        <div v-if="entry.form.comision && entry.form.comision !== '0.00'">
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Comisión</p>
-                                            <p class="text-sm font-bold text-slate-800 mt-0.5">{{ entry.form.comision }}</p>
-                                        </div>
+                                        <!-- Monto y comisión no se muestran: el dinero se consulta en el
+                                             panel de Finanzas, que es la única fuente. -->
                                     </div>
                                     <div v-if="entry.form.descripcion" class="px-4 py-3">
                                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">{{ isCreate && !isCreateReserva ? 'Motivo del bloqueo' : 'Descripción' }}</p>
@@ -652,24 +907,54 @@ async function guardar(): Promise<void> {
                                     <label class="col-span-2">
                                         <span class="text-xs font-bold text-slate-500">Unidad</span>
                                         <select v-model="entry.form.pmsUnidad" :disabled="fechasUnidadBloqueadasPara(entry)"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-400">
+                                            class="mt-1 w-full border rounded-lg px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-400"
+                                            :class="errorUnidad(entry) ? 'border-rose-300 bg-rose-50' : 'border-slate-200'">
+                                            <!-- Opción vacía explícita: sin ella el select muestra la primera casita
+                                                 aunque el modelo esté vacío, y el operador cree haber elegido. -->
+                                            <option value="">— Elegir casita —</option>
                                             <option v-for="u in reservasStore.unidades" :key="u.id ?? ''" :value="u.id ?? ''">
                                                 {{ u.nombre }}{{ !u.activo ? ' (inactiva)' : '' }}
                                             </option>
                                         </select>
+                                        <span v-if="errorUnidad(entry)" class="mt-1 block text-[11px] font-bold text-rose-600">
+                                            <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorUnidad(entry) }}
+                                        </span>
                                     </label>
 
-                                    <label>
-                                        <span class="text-xs font-bold text-slate-500">Check-in</span>
-                                        <input type="datetime-local" v-model="entry.form.inicio" :disabled="fechasUnidadBloqueadasPara(entry)"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-400" />
-                                    </label>
+                                    <!-- Fechas: rejilla propia con `auto-fit` + `minmax`. Una fecha con
+                                         hora ("DD/MM/AAAA HH:MM") necesita ~11rem para no cortarse;
+                                         por debajo de 2×11rem + gap, el navegador baja el check-out a
+                                         la fila siguiente solo, sin media queries. -->
+                                    <div class="col-span-2 grid gap-3"
+                                        style="grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr))">
+                                        <label>
+                                            <span class="text-xs font-bold text-slate-500">Check-in</span>
+                                            <!-- Al mover la entrada, la salida se arrastra los mismos días (onCambiarInicio). -->
+                                            <div class="mt-1">
+                                                <!-- Handler explícito en vez de `v-model` + `@update`:
+                                                     con los dos, el orden de ejecución no está
+                                                     garantizado y onCambiarInicio podía leer el
+                                                     valor anterior. -->
+                                                <FechaHoraPicker :model-value="entry.form.inicio"
+                                                    :disabled="fechasUnidadBloqueadasPara(entry)"
+                                                    @update:model-value="(v: string) => { entry.form.inicio = v; onCambiarInicio(entry); }" />
+                                            </div>
+                                        </label>
 
-                                    <label>
-                                        <span class="text-xs font-bold text-slate-500">Check-out</span>
-                                        <input type="datetime-local" v-model="entry.form.fin" :disabled="fechasUnidadBloqueadasPara(entry)"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-400" />
-                                    </label>
+                                        <label>
+                                            <span class="text-xs font-bold text-slate-500">Check-out</span>
+                                            <div class="mt-1">
+                                                <FechaHoraPicker v-model="entry.form.fin"
+                                                    :min-date="entry.form.inicio"
+                                                    :disabled="fechasUnidadBloqueadasPara(entry)"
+                                                    :invalido="!!errorFechas(entry)" />
+                                            </div>
+                                        </label>
+
+                                        <p v-if="errorFechas(entry)" class="text-[11px] font-bold text-rose-600 -mt-1">
+                                            <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorFechas(entry) }}
+                                        </p>
+                                    </div>
 
                                     <label v-if="!isCreate || isCreateReserva">
                                         <span class="text-xs font-bold text-slate-500 inline-flex items-center gap-1.5">
@@ -706,39 +991,36 @@ async function guardar(): Promise<void> {
                                         </select>
                                     </label>
 
-                                    <label>
-                                        <span class="text-xs font-bold text-slate-500">Canal</span>
-                                        <div class="mt-1 w-full border border-slate-200 bg-slate-100 text-slate-500 rounded-lg px-3 py-2 text-sm flex items-center gap-2">
-                                            <i class="fas fa-lock text-[10px]"></i> {{ entry.channelNombre }}
-                                        </div>
-                                    </label>
+                                    <!-- Canal (bloqueado) + pax caben en una sola fila incluso en móvil:
+                                         son tres campos cortos, así que van a 3 columnas fijas.
+                                         Adultos/Niños son editables también en OTA (el backend no los
+                                         protege por listener, a diferencia de fechas/unidad/canal). -->
+                                    <div class="col-span-2 grid grid-cols-3 gap-3">
+                                        <label>
+                                            <span class="text-xs font-bold text-slate-500">Canal</span>
+                                            <div class="mt-1 w-full border border-slate-200 bg-slate-100 text-slate-500 rounded-lg px-3 py-2 text-sm flex items-center gap-1.5 truncate">
+                                                <i class="fas fa-lock text-[10px] shrink-0"></i>
+                                                <span class="truncate">{{ entry.channelNombre }}</span>
+                                            </div>
+                                        </label>
 
-                                    <!-- Adultos/Niños: SIEMPRE editables y visibles, también en eventos OTA
-                                         (el backend no los protege por listener, a diferencia de fechas/unidad/canal). -->
-                                    <label>
-                                        <span class="text-xs font-bold text-slate-500">Adultos</span>
-                                        <input type="number" min="0" v-model.number="entry.form.cantidadAdultos"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
-                                    </label>
+                                        <label>
+                                            <span class="text-xs font-bold text-slate-500">Adultos</span>
+                                            <input type="number" min="0" v-model.number="entry.form.cantidadAdultos"
+                                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                        </label>
 
-                                    <label>
-                                        <span class="text-xs font-bold text-slate-500">Niños</span>
-                                        <input type="number" min="0" v-model.number="entry.form.cantidadNinos"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
-                                    </label>
+                                        <label>
+                                            <span class="text-xs font-bold text-slate-500">Niños</span>
+                                            <input type="number" min="0" v-model.number="entry.form.cantidadNinos"
+                                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                        </label>
+                                    </div>
 
-                                    <!-- Monto/Comisión: ocultos al editar una estancia OTA (los define el canal). -->
-                                    <label v-if="!entry.isOta">
-                                        <span class="text-xs font-bold text-slate-500">Monto</span>
-                                        <input type="text" v-model="entry.form.monto"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
-                                    </label>
-
-                                    <label v-if="!entry.isOta">
-                                        <span class="text-xs font-bold text-slate-500">Comisión</span>
-                                        <input type="text" v-model="entry.form.comision"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
-                                    </label>
+                                    <!-- Monto y comisión ya NO se editan aquí: el dinero de la reserva vive
+                                         en el panel de Finanzas (cargos + pagos). Duplicarlo daba dos cifras
+                                         que podían contradecirse. Los campos siguen en el modelo y se envían
+                                         sin tocar, para no pisar lo que sincroniza el canal. -->
 
                                     <label class="col-span-2">
                                         <span class="text-xs font-bold text-slate-500">{{ isCreate && !isCreateReserva ? 'Motivo del bloqueo' : 'Descripción' }}</span>
@@ -757,7 +1039,7 @@ async function guardar(): Promise<void> {
                         </div>
                     </div>
 
-                    <button v-if="esMultiEvento && !readOnly" type="button" @click="agregarEvento"
+                    <button v-if="permiteVariasEstancias && !readOnly" type="button" @click="agregarEvento"
                         class="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 hover:border-[#376875] hover:text-[#376875] rounded-xl text-xs font-black text-slate-400 transition-colors">
                         <i class="fas fa-plus"></i> Agregar estancia en otra casita
                     </button>
@@ -901,6 +1183,7 @@ async function guardar(): Promise<void> {
                     </div>
                 </section>
 
+
             </div>
 
             <footer class="border-t border-slate-200 px-5 py-4 flex items-center justify-end gap-3 shrink-0">
@@ -912,7 +1195,7 @@ async function guardar(): Promise<void> {
                     <button @click="emit('close')" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700">
                         Cancelar
                     </button>
-                    <button @click="guardar" :disabled="reservasStore.isSaving || isLoadingDrawer"
+                    <button @click="guardar" :disabled="reservasStore.isSaving || isLoadingDrawer || hayErroresEstancia"
                         class="px-5 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-xl text-sm font-black shadow-sm transition-colors">
                         <i class="fas" :class="reservasStore.isSaving ? 'fa-circle-notch fa-spin' : 'fa-check'"></i>
                         {{ isCreateReserva ? 'Crear Reserva' : (isCreate ? 'Crear Bloqueo' : 'Guardar Cambios') }}
