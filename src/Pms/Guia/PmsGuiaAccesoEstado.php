@@ -14,16 +14,24 @@ namespace App\Pms\Guia;
  */
 enum PmsGuiaAccesoEstado: string
 {
-    /** Sin reserva: catálogo público de la unidad. */
+    /**
+     * Sin estancia detrás: catálogo público de la unidad.
+     *
+     * También es donde cae, defensivamente, una estancia cancelada o excluida
+     * a mano: deja de ser cliente DE ESA UNIDAD (puede tener otras vigentes).
+     * En la práctica no se llega aquí por ese camino — `getEventosActivosGuia()`
+     * ya las descarta antes, así que ni salen en la lista de la reserva ni se
+     * puede abrir su guía.
+     */
     case Publico = 'publico';
 
     /**
-     * Hay estancia, pero no da derecho a nada privado: cancelada, sin pago
-     * confiable, o excluida de la guía a mano. Se trata igual que un visitante.
+     * Estancia vigente, pero sin pago confiable. Es la única situación con
+     * salida en manos del huésped, y por eso su mensaje invita a confirmar.
      */
-    case NoConfirmada = 'no_confirmada';
+    case SinPago = 'sin_pago';
 
-    /** Estancia válida, pero aún faltan más de 24 h para el check-in. */
+    /** Pagada, pero aún faltan más de 24 h para el check-in. */
     case Pendiente = 'pendiente';
 
     /** Ventana abierta: desde 24 h antes del check-in hasta el check-out. */
@@ -36,5 +44,17 @@ enum PmsGuiaAccesoEstado: string
     public function esHuesped(): bool
     {
         return self::Publico !== $this;
+    }
+
+    /**
+     * Si el dinero ya entró. Abre el nivel `ClienteConfirmado` con
+     * independencia de la ventana temporal: una vez pagada, la estancia sigue
+     * confirmada antes, durante y después de la ventana.
+     */
+    public function pagoConfirmado(): bool
+    {
+        return self::Pendiente === $this
+            || self::Activa === $this
+            || self::Expirada === $this;
     }
 }

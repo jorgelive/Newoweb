@@ -63,26 +63,33 @@ final readonly class PmsGuiaAcceso
 
         $ahora ??= new \DateTimeImmutable();
 
-        // 1. La estancia tiene que estar viva (ni cancelada ni bloqueo interno).
-        if (!in_array($evento->getEstado()?->getId(), PmsEventoEstado::MOSTRAR_EVENTO_GUIA, true)) {
-            return new self(PmsGuiaAccesoEstado::NoConfirmada);
+        // 1 y 2. Estancia muerta (cancelada, bloqueo interno) o excluida a mano
+        // por el operador: deja de ser cliente DE ESTA UNIDAD —puede tener otras
+        // estancias vigentes— y se trata como visitante, que es el nivel más
+        // restrictivo posible.
+        //
+        // Es una RED DE SEGURIDAD, no el filtro real: PmsReserva::getEventosActivosGuia()
+        // ya descarta estas estancias antes, así que ni aparecen en la lista de
+        // la reserva ni se puede abrir su guía (PmsGuiaHuespedProvider devuelve
+        // 404). Esto solo cubre a quien llame a paraEvento() con un evento crudo.
+        if (!in_array($evento->getEstado()?->getId(), PmsEventoEstado::MOSTRAR_EVENTO_GUIA, true)
+            || $evento->isGuiaDisabled()
+        ) {
+            return self::publico();
         }
 
-        // 2. El operador puede excluirla de la guía a mano.
-        if ($evento->isGuiaDisabled()) {
-            return new self(PmsGuiaAccesoEstado::NoConfirmada);
-        }
-
-        // 3. Solo el dinero recibido abre los códigos de acceso.
+        // 3. Solo el dinero recibido confirma la estancia.
         if (!in_array($evento->getEstadoPago()?->getId(), PmsEventoEstadoPago::ESTADOS_PAGO_CONFIABLES, true)) {
-            return new self(PmsGuiaAccesoEstado::NoConfirmada);
+            return new self(PmsGuiaAccesoEstado::SinPago);
         }
 
         $inicio = $evento->getInicio();
         $fin = $evento->getFin();
 
+        // Sin fechas no se puede situar la ventana. Se degrada a SinPago (el
+        // nivel inmediatamente inferior) en vez de arriesgar a abrir códigos.
         if (null === $inicio || null === $fin) {
-            return new self(PmsGuiaAccesoEstado::NoConfirmada);
+            return new self(PmsGuiaAccesoEstado::SinPago);
         }
 
         $liberaEn = \DateTimeImmutable::createFromInterface($inicio)
@@ -105,40 +112,61 @@ final readonly class PmsGuiaAcceso
      * LA MATRIZ. Cruzar visibilidad del ítem con estado de la estancia ocurre
      * aquí y en ningún otro sitio.
      *
-     * | estado \ visibilidad | Publico | Privado | Llegada |
-     * |----------------------|---------|---------|---------|
-     * | Publico              |    ✓    |    ✗    |    ✗    |
-     * | NoConfirmada         |    ✓    |    ✓    |    ✗    |
-     * | Pendiente            |    ✓    |    ✓    |    ✗    |
-     * | Activa               |    ✓    |    ✓    |    ✓    |
-     * | Expirada             |    ✓    |    ✓    |    ✗    |
+     * Los cuatro niveles son una escalera estrictamente creciente
+     * (`Publico ⊂ Cliente ⊂ ClienteConfirmado ⊂ SoloVentana`), y cada peldaño
+     * añade UNA condición: tener localizador, haber pagado, estar en ventana.
      *
-     * NoConfirmada conserva el acceso a lo `Privado` a propósito: cómo llegar y
-     * las normas de la casa no son secretos, y quien tiene el localizador lo
-     * sacó de su correo de confirmación. Lo que el pago protege son los códigos,
-     * y esos son `Llegada`.
+     * | estado \ visibilidad | Publico | Cliente | ClienteConfirmado | SoloVentana |
+     * |----------------------|---------|---------|-------------------|-------------|
+     * | Publico              |    ✓    |    ✗    |         ✗         |      ✗      |
+     * | SinPago              |    ✓    |    ✓    |         🔒        |      🔒     |
+     * | Pendiente            |    ✓    |    ✓    |         ✓         |      🔒     |
+     * | Activa               |    ✓    |    ✓    |         ✓         |      ✓      |
+     * | Expirada             |    ✓    |    ✓    |         ✓         |      🔒     |
+     *
+     * (🔒 = no se puede ver, pero el ítem SE ANUNCIA con candado; ver
+     * debeAnunciarBloqueo().)
+     *
+     * `SinPago` conserva el nivel `Cliente` a propósito: cómo llegar y las
+     * normas de la casa no son secretos, y quien tiene el localizador lo sacó
+     * de su correo. Lo que el pago protege empieza en `ClienteConfirmado`.
+     *
+     * `ClienteConfirmado` sigue abierto en `Expirada`: lo que se pagó, pagado
+     * está. Lo que caduca con el check-out es la ventana, o sea `SoloVentana`.
      */
     public function permite(PmsGuiaVisibilidad $visibilidad): bool
     {
         return match ($visibilidad) {
-            PmsGuiaVisibilidad::Publico => true,
-            PmsGuiaVisibilidad::Privado => $this->estado->esHuesped(),
-            PmsGuiaVisibilidad::Llegada => PmsGuiaAccesoEstado::Activa === $this->estado,
+            PmsGuiaVisibilidad::Publico           => true,
+            PmsGuiaVisibilidad::Cliente           => $this->estado->esHuesped(),
+            PmsGuiaVisibilidad::ClienteConfirmado => $this->estado->pagoConfirmado(),
+            PmsGuiaVisibilidad::SoloVentana       => PmsGuiaAccesoEstado::Activa === $this->estado,
         };
     }
 
     /**
-     * Un ítem que no se puede ver todavía, ¿se anuncia bloqueado o desaparece?
+     * Un ítem que no se puede ver, ¿se anuncia con candado o desaparece?
      *
-     * Solo se anuncia cuando la espera tiene fecha: en Pendiente el huésped ve
-     * "[Disponible el 12/08 a las 15:00]" y entiende que el dato existe. En
-     * Expirada o NoConfirmada no hay nada que prometer, así que el ítem se
-     * omite del árbol en vez de dejar un candado permanente sin explicación.
+     * A un huésped identificado SIEMPRE se le anuncia: tiene el localizador, no
+     * es un desconocido, y esconderle el ítem le hace creer que la guía no trae
+     * esa información en vez de entender qué le falta para verla. El título y la
+     * barra se ven; el cuerpo viaja con el mensaje de bloqueo y el valor real
+     * nunca sale del servidor. Cada estado dice algo distinto (PmsGuiaMensajes):
+     *
+     * - `SinPago`   → "[Disponible al confirmar]". Acción en su mano.
+     * - `Pendiente` → "[Disponible el 12/08 a las 15:00]". Hay fecha.
+     * - `Expirada`  → "[Reserva finalizada]". Hubo algo ahí y caducó.
+     *
+     * La única excepción es el visitante sin estancia —o con la estancia
+     * cancelada, que cae en el mismo estado—: a él no se le insinúa siquiera la
+     * estructura de la guía privada.
+     *
+     * Esto decide la visibilidad del ÍTEM, no la del DATO. De eso se ocupa
+     * `permite()`, arriba.
      */
     public function debeAnunciarBloqueo(PmsGuiaVisibilidad $visibilidad): bool
     {
-        return $visibilidad->esTemporal()
-            && PmsGuiaAccesoEstado::Pendiente === $this->estado;
+        return $this->estado->esHuesped() && $visibilidad->exigeCondicionExtra();
     }
 
     /** Atajo de legibilidad: la ventana está abierta y los códigos son reales. */

@@ -71,18 +71,20 @@ final class PmsGuiaArbolFiltro
             $visibilidad = $item->getVisibilidad();
 
             if ($acceso->permite($visibilidad)) {
-                $item->setBloqueadoHasta(null);
+                $item->setBloqueado(false)->setBloqueadoHasta(null);
                 $items[] = $this->interpolarItem($item, $acceso, $contexto);
                 continue;
             }
 
-            // No se puede ver todavía. Si la espera tiene fecha, el ítem se
-            // queda anunciado con el candado —el huésped ve que el dato existe
-            // y cuándo lo tendrá— y su cuerpo sale con el mensaje de bloqueo,
-            // nunca con el valor. Si no la tiene, desaparece del árbol: un
-            // candado permanente sin explicación solo genera soporte.
+            // No se puede ver todavía. Si la espera tiene salida —una fecha, o
+            // una confirmación que depende del huésped— el ítem se queda
+            // anunciado con el candado y su cuerpo sale con el mensaje de
+            // bloqueo, nunca con el valor. Si no la tiene (estancia expirada),
+            // desaparece del árbol. Ver PmsGuiaAcceso::debeAnunciarBloqueo().
             if ($acceso->debeAnunciarBloqueo($visibilidad)) {
-                $item->setBloqueadoHasta($acceso->liberaEn);
+                // `liberaEn` es null salvo en Pendiente: el candado lo marca
+                // `setBloqueado()`, y la fecha es solo el "cuándo" opcional.
+                $item->setBloqueado(true)->setBloqueadoHasta($acceso->liberaEn);
                 $items[] = $this->interpolarItem($item, $acceso, $contexto);
             }
         }

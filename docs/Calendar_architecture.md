@@ -553,8 +553,37 @@ Puntos que costaron y conviene no re-descubrir:
   `new Date().getDate()` — en UTC-5 eso devuelve el día anterior. En el calendario, en
   cambio, el provider inyecta horas de UI (12:00 → 11:59) y FullCalendar mueve en
   múltiplos de 24 h, por lo que ahí sí vale leer el día local de `event.start/end`.
+- **`is_scalar()` es FALSO para un `Uuid`.** Trampa que costó dos bugs en
+  `TarifaCompressedRangesSpaCalendarProvider`, porque falla en silencio: no hay
+  error, simplemente se toma la rama del fallback.
+  - En `groupByUnit()` el `resourceId` caía a `spl_object_id()`, un entero
+    efímero del proceso PHP. Como eventos y recursos se piden en **requests
+    separados**, sólo coincidían por casualidad (mismo orden de hidratación de
+    Doctrine), y ningún otro calendario podía cruzar ese id con una unidad real.
+  - En `rangeAccessor()` el id llegaba como objeto a
+    `TarifaDailyPriceFlattener::computeSourceId()`, que también filtra por
+    `is_scalar()`: generaba un `sourceId` de tipo `hash:…` en vez de `id:<uuid>`,
+    y como el provider sólo acepta el prefijo `id:`, `extendedProps.tarifaRangoId`
+    salía `null` y los tramos no eran clicables.
+
+  La solución en ambos casos es `scalarToStringOrNull()`, que sí resuelve el
+  `Uuid` por su `__toString()`. Ojo también con el compresor: exige
+  `is_string($sourceId)` para propagarlo.
+
+  **El provider legacy `TarifaCompressedRangesCalendarProvider` sigue con los dos
+  bugs** (mismas líneas), así que sus `urledit`/`urlshow` de tramos compactados
+  apuntan mal. No se tocó por la regla de no modificar el legacy.
+
 - **El borrado no necesita blindaje.** `Beds24RatesPushQueueListener` encola el push
   del intervalo afectado también en `scheduledEntityDeletions`, a diferencia de
   `PmsEventoCalendario`, que sí tiene `isSafeToDelete()`.
+
+- **El título del evento lo manda el YAML, no el código.** `formatTitle()` de ambos
+  providers `_spa` resuelve placeholders (`{price} {currency} {minStay} {neto20}
+  {neto30}`); antes ignoraba el `titleFormat` recibido y lo tenía hardcodeado. Los
+  netos al 20%/30% viven ahora sólo en el tooltip. Relacionado: `fields.currency`
+  apuntaba a `moneda.codigo`, un getter que **no existe** en `MaestroMoneda`, así
+  que la moneda siempre resolvía a `null`; las claves `_spa` usan
+  `moneda.simbolo`. Los configs legacy conservan el `moneda.codigo` roto.
 - **`generar-masivo` delega en `GeneradorTarifaMasivaService`**, el mismo servicio que
   usa EasyAdmin: el processor solo traduce el payload HTTP al DTO interno.

@@ -1037,6 +1037,25 @@ replica su regla de anulación: **con `activa = false` sólo cuenta la `PENALIZA
 Si se cambia esa condición hay que tocar **los dos sitios**, o el desglose dejará de cuadrar con
 `totalCargos`.
 
+### 12.0.2b El estado de cuenta que ve el huésped (pax)
+
+`PmsReservaView.vue` (pax) muestra una tarjeta "Estado de cuenta" con total, adelanto, saldo y
+el saldo pagando con tarjeta. Reglas que no se ven en el código:
+
+- **Solo viaja el agregado.** `PmsReservaPaxProvider` decora el Get público por localizador y
+  cuelga `resumenFinanciero` (moneda, símbolo, total, pagado, saldo) como propiedad virtual de
+  `PmsReserva`. El árbol de cargos y pagos (`pms_finanzas:read`) es del panel interno y **nunca**
+  se serializa al cliente. Espejo TS: `PmsResumenFinanciero` en `pax/src/types/paxHuespedModel.ts`.
+- **Sin cabecera o con `total_cargos = 0` el campo va `null`** y la tarjeta no se pinta: una
+  reserva sin cargos no debe enseñar "total 0.00". Con `activa = false` los caches ya solo suman
+  la penalización (§12.7), así que el saldo mostrado sigue siendo el correcto sin lógica extra.
+- **El recargo por tarjeta (+5.5%) es presentación, no un cargo.** Vive únicamente en
+  `PmsReservaView::RECARGO_TARJETA_PCT`; el backend no lo conoce y el cobro real lo hace
+  recepción. La nota i18n (`res_recargo_nota`) interpola `{{ pct }}` con esa constante para que
+  el texto no se desactualice si cambia la comisión.
+- El lookup de la cabecera usa `findOneBy(['reserva' => $reserva])` con el objeto — un
+  SearchFilter sobre la relación devolvería vacío en silencio por el UUID binario (§12.6).
+
 ### 12.0.3 Los importes de mensajería salen de la cabecera, no de `PmsReserva`
 
 `PmsReserva::montoTotal` es un agregado de `PmsEventoCalendario.monto`, un campo que **sólo

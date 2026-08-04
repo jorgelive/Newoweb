@@ -11,16 +11,33 @@ export interface RenderBlock {
     content?: string;
 }
 
+const MediaBloqueada = defineAsyncComponent(() => import('@/components/RichText/MediaBloqueadaBlock.vue'));
+
 /**
  * Bloques de MAQUETACIÓN que el editor puede insertar en el cuerpo de un ítem:
  * `{{ video: url }}`, `{{ img: url }}`, `{{ map: coords }}`, `{{ widget: wifi }}`.
  * Se resuelven aquí porque los componentes Vue viven aquí.
+ *
+ * Las claves `*bloqueado` NO las escribe el editor: las emite el backend
+ * (`PmsGuiaInterpolador::resolverMediaVentana()`) al sustituir un
+ * `{{ video_ventana: url }}` cuya ventana está cerrada. El valor que llega es
+ * el mensaje de disponibilidad, nunca la URL.
+ *
+ * `video_ventana` e `img_ventana` están registradas como RED DE SEGURIDAD:
+ * si un texto llegara sin pasar por el interpolador, se pinta el marco
+ * bloqueado en vez de volcar la URL como texto plano a la vista de cualquiera.
+ * En el camino normal nunca llegan: PHP siempre las reescribe.
  */
 const COMPONENT_REGISTRY: Record<string, Component> = {
     'video': defineAsyncComponent(() => import('@/components/RichText/VideoBlock.vue')),
     'img':   defineAsyncComponent(() => import('@/components/RichText/ImageBlock.vue')),
     'map':   defineAsyncComponent(() => import('@/components/RichText/MapBlock.vue')),
     'widget': defineAsyncComponent(() => import('@/components/GuiaUnidad/WifiCardWidget.vue')),
+
+    'videobloqueado': MediaBloqueada,
+    'imgbloqueado':   MediaBloqueada,
+    'video_ventana':  MediaBloqueada,
+    'img_ventana':    MediaBloqueada,
 };
 
 /**
@@ -56,7 +73,9 @@ export class RichContentEngine {
         const textToProcess = rawText.replace(/{{\s*wifi_data\s*}}/gi, '{{ widget: wifi }}');
 
         // Componentes: {{ tipo : valor }}
-        const regex = /{{\s*([a-z]+)\s*:\s*(.+?)\s*}}/gi;
+        // El `_` en la clave es lo que permite reconocer `video_ventana` e
+        // `img_ventana` si alguna vez llegaran sin reescribir (ver el registro).
+        const regex = /{{\s*([a-z_]+)\s*:\s*(.+?)\s*}}/gi;
 
         const blocks: RenderBlock[] = [];
         let lastIndex = 0;
@@ -77,7 +96,9 @@ export class RichContentEngine {
                     id: `cmp-${match.index}`,
                     type: 'component',
                     component: COMPONENT_REGISTRY[type],
-                    props: { src: value, value, ...this.datosWidget },
+                    // `tipo` lo usa MediaBloqueadaBlock para elegir silueta e
+                    // icono; los demás bloques lo ignoran.
+                    props: { src: value, value, tipo: type, ...this.datosWidget },
                 });
             } else {
                 console.warn(`[Engine] Componente desconocido: ${type}`);

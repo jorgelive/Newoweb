@@ -80,7 +80,7 @@ final class PmsGuiaMensajes
     {
         $tabla = match ($acceso->estado) {
             PmsGuiaAccesoEstado::Pendiente    => null !== $acceso->liberaEn ? self::PENDIENTE_CON_FECHA : self::PENDIENTE_SIN_FECHA,
-            PmsGuiaAccesoEstado::NoConfirmada => self::NO_CONFIRMADA,
+            PmsGuiaAccesoEstado::SinPago      => self::NO_CONFIRMADA,
             PmsGuiaAccesoEstado::Expirada     => self::EXPIRADA,
             default                           => self::PROTEGIDA,
         };

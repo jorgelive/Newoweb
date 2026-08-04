@@ -46,19 +46,22 @@ class PmsGuiaItem
     private ?string $tipo = self::TIPO_TARJETA;
 
     /**
-     * Quién puede ver este ítem. El default es PRIVADO a propósito: es el
-     * comportamiento conservador para todo el contenido que existía antes de
-     * este campo (la migración lo aplica en bloque). Sacar algo al escaparate
-     * es una decisión editorial explícita, nunca un efecto secundario.
+     * Quién puede ver este ítem, en cuatro niveles crecientes (ver
+     * PmsGuiaVisibilidad y la matriz de PmsGuiaAcceso::permite()).
+     *
+     * El default es CLIENTE a propósito: es el comportamiento conservador para
+     * todo el contenido que existía antes de este campo (la migración lo aplica
+     * en bloque). Sacar algo al escaparate es una decisión editorial explícita,
+     * nunca un efecto secundario.
      *
      * Vive en el ítem y NO en la sección: PmsGuiaSeccion deriva su visibilidad
      * de los ítems que le quedan tras filtrar (ver PmsGuiaArbolFiltro). Con el
      * flag en los dos sitios habría dos campos capaces de contradecirse y
      * secciones vacías en el catálogo.
      */
-    #[ORM\Column(type: 'string', length: 20, enumType: PmsGuiaVisibilidad::class, options: ['default' => 'privado'])]
+    #[ORM\Column(type: 'string', length: 20, enumType: PmsGuiaVisibilidad::class, options: ['default' => 'cliente'])]
     #[Assert\NotNull]
-    private PmsGuiaVisibilidad $visibilidad = PmsGuiaVisibilidad::Privado;
+    private PmsGuiaVisibilidad $visibilidad = PmsGuiaVisibilidad::Cliente;
 
     #[ORM\Column(type: 'json')]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
@@ -112,12 +115,26 @@ class PmsGuiaItem
     private array $contenidoParaCliente = [];
 
     /**
-     * Momento en que este ítem deja de estar bloqueado, o null si ya es
-     * visible. Solo se rellena en ítems `Llegada` que aún no han abierto: la
-     * UI lo usa para pintar el candado con fecha en vez de tener que deducir
-     * el estado cruzando flags.
+     * Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
+     * que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
+     * pintar "[Disponible el 12/08 a las 15:00]".
+     *
+     * OJO: null NO significa "visible". Un ítem bloqueado por falta de pago
+     * (`SinPago`) o por estancia terminada (`Expirada`) se anuncia igual, pero
+     * sin fecha. Para saber si está bloqueado está `$bloqueado`.
      */
     private ?\DateTimeImmutable $bloqueadoHasta = null;
+
+    /**
+     * Si el ítem viaja anunciado pero con el contenido sustituido por el
+     * mensaje de bloqueo.
+     *
+     * Es un campo propio y no `null !== $bloqueadoHasta` (como era antes)
+     * justamente por los estados sin fecha: ahí derivarlo de ella devolvía
+     * `false` y el candado no se pintaba, dejando un ítem con pinta de normal
+     * y un "[Disponible al confirmar]" por todo cuerpo.
+     */
+    private bool $bloqueado = false;
 
     public function __construct()
     {
@@ -152,8 +169,8 @@ class PmsGuiaItem
     public function setVisibilidad(PmsGuiaVisibilidad|string|null $visibilidad): self
     {
         $this->visibilidad = is_string($visibilidad)
-            ? (PmsGuiaVisibilidad::tryFrom($visibilidad) ?? PmsGuiaVisibilidad::Privado)
-            : ($visibilidad ?? PmsGuiaVisibilidad::Privado);
+            ? (PmsGuiaVisibilidad::tryFrom($visibilidad) ?? PmsGuiaVisibilidad::Cliente)
+            : ($visibilidad ?? PmsGuiaVisibilidad::Cliente);
 
         return $this;
     }
@@ -201,9 +218,15 @@ class PmsGuiaItem
     #[Groups(['pax_guia:read'])]
     public function getBloqueadoHasta(): ?\DateTimeImmutable { return $this->bloqueadoHasta; }
 
-    /** Atajo para la UI: pinta el candado sin comparar fechas en el navegador. */
+    public function setBloqueado(bool $bloqueado): self
+    {
+        $this->bloqueado = $bloqueado;
+        return $this;
+    }
+
+    /** Atajo para la UI: pinta el candado sin recalcular la regla de acceso. */
     #[Groups(['pax_guia:read'])]
-    public function isBloqueado(): bool { return null !== $this->bloqueadoHasta; }
+    public function isBloqueado(): bool { return $this->bloqueado; }
 
     // Contenido CRUDO, con los `{{ placeholders }}` sin resolver. No se
     // serializa nunca: solo lo lee PmsGuiaArbolFiltro para pasárselo al

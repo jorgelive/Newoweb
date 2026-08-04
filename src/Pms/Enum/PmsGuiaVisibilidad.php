@@ -23,18 +23,22 @@ enum PmsGuiaVisibilidad: string
     /** Escaparate: visible sin reserva. Fotos, descripción, ubicación, servicios. */
     case Publico = 'publico';
 
-    /** Solo el huésped con una estancia vigente, desde que reserva. Normas, cómo llegar. */
-    case Privado = 'privado';
+    /** Cualquiera con el localizador. Normas, cómo llegar, contacto. */
+    case Cliente = 'cliente';
 
-    /** Solo dentro de la ventana de llegada. Códigos de puerta, caja fuerte, WiFi. */
-    case Llegada = 'llegada';
+    /** Además, pago confiable. Detalles de estancia que no se dan por adelantado. */
+    case ClienteConfirmado = 'cliente-confirmado';
+
+    /** Además, ventana abierta. Códigos de puerta, caja fuerte, WiFi. */
+    case SoloVentana = 'solo-ventana';
 
     public function getLabel(): string
     {
         return match ($this) {
-            self::Publico => '🌐 Público (catálogo)',
-            self::Privado => '🔒 Privado (huésped con reserva)',
-            self::Llegada => '🔑 A la llegada (24 h antes del check-in)',
+            self::Publico           => '🌐 Público (catálogo)',
+            self::Cliente           => '👤 Cliente (con localizador)',
+            self::ClienteConfirmado => '✅ Cliente confirmado (con pago)',
+            self::SoloVentana       => '🔑 Solo en ventana (24 h antes del check-in)',
         };
     }
 
@@ -49,12 +53,15 @@ enum PmsGuiaVisibilidad: string
     }
 
     /**
-     * Ítems cuyo contenido depende de la ventana temporal. Se usa para decidir
-     * si un ítem oculto merece mostrarse "bloqueado con fecha" en vez de
-     * desaparecer: solo tiene sentido prometer algo que de verdad va a llegar.
+     * Niveles que exigen algo MÁS que tener el localizador (pago o ventana).
+     *
+     * Son los que, cuando no se cumplen, se anuncian con candado en vez de
+     * desaparecer: al portador del localizador siempre se le puede decir qué le
+     * falta. `Publico` y `Cliente` nunca llegan aquí, porque para un huésped
+     * identificado están siempre permitidos.
      */
-    public function esTemporal(): bool
+    public function exigeCondicionExtra(): bool
     {
-        return self::Llegada === $this;
+        return self::ClienteConfirmado === $this || self::SoloVentana === $this;
     }
 }

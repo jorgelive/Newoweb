@@ -57,8 +57,23 @@ export interface PmsEventoCalendario {
 // --- PmsReserva: ancla al schema de api.d.ts pero sobreescribe eventosActivosGuia ---
 // api.d.ts declara eventosActivosGuia como string[]; en runtime son objetos embebidos.
 
+/**
+ * Estado de cuenta del huésped. Espejo del array que arma
+ * `PmsReservaPaxProvider` (backend); importes como strings decimales en la
+ * moneda de la cabecera financiera. Solo el agregado: el detalle de cargos y
+ * pagos nunca viaja al cliente.
+ */
+export interface PmsResumenFinanciero {
+    moneda: string;
+    simbolo?: string | null;
+    total: string;
+    pagado: string;
+    saldo: string;
+}
+
 export type PmsReserva = Omit<components['schemas']['PmsReserva-pax_reserva.read'], 'eventosActivosGuia'> & {
     eventosActivosGuia?: PmsEventoCalendario[];
+    resumenFinanciero?: PmsResumenFinanciero | null;
 };
 
 // ============================================================================

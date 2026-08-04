@@ -41,13 +41,16 @@ export type GuiaSeccion = Omit<CatalogoSeccion, 'items'> & { items: GuiaItem[] }
  * Estado de la ventana de acceso. Solo decide el AVISO de cabecera: el recorte
  * del contenido ya viene hecho del backend.
  *
- * - `publico`       — sin estancia asociada (no debería darse en esta vista).
- * - `no_confirmada` — reserva sin pago confirmado: no se liberan credenciales.
- * - `pendiente`     — confirmada, pero aún falta para la ventana (`liberaEn`).
- * - `activa`        — ventana abierta: códigos y WiFi viajan de verdad.
- * - `expirada`      — la estancia terminó.
+ * - `publico`   — sin estancia asociada (no debería darse en esta vista). Es
+ *   también donde cae una estancia cancelada, aunque a esas el backend ni les
+ *   sirve la guía: `getEventosActivosGuia()` las descarta antes.
+ * - `sin_pago`  — con localizador pero sin pago confiable. Ve el nivel
+ *   `cliente`; lo demás llega anunciado con candado.
+ * - `pendiente` — pagada, pero aún falta para la ventana (`liberaEn`).
+ * - `activa`    — ventana abierta: códigos y WiFi viajan de verdad.
+ * - `expirada`  — la estancia terminó. Lo pagado sigue visible; la ventana no.
  */
-export type GuiaAccesoEstado = 'publico' | 'no_confirmada' | 'pendiente' | 'activa' | 'expirada';
+export type GuiaAccesoEstado = 'publico' | 'sin_pago' | 'pendiente' | 'activa' | 'expirada';
 
 export interface GuiaAcceso {
     estado: GuiaAccesoEstado;

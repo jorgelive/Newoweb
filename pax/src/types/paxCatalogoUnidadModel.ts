@@ -39,7 +39,7 @@ export interface CatalogoItem {
     urlBoton?: string | null;
     galeria: CatalogoFoto[];
     /** Siempre 'publico' en este endpoint; viaja para no tener que asumirlo. */
-    visibilidad: 'publico' | 'privado' | 'llegada';
+    visibilidad: 'publico' | 'cliente' | 'cliente-confirmado' | 'solo-ventana';
 }
 
 export interface CatalogoSeccion {

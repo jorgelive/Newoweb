@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use App\Api\Provider\Pms\PmsReservaPaxProvider;
 use App\Pms\ApiPlatform\Dto\PmsReservaCrearInput;
 use App\Pms\ApiPlatform\State\PmsReservaCrearProcessor;
 use App\Entity\Maestro\MaestroMoneda;
@@ -25,6 +26,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -42,6 +44,8 @@ use Symfony\Component\Validator\Constraints as Assert;
             ],
             normalizationContext: ['groups' => ['pax_reserva:read']],
             name: 'pax_get_reserva',
+            // Añade el resumen del estado de cuenta (total/adelanto/saldo) del huésped.
+            provider: PmsReservaPaxProvider::class,
         ),
         // ====================================================================
         // App util (Vue) — edición de reservas desde el calendario SPA.
@@ -455,6 +459,28 @@ class PmsReserva
         }
         return $this;
     }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // VISTA PÚBLICA (pax) — propiedad virtual, no persistida
+    // ══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+     * moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+     * PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+     *
+     * Es un RESUMEN a propósito: el detalle de cargos/pagos (`pms_finanzas:read`) es del
+     * panel interno y no viaja al cliente. Null cuando no hay cabecera o el total es 0
+     * — la vista simplemente no pinta la tarjeta.
+     *
+     * @var array{moneda: string, simbolo: ?string, total: string, pagado: string, saldo: string}|null
+     */
+    private ?array $resumenFinancieroCliente = null;
+
+    #[Groups(['pax_reserva:read'])]
+    #[SerializedName('resumenFinanciero')]
+    public function getResumenFinancieroCliente(): ?array { return $this->resumenFinancieroCliente; }
+    public function setResumenFinancieroCliente(?array $resumen): self { $this->resumenFinancieroCliente = $resumen; return $this; }
 
     public function getHuespedes(): Collection { return $this->huespedes; }
     public function addHuesped(PmsReservaHuesped $huesped): self {

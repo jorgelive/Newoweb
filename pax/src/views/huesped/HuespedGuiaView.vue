@@ -109,6 +109,17 @@ const ICONO_TIPO: Record<string, string> = {
 };
 const iconoItem = (item: GuiaItem): string => item.icono || ICONO_TIPO[item.tipo] || 'fa-circle-info';
 
+/**
+ * La rejilla de fotos SOLO se pinta en los ítems de tipo `album`.
+ *
+ * En los demás tipos (`card`, `alert`…) las imágenes de `galeria` ya van
+ * embebidas dentro del texto por RichTextRenderer, así que volver a pintarlas
+ * abajo las mostraba dos veces. `galeria` sigue poblada en esos ítems porque es
+ * de donde el editor toma las imágenes que inserta en línea; el tipo es lo que
+ * decide si además existe una galería como bloque propio.
+ */
+const tieneGaleria = (item: GuiaItem): boolean => item.tipo === 'album' && !!item.galeria?.length;
+
 /* ─────────────────────────────────────────────────────────────
  * SECCIÓN DESTACADA (ingreso) + RESTO + ATAJO DESCRIPTIVO (foto)
  * ───────────────────────────────────────────────────────────── */
@@ -151,6 +162,61 @@ const itemActivo = computed<GuiaItem | null>(() => {
 const abrirSeccion = (seccion: GuiaSeccion) => {
   router.push({ query: { section: seccion.id } });
 };
+
+/* ─────────────────────────────────────────────────────────────
+ * ÍTEM BLOQUEADO: globo de aviso al tocar el candado
+ *
+ * El backend ANUNCIA estos ítems (con candado) en vez de esconderlos, para que
+ * el huésped sepa que las instrucciones existen y qué le falta para verlas
+ * (docs/PmsGuiaHuesped.md §3).
+ *
+ * El ítem SÍ se abre: dentro, el texto se lee entero y solo los datos
+ * protegidos aparecen como `[Disponible al confirmar]` en itálica, en su sitio
+ * dentro de la frase. Eso enseña qué va a recibir y dónde, que es más útil que
+ * una puerta cerrada. El globo cuelga del candado, no de la fila.
+ * ───────────────────────────────────────────────────────────── */
+const tooltipBloqueo = ref<{ x: number; y: number; texto: string } | null>(null);
+let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Ancho del globo; se usa también para que no se salga por los lados. */
+const TOOLTIP_ANCHO = 220;
+
+/**
+ * Qué le falta al huésped para abrir este ítem. Espejo de
+ * PmsGuiaMensajes::bloqueo(), que resuelve lo mismo para los placeholders del
+ * cuerpo: los dos lados tienen que contar la misma historia.
+ */
+const mensajeBloqueoItem = computed<string>(() => {
+  const acceso = guia.value?.acceso;
+
+  switch (acceso?.estado) {
+    case 'pendiente':
+      return acceso.liberaEn
+          ? (maestroStore.t('gui_bloqueo_fecha', { fecha: fechaLarga(acceso.liberaEn) })
+              || `Disponible el ${fechaLarga(acceso.liberaEn)}`)
+          : (maestroStore.t('gui_bloqueo_pronto') || 'Disponible pronto');
+
+    case 'expirada':
+      return maestroStore.t('gui_bloqueo_expirada') || 'Ya no disponible: la estancia terminó';
+
+    default:
+      // `sin_pago` es el único con salida en manos del huésped.
+      return maestroStore.t('gui_bloqueo_confirmar') || 'Disponible al confirmar tu reserva';
+  }
+});
+
+const avisarBloqueo = (event: MouseEvent) => {
+  tooltipBloqueo.value = {
+    x: Math.min(Math.max(8, event.clientX - TOOLTIP_ANCHO / 2), window.innerWidth - TOOLTIP_ANCHO - 8),
+    y: event.clientY + 14,
+    texto: mensajeBloqueoItem.value,
+  };
+
+  clearTimeout(tooltipTimer);
+  tooltipTimer = setTimeout(() => (tooltipBloqueo.value = null), 3200);
+};
+
+onBeforeUnmount(() => clearTimeout(tooltipTimer));
 
 const abrirItem = (seccion: GuiaSeccion, item: GuiaItem) => {
   router.push({ query: { section: seccion.id, item: item['@id'] } });
@@ -221,7 +287,17 @@ const fechaLarga = (iso?: string | null): string => {
   });
 };
 
-const accesoPendiente = computed(() => guia.value?.acceso?.estado === 'pendiente');
+/**
+ * Hay algo bloqueado en la guía (candadito en las tarjetas de sección).
+ *
+ * Cubre los tres estados con contenido restringido, no solo `pendiente`: con
+ * cuatro niveles de visibilidad, `sin_pago` y `expirada` también dejan ítems
+ * anunciados con candado.
+ */
+const accesoRestringido = computed(() => {
+  const estado = guia.value?.acceso?.estado;
+  return !!estado && estado !== 'activa' && estado !== 'publico';
+});
 
 const avisoAcceso = computed<{ icono: string; titulo: string; texto: string; clase: string } | null>(() => {
   const acceso = guia.value?.acceso;
@@ -238,7 +314,7 @@ const avisoAcceso = computed<{ icono: string; titulo: string; texto: string; cla
                 || `Los códigos de acceso y el WiFi se muestran aquí a partir del ${fechaLarga(acceso.liberaEn)}.`)
             : (maestroStore.t('gui_acceso_pendiente') || 'Los códigos de acceso se mostrarán aquí poco antes de tu llegada.'),
       };
-    case 'no_confirmada':
+    case 'sin_pago':
       return {
         icono: 'fa-circle-exclamation',
         clase: 'bg-slate-50 border-slate-200 text-slate-700',
@@ -461,7 +537,14 @@ const mensajeError = computed(() => {
                     class="w-full flex items-center gap-3 bg-white/8 hover:bg-white/18 border border-white/10 rounded-2xl px-3.5 py-3 text-left transition-colors active:scale-[0.99]">
               <span class="w-7 h-7 rounded-full bg-[#E07845] text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-sm shadow-orange-900/30">{{ i + 1 }}</span>
               <span class="flex-1 text-white/90 text-sm font-medium truncate">{{ maestroStore.traducir(item.titulo) }}</span>
-              <i class="fas shrink-0 text-white/40 text-xs" :class="item.bloqueado ? 'fa-lock' : 'fa-chevron-right'"></i>
+              <!-- `.stop`: el candado explica, la fila abre. Es un <span> y no un
+                   <button> porque ya está dentro de uno (anidarlos es HTML inválido). -->
+              <span v-if="item.bloqueado" role="button" tabindex="0" :title="mensajeBloqueoItem"
+                    @click.stop="avisarBloqueo($event)"
+                    class="shrink-0 w-6 h-6 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+                <i class="fas fa-lock text-xs"></i>
+              </span>
+              <i v-else class="fas fa-chevron-right shrink-0 text-white/40 text-xs"></i>
             </button>
 
             <button v-if="itemsOcultosCount > 0" @click="mostrarTodosIngreso = !mostrarTodosIngreso"
@@ -490,7 +573,7 @@ const mensajeError = computed(() => {
               <span class="relative w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-white shadow-sm ring-1 ring-black/5 transition-transform group-hover:scale-105"
                     :style="{ color: colorDe(seccion, index).color }">
                 <i :class="['fas', seccion.icono || 'fa-star']"></i>
-                <span v-if="accesoPendiente"
+                <span v-if="accesoRestringido"
                       class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white text-slate-400 text-[8px] flex items-center justify-center shadow-sm border border-slate-100">
                   <i class="fas fa-lock"></i>
                 </span>
@@ -535,7 +618,7 @@ const mensajeError = computed(() => {
               <!-- eslint-disable-next-line vue/no-v-for-template-key -->
               <template v-for="item in [itemsSeccionActiva[0]]" :key="item['@id']">
                 <RichTextRenderer :content="maestroStore.traducir(item.descripcion)" :wifi-data="guia.redesWifi" />
-                <div v-if="item.galeria?.length" class="mt-5 grid grid-cols-2 gap-3">
+                <div v-if="tieneGaleria(item)" class="mt-5 grid grid-cols-2 gap-3">
                   <button v-for="(foto, i) in item.galeria" :key="i" @click="abrirFoto(item, i)"
                           class="aspect-4/3 rounded-2xl overflow-hidden ring-1 ring-black/5 cursor-zoom-in">
                     <img :src="thumbUrl(foto.imageUrl, 'travel_thumb_admin')"
@@ -567,12 +650,20 @@ const mensajeError = computed(() => {
                   <span class="font-bold text-gray-800 leading-tight group-hover:text-[#376875] transition-colors">
                     {{ maestroStore.traducir(item.titulo) }}
                   </span>
-                  <span v-if="item.galeria?.length" class="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+                  <!-- El contador anuncia una galería, así que solo aplica a los
+                       álbumes; la miniatura de al lado sí se mantiene en todos
+                       los tipos, porque ahí es una pista visual de la fila. -->
+                  <span v-if="tieneGaleria(item)" class="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
                     <i class="fas fa-images"></i> {{ item.galeria.length }} {{ maestroStore.t('gui_fotos') || 'fotos' }}
                   </span>
                 </span>
-                <i class="fas shrink-0 transition-all"
-                   :class="item.bloqueado ? 'fa-lock text-slate-300' : 'fa-chevron-right text-slate-300 group-hover:text-[#E07845] group-hover:translate-x-0.5'"></i>
+                <!-- Ver nota del candado en la sección de ingreso de la portada. -->
+                <span v-if="item.bloqueado" role="button" tabindex="0" :title="mensajeBloqueoItem"
+                      @click.stop="avisarBloqueo($event)"
+                      class="shrink-0 w-6 h-6 flex items-center justify-center text-slate-300 hover:text-[#376875] transition-colors">
+                  <i class="fas fa-lock"></i>
+                </span>
+                <i v-else class="fas fa-chevron-right shrink-0 text-slate-300 group-hover:text-[#E07845] group-hover:translate-x-0.5 transition-all"></i>
               </button>
             </div>
 
@@ -611,7 +702,7 @@ const mensajeError = computed(() => {
                  :class="itemActivo.tipo === 'alert' ? 'border-amber-200 bg-amber-50/60' : ''">
               <RichTextRenderer :content="maestroStore.traducir(itemActivo.descripcion)" :wifi-data="guia.redesWifi" />
 
-              <div v-if="itemActivo.galeria?.length" class="mt-6">
+              <div v-if="tieneGaleria(itemActivo)" class="mt-6">
                 <div class="flex items-center gap-3 mb-4">
                   <span class="h-px bg-[#376875]/10 flex-1"></span>
                   <span class="text-[10px] font-bold text-[#376875]/60 uppercase tracking-[0.2em]">
@@ -637,6 +728,19 @@ const mensajeError = computed(() => {
               </a>
             </div>
           </div>
+        </div>
+      </transition>
+
+      <!-- Globo de "aún no disponible". `fixed` a propósito: se ancla al punto
+           del tap, y el overflow-hidden del marco no lo recorta (solo un
+           transform en un ancestro lo haría, y aquí no hay ninguno). -->
+      <transition enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0 scale-95"
+                  leave-active-class="transition duration-150 ease-in" leave-to-class="opacity-0 scale-95">
+        <div v-if="tooltipBloqueo" @click="tooltipBloqueo = null"
+             class="fixed z-[60] w-[220px] bg-[#1E3A42] text-white rounded-2xl shadow-2xl px-4 py-3 flex items-start gap-2.5 cursor-pointer"
+             :style="{ left: tooltipBloqueo.x + 'px', top: tooltipBloqueo.y + 'px' }">
+          <i class="fas fa-lock text-[#FFB48A] text-xs mt-0.5 shrink-0"></i>
+          <span class="text-[12px] font-semibold leading-snug">{{ tooltipBloqueo.texto }}</span>
         </div>
       </transition>
 

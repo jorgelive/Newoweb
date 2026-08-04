@@ -2,7 +2,7 @@
 /**
  * src/views/huesped/PmsReservaView.vue
  */
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePmsReservaStore } from '@/stores/huesped/paxHuespedReservaStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
@@ -111,6 +111,50 @@ const verGuiaEvento = (evento: PmsEventoCalendario) => {
           : { name: 'guia_huesped_corta', params: { localizador: props.localizador } },
   );
 };
+
+/* ─────────────────────────────────────────────────────────────
+ * ESTADO DE CUENTA
+ * El backend manda solo el agregado (PmsReservaPaxProvider): total, adelanto
+ * y saldo en la moneda de la cabecera. Aquí solo se presenta.
+ * ───────────────────────────────────────────────────────────── */
+
+/**
+ * Recargo por pago con tarjeta, en %. Regla comercial del establecimiento
+ * (comisión de la pasarela): se calcula SOLO para mostrar — el cobro real lo
+ * hace recepción. Si algún día cambia, este es el único sitio.
+ */
+const RECARGO_TARJETA_PCT = 5.5;
+
+const finanzas = computed(() => pmsStore.reserva?.resumenFinanciero ?? null);
+
+const finTotal  = computed(() => Number(finanzas.value?.total ?? 0));
+const finPagado = computed(() => Number(finanzas.value?.pagado ?? 0));
+const finSaldo  = computed(() => Number(finanzas.value?.saldo ?? 0));
+const todoPagado = computed(() => finSaldo.value <= 0);
+
+/** Saldo pagando con tarjeta: saldo + comisión, redondeado a 2 decimales. */
+const finSaldoTarjeta = computed(() =>
+    Math.round(finSaldo.value * (1 + RECARGO_TARJETA_PCT / 100) * 100) / 100
+);
+
+/** % pagado para la barra de progreso (acotado a [0, 100]). */
+const pctPagado = computed(() => {
+  if (finTotal.value <= 0) return 0;
+  return Math.min(100, Math.max(0, (finPagado.value / finTotal.value) * 100));
+});
+
+const formatMonto = (v: number): string => {
+  const simbolo = finanzas.value?.simbolo || finanzas.value?.moneda || '';
+  return `${simbolo} ${v.toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+/**
+ * El detalle del estado de cuenta (desglose, saldo y recargo de tarjeta) arranca
+ * plegado: en móvil la tarjeta empujaba las unidades fuera de pantalla. Arriba
+ * queda solo el titular — estado y barra de progreso — que es lo que el huésped
+ * mira de un vistazo.
+ */
+const detalleCuentaAbierto = ref(false);
 </script>
 
 <template>
@@ -199,6 +243,128 @@ const verGuiaEvento = (evento: PmsEventoCalendario) => {
           </div>
         </div>
       </header>
+
+      <!-- ═══ ESTADO DE CUENTA ═══ Solo si el backend mandó el resumen (hay
+           cabecera financiera con cargos). Presentación, sin lógica de negocio:
+           el saldo ya viene calculado; aquí solo se añade el recargo de tarjeta. -->
+      <section v-if="finanzas" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-300/40 ring-1 ring-slate-200/70 border border-slate-200 overflow-hidden mb-6">
+        <div class="p-5 md:p-8">
+
+          <!-- Cabecera de la tarjeta -->
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-10 h-10 rounded-2xl bg-[#376875]/8 text-[#376875] flex items-center justify-center shrink-0">
+                <i class="fas fa-file-invoice-dollar"></i>
+              </span>
+              <h2 class="text-base md:text-lg font-black text-gray-900 tracking-tight truncate">
+                {{ maestroStore.t('res_estado_cuenta') || 'Estado de cuenta' }}
+              </h2>
+            </div>
+            <span v-if="todoPagado"
+                  class="shrink-0 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+              <i class="fas fa-circle-check"></i> {{ maestroStore.t('res_al_dia') || 'Al día' }}
+            </span>
+            <!-- Con el detalle plegado el badge lleva el importe: es el dato que
+                 el huésped busca, y abajo no hay nada visible que lo muestre.
+                 Al desplegar se quita de aquí para no repetirlo junto al número
+                 grande de "Saldo por pagar". -->
+            <span v-else
+                  class="shrink-0 inline-flex items-center gap-1.5 bg-orange-50 text-[#E07845] border border-orange-200 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+              <i class="fas fa-hourglass-half"></i> {{ maestroStore.t('res_saldo_pendiente') || 'Saldo pendiente' }}
+              <span v-if="!detalleCuentaAbierto"
+                    class="pl-1.5 ml-0.5 border-l border-orange-200 normal-case tracking-normal tabular-nums">
+                {{ formatMonto(finSaldo) }}
+              </span>
+            </span>
+          </div>
+
+          <!-- Progreso de pago -->
+          <div>
+            <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full bg-linear-to-r from-[#376875] to-emerald-500 transition-all duration-700"
+                   :style="{ width: pctPagado + '%' }"></div>
+            </div>
+            <p class="text-[11px] font-bold text-slate-400 mt-2 text-right">
+              {{ Math.round(pctPagado) }}% {{ maestroStore.t('res_pagado_pct') || 'pagado' }}
+            </p>
+          </div>
+
+          <!-- ═══ DETALLE PLEGABLE ═══
+               El truco de grid-rows 0fr -> 1fr anima la altura sin conocerla de
+               antemano (lo que `max-height` obliga a adivinar y recortaría el
+               contenido si crece). El hijo necesita overflow-hidden para que el
+               recorte ocurra durante la transición. -->
+          <div class="grid transition-[grid-template-rows] duration-500 ease-in-out"
+               :class="detalleCuentaAbierto ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+            <div class="overflow-hidden">
+
+              <!-- Desglose -->
+              <div class="space-y-3 pt-6">
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-[13px] font-semibold text-slate-500">
+                    {{ maestroStore.t('res_total_reserva') || 'Total de la reserva' }}
+                  </span>
+                  <span class="text-[15px] font-black text-gray-900 tabular-nums">{{ formatMonto(finTotal) }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-[13px] font-semibold text-slate-500">
+                    <i class="fas fa-circle-check text-emerald-500 mr-1.5"></i>{{ maestroStore.t('res_adelanto_pagado') || 'Adelanto pagado' }}
+                  </span>
+                  <span class="text-[15px] font-bold text-emerald-600 tabular-nums">− {{ formatMonto(finPagado) }}</span>
+                </div>
+              </div>
+
+              <!-- Saldo -->
+              <div v-if="!todoPagado" class="mt-5 pt-5 border-t border-dashed border-slate-200">
+                <div class="flex items-end justify-between gap-4">
+                  <span class="text-[13px] font-black text-gray-800 uppercase tracking-wider">
+                    {{ maestroStore.t('res_saldo') || 'Saldo por pagar' }}
+                  </span>
+                  <span class="text-xl md:text-2xl font-extrabold text-[#E07845] tabular-nums leading-none">{{ formatMonto(finSaldo) }}</span>
+                </div>
+
+                <!-- Pago con tarjeta: mismo saldo con la comisión de la pasarela -->
+                <div class="mt-4 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 flex items-center justify-between gap-4">
+                  <span class="min-w-0">
+                    <span class="block text-[12px] font-bold text-slate-600">
+                      <i class="fas fa-credit-card mr-1.5 text-[#376875]"></i>{{ maestroStore.t('res_saldo_tarjeta') || 'Pagando con tarjeta' }}
+                    </span>
+                    <span class="block text-[10px] font-semibold text-slate-400 mt-0.5">
+                      {{ maestroStore.t('res_recargo_nota', { pct: String(RECARGO_TARJETA_PCT) }) || `Incluye ${RECARGO_TARJETA_PCT}% de comisión` }}
+                    </span>
+                  </span>
+                  <span class="text-lg font-black text-[#376875] tabular-nums shrink-0">{{ formatMonto(finSaldoTarjeta) }}</span>
+                </div>
+              </div>
+
+              <!-- Todo pagado -->
+              <div v-else class="mt-5 pt-5 border-t border-dashed border-slate-200 flex items-center gap-3 text-emerald-700">
+                <span class="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+                  <i class="fas fa-check text-emerald-500"></i>
+                </span>
+                <p class="text-sm font-bold leading-snug">
+                  {{ maestroStore.t('res_todo_pagado') || '¡Tu reserva está totalmente pagada. Gracias!' }}
+                </p>
+              </div>
+
+            </div>
+          </div>
+          <!-- ═══ FIN DETALLE PLEGABLE ═══ -->
+
+          <button
+              type="button"
+              @click="detalleCuentaAbierto = !detalleCuentaAbierto"
+              :aria-expanded="detalleCuentaAbierto"
+              class="w-full mt-3 pt-2.5 -mb-1 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#376875]/70 hover:text-[#376875] transition-colors"
+          >
+            {{ detalleCuentaAbierto
+              ? (maestroStore.t('res_ver_menos') || 'Mostrar menos')
+              : (maestroStore.t('res_ver_mas') || 'Mostrar más') }}
+            <i class="fas fa-chevron-down transition-transform duration-300"
+               :class="{ 'rotate-180': detalleCuentaAbierto }"></i>
+          </button>
+        </div>
+      </section>
 
       <div v-if="pmsStore.reserva.eventosActivosGuia?.length">
         <div class="flex items-center gap-4 mb-5 ml-2">

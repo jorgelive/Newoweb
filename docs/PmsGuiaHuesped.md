@@ -30,7 +30,7 @@ las entidades `PmsGuia*` / `PmsUnidad` / `PmsEstablecimiento`, `src/Api/Controll
 | **Guía** | `PmsGuia`. Una por unidad (`OneToOne`). Es el CMS: título + secciones ordenadas. |
 | **Sección** | `PmsGuiaSeccion`. Agrupa ítems. Reutilizable entre guías vía `PmsGuiaHasSeccion` (`esComun`). |
 | **Ítem** | `PmsGuiaItem`. La unidad de contenido: título, cuerpo HTML i18n, galería, botón. |
-| **Visibilidad** | `PmsGuiaVisibilidad`. Vive en el **ítem**. Público / privado / a la llegada. |
+| **Visibilidad** | `PmsGuiaVisibilidad`. Vive en el **ítem**. Cuatro niveles crecientes (§3). |
 | **Acceso** | `PmsGuiaAcceso`. Situación de quien pide la guía. Se calcula por petición, no se guarda. |
 | **Ventana** | Desde 24 h antes del check-in hasta el final del día del check-out. |
 | **Placeholder** | `{{ door_code }}` dentro del cuerpo de un ítem. Lo resuelve el backend. |
@@ -50,49 +50,118 @@ para cualquiera con el UUID de una unidad.
 | Caso | Para qué | Ejemplos |
 |---|---|---|
 | `Publico` | Escaparate, sin reserva | Fotos, descripción, servicios, cómo llegar |
-| `Privado` | Huésped con estancia | Normas, instrucciones de la lavadora |
-| `Llegada` | Solo dentro de la ventana | Código de puerta, caja fuerte, WiFi |
+| `Cliente` | Cualquiera con el localizador | Normas, instrucciones de la lavadora |
+| `ClienteConfirmado` | Además, con pago confiable | Detalles que no se adelantan sin pago |
+| `SoloVentana` | Además, dentro de la ventana | Código de puerta, caja fuerte, WiFi |
+
+Son cuatro peldaños crecientes; el detalle de qué añade cada uno está en §3.
 
 **El enum vive en el ítem y NO en la sección.** `PmsGuiaSeccion` deriva su visibilidad de los
 ítems que le quedan tras filtrar (`PmsGuiaArbolFiltro::podar()`): si se queda sin ninguno,
 desaparece. Con el flag en los dos sitios habría dos campos capaces de contradecirse y secciones
 vacías en el catálogo.
 
-> El default es `Privado`, y la migración `Version20260803230000` deja **todo** el contenido
-> existente ahí. El catálogo público arranca vacío a propósito: publicar es una decisión
+> El default es `Cliente`, y la migración `Version20260803230000` deja **todo** el contenido
+> existente ahí. El catálogo público arrancó vacío a propósito: publicar era una decisión
 > editorial que se toma ítem a ítem. La única excepción del backfill son los ítems cuyo cuerpo
-> usa un placeholder sensible, que pasan a `Llegada` porque es exactamente lo que el sistema
+> usa un placeholder sensible, que pasan a `SoloVentana` porque es exactamente lo que el sistema
 > anterior ya enmascaraba fuera de ventana.
+>
+> Los nombres cambiaron en `Version20260804140000`, cuando el enum pasó de 3 niveles a 4:
+> `privado`→`cliente` y `llegada`→`solo-ventana`, con `cliente-confirmado` naciendo vacío. La
+> equivalencia es exacta, así que ningún ítem cambió de audiencia con esa migración.
+
+### Cómo se pobló el catálogo
+
+`Version20260804150000` es la que sacó contenido al escaparate por primera vez, en bloque:
+descripciones, galerías y ubicación.
+
+**El criterio es el icono**, y conviene saber por qué: es el ÚNICO campo que distingue esos
+ítems. El `tipo` del ítem (`card`/`album`/`alert`) mezcla descripciones con normas y avisos, y
+el `tipo` de la sección solo existe en tres (`ingreso`, `descriptivo`, `normas`) y deja fuera el
+resto. Los tres iconos que el editor viene usando de forma consistente:
+
+| Icono | Contenido |
+|---|---|
+| `fa-circle-info` | Descripción de la unidad |
+| `fa-images` | Galería de fotos |
+| `fa-location-dot` | Ubicación / cómo llegar |
+
+La migración excluye dos conjuntos, porque publicar expone a cualquiera sin reserva: los ítems
+con un **placeholder sensible** en el cuerpo (misma lista y misma detección que
+`Version20260803230000`) y los que ya estaban en **`solo-ventana`**, donde alguien los bloqueó a
+propósito — fotos de la caja de llaves o de la puerta. Una migración no deshace una decisión
+editorial explícita.
+
+> Si el editor cambia de convención de iconos, esta clasificación deja de tener base. Un `tipo`
+> de ítem propio (`descripcion`, `ubicacion`…) sería lo correcto el día que estorbe.
 
 ---
 
 ## 3. La matriz de acceso
 
-`PmsGuiaAcceso::paraEvento()` clasifica la estancia; `permite()` cruza esa clasificación con la
-visibilidad del ítem. **Es el único sitio donde se decide qué se ve.**
+Son **dos ejes**. El vertical lo calcula `PmsGuiaAcceso::paraEvento()` a partir de la estancia;
+el horizontal lo elige el editor en cada ítem (`PmsGuiaVisibilidad`). `permite()` los cruza, y
+**es el único sitio donde se decide qué se ve.**
 
-| Estado \ visibilidad | `Publico` | `Privado` | `Llegada` |
-|---|---|---|---|
-| `Publico` (sin reserva) | ✓ | ✗ | ✗ |
-| `NoConfirmada` (cancelada, sin pago, o `guiaDisabled`) | ✓ | ✓ | ✗ |
-| `Pendiente` (faltan >24 h) | ✓ | ✓ | ✗ |
-| `Activa` (ventana abierta) | ✓ | ✓ | ✓ |
-| `Expirada` (post check-out) | ✓ | ✓ | ✗ |
+### Los cuatro niveles de visibilidad
 
-`NoConfirmada` conserva lo `Privado` a propósito: cómo llegar y las normas no son secretos, y
-quien tiene el localizador lo sacó de su correo de confirmación. **Lo que el pago protege son
-los códigos, y esos son `Llegada`.**
+Una escalera estrictamente creciente: `Publico ⊂ Cliente ⊂ ClienteConfirmado ⊂ SoloVentana`.
+Cada peldaño añade **una** condición al anterior, y por eso no pueden contradecirse.
+
+| Nivel | Condición que añade | Para qué |
+|---|---|---|
+| `publico` | ninguna | Escaparate. **El único que sale en el catálogo** |
+| `cliente` | tener el localizador | Cómo llegar, normas, contacto |
+| `cliente-confirmado` | pago confiable | Lo que no se adelanta a quien no ha pagado |
+| `solo-ventana` | ventana abierta | Códigos de puerta, caja fuerte, WiFi |
+
+### La matriz
+
+| Estado \ visibilidad | `publico` | `cliente` | `cliente-confirmado` | `solo-ventana` |
+|---|---|---|---|---|
+| `Publico` (sin estancia) | ✓ | ✗ | ✗ | ✗ |
+| `SinPago` | ✓ | ✓ | 🔒 | 🔒 |
+| `Pendiente` (faltan >24 h) | ✓ | ✓ | ✓ | 🔒 |
+| `Activa` (ventana abierta) | ✓ | ✓ | ✓ | ✓ |
+| `Expirada` (post check-out) | ✓ | ✓ | ✓ | 🔒 |
+
+🔒 = no se puede ver, **pero el ítem se anuncia con candado** (siguiente apartado).
+
+Tres decisiones que no se leen en el código:
+
+- **`SinPago` conserva `cliente`.** Cómo llegar y las normas no son secretos, y quien tiene el
+  localizador lo sacó de su correo. Lo que el pago protege empieza en `cliente-confirmado`.
+- **`cliente-confirmado` sigue abierto en `Expirada`.** Lo que se pagó, pagado está; lo que
+  caduca con el check-out es la ventana, o sea `solo-ventana`.
+- **Estancia cancelada o con `guiaDisabled` no aparece en esta matriz.** Deja de ser cliente
+  *de esa unidad* (puede tener otras vigentes) y `getEventosActivosGuia()` la descarta antes: ni
+  sale en la lista de estancias de la reserva, ni se puede abrir su guía — `PmsGuiaHuespedProvider`
+  devuelve 404. `paraEvento()` la degrada a `Publico` solo como red de seguridad, por si alguien
+  llama al método con un evento crudo.
 
 ### Ítem bloqueado: ¿se oculta o se anuncia?
 
-`PmsGuiaAcceso::debeAnunciarBloqueo()`:
+`PmsGuiaAcceso::debeAnunciarBloqueo()`. **A un huésped identificado siempre se le anuncia**: tiene
+el localizador, no es un desconocido, y esconderle el ítem le hace creer que la guía no trae esa
+información en vez de entender qué le falta para verla. Cada estado dice algo distinto:
 
-- **`Pendiente`** → el ítem **se muestra**, con `bloqueadoHasta` y el cuerpo interpolado con
-  `[Disponible el 12/08 a las 15:00]`. El huésped ve que el dato existe y cuándo lo tendrá.
-- **`Expirada` / `NoConfirmada`** → el ítem **desaparece** del árbol. No hay nada que prometer,
-  y un candado permanente sin explicación solo genera tickets de soporte.
+- **`SinPago`** → `[Disponible al confirmar]`. La acción está en su mano; es justo la que se le
+  quiere pedir.
+- **`Pendiente`** → `[Disponible el 12/08 a las 15:00]`, con `bloqueadoHasta` poblado.
+- **`Expirada`** → `[Reserva finalizada]`. Hubo algo ahí y caducó.
 
-En los dos casos el valor real **nunca sale del servidor**.
+La única excepción es el visitante sin estancia: a él no se le insinúa ni la estructura de la
+guía privada.
+
+En todos los casos el valor real **nunca sale del servidor**: esto decide la visibilidad del
+ÍTEM, no la del dato. De eso se ocupa `permite()`, y su matriz no cambia.
+
+> **`bloqueado` es un campo propio, no `bloqueadoHasta !== null`.** Derivarlo de la fecha era
+> correcto mientras solo se anunciaba `Pendiente`, pero `SinPago` y `Expirada` no tienen fecha que
+> prometer: el ítem llegaba con `bloqueado: false`, sin candado, con pinta de ítem normal y un
+> `[Disponible al confirmar]` por todo cuerpo. `PmsGuiaArbolFiltro` escribe hoy los dos campos —
+> `setBloqueado()` marca el candado y `setBloqueadoHasta()` es solo el "cuándo" opcional.
 
 ### Tres comprobaciones, no una
 
@@ -162,6 +231,30 @@ abrir las herramientas de desarrollo para leer el código de la puerta antes de 
 |---|---|---|
 | `{{ door_code }}`, `{{ guest_name }}`, … | **PHP** (`PmsGuiaInterpolador`) | Son datos, y algunos son sensibles |
 | `{{ video: url }}`, `{{ img: }}`, `{{ map: }}`, `{{ widget: wifi }}` | **Vue** (`RichContentEngine`) | Son maquetación; los componentes están en el front |
+| `{{ video_ventana: url }}`, `{{ img_ventana: url }}` | **Los dos** | PHP decide si la URL sale; Vue pinta el bloque |
+
+El inventario completo y actualizado no está aquí, sino en el propio formulario:
+`PmsGuiaItemCrudController::ayudaPlaceholders()` lo pinta bajo el cuerpo del ítem, que es donde
+hace falta. **Un placeholder nuevo se toca en tres sitios**: su resolutor, esa chuleta, y esta
+sección.
+
+#### Medios con ventana (`*_ventana`)
+
+Son la excepción al reparto. El editor escribe `{{ video_ventana: url }}` y
+`PmsGuiaInterpolador::resolverMediaVentana()` reescribe **la clave** antes de serializar:
+
+- Ventana abierta → `{{ video: url }}`. El front usa el bloque de siempre y no se entera de que
+  había una condición.
+- Ventana cerrada → `{{ videobloqueado: Disponible el 12/08… }}`. **La URL no viaja.**
+  `MediaBloqueadaBlock.vue` pinta un marco con la proporción del medio y el texto en el centro.
+
+> Esto NO se podía resolver en el front. Si el navegador recibe la URL y solo decide no pintarla,
+> el enlace sigue en el payload y se lee en las herramientas de desarrollo — el mismo fallo que
+> tenía `interpolateString()` con los códigos de puerta. Ocultar no es proteger.
+
+`RichContentEngine` registra además `video_ventana` e `img_ventana` apuntando al bloque
+bloqueado, como red de seguridad: si un texto llegara sin pasar por el interpolador, se pinta el
+marco en vez de volcar la URL como texto plano. Por eso su regex acepta `_` en la clave.
 
 Las dos expresiones regulares tienen que seguir siendo compatibles: la de PHP no admite `:`
 dentro de la clave, que es justo lo que deja pasar los bloques de maquetación. **Si se toca una,
@@ -169,6 +262,26 @@ se toca la otra**, o habrá placeholders que un lado sustituye y el otro enseña
 
 Se conserva la forma i18n `[{language, content}]` en lugar de resolver el idioma en el servidor:
 el selector de idioma de la guía cambia el texto en caliente y no debe disparar una petición.
+
+#### El contrato de estilo: `guia-dato`
+
+La sustitución **no devuelve texto pelado**. `PmsGuiaInterpolador::envolver()` envuelve todo
+valor resuelto en un `<span>` con clase, y ahí está el único punto de acuerdo entre los dos
+lados:
+
+| Clase emitida | Cuándo | Qué debe transmitir |
+|---|---|---|
+| `guia-dato` | valor real ya revelado | dato de verdad, resaltado dentro del párrafo |
+| `guia-dato guia-dato--bloqueado` | ventana cerrada → mensaje `[Disponible el …]` | "esto se rellenará", nunca confundible con el dato |
+
+**Es un contrato, no una sugerencia: PHP emite las clases y el front tiene que definirlas.**
+Vivieron un tiempo sin CSS en ninguna parte de `pax/`, así que el `[Disponible el 11/09/2026 a
+las 14:00]` se leía como texto corriente en mitad de la frase — el huésped no tenía forma de
+saber que era un hueco pendiente y no una instrucción literal. Los estilos están hoy en
+`pax/src/components/RichText/RichTextRenderer.vue`.
+
+Los corchetes del mensaje (`PmsGuiaMensajes`) se mantienen a propósito **además** del estilo:
+son la red de seguridad si el CSS no llega (correo, copiar-pegar, un renderer nuevo).
 
 ---
 
@@ -201,7 +314,7 @@ huésped ya conocía:
 |---|---|
 | 1 · Portada | hero (tap → sección descriptiva), aviso de acceso, anfitrión, **ingreso destacado con sus pasos como botones directos al nivel 3**, rejilla del resto de secciones |
 | 2 · Sección | lista de sus ítems; con **un solo ítem se salta el paso** y se pinta el contenido |
-| 3 · Ítem | texto (`RichTextRenderer`, que expande `{{ widget: wifi }}`), galería con lightbox y botón |
+| 3 · Ítem | texto (`RichTextRenderer`, que expande `{{ widget: wifi }}`), galería con lightbox **solo si `tipo === 'album'`** (ver §7) y botón |
 
 Los niveles 2 y 3 son **capas que entran deslizándose sobre la misma ruta**, y su estado vive en
 la **query** (`?section=…&item=…`), no en un `ref` del componente. El motivo no es estético: así
@@ -377,6 +490,22 @@ algún día entra ese componente, esta clase es el único punto a sustituir.
 - **El catálogo devuelve 404 si no hay nada publicado.** No sirve la cáscara con título y foto:
   solo serviría para que los buscadores indexaran una página vacía.
 
+- **Un `<style scoped>` NO alcanza lo que entra por `v-html`.** Vue marca con el atributo de
+  scope solo los elementos que compila él; el HTML inyectado no lo lleva, así que un selector
+  scoped normal no lo toca nunca. Por eso los estilos de `guia-dato` (§4) usan `:deep()`. Aplica
+  a cualquier estilo que se quiera dar al cuerpo de un ítem: falla en silencio, sin error de
+  compilación ni aviso en consola.
+
+- **`galeria` poblada NO significa "pinta una galería".** Es el repositorio de imágenes del
+  ítem, y en los tipos `card` / `alert` el editor las inserta **en línea dentro del texto**, que
+  luego expande `RichTextRenderer`. Pintar además la rejilla al pie —que es lo que hacía la
+  vista— mostraba cada foto **dos veces**. Quien decide si existe una galería como bloque propio
+  es el **tipo del ítem**: solo `album`. En `HuespedGuiaView` el criterio vive en un único
+  helper, `tieneGaleria()`, usado por los tres sitios que pintaban fotos (rejilla del ítem único
+  en el nivel 2, bloque «Galería» del nivel 3 y el contador «N fotos» de la lista). La
+  **miniatura** de la fila del nivel 2 se queda en todos los tipos a propósito: ahí la imagen no
+  anuncia una galería, es una pista visual de la fila.
+
 ---
 
 ## 8. Dónde tocar para cambiar X
@@ -387,11 +516,17 @@ algún día entra ese componente, esta clase es el único punto a sustituir.
 | Cambiar las horas de anticipación | mismo archivo | `HORAS_ANTICIPACION` |
 | Cambiar qué invalida una estancia | mismo archivo | `paraEvento()`, las tres comprobaciones |
 | Que un ítem bloqueado se oculte en vez de anunciarse | mismo archivo | `debeAnunciarBloqueo()` |
-| Añadir un nivel de visibilidad | `src/Pms/Enum/PmsGuiaVisibilidad.php` **y** `PmsGuiaAcceso::permite()` | el `match` de los dos |
+| Cambiar el aviso al tocar el candado de un ítem | `pax/src/views/huesped/HuespedGuiaView.vue` | `mensajeBloqueoItem`, `avisarBloqueo()` |
+| Añadir un nivel de visibilidad | `src/Pms/Enum/PmsGuiaVisibilidad.php` **y** `PmsGuiaAcceso::permite()` | el `match` de los dos + `exigeCondicionExtra()`, el CRUD, el tipo de `pax` y una migración de datos |
 | Añadir un placeholder de datos | `src/Pms/Guia/PmsGuiaContexto.php` | `construir()`, `$valores` o `$sensibles` |
 | Marcar un placeholder como sensible | `src/Pms/Guia/PmsGuiaInterpolador.php` | `CLAVES_SENSIBLES` |
 | Cambiar los textos de bloqueo o añadir un idioma | `src/Pms/Guia/PmsGuiaMensajes.php` | las constantes |
-| Añadir un bloque de maquetación (`{{ algo: valor }}`) | `pax/src/core/RichContentEngine.ts` | `COMPONENT_REGISTRY` |
+| Añadir un bloque de maquetación (`{{ algo: valor }}`) | `pax/src/core/RichContentEngine.ts` | `COMPONENT_REGISTRY` + la chuleta del CRUD |
+| Añadir un medio con ventana (`{{ algo_ventana: url }}`) | `src/Pms/Guia/PmsGuiaInterpolador.php` | `REGEX_MEDIA_VENTANA`, `resolverMediaVentana()` |
+| Cambiar el marco de un medio bloqueado | `pax/src/components/RichText/MediaBloqueadaBlock.vue` | la plantilla |
+| Actualizar la chuleta de placeholders del formulario | `src/Pms/Controller/Crud/PmsGuiaItemCrudController.php` | `ayudaPlaceholders()` |
+| Cambiar cómo se ve un dato interpolado o un `[Disponible el …]` | `pax/src/components/RichText/RichTextRenderer.vue` | `:deep(.guia-dato)` (§4) |
+| Cambiar el marcado que envuelve el dato | `src/Pms/Guia/PmsGuiaInterpolador.php` | `envolver()` — tocar también el CSS |
 | Cambiar el podado del árbol | `src/Pms/Guia/PmsGuiaArbolFiltro.php` | `podar()`, `podarItems()` |
 | Cambiar qué estancia abre el enlace corto | `src/Api/Provider/Pms/PmsGuiaHuespedProvider.php` | `elegirEvento()` |
 | Cambiar qué exige el catálogo para existir | `src/Api/Provider/Pms/PmsUnidadCatalogoProvider.php` | `provide()`, los guards |
@@ -402,6 +537,7 @@ algún día entra ese componente, esta clase es el único punto a sustituir.
 | Proteger también el localizador de cotizaciones | `src/Api/Provider/Cotizacion/CotizacionFilePublicProvider.php` | reutilizar `PmsGuiaThrottle` (§6.1) |
 | Clasificar contenido desde el panel | `src/Pms/Controller/Crud/PmsGuiaItemCrudController.php` | `ChoiceField::new('visibilidad')` |
 | **Cambiar el diseño de la guía del huésped** | `pax/src/views/huesped/HuespedGuiaView.vue` | `secciones`, `avisoAcceso`, `mensajeError` |
+| Cambiar qué ítems pintan galería | mismo archivo | `tieneGaleria()` (§7) |
 | Llamadas HTTP de la guía | `pax/src/stores/huesped/paxHuespedGuiaStore.ts` | `cargar()`, `limpiar()` |
 | Cambiar tipos de la guía | `pax/src/types/paxHuespedGuiaModel.ts` | espejo de `pax_guia:read` |
 | Cambiar a dónde lleva el botón «Ver guía» | `pax/src/views/huesped/PmsReservaView.vue` | `verGuiaEvento()` |

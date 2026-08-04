@@ -20,6 +20,10 @@ namespace App\Pms\Guia;
  * componentes Vue. La expresión regular los descarta sola: no admite `:`
  * dentro de la clave.
  *
+ * **Con UNA excepción**: `{{ video_ventana: url }}` e `{{ img_ventana: url }}`.
+ * Ahí no se resuelve el bloque —eso sigue siendo del front— pero sí se decide
+ * si la URL sale del servidor. Ver resolverMediaVentana().
+ *
  * OJO al tocar la regex: tiene que seguir siendo idéntica a la del front, o
  * habrá placeholders que un lado sustituye y el otro deja crudos a la vista
  * del huésped.
@@ -28,6 +32,18 @@ final class PmsGuiaInterpolador
 {
     /** Clave simple entre llaves, tolerante a espacios: `{{ door_code }}`. */
     private const REGEX_CLAVE = '/\{\{\s*([a-z0-9_]+)\s*\}\}/i';
+
+    /**
+     * Bloques de maquetación cuya URL solo puede viajar con la ventana abierta:
+     * `{{ video_ventana: url }}` y `{{ img_ventana: url }}`.
+     *
+     * Son la excepción a la regla de "los bloques con `:` los resuelve el
+     * front": aquí no se resuelve el bloque, se decide si la URL sale del
+     * servidor. Dejar que el navegador reciba el enlace y "decida no pintarlo"
+     * sería el mismo fallo que tenía interpolateString() con los códigos de
+     * puerta — basta abrir las herramientas de desarrollo para leerlo.
+     */
+    private const REGEX_MEDIA_VENTANA = '/\{\{\s*(video_ventana|img_ventana)\s*:\s*(.+?)\s*\}\}/i';
 
     /**
      * Interpola una lista i18n completa.
@@ -74,6 +90,8 @@ final class PmsGuiaInterpolador
             return $texto;
         }
 
+        $texto = $this->resolverMediaVentana($texto, $acceso, $idioma, $revelar);
+
         return preg_replace_callback(
             self::REGEX_CLAVE,
             static function (array $m) use ($contexto, $acceso, $idioma, $revelar): string {
@@ -99,6 +117,48 @@ final class PmsGuiaInterpolador
                 // Desconocida: se deja tal cual, igual que hacía el front. Es
                 // una errata del editor y tiene que verse en la revisión.
                 return $m[0];
+            },
+            $texto,
+        ) ?? $texto;
+    }
+
+    /**
+     * Vídeos e imágenes con ventana: se reescribe la CLAVE, no el bloque.
+     *
+     * - Ventana abierta → se degrada a `{{ video: url }}` / `{{ img: url }}`,
+     *   los bloques de siempre. El front no se entera de que había una condición.
+     * - Ventana cerrada → `{{ videobloqueado: mensaje }}` / `{{ imgbloqueado: … }}`.
+     *   **La URL no viaja**: en su lugar va el texto que el front pinta centrado
+     *   sobre un marco con la forma del medio.
+     *
+     * Se le quitan los corchetes al mensaje: existen para que un dato bloqueado
+     * se distinga en mitad de una frase, pero dentro de un marco grande y
+     * centrado sobran.
+     */
+    private function resolverMediaVentana(
+        string $texto,
+        PmsGuiaAcceso $acceso,
+        string $idioma,
+        bool $revelar,
+    ): string {
+        if (!str_contains($texto, '_ventana')) {
+            return $texto;
+        }
+
+        return preg_replace_callback(
+            self::REGEX_MEDIA_VENTANA,
+            static function (array $m) use ($acceso, $idioma, $revelar): string {
+                $esVideo = str_starts_with(strtolower($m[1]), 'video');
+
+                if ($revelar) {
+                    return sprintf('{{ %s: %s }}', $esVideo ? 'video' : 'img', $m[2]);
+                }
+
+                return sprintf(
+                    '{{ %s: %s }}',
+                    $esVideo ? 'videobloqueado' : 'imgbloqueado',
+                    trim(PmsGuiaMensajes::bloqueo($acceso, $idioma), '[]'),
+                );
             },
             $texto,
         ) ?? $texto;

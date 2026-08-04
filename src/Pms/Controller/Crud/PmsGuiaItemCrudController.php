@@ -156,18 +156,24 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         // "público" significa indexable por cualquiera, sin reserva de por medio.
         yield ChoiceField::new('visibilidad', 'Quién lo ve')
             ->setChoices([
-                PmsGuiaVisibilidad::Publico->getLabel() => PmsGuiaVisibilidad::Publico,
-                PmsGuiaVisibilidad::Privado->getLabel() => PmsGuiaVisibilidad::Privado,
-                PmsGuiaVisibilidad::Llegada->getLabel() => PmsGuiaVisibilidad::Llegada,
+                PmsGuiaVisibilidad::Publico->getLabel()           => PmsGuiaVisibilidad::Publico,
+                PmsGuiaVisibilidad::Cliente->getLabel()           => PmsGuiaVisibilidad::Cliente,
+                PmsGuiaVisibilidad::ClienteConfirmado->getLabel() => PmsGuiaVisibilidad::ClienteConfirmado,
+                PmsGuiaVisibilidad::SoloVentana->getLabel()       => PmsGuiaVisibilidad::SoloVentana,
             ])
             ->renderExpanded(false)
             ->setRequired(true)
             ->setColumns(6)
             ->setHelp(
-                '<strong>Público</strong>: sale en el catálogo de la unidad, visible para cualquiera sin reserva. '
-                . '<strong>Privado</strong>: solo el huésped con una estancia vigente. '
-                . '<strong>A la llegada</strong>: además, solo desde 24 h antes del check-in y hasta el check-out '
-                . '(úsalo para códigos de puerta, caja fuerte y WiFi).'
+                'Cuatro niveles, cada uno añade UNA condición al anterior. '
+                . '<strong>Público</strong>: sale en el catálogo de la unidad, visible para cualquiera sin reserva '
+                . '(es el único que aparece en el catálogo). '
+                . '<strong>Cliente</strong>: cualquiera con el localizador, haya pagado o no — normas, cómo llegar. '
+                . '<strong>Cliente confirmado</strong>: además, con pago confiable. '
+                . '<strong>Solo en ventana</strong>: además, solo desde 24 h antes del check-in y hasta el check-out '
+                . '(úsalo para códigos de puerta, caja fuerte y WiFi). '
+                . 'Los dos últimos, si no se cumplen, NO desaparecen: el huésped ve el título con un candado '
+                . 'y qué le falta para abrirlo.'
             );
 
         yield FormField::addPanel('Contenido Dinámico')
@@ -208,14 +214,16 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->hideOnIndex()
             ->hideOnDetail()
             ->setColumns(12)
-            ->setHelp('
-            <div class="small text-muted mt-2" style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #dee2e6;">
-                ... (tu bloque de variables dinámicas igual) ...
-            </div>
-        ');
+            ->setHelp(self::ayudaPlaceholders());
 
         yield TextField::new('icono', 'Icono (FontAwesome)')
-            ->setHelp('Ej: fa-wifi, fa-utensils.')
+            ->setHelp(
+                'Ej: fa-wifi, fa-utensils. '
+                . '<strong>Ojo:</strong> <code>fa-circle-info</code>, <code>fa-images</code> y '
+                . '<code>fa-location-dot</code> se usaron para decidir qué contenido sale al '
+                . 'catálogo público (migración Version20260804150000). No los pongas en un ítem '
+                . 'que no quieras publicar.'
+            )
             ->setColumns(6);
 
         yield FormField::addPanel('Botón de Acción (Opcional)')->setIcon('fa fa-link');
@@ -322,5 +330,74 @@ class PmsGuiaItemCrudController extends AbstractCrudController
 
         yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);
         yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);
+    }
+
+    /**
+     * Chuleta de placeholders bajo el cuerpo del ítem.
+     *
+     * Vive en el formulario a propósito: quien escribe la guía no lee
+     * docs/PmsGuiaHuesped.md, y sin esta referencia los placeholders se olvidan
+     * o se inventan (y un `{{ codigo_puerta }}` mal escrito no falla: se queda
+     * literal en pantalla delante del huésped).
+     *
+     * Si se añade un placeholder nuevo hay que tocar TRES sitios: el resolutor
+     * que corresponda (PmsGuiaContexto o RichContentEngine), esta chuleta, y
+     * docs/PmsGuiaHuesped.md §4.
+     */
+    private static function ayudaPlaceholders(): string
+    {
+        return <<<'HTML'
+            <div class="small text-muted mt-2" style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #dee2e6;">
+
+                <strong>Datos — se sustituyen siempre</strong>
+                <div style="columns:2; margin:6px 0 12px;">
+                    <code>{{ unit_name }}</code> nombre de la unidad<br>
+                    <code>{{ hotel_name }}</code> nombre del establecimiento<br>
+                    <code>{{ host_name }}</code> anfitrión<br>
+                    <code>{{ host_whatsapp }}</code> WhatsApp del anfitrión<br>
+                    <code>{{ guest_name }}</code> nombre del huésped<br>
+                    <code>{{ booking_ref }}</code> localizador<br>
+                    <code>{{ check_in }}</code> / <code>{{ check_out }}</code> horas<br>
+                    <code>{{ start_date }}</code> / <code>{{ end_date }}</code> fechas
+                </div>
+
+                <strong>Datos protegidos — solo dentro de la ventana</strong>
+                <div style="margin:6px 0 12px;">
+                    <code>{{ door_code }}</code>
+                    <code>{{ safe_code }}</code>
+                    <code>{{ keybox_main }}</code>
+                    <code>{{ keybox_sec }}</code>
+                    <div class="text-muted" style="margin-top:4px;">
+                        Fuera de la ventana se sustituyen por «Disponible el …» / «Disponible al
+                        confirmar». El valor real no sale del servidor.
+                    </div>
+                </div>
+
+                <strong>Maquetación</strong>
+                <div style="margin:6px 0 12px;">
+                    <code>{{ video: URL }}</code> reproductor<br>
+                    <code>{{ img: URL }}</code> imagen<br>
+                    <code>{{ map: coordenadas }}</code> mapa<br>
+                    <code>{{ widget: wifi }}</code> tarjeta de redes WiFi
+                </div>
+
+                <strong>Maquetación protegida — solo dentro de la ventana</strong>
+                <div style="margin:6px 0 0;">
+                    <code>{{ video_ventana: URL }}</code>
+                    <code>{{ img_ventana: URL }}</code>
+                    <div class="text-muted" style="margin-top:4px;">
+                        Fuera de la ventana el huésped ve un marco con la forma del vídeo o la
+                        imagen y el texto de disponibilidad en el centro. <strong>La URL no
+                        se envía</strong>, así que tampoco se puede sacar del código de la página.
+                        Úsalos para el vídeo de cómo abrir la puerta o la foto de la caja de llaves.
+                    </div>
+                </div>
+
+                <div class="text-muted" style="margin-top:12px; padding-top:8px; border-top:1px solid #dee2e6;">
+                    Se admiten espacios: <code>{{clave}}</code> y <code>{{ clave }}</code> valen igual.
+                    Un placeholder mal escrito NO da error: se queda literal en la guía.
+                </div>
+            </div>
+            HTML;
     }
 }
