@@ -243,7 +243,11 @@ const cambiarIdioma = (event: Event) => {
           </div>
         </div>
 
-        <div class="absolute bottom-0 left-0 right-0 p-7 md:p-14 text-white max-w-5xl mx-auto">
+        <!-- `pb-*` generoso a propósito: la parrilla de fotos de abajo sube con
+             `-mt-10` para montarse sobre el hero, y sin este colchón la primera
+             foto tapaba las insignias de capacidad y nº de fotos. En Tailwind el
+             `pb-` gana al `p-` de la misma regla, así que basta con añadirlo. -->
+        <div class="absolute bottom-0 left-0 right-0 p-7 md:p-14 pb-20 md:pb-24 text-white max-w-5xl mx-auto">
           <p v-if="ubicacion" class="text-[11px] font-black uppercase tracking-[0.25em] text-[#E07845] mb-3 flex items-center gap-2">
             <i class="fas fa-location-dot"></i> {{ ubicacion }}
           </p>
