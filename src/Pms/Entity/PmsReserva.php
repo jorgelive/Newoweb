@@ -115,6 +115,23 @@ class PmsReserva
     #[Assert\Length(max: 30)]
     private ?string $telefono2 = null;
 
+    /**
+     * El operador marca cuál de los dos números es el bueno para contactar.
+     *
+     * Existe porque hoy los dos son móviles: la distinción `telefono`/`telefono2`
+     * ya no dice cuál usar, solo en qué orden llegaron. Sin esto, TODO el sistema
+     * (WhatsApp, plantillas, vCard) llamaba siempre al primero, aunque el
+     * operador supiera que el bueno era el segundo.
+     *
+     * **No se consulta directamente: se usa `getTelefonoContacto()`.** El flag
+     * solo importa cuando los dos números están rellenos, y esa resolución vive
+     * en un único sitio a propósito — antes el `telefono ?? telefono2` estaba
+     * copiado en siete.
+     */
+    #[ORM\Column(name: 'telefono2_es_principal', type: 'boolean', options: ['default' => false])]
+    #[Groups(['pms_reserva:read', 'pms_reserva:write'])]
+    private bool $telefono2EsPrincipal = false;
+
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     #[Assert\Email(message: 'El formato del email no es válido.')]
     #[Assert\Length(max: 150)]
@@ -329,6 +346,38 @@ class PmsReserva
 
     #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getTelefono2(): ?string { return $this->telefono2; }
+
+    public function isTelefono2EsPrincipal(): bool { return $this->telefono2EsPrincipal; }
+    public function setTelefono2EsPrincipal(bool $val): self { $this->telefono2EsPrincipal = $val; return $this; }
+
+    /**
+     * EL número al que hay que escribir. Fuente única de verdad.
+     *
+     * Todo lo que contacta al huésped pasa por aquí: enlace de WhatsApp, texto
+     * de las plantillas (`{{ guest_phone }}`), vCard y los botones de la SPA.
+     * Antes cada uno resolvía `telefono ?? telefono2` por su cuenta —siete
+     * copias— y marcar un número como principal habría exigido acordarse de los
+     * siete.
+     *
+     * El flag solo decide el ORDEN de preferencia; si el preferido está vacío se
+     * cae al otro. Así, marcar como principal un `telefono2` que luego se borra
+     * no deja a la reserva sin forma de contacto.
+     *
+     * Espejo TS: `telefonoContactoDe()` en `util/src/types/pmsReservaModel.ts`,
+     * que el drawer necesita para reflejar el formulario SIN GUARDAR. Si cambia
+     * la regla, se tocan los dos.
+     */
+    #[Groups(['pms_reserva:read'])]
+    public function getTelefonoContacto(): ?string
+    {
+        $preferido = $this->telefono2EsPrincipal ? $this->telefono2 : $this->telefono;
+        $alterno   = $this->telefono2EsPrincipal ? $this->telefono : $this->telefono2;
+
+        $preferido = trim((string) $preferido);
+        $alterno = trim((string) $alterno);
+
+        return $preferido !== '' ? $preferido : ($alterno !== '' ? $alterno : null);
+    }
     public function setTelefono2(?string $val): self { $this->telefono2 = $val; return $this; }
 
     #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]

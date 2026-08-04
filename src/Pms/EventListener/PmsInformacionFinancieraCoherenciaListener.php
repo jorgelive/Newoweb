@@ -12,6 +12,7 @@ use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Finance\MonedaBaseRebaseContext;
 use App\Pms\Service\Finance\PmsCargosAutomaticosService;
+use App\Pms\Service\Finance\PmsEstadoPagoEventosService;
 use App\Pms\Service\Finance\PmsPagoOtaAutomaticoService;
 use App\Pms\Service\Finance\PmsInformacionFinancieraRecalculoService;
 use App\Pms\Service\Finance\MonedaResolver;
@@ -68,6 +69,7 @@ final class PmsInformacionFinancieraCoherenciaListener
         private readonly PmsCargosAutomaticosService $cargosAutomaticos,
         private readonly MonedaBaseRebaseContext $rebaseContext,
         private readonly PmsPagoOtaAutomaticoService $pagoOta,
+        private readonly PmsEstadoPagoEventosService $estadoPagoService,
     ) {}
 
     public function onFlush(OnFlushEventArgs $args): void
@@ -261,6 +263,11 @@ final class PmsInformacionFinancieraCoherenciaListener
             if ($this->sincronizarPagosOta($ids, $em)) {
                 $this->recalculoService->recalcular($ids, $em);
             }
+
+            // Y con los totales ya definitivos, el estado de pago de cada estancia.
+            // Va el ÚLTIMO a propósito: lee `total_cargos`/`total_pagos`, así que
+            // cualquier paso que los mueva tiene que haber terminado antes (§12.9).
+            $this->estadoPagoService->sincronizar($ids, $em);
         } finally {
             $this->isFlushing = false;
         }

@@ -365,6 +365,12 @@ final class BookingPullPersister implements ResetInterface
             $reserva->setTelefono($phone !== '' ? $this->phoneSanitizer->cleanPhoneNumber($phone, $pais->getId()) : null);
             $reserva->setTelefono2($mobile !== '' ? $this->phoneSanitizer->cleanPhoneNumber($mobile, $pais->getId()) : null);
 
+            // Los dos números acaban de ser reemplazados por los del canal, así que
+            // "el segundo es el bueno" ya no se refiere a lo que el operador eligió:
+            // apuntaría a un número que nunca vio. Se vuelve al primero por defecto.
+            // Con `datosLocked` cerrado no se llega hasta aquí y su elección aguanta.
+            $reserva->setTelefono2EsPrincipal(false);
+
             // SOLO bloqueamos (cerramos candado) si llegó información sólida
             if ($hasStrongContactData) {
                 $reserva->setDatosLocked(true);

@@ -20,9 +20,15 @@
     {# 🔥 flex-wrap arregla el desbordamiento en móviles #}
     <div class="d-flex align-items-center flex-wrap gap-2">
 
-        {# El badge con el número de teléfono (white-space: nowrap evita que el número se parta) #}
+        {# El badge con el número de teléfono (white-space: nowrap evita que el número se parta).
+           `telefono_raw` NO es necesariamente `entity.telefono`: es el número de contacto
+           elegido por el operador (PmsReserva::getTelefonoContacto), que es al que apuntan
+           todos los botones de abajo. La marca "T2" avisa de que se está usando el segundo. #}
         <span class="badge bg-success-subtle text-success font-monospace" style="padding: 0.5em 0.7em; font-size: 0.9em; white-space: nowrap;">
             <i class="fas fa-phone-alt me-1"></i> {{ telefono_fmt }}
+            {% if contact_data.esTelefono2 ?? false %}
+                <span class="badge bg-primary-subtle text-primary ms-1" title="Se está usando el Teléfono 2">T2</span>
+            {% endif %}
         </span>
 
         {# Contenedor interno flexible para los botones #}

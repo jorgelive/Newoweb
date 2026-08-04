@@ -44,7 +44,20 @@ export interface PmsBorrableInfo {
 }
 
 export type PmsEventoCalendario = components['schemas']['PmsEventoCalendario-pms_evento.read_timestamp.read'] & PmsBorrableInfo;
-export type PmsReserva = components['schemas']['PmsReserva-pms_reserva.read_timestamp.read'] & PmsBorrableInfo;
+/**
+ * Elección del número de contacto. Todavía no está en el api.d.ts generado
+ * (ver PmsReserva::$telefono2EsPrincipal y getTelefonoContacto() en el backend),
+ * de ahí la extensión manual. `telefonoContacto` llega YA RESUELTO: no hay que
+ * volver a decidir cuál de los dos números es el bueno.
+ */
+export interface PmsTelefonoContactoInfo {
+    telefono2EsPrincipal?: boolean;
+    telefonoContacto?: string | null;
+}
+
+export type PmsReserva = components['schemas']['PmsReserva-pms_reserva.read_timestamp.read']
+    & PmsBorrableInfo
+    & PmsTelefonoContactoInfo;
 
 export type PmsUnidadOption = components['schemas']['PmsUnidad-pms_unidad.read'];
 export type PmsEventoEstadoOption = components['schemas']['PmsEventoEstado-pms_evento_estado.read'];
@@ -105,7 +118,8 @@ export type PmsEventoCalendarioPatch = Partial<components['schemas']['PmsEventoC
 export type PmsEventoCalendarioCreate = components['schemas']['PmsEventoCalendario-pms_evento.write_pms_evento.write_create'];
 
 /** PATCH /pms_reservas/{id} — todos los campos opcionales. */
-export type PmsReservaPatch = Partial<components['schemas']['PmsReserva-pms_reserva.write.jsonMergePatch']>;
+export type PmsReservaPatch = Partial<components['schemas']['PmsReserva-pms_reserva.write.jsonMergePatch']>
+    & { telefono2EsPrincipal?: boolean };
 
 /**
  * POST /pms_reservas — "Reserva completa" (titular + estancia inicial) creada en un
@@ -119,6 +133,8 @@ export interface PmsReservaCrearPayload {
     apellidoCliente?: string | null;
     telefono?: string | null;
     telefono2?: string | null;
+    /** Ver PmsReserva::$telefono2EsPrincipal: cuál de los dos números se usa. */
+    telefono2EsPrincipal?: boolean;
     emailCliente?: string | null;
     /** IRI de MaestroPais. */
     pais?: string | null;
@@ -239,6 +255,30 @@ export interface PmsReservaWhatsappLink {
  * Por eso el caller resuelve el enlace ANTES de pintar el botón (ver el submenú de
  * plantillas en ReservasView.vue).
  */
+/**
+ * EL número al que hay que escribir, según la elección del operador.
+ *
+ * **Espejo de `PmsReserva::getTelefonoContacto()` (PHP).** Si cambia la regla,
+ * se tocan los dos. La API ya expone `telefonoContacto` resuelto, así que esta
+ * copia solo hace falta donde hay que reflejar un formulario SIN GUARDAR —el
+ * drawer, mientras el operador teclea y marca la casilla—; en cualquier otro
+ * sitio, usa el campo que manda el backend.
+ *
+ * El flag solo decide el ORDEN de preferencia: si el preferido está vacío se cae
+ * al otro, para que marcar como principal un número que luego se borra no deje
+ * la reserva sin forma de contacto.
+ */
+export function telefonoContactoDe(
+    telefono?: string | null,
+    telefono2?: string | null,
+    telefono2EsPrincipal?: boolean,
+): string | null {
+    const preferido = (telefono2EsPrincipal ? telefono2 : telefono)?.trim() || '';
+    const alterno = (telefono2EsPrincipal ? telefono : telefono2)?.trim() || '';
+
+    return preferido || alterno || null;
+}
+
 export function whatsappUrl(telefono: string, texto: string): string {
     return `https://api.whatsapp.com/send/?phone=${encodeURIComponent(telefono)}&text=${encodeURIComponent(texto)}&type=phone_number&app_absent=0`;
 }

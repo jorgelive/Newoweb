@@ -67,7 +67,7 @@ class PmsReservaMessageContext implements MessageContextInterface
      */
     public function getContextPhone(): ?string
     {
-        return $this->reserva->getTelefono() ?? $this->reserva->getTelefono2();
+        return $this->reserva->getTelefonoContacto();
     }
 
     // =========================================================================

@@ -62,7 +62,8 @@ final class PmsReservaVcardController extends AbstractController
         $inicialCanal = substr(strtoupper($canalNombre), 0, 1);
 
         // LÓGICA DE FORMATEO (Número sanitizado en BD sin '+')
-        $telefonoRaw = trim((string) $reserva->getTelefono());
+        // El número de contacto elegido por el operador, no siempre el primero.
+        $telefonoRaw = trim((string) $reserva->getTelefonoContacto());
         $telefonoVcard = '';
 
         if ($telefonoRaw !== '') {

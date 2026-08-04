@@ -1778,6 +1778,107 @@ Verificado con la reserva 86182399 (Van der Meer, 746.40 + fee de 62.20):
 
 En los cuatro pasos los 4 cargos siguen en la BD; lo único que cambia es qué suma.
 
+## 12.9 El estado de pago de las estancias se deriva de la cabecera
+
+El operador registra el dinero en **un** sitio (cargos y pagos de la cabecera), pero quien
+decide qué ve el huésped es el `estadoPago` de cada `PmsEventoCalendario`. Mantener los dos a
+mano era el olvido más frecuente, y no es un olvido inocuo: `pago-parcial` y `pago-total` están
+en `ESTADOS_PAGO_CONFIABLES`, que es **lo que abre los códigos de acceso de la guía**
+(`docs/PmsGuiaHuesped.md` §3). Un adelanto cobrado y no reflejado dejaba al huésped sin poder
+entrar.
+
+`PmsEstadoPagoEventosService::sincronizar()` lo deriva:
+
+| Situación de la cabecera | Estancias pasan a |
+|---|---|
+| Hay pagos y queda saldo | `pago-parcial` |
+| Hay pagos y el saldo es 0 (o negativo) | `pago-total` |
+| Sin pagos, o sin cargos todavía | *no se toca* |
+
+**Solo hacia adelante, nunca degrada.** Es una asimetría deliberada, la misma que ya tenía el
+sistema («registrar un pago confirma la reserva, quitarlo no la des-confirma»):
+
+- `pago-parcial` solo se escribe **sobre `no-pagado`**. Así un `pago-alojamiento` puesto a mano
+  por el operador sobrevive a cualquier recálculo.
+- `pago-total` sí pisa cualquier estado: si no queda saldo, la estancia está pagada entera.
+- Quitar un pago **no** devuelve la estancia a `no-pagado`. Deshacer el acceso a la guía de un
+  huésped que ya está dentro por un ajuste contable sería peor que el problema que resuelve.
+
+Dos decisiones de implementación:
+
+- **Va en SQL, no por el ORM.** Se ejecuta desde el `postFlush` del listener de coherencia,
+  donde tocar entidades gestionadas obligaría a un flush anidado. Mismo patrón que
+  `PmsInformacionFinancieraRecalculoService`.
+- **Es el ÚLTIMO paso del `postFlush`**, después del recálculo y del depósito automático de las
+  OTA (§12.8): lee `total_cargos`/`total_pagos`, así que todo lo que los mueva tiene que haber
+  terminado antes. En una reserva de Airbnb, el depósito automático deja el saldo en cero y por
+  tanto sus estancias quedan en `pago-total` solas.
+
+## 12.10 A qué número se llama: `getTelefonoContacto()`
+
+Una reserva guarda **dos** números. Hoy los dos son móviles, así que la pareja
+`telefono`/`telefono2` ya no dice cuál es el bueno — solo en qué orden llegaron. El operador
+marca el suyo con `telefono2EsPrincipal`, y **todo** lo que contacta al huésped pasa por
+`PmsReserva::getTelefonoContacto()`.
+
+```
+telefono2EsPrincipal = false  →  telefono  ?? telefono2   (comportamiento histórico)
+telefono2EsPrincipal = true   →  telefono2 ?? telefono
+```
+
+El flag solo decide el **orden de preferencia**: si el preferido está vacío se cae al otro, para
+que marcar como principal un número que luego se borra no deje la reserva incomunicada.
+
+> **Por qué un método y no leer el flag en cada sitio.** El `telefono ?? telefono2` estaba
+> copiado en **siete** lugares (vCard ×2, enlace de WhatsApp, `{{ guest_phone }}` de las
+> plantillas, contexto de mensajería, menú del calendario y drawer). Añadir el flag sin
+> centralizar habría sido añadir siete oportunidades de olvidarlo, y el que se olvidara seguiría
+> llamando al número equivocado en silencio.
+
+Consumidores (todos migrados):
+
+| Dónde | Qué usa |
+|---|---|
+| `PmsReservaVcardController`, `PmsReservaCrudController::generarVcard()` | teléfono de la vCard |
+| `PmsReservaWhatsappLinkController` | destinatario del enlace de WhatsApp |
+| `PmsMessageDataResolver`, `PmsReservaMessageContext` | variable de plantilla |
+| `ReservasView.vue` | menú contextual — lee `telefonoContacto` **ya resuelto** de la API |
+| `ReservaEditDrawer.vue` | botón de WhatsApp — usa el espejo TS (ver abajo) |
+| `PmsReservaCrudController` (EasyAdmin) | el campo «Teléfono / Acciones» resuelve el contacto en su `formatValue`, así que los botones del panel apuntan al mismo número |
+
+**Ojo con el panel legacy**: sus botones los pinta
+`templates/panel/pms/pms_reserva/fields/telefono_wa_vcard.html.twig`, que arma el `wa.me/` desde
+el valor **crudo** del campo. Por eso el `formatValue` le pasa `getTelefonoContacto()` en vez del
+`telefono` a secas — si no, el panel llamaría a un número distinto del que usan las plantillas y
+el chat. La plantilla marca con una insignia `T2` cuando el número mostrado es el segundo.
+
+**El envío real de WhatsApp usa un snapshot.** `WhatsappMetaSendEnqueuer` toma
+`MessageConversation::$guestPhone` como fuente principal y solo cae al resolver
+(`PmsMessageDataResolver::getPhoneNumber()`) si está vacío. Ese snapshot lo refresca
+`MessageConversationFactory::upsertFromContext()`, al que se llega desde el `postFlush` de
+`PmsReservaRecalculoListener` — que se dispara con **cualquier** update de `PmsReserva`, así que
+cambiar el flag actualiza la conversación. Cuidado con las escrituras que esquiven Doctrine
+(SQL directo, migraciones de datos): dejarían la conversación apuntando al número viejo.
+
+**Dos sitios que NO siguen el flag, a propósito:**
+
+- **`BookingsPushMappingStrategy`** manda `telefono`→`phone` y `telefono2`→`mobile`. Es un espejo
+  fiel de los dos números guardados, no una preferencia de contacto. Si el push enviara el
+  principal como `phone`, el siguiente pull lo escribiría de vuelta en `telefono` y acabaría
+  **intercambiando los números** en cada ida y vuelta.
+- **`PmsReservaIntegrityListener`** sanea los dos por igual; no elige ninguno.
+
+**El pull resetea el flag.** `BookingPullPersister` reemplaza ambos números cuando `datosLocked`
+está abierto; llegado ese punto «el segundo es el bueno» apunta a un número que el operador nunca
+vio, así que vuelve a `false`. Con el candado cerrado no se llega ahí y su elección aguanta.
+
+**Espejo PHP ↔ TS.** `telefonoContactoDe()` en `util/src/types/pmsReservaModel.ts` replica la
+regla, y hace falta **solo** en el drawer: allí el botón de WhatsApp tiene que reflejar el
+formulario *sin guardar* mientras el operador teclea y marca la casilla. Todo lo demás consume
+`telefonoContacto` del backend. Si cambia la regla, se tocan los dos.
+
+Migración: `Version20260804180000` (arranca en `false`, o sea el comportamiento anterior).
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -1788,6 +1889,8 @@ En los cuatro pasos los 4 cargos siguen en la BD; lo único que cambia es qué s
 | Permitir editar el depósito automático (§12.4.5) | `PmsInformacionFinancieraCoherenciaListener` | `assertPagoAutomaticoNoEditable()` |
 | Cambiar lógica de estado OTA | `BookingPullPersister` | `resolveEstado()` |
 | Cambiar estado de pago inicial | `BookingPullPersister` | `resolveEstadoPagoInicial()` |
+| Cambiar cómo el saldo deriva el estado de pago de las estancias (§12.9) | `PmsEstadoPagoEventosService` | `sincronizar()` — las dos sentencias |
+| Cambiar a qué número se llama (§12.10) | `PmsReserva` **y** `util/src/types/pmsReservaModel.ts` | `getTelefonoContacto()` / `telefonoContactoDe()` — son espejo, hay que tocar **los dos** |
 | Cambiar la auto-confirmación por pago (§9.5) | `PmsEventoCalendario` + `util/src/types/pmsReservaModel.ts` | `requiereAutoConfirmacionPorPago()` (hay que tocar **los dos**: son espejo) |
 | Añadir campo nuevo al Pull | `Beds24BookingDto` + `BookingPullPersister` | `fromArray()` + `upsertReservaFull()` |
 | Cambiar qué campos puede escribir un espejo (§6.4) | `BookingPullPersister` | `upsertEvento()` → bloque `if ($isLinkPrincipal ...)` |

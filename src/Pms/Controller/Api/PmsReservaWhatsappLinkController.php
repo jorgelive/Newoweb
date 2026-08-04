@@ -75,7 +75,7 @@ final class PmsReservaWhatsappLinkController extends AbstractController
 
         $textoFinal = strtr($cuerpoPlantilla, $replacePairs);
 
-        $telefonoLimpio = preg_replace('/[^0-9]/', '', $reserva->getTelefono() ?? $reserva->getTelefono2() ?? '');
+        $telefonoLimpio = preg_replace('/[^0-9]/', '', $reserva->getTelefonoContacto() ?? '');
         if (empty($telefonoLimpio)) {
             throw new UnprocessableEntityHttpException('Esta reserva no tiene un número de teléfono válido.');
         }

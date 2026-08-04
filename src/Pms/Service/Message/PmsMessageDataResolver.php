@@ -49,7 +49,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
     public function getPhoneNumber(string $contextId): ?string
     {
         $reserva = $this->getReserva($contextId);
-        return $reserva ? ($reserva->getTelefono() ?? $reserva->getTelefono2()) : null;
+        return $reserva?->getTelefonoContacto();
     }
 
     public function getMetadata(string $contextId): array

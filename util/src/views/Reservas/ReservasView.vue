@@ -391,7 +391,9 @@ async function onEventClick(info: EventClickArg): Promise<void> {
             localizador: extra.localizador ?? null,
             channelId: reserva.channel?.id ?? null,
             urlCanalExtranet: extra.urlCanalExtranet ?? null,
-            telefono: reserva.telefono || reserva.telefono2 || null,
+            // Ya resuelto por PmsReserva::getTelefonoContacto(): aquí no se
+            // vuelve a decidir cuál de los dos números es el bueno.
+            telefono: (reserva as { telefonoContacto?: string | null }).telefonoContacto ?? null,
         };
     } catch {
         /* silencioso: los ítems dependientes (guía / canal) simplemente no aparecen */

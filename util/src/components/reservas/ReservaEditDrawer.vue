@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useMaestroStore } from '@/stores/maestroStore';
@@ -11,6 +11,7 @@ import {
     PMS_ESTADO,
     PMS_ESTADO_PAGO,
     PMS_CHANNEL,
+    telefonoContactoDe,
     pmsUnidadIri,
     pmsReservaIri,
     pmsEventoEstadoIri,
@@ -440,6 +441,7 @@ function clienteVacio() {
         apellidoCliente: '',
         telefono: '',
         telefono2: '',
+        telefono2EsPrincipal: false,
         emailCliente: '',
         pais: '',
         idioma: '',
@@ -470,6 +472,111 @@ const guideUrl = computed(() => {
     return `${getUrls().pax}/huesped/reserva/${reservaInfo.value.localizador}`;
 });
 
+/**
+ * Etiqueta e icono del enlace a la extranet del canal. Espejo de `otaMenuInfo`
+ * en ReservasView: las dos pintan el mismo enlace, una desde el menú contextual
+ * y otra desde la subbarra del drawer.
+ */
+const extranetInfo = computed(() => {
+    switch (reservaInfo.value.channelId) {
+        case PMS_CHANNEL.BOOKING: return { texto: 'Booking', icono: 'fas fa-hotel' };
+        case PMS_CHANNEL.AIRBNB:  return { texto: 'Airbnb', icono: 'fab fa-airbnb' };
+        default:                  return { texto: 'Canal', icono: 'fas fa-external-link-alt' };
+    }
+});
+
+/**
+ * Texto del chip del canal: el código de reserva de la OTA si lo hay, y si no
+ * el nombre del canal. Son la MISMA cosa —ese código ES la reserva en
+ * Booking/Airbnb—, así que se pintan juntos en vez de como dos piezas que
+ * repiten la misma información y ocupan el doble.
+ */
+const canalEtiqueta = computed(() =>
+    reservaInfo.value.referenciaCanalAggregate || extranetInfo.value.texto,
+);
+
+const canalTitulo = computed(() => {
+    const ref = reservaInfo.value.referenciaCanalAggregate;
+    const donde = extranetInfo.value.texto;
+    return ref ? `Abrir la reserva ${ref} en ${donde}` : `Abrir la reserva en ${donde}`;
+});
+
+// ============================================================================
+// SUBBARRA: colapso a iconos cuando no cabe
+//
+// No sirve un breakpoint de viewport: el drawer mide `min(viewport, 512px)`, así
+// que en escritorio su ancho es constante y lo que desborda es el CONTENIDO —una
+// referencia de canal de 12 dígitos ocupa lo que tres etiquetas—. Se mide el
+// desbordamiento real y se quitan los textos, dejando solo los iconos (todos
+// tienen `title`, así que no se pierde información).
+// ============================================================================
+const barraRef = ref<HTMLElement | null>(null);
+const soloIconos = ref(false);
+
+/**
+ * Ancho que ocupa la barra CON etiquetas. Se recuerda al colapsar porque
+ * colapsada ya no se puede medir: sin este dato no habría forma de saber cuándo
+ * vuelve a caber, y la barra se quedaría en iconos para siempre.
+ */
+let anchoConEtiquetas = 0;
+
+/** Holgura para volver a expandir; evita que un píxel de más haga oscilar la barra. */
+const MARGEN_REEXPANDIR = 12;
+
+function ajustarBarra(): void {
+    const el = barraRef.value;
+    if (!el) return;
+
+    if (!soloIconos.value) {
+        if (el.scrollWidth > el.clientWidth) {
+            anchoConEtiquetas = el.scrollWidth;
+            soloIconos.value = true;
+        }
+        return;
+    }
+
+    if (anchoConEtiquetas && el.clientWidth >= anchoConEtiquetas + MARGEN_REEXPANDIR) {
+        soloIconos.value = false;
+    }
+}
+
+/**
+ * Al cambiar los datos (localizador y referencia llegan por fetch) el ancho
+ * recordado ya no vale: se vuelve a expandir para medir de cero.
+ */
+async function remedirBarra(): Promise<void> {
+    soloIconos.value = false;
+    anchoConEtiquetas = 0;
+    await nextTick();
+    ajustarBarra();
+}
+
+watch(() => [reservaInfo.value.localizador, reservaInfo.value.referenciaCanalAggregate, reservaInfo.value.urlCanalExtranet], remedirBarra);
+
+// El observer vigila la barra, no la ventana: así también reacciona si el drawer
+// cambia de ancho por cualquier otro motivo. Colapsar no altera el tamaño de la
+// propia barra (es `w-full`), así que el callback no se auto-dispara en bucle.
+let observer: ResizeObserver | null = null;
+
+onMounted(() => {
+    observer = new ResizeObserver(() => ajustarBarra());
+    if (barraRef.value) observer.observe(barraRef.value);
+});
+
+onBeforeUnmount(() => {
+    observer?.disconnect();
+    observer = null;
+});
+
+// La barra se monta con `v-if` (necesita reservaId y datos cargados), así que
+// puede aparecer después del onMounted: se observa en cuanto exista.
+watch(barraRef, (el) => {
+    if (el && observer) {
+        observer.observe(el);
+        remedirBarra();
+    }
+});
+
 // ============================================================================
 // CABECERA: titular, pax y accesos directos de contacto
 // ============================================================================
@@ -497,9 +604,20 @@ const paxResumen = computed(() => {
     return `x${adultos}${ninos ? ` +${ninos}` : ''}`;
 });
 
-/** Conversación directa de WhatsApp con el huésped (mismo criterio que el menú del calendario). */
+/**
+ * Conversación directa de WhatsApp con el huésped.
+ *
+ * Resuelve sobre el FORMULARIO, no sobre lo guardado: el operador puede marcar
+ * la casilla de número principal y el botón tiene que apuntar al nuevo número
+ * antes de pulsar «Guardar». De ahí el espejo TS de la regla; el backend expone
+ * el mismo dato ya resuelto en `telefonoContacto` para quien no edita.
+ */
 const whatsappUrl = computed(() => {
-    const numero = telefonoParaWhatsapp(clienteForm.value.telefono || clienteForm.value.telefono2);
+    const numero = telefonoParaWhatsapp(telefonoContactoDe(
+        clienteForm.value.telefono,
+        clienteForm.value.telefono2,
+        clienteForm.value.telefono2EsPrincipal,
+    ));
     return numero ? `https://wa.me/${numero}` : null;
 });
 
@@ -585,6 +703,7 @@ async function cargarDatos(): Promise<void> {
                 apellidoCliente: reserva.apellidoCliente ?? '',
                 telefono: reserva.telefono ?? '',
                 telefono2: reserva.telefono2 ?? '',
+                telefono2EsPrincipal: reserva.telefono2EsPrincipal ?? false,
                 emailCliente: reserva.emailCliente ?? '',
                 pais: reserva.pais?.id ?? '',
                 idioma: reserva.idioma?.id ?? '',
@@ -696,6 +815,7 @@ async function guardar(): Promise<void> {
                 apellidoCliente: clienteForm.value.apellidoCliente || null,
                 telefono: clienteForm.value.telefono || null,
                 telefono2: clienteForm.value.telefono2 || null,
+                telefono2EsPrincipal: clienteForm.value.telefono2EsPrincipal,
                 emailCliente: clienteForm.value.emailCliente || null,
                 pais: clienteForm.value.pais ? `/platform/maestro/pais/${clienteForm.value.pais}` : null,
                 idioma: clienteForm.value.idioma ? `/platform/maestro/idiomas/${clienteForm.value.idioma}` : null,
@@ -772,6 +892,7 @@ async function guardar(): Promise<void> {
                     apellidoCliente: clienteForm.value.apellidoCliente || null,
                     telefono: clienteForm.value.telefono || null,
                     telefono2: clienteForm.value.telefono2 || null,
+                telefono2EsPrincipal: clienteForm.value.telefono2EsPrincipal,
                     emailCliente: clienteForm.value.emailCliente || null,
                     pais: clienteForm.value.pais ? `/platform/maestro/pais/${clienteForm.value.pais}` : null,
                     idioma: clienteForm.value.idioma ? `/platform/maestro/idiomas/${clienteForm.value.idioma}` : undefined,
@@ -819,21 +940,10 @@ async function guardar(): Promise<void> {
                         <span v-if="paxResumen" class="text-slate-400 font-bold text-xs ml-1">{{ paxResumen }}</span>
                     </h2>
                 </div>
+                <!-- Contacto e identificadores viven en la subbarra de abajo: aquí
+                     solo queda el control de modo, que es lo único que cambia el
+                     estado del propio drawer. -->
                 <div class="flex items-center gap-1.5 shrink-0">
-                    <!-- Conversación directa con el huésped (sin plantilla), igual que el
-                         menú contextual del calendario. -->
-                    <a v-if="whatsappUrl" :href="whatsappUrl" target="_blank" rel="noopener"
-                        title="Abrir WhatsApp con el huésped"
-                        class="group w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-emerald-600 rounded-full transition-colors">
-                        <i class="fab fa-whatsapp text-emerald-400 group-hover:text-white text-sm"></i>
-                    </a>
-                    <button v-if="reservaId" type="button" @click="abrirChatInterno" :disabled="abriendoChat"
-                        title="Abrir chat interno"
-                        class="group w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-[#376875] rounded-full transition-colors disabled:opacity-50">
-                        <i class="fas text-sm text-slate-300 group-hover:text-white"
-                            :class="abriendoChat ? 'fa-spinner fa-spin' : 'fa-comment-dots'"></i>
-                    </button>
-
                     <button v-if="readOnly" @click="habilitarEdicion"
                         class="px-3 h-8 flex items-center gap-1.5 bg-[#376875] hover:bg-[#2d5660] rounded-full transition-colors text-xs font-black">
                         <i class="fas fa-pen text-[11px]"></i> Editar
@@ -848,6 +958,87 @@ async function guardar(): Promise<void> {
                     </button>
                 </div>
             </header>
+
+            <!-- ═══ SUBBARRA: identificadores y accesos directos ═══
+                 Todo lo que es "sobre esta reserva" y no "sobre este formulario":
+                 localizador, referencia del canal y los enlaces de contacto.
+                 Está FUERA del cuerpo desplazable a propósito — antes el
+                 localizador vivía enterrado en la sección del titular y había que
+                 bajar hasta él, que es justo lo contrario de lo que se necesita
+                 cuando alguien llama preguntando por su reserva.
+
+                 Se pinta igual en Ver y en Editar: son datos de solo lectura y
+                 accesos, nada que dependa del modo. -->
+            <div v-if="reservaId && !isLoadingDrawer" ref="barraRef"
+                class="shrink-0 bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+
+                <span v-if="reservaInfo.localizador"
+                    class="shrink-0 px-2.5 py-1 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-mono font-black tracking-wide"
+                    title="Localizador de la reserva">
+                    {{ reservaInfo.localizador }}
+                </span>
+
+                <!-- Reserva en el canal: el código de la OTA es el propio enlace a su
+                     extranet. Si no hay URL sigue mostrándose como dato, que es lo que
+                     el operador dicta por teléfono.
+                     NO colapsa a icono: el código es un DATO, y perderlo dejaría la
+                     barra sin el número que identifica la reserva en el canal. Lo que
+                     se colapsa son las etiquetas de las ACCIONES, que el icono ya
+                     explica por sí solo. -->
+                <a v-if="reservaInfo.urlCanalExtranet" :href="reservaInfo.urlCanalExtranet"
+                    target="_blank" rel="noopener" :title="canalTitulo"
+                    class="shrink-0 flex items-center justify-center gap-1.5 h-8 px-2.5 bg-white border border-slate-200 hover:border-[#376875] hover:text-[#376875] text-slate-500 rounded-lg text-[11px] font-mono font-bold transition-colors">
+                    <i :class="extranetInfo.icono" class="text-[11px]"></i>
+                    <span>{{ canalEtiqueta }}</span>
+                </a>
+
+                <span v-else-if="reservaInfo.referenciaCanalAggregate"
+                    :title="`Referencia de ${extranetInfo.texto}: ${reservaInfo.referenciaCanalAggregate}`"
+                    class="shrink-0 flex items-center justify-center gap-1.5 h-8 px-2.5 bg-white border border-slate-200 text-slate-500 rounded-lg text-[11px] font-mono font-bold">
+                    <i :class="extranetInfo.icono" class="text-[11px]"></i>
+                    <span>{{ reservaInfo.referenciaCanalAggregate }}</span>
+                </span>
+
+                <span class="shrink-0 w-px h-5 bg-slate-200 mx-0.5"></span>
+
+                <!-- Abrir la guía tal como la ve el huésped. Estaba solo en el menú
+                     contextual del calendario; aquí evita tener que cerrar el drawer
+                     para comprobar qué está viendo quien llama. -->
+                <a v-if="guideUrl" :href="guideUrl" target="_blank" rel="noopener"
+                    title="Abrir la guía del huésped"
+                    class="shrink-0 flex items-center justify-center gap-1.5 h-8 bg-white border border-slate-200 hover:border-[#376875] hover:text-[#376875] text-slate-600 rounded-lg text-xs font-bold transition-colors"
+                    :class="soloIconos ? 'w-8' : 'px-2.5'">
+                    <i class="fas fa-book-open text-[11px]"></i>
+                    <span v-if="!soloIconos">Guía</span>
+                </a>
+
+                <button v-if="guideUrl" type="button" @click="copiar(guideUrl, 'guide')"
+                    title="Copiar el enlace de la guía"
+                    class="shrink-0 flex items-center justify-center gap-1.5 h-8 border rounded-lg text-xs font-bold transition-colors"
+                    :class="[
+                        soloIconos ? 'w-8' : 'px-2.5',
+                        copiadoKey === 'guide'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            : 'bg-white border-slate-200 hover:border-slate-300 text-slate-600',
+                    ]">
+                    <i class="fas text-[11px]" :class="copiadoKey === 'guide' ? 'fa-check' : 'fa-link'"></i>
+                    <span v-if="!soloIconos">{{ copiadoKey === 'guide' ? 'Copiado' : 'Copiar' }}</span>
+                </button>
+
+                <a v-if="whatsappUrl" :href="whatsappUrl" target="_blank" rel="noopener"
+                    title="Abrir WhatsApp con el huésped"
+                    class="shrink-0 w-8 h-8 flex items-center justify-center bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 rounded-lg transition-colors">
+                    <i class="fab fa-whatsapp text-emerald-500 text-sm"></i>
+                </a>
+
+                <button type="button" @click="abrirChatInterno" :disabled="abriendoChat"
+                    title="Abrir chat interno"
+                    class="shrink-0 w-8 h-8 flex items-center justify-center bg-white border border-slate-200 hover:border-[#376875] hover:bg-[#376875]/5 rounded-lg transition-colors disabled:opacity-50">
+                    <i class="fas text-sm text-slate-500"
+                        :class="abriendoChat ? 'fa-spinner fa-spin' : 'fa-comment-dots'"></i>
+                </button>
+
+            </div>
 
             <div v-if="isLoadingDrawer" class="flex-1 flex items-center justify-center">
                 <i class="fas fa-spinner fa-spin text-3xl text-[#376875]"></i>
@@ -1132,33 +1323,9 @@ async function guardar(): Promise<void> {
                         <i class="fas fa-user mr-1"></i> Datos del Titular
                     </h3>
 
-                    <!-- ===== IDENTIFICADORES (localizador + guía, referencia del canal, vCard) =====
-                         WhatsApp, chat interno y el enlace al canal (Booking/Airbnb) viven ahora en
-                         el menú contextual del calendario para no duplicarlos. -->
-                    <div v-if="reservaId" class="mb-3 space-y-2">
-                        <!-- Localizador propio + copiar enlace a la guía del huésped (van juntos) -->
-                        <div v-if="reservaInfo.localizador" class="flex items-center gap-2 flex-wrap">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Localizador</span>
-                            <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-mono font-bold">
-                                {{ reservaInfo.localizador }}
-                            </span>
-                            <button v-if="guideUrl" @click="copiar(guideUrl, 'guide')"
-                                class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-colors"
-                                :class="copiadoKey === 'guide' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'">
-                                <i class="fas" :class="copiadoKey === 'guide' ? 'fa-check' : 'fa-link'"></i>
-                                {{ copiadoKey === 'guide' ? 'Copiado' : 'Copiar enlace' }}
-                            </button>
-                        </div>
-
-                        <!-- Código de referencia del canal externo (OTA), solo informativo -->
-                        <div v-if="reservaInfo.referenciaCanalAggregate" class="flex items-center gap-2 flex-wrap">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Ref. canal</span>
-                            <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-mono font-bold">
-                                {{ reservaInfo.referenciaCanalAggregate }}
-                            </span>
-                        </div>
-
-                    </div>
+                    <!-- Localizador, referencia del canal y accesos directos ya no viven
+                         aquí: subieron a la subbarra fija bajo la cabecera, para no tener
+                         que desplazarse hasta ellos. -->
 
                     <!-- ===== VISTA (modo "Ver") ===== -->
                     <div v-if="readOnly" class="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
@@ -1171,8 +1338,14 @@ async function guardar(): Promise<void> {
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Apellido</p>
                                 <p class="text-sm font-bold text-slate-800 mt-0.5">{{ clienteForm.apellidoCliente || '—' }}</p>
                             </div>
+                            <!-- La insignia marca a cuál llaman WhatsApp, plantillas y vCard.
+                                 Solo se pinta con los dos rellenos: con uno, no hay elección. -->
                             <div>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Teléfono</p>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                                    Teléfono
+                                    <span v-if="clienteForm.telefono && clienteForm.telefono2 && !clienteForm.telefono2EsPrincipal"
+                                        class="px-1.5 py-0.5 bg-[#376875]/10 text-[#376875] rounded normal-case tracking-normal">principal</span>
+                                </p>
                                 <div class="flex items-center gap-2 mt-0.5">
                                     <p class="text-sm font-bold text-slate-800">{{ formatearTelefono(clienteForm.telefono) || '—' }}</p>
                                     <a v-if="vcardUrl && clienteForm.telefono" :href="vcardUrl" target="_blank" title="Descargar contacto (vCard)"
@@ -1182,7 +1355,11 @@ async function guardar(): Promise<void> {
                                 </div>
                             </div>
                             <div>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Teléfono 2</p>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                                    Teléfono 2
+                                    <span v-if="clienteForm.telefono && clienteForm.telefono2 && clienteForm.telefono2EsPrincipal"
+                                        class="px-1.5 py-0.5 bg-[#376875]/10 text-[#376875] rounded normal-case tracking-normal">principal</span>
+                                </p>
                                 <p class="text-sm font-bold text-slate-800 mt-0.5">{{ formatearTelefono(clienteForm.telefono2) || '—' }}</p>
                             </div>
                             <div class="col-span-2">
@@ -1228,8 +1405,21 @@ async function guardar(): Promise<void> {
                         </label>
                         <label>
                             <span class="text-xs font-bold text-slate-500">Teléfono 2</span>
+                            <span v-if="formatearTelefono(clienteForm.telefono2) && formatearTelefono(clienteForm.telefono2) !== clienteForm.telefono2"
+                                class="ml-1.5 text-[10px] font-bold text-slate-400">{{ formatearTelefono(clienteForm.telefono2) }}</span>
                             <input type="text" v-model="clienteForm.telefono2"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                        </label>
+
+                        <!-- Elección del número de contacto. Solo tiene sentido con los dos
+                             rellenos: con uno solo, `getTelefonoContacto()` lo usa igual. -->
+                        <label v-if="clienteForm.telefono && clienteForm.telefono2"
+                            class="col-span-2 flex items-center gap-2 -mt-1">
+                            <input type="checkbox" v-model="clienteForm.telefono2EsPrincipal" class="rounded" />
+                            <span class="text-xs font-bold text-slate-500">
+                                Usar el <strong class="text-slate-700">Teléfono 2</strong> para contactar
+                                <span class="font-medium text-slate-400">(WhatsApp, plantillas y vCard)</span>
+                            </span>
                         </label>
                         <label class="col-span-2">
                             <span class="text-xs font-bold text-slate-500">Email</span>
@@ -1294,5 +1484,19 @@ async function guardar(): Promise<void> {
 @keyframes slideIn {
     from { transform: translateX(100%); }
     to { transform: translateX(0); }
+}
+
+/*
+ * La subbarra desplaza en horizontal cuando no caben todos los accesos (móvil),
+ * pero una barra de scroll visible ahí se come el poco alto que tiene y se ve
+ * como un fallo de maquetación. Tailwind no trae utilidad para esto; ChatView
+ * define la suya igual, en local.
+ */
+.scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
 }
 </style>
