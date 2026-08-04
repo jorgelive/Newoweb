@@ -55,6 +55,30 @@ class PmsEventoEstado
     ];
 
     /**
+     * Estados en los que el evento OCUPA la casita de cara a la venta.
+     *
+     * Es la lista que tiñe de beige el calendario de tarifas (calendario
+     * `pms_eventos_ocupacion_spa`, ver docs/Calendar_architecture.md §12): los
+     * días que NO están aquí son huecos que se pueden tarifar. Quedan fuera
+     * `cancelada` (la casita volvió a estar libre), `abierto` (inquiry de
+     * Airbnb: consulta sin reserva) y `bloqueo` (no es una venta que tarifar).
+     *
+     * Se declara en POSITIVO y como lista blanca a propósito: un estado nuevo
+     * que se agregue mañana no pinta ocupación hasta que alguien lo decida aquí.
+     *
+     * OJO: coincide exactamente con el COMPLEMENTO de
+     * PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES, pero es CASUALIDAD —
+     * aquella regula qué puede elegir un humano en un evento OTA, ésta qué se
+     * pinta como ocupado. Son reglas distintas: no se deriven la una de la otra
+     * o cambiar una arrastrará a la otra sin querer.
+     */
+    public const array OCUPAN_UNIDAD = [
+        PmsEventoEstado::CODIGO_PENDIENTE,
+        PmsEventoEstado::CODIGO_CONFIRMADA,
+        PmsEventoEstado::CODIGO_REQUERIMIENTO,
+    ];
+
+    /**
      * El ID es el código string del estado.
      * Sin GeneratedValue por ser ID Natural.
      */

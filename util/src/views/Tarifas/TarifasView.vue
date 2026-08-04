@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, shallowRef } from 'vue';
+import { ref, computed, shallowRef, watch, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import FullCalendar from '@fullcalendar/vue3';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
@@ -24,6 +24,7 @@ import 'tippy.js/dist/tippy.css';
 import '@/assets/fullcalendar-overrides.css';
 import { apiClient } from '@/services/apiClient';
 import { escaparHtml } from '@/utils/html';
+import { encuadrarTimeline, scrollTimelineADia, hoyLocal } from '@/utils/calendarTimeline';
 import {
     coleccionFeed,
     comoError,
@@ -36,11 +37,14 @@ import TarifaEditDrawer from '@/components/tarifas/TarifaEditDrawer.vue';
 import TarifaMasivaDrawer from '@/components/tarifas/TarifaMasivaDrawer.vue';
 import {
     PMS_TARIFA_CALENDARIOS,
+    PMS_OCUPACION_CALENDARIO_KEY,
+    COLOR_OCUPADO,
     fromDateLocal,
     colorCasita,
     pmsUnidadIri,
     type PmsTarifaExtendedProps,
 } from '@/types/pmsTarifaModel';
+import type { PmsEventoExtendedProps } from '@/types/pmsReservaModel';
 
 const router = useRouter();
 const route = useRoute();
@@ -54,6 +58,10 @@ const calendarioIndex = ref(0);
 const calendarioActual = computed(() => PMS_TARIFA_CALENDARIOS[calendarioIndex.value]);
 
 const calendarApiRef = shallowRef<InstanceType<typeof FullCalendar> | null>(null);
+
+// Contenedor del calendario: lo necesita encuadrarTimeline() para alcanzar el
+// scroller del cuerpo cuando hay que irse al extremo derecho del rango.
+const calendarRootEl = ref<HTMLElement | null>(null);
 
 // Título del mes/rango renderizado FUERA del headerToolbar: mismo motivo que en
 // ReservasView (si comparte fila con los botones, en mobile todo se parte).
@@ -80,12 +88,40 @@ function fcVistaGuardada(): string {
     return v && FC_VISTAS_PERMITIDAS.includes(v) ? v : 'resourceTimelineTwoMonths';
 }
 
+/** `?fecha=YYYY-MM-DD` con el que se llega desde Reservas («Editar tarifas»). */
+function fechaDeQuery(): string | null {
+    const f = typeof route.query.fecha === 'string' ? route.query.fecha : null;
+    return f && /^\d{4}-\d{2}-\d{2}$/.test(f) ? f : null;
+}
+
 function fcFechaGuardada(): string | undefined {
-    // `?fecha=YYYY-MM-DD` gana sobre lo guardado: es como llega el usuario desde
+    // La fecha de la query gana sobre lo guardado: es como llega el usuario desde
     // el calendario de Reservas ("Ver tarifas de este día").
-    const desdeQuery = typeof route.query.fecha === 'string' ? route.query.fecha : null;
-    if (desdeQuery && /^\d{4}-\d{2}-\d{2}$/.test(desdeQuery)) return desdeQuery;
-    return localStorage.getItem(`${FC_STORAGE_KEY}_date`) || undefined;
+    return fechaDeQuery() ?? localStorage.getItem(`${FC_STORAGE_KEY}_date`) ?? undefined;
+}
+
+/**
+ * Día al que hay que desplazarse en cuanto el rango esté montado; gana al
+ * encuadre por defecto de `datesSet`. Dos usos:
+ *
+ * - Arranque con `?fecha=`: `initialDate` coloca el RANGO en esa fecha, pero el
+ *   scroll horizontal seguiría donde lo dejara el encuadre.
+ * - Botón «Hoy»: sin esto, el encuadre del rango nuevo (que manda por dirección
+ *   de navegación) se llevaría el scroll al extremo contrario.
+ *
+ * Mismo mecanismo que `diaPendiente` en ReservasView.
+ */
+let diaPendiente: string | null = fechaDeQuery();
+
+/** Resuelve el salto pendiente, si el día ya está dentro del rango montado. */
+function resolverDiaPendiente(): void {
+    const api = calendarApiRef.value?.getApi();
+    if (!api || !diaPendiente) return;
+
+    const [y, m, d] = diaPendiente.split('-').map(Number);
+    const objetivo = new Date(y, m - 1, d);
+    diaPendiente = null;
+    requestAnimationFrame(() => scrollTimelineADia(api, objetivo));
 }
 
 // ============================================================================
@@ -118,6 +154,41 @@ function pintarPorCasita(eventos: TarifaEventoFeed[]): TarifaEventoFeed[] {
         const color = colorCasita(unidadId, ordenPorUnidad.get(unidadId));
         return { ...ev, backgroundColor: color.bg, borderColor: color.border };
     });
+}
+
+// ============================================================================
+// OCUPACIÓN DE FONDO
+//
+// Segunda fuente de eventos: las estancias del calendario de Reservas, pintadas
+// como eventos de FONDO (beige) detrás de las barras de precio. Es lo que
+// permite programar tarifas mirando los huecos libres en vez de a ciegas.
+//
+// Los eventos de fondo de FullCalendar no son clicables ni arrastrables y no
+// interceptan el `dateClick`: el flujo de «crear tarifa aquí» sigue funcionando
+// igual sobre un día ocupado. Ver el guardado por `display` en eventContent,
+// eventDidMount y onEventClick.
+// ============================================================================
+type OcupacionEventoFeed = CalendarEventoFeed<PmsEventoExtendedProps>;
+
+const OCUPACION_STORAGE_KEY = `${FC_STORAGE_KEY}_ocupacion`;
+const mostrarOcupacion = ref(localStorage.getItem(OCUPACION_STORAGE_KEY) !== '0');
+
+watch(mostrarOcupacion, (v) => localStorage.setItem(OCUPACION_STORAGE_KEY, v ? '1' : '0'));
+
+function comoFondo(eventos: OcupacionEventoFeed[]): EventInput[] {
+    return eventos.map((ev) => ({
+        // Prefijo obligatorio: los dos feeds conviven en el mismo calendario y
+        // FullCalendar trata dos eventos con el mismo id como el mismo evento
+        // (los arrastraría en bloque, y aquí además chocarían tipos distintos).
+        id: `ocupacion-${ev.id}`,
+        start: ev.start,
+        end: ev.end,
+        resourceId: ev.resourceId,
+        display: 'background',
+        backgroundColor: COLOR_OCUPADO,
+        classNames: ['fc-ocupado'],
+        extendedProps: ev.extendedProps,
+    }));
 }
 
 // ============================================================================
@@ -199,12 +270,30 @@ interface MenuState {
     /** Los segmentos compactados son calculados: no se pueden borrar como tales. */
     esCompactado?: boolean;
     unidadId?: string;
+    /** Nombre de la casita sobre la que se tocó, para encabezar el menú. */
+    unidadNombre?: string;
     fecha?: Date;
     /** Precio del tramo sobre el que se hizo clic, para el encabezado del menú. */
     resumen?: string;
+    /** Líneas del tooltip del provider; en táctil se pintan dentro del menú. */
+    tooltipLineas?: string[];
 }
 const menu = ref<MenuState | null>(null);
 
+/**
+ * Dispositivo sin puntero que pueda "posarse" (móvil/tablet).
+ *
+ * En escritorio el tooltip (hover) y el menú (clic) no compiten: el tooltip se
+ * va en cuanto el ratón se mueve. En táctil un solo tap dispara LOS DOS, y sobre
+ * una barra de las filas de abajo el tooltip flotante caía justo encima del
+ * menú. Por eso en táctil el tooltip flotante se desactiva (`touch: false` en
+ * tippy) y sus líneas se pintan DENTRO del menú, como cabecera: se sigue viendo
+ * todo de un tap, pero apilado y sin solaparse nunca. Espejo de ReservasView.
+ */
+const ES_TACTIL = window.matchMedia('(hover: none)').matches;
+
+// Tamaño aproximado, solo para que el menú no NAZCA fuera de la pantalla: la
+// posición definitiva la calcula reubicarMenu() midiendo el panel real.
 const MENU_ANCHO = 240;
 const MENU_ALTO = 200;
 const MENU_BORDE = 8;
@@ -230,6 +319,47 @@ function cerrarMenu(): void {
     menu.value = null;
 }
 
+// ----------------------------------------------------------------------------
+// POSICIÓN DEFINITIVA DEL MENÚ (medida, no estimada)
+//
+// El alto del panel depende de lo que lleve dentro —en táctil, la ficha del
+// tramo—, así que estimarlo con una constante dejaba el menú medio fuera de la
+// pantalla al abrirlo en las filas de abajo. Un ResizeObserver lo recoloca cada
+// vez que cambia de tamaño. Espejo de ReservasView.
+// ----------------------------------------------------------------------------
+const menuEl = ref<HTMLElement | null>(null);
+const menuPos = ref({ x: 0, y: 0 });
+let menuObserver: ResizeObserver | null = null;
+
+function reubicarMenu(): void {
+    const el = menuEl.value;
+    if (!el || !menu.value) return;
+
+    menuPos.value = {
+        x: Math.max(MENU_BORDE, Math.min(menu.value.x, window.innerWidth - el.offsetWidth - MENU_BORDE)),
+        y: Math.max(MENU_BORDE, Math.min(menu.value.y, window.innerHeight - el.offsetHeight - MENU_BORDE)),
+    };
+}
+
+// Arranca en el punto del tap (ya clampeado a ojo) para que no se vea saltar.
+// Se compara el ancla, no `previo === null`: si un menú se reabre en otro punto
+// sin pasar por null, hay que volver a anclar (ver el mismo watch en Reservas).
+watch(menu, (m, previo) => {
+    if (m && (m.x !== previo?.x || m.y !== previo?.y)) menuPos.value = { x: m.x, y: m.y };
+});
+
+watch(menuEl, (el) => {
+    menuObserver?.disconnect();
+    menuObserver = null;
+    if (!el) return;
+    // El observer dispara también al empezar a observar: esa primera llamada es
+    // la que coloca el menú ya medido.
+    menuObserver = new ResizeObserver(reubicarMenu);
+    menuObserver.observe(el);
+});
+
+onBeforeUnmount(() => menuObserver?.disconnect());
+
 // ============================================================================
 // BOTÓN "ATRÁS" DEL NAVEGADOR
 //
@@ -254,20 +384,28 @@ onBeforeRouteLeave(() => {
 });
 
 function onEventClick(info: EventClickArg): void {
+    // El fondo de ocupación no tiene menú propio (no es una tarifa). FullCalendar
+    // ya no dispara eventClick sobre eventos de fondo, pero el guardado es de una
+    // línea y evita que un cambio de versión abra un menú apuntando a un id ajeno.
+    if (info.event.display === 'background') return;
+
     // `extendedProps` es un diccionario abierto en FullCalendar: el contrato real
     // lo fijan los providers *_spa de tarifas en el backend.
     const props = info.event.extendedProps as PmsTarifaExtendedProps;
     if (!props?.tarifaRangoId) return;
     const { x, y } = posicionMenu(info.jsEvent);
+    const tooltip = info.event.extendedProps.tooltip as string | string[] | undefined;
     menu.value = {
         x, y,
         kind: 'event',
         tarifaId: props.tarifaRangoId,
         esCompactado: props.context === 'tarifaRangoCompactado',
         resumen: `${props.moneda ?? ''} ${props.precio ?? ''}`.trim(),
+        tooltipLineas: Array.isArray(tooltip) ? tooltip : (tooltip ? [tooltip] : []),
         // Para "Crear tarifa aquí": la casita de la barra y su día de inicio
         // como valor de arranque. Es el atajo cuando no queda hueco libre.
         unidadId: info.event.getResources()?.[0]?.id,
+        unidadNombre: info.event.getResources()?.[0]?.title,
         fecha: info.event.start ?? undefined,
     };
 }
@@ -278,8 +416,27 @@ function onDateClick(info: DateClickArg): void {
     const resourceId = info.resource?.id;
     if (!resourceId) return;
     const { x, y } = posicionMenu(info.jsEvent);
-    menu.value = { x, y, kind: 'create', unidadId: resourceId, fecha: info.date };
+    menu.value = {
+        x, y,
+        kind: 'create',
+        unidadId: resourceId,
+        unidadNombre: info.resource?.title,
+        fecha: info.date,
+    };
 }
+
+/**
+ * Casita y día sobre los que se va a crear, para encabezar el menú. En una
+ * rejilla de 31 o 62 columnas el toque se falla por una celda con facilidad, y
+ * «Crear Tarifa» a secas no dice sobre qué. Espejo del menú de ReservasView.
+ */
+const menuFechaLarga = computed(() => {
+    const fecha = menu.value?.fecha;
+    if (!fecha) return '';
+    return fecha.toLocaleDateString('es-PE', {
+        weekday: 'short', day: 'numeric', month: 'long', year: 'numeric',
+    });
+});
 
 /**
  * Arrastre sobre la línea de tiempo: crea la tarifa con el rango exacto que se
@@ -388,9 +545,35 @@ const calendarOptions = computed<CalendarOptions>(() => ({
     resourceAreaHeaderContent: 'Casita',
 
     headerToolbar: {
-        left: 'today prev,next',
+        left: 'irHoy prev,next',
         center: '',
         right: 'resourceTimelineTwoMonths,resourceTimelineOneMonth',
+    },
+
+    /**
+     * Botón «Hoy» propio y con nombre PROPIO (`irHoy`, no `today`): el de
+     * fábrica no desplaza si el mes actual ya es el visible, y redefinir
+     * `customButtons.today` no vale porque FullCalendar decide el estado
+     * deshabilitado por el nombre del botón. Espejo del de ReservasView, donde
+     * está el detalle.
+     */
+    customButtons: {
+        irHoy: {
+            text: 'Hoy',
+            hint: 'Ir a hoy',
+            click: () => {
+                const api = calendarApiRef.value?.getApi();
+                if (!api) return;
+                // Se marca ANTES: si `today()` cambia de mes, el `datesSet` que
+                // dispara lo consume y así el encuadre por dirección no se lleva
+                // el scroll al extremo del rango.
+                diaPendiente = fromDateLocal(hoyLocal());
+                api.today();
+                // Y si el mes ya era el visible no hubo `datesSet`: se resuelve
+                // aquí, que es justo el caso que el botón de fábrica no cubría.
+                resolverDiaPendiente();
+            },
+        },
     },
 
     datesSet: (info: DatesSetArg) => {
@@ -402,6 +585,16 @@ const calendarOptions = computed<CalendarOptions>(() => ({
             localStorage.setItem(`${FC_STORAGE_KEY}_date`, fechaRef.toISOString().slice(0, 10));
         }
         localStorage.setItem(`${FC_STORAGE_KEY}_view`, info.view.type);
+
+        if (diaPendiente) {
+            resolverDiaPendiente();
+            return;
+        }
+
+        // Encuadre del rango recién montado: manda la dirección de la
+        // navegación (ver encuadrarTimeline).
+        const api = info.view.calendar;
+        requestAnimationFrame(() => encuadrarTimeline(api, calendarRootEl.value));
     },
 
     views: {
@@ -439,17 +632,39 @@ const calendarOptions = computed<CalendarOptions>(() => ({
             .catch((err: unknown) => failure(comoError(err)));
     },
 
-    events: (
-        fetchInfo: EventSourceFuncArg,
-        success: (eventos: EventInput[]) => void,
-        failure: (error: Error) => void,
-    ) => {
-        apiClient.get(`/fullcalendar/load/event/${calendarioActual.value.key}`, {
-            params: { start: fetchInfo.startStr, end: fetchInfo.endStr, _t: Date.now() },
-        })
-            .then((r) => success(pintarPorCasita(coleccionFeed<TarifaEventoFeed>(r.data))))
-            .catch((err: unknown) => failure(comoError(err)));
-    },
+    // Dos fuentes: las tarifas y, opcionalmente, la ocupación de fondo. Van como
+    // `eventSources` (y no como un único `events`) porque cada una viene de un
+    // calendario distinto del backend y FullCalendar las refresca por separado.
+    eventSources: [
+        {
+            id: 'tarifas',
+            events: (
+                fetchInfo: EventSourceFuncArg,
+                success: (eventos: EventInput[]) => void,
+                failure: (error: Error) => void,
+            ) => {
+                apiClient.get(`/fullcalendar/load/event/${calendarioActual.value.key}`, {
+                    params: { start: fetchInfo.startStr, end: fetchInfo.endStr, _t: Date.now() },
+                })
+                    .then((r) => success(pintarPorCasita(coleccionFeed<TarifaEventoFeed>(r.data))))
+                    .catch((err: unknown) => failure(comoError(err)));
+            },
+        },
+        ...(mostrarOcupacion.value ? [{
+            id: 'ocupacion',
+            events: (
+                fetchInfo: EventSourceFuncArg,
+                success: (eventos: EventInput[]) => void,
+                failure: (error: Error) => void,
+            ) => {
+                apiClient.get(`/fullcalendar/load/event/${PMS_OCUPACION_CALENDARIO_KEY}`, {
+                    params: { start: fetchInfo.startStr, end: fetchInfo.endStr, _t: Date.now() },
+                })
+                    .then((r) => success(comoFondo(coleccionFeed<OcupacionEventoFeed>(r.data))))
+                    .catch((err: unknown) => failure(comoError(err)));
+            },
+        }] : []),
+    ],
 
     dateClick: onDateClick,
     eventClick: onEventClick,
@@ -464,6 +679,10 @@ const calendarOptions = computed<CalendarOptions>(() => ({
      * una única cadena de texto plano.
      */
     eventContent: (arg: EventContentArg) => {
+        // La ocupación es puro fondo: sin texto, o el beige se llenaría de
+        // nombres de huésped compitiendo con los precios.
+        if (arg.event.display === 'background') return { html: '' };
+
         const p = arg.event.extendedProps as PmsTarifaExtendedProps;
         if (!p?.precio) return { html: `<div class="fc-tarifa">${escaparHtml(arg.event.title)}</div>` };
 
@@ -479,15 +698,32 @@ const calendarOptions = computed<CalendarOptions>(() => ({
     },
 
     eventDidMount: (info: EventMountArg) => {
+        // `_tippy` lo cuelga tippy del propio elemento (ver ReferenceElement en sus
+        // tipos); se destruye antes para no apilar instancias en cada re-render.
+        const el = info.el as ReferenceElement;
+
+        if (info.event.display === 'background') {
+            // Saber QUIÉN ocupa el hueco es justo lo que se pregunta al tarifar
+            // (una OTA con comisión no se tarifa igual que un bloqueo interno).
+            const p = info.event.extendedProps as PmsEventoExtendedProps;
+            const lineas = [
+                '<b>Ocupado</b>',
+                p.cliente ? escaparHtml(p.cliente) : '',
+                p.estado ? `Estado: ${escaparHtml(p.estado)}` : '',
+            ].filter(Boolean);
+
+            el._tippy?.destroy();
+            tippy(info.el, { content: lineas.join('<br>'), allowHTML: true, appendTo: document.body, placement: 'top', touch: false });
+            return; // sin cursor pointer: el fondo no se puede abrir ni arrastrar
+        }
+
         // El provider manda `tooltip` como string o como lista de líneas.
         const tooltipContent = info.event.extendedProps.tooltip as string | string[] | undefined;
         const finalContent = Array.isArray(tooltipContent) ? tooltipContent.join('<br>') : (tooltipContent || info.event.title);
 
-        // `_tippy` lo cuelga tippy del propio elemento (ver ReferenceElement en sus
-        // tipos); se destruye antes para no apilar instancias en cada re-render.
-        const el = info.el as ReferenceElement;
         el._tippy?.destroy();
-        tippy(info.el, { content: finalContent, allowHTML: true, appendTo: document.body, placement: 'top' });
+        // `touch: false`: en táctil estas mismas líneas van dentro del menú (ES_TACTIL).
+        tippy(info.el, { content: finalContent, allowHTML: true, appendTo: document.body, placement: 'top', touch: false });
         info.el.style.cursor = 'pointer';
     },
 }));
@@ -521,6 +757,14 @@ const calendarOptions = computed<CalendarOptions>(() => ({
                     <span class="hidden sm:inline">Generar Masivo</span>
                 </button>
 
+                <button @click="mostrarOcupacion = !mostrarOcupacion"
+                    :title="mostrarOcupacion ? 'Ocultar la ocupación de fondo' : 'Mostrar la ocupación de fondo'"
+                    :class="['h-9 px-3 flex items-center gap-1.5 rounded-lg text-xs font-black transition-colors',
+                             mostrarOcupacion ? 'bg-[#F5E9C0] text-slate-800 hover:bg-[#ecdca9]' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                    <i class="fas fa-bed"></i>
+                    <span class="hidden sm:inline">Ocupación</span>
+                </button>
+
                 <select v-model.number="calendarioIndex" @change="refrescarCalendario"
                     class="bg-slate-800 text-white text-xs font-bold rounded-lg px-3 py-2 border border-slate-700">
                     <option v-for="(cal, i) in PMS_TARIFA_CALENDARIOS" :key="cal.key" :value="i">{{ cal.nombre }}</option>
@@ -548,7 +792,15 @@ const calendarOptions = computed<CalendarOptions>(() => ({
             Sobre una tarifa existente, el menú ofrece «Crear tarifa aquí».
         </div>
 
-        <main class="flex-1 overflow-y-auto p-3 md:p-4">
+        <div v-if="mostrarOcupacion" class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[11px] font-bold px-4 py-1.5 flex items-center gap-2">
+            <span class="inline-block w-4 h-3 rounded-sm border border-slate-300" :style="{ backgroundColor: COLOR_OCUPADO }"></span>
+            Fondo beige = casita vendida (pendiente, confirmada o requerimiento). No incluye
+            canceladas, consultas abiertas ni bloqueos.
+        </div>
+
+        <!-- `fc-tarifas` acota los estilos de calendario de este archivo: ver la
+             nota del bloque <style>. -->
+        <main ref="calendarRootEl" class="fc-tarifas flex-1 overflow-y-auto p-3 md:p-4">
             <h3 v-if="calendarTitulo" class="text-center font-black text-slate-800 uppercase tracking-wide text-sm mb-2">
                 {{ calendarTitulo }}
             </h3>
@@ -557,9 +809,18 @@ const calendarOptions = computed<CalendarOptions>(() => ({
 
         <!-- Menú contextual -->
         <div v-if="menu" class="fixed inset-0 z-30" @click="cerrarMenu" @contextmenu.prevent="cerrarMenu">
-            <div class="absolute w-52 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden py-1.5 max-w-[calc(100vw-1rem)]"
-                :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @click.stop>
+            <div ref="menuEl"
+                class="absolute w-52 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden py-1.5 max-w-[calc(100vw-1rem)] max-h-[85vh] overflow-y-auto"
+                :style="{ left: menuPos.x + 'px', top: menuPos.y + 'px' }" @click.stop>
                 <template v-if="menu.kind === 'event'">
+                    <!-- Ficha del tramo SOLO en táctil: en escritorio ya la da el
+                         tooltip al pasar el ratón (ver ES_TACTIL). -->
+                    <div v-if="ES_TACTIL && menu.tooltipLineas?.length" class="fc-tip-menu">
+                        <p v-for="(linea, i) in menu.tooltipLineas" :key="i"
+                            :class="i === 0 ? 'font-black pb-1 mb-1 border-b border-white/20' : 'opacity-90'">
+                            {{ linea }}
+                        </p>
+                    </div>
                     <p class="px-4 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         {{ menu.esCompactado ? 'Rango de origen' : 'Tarifa' }}
                         <span v-if="menu.resumen" class="text-slate-600">· {{ menu.resumen }}</span>
@@ -574,11 +835,30 @@ const calendarOptions = computed<CalendarOptions>(() => ({
                     </button>
                     <!-- Atajo cuando la casita no tiene huecos libres donde hacer clic -->
                     <button v-if="calendarioActual.editable && menu.unidadId && menu.fecha" @click="elegirCrear"
-                        class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 border-t border-slate-100">
-                        <i class="fas fa-plus w-4 text-slate-400"></i> Crear tarifa aquí
+                        class="w-full flex items-start gap-2.5 px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 border-t border-slate-100">
+                        <i class="fas fa-plus w-4 mt-0.5 text-slate-400"></i>
+                        <span class="min-w-0">
+                            Crear tarifa aquí
+                            <!-- Arranca en el primer día de ESTA barra, no donde
+                                 se tocó: conviene verlo antes de crear. -->
+                            <span class="block text-[10px] font-bold text-slate-400 truncate first-letter:uppercase">
+                                {{ menu.unidadNombre }} · {{ menuFechaLarga }}
+                            </span>
+                        </span>
                     </button>
                 </template>
                 <template v-else>
+                    <!-- Sobre qué se está actuando: en una rejilla de 31 o 62
+                         columnas el toque se falla por una celda con facilidad. -->
+                    <div class="px-4 pt-2 pb-2.5 border-b border-slate-100">
+                        <p class="text-sm font-black text-slate-800 leading-tight truncate">
+                            <i class="fas fa-home mr-1.5 text-slate-300"></i>{{ menu.unidadNombre || 'Casita' }}
+                        </p>
+                        <p class="text-[11px] font-bold text-slate-500 mt-0.5 first-letter:uppercase">
+                            {{ menuFechaLarga }}
+                        </p>
+                    </div>
+
                     <button @click="elegirCrear"
                         class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                         <i class="fas fa-tag w-4 text-slate-400"></i> Crear Tarifa
@@ -612,14 +892,73 @@ const calendarOptions = computed<CalendarOptions>(() => ({
   igual que hace assets/fullcalendar-overrides.css.
 -->
 <style>
+/*
+  Aire alrededor de cada barra de tarifa. Los rangos son largos y se tocan unos
+  con otros: sin separación, tres tarifas seguidas se leen como una sola mancha
+  de color y la rejilla se satura.
+
+  Va en `.fc-timeline-event` y NO en el harness: el harness es quien lleva la
+  posición absoluta y el ancho que calcula FullCalendar para el rango, así que
+  el margen tiene que encogerlo desde dentro. Las variantes `.fc-event-start` /
+  `.fc-event-end` se repiten para ganar en especificidad al `margin-left/right:
+  1px` que FullCalendar les pone.
+
+  El fondo de ocupación no se ve afectado —y no debe: tiñe el día completo—,
+  porque los eventos de fondo son `.fc-bg-event` dentro de
+  `.fc-timeline-bg-harness`, otra rama del DOM.
+
+  Todo bajo `.fc-tarifas` (la clase del <main>) porque este bloque no lleva
+  `scoped` y el CSS del bundle vive en el documento aunque la vista esté
+  desmontada: sin acotar, el margen se colaría en el calendario de Reservas.
+*/
+.fc-tarifas .fc-timeline-event,
+.fc-tarifas .fc-timeline-event.fc-event-start,
+.fc-tarifas .fc-timeline-event.fc-event-end {
+    /* El que hace el trabajo es el INFERIOR: cuando una casita tiene varias
+       tarifas solapadas, las barras se apilan y FullCalendar las deja pegadas
+       (`margin-bottom: 0` de fábrica), que es lo que satura la fila. Los 3 px
+       laterales son secundarios: solo despegan dos rangos consecutivos. */
+    margin: 2px 3px 7px;
+    border-radius: 5px;
+}
+
+/*
+  El contenido de la barra es STICKY dentro de su propia barra: en un tramo de
+  tres semanas, el precio se pintaba al inicio del rango y desaparecía en cuanto
+  se desplazaba la línea de tiempo — quedaban barras de color sin un solo dato.
+  Pegado a la izquierda del área visible, el precio acompaña al scroll mientras
+  la barra siga en pantalla.
+
+  Las dos piezas son imprescindibles:
+  - `width: fit-content` — con el ancho completo de la barra no habría margen
+    donde desplazarse y `sticky` no haría nada.
+  - `max-width: 100%` — sin él, el texto se saldría por la derecha de las barras
+    cortas (ni FullCalendar ni `.fc-event-main` recortan).
+*/
 .fc-tarifa {
+    position: sticky;
+    left: 0;
     display: flex;
     align-items: center;
     gap: 5px;
+    width: fit-content;
+    max-width: 100%;
     min-width: 0;
     padding: 0 2px;
     overflow: hidden;
     white-space: nowrap;
+}
+
+/* Ficha del tramo embebida en el menú (táctil). Mismo aspecto que el tooltip
+   oscuro de tippy, que aquí no está para poner el fondo. */
+.fc-tip-menu {
+    background: #1e293b;
+    color: #fff;
+    padding: 8px 12px 10px;
+    margin-top: -0.375rem;
+    margin-bottom: 0.375rem;
+    font-size: 0.78rem;
+    line-height: 1.35;
 }
 
 .fc-tarifa-ico {
@@ -639,6 +978,22 @@ const calendarOptions = computed<CalendarOptions>(() => ({
     letter-spacing: -0.01em;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/*
+  Fondo de ocupación. FullCalendar pinta los eventos de fondo con `opacity: .3`
+  (regla de `.fc-bg-event`): a ese nivel el beige se perdía contra el blanco de
+  la grilla, así que se fuerza la opacidad y el color final lo sigue mandando el
+  evento (COLOR_OCUPADO en pmsTarifaModel.ts). El rayado diagonal distingue
+  «ocupado» de un simple sombreado de fin de semana sin subir el contraste.
+*/
+.fc-ocupado {
+    opacity: 1 !important;
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(0, 0, 0, 0.045) 0 5px,
+        transparent 5px 10px
+    );
 }
 
 /* Badge de estancia mínima: se distingue del precio sin robarle protagonismo. */

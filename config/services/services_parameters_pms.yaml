@@ -251,6 +251,36 @@ parameters:
                     slug: slug
                     establecimientoSlug: establecimiento.slug
 
+        # OCUPACIÓN DE FONDO DEL CALENDARIO DE TARIFAS
+        #
+        # Mismo provider de estancias, pero su consumidor no es el calendario de
+        # Reservas: TarifasView lo carga como SEGUNDA fuente de eventos y lo pinta
+        # como `display: 'background'` (beige) detrás de las barras de precio, para
+        # ver de un vistazo qué días quedan libres al programar tarifas.
+        #
+        # Qué estados ocupan NO se decide aquí: la lista blanca vive en
+        # PmsEventoEstado::OCUPAN_UNIDAD, que documenta el porqué de cada
+        # exclusión (cancelada / abierto / bloqueo). Se referencia con
+        # `!php/const` para no tener dos listas que se desincronicen.
+        pms_eventos_ocupacion_spa:
+            provider: pms_eventos_spa
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: !php/const App\Pms\Entity\PmsEventoEstado::OCUPAN_UNIDAD
+                    not_in: [ ]
+                estadoPago:
+                    in: [ ]
+                    not_in: [ ]
+            # Las filas del calendario de tarifas las manda el propio calendario de
+            # tarifas; de aquí sólo se consumen EVENTOS. `showAll: false` evita que
+            # el catálogo de unidades se recorra por gusto en cada navegación.
+            resources:
+                showAll: false
+                entity: App\Pms\Entity\PmsUnidad
+                titleField: nombre
+
         tarifa_rangos_raw_spa:
             provider: tarifa_ranges_spa
             entity: App\Pms\Entity\PmsTarifaRango

@@ -186,6 +186,28 @@ export const PMS_TARIFA_CALENDARIOS: readonly PmsTarifaCalendario[] = [
 ];
 
 // ============================================================================
+// OCUPACIÓN DE FONDO
+//
+// El calendario de tarifas carga TAMBIÉN las estancias, como segunda fuente de
+// eventos pintada en `display: 'background'`: sin ella se programan precios a
+// ciegas, sin saber qué días quedan libres. La clave es un calendario propio
+// (`pms_eventos_ocupacion_spa` en config/services/services_parameters_pms.yaml)
+// porque no muestra los mismos estados que los calendarios de Reservas: sólo
+// pinta los de `PmsEventoEstado::OCUPAN_UNIDAD` (pendiente, confirmada,
+// requerimiento). Esa constante en PHP es la fuente de verdad — aquí no se
+// duplica la lista, se nombra para saber dónde mirar.
+// ============================================================================
+
+export const PMS_OCUPACION_CALENDARIO_KEY = 'pms_eventos_ocupacion_spa';
+
+/**
+ * Beige de los días ocupados. Deliberadamente apagado: compite con seis colores
+ * de casita y con el texto de los precios, así que tiene que leerse como fondo,
+ * no como un evento más.
+ */
+export const COLOR_OCUPADO = '#F5E9C0';
+
+// ============================================================================
 // HELPERS DE IRI
 // ============================================================================
 

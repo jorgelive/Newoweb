@@ -174,8 +174,13 @@ solo el backend:
 > compila, y tippy monta en `document.body`, así que ninguno lleva el atributo de scope.
 
 Las claves de calendario correspondientes en `services_pms.yaml` son:
-`pms_eventos_no_cancelados_spa`, `pms_eventos_todos_spa`, `tarifa_rangos_raw_spa`,
-`tarifa_rangos_compactados_spa`. Mismos `filters`/`fields` que sus pares legacy, sin bloque `event.url`.
+`pms_eventos_no_cancelados_spa`, `pms_eventos_todos_spa`, `pms_eventos_ocupacion_spa`,
+`tarifa_rangos_raw_spa`, `tarifa_rangos_compactados_spa`. Mismos `filters`/`fields` que sus pares
+legacy, sin bloque `event.url`.
+
+`pms_eventos_ocupacion_spa` es el único sin par legacy: no lo consume el calendario de Reservas
+sino el de **Tarifas**, como segunda fuente de eventos pintada de fondo (ver §12, «Ocupación de
+fondo en el calendario de tarifas»).
 
 Los legacy (`*_raw`, sin sufijo `_spa`) **no se tocaron** — quedan intactos para EasyAdmin y
 son candidatos a deprecarse cuando el calendario legacy deje de usarse.
@@ -599,7 +604,8 @@ Decisiones que no se ven en el código:
 **Gotcha de FullCalendar — el día, no solo el mes.** `gotoDate()` coloca el *rango* (el
 mes) pero no toca el scroll horizontal de la línea de tiempo. El desplazamiento fino es
 `scrollToTime({ days: n })`, que en vistas timeline cuenta desde `view.activeStart`; de ahí
-el cálculo de días de `scrollAlDia()`. La vieja limitación de "hay que esperar a que
+el cálculo de días de `scrollAlDia()`, hoy delegado en
+**`util/src/utils/calendarTimeline.ts`** (ver más abajo). La vieja limitación de "hay que esperar a que
 renderice" **está resuelta en FC 6**: `ScrollResponder` (en `@fullcalendar/core`) encola la
 petición y la reintenta en cada update hasta que el timeline tiene coordenadas. El matiz que
 sí queda: con `scrollTimeReset` (activo por defecto) un cambio de rango re-dispara el scroll
@@ -715,3 +721,197 @@ Puntos que costaron y conviene no re-descubrir:
   `moneda.simbolo`. Los configs legacy conservan el `moneda.codigo` roto.
 - **`generar-masivo` delega en `GeneradorTarifaMasivaService`**, el mismo servicio que
   usa EasyAdmin: el processor solo traduce el payload HTTP al DTO interno.
+
+#### Ocupación de fondo en el calendario de tarifas
+
+Tarifar a ciegas era el problema: la grilla mostraba precios pero no qué días están vendidos,
+así que no se veía dónde hace falta ajustar precio o estancia mínima. `TarifasView` carga por eso
+una **segunda fuente de eventos** con las estancias y las pinta como eventos de fondo.
+
+```
+TarifasView.calendarOptions.eventSources
+├── 'tarifas'    GET /fullcalendar/load/event/{tarifa_rangos_raw_spa|…_compactados_spa}
+│                └── pintarPorCasita()  → barras de precio (color por casita)
+└── 'ocupacion'  GET /fullcalendar/load/event/pms_eventos_ocupacion_spa   (opcional)
+                 └── comoFondo()        → display:'background' + COLOR_OCUPADO (beige)
+```
+
+Decisiones y por qué:
+
+- **Calendario propio en el YAML, no reúso de `pms_eventos_no_cancelados_spa`.** Ocupa quien
+  está en `PmsEventoEstado::OCUPAN_UNIDAD` — `pendiente`, `confirmada`, `requerimiento` —, y el
+  YAML lo referencia con `!php/const` en `filters.estado.in` para no mantener dos listas:
+
+  ```yaml
+  estado:
+      in: !php/const App\Pms\Entity\PmsEventoEstado::OCUPAN_UNIDAD
+  ```
+
+  Quedan fuera `cancelada` (la casita volvió a estar libre), `abierto` (*inquiry* de Airbnb:
+  consulta sin reserva; teñirlo daba por ocupados días perfectamente vendibles) y `bloqueo`
+  (no es una venta que tarifar). **Es lista blanca a propósito**: un estado nuevo no pintará
+  ocupación hasta que se agregue a la constante, que es donde vive el porqué de cada exclusión.
+
+  ⚠️ Esa lista es exactamente el complemento de
+  `PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES`, pero **es casualidad**: aquélla regula
+  qué estado puede elegir un humano en un evento OTA, ésta qué se pinta como ocupado. No las
+  derives la una de la otra o cambiar una arrastrará a la otra sin querer.
+- **Front, no provider.** El provider de tarifas no sabe nada de esto: son dos feeds
+  independientes que FullCalendar compone. Así la ocupación se puede apagar sin coste de
+  servidor y ninguno de los dos providers de tarifas cambia.
+- **`display: 'background'` no es cosmético.** Los eventos de fondo de FullCalendar no son
+  arrastrables ni clicables y **no interceptan el `dateClick`**: el flujo de «crear tarifa aquí»
+  sigue funcionando igual sobre un día ocupado, que es justo cuando más se usa. `eventContent`,
+  `eventDidMount` y `onEventClick` ramifican por `event.display === 'background'`.
+- **Gotcha del id.** Los dos feeds conviven en el mismo calendario y FullCalendar trata dos
+  eventos con el mismo `id` como el mismo evento. `comoFondo()` prefija con `ocupacion-`.
+- **Gotcha del CSS.** `.fc-bg-event` viene con `opacity: .3` de fábrica; a ese nivel el beige
+  desaparecía contra el blanco de la grilla. La regla `.fc-ocupado` fuerza `opacity: 1` y añade
+  el rayado diagonal; el color sigue siendo `COLOR_OCUPADO` (`pmsTarifaModel.ts`), que viaja en
+  el propio evento para no duplicar la fuente de verdad.
+- **Los ids de recurso cuadran** porque ambos feeds usan el uuid de `PmsUnidad`
+  (`resourceId`); si no coincidieran, FullCalendar descartaría los eventos de fondo en silencio.
+  Ver la trampa de `is_scalar()` más arriba: es el mismo id que allí se rompía.
+- **El desfase horario es intencionado.** Las barras de tarifa llevan horas de UI 12:00 → 11:59
+  (`eventTime` del YAML) y las estancias sus horas reales de check-in/out (14:00 → 10:00), así
+  que el fondo no cuadra al píxel con la barra de precio. Es coherente con lo que muestra
+  `ReservasView` y evita el error contrario: redondear a días enteros pintaría como ocupada la
+  noche del día de salida, que sí se puede vender.
+- El interruptor «Ocupación» de la cabecera persiste en `localStorage`
+  (`fc_state_<pathname>_ocupacion`), en la misma línea que la fecha y la vista.
+
+#### Texto de la barra pegado al scroll (ambas vistas)
+
+Un rango de tres semanas —o una estancia larga— se pinta como una sola barra, y FullCalendar
+dibuja su contenido al principio del rango: basta desplazar la línea de tiempo para quedarse
+mirando barras de color **sin un solo dato**. El contenido de `eventContent` va por eso en
+`position: sticky` y acompaña al scroll mientras la barra siga en pantalla:
+
+| Vista | Selector |
+|---|---|
+| Tarifas | `.fc-tarifa` (todas sus vistas son `resourceTimeline`) |
+| Reservas | `.fc-timeline-event .fc-reserva` — el selector queda acotado a la timeline aunque hoy sea la única familia de vistas, por si vuelve alguna sin scroll horizontal |
+
+No basta con `position: sticky`, hacen falta las tres cosas:
+
+| Declaración | Por qué |
+|---|---|
+| `position: sticky; left: 0` | El scrollport que manda es el `.fc-scroller` del cuerpo de la timeline; ningún ancestro del evento (`.fc-timeline-event`, `.fc-event-main`) declara `overflow`, así que el cálculo llega hasta él. Si algún día FullCalendar les pusiera `overflow: hidden`, el sticky dejaría de moverse **sin romper nada visible**: ese es el síntoma a buscar. |
+| `width: fit-content` | Con el ancho completo de la barra no hay margen donde desplazarse y `sticky` no hace nada. Es el error silencioso más fácil de cometer aquí. |
+| `max-width: 100%` | Sin él, en las barras cortas el texto se sale por la derecha: ni `.fc-timeline-event` ni `.fc-event-main` recortan. |
+
+FullCalendar trae una clase `.fc-sticky` (`position: sticky`) que usa en las etiquetas de los
+slots y en el «+N más», pero **no** en el contenido de los eventos: hay que ponerlo a mano.
+
+#### Tooltip y menú contextual en táctil (ambas vistas)
+
+En escritorio el tooltip (hover) y el menú (clic) no compiten: el tooltip se va al mover el
+ratón. En táctil **un solo tap dispara los dos**, y sobre las filas de abajo el tooltip flotante
+caía justo encima del menú. La solución, igual en `ReservasView` y `TarifasView`:
+
+- `const ES_TACTIL = window.matchMedia('(hover: none)').matches`.
+- tippy se crea con **`touch: false`**: en táctil no aparece flotando.
+- La misma ficha se pinta **dentro del menú**, como cabecera (`.fc-tip-menu`). En Reservas es
+  el HTML de `tooltipHtml()` vía `v-html` (todo valor sale escapado de ahí); en Tarifas, las
+  líneas de `extendedProps.tooltip` que ya manda el provider, guardadas en `MenuState`.
+  Se sigue viendo todo de un tap, pero apilado y sin solaparse nunca.
+- El fondo oscuro lo ponía `.tippy-box`; dentro del menú blanco hay que repetirlo en
+  `.fc-tip-menu` o el texto claro queda ilegible.
+
+Descartado a propósito: pasar el tooltip a *long-tap* (`touch: 'hold'` de tippy) escondía
+justo el dato que se busca al tocar, y anclar el tooltip flotante al menú con
+`getReferenceClientRect` deja el mismo problema de siempre —tooltip + menú no caben apilados
+sobre el punto del tap— pero resuelto por Popper, que puede voltearlo fuera de la pantalla.
+
+**Posición del menú: medida, no estimada.** Las constantes `MENU_ALTO`/`MENU_ANCHO` solo evitan
+que el panel *nazca* fuera de la pantalla. La posición real la fija `reubicarMenu()` leyendo
+`offsetWidth/offsetHeight` del panel, disparada por un `ResizeObserver` sobre él. Hace falta un
+observer y no un `nextTick`: el alto cambia **después** del primer render cada vez que llega un
+fetch (la ficha del huésped, el enlace a la extranet del canal, la lista de plantillas de
+WhatsApp, la tarifa del día). El panel lleva además `max-h-[85vh] overflow-y-auto` como última
+red por si aun así no cabe.
+
+#### Vistas y encuadre del scroll (ambas vistas)
+
+**Las dos vistas son las mismas en Reservas y en Tarifas**: `resourceTimelineTwoMonths`
+(«2 Meses») y `resourceTimelineOneMonth` («Mes»), ambas con `slotDuration: '24:00:00'`.
+
+Reservas tenía además `resourceTimelineOneWeek` («Semana») y `listMonth` («Lista»); se
+**retiraron**: nadie operaba con ellas y quien caía por error se quedaba sin la rejilla de
+casitas, que es lo que se viene a mirar. Con ellas se fueron los plugins `@fullcalendar/daygrid`
+y `@fullcalendar/list` del `plugins:` de la vista (siguen en `package.json`, sin usar). Un valor
+antiguo guardado en `localStorage` no pasa `FC_VISTAS_PERMITIDAS` y cae al por defecto, así que
+nadie queda atrapado en una vista que ya no existe.
+
+**El botón «Hoy» es propio y se llama `irHoy`, no `today`.** Dos capas de trampa aquí:
+
+1. El botón nativo solo llama a `today()`, y `today()` **no hace nada si el mes actual ya es
+   el visible**: seguías mirando el día 1 sin ninguna señal de que el botón hizo algo. La
+   versión propia navega *y* desplaza.
+2. **Redefinir `customButtons.today` no basta.** El clic sí se sustituye (los custom ganan al
+   estándar en `buildToolbarProps`), pero el estado deshabilitado se decide por el **nombre**:
+   `isDisabled = !isTodayEnabled && buttonName === 'today'`, con
+   `isTodayEnabled = !rangeContainsMarker(currentRange, now)`. O sea que el botón salía
+   apagado exactamente en el caso que se quería arreglar. Con otro nombre (`irHoy`) está
+   siempre activo. El `headerToolbar` lo referencia por ese nombre.
+
+**Encuadre de cada rango** — `encuadrarTimeline()` en `datesSet`. Manda la **dirección de
+la navegación**, no dónde caiga hoy:
+
+| Situación | Scroll |
+|---|---|
+| Se pulsó «anterior» (el rango empieza antes que el anterior) | al final: los días pegados a aquel del que vienes |
+| Se pulsó «siguiente» | al principio |
+| Sin navegación con la que comparar (primer montaje, o cambio de vista que conserva el inicio del rango) | a hoy si cae dentro; si no, al extremo por el que se llega |
+
+> ⚠️ **La prioridad importa, y falla en un solo mes.** La primera versión ponía «si hoy está
+> en el rango, ir a hoy» por delante de todo, y eso rompía el **mes en curso y solo ese**:
+> retroceder de septiembre a agosto —con hoy en agosto— saltaba al día de hoy en vez de al
+> final del mes. Parece un problema de caché o de `localStorage` y no lo es. Para ir a hoy ya
+> está el botón «Hoy».
+
+Ir al extremo derecho pide **los dos caminos a propósito**: un `scrollToTime()` de la
+duración completa del rango (el oficial: su `ScrollResponder` reaplica la última petición y así
+sobrevive a los re-renders que FullCalendar hace cuando llegan los eventos) y, acto seguido, un
+`scrollLeft = scrollWidth` directo sobre el scroller del cuerpo, que no depende de que las
+columnas estén ya medidas. De ahí que `encuadrarTimeline()` reciba el elemento raíz del
+calendario: el scroller se localiza desde `.fc-timeline-body` (`closest('.fc-scroller')`),
+porque FullCalendar monta varios `.fc-scroller` y solo el del cuerpo scrollea en horizontal.
+
+> ⚠️ **Y hay que ESPERAR a que el scroller desborde.** Es el fallo que se comió este arreglo
+> en el primer intento y no deja rastro: en el `requestAnimationFrame` siguiente a `datesSet`
+> la rejilla nueva todavía mide `scrollWidth === clientWidth`, así que el `scrollLeft` se queda
+> en cero y no pasa nada. `conScrollerListo()` reintenta cada 50 ms hasta 1 s —exactamente lo
+> que hacía `applyScroll()` en el controlador Stimulus legacy— y solo entonces aplica el
+> scroll. Si el rango entero cabe en pantalla, los reintentos se agotan sin hacer nada, que es
+> el resultado correcto.
+
+**El criterio es la DIRECCIÓN de la navegación, no si el rango es pasado o futuro.** Al pulsar
+«anterior» se salta al final del rango aunque sea futuro: lo que se busca al retroceder son los
+días pegados a aquel del que vienes. El rango anterior se guarda en un `WeakMap` por
+`CalendarApi` dentro del helper —así la lógica no se reparte entre las vistas—; sin él (primer
+montaje) se decide por pasado/futuro, que da lo mismo por otro camino. Es el mismo criterio del
+`lastViewRange` del controlador legacy.
+
+Quién manda cuando hay varios candidatos a mover el scroll:
+
+1. **`diaPendiente`** — un día concreto al que hay que ir en cuanto el rango esté montado.
+   `datesSet` lo consume ANTES de encuadrar y sale. Lo usan, en ambas vistas, el botón «Hoy»
+   (si no, el encuadre por dirección se llevaría el scroll al extremo del rango recién
+   navegado), la búsqueda de reservas en Reservas, y en Tarifas el arranque con
+   `?fecha=YYYY-MM-DD` con el que se llega desde Reservas.
+2. **`encuadrarTimeline()`** — si no hay nada pendiente.
+
+El botón «Hoy» marca `diaPendiente` **antes** de llamar a `today()` y lo resuelve también
+después: si el mes ya era el visible no hay `datesSet` que lo consuma, y ese es justo el caso
+que el botón de fábrica no cubría.
+
+El cálculo vive en **`util/src/utils/calendarTimeline.ts`**
+(`scrollTimelineADia`, `encuadrarTimeline`, `hoyLocal`), compartido por las dos vistas: es la
+misma rejilla y antes cada una repetía —y desincronizaba— la misma aritmética de días.
+
+**Antes de tocar ese archivo, léete `assets/controllers/fullcalendar_controller.js`** (el
+controlador Stimulus del calendario legacy de EasyAdmin). Aunque sea código viejo que no se
+mantiene, tenía ya resuelto todo esto a base de cicatrices —`applyScroll()` con reintentos,
+`getMainScroller()` por desbordamiento real, dirección con `lastViewRange`— y el helper de la
+SPA es su port. Los mismos errores se vuelven a cometer si se escribe de cero.

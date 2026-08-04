@@ -47,6 +47,10 @@ mercure.Caddyfile
 /public/service-worker.js
 /public/manifest.webmanifest
 /public/workbox-*.js
+# Los generan los `npm run build` de cada app (manifestFilename en su
+# vite.config.ts) y los copian a public/: son artefactos, no fuente.
+/public/pax-manifest.webmanifest
+/public/util-manifest.webmanifest
 /public/app_pax/
 /pax/.env.development
 /pax/.env.production

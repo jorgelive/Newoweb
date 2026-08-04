@@ -7,43 +7,94 @@ import { isSessionExpired } from '@/services/sessionAuth';
 const store = useChatStore();
 const notificationStore = useNotificationStore();
 
-// Módulos del portal. Colores alternando la identidad de marca (#376875 / #E07845).
-const modulos = [
+// ============================================================================
+// MÓDULOS DEL PORTAL, AGRUPADOS POR NEGOCIO
+//
+// Son dos negocios distintos con equipos y rutinas distintas —el alojamiento
+// (PMS) y la agencia de viajes—, así que la rejilla plana obligaba a leer las
+// seis tarjetas para encontrar la propia. Ahora cada bloque lleva su encabezado
+// y su color: teal el PMS, naranja Viajes.
+//
+// `destacado` marca la puerta de entrada de cada bloque (Reservas y
+// Cotizaciones, las de uso diario): en el mosaico es la pieza 2x2 pintada en
+// color pleno —`bar` pasa a ser el FONDO de la pieza, no el filo—, con las dos
+// planas a su derecha. Es una jerarquía visual, no un permiso: todas las piezas
+// llevan al mismo sitio de siempre. `iconBg`/`iconColor` solo los usan las
+// planas; en la grande el icono va sobre un velo blanco.
+// ============================================================================
+interface Modulo {
+  to: string;
+  title: string;
+  icon: string;
+  desc: string;
+  iconBg: string;
+  iconColor: string;
+  bar: string;
+  titleHover: string;
+  /** Tarjeta ancha y resaltada: el módulo que se abre a diario. */
+  destacado?: boolean;
+}
+
+interface SeccionModulos {
+  titulo: string;
+  desc: string;
+  /** Color del encabezado del bloque (identidad del negocio). */
+  color: string;
+  modulos: Modulo[];
+}
+
+const secciones: SeccionModulos[] = [
   {
-    to: '/chat', title: 'Chat Inbox', icon: 'fa-comments',
-    desc: 'Mensajería omnicanal con huéspedes: Beds24, Airbnb y WhatsApp en una sola bandeja.',
-    iconBg: 'bg-slate-900', iconColor: 'text-white',
-    bar: 'bg-slate-900', titleHover: 'group-hover:text-slate-900',
+    titulo: 'Alojamiento',
+    desc: 'PMS · Casitas',
+    color: 'text-[#376875]',
+    modulos: [
+      {
+        to: '/reservas', title: 'Reservas', icon: 'fa-calendar-days',
+        desc: 'Calendario PMS: estancias, bloqueos y disponibilidad por unidad.',
+        iconBg: 'bg-[#376875]', iconColor: 'text-white',
+        bar: 'bg-[#376875]', titleHover: 'group-hover:text-[#376875]',
+        destacado: true,
+      },
+      {
+        to: '/tarifas', title: 'Tarifas', icon: 'fa-tags',
+        desc: 'Rangos de precio y estancia mínima por unidad, con push automático a Beds24.',
+        iconBg: 'bg-[#376875]/10', iconColor: 'text-[#376875]',
+        bar: 'bg-[#376875]', titleHover: 'group-hover:text-[#376875]',
+      },
+      {
+        to: '/chat', title: 'Chat Inbox', icon: 'fa-comments',
+        desc: 'Mensajería omnicanal con huéspedes: Beds24, Airbnb y WhatsApp en una sola bandeja.',
+        iconBg: 'bg-slate-900', iconColor: 'text-white',
+        bar: 'bg-slate-900', titleHover: 'group-hover:text-slate-900',
+      },
+    ],
   },
   {
-    to: '/cotizacion', title: 'Cotizaciones', icon: 'fa-file-invoice-dollar',
-    desc: 'Motor de armado de propuestas, tarifas y cálculo financiero por expediente.',
-    iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
-    bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
-  },
-  {
-    to: '/operacion', title: 'Operaciones', icon: 'fa-car-side',
-    desc: 'Centro de operaciones: logística, proveedores y ejecución día a día.',
-    iconBg: 'bg-[#376875]/10', iconColor: 'text-[#376875]',
-    bar: 'bg-[#376875]', titleHover: 'group-hover:text-[#376875]',
-  },
-  {
-    to: '/reservas', title: 'Reservas', icon: 'fa-calendar-days',
-    desc: 'Calendario PMS: estancias, bloqueos y disponibilidad por unidad.',
-    iconBg: 'bg-[#376875]/10', iconColor: 'text-[#376875]',
-    bar: 'bg-[#376875]', titleHover: 'group-hover:text-[#376875]',
-  },
-  {
-    to: '/tarifas', title: 'Tarifas', icon: 'fa-tags',
-    desc: 'Rangos de precio y estancia mínima por unidad, con push automático a Beds24.',
-    iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
-    bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
-  },
-  {
-    to: '/catalogo', title: 'Catálogo de Tours', icon: 'fa-book-open',
-    desc: 'Producto pre-armado por segmento, listo para cotizar en minutos.',
-    iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
-    bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
+    titulo: 'Viajes',
+    desc: 'Agencia · Tours',
+    color: 'text-[#E07845]',
+    modulos: [
+      {
+        to: '/cotizacion', title: 'Cotizaciones', icon: 'fa-file-invoice-dollar',
+        desc: 'Motor de armado de propuestas, tarifas y cálculo financiero por expediente.',
+        iconBg: 'bg-[#E07845]', iconColor: 'text-white',
+        bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
+        destacado: true,
+      },
+      {
+        to: '/operacion', title: 'Operaciones', icon: 'fa-car-side',
+        desc: 'Centro de operaciones: logística, proveedores y ejecución día a día.',
+        iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
+        bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
+      },
+      {
+        to: '/catalogo', title: 'Catálogo de Tours', icon: 'fa-book-open',
+        desc: 'Producto pre-armado por segmento, listo para cotizar en minutos.',
+        iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
+        bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
+      },
+    ],
   },
 ];
 
@@ -176,35 +227,67 @@ const handleLogout = async () => {
             Centro de <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#376875] to-[#E07845]">control</span>
           </h1>
           <p class="text-base md:text-lg text-slate-500 font-medium leading-relaxed">
-            Todo tu ecosistema operativo en un solo lugar: mensajería omnicanal, cotizaciones, operaciones y catálogo de tours.
+            Todo tu ecosistema operativo en un solo lugar: el PMS de las casitas y la operación
+            de viajes, cada uno con sus herramientas a un clic.
           </p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <!-- Mosaico de piezas desiguales, estilo Windows: el módulo de uso diario
+             es una pieza 2x2 en color pleno y los otros dos, piezas planas a su
+             derecha. En la rejilla de 4 columnas encaja exacto: 2+2 de ancho, 2
+             filas de alto. En móvil (2 columnas) la grande ocupa la fila entera y
+             las pequeñas quedan de a dos, así que el puzle se mantiene. -->
+        <section v-for="(seccion, s) in secciones" :key="seccion.titulo" :class="s > 0 ? 'mt-10 md:mt-12' : ''">
 
-          <RouterLink
-            v-for="mod in modulos" :key="mod.to" :to="mod.to"
-            class="module-card group relative bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
-          >
-            <div class="absolute inset-x-0 top-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300" :class="mod.bar"></div>
-
-            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3" :class="mod.iconBg">
-              <i class="fas text-2xl" :class="[mod.icon, mod.iconColor]" aria-hidden="true"></i>
-            </div>
-
-            <h2 class="text-lg font-black text-slate-900 tracking-tight mb-1.5 transition-colors" :class="mod.titleHover">
-              {{ mod.title }}
+          <div class="flex items-baseline gap-3 mb-4 md:mb-5">
+            <h2 class="text-sm font-black uppercase tracking-[0.18em]" :class="seccion.color">
+              {{ seccion.titulo }}
             </h2>
-            <p class="text-[13px] text-slate-500 font-medium leading-snug flex-1">
-              {{ mod.desc }}
-            </p>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">{{ seccion.desc }}</span>
+            <span class="flex-1 h-px bg-slate-200"></span>
+          </div>
 
-            <span class="mt-5 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-400 group-hover:gap-3 transition-all" :class="mod.titleHover">
-              Entrar <i class="fas fa-arrow-right text-[10px]" aria-hidden="true"></i>
-            </span>
-          </RouterLink>
+          <div class="grid grid-cols-2 lg:grid-cols-4 auto-rows-[8.5rem] md:auto-rows-[9rem] gap-3 md:gap-4">
 
-        </div>
+            <RouterLink
+              v-for="mod in seccion.modulos" :key="mod.to" :to="mod.to"
+              class="module-card group relative rounded-3xl overflow-hidden flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+              :class="mod.destacado
+                ? ['col-span-2 row-span-2 p-6 text-white shadow-lg', mod.bar]
+                : 'col-span-1 lg:col-span-2 p-4 md:p-5 bg-white border border-slate-100 shadow-sm'"
+            >
+              <!-- Solo en las planas: el filo de color que aparece al pasar por
+                   encima. La grande no lo necesita, ya ES el color. -->
+              <div v-if="!mod.destacado" class="absolute inset-x-0 top-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300" :class="mod.bar"></div>
+
+              <div class="flex items-start justify-between gap-3">
+                <div class="rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3"
+                  :class="mod.destacado ? 'w-14 h-14 bg-white/15' : ['w-11 h-11', mod.iconBg]">
+                  <i class="fas" :class="[mod.icon, mod.destacado ? 'text-2xl text-white' : ['text-xl', mod.iconColor]]" aria-hidden="true"></i>
+                </div>
+                <span v-if="mod.destacado" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-[9px] font-black uppercase tracking-widest text-white/90">
+                  <i class="fas fa-star text-[8px]" aria-hidden="true"></i> Uso diario
+                </span>
+              </div>
+
+              <div>
+                <h3 class="font-black tracking-tight transition-colors"
+                  :class="mod.destacado ? 'text-2xl md:text-3xl text-white' : ['text-base text-slate-900', mod.titleHover]">
+                  {{ mod.title }}
+                </h3>
+                <p class="font-medium leading-snug mt-1"
+                  :class="mod.destacado ? 'text-sm text-white/75 max-w-md' : 'text-[11px] md:text-xs text-slate-500 line-clamp-2'">
+                  {{ mod.desc }}
+                </p>
+
+                <span v-if="mod.destacado" class="mt-4 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-white/80 group-hover:gap-3 transition-all">
+                  Entrar <i class="fas fa-arrow-right text-[10px]" aria-hidden="true"></i>
+                </span>
+              </div>
+            </RouterLink>
+
+          </div>
+        </section>
       </main>
 
       <footer class="w-full max-w-6xl mx-auto px-6 py-6 text-slate-400 text-[11px] font-bold tracking-widest uppercase">
@@ -218,11 +301,11 @@ const handleLogout = async () => {
 .module-card {
   animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+/* Tres por bloque: el nth-child cuenta dentro de cada rejilla, así que los dos
+   bloques entran en cascada a la vez y no uno detrás del otro. */
 .module-card:nth-child(1) { animation-delay: 0.04s; }
 .module-card:nth-child(2) { animation-delay: 0.10s; }
 .module-card:nth-child(3) { animation-delay: 0.16s; }
-.module-card:nth-child(4) { animation-delay: 0.22s; }
-.module-card:nth-child(5) { animation-delay: 0.28s; }
 
 .toast-slide-enter-active,
 .toast-slide-leave-active {

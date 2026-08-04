@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, shallowRef, onBeforeUnmount } from 'vue';
+import { ref, computed, shallowRef, watch, onBeforeUnmount } from 'vue';
 import { useRouter, onBeforeRouteLeave } from 'vue-router';
 import FullCalendar from '@fullcalendar/vue3';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import type {
@@ -27,6 +25,7 @@ import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/rese
 import { useChatStore, type ApiTemplate } from '@/stores/chat/chatStore';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import { escaparHtml } from '@/utils/html';
+import { scrollTimelineADia, encuadrarTimeline, hoyLocal } from '@/utils/calendarTimeline';
 import {
     canalInfo,
     whatsappUrl,
@@ -67,6 +66,10 @@ const calendarioActual = computed(() => calendarios[calendarioIndex.value]);
 
 const calendarApiRef = shallowRef<InstanceType<typeof FullCalendar> | null>(null);
 
+// Contenedor del calendario: lo necesita encuadrarTimeline() para alcanzar el
+// scroller del cuerpo cuando hay que irse al extremo derecho del rango.
+const calendarRootEl = ref<HTMLElement | null>(null);
+
 // Título del mes/semana renderizado FUERA del headerToolbar (igual que el
 // legacy en fullcalendar_controller.js): si el título comparte fila con los
 // botones, un mes largo ("Julio de 2026") los empuja y todo se parte en varias
@@ -79,7 +82,12 @@ const calendarTitulo = ref('');
 // volver al calendario, quede en el mes/semana y la vista donde se dejó.
 // ============================================================================
 const FC_STORAGE_KEY = `fc_state_${window.location.pathname}`;
-const FC_VISTAS_PERMITIDAS = ['resourceTimelineOneMonth', 'resourceTimelineOneWeek', 'listMonth'];
+// Solo las dos vistas de línea de tiempo, las mismas que el calendario de
+// Tarifas. Las de Semana y Lista se retiraron: nadie las usaba para operar y
+// quien caía en ellas por error se quedaba sin la rejilla de casitas, que es lo
+// que se viene a mirar. Un valor guardado de las antiguas no valida y cae al
+// por defecto, así que nadie queda atrapado en una vista que ya no existe.
+const FC_VISTAS_PERMITIDAS = ['resourceTimelineTwoMonths', 'resourceTimelineOneMonth'];
 
 function fcVistaGuardada(): string {
     const v = localStorage.getItem(`${FC_STORAGE_KEY}_view`);
@@ -181,17 +189,12 @@ function formatFechaCorta(iso: string | null): string {
 // ============================================================================
 // SALTO AL DÍA EXACTO
 //
-// `gotoDate()` solo coloca el RANGO (el mes): en una vista timeline el scroll
-// horizontal se queda donde estaba, así que la estancia podía caer fuera de
-// pantalla. El desplazamiento fino lo hace `scrollToTime()`, que en timeline
-// cuenta la duración desde el inicio del rango visible — de ahí el cálculo de
-// días entre `view.activeStart` y el día buscado.
-//
-// El rango nuevo puede no estar renderizado en el instante del salto, así que el
-// día queda "pendiente" y se reintenta cuando el calendario avisa: `datesSet`
-// (rango ya montado) y `loading` (fin de la carga de eventos, último intento).
+// El cálculo del scroll vive en `@/utils/calendarTimeline` (compartido con
+// TarifasView, misma rejilla). Aquí queda solo la parte propia de esta vista:
+// el rango recién navegado puede no estar renderizado en el instante del salto,
+// así que el día queda "pendiente" y se reintenta cuando el calendario avisa:
+// `datesSet` (rango ya montado) y `loading` (fin de carga, último intento).
 // ============================================================================
-const MS_POR_DIA = 86_400_000;
 
 /** Día `YYYY-MM-DD` al que hay que desplazarse en cuanto el rango esté listo. */
 let diaPendiente: string | null = null;
@@ -202,14 +205,7 @@ function scrollAlDia(fechaIso: string): boolean {
     if (!api) return false;
 
     const [y, m, d] = fechaIso.split('-').map(Number);
-    const objetivo = new Date(y, m - 1, d);
-    const inicio = api.view.activeStart;
-    if (!inicio || objetivo < inicio || objetivo >= api.view.activeEnd) return false;
-
-    // Un día de margen para que la barra no quede pegada al borde izquierdo.
-    const dias = Math.round((objetivo.getTime() - inicio.getTime()) / MS_POR_DIA) - 1;
-    api.scrollToTime({ days: Math.max(0, dias) });
-    return true;
+    return scrollTimelineADia(api, new Date(y, m - 1, d));
 }
 
 /**
@@ -313,6 +309,18 @@ interface MenuState {
 }
 const menu = ref<MenuState | null>(null);
 
+/**
+ * Dispositivo sin puntero que pueda "posarse" (móvil/tablet).
+ *
+ * En escritorio el tooltip (hover) y el menú (clic) no compiten: el tooltip se
+ * va en cuanto el ratón se mueve. En táctil un solo tap dispara LOS DOS, y sobre
+ * un evento de las filas de abajo el tooltip flotante caía justo encima del
+ * menú. Por eso en táctil el tooltip flotante se desactiva (`touch: false` en
+ * tippy) y la misma ficha se pinta DENTRO del menú, como cabecera: se sigue
+ * viendo todo de un tap, pero apilado y sin solaparse nunca.
+ */
+const ES_TACTIL = window.matchMedia('(hover: none)').matches;
+
 // Datos de solo lectura de la reserva del evento seleccionado, cargados al abrir
 // el menú (los extendedProps del calendario solo traen reservaId/isOta). Con esto
 // el menú muestra "Abrir guía" y el enlace directo al canal (Booking/Airbnb).
@@ -342,11 +350,9 @@ function avisar(mensaje: string): void {
     setTimeout(() => (dragError.value = null), 5000);
 }
 
-// Tamaño aproximado del menú, para que nunca se salga de la pantalla.
+// Tamaño aproximado del menú, para que no NAZCA fuera de la pantalla; la
+// posición definitiva la calcula reubicarMenu() midiendo el panel real.
 const MENU_ANCHO = 240;
-// Alto aproximado del menú más largo (el de creación: cabecera + tarifa + 3 opciones).
-// Solo sirve para que el menú no nazca fuera de la pantalla; pasarse un poco es
-// inofensivo, quedarse corto lo deja recortado abajo.
 const MENU_ALTO = 320;
 const MENU_BORDE = 8;
 
@@ -369,6 +375,49 @@ function posicionMenu(jsEvent: MouseEvent | TouchEvent): { x: number; y: number 
         y: Math.max(MENU_BORDE, Math.min(py, window.innerHeight - MENU_ALTO)),
     };
 }
+
+// ----------------------------------------------------------------------------
+// POSICIÓN DEFINITIVA DEL MENÚ (medida, no estimada)
+//
+// El alto del panel NO se conoce al abrirlo: la ficha del huésped, el enlace a
+// la extranet del canal y la lista de plantillas llegan por fetch DESPUÉS del
+// primer render. Con la constante MENU_ALTO sola, un menú abierto abajo se salía
+// de la pantalla en cuanto crecía. Un ResizeObserver sobre el panel lo recoloca
+// en cada cambio de alto, que es justo cuando hace falta.
+// ----------------------------------------------------------------------------
+const menuEl = ref<HTMLElement | null>(null);
+const menuPos = ref({ x: 0, y: 0 });
+let menuObserver: ResizeObserver | null = null;
+
+function reubicarMenu(): void {
+    const el = menuEl.value;
+    if (!el || !menu.value) return;
+
+    menuPos.value = {
+        x: Math.max(MENU_BORDE, Math.min(menu.value.x, window.innerWidth - el.offsetWidth - MENU_BORDE)),
+        y: Math.max(MENU_BORDE, Math.min(menu.value.y, window.innerHeight - el.offsetHeight - MENU_BORDE)),
+    };
+}
+
+// Arranca en el punto del tap (ya clampeado a ojo) para que no se vea saltar.
+// Se compara el ancla y no `previo === null` porque el menú también se reasigna
+// SIN cerrarse (al pasar a la lista de plantillas de WhatsApp): ahí la posición
+// ya ajustada debe mantenerse y dejar que el observer la corrija.
+watch(menu, (m, previo) => {
+    if (m && (m.x !== previo?.x || m.y !== previo?.y)) menuPos.value = { x: m.x, y: m.y };
+});
+
+watch(menuEl, (el) => {
+    menuObserver?.disconnect();
+    menuObserver = null;
+    if (!el) return;
+    // El observer dispara también al empezar a observar: esa primera llamada es
+    // la que coloca el menú ya medido.
+    menuObserver = new ResizeObserver(reubicarMenu);
+    menuObserver.observe(el);
+});
+
+onBeforeUnmount(() => menuObserver?.disconnect());
 
 function limpiarMenuReserva(): void {
     menuReserva.value = { localizador: null, channelId: null, urlCanalExtranet: null, telefono: null };
@@ -712,7 +761,7 @@ async function onEventResize(info: EventResizeDoneArg): Promise<void> {
 // FULLCALENDAR OPTIONS
 // ============================================================================
 const calendarOptions: CalendarOptions = {
-    plugins: [resourceTimelinePlugin, dayGridPlugin, listPlugin, interactionPlugin],
+    plugins: [resourceTimelinePlugin, interactionPlugin],
     schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
     locale: esLocale,
     timeZone: 'local',
@@ -752,9 +801,37 @@ const calendarOptions: CalendarOptions = {
     // Sin título en el centro: así "today prev,next" y los botones de vista
     // caben en una sola fila incluso en mobile (ver calendarTitulo más arriba).
     headerToolbar: {
-        left: 'today prev,next',
+        left: 'irHoy prev,next',
         center: '',
-        right: 'resourceTimelineOneMonth,resourceTimelineOneWeek,listMonth',
+        right: 'resourceTimelineTwoMonths,resourceTimelineOneMonth',
+    },
+
+    /**
+     * Botón «Hoy» propio, y con nombre PROPIO (`irHoy`, no `today`).
+     *
+     * El de fábrica solo llama a `today()`, que no hace nada si el mes actual ya
+     * es el visible: te dejaba mirando el día 1 del mes sin desplazar la línea
+     * de tiempo. Y no basta con redefinir `customButtons.today` —aunque el clic
+     * sí se sustituye—: FullCalendar decide el estado deshabilitado por el
+     * NOMBRE del botón (`!isTodayEnabled && buttonName === 'today'`, con
+     * `isTodayEnabled = !rangeContainsMarker(currentRange, now)`), así que el
+     * botón seguía apagado justo en el caso que se quería arreglar. Con otro
+     * nombre, siempre está activo.
+     */
+    customButtons: {
+        irHoy: {
+            text: 'Hoy',
+            hint: 'Ir a hoy',
+            click: () => {
+                const api = calendarApiRef.value?.getApi();
+                if (!api) return;
+                api.today();
+                // El rango puede no estar montado todavía (si hubo salto de mes):
+                // mismo mecanismo de reintento que usa la búsqueda de reservas.
+                diaPendiente = fromDateLocal(hoyLocal());
+                resolverDiaPendiente();
+            },
+        },
     },
 
     datesSet: (info: DatesSetArg) => {
@@ -768,9 +845,18 @@ const calendarOptions: CalendarOptions = {
         }
         localStorage.setItem(`${FC_STORAGE_KEY}_view`, info.view.type);
 
-        // El rango ya está montado: si venimos de una búsqueda, es el momento de
-        // desplazar la línea de tiempo hasta el día exacto.
-        resolverDiaPendiente();
+        // El rango ya está montado: si venimos de una búsqueda (o del botón
+        // «Hoy»), es el momento de desplazar la línea de tiempo al día exacto.
+        // Si no hay nada pendiente, encuadre por defecto del rango — ver
+        // encuadrarTimeline(): hoy si cae dentro, y si no el extremo por el que
+        // se ha llegado navegando.
+        if (diaPendiente) {
+            resolverDiaPendiente();
+            return;
+        }
+
+        const api = info.view.calendar;
+        requestAnimationFrame(() => encuadrarTimeline(api, calendarRootEl.value));
     },
 
     // Fin de la carga de eventos: último intento por si el rango tardó en
@@ -780,21 +866,24 @@ const calendarOptions: CalendarOptions = {
     },
 
     views: {
+        resourceTimelineTwoMonths: {
+            type: 'resourceTimeline',
+            duration: { months: 2 },
+            buttonText: '2 Meses',
+            slotDuration: '24:00:00',
+            // Dos filas de cabecera (mes arriba, día abajo): con ~60 columnas no
+            // cabe la etiqueta completa por día. Igual que en Tarifas.
+            slotLabelFormat: [
+                { month: 'long' },
+                { day: 'numeric' },
+            ],
+        },
         resourceTimelineOneMonth: {
             type: 'resourceTimeline',
             duration: { months: 1 },
             buttonText: 'Mes',
             slotDuration: '24:00:00',
             slotLabelFormat: [{ weekday: 'short', day: 'numeric', month: 'numeric', omitCommas: true }],
-        },
-        resourceTimelineOneWeek: {
-            type: 'resourceTimeline',
-            duration: { weeks: 1 },
-            buttonText: 'Semana',
-        },
-        listMonth: {
-            type: 'listMonth',
-            buttonText: 'Lista',
         },
     },
 
@@ -902,6 +991,8 @@ const calendarOptions: CalendarOptions = {
             allowHTML: true,
             appendTo: document.body,
             placement: 'top',
+            // En táctil esta misma ficha va dentro del menú (ver ES_TACTIL).
+            touch: false,
         });
         info.el.style.cursor = 'pointer';
     },
@@ -1068,7 +1159,7 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
             <i class="fas fa-exclamation-triangle mr-2"></i>{{ dragError }}
         </div>
 
-        <main class="flex-1 overflow-y-auto p-3 md:p-4">
+        <main ref="calendarRootEl" class="flex-1 overflow-y-auto p-3 md:p-4">
             <h3 v-if="calendarTitulo" class="text-center font-black text-slate-800 uppercase tracking-wide text-sm mb-2">
                 {{ calendarTitulo }}
             </h3>
@@ -1077,10 +1168,16 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 
         <!-- Menú contextual: Ver/Editar sobre un evento, Bloqueo/Reserva sobre espacio vacío -->
         <div v-if="menu" class="fixed inset-0 z-30" @click="cerrarMenu" @contextmenu.prevent="cerrarMenu">
-            <div class="absolute bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden py-1.5 max-w-[calc(100vw-1rem)] max-h-[70vh] overflow-y-auto"
+            <div ref="menuEl"
+                class="absolute bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden py-1.5 max-w-[calc(100vw-1rem)] max-h-[85vh] overflow-y-auto"
                 :class="menu.kind === 'whatsapp' ? 'w-70' : 'w-52'"
-                :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @click.stop>
+                :style="{ left: menuPos.x + 'px', top: menuPos.y + 'px' }" @click.stop>
                 <template v-if="menu.kind === 'event'">
+                    <!-- Ficha del huésped SOLO en táctil: en escritorio ya la da el
+                         tooltip al pasar el ratón. `v-html` con el mismo generador que
+                         usa tippy — todo valor sale escapado de tooltipHtml(). -->
+                    <div v-if="ES_TACTIL && menu.eventProps?.cliente" class="fc-tip-menu"
+                        v-html="tooltipHtml(menu.eventProps)"></div>
                     <button @click="elegirVerEvento"
                         class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                         <i class="fas fa-eye w-4 text-slate-400"></i> Ver
@@ -1095,6 +1192,12 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
                             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                             <i class="fas fa-book-open w-4 text-slate-400"></i> Abrir guía
                         </a>
+                        <!-- Las tres vías de contacto con el huésped, agrupadas: la
+                             lista corrida no dejaba ver que «guía» es otra cosa. -->
+                        <div v-if="menuGuideUrl" class="my-1 border-t border-slate-100"></div>
+                        <p class="px-4 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Mensajería
+                        </p>
                         <button @click="elegirChatInterno"
                             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                             <i class="fas fa-comment-dots w-4 text-slate-400"></i> Abrir chat interno
@@ -1107,6 +1210,8 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
                             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                             <i class="fas fa-paper-plane w-4 text-slate-400"></i> Enviar plantilla
                         </button>
+                        <!-- Fuera del grupo de mensajería: lleva a la extranet del canal. -->
+                        <div v-if="menu.eventProps?.isOta && menuReserva.urlCanalExtranet" class="my-1 border-t border-slate-100"></div>
                         <a v-if="menu.eventProps?.isOta && menuReserva.urlCanalExtranet"
                             :href="menuReserva.urlCanalExtranet" target="_blank" rel="noopener" @click="cerrarMenu"
                             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
@@ -1236,6 +1341,29 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
     white-space: nowrap;
 }
 
+/*
+  En la línea de tiempo el contenido de la barra es STICKY: una estancia de dos
+  semanas pintaba el nombre al principio del rango, así que bastaba desplazar el
+  calendario para quedarse mirando barras de color sin un solo dato. Pegado al
+  borde izquierdo del área visible, nombre y cifras acompañan al scroll mientras
+  la estancia siga en pantalla.
+
+  Las tres declaraciones son obligatorias juntas (el mismo mecanismo que
+  `.fc-tarifa` en TarifasView; el porqué de cada una, en
+  docs/Calendar_architecture.md §12): sin `width: fit-content` no hay margen
+  donde desplazarse y `sticky` no hace NADA, sin `max-width: 100%` el texto se
+  sale por la derecha de las barras cortas.
+
+  Acotado a `.fc-timeline-event` a propósito: en las vistas Mes y Lista no hay
+  scroll horizontal, así que ahí sólo cambiaría cómo se recorta el contenido.
+*/
+.fc-timeline-event .fc-reserva {
+    position: sticky;
+    left: 0;
+    width: fit-content;
+    max-width: 100%;
+}
+
 /* Más grande que antes porque ahora tiene dos filas de alto que ocupar: a
    0.68rem quedaba flotando arriba y perdía su papel de ancla visual. */
 .fc-reserva-canal {
@@ -1316,6 +1444,22 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 .fc-tip {
     text-align: left;
     min-width: 170px;
+}
+
+/*
+  La misma ficha, pero embebida como cabecera del menú en táctil. El fondo
+  oscuro lo ponía `.tippy-box`; dentro del menú blanco hay que repetirlo aquí o
+  el texto claro quedaría ilegible. `-mt-1.5` equivalente para comerse el
+  padding superior del panel y quedar pegada al borde redondeado.
+*/
+.fc-tip-menu {
+    background: #1e293b;
+    color: #fff;
+    padding: 8px 12px 10px;
+    margin-top: -0.375rem;
+    margin-bottom: 0.375rem;
+    font-size: 0.8rem;
+    line-height: 1.35;
 }
 
 .fc-tip-cab {
