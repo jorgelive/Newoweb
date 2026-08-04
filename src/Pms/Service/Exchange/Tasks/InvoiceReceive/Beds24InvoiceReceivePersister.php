@@ -7,6 +7,7 @@ namespace App\Pms\Service\Exchange\Tasks\InvoiceReceive;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Pms\Dto\Beds24InvoiceItemDto;
 use App\Pms\Entity\PmsCargoFinanciero;
+use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsTipoCargo;
@@ -64,6 +65,13 @@ readonly class Beds24InvoiceReceivePersister
 
         $stats = ['imported' => 0, 'updated' => 0, 'skipped' => 0];
 
+        // ¿Este canal cobra al huésped por nosotros (Airbnb, VRBO)? Entonces sus
+        // cargos son contabilidad interna —el importe es lo que la OTA nos remite,
+        // no lo que el huésped pagó— y se marcan para excluirlos del estado de
+        // cuenta que ve el huésped. Ver PmsCargoFinanciero::$esAutomatico.
+        $canal = $info->getReserva()?->getChannel()?->getId();
+        $esEspejoDeCanal = $canal !== null && in_array($canal, PmsChannel::CANAL_PAGO_TOTAL, true);
+
         foreach ($items as $dto) {
             if (!$dto->id) {
                 continue;
@@ -82,17 +90,24 @@ readonly class Beds24InvoiceReceivePersister
 
             if ($existing) {
                 // Actualizamos sólo si cambió algún campo volátil (importes / estado / enriquecimiento).
-                if ($this->aplicarCambiosVolatiles($existing, $dto, $monedaUsd, $tcVenta)) {
-                    $stats['updated']++;
-                } else {
-                    $stats['skipped']++;
+                $cambio = $this->aplicarCambiosVolatiles($existing, $dto, $monedaUsd, $tcVenta);
+
+                // El flag se reevalúa SIEMPRE, no sólo cuando cambian importes: hay
+                // que corregirlo también si la reserva cambió de canal, o si el cargo
+                // se importó antes de que este campo existiera.
+                if ($existing->isEsAutomatico() !== $esEspejoDeCanal) {
+                    $existing->setEsAutomatico($esEspejoDeCanal);
+                    $cambio = true;
                 }
+
+                $cambio ? $stats['updated']++ : $stats['skipped']++;
                 continue;
             }
 
             // NUEVO CONCEPTO
             $cargo = new PmsCargoFinanciero($extId);
             $this->hidratar($cargo, $dto, $monedaUsd, $tcVenta);
+            $cargo->setEsAutomatico($esEspejoDeCanal);
             $info->addCargo($cargo);
             $this->em->persist($cargo);
 

@@ -1049,12 +1049,56 @@ el saldo pagando con tarjeta. Reglas que no se ven en el código:
 - **Sin cabecera o con `total_cargos = 0` el campo va `null`** y la tarjeta no se pinta: una
   reserva sin cargos no debe enseñar "total 0.00". Con `activa = false` los caches ya solo suman
   la penalización (§12.7), así que el saldo mostrado sigue siendo el correcto sin lógica extra.
+- **En Airbnb y VRBO no se enseñan los importes del canal.** Lo que guardamos es lo que la OTA
+  nos **remite**, no lo que el huésped **pagó** (que lleva encima la comisión de servicio de la
+  OTA). Enseñárselo abre una conversación sobre por qué las cifras no cuadran. Ver el apartado
+  siguiente.
 - **El recargo por tarjeta (+5.5%) es presentación, no un cargo.** Vive únicamente en
   `PmsReservaView::RECARGO_TARJETA_PCT`; el backend no lo conoce y el cobro real lo hace
   recepción. La nota i18n (`res_recargo_nota`) interpola `{{ pct }}` con esa constante para que
   el texto no se desactualice si cambia la comisión.
 - El lookup de la cabecera usa `findOneBy(['reserva' => $reserva])` con el objeto — un
   SearchFilter sobre la relación devolvería vacío en silencio por el UUID binario (§12.6).
+
+### 12.0.2c Canales que cobran por nosotros: qué ve el huésped
+
+En `PmsChannel::CANAL_PAGO_TOTAL` (Airbnb, VRBO) el resumen se recalcula excluyendo **todo lo que
+sea espejo contable del canal**. `PmsReservaPaxProvider::cifras()`:
+
+| Situación | Qué ve el huésped |
+|---|---|
+| Sin cargos añadidos a mano | `soloProgreso: true` → barra al 100 %, **ninguna cifra** |
+| Con cargos añadidos a mano | Solo esos: total, pagado y saldo calculados sobre ellos |
+| Canal normal (Booking, directo) | Los agregados cacheados de la cabecera, sin tocar |
+
+**La exclusión va por marca explícita, nunca por heurística.** Dos campos, uno a cada lado:
+
+- `PmsCargoFinanciero::$esAutomatico` — lo escribe `Beds24InvoiceReceivePersister` cuando la
+  reserva está en un canal de pago total. Se **reevalúa en cada sync**, no solo cuando cambian
+  importes: un cambio de canal tiene que corregirlo.
+- `PmsPagoFinanciero::$esAutomatico` — ya existía; lo escribe `PmsPagoOtaAutomaticoService` para
+  el depósito de la OTA, y **se apaga solo** si el operador edita el pago (a partir de ahí es un
+  cobro real y vuelve a verse).
+
+> **Por qué no vale emparejar «el cargo de subtipo 8 con el pago del mismo importe»**, que es lo
+> primero que se piensa. Dos motivos, los dos reales:
+>
+> 1. **El Cancel Fee de Beds24 llega con `subType: 8`**, el mismo del alojamiento — por eso
+>    `PmsTipoCargo::desdeBeds24()` comprueba la penalización *antes* que el subtipo. Filtrar por
+>    subtipo 8 escondería las penalizaciones, que son justo lo que sí hay que cobrar y enseñar.
+> 2. **Emparejar por importe** falla con dos cargos iguales, o si el depósito se recalculó y ya
+>    no cuadra al céntimo.
+
+⚠️ `esAutomatico` en el cargo **NO significa «lo generó el sistema»**. `PmsCargosAutomaticosService`
+también genera cargos solo —los de reservas DIRECTAS, desde el tarifario— y esos van en `false` a
+propósito: el huésped nos los paga a nosotros y tiene que verlos. Lo que marca el campo es *«esto
+es contabilidad interna del canal»*.
+
+La suma usa el mismo criterio que `PmsInformacionFinanciera::totalPorTipo()`: `esCargo()` —la
+colección de cargos también trae filas `payment` de Beds24— y `totalLinea ?? monto`, porque el
+webhook no siempre manda la primera. Sumar de otra forma daría cifras que no cuadran con el panel.
+
+Backfill: `Version20260804160000`.
 
 ### 12.0.3 Los importes de mensajería salen de la cabecera, no de `PmsReserva`
 

@@ -133,6 +133,27 @@ class PmsCargoFinanciero
     #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
     private ?PmsTipoCargo $tipoCargo = null;
 
+    /**
+     * Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+     * `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+     * PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+     * cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+     *
+     * Por qué hay que excluirlo: en esos canales el importe que guardamos es lo
+     * que la OTA nos remite, no lo que el huésped pagó (que incluye la comisión
+     * de servicio de la OTA). Enseñárselo invita a una conversación incómoda
+     * sobre por qué las cifras no cuadran.
+     *
+     * ⚠️ NO significa "lo generó el sistema". PmsCargosAutomaticosService también
+     * genera cargos solo —los de reservas DIRECTAS, desde el tarifario— y esos
+     * llevan el flag en false a propósito: el huésped los paga a nosotros y tiene
+     * que verlos. Lo que marca este campo es "esto es contabilidad interna del
+     * canal", no "esto no lo tecleó nadie".
+     */
+    #[ORM\Column(name: 'es_automatico', type: 'boolean', options: ['default' => false])]
+    #[Groups(['pms_cargo:read'])]
+    private bool $esAutomatico = false;
+
     /** Moneda del importe (resolver contra maestro; default USD si no llega). */
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: true)]
@@ -255,6 +276,9 @@ class PmsCargoFinanciero
 
     public function getTipoCargo(): ?PmsTipoCargo { return $this->tipoCargo; }
     public function setTipoCargo(?PmsTipoCargo $tipoCargo): self { $this->tipoCargo = $tipoCargo; return $this; }
+
+    public function isEsAutomatico(): bool { return $this->esAutomatico; }
+    public function setEsAutomatico(bool $esAutomatico): self { $this->esAutomatico = $esAutomatico; return $this; }
 
     public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
     public function setMoneda(?MaestroMoneda $moneda): self { $this->moneda = $moneda; return $this; }

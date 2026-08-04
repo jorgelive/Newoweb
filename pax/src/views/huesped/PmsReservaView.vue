@@ -130,7 +130,16 @@ const finanzas = computed(() => pmsStore.reserva?.resumenFinanciero ?? null);
 const finTotal  = computed(() => Number(finanzas.value?.total ?? 0));
 const finPagado = computed(() => Number(finanzas.value?.pagado ?? 0));
 const finSaldo  = computed(() => Number(finanzas.value?.saldo ?? 0));
-const todoPagado = computed(() => finSaldo.value <= 0);
+
+/**
+ * Reserva de un canal que cobra por nosotros y sin extras añadidos a mano: no
+ * hay ninguna cifra que se le pueda enseñar al huésped (los importes del canal
+ * son lo que la OTA nos remite, no lo que él pagó). Se deja solo la barra llena
+ * como acuse de recibo. Lo decide el backend, no la vista.
+ */
+const soloProgreso = computed(() => finanzas.value?.soloProgreso === true);
+
+const todoPagado = computed(() => soloProgreso.value || finSaldo.value <= 0);
 
 /** Saldo pagando con tarjeta: saldo + comisión, redondeado a 2 decimales. */
 const finSaldoTarjeta = computed(() =>
@@ -139,6 +148,7 @@ const finSaldoTarjeta = computed(() =>
 
 /** % pagado para la barra de progreso (acotado a [0, 100]). */
 const pctPagado = computed(() => {
+  if (soloProgreso.value) return 100;
   if (finTotal.value <= 0) return 0;
   return Math.min(100, Math.max(0, (finPagado.value / finTotal.value) * 100));
 });
@@ -294,7 +304,8 @@ const detalleCuentaAbierto = ref(false);
                antemano (lo que `max-height` obliga a adivinar y recortaría el
                contenido si crece). El hijo necesita overflow-hidden para que el
                recorte ocurra durante la transición. -->
-          <div class="grid transition-[grid-template-rows] duration-500 ease-in-out"
+          <div v-if="!soloProgreso"
+               class="grid transition-[grid-template-rows] duration-500 ease-in-out"
                :class="detalleCuentaAbierto ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
             <div class="overflow-hidden">
 
@@ -351,7 +362,9 @@ const detalleCuentaAbierto = ref(false);
           </div>
           <!-- ═══ FIN DETALLE PLEGABLE ═══ -->
 
+          <!-- Sin cifras no hay detalle que desplegar: el botón sobraría. -->
           <button
+              v-if="!soloProgreso"
               type="button"
               @click="detalleCuentaAbierto = !detalleCuentaAbierto"
               :aria-expanded="detalleCuentaAbierto"

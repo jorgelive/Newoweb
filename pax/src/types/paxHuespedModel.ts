@@ -66,9 +66,18 @@ export interface PmsEventoCalendario {
 export interface PmsResumenFinanciero {
     moneda: string;
     simbolo?: string | null;
-    total: string;
-    pagado: string;
-    saldo: string;
+    /**
+     * Sin cifras que enseñar: reserva de un canal que cobra por nosotros
+     * (Airbnb, VRBO) y sin cargos añadidos a mano. Se pinta la barra al 100 %
+     * como acuse de recibo y NADA más — los importes del canal son lo que la
+     * OTA nos remite, no lo que el huésped pagó. Ver `PmsReservaPaxProvider::cifras()`.
+     *
+     * Cuando viene `true`, `total`/`pagado`/`saldo` NO llegan.
+     */
+    soloProgreso?: boolean;
+    total?: string;
+    pagado?: string;
+    saldo?: string;
 }
 
 export type PmsReserva = Omit<components['schemas']['PmsReserva-pax_reserva.read'], 'eventosActivosGuia'> & {
