@@ -31,6 +31,9 @@ use Doctrine\Persistence\ManagerRegistry;
  *       activeOnly: false                      # false = también las inactivas
  *       establecimientoField: establecimiento
  *       establecimientoId: null                # filtra por establecimiento si se indica
+ *       extraFields:                           # → extendedProps.<clave>
+ *           slug: slug
+ *           establecimientoSlug: establecimiento.slug
  *
  * Cada recurso del catálogo expone `extendedProps.activo` para que el frontend
  * pueda atenuar/filtrar las inactivas sin volver a preguntar por REST.
@@ -175,6 +178,13 @@ final class CalendarResourceCatalog
 
         $titleField = (string) ($cfg['titleField'] ?? '');
 
+        // Campos sueltos que el frontend necesita del recurso y que no son ni el
+        // título ni el estado: `extendedProps.<clave> => <ruta de getters>`. Se
+        // declaran en el YAML porque son específicos de cada calendario (el de
+        // reservas quiere los slugs para enlazar al catálogo público), y este
+        // servicio es genérico: no debe saber qué es una PmsUnidad.
+        $extraFields = (isset($cfg['extraFields']) && is_array($cfg['extraFields'])) ? $cfg['extraFields'] : [];
+
         $out = [];
         foreach ($qb->getQuery()->getResult() as $unit) {
             if (!is_object($unit) || !method_exists($unit, 'getId')) {
@@ -186,10 +196,16 @@ final class CalendarResourceCatalog
                 continue;
             }
 
+            $props = ['activo' => $this->resolveActivo($unit, $activeField)];
+
+            foreach ($extraFields as $clave => $ruta) {
+                $props[(string) $clave] = $this->resolveRuta($unit, (string) $ruta);
+            }
+
             $out[] = new CalendarResourceDto(
                 id: $id,
                 title: $this->resolveTitle($unit, $titleField) ?? ('Recurso ' . $id),
-                extendedProps: ['activo' => $this->resolveActivo($unit, $activeField)],
+                extendedProps: $props,
             );
         }
 
@@ -217,6 +233,35 @@ final class CalendarResourceCatalog
         }
 
         return null;
+    }
+
+    /**
+     * Resuelve una ruta de getters separada por puntos: `establecimiento.slug`
+     * llama a getEstablecimiento()->getSlug(). Devuelve null en cuanto un tramo
+     * no existe o es null, para que un recurso incompleto no reviente el feed.
+     */
+    private function resolveRuta(object $unit, string $ruta): ?string
+    {
+        $valor = $unit;
+
+        foreach (explode('.', $ruta) as $tramo) {
+            if (!is_object($valor)) {
+                return null;
+            }
+
+            $getter = 'get' . ucfirst($tramo);
+            $isser = 'is' . ucfirst($tramo);
+
+            if (method_exists($valor, $getter)) {
+                $valor = $valor->{$getter}();
+            } elseif (method_exists($valor, $isser)) {
+                $valor = $valor->{$isser}();
+            } else {
+                return null;
+            }
+        }
+
+        return $this->toStringOrNull($valor);
     }
 
     private function resolveActivo(object $unit, string $activeField): bool

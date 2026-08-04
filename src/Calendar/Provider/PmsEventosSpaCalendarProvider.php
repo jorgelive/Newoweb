@@ -181,6 +181,14 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
      * Identificación cruda para que el frontend arme su propia navegación,
      * sin acoplarse a rutas de EasyAdmin.
      *
+     * Además de los ids, viajan los DATOS SUELTOS que pinta la barra y el
+     * tooltip (canal, cliente, pax, estados, referencia). El `title` y el
+     * `tooltip` de arriba siguen existiendo como texto plano —son el contrato
+     * del DTO y el respaldo si algo falla—, pero el frontend prefiere esto:
+     * con el canal como identificador puede pintar el icono de Airbnb o Booking
+     * en vez de la inicial «A»/«B», y no tiene que re-parsear la cadena
+     * «A x8 | Nombre | Casita» para saber qué es cada trozo.
+     *
      * @return array<string,mixed>
      */
     private function buildContext(PmsEventoCalendario $evento, ?PmsReserva $reserva): array
@@ -190,6 +198,15 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             'eventoId' => (string) $evento->getId(),
             'reservaId' => $reserva?->getId() ? (string) $reserva->getId() : null,
             'isOta' => $evento->isOta(),
+
+            'canalId' => $evento->getChannel()?->getId(),
+            'cliente' => $reserva?->getNombreApellido(),
+            'unidad' => $evento->getPmsUnidad()?->getNombre(),
+            'pax' => $evento->getCantidadAdultos() + $evento->getCantidadNinos(),
+            'estado' => $evento->getEstado()?->getNombre(),
+            'estadoPago' => $evento->getEstadoPago()?->getNombre(),
+            'referenciaCanal' => $evento->getReferenciaCanal(),
+            'noches' => $evento->getNoches(),
         ];
     }
 }

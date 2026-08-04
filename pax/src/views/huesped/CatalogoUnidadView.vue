@@ -21,19 +21,36 @@ import { usePaxCatalogoUnidadStore } from '@/stores/huesped/paxCatalogoUnidadSto
 import { useMaestroStore } from '@/stores/maestroStore';
 import { thumbUrl } from '@/services/imageThumb';
 import RichTextRenderer from '@/components/RichText/RichTextRenderer.vue';
-import type { CatalogoFoto, CatalogoSeccion } from '@/types/paxCatalogoUnidadModel';
+import type { CatalogoBloque, CatalogoFoto, CatalogoItem, CatalogoUnidadHermana } from '@/types/paxCatalogoUnidadModel';
 
 const route = useRoute();
 const store = usePaxCatalogoUnidadStore();
 const maestroStore = useMaestroStore();
 
+/**
+ * `store.loading` NO cubre el arranque: nace en `false` con `catalogo` aún en
+ * `null`, y esa combinación es indistinguible de "no encontrado". Como aquí se
+ * espera primero a `cargarConfiguracion()`, la ventana no era un fotograma sino
+ * toda esa petición: el visitante veía "Alojamiento no disponible" y después el
+ * spinner. Mismo flag y mismo motivo que en HuespedGuiaView.
+ */
+const cargando = ref(true);
+
 const cargar = async () => {
   const establecimiento = String(route.params.establecimiento || '').trim();
   const unidad = String(route.params.unidad || '').trim();
-  if (!establecimiento || !unidad) return;
+  if (!establecimiento || !unidad) {
+    cargando.value = false;
+    return;
+  }
 
-  await maestroStore.cargarConfiguracion();
-  await store.cargar(establecimiento, unidad);
+  cargando.value = true;
+  try {
+    await maestroStore.cargarConfiguracion();
+    await store.cargar(establecimiento, unidad);
+  } finally {
+    cargando.value = false;
+  }
 };
 
 onMounted(cargar);
@@ -60,33 +77,93 @@ const ubicacion = computed(() => {
  * vive dentro de cada ítem porque allí la foto ilustra una instrucción;
  * aquí la foto ES el argumento de venta.
  * ───────────────────────────────────────────────────────────── */
+/**
+ * Las fotos del bloque `fotos` abren la página, y ese bloque NO se vuelve a
+ * pintar más abajo: su contenido ES esta parrilla.
+ *
+ * Antes se agregaban las galerías de TODOS los bloques aquí arriba y además se
+ * pintaba cada bloque como tarjeta. Como la tarjeta solo renderiza el texto del
+ * ítem, un ítem de tipo álbum —cuyo contenido son las fotos— salía como una
+ * tarjeta VACÍA bajo el título «Fotos», con sus imágenes ya mostradas arriba.
+ */
 const fotos = computed<CatalogoFoto[]>(() =>
-    (store.catalogo?.secciones ?? []).flatMap(s => s.items.flatMap(i => i.galeria ?? []))
+    (store.catalogo?.bloques ?? [])
+        .filter(b => b.tipo === 'fotos')
+        .flatMap(b => b.items.flatMap(i => i.galeria ?? []))
 );
+
+/**
+ * Galería DENTRO de una tarjeta. Solo en los ítems de tipo `album`: en los demás
+ * las imágenes van embebidas en el texto por RichTextRenderer, y repetirlas
+ * abajo las mostraría dos veces. Misma regla que en la guía del huésped.
+ */
+const galeriaDeItem = (item: CatalogoItem): CatalogoFoto[] =>
+    item.tipo === 'album' ? (item.galeria ?? []) : [];
 
 const lightboxVisible = ref(false);
 const lightboxIndex = ref(0);
 
-const imagenesLightbox = computed(() =>
-    fotos.value.map(f => thumbUrl(f.imageUrl, 'travel_cliente'))
-);
+/**
+ * Imágenes del lightbox. Es un `ref` y no un `computed` sobre la parrilla de
+ * arriba porque hay DOS orígenes: esa parrilla y la galería propia de un ítem
+ * dentro de un bloque. Con un computed fijo, tocar una foto de un álbum abría
+ * la imagen equivocada — el índice era del otro array.
+ */
+const imagenesLightbox = ref<string[]>([]);
 
-const abrirFoto = (index: number) => {
+const abrirLightbox = (imagenes: CatalogoFoto[], index: number) => {
+  imagenesLightbox.value = imagenes.map(f => thumbUrl(f.imageUrl, 'travel_cliente'));
   lightboxIndex.value = index;
   lightboxVisible.value = true;
 };
 
-/* ─────────────────────────────────────────────────────────────
- * SECCIONES
- * ───────────────────────────────────────────────────────────── */
+/** Parrilla de apertura. */
+const abrirFoto = (index: number) => abrirLightbox(fotos.value, index);
 
-/** La sección descriptiva encabeza: es la que cuenta qué es el sitio. */
-const seccionesOrdenadas = computed<CatalogoSeccion[]>(() => {
-  const secciones = [...(store.catalogo?.secciones ?? [])];
-  return secciones.sort((a, b) => {
-    const peso = (s: CatalogoSeccion) => (s.tipo === 'descriptivo' ? 0 : 1);
-    return peso(a) - peso(b);
-  });
+/** Galería de un ítem concreto dentro de un bloque. */
+const abrirFotoDeItem = (item: CatalogoItem, index: number) => abrirLightbox(galeriaDeItem(item), index);
+
+/* ─────────────────────────────────────────────────────────────
+ * BLOQUES
+ *
+ * Ya NO se ordenan aquí. Antes había que empujar la sección `descriptivo` al
+ * principio a mano, que era un parche sobre una jerarquía ajena: las secciones
+ * venían de la guía, escrita para otra audiencia. Ahora el orden lo fija el
+ * enum PmsCatalogoBloque y llega resuelto.
+ * ───────────────────────────────────────────────────────────── */
+const bloques = computed<CatalogoBloque[]>(() => store.catalogo?.bloques ?? []);
+
+/** Los que se pintan como sección: todos menos `fotos`, que ya es la parrilla de apertura. */
+const bloquesEnCuerpo = computed<CatalogoBloque[]>(() => bloques.value.filter(b => b.tipo !== 'fotos'));
+
+/** Título del bloque, por i18n: el backend manda el tipo, no el texto. */
+const tituloBloque = (tipo: string): string =>
+    maestroStore.t(`cat_bloque_${tipo}`) || BLOQUE_FALLBACK[tipo] || '';
+
+/** Respaldo en español si falta la semilla i18n. */
+const BLOQUE_FALLBACK: Record<string, string> = {
+  destacado: '',
+  descripcion: 'El alojamiento',
+  fotos: 'Fotos',
+  servicios: 'Servicios y equipamiento',
+  ubicacion: 'Ubicación',
+  normas: 'Antes de reservar',
+};
+
+/** El bloque destacado encabeza sin título: es el gancho, no una sección más. */
+const esDestacado = (b: CatalogoBloque): boolean => b.tipo === 'destacado';
+
+/* ─────────────────────────────────────────────────────────────
+ * OTRAS CASITAS
+ * El backend ya descartó las que no tienen escaparate publicado, así que
+ * cada tarjeta enlaza a una página que existe (ver hermanasPublicadas()).
+ * ───────────────────────────────────────────────────────────── */
+const hermanas = computed<CatalogoUnidadHermana[]>(() => store.catalogo?.unidadesHermanas ?? []);
+
+/** El establecimiento es el mismo, así que sale del parámetro de la ruta actual. */
+const rutaHermana = (h: CatalogoUnidadHermana) => ({
+  name: 'catalogo_unidad',
+  params: { establecimiento: String(route.params.establecimiento || ''), unidad: h.slug },
 });
 
 /* ─────────────────────────────────────────────────────────────
@@ -117,7 +194,7 @@ const cambiarIdioma = (event: Event) => {
   <div class="min-h-screen bg-white font-sans selection:bg-[#E07845]/20 selection:text-[#376875]">
 
     <!-- ═══ CARGANDO ═══ -->
-    <div v-if="store.loading" class="fixed inset-0 z-50 flex flex-col justify-center items-center bg-white">
+    <div v-if="cargando || store.loading" class="fixed inset-0 z-50 flex flex-col justify-center items-center bg-white">
       <div class="relative w-16 h-16">
         <div class="absolute inset-0 rounded-full border-4 border-slate-100"></div>
         <div class="absolute inset-0 rounded-full border-4 border-[#E07845] border-t-transparent animate-spin"></div>
@@ -155,7 +232,7 @@ const cambiarIdioma = (event: Event) => {
           <select
               :value="maestroStore.idiomaActual"
               @change="cambiarIdioma"
-              class="appearance-none bg-white/15 backdrop-blur-md border border-white/25 text-white font-black text-[10px] uppercase tracking-widest rounded-xl pl-4 pr-9 py-2.5 focus:outline-none focus:bg-white focus:text-[#376875] cursor-pointer transition-colors hover:bg-white/25"
+              class="appearance-none bg-black/45 backdrop-blur-md border border-white/30 text-white font-black text-[11px] uppercase tracking-widest rounded-xl pl-4 pr-9 py-2.5 shadow-lg focus:outline-none focus:bg-white focus:text-[#376875] cursor-pointer transition-colors hover:bg-black/60"
           >
             <option v-for="lang in maestroStore.idiomas" :key="lang.id" :value="lang.id" class="text-gray-800">
               {{ lang.bandera }} {{ lang.id.toUpperCase() }}
@@ -225,36 +302,39 @@ const cambiarIdioma = (event: Event) => {
         </section>
 
         <!-- ═══ SECCIONES ═══ -->
+        <!-- BLOQUES. El título lo pone el bloque (por i18n), no el contenido: los
+             ítems que vienen de la guía traen títulos operativos («Entrada a la
+             casa») que aquí no pintan nada. Regla superior para separarlos; el
+             primero no la lleva porque ya lo separa la galería. -->
         <section
-            v-for="seccion in seccionesOrdenadas"
-            :key="seccion.id"
+            v-for="(bloque, iBloque) in bloquesEnCuerpo"
+            :key="bloque.tipo"
             class="mb-16"
+            :class="iBloque > 0 ? 'pt-12 border-t border-slate-200' : ''"
         >
-          <div class="flex items-center gap-4 mb-7">
-            <span
-                v-if="seccion.icono"
-                class="w-12 h-12 rounded-2xl bg-[#376875]/8 text-[#376875] flex items-center justify-center text-xl shrink-0"
-            >
-              <i :class="['fas', seccion.icono]"></i>
-            </span>
-            <div class="min-w-0">
-              <h2 class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-                {{ maestroStore.traducir(seccion.titulo) }}
-              </h2>
-              <p v-if="maestroStore.traducir(seccion.subtitulo)" class="text-slate-500 text-sm font-medium mt-1">
-                {{ maestroStore.traducir(seccion.subtitulo) }}
-              </p>
-            </div>
-          </div>
+          <h2
+              v-if="!esDestacado(bloque) && tituloBloque(bloque.tipo)"
+              class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight leading-tight mb-7"
+          >
+            {{ tituloBloque(bloque.tipo) }}
+          </h2>
 
           <div class="space-y-8">
             <article
-                v-for="item in seccion.items"
+                v-for="item in bloque.items"
                 :key="item['@id']"
                 class="rounded-3xl border border-slate-100 bg-slate-50/60 p-6 md:p-8"
-                :class="item.tipo === 'alert' ? 'border-amber-200 bg-amber-50/70' : ''"
+                :class="[
+                  item.tipo === 'alert' ? 'border-amber-200 bg-amber-50/70' : '',
+                  esDestacado(bloque) ? 'border-[#E07845]/25 bg-[#E07845]/5' : '',
+                ]"
             >
-              <h3 class="font-black text-gray-900 text-lg mb-4 flex items-center gap-3">
+              <!-- El título del ítem solo se pinta si aporta algo sobre el del
+                   bloque: con un único ítem, repetiría el encabezado. -->
+              <h3
+                  v-if="bloque.items.length > 1 || esDestacado(bloque)"
+                  class="font-black text-gray-900 text-lg mb-4 flex items-center gap-3"
+              >
                 <i
                     v-if="item.icono || item.tipo === 'alert'"
                     :class="['fas', item.icono || 'fa-triangle-exclamation', item.tipo === 'alert' ? 'text-amber-500' : 'text-[#E07845]']"
@@ -267,6 +347,25 @@ const cambiarIdioma = (event: Event) => {
                    maquetación ({{ video: }}, {{ img: }}, {{ map: }}). -->
               <RichTextRenderer :content="maestroStore.traducir(item.descripcion)" />
 
+              <!-- Galería del propio ítem. Faltaba por completo: la vista solo
+                   agregaba las fotos arriba, así que un álbum dentro de otro
+                   bloque no se veía en ninguna parte. -->
+              <div v-if="galeriaDeItem(item).length" class="mt-6 grid grid-cols-2 md:grid-cols-3 gap-3">
+                <button
+                    v-for="(foto, i) in galeriaDeItem(item)"
+                    :key="i"
+                    @click="abrirFotoDeItem(item, i)"
+                    class="group relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 ring-1 ring-black/5 cursor-zoom-in"
+                >
+                  <img
+                      :src="thumbUrl(foto.imageUrl, 'travel_thumb_admin')"
+                      :alt="maestroStore.traducir(foto.descripcion) || titulo"
+                      loading="lazy"
+                      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </button>
+              </div>
+
               <a
                   v-if="item.urlBoton && maestroStore.traducir(item.labelBoton)"
                   :href="item.urlBoton"
@@ -278,6 +377,46 @@ const cambiarIdioma = (event: Event) => {
                 <i class="fas fa-arrow-right text-xs"></i>
               </a>
             </article>
+          </div>
+        </section>
+
+        <!-- ═══ OTRAS CASITAS ═══
+             Sin esto el catálogo era un callejón sin salida: quien entraba a una
+             casita no tenía forma de ver las demás salvo adivinando la URL. -->
+        <section v-if="hermanas.length" class="mb-16 pt-12 border-t border-slate-200">
+          <h2 class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-7">
+            {{ maestroStore.t('cat_otras_unidades') || 'Otros alojamientos' }}
+          </h2>
+
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <RouterLink
+                v-for="h in hermanas"
+                :key="h.slug"
+                :to="rutaHermana(h)"
+                class="group block rounded-3xl overflow-hidden bg-slate-50 border border-slate-100 hover:border-[#376875]/30 hover:shadow-lg transition-all"
+            >
+              <div class="aspect-4/3 bg-slate-100 overflow-hidden">
+                <img
+                    v-if="h.imageUrl"
+                    :src="thumbUrl(h.imageUrl, 'travel_thumb_admin')"
+                    :alt="h.nombre"
+                    loading="lazy"
+                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center text-slate-300 text-2xl">
+                  <i class="fas fa-house"></i>
+                </div>
+              </div>
+              <div class="p-4">
+                <p class="font-black text-gray-900 text-sm leading-tight truncate group-hover:text-[#376875] transition-colors">
+                  {{ h.nombre }}
+                </p>
+                <p v-if="h.capacidad" class="text-[11px] font-bold text-slate-400 mt-1 flex items-center gap-1.5">
+                  <i class="fas fa-user-group text-[#E07845]"></i>
+                  {{ maestroStore.t('cat_hasta', { n: String(h.capacidad) }) || `Hasta ${h.capacidad} huéspedes` }}
+                </p>
+              </div>
+            </RouterLink>
           </div>
         </section>
 

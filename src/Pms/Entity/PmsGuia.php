@@ -62,21 +62,6 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
             security: "is_granted('PUBLIC_ACCESS')",
             provider: PmsGuiaHuespedProvider::class,
         ),
-        // ════════════════════════════════════════════════════════════════
-        // CATÁLOGO PÚBLICO — por slug, .pe/casita/casita-1
-        // Solo ítems marcados como públicos. No es la guía con las partes
-        // tachadas: es un árbol distinto, construido a partir de otro filtro.
-        // ════════════════════════════════════════════════════════════════
-        new Get(
-            uriTemplate: '/public/pax/pms/pms_guia/{establecimiento}/{unidad}',
-            uriVariables: [
-                'establecimiento' => new Link(fromClass: PmsEstablecimiento::class, identifiers: ['slug']),
-                'unidad'          => new Link(fromClass: PmsUnidad::class, identifiers: ['slug']),
-            ],
-            normalizationContext: ['groups' => ['pax_catalogo:read']],
-            security: "is_granted('PUBLIC_ACCESS')",
-            provider: PmsUnidadCatalogoProvider::class,
-        ),
     ],
     order: ['createdAt' => 'DESC']
 )]
@@ -125,6 +110,7 @@ class PmsGuia
     private array $redesWifiParaCliente = [];
 
     private ?PmsGuiaAcceso $accesoParaCliente = null;
+
 
     public function __construct()
     {

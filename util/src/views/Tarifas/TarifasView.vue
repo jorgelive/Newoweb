@@ -23,6 +23,7 @@ import type { ReferenceElement } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import '@/assets/fullcalendar-overrides.css';
 import { apiClient } from '@/services/apiClient';
+import { escaparHtml } from '@/utils/html';
 import {
     coleccionFeed,
     comoError,
@@ -353,13 +354,6 @@ function onEventDrop(info: EventDropArg): void {
 
 function onEventResize(info: EventResizeDoneArg): void {
     patchDesdeCalendario(info);
-}
-
-/** Los valores salen de la BD, pero eventContent inyecta HTML: se escapa igual. */
-function escaparHtml(valor: string): string {
-    return valor.replace(/[&<>"']/g, (c) => (
-        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
-    ));
 }
 
 // ============================================================================

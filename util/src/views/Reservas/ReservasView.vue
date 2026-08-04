@@ -26,11 +26,12 @@ import { apiClient, getUrls } from '@/services/apiClient';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useChatStore, type ApiTemplate } from '@/stores/chat/chatStore';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
+import { escaparHtml } from '@/utils/html';
 import {
+    canalInfo,
     whatsappUrl,
     fechaAInputLocal,
     pmsUnidadIri,
-    PMS_CHANNEL,
     PMS_ESTADO,
     type PmsEventoExtendedProps,
     type PmsReservaBusquedaItem,
@@ -301,11 +302,13 @@ function cerrarDrawer(): void {
 interface MenuState {
     x: number;
     y: number;
-    kind: 'event' | 'create' | 'whatsapp';
+    kind: 'event' | 'create' | 'whatsapp' | 'casita';
     eventProps?: PmsEventoExtendedProps;
     unidadId?: string;
     /** Nombre de la casita sobre la que se tocó, para encabezar el menú. */
     unidadNombre?: string;
+    /** URL pública del catálogo de esa casita; null si le falta algún slug. */
+    catalogoUrl?: string | null;
     fecha?: Date;
 }
 const menu = ref<MenuState | null>(null);
@@ -331,14 +334,8 @@ const menuGuideUrl = computed(() =>
     menuReserva.value.localizador ? `${getUrls().pax}/huesped/reserva/${menuReserva.value.localizador}` : null,
 );
 
-/** Etiqueta/ícono del enlace al canal según la OTA (espejo de extranetInfo del drawer). */
-const otaMenuInfo = computed(() => {
-    switch (menuReserva.value.channelId) {
-        case PMS_CHANNEL.BOOKING: return { texto: 'Booking.com', icono: 'fas fa-hotel' };
-        case PMS_CHANNEL.AIRBNB:  return { texto: 'Airbnb', icono: 'fab fa-airbnb' };
-        default:                  return { texto: 'Ver reserva OTA', icono: 'fas fa-external-link-alt' };
-    }
-});
+/** Etiqueta/ícono del enlace al canal. Tabla compartida: ver canalInfo(). */
+const otaMenuInfo = computed(() => canalInfo(menuReserva.value.channelId));
 
 function avisar(mensaje: string): void {
     dragError.value = mensaje;
@@ -479,6 +476,47 @@ const menuFechaLarga = computed(() => {
         weekday: 'short', day: 'numeric', month: 'long', year: 'numeric',
     });
 });
+
+/**
+ * Menú al tocar el NOMBRE de la casita (columna izquierda).
+ *
+ * Los slugs viajan en `extendedProps` del recurso — los pide el bloque
+ * `resources.extraFields` del YAML (ver CalendarResourceCatalog) — así que la
+ * URL se arma sin una segunda petición. Si a la unidad le falta el slug propio
+ * o el de su establecimiento, el menú se abre igual pero sin las acciones: es
+ * un dato de configuración que falta, no un error del calendario.
+ */
+function onClickCasita(jsEvent: MouseEvent, recurso: { id: string; title: string; extendedProps?: Record<string, unknown> }): void {
+    const props = recurso.extendedProps ?? {};
+    const slug = typeof props.slug === 'string' ? props.slug : null;
+    const estSlug = typeof props.establecimientoSlug === 'string' ? props.establecimientoSlug : null;
+
+    const { x, y } = posicionMenu(jsEvent);
+    menu.value = {
+        x, y,
+        kind: 'casita',
+        unidadId: recurso.id,
+        unidadNombre: recurso.title,
+        catalogoUrl: slug && estSlug ? `${getUrls().pax}/${estSlug}/${slug}` : null,
+    };
+    limpiarMenuReserva();
+}
+
+/** Copia al portapapeles el enlace público de la casita. */
+const copiadoCasita = ref(false);
+
+async function copiarCatalogoUrl(): Promise<void> {
+    const url = menu.value?.catalogoUrl;
+    if (!url) return;
+    try {
+        await navigator.clipboard.writeText(url);
+        copiadoCasita.value = true;
+        setTimeout(() => { copiadoCasita.value = false; cerrarMenu(); }, 900);
+    } catch {
+        avisar('No se pudo copiar el enlace.');
+        cerrarMenu();
+    }
+}
 
 function cerrarMenu(): void {
     menu.value = null;
@@ -784,25 +822,102 @@ const calendarOptions: CalendarOptions = {
             .catch((err: unknown) => failure(comoError(err)));
     },
 
+    /**
+     * FullCalendar no expone un `resourceLabelClick`, así que el listener se ata
+     * al montar la celda. `resourceLabelWillUnmount` no hace falta: FullCalendar
+     * descarta el nodo entero al re-renderizar, y con él su listener.
+     */
+    resourceLabelDidMount: (arg) => {
+        arg.el.style.cursor = 'pointer';
+        arg.el.title = 'Opciones de la casita';
+        arg.el.addEventListener('click', (ev) => onClickCasita(ev, {
+            id: arg.resource.id,
+            title: arg.resource.title,
+            extendedProps: arg.resource.extendedProps,
+        }));
+    },
+
     dateClick: onDateClick,
     eventClick: onEventClick,
 
     eventDrop: onEventDrop,
     eventResize: onEventResize,
 
+    /**
+     * Contenido de la barra. El provider ya manda el `title` listo
+     * («A x8 | Nombre | Casita»), pero aquí se rearma con los datos sueltos de
+     * extendedProps para cambiar la INICIAL del canal por su icono: una «A» y una
+     * «B» no se distinguen de un vistazo, un logo de Airbnb sí. El título de
+     * texto se mantiene como respaldo si el evento llegara sin datos.
+     */
+    eventContent: (arg) => {
+        const p = arg.event.extendedProps as PmsEventoExtendedProps;
+        if (!p?.cliente) return { html: `<div class="fc-reserva">${escaparHtml(arg.event.title)}</div>` };
+
+        const canal = canalInfo(p.canalId);
+        const partes = [
+            `<i class="${canal.icono} fc-reserva-canal" title="${escaparHtml(canal.texto)}"></i>`,
+            p.pax ? `<span class="fc-reserva-pax">${escaparHtml(String(p.pax))}</span>` : '',
+            `<span class="fc-reserva-nombre">${escaparHtml(p.cliente)}</span>`,
+        ];
+
+        return { html: `<div class="fc-reserva">${partes.join('')}</div>` };
+    },
+
     eventDidMount: (info: EventMountArg) => {
-        // El provider manda `tooltip` como string o como lista de líneas.
+        const p = info.event.extendedProps as PmsEventoExtendedProps;
+
+        // El provider sigue mandando `tooltip` como lista de líneas de texto: es
+        // el respaldo si el evento llegara sin los datos sueltos.
         const tooltipContent = info.event.extendedProps.tooltip as string | string[] | undefined;
-        const finalContent = Array.isArray(tooltipContent) ? tooltipContent.join('<br>') : (tooltipContent || info.event.title);
+        const respaldo = Array.isArray(tooltipContent) ? tooltipContent.join('<br>') : (tooltipContent || info.event.title);
 
         // `_tippy` lo cuelga tippy del propio elemento (ver ReferenceElement en sus
         // tipos); se destruye antes para no apilar instancias en cada re-render.
         const el = info.el as ReferenceElement;
         el._tippy?.destroy();
-        tippy(info.el, { content: finalContent, allowHTML: true, appendTo: document.body, placement: 'top' });
+        tippy(info.el, {
+            content: p?.cliente ? tooltipHtml(p) : respaldo,
+            allowHTML: true,
+            appendTo: document.body,
+            placement: 'top',
+        });
         info.el.style.cursor = 'pointer';
     },
 };
+
+/**
+ * Tooltip con formato: cabecera con el canal y una rejilla etiqueta/valor.
+ *
+ * Sustituye a las líneas «Estado: X» en texto plano — con cuatro o cinco datos
+ * apilados, el prefijo repetido pesaba más que el dato. tippy va con
+ * `allowHTML: true`, así que todo valor pasa por escaparHtml().
+ */
+function tooltipHtml(p: PmsEventoExtendedProps): string {
+    const canal = canalInfo(p.canalId);
+
+    const fila = (etiqueta: string, valor?: string | number | null): string => {
+        if (valor === null || valor === undefined || valor === '') return '';
+        return `<div class="fc-tip-fila">`
+            + `<span class="fc-tip-et">${escaparHtml(etiqueta)}</span>`
+            + `<span class="fc-tip-val">${escaparHtml(String(valor))}</span>`
+            + `</div>`;
+    };
+
+    return `
+        <div class="fc-tip">
+            <div class="fc-tip-cab">
+                <i class="${canal.icono}"></i>
+                <span>${escaparHtml(p.cliente ?? '')}</span>
+            </div>
+            ${fila('Casita', p.unidad)}
+            ${fila('Pax', p.pax)}
+            ${fila('Noches', p.noches)}
+            ${fila('Estado', p.estado)}
+            ${fila('Pago', p.estadoPago)}
+            ${fila(canal.texto, p.referenciaCanal)}
+        </div>`;
+}
 </script>
 
 <template>
@@ -938,6 +1053,29 @@ const calendarOptions: CalendarOptions = {
                         </a>
                     </template>
                 </template>
+                <template v-else-if="menu.kind === 'casita'">
+                    <p class="px-4 pt-2 pb-2 text-sm font-black text-slate-800 border-b border-slate-100 truncate">
+                        <i class="fas fa-home mr-1.5 text-slate-300"></i>{{ menu.unidadNombre }}
+                    </p>
+
+                    <template v-if="menu.catalogoUrl">
+                        <a :href="menu.catalogoUrl" target="_blank" rel="noopener" @click="cerrarMenu"
+                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                            <i class="fas fa-store w-4 text-slate-400"></i> Abrir catálogo
+                        </a>
+                        <button @click="copiarCatalogoUrl"
+                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold hover:bg-slate-50"
+                            :class="copiadoCasita ? 'text-emerald-600' : 'text-slate-700'">
+                            <i class="fas w-4" :class="copiadoCasita ? 'fa-check text-emerald-500' : 'fa-link text-slate-400'"></i>
+                            {{ copiadoCasita ? 'Enlace copiado' : 'Copiar enlace' }}
+                        </button>
+                    </template>
+
+                    <p v-else class="px-4 py-2.5 text-xs font-bold text-amber-600">
+                        <i class="fas fa-triangle-exclamation mr-1"></i>
+                        Esta casita no tiene slug configurado, así que no tiene página pública.
+                    </p>
+                </template>
                 <template v-else-if="menu.kind === 'whatsapp'">
                     <p class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         Elegir Plantilla
@@ -1016,3 +1154,83 @@ const calendarOptions: CalendarOptions = {
         />
     </div>
 </template>
+
+<!--
+  Sin `scoped`: FullCalendar inyecta el HTML de `eventContent` y tippy monta su
+  tooltip en `document.body` (`appendTo`), así que ninguno de los dos lleva el
+  atributo de scope que Vue pone a lo que compila él. Las clases van prefijadas
+  con `fc-` para no colisionar, igual que en assets/fullcalendar-overrides.css.
+-->
+<style>
+/* ── Barra del evento ───────────────────────────────────────────── */
+.fc-reserva {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 0 2px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.fc-reserva-canal {
+    font-size: 0.68rem;
+    opacity: 0.85;
+    flex-shrink: 0;
+}
+
+/* El número de huéspedes, en pastilla: separa el canal del nombre sin usar la
+   barra vertical del formato antiguo, que se confundía con los bordes. */
+.fc-reserva-pax {
+    flex-shrink: 0;
+    font-size: 0.58rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.fc-reserva-nombre {
+    font-weight: 600;
+    font-size: 0.72rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Tooltip ────────────────────────────────────────────────────── */
+.fc-tip {
+    text-align: left;
+    min-width: 170px;
+}
+
+.fc-tip-cab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 800;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.fc-tip-fila {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    line-height: 1.5;
+}
+
+.fc-tip-et {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.55;
+}
+
+.fc-tip-val {
+    font-weight: 700;
+    font-size: 0.78rem;
+}
+</style>

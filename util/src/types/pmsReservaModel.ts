@@ -162,6 +162,17 @@ export interface PmsEventoExtendedProps {
     eventoId: string;
     reservaId: string | null;
     isOta: boolean;
+
+    // Datos sueltos para pintar la barra y el tooltip sin re-parsear el `title`
+    // («A x8 | Nombre | Casita»). Los agrega PmsEventosSpaCalendarProvider::buildContext().
+    canalId?: string | null;
+    cliente?: string | null;
+    unidad?: string | null;
+    pax?: number;
+    estado?: string | null;
+    estadoPago?: string | null;
+    referenciaCanal?: string | null;
+    noches?: number;
 }
 
 // ============================================================================
@@ -219,6 +230,31 @@ export const PMS_CHANNEL = {
     VRBO: 'vrbo',
     BOOKING: 'booking',
 } as const;
+
+// ============================================================================
+// CANALES: icono y etiqueta
+// Una sola tabla para los tres sitios que la necesitan — la barra del
+// calendario, su tooltip y el enlace a la extranet del menú contextual.
+// ============================================================================
+
+export interface CanalInfo {
+    texto: string;
+    icono: string;
+}
+
+const CANAL_INFO: Record<string, CanalInfo> = {
+    [PMS_CHANNEL.AIRBNB]:  { texto: 'Airbnb', icono: 'fab fa-airbnb' },
+    [PMS_CHANNEL.BOOKING]: { texto: 'Booking', icono: 'fas fa-hotel' },
+    [PMS_CHANNEL.VRBO]:    { texto: 'VRBO', icono: 'fas fa-umbrella-beach' },
+    [PMS_CHANNEL.DIRECTO]: { texto: 'Directo', icono: 'fas fa-handshake' },
+};
+
+/** Canal desconocido: enlace genérico, sin inventarle una marca. */
+const CANAL_FALLBACK: CanalInfo = { texto: 'Canal', icono: 'fas fa-external-link-alt' };
+
+export function canalInfo(canalId?: string | null): CanalInfo {
+    return (canalId && CANAL_INFO[canalId]) || CANAL_FALLBACK;
+}
 
 // ============================================================================
 // HELPERS DE IRI

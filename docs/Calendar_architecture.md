@@ -100,10 +100,36 @@ para ser consumidas directamente por una SPA (Vue) sin pasar por EasyAdmin:
 - **No hacen** chequeos `ROLE_*` para decidir si exponer un link (esa autorización la hace
   la API REST real que consuma el id, no el calendario).
 - En su lugar, exponen `extendedProps` con `context` + ids crudos:
-  - Reservas: `{ context: 'reserva'|'bloqueo', eventoId, reservaId }`
+  - Reservas: `{ context: 'reserva'|'bloqueo', eventoId, reservaId, isOta }`
   - Tarifas raw: `{ context: 'tarifaRango', tarifaRangoId, active }`
   - Tarifas compactadas: `{ context: 'tarifaRangoCompactado', tarifaRangoId }` (id del rango
     de tarifa que originó ese segmento compactado — mismo criterio que usaba el legacy para el link)
+
+### Los datos sueltos de `extendedProps` (y por qué no basta el `title`)
+
+Además de los ids, los providers SPA mandan los **campos sueltos** que la SPA pinta:
+
+| Calendario | Campos |
+|---|---|
+| Reservas | `canalId`, `cliente`, `unidad`, `pax`, `noches`, `estado`, `estadoPago`, `referenciaCanal` |
+| Tarifas | `precio`, `minStay`, `moneda`, `importante`, `active` |
+
+El `title` y el `tooltip` de texto plano **siguen existiendo**: son parte del contrato del
+`CalendarEventDto`, los usa el calendario legacy de EasyAdmin, y la SPA cae a ellos si un evento
+llegara sin datos sueltos. Pero la SPA prefiere los campos, por dos motivos que no se ven mirando
+solo el backend:
+
+1. **Iconos.** El título manda la INICIAL del canal (`A x8 | Nombre | Casita`); una «A» y una «B»
+   no se distinguen de un vistazo. Con `canalId`, `eventContent` pinta el logo de Airbnb o de
+   Booking (`canalInfo()` en `util/src/types/pmsReservaModel.ts` — la MISMA tabla que usa el
+   enlace a la extranet del menú contextual, para que no haya dos mapas de iconos).
+2. **No re-parsear.** Sacar el nombre del huésped de `A x8 | Nombre | Casita` obliga a partir por
+   `|`, y un huésped con `|` en el nombre lo rompe.
+
+> **Ambos renders inyectan HTML crudo**: `eventContent` recibe una cadena (no una plantilla Vue) y
+> tippy va con `allowHTML: true`. Todo valor pasa por `escaparHtml()` (`util/src/utils/html.ts`).
+> Y sus estilos van en un `<style>` **sin `scoped`**: FullCalendar inyecta fuera del árbol que Vue
+> compila, y tippy monta en `document.body`, así que ninguno lleva el atributo de scope.
 
 Las claves de calendario correspondientes en `services_pms.yaml` son:
 `pms_eventos_no_cancelados_spa`, `pms_eventos_todos_spa`, `tarifa_rangos_raw_spa`,
@@ -163,8 +189,43 @@ FullCalendar mueve urledit/urlshow/tooltip/prioridadImportante a extendedProps a
 ### Recurso
 
 ```json
-{ "id": "uuid-unidad", "title": "Habitación 101", "orden": 0 }
+{
+  "id": "uuid-unidad",
+  "title": "Casita 1",
+  "orden": 0,
+  "extendedProps": { "activo": true, "slug": "casita-1", "establecimientoSlug": "casita" }
+}
 ```
+
+`extendedProps` lo llena `CalendarResourceCatalog`, que además de `activo` admite **campos
+sueltos declarados en el YAML**:
+
+```yaml
+resources:
+    extraFields:                                # → extendedProps.<clave>
+        slug: slug
+        establecimientoSlug: establecimiento.slug
+```
+
+El valor es una **ruta de getters** separada por puntos (`establecimiento.slug` →
+`getEstablecimiento()->getSlug()`), y devuelve `null` en cuanto un tramo falta: un recurso
+incompleto no puede reventar el feed.
+
+Se declaran en el YAML y no en el servicio porque `CalendarResourceCatalog` es **genérico** —
+sirve a los seis calendarios y no debe saber qué es una `PmsUnidad`. Hoy solo los piden
+`pms_eventos_no_cancelados_spa` y `pms_eventos_todos_spa`, para que al tocar el nombre de una
+casita en el calendario se pueda abrir o copiar su **catálogo público** (`pax`:
+`/{establecimiento}/{unidad}`) sin una segunda petición.
+
+> **Cuidado con dónde se ponen.** `merge()` da prioridad al catálogo sobre lo derivado de los
+> eventos, así que basta con declararlos en el bloque `resources`. Añadirlos también en el
+> `getResources()` del provider sería redundante: esa versión solo sobrevive para unidades que
+> el catálogo no devuelve.
+
+> **El clic en la etiqueta se ata a mano.** FullCalendar no expone un `resourceLabelClick`; el
+> listener se engancha en `resourceLabelDidMount`. No hace falta soltarlo en
+> `resourceLabelWillUnmount`: FullCalendar descarta el nodo entero al repintar, y con él su
+> listener.
 
 ---
 

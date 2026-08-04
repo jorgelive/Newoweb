@@ -69,10 +69,46 @@ export interface CatalogoUnidad {
     establecimiento?: CatalogoEstablecimiento | null;
 }
 
-/** Raíz de la respuesta: es una PmsGuia serializada con `pax_catalogo:read`. */
+/**
+ * Otra unidad publicada del mismo establecimiento. Viaja dentro de esta misma
+ * respuesta (ver PmsGuia::$unidadesHermanasParaCliente): son un puñado, y una
+ * segunda petición para pintar una tira de tarjetas costaría más.
+ *
+ * El backend ya descarta las que no tienen escaparate, así que todas enlazan a
+ * una página que existe.
+ */
+export interface CatalogoUnidadHermana {
+    nombre: string;
+    slug: string;
+    imageUrl?: string | null;
+    capacidad?: number | null;
+}
+
+/**
+ * Un bloque del escaparate. El `tipo` es el valor de `PmsCatalogoBloque` (PHP);
+ * su TÍTULO no viaja: se resuelve en el front por i18n (`cat_bloque_<tipo>`),
+ * porque la página es pública y multiidioma.
+ *
+ * El backend ya los manda en el orden de la página —el de declaración del
+ * enum—, así que aquí no se reordena nada.
+ */
+export interface CatalogoBloque {
+    tipo: 'destacado' | 'descripcion' | 'fotos' | 'servicios' | 'ubicacion' | 'normas';
+    items: CatalogoItem[];
+}
+
+/**
+ * Raíz de la respuesta: un `PmsCatalogo` serializado con `pax_catalogo:read`.
+ *
+ * OJO: ya NO es una PmsGuia filtrada. El escaparate tiene entidad y estructura
+ * propias (bloques en vez de secciones) porque agrupa el mismo contenido con
+ * otra jerarquía — ver el docblock de PmsCatalogo en el backend.
+ */
 export interface CatalogoUnidadResponse {
     '@id'?: string;
     titulo: PmsContenidoTraducible[];
+    subtitulo?: PmsContenidoTraducible[] | null;
     unidad?: CatalogoUnidad;
-    secciones: CatalogoSeccion[];
+    bloques: CatalogoBloque[];
+    unidadesHermanas?: CatalogoUnidadHermana[];
 }

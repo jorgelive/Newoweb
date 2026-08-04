@@ -173,6 +173,10 @@ class PmsUnidad
     #[ORM\OneToOne(mappedBy: 'unidad', targetEntity: PmsGuia::class)]
     private ?PmsGuia $guia = null;
 
+    /** Escaparate público. Estructura propia, independiente de la guía (ver PmsCatalogo). */
+    #[ORM\OneToOne(mappedBy: 'unidad', targetEntity: PmsCatalogo::class)]
+    private ?PmsCatalogo $catalogo = null;
+
 
     public function __construct()
     {
@@ -397,6 +401,9 @@ class PmsUnidad
         }
         return $this->beds24Maps->first() ?: null;
     }
+
+    public function getCatalogo(): ?PmsCatalogo { return $this->catalogo; }
+    public function setCatalogo(?PmsCatalogo $catalogo): self { $this->catalogo = $catalogo; return $this; }
 
     public function getGuia(): ?PmsGuia
     {

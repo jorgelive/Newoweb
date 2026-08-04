@@ -50,6 +50,7 @@ use App\Pms\Controller\Crud\PmsEventoBeds24LinkCrudController;
 use App\Pms\Controller\Crud\PmsEventoCalendarioCrudController;
 use App\Pms\Controller\Crud\PmsEventoEstadoCrudController;
 use App\Pms\Controller\Crud\PmsEventoEstadoPagoCrudController;
+use App\Pms\Controller\Crud\PmsCatalogoCrudController;
 use App\Pms\Controller\Crud\PmsGuiaCrudController;
 use App\Pms\Controller\Crud\PmsGuiaItemCrudController;
 use App\Pms\Controller\Crud\PmsGuiaItemGaleriaCrudController;
@@ -206,6 +207,10 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(PmsGuiaSeccionCrudController::class, 'Secciones (Bloques)', 'fa fa-puzzle-piece'),
                 MenuItem::linkTo(PmsGuiaItemCrudController::class, 'Ítems de Contenido', 'fa fa-info-circle'),
                 MenuItem::linkTo(PmsGuiaItemGaleriaCrudController::class, 'Galería de Imágenes', 'fa fa-images'),
+                // El escaparate cuelga de aquí porque REUTILIZA estos mismos ítems:
+                // separarlo en otra sección sugeriría que hay que escribir el
+                // contenido dos veces, que es justo lo que el modelo evita.
+                MenuItem::linkTo(PmsCatalogoCrudController::class, 'Escaparate público', 'fa fa-store'),
             ])
             ->setPermission(Roles::RESERVAS_SHOW);
 

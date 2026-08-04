@@ -14,6 +14,7 @@ las entidades `PmsGuia*` / `PmsUnidad` / `PmsEstablecimiento`, `src/Api/Controll
 
 1. [Vocabulario](#1-vocabulario)
 2. [Las dos audiencias y el enum que las separa](#2-las-dos-audiencias-y-el-enum-que-las-separa)
+2b. [El catálogo es una entidad propia](#2b-el-catálogo-es-una-entidad-propia-no-la-guía-filtrada)
 3. [La matriz de acceso](#3-la-matriz-de-acceso)
 4. [Flujo de una petición](#4-flujo-de-una-petición)
 5. [Rutas, slugs y endpoints](#5-rutas-slugs-y-endpoints)
@@ -31,6 +32,8 @@ las entidades `PmsGuia*` / `PmsUnidad` / `PmsEstablecimiento`, `src/Api/Controll
 | **Sección** | `PmsGuiaSeccion`. Agrupa ítems. Reutilizable entre guías vía `PmsGuiaHasSeccion` (`esComun`). |
 | **Ítem** | `PmsGuiaItem`. La unidad de contenido: título, cuerpo HTML i18n, galería, botón. |
 | **Visibilidad** | `PmsGuiaVisibilidad`. Vive en el **ítem**. Cuatro niveles crecientes (§3). |
+| **Catálogo** | `PmsCatalogo`. Una por unidad. El escaparate público, con estructura propia (§2.b). |
+| **Bloque** | `PmsCatalogoBloque`. Agrupa el contenido del escaparate. Vive en la RELACIÓN, no en el ítem. |
 | **Acceso** | `PmsGuiaAcceso`. Situación de quien pide la guía. Se calcula por petición, no se guarda. |
 | **Ventana** | Desde 24 h antes del check-in hasta el final del día del check-out. |
 | **Placeholder** | `{{ door_code }}` dentro del cuerpo de un ítem. Lo resuelve el backend. |
@@ -49,12 +52,27 @@ para cualquiera con el UUID de una unidad.
 
 | Caso | Para qué | Ejemplos |
 |---|---|---|
-| `Publico` | Escaparate, sin reserva | Fotos, descripción, servicios, cómo llegar |
+| `Publico` | **Jubilado** — ver el aviso de abajo | — |
 | `Cliente` | Cualquiera con el localizador | Normas, instrucciones de la lavadora |
 | `ClienteConfirmado` | Además, con pago confiable | Detalles que no se adelantan sin pago |
 | `SoloVentana` | Además, dentro de la ventana | Código de puerta, caja fuerte, WiFi |
 
-Son cuatro peldaños crecientes; el detalle de qué añade cada uno está en §3.
+Son peldaños crecientes; el detalle de qué añade cada uno está en §3.
+
+> ### ⚠️ `PmsGuiaVisibilidad` rige la GUÍA, no el escaparate
+>
+> Hasta `Version20260804200000`, `Publico` significaba «sale en el catálogo». Ya no:
+> **el escaparate lo decide la pertenencia a `PmsCatalogo`** (§2.b), no un nivel de este enum.
+>
+> Son dos ejes **ortogonales**, y esa es la mejora: antes un solo enum hacía dos trabajos —decidir
+> quién lo ve en la guía Y si sale en la página pública—, y por eso el catálogo heredaba la
+> estructura del manual. Ahora:
+>
+> - **Visibilidad** → quién lo ve **en la guía**.
+> - **Pertenencia a `PmsCatalogo`** → si sale **en el escaparate**, y en qué bloque.
+>
+> Un ítem puede estar en el catálogo y ser `SoloVentana` en la guía sin contradicción: son
+> preguntas distintas. `Publico` quedó sin trabajo y **no debe usarse**.
 
 **El enum vive en el ítem y NO en la sección.** `PmsGuiaSeccion` deriva su visibilidad de los
 ítems que le quedan tras filtrar (`PmsGuiaArbolFiltro::podar()`): si se queda sin ninguno,
@@ -71,32 +89,87 @@ vacías en el catálogo.
 > `privado`→`cliente` y `llegada`→`solo-ventana`, con `cliente-confirmado` naciendo vacío. La
 > equivalencia es exacta, así que ningún ítem cambió de audiencia con esa migración.
 
-### Cómo se pobló el catálogo
+## 2.b El catálogo es una entidad propia, no la guía filtrada
 
-`Version20260804150000` es la que sacó contenido al escaparate por primera vez, en bloque:
-descripciones, galerías y ubicación.
+### El problema
 
-**El criterio es el icono**, y conviene saber por qué: es el ÚNICO campo que distingue esos
-ítems. El `tipo` del ítem (`card`/`album`/`alert`) mezcla descripciones con normas y avisos, y
-el `tipo` de la sección solo existe en tres (`ingreso`, `descriptivo`, `normas`) y deja fuera el
-resto. Los tres iconos que el editor viene usando de forma consistente:
+El escaparate reutilizaba el árbol de secciones de la guía y solo dejaba pasar los ítems
+`publico`. Heredaba por tanto la **arquitectura de la información de un manual operativo**: la
+guía agrupa por *cuándo lo necesitas* (llegada, estancia, normas), así que al visitante le
+aparecía un encabezado «Entrada a la casa · Llegada, llaves y acceso» en mitad de una página
+comercial. Y no había forma de meter contenido que existiera **solo** en el escaparate.
 
-| Icono | Contenido |
-|---|---|
-| `fa-circle-info` | Descripción de la unidad |
-| `fa-images` | Galería de fotos |
-| `fa-location-dot` | Ubicación / cómo llegar |
+Que el desajuste ya se notaba lo delataba `seccionesOrdenadas` en la vista pax: existía solo para
+empujar la sección `descriptivo` al principio. Un parche sobre una jerarquía ajena.
 
-La migración excluye dos conjuntos, porque publicar expone a cualquiera sin reserva: los ítems
-con un **placeholder sensible** en el cuerpo (misma lista y misma detección que
-`Version20260803230000`) y los que ya estaban en **`solo-ventana`**, donde alguien los bloqueó a
-propósito — fotos de la caja de llaves o de la puerta. Una migración no deshace una decisión
-editorial explícita.
+### El modelo
 
-> Si el editor cambia de convención de iconos, esta clasificación deja de tener base. Un `tipo`
-> de ítem propio (`descripcion`, `ubicacion`…) sería lo correcto el día que estorbe.
+```
+PmsCatalogo                    1:1 con PmsUnidad (espejo de PmsGuia)
+  ├─ titulo / subtitulo        comerciales, independientes de los de la guía
+  ├─ activo                    despublica el escaparate entero
+  └─ catalogoHasItems ─┐
+                       │
+PmsCatalogoHasItem  ◄──┘       "ManyToMany con vitaminas"
+  ├─ item   → PmsGuiaItem      se REUTILIZA: el contenido no se duplica
+  ├─ bloque → PmsCatalogoBloque
+  ├─ orden                     posición DENTRO del bloque
+  └─ activo
+```
+
+**El bloque vive en la relación, no en el ítem**, y esa es la clave: no describe al ítem, describe
+el papel que juega en el escaparate. La dirección de la casa es «Entrada a la casa» en la guía y
+«Ubicación» aquí — con el campo en el ítem habría que elegir una lectura y falsear la otra. Es el
+mismo patrón que `PmsGuiaSeccionHasItem`, que ya resolvía esto para la guía.
+
+**Ítems huérfanos de sección.** Un `PmsGuiaItem` no necesita pertenecer a ninguna sección: la
+relación vive en el join. Así se puede crear contenido puramente comercial —«Por qué elegirnos»,
+una promoción— que exista solo en el escaparate y no ensucie el manual del huésped.
+
+**El orden de los bloques lo fija el enum**, no la base de datos: `PmsCatalogoBloque::cases()`
+recorre en el orden de declaración, igual que `PmsTipoCargo` en el desglose financiero. La
+secuencia que vende es una decisión de producto. Dentro de cada bloque manda `orden`.
+
+**El título del bloque no viaja**: el backend manda el tipo y el front lo resuelve por i18n
+(`cat_bloque_<tipo>`, sembradas en `Version20260804210000`), porque la página es pública y
+multiidioma. Añadir un caso al enum obliga a sembrar su etiqueta **y** a añadirla al mapa de
+respaldo de `CatalogoUnidadView`.
+
+> **La red de seguridad no cambia.** `PmsUnidadCatalogoProvider` construye
+> `PmsGuiaAcceso::publico()` y un `PmsGuiaContexto` **sin estancia**, así que no se carga ni una
+> credencial en memoria y cualquier `{{ door_code }}` se sirve con el mensaje de bloqueo.
+> Colocar por error un ítem operativo en el escaparate no filtra nada.
+
+### Editarlo
+
+`PmsCatalogoCrudController` (menú *Guía Digital → Escaparate público*). Cuelga de ese submenú a
+propósito: el escaparate **reutiliza** los ítems de la guía, y ponerlo en una sección aparte
+sugeriría que hay que escribir el contenido dos veces.
+
+El campo que hace útil el detalle es `virtualBloques`: recorre `PmsCatalogoBloque::cases()` y
+pinta la página **en el orden real en que se verá**. La colección cruda sale ordenada por `orden`
+y mezcla bloques, así que por sí sola no deja ver la forma final — que es lo único que le importa
+a quien edita. Se apoya en `getVirtualBloques()`, un stub que devuelve `''`: EasyAdmin exige que
+la propiedad exista aunque el contenido lo pinte el `formatValue` (mismo recurso que
+`PmsGuia::getVirtualSecciones()`).
+
+> **El orden ENTRE bloques no se edita desde el panel**, y es deliberado: lo fija el orden de
+> declaración del enum. La secuencia que vende es una decisión de producto, no un campo que
+> cada operador deba recordar. El formulario solo decide en qué bloque va cada contenido y su
+> posición *dentro* de él.
+
+### Migración
+
+`Version20260804200000` crea las dos tablas y siembra: un catálogo por unidad con ítems públicos,
+y una fila por ítem. El bloque se deduce del **icono** (`fa-images`→fotos,
+`fa-location-dot`→ubicación, resto→descripción), que es el mismo criterio con el que
+`Version20260804150000` pobló el catálogo en su día — y **la última vez que hace falta ese
+heurístico**: a partir de aquí el bloque es un campo explícito que elige el editor. Era la deuda
+que esa migración dejó anotada («si el editor cambia de convención de iconos, la clasificación
+deja de tener base»).
 
 ---
+
 
 ## 3. La matriz de acceso
 
@@ -111,7 +184,7 @@ Cada peldaño añade **una** condición al anterior, y por eso no pueden contrad
 
 | Nivel | Condición que añade | Para qué |
 |---|---|---|
-| `publico` | ninguna | Escaparate. **El único que sale en el catálogo** |
+| `publico` | ninguna | **Jubilado** (§2). El escaparate lo decide `PmsCatalogo` |
 | `cliente` | tener el localizador | Cómo llegar, normas, contacto |
 | `cliente-confirmado` | pago confiable | Lo que no se adelanta a quien no ha pagado |
 | `solo-ventana` | ventana abierta | Códigos de puerta, caja fuerte, WiFi |
@@ -342,6 +415,21 @@ Decisiones que no se ven leyendo el componente:
   que era el contrato viejo (`texto.includes('*')`).
 - **Vista separada del escaparate**, no un `mode: 'public' | 'guest'`. Ese parámetro fue el origen
   de la fuga que documenta §2.
+- **El escaparate enlaza a sus casitas hermanas** (`unidadesHermanas`), y viajan en la MISMA
+  respuesta: son un puñado por establecimiento y una segunda petición para pintar una tira de
+  tarjetas costaría más que enviarlas. Sin esto el catálogo era un callejón sin salida — quien
+  entraba a una casita no podía ver las demás salvo adivinando la URL.
+  > **Cada hermana pasa la poda completa**, no solo `activo && guia`:
+  > `PmsUnidadCatalogoProvider::hermanasPublicadas()` comprueba que le quede al menos una sección
+  > pública. Una unidad con guía pero sin contenido publicado da 404 en el propio catálogo, y un
+  > enlace muerto en una página pública es peor que no ofrecer el salto. Cuesta una poda por
+  > hermana; si algún día son cientos, ahí es donde hay que paginar.
+- **`store.loading` NO cubre el arranque.** Nace en `false` con `catalogo` en `null`, y esa
+  combinación es indistinguible de «no encontrado». Como la vista espera primero a
+  `cargarConfiguracion()`, la ventana no era un fotograma sino toda esa petición: el visitante
+  veía «Alojamiento no disponible» y después el spinner. Se cubre con un flag `cargando` propio,
+  igual que en `HuespedGuiaView`. **Mismo patrón para cualquier vista pax que encadene la config
+  antes de su propia carga.**
 - **El store no persiste y limpia al desmontar.** El anterior guardaba los códigos en
   `localStorage` sin caducidad: un móvil prestado seguía abriendo la puerta meses después.
 - **El enlace va por `{localizador}/{slug de unidad}`**, no por el UUID del evento. Para eso
@@ -541,7 +629,12 @@ algún día entra ese componente, esta clase es el único punto a sustituir.
 | Llamadas HTTP de la guía | `pax/src/stores/huesped/paxHuespedGuiaStore.ts` | `cargar()`, `limpiar()` |
 | Cambiar tipos de la guía | `pax/src/types/paxHuespedGuiaModel.ts` | espejo de `pax_guia:read` |
 | Cambiar a dónde lleva el botón «Ver guía» | `pax/src/views/huesped/PmsReservaView.vue` | `verGuiaEvento()` |
-| Cambiar el diseño del escaparate | `pax/src/views/huesped/CatalogoUnidadView.vue` | `fotos`, `seccionesOrdenadas`, `whatsappUrl` |
+| Cambiar el diseño del escaparate | `pax/src/views/huesped/CatalogoUnidadView.vue` | `fotos`, `seccionesOrdenadas`, `whatsappUrl`, `hermanas` |
+| Cambiar qué casitas hermanas se ofrecen | `src/Api/Provider/Pms/PmsUnidadCatalogoProvider.php` | `hermanasPublicadas()` |
+| Añadir o reordenar un bloque del escaparate | `src/Pms/Enum/PmsCatalogoBloque.php` | los `case` — **el orden de declaración es el de la página**; sembrar además su `cat_bloque_*` |
+| Cambiar cómo se agrupan los ítems del escaparate | `src/Api/Provider/Pms/PmsUnidadCatalogoProvider.php` | `construirBloques()` |
+| Poner contenido solo en el escaparate | crear un `PmsGuiaItem` sin sección y relacionarlo | `PmsCatalogoHasItem` (§2.b) |
+| Cambiar el formulario del escaparate | `src/Pms/Controller/Crud/PmsCatalogoCrudController.php` + `PmsCatalogoHasItemType` | `configureFields()` / `buildForm()` |
 | Cambiar tipos del catálogo | `pax/src/types/paxCatalogoUnidadModel.ts` | espejo de `pax_catalogo:read` |
 | Llamadas HTTP del catálogo | `pax/src/stores/huesped/paxCatalogoUnidadStore.ts` | `cargar()` |
 | Retirar el circuito heredado | §6, lista de pendientes | — |

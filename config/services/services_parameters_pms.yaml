@@ -219,6 +219,13 @@ parameters:
                 titleField: nombre
                 activeField: activo
                 activeOnly: false
+                # Slugs para que la SPA arme el enlace al catálogo público de la
+                # casita (pax: /{establecimiento}/{unidad}) desde el propio
+                # calendario, sin una segunda petición. Solo aquí: es el único
+                # calendario cuyas filas enlazan al escaparate.
+                extraFields:
+                    slug: slug
+                    establecimientoSlug: establecimiento.slug
         pms_eventos_todos_spa:
             provider: pms_eventos_spa
             filters:
@@ -236,6 +243,13 @@ parameters:
                 titleField: nombre
                 activeField: activo
                 activeOnly: false
+                # Slugs para que la SPA arme el enlace al catálogo público de la
+                # casita (pax: /{establecimiento}/{unidad}) desde el propio
+                # calendario, sin una segunda petición. Solo aquí: es el único
+                # calendario cuyas filas enlazan al escaparate.
+                extraFields:
+                    slug: slug
+                    establecimientoSlug: establecimiento.slug
 
         tarifa_rangos_raw_spa:
             provider: tarifa_ranges_spa
