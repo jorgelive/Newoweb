@@ -11,6 +11,11 @@ use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -28,6 +33,25 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 
 final class PmsEventoCalendarioCrudController extends BaseCrudController
 {
+    /**
+     * El listado esconde las EXTENSIONES (la noche que bloquea un horario extra).
+     *
+     * Son eventos reales —ocupan la unidad y viajan a Beds24 como `black`— pero no
+     * son estancias: las crea y las retira `PmsExtensionEstanciaService` a partir de
+     * las casillas de la estancia, y nadie debe editarlas a mano desde aquí. Mismo
+     * criterio que los calendarios (§7.1.b del doc).
+     */
+    public function createIndexQueryBuilder(
+        SearchDto $searchDto,
+        EntityDto $entityDto,
+        FieldCollection $fields,
+        FilterCollection $filters,
+    ): QueryBuilder {
+        return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters)
+            ->andWhere('entity.estado != :estadoExtension OR entity.estado IS NULL')
+            ->setParameter('estadoExtension', PmsEventoEstado::CODIGO_EXTENSION);
+    }
+
     public function __construct(
         protected AdminUrlGenerator                 $adminUrlGenerator,
         protected RequestStack                      $requestStack,
@@ -180,6 +204,16 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
         yield BooleanField::new('guiaDisabled', 'No mostrar en guía')
             ->setHelp('Si se marca, este evento no aparecerá en la asignación o listado para los guías.');
+
+        // HORARIO EXTRA. Espejo del panel de la SPA (ReservaEditDrawer): se exponen
+        // también aquí porque el panel legacy sigue siendo el que se usa para
+        // reparar reservas a mano, y una estancia guardada desde EasyAdmin sin
+        // estas casillas perdería el bloqueo de la noche en Beds24.
+        yield BooleanField::new('entradaTemprana', 'Entrada temprana')
+            ->setHelp('Llega por la mañana: bloquea la NOCHE ANTERIOR en Beds24 (no se puede vender) y crea el cargo «Entrada temprana» en 0.00 para valorarlo.');
+
+        yield BooleanField::new('salidaTardia', 'Salida tardía')
+            ->setHelp('Se va por la tarde: bloquea ESA NOCHE en Beds24 (no se puede vender) y crea el cargo «Salida tardía» en 0.00 para valorarlo.');
 
         // ---------------------------------------------------------------------
         // 3. DETALLES DEL EVENTO Y MÁQUINA DE ESTADOS UI

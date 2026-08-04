@@ -23,6 +23,8 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [12.6 Gotcha: SearchFilter y UUID binario](#126--gotcha-searchfilter-no-funciona-sobre-relaciones-con-uuid-binario)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
+> Horario extra (early check-in / late check-out → evento `extension` invisible): §7.1.b.
+
 ---
 
 ## 1. Visión General
@@ -464,6 +466,169 @@ resolveTasks():
   Protección OTA: shouldIgnoreReservaUpdate()
     Si datosLocked=true y solo cambiaron campos cosméticos → no genera Push
 ```
+
+### 7.1.b Horario extra — la noche invisible que bloquea la unidad
+
+Un *late check-out* (se va a las 17:00 en vez de a las 10:00) o un *early check-in* (llega a las
+09:00 en vez de a las 14:00) **no son noches más**, pero dejan la casita invendible una noche: no
+da tiempo a limpiar y entregar. Antes se resolvía creando una SEGUNDA estancia de una noche, que
+inflaba noches y ADR, partía la reserva en dos y obligaba a inventar un check-in que nunca ocurría.
+
+Ahora hay dos casillas en la estancia —**`$entradaTemprana`** y **`$salidaTardia`**—, y cada una
+levanta un **evento hermano en estado `extension`** que cubre esa noche:
+
+```
+Estancia    31/07 14:00 ──────────────────────► 05/08 10:00     (5 noches, lo que se factura)
+                     │                                   │
+  extension  30/07 ──┘ (víspera)          (día salida) └── 06/08
+             └─ evento real: ocupa la unidad en el PMS y va a Beds24 como `black`
+```
+
+| Efecto | Dónde |
+|---|---|
+| Nace / se recoloca / se borra la extensión | `PmsExtensionEstanciaService::sincronizar()` |
+| Se abre su cargo, en **0.00** | `PmsCargosAutomaticosService::sincronizarExtras()` |
+| Se encola el push de la extensión | `Beds24BookingsPushQueueListener`, sobre los links que le hidrata `PmsEventoCalendarioFactory` |
+
+#### Por qué un evento y no una fecha desplazada
+
+El primer intento fue estirar `arrival`/`departure` solo en el payload del push. Tenía **dos
+fallos que costaron una vuelta entera**:
+
+1. **No servía para las OTA** — y son las que más piden estos servicios. Las fechas de una
+   reserva OTA no se envían nunca (guard `!$isOta || $isMirror`, §9.4): esa protección impide
+   que el PMS pise lo que dice el canal, y levantarla habría abierto un agujero peor.
+2. **No protegía del propio PMS.** Beds24 no vendía la noche, pero el operador sí podía crear
+   una reserva encima desde el calendario, porque internamente la estancia acababa a su hora real.
+
+Un evento real resuelve las dos cosas: ocupa la unidad **dentro** del PMS y viaja al canal como
+`black`, sea la estancia directa o de una OTA. La extensión se crea **siempre con canal directo e
+`isOta = false`**, aunque su estancia venga de Airbnb: si heredara el canal, el push se negaría a
+mandar sus fechas y no bloquearía nada.
+
+#### El reto: que sea invisible
+
+La extensión cuelga de la misma reserva (para que el borrado en cascada y las finanzas la sigan),
+pero **no es una estancia**. Se filtra en todos estos sitios, y esta lista es la que hay que
+repasar al añadir cualquier vista nueva de eventos:
+
+| Dónde | Cómo |
+|---|---|
+| Los 4 calendarios (2 legacy + 2 SPA) | `filters.estado.not_in: [… extension]` en `services_parameters_pms.yaml` |
+| Fondo de ocupación de Tarifas | ya excluida: usa la lista blanca `PmsEventoEstado::OCUPAN_UNIDAD` |
+| Listado de eventos (EasyAdmin) | `PmsEventoCalendarioCrudController::createIndexQueryBuilder()` |
+| Detalle de estancias de la reserva | `detail_eventos.html.twig`, filtro `estancias` |
+| Estancias del drawer (SPA) | `ReservaEditDrawer`, filtro al mapear `detalles` |
+| Buscador de reservas | `PmsReservaBuscarController` |
+| **Rollup de la reserva** | `PmsReservaRecalculoService`: `AND e.estado_id != 'extension'` en el `WHERE` |
+| Cargos automáticos | `PmsCargosAutomaticosService::aplica()` la descarta, como a los bloqueos |
+
+> ⚠️ **El rollup es el que más duele si se olvida.** Sin ese filtro, `fecha_salida` de la reserva
+> se va al día siguiente y la cabecera dice que el huésped se marcha el 06 cuando se va el 05.
+
+#### El cargo no existe hasta que se guarda
+
+Marcar la casilla no crea nada por sí solo: la extensión y su cargo los produce el backend al
+**guardar** (`postFlush`), así que en el drawer no hay cargo que valorar hasta después del
+guardado. Y como guardar cerraba el drawer, había que buscar la reserva otra vez solo para
+escribir el importe.
+
+Por eso `ReservaEditDrawer::guardar()` **no cierra el drawer** cuando en ese guardado se tocó una
+casilla de horario extra: recarga los datos y muestra un aviso apuntando al panel de Finanzas,
+donde ya está el cargo en 0.00. El resto de guardados siguen cerrando como siempre.
+
+Se detecta comparando la casilla con `entry.horarioExtraGuardado` (el valor con el que la
+estancia llegó del servidor), que es el mismo campo que congela el día — no hace falta más
+estado.
+
+#### Reservas de varias casitas
+
+Todo va **por estancia, no por reserva**, y eso importa porque una reserva puede tener cuatro
+casitas y el horario extra pactarse solo en una:
+
+- La extensión hereda la **unidad de su estancia** y guarda `eventoOrigen` apuntando a ella;
+  `buscar()` filtra por ese campo, así que marcar la Casita 7 no toca la Casita 6.
+- El cargo apunta a su `evento`, y su descripción lleva la casita detrás
+  («Salida tardía (noche bloqueada) · Casita 7»): sin eso, dos estancias con salida tardía dan
+  dos líneas idénticas en el panel financiero y no hay forma de saber cuál se está valorando.
+  La búsqueda del cargo compara por **prefijo**, de modo que los cargos anteriores a este añadido
+  se siguen reconociendo.
+
+#### Lo que se congela es el DÍA, nunca la hora
+
+**La hora de check-in/check-out siempre se puede tocar. El día, según el caso.** La distinción es
+la clave de todo este apartado y vale para los dos guardianes de fechas:
+
+| Situación | Día | Hora |
+|---|---|---|
+| Estancia OTA | ❌ lo manda el canal (`PmsEventoCalendarioSecurityListener`) | ✔ |
+| Estancia con horario extra marcado | ❌ (`PmsEventoCalendarioIntegrityListener::assertFechasMoviblesConHorarioExtra()`) | ✔ |
+| Estancia directa sin horario extra | ✔ | ✔ |
+
+**Por qué la hora es libre incluso en una OTA**: lo que vende el canal son NOCHES, y a Beds24
+sólo le viajan `arrival`/`departure` en formato `Y-m-d` (§7.2). Ajustar el check-out a las 17:00
+—un late check-out pactado por WhatsApp— no contradice nada de lo que dice Booking. Y sobre todo:
+**pactar un horario extra ES cambiar esa hora**, así que bloquear el campo entero impedía justo
+lo que la casilla acompaña. Ambos listeners comparan con `format('Y-m-d')` mediante su
+`cambiaDeDia()`.
+
+Para mover el DÍA de una estancia con horario extra hay que quitar la casilla, **guardar**, y
+entonces moverlo. Desmarcar y mover en el mismo guardado también se rechaza — no es purismo: la
+extensión se retira y se reconstruye dentro del mismo flush y Doctrine revienta. Por eso se mira
+el valor **anterior** de las casillas, no el final.
+
+En el front, `ReservaEditDrawer::diaBloqueadoPara()` pasa `dia-bloqueado` al `FechaHoraPicker`
+—y devuelve `true` para **toda** estancia OTA, tenga o no horario extra—. El picker lo resuelve
+en tres sitios, y hacen falta los tres:
+
+1. `min-date` = `max-date` = ese día, en lugar de `disabled`: el calendario no deja elegir otro
+   día, el reloj sigue vivo y el control no se ve apagado.
+2. **La máscara del input deja la FECHA como texto literal**, así que el día no se puede ni
+   teclear: sólo quedan editables las posiciones de la hora. Cada carácter del día va escapado
+   con `\\` porque en IMask el `0` es un placeholder de «dígito requerido» y un día como
+   `10/07/2026` se leería como huecos que rellenar. El patrón es reactivo: al soltar el candado
+   o moverse la estancia hay que rehacer la máscara (`updateOptions`) o el input se queda con el
+   día anterior clavado.
+3. **`conDiaCongelado()` al emitir**, como red por si el valor llega por otra vía (el picker, un
+   `paste`): restaura el día original y respeta la hora nueva.
+4. **Repintado en `blur`.** Cuando se teclea otro día, `conDiaCongelado()` devuelve el MISMO
+   `modelValue` que ya había, así que el prop no cambia, el `watch` no salta y el input se queda
+   mostrando lo tecleado, que es mentira. El `blur` lo devuelve a la verdad. Compara con el valor
+**guardado** (`entry.horarioExtraGuardado`), no con la casilla: si mirase la casilla, desmarcarla
+desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PATCH manda `inicio`/
+`fin` **siempre**, también en OTA — antes se omitían y por eso la hora no se podía guardar.
+**Es un espejo del listener: si cambia el criterio, se tocan los dos lados.**
+
+#### Gotchas
+
+- **`findBy()` y no DQL para localizar la extensión.** `PmsExtensionEstanciaService::buscar()`
+  usa `findBy(['eventoOrigen' => $estancia])`: con `createQueryBuilder()->setParameter('origen',
+  $estancia)` el UUID `BINARY(16)` se serializa mal, la consulta **no falla** y devuelve cero
+  filas. El síntoma fue que al desmarcar una casilla no encontraba la extensión para borrarla y
+  encima duplicaba la otra. Misma trampa que §12.6 y que `fetchFinanzas()`.
+- **Sin link no hay push.** La cola se arma sobre `PmsEventoBeds24Link`, así que la extensión
+  hay que hidratarla (`PmsEventoCalendarioFactory::hydrateLinksForUi()`) o se queda en el PMS
+  sin bloquear nada en el canal — justo lo contrario de para lo que existe. Si cambia de casita,
+  `rebuildLinks()`.
+- **`estado_pago_id` es NOT NULL**: la extensión va con «no pagado» y ahí se queda. No cobra nada
+  por sí misma; lo que se cobre vive en el cargo de la estancia.
+- **Retirar una extensión es CANCELARLA, nunca borrarla.** Lo pide el dominio
+  (`getMotivoNoBorrable()`: lo que ya existe en Beds24 se cancela y se espera la sincronización)
+  y lo impone Doctrine: al borrar el evento se van en cascada sus links, el listener de push los
+  recoge para encolar el DELETE y al armar la cola con un link ya eliminado intenta revivirlo —
+  «A new entity was found through the relationship `PmsEventoBeds24Link#evento`». Cancelar es un
+  UPDATE simple que el push traduce a `cancelled`. Consecuencia: la extensión retirada queda como
+  evento cancelado de una noche, y al volver a marcar la casilla **nace una nueva** (las
+  canceladas se ignoran en la búsqueda).
+- **Se busca por `eventoOrigen` + descripción, nunca por fechas**: si la estancia se mueve, las
+  fechas de la extensión dejan de cuadrar, y ese es justo el caso en que hay que **recolocarla**,
+  no crear otra.
+- **Las casillas están en los dos frontales**: `ReservaEditDrawer` (SPA) y
+  `PmsEventoCalendarioCrudController` (EasyAdmin, que `PmsReservaCrudController` reutiliza vía
+  `useEntryCrudForm`). Guardar desde el panel legacy sin ellas perdería el bloqueo.
+- **Cómo se comprueba que el push salió**: la cola **no crea filas nuevas** para la estancia,
+  reutiliza la del link por `dedupe_key` y la devuelve a `pending`. Contar filas despista; hay
+  que mirar el `status`. Las extensiones, al ser eventos nuevos, sí estrenan sus propias filas.
 
 ### 7.2 Tres perfiles de payload
 
@@ -1474,6 +1639,20 @@ editarlos. Se identifican por su `notas` para poder revertirlos en el `down()`.
 
 ## 12.5 Panel financiero en la SPA (`util/`) y patrón de Enums por AJAX
 
+**Formularios abiertos y candado.** Tres reglas que salieron de usarlo:
+
+- **«Guardar Cambios» del drawer arrastra los formularios internos.** Ese botón es mucho más
+  visible que los pequeños de cada formulario, así que es el que se acaba pulsando:
+  `ReservaFinanzasPanel::guardarPendientes()` (expuesto con `defineExpose`) guarda el cargo o el
+  pago a medio escribir antes de cerrar. Los vacíos se ignoran, para que uno abierto por descuido
+  no bloquee el guardado con un error de validación.
+- **Los pies de los formularios son `sticky`** — alta de cargo, EDICIÓN de cargo y pago. El
+  drawer scrollea y son formularios largos: con los botones al final se perdían de vista y el
+  operador pulsaba «Guardar Cambios» de la reserva creyendo que guardaba el cargo.
+- **Cerrar el candado cancela la edición en curso** de un cargo del canal. Si no, quedaba abierto
+  un formulario que ya no se puede guardar: el botón seguía ahí y el operador se llevaba el
+  rechazo. Los cargos MANUALES no se ven afectados, que nunca necesitaron candado.
+
 **Archivos relevantes:**
 - `src/Api/Controller/Tipo/PmsEnumAjaxController.php`
 - `util/src/components/reservas/ReservaFinanzasPanel.vue`
@@ -1883,6 +2062,9 @@ Migración: `Version20260804180000` (arranca en `false`, o sea el comportamiento
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
+| Cómo se coloca la noche que bloquea un horario extra | `PmsExtensionEstanciaService` | `sincronizar()` — §7.1.b |
+| Que las extensiones dejen de ser invisibles en una vista nueva | — | la tabla de filtros de §7.1.b |
+| Cambiar cómo nacen los cargos de horario extra (hoy en 0.00) | `PmsCargosAutomaticosService` | `sincronizarExtras()` |
 | Cambiar ventana anti-dup | `Beds24WebhookController` | `600` (seg) y `15000` (ms) |
 | Añadir canal de pago total | `PmsChannel` | `CANAL_PAGO_TOTAL` — también decide qué canales generan depósito automático (§12.4.5) |
 | Cambiar el importe/fecha del depósito de OTA (§12.4.5) | `PmsPagoOtaAutomaticoService` | `sincronizar()` / `fechaDeposito()` |

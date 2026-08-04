@@ -15,7 +15,10 @@ parameters:
                 unidadIds: [ ]
                 estado:
                     in: [ ]        # ej: [confirmada, bloqueo]
-                    not_in: [cancelada]    # ej: [cancelada]
+                    # `extension`: la noche que bloquea un horario extra. Evento real
+                    # (ocupa la unidad y va a Beds24 como `black`) pero NO es una
+                    # estancia y no se pinta. Ver §7.1.b del doc.
+                    not_in: [cancelada, extension]
                 estadoPago:
                     in: [ ]        # ej: [no-pagado, pago-parcial]
                     not_in: [ ]    # ej: [pago-total]
@@ -60,7 +63,7 @@ parameters:
                 unidadIds: [ ]
                 estado:
                     in: [ ]        # ej: [confirmada, bloqueado]
-                    not_in: [ ]    # ej: [cancelada]
+                    not_in: [extension]    # ver nota en pms_eventos_no_cancelados
                 estadoPago:
                     in: [ ]        # ej: [no-pagado, pago-parcial]
                     not_in: [ ]    # ej: [pago-total]
@@ -195,7 +198,10 @@ parameters:
                 unidadIds: [ ]
                 estado:
                     in: [ ]
-                    not_in: [cancelada]
+                    # `extension` = la noche que bloquea un horario extra. Es un
+                    # evento real (ocupa la unidad y viaja a Beds24 como `black`)
+                    # pero NO es una estancia: no se pinta. Ver §7.1.b del doc.
+                    not_in: [cancelada, extension]
                 estadoPago:
                     in: [ ]
                     not_in: [ ]
@@ -233,7 +239,9 @@ parameters:
                 unidadIds: [ ]
                 estado:
                     in: [ ]
-                    not_in: [ ]
+                    # Ni siquiera el calendario de "todas" pinta las extensiones:
+                    # son ruido operativo, no reservas. Ver §7.1.b del doc.
+                    not_in: [extension]
                 estadoPago:
                     in: [ ]
                     not_in: [ ]

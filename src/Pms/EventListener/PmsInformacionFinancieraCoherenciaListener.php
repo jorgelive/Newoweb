@@ -12,6 +12,7 @@ use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Finance\MonedaBaseRebaseContext;
 use App\Pms\Service\Finance\PmsCargosAutomaticosService;
+use App\Pms\Service\Reserva\PmsExtensionEstanciaService;
 use App\Pms\Service\Finance\PmsEstadoPagoEventosService;
 use App\Pms\Service\Finance\PmsPagoOtaAutomaticoService;
 use App\Pms\Service\Finance\PmsInformacionFinancieraRecalculoService;
@@ -61,12 +62,27 @@ final class PmsInformacionFinancieraCoherenciaListener
     /** @var array<string, true> IDs de estancias directas nuevas a las que generar cargos. */
     private array $eventosParaCargos = [];
 
+    /**
+     * Estancias cuya casilla de horario extra (entrada temprana / salida tardía)
+     * cambió en este flush, indexadas por `spl_object_id`.
+     *
+     * Se guarda la ENTIDAD y no su id, a diferencia de `eventosParaCargos`: allí
+     * los eventos acaban de insertarse y `find()` los resuelve del identity map,
+     * pero aquí son filas ya existentes y `find()` con el uuid en STRING revienta
+     * al bindear el parámetro («Invalid UUID»: el tipo espera el objeto `Uuid`).
+     * Con la entidad en mano no hay que volver a buscar nada.
+     *
+     * @var array<int,PmsEventoCalendario>
+     */
+    private array $eventosHorarioExtra = [];
+
     private bool $isFlushing = false;
 
     public function __construct(
         private readonly PmsInformacionFinancieraRecalculoService $recalculoService,
         private readonly MonedaResolver $monedaResolver,
         private readonly PmsCargosAutomaticosService $cargosAutomaticos,
+        private readonly PmsExtensionEstanciaService $extensiones,
         private readonly MonedaBaseRebaseContext $rebaseContext,
         private readonly PmsPagoOtaAutomaticoService $pagoOta,
         private readonly PmsEstadoPagoEventosService $estadoPagoService,
@@ -132,6 +148,22 @@ final class PmsInformacionFinancieraCoherenciaListener
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
             if ($entity instanceof PmsEventoCalendario && $this->cargosAutomaticos->aplica($entity)) {
                 $this->eventosParaCargos[(string) $entity->getId()] = true;
+            }
+        }
+
+        // 5.b HORARIO EXTRA (entrada temprana / salida tardía) — las casillas se
+        //     marcan EDITANDO una estancia que ya existe, así que este caso no lo
+        //     cubre el barrido de inserciones de arriba. Se anota y se resuelve en
+        //     postFlush, en los dos sentidos: al marcar nace el cargo, al desmarcar
+        //     se retira.
+        foreach ($uow->getScheduledEntityUpdates() as $entity) {
+            if (!$entity instanceof PmsEventoCalendario) {
+                continue;
+            }
+
+            $cambios = $uow->getEntityChangeSet($entity);
+            if (array_key_exists('salidaTardia', $cambios) || array_key_exists('entradaTemprana', $cambios)) {
+                $this->eventosHorarioExtra[spl_object_id($entity)] = $entity;
             }
         }
 
@@ -238,14 +270,18 @@ final class PmsInformacionFinancieraCoherenciaListener
 
     public function postFlush(PostFlushEventArgs $args): void
     {
-        if ($this->isFlushing || ($this->informacionIds === [] && $this->eventosParaCargos === [])) {
+        if ($this->isFlushing
+            || ($this->informacionIds === [] && $this->eventosParaCargos === [] && $this->eventosHorarioExtra === [])
+        ) {
             return;
         }
 
         $ids = array_keys($this->informacionIds);
         $eventoIds = array_keys($this->eventosParaCargos);
+        $horarioExtraEventos = array_values($this->eventosHorarioExtra);
         $this->informacionIds = [];
         $this->eventosParaCargos = [];
+        $this->eventosHorarioExtra = [];
 
         $this->isFlushing = true;
         try {
@@ -253,7 +289,11 @@ final class PmsInformacionFinancieraCoherenciaListener
             $em = $args->getObjectManager();
 
             // Los cargos automáticos van ANTES del recálculo, para que el saldo ya los incluya.
-            $ids = array_unique([...$ids, ...$this->generarCargosAutomaticos($eventoIds, $em)]);
+            $ids = array_unique([
+                ...$ids,
+                ...$this->generarCargosAutomaticos($eventoIds, $em),
+                ...$this->sincronizarHorariosExtra($horarioExtraEventos, $em),
+            ]);
 
             $this->recalculoService->recalcular($ids, $em);
 
@@ -351,7 +391,7 @@ final class PmsInformacionFinancieraCoherenciaListener
         $cabeceras = [];
 
         foreach ($eventoIds as $eventoId) {
-            $evento = $em->find(PmsEventoCalendario::class, $eventoId);
+            $evento = $em->find(PmsEventoCalendario::class, $eventoId . PHP_EOL, FILE_APPEND);
             $reserva = $evento?->getReserva();
             if (!$evento || !$reserva) {
                 continue;
@@ -369,6 +409,45 @@ final class PmsInformacionFinancieraCoherenciaListener
         if ($cabeceras !== []) {
             // Este flush vuelve a disparar onFlush, pero `isFlushing` lo corta: por eso el
             // recálculo de estas cabeceras se hace explícito al volver.
+            $em->flush();
+        }
+
+        return $cabeceras;
+    }
+
+    /**
+     * Crea o retira los cargos de horario extra de las estancias cuya casilla cambió.
+     *
+     * @param PmsEventoCalendario[] $eventos
+     * @return string[] IDs de las cabeceras tocadas, para incluirlas en el recálculo.
+     */
+    private function sincronizarHorariosExtra(array $eventos, EntityManagerInterface $em): array
+    {
+        if ($eventos === []) {
+            return [];
+        }
+
+        $cabeceras = [];
+
+        foreach ($eventos as $evento) {
+            $reserva = $evento->getReserva();
+            if (!$reserva) {
+                continue;
+            }
+
+            $info = $em->getRepository(PmsInformacionFinanciera::class)->findOneBy(['reserva' => $reserva]);
+            if (!$info instanceof PmsInformacionFinanciera) {
+                continue;
+            }
+
+            // Las dos caras del horario extra: la noche bloqueada (un evento
+            // hermano invisible) y su cargo en 0.00.
+            $this->extensiones->sincronizar($evento);
+            $this->cargosAutomaticos->sincronizarExtras($evento, $info);
+            $cabeceras[] = (string) $info->getId();
+        }
+
+        if ($cabeceras !== []) {
             $em->flush();
         }
 

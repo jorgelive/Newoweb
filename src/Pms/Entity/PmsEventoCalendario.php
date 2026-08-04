@@ -220,6 +220,60 @@ class PmsEventoCalendario
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $guiaDisabled = false;
 
+    /**
+     * Salida tardía pactada: el huésped se va por la tarde del día de salida.
+     *
+     * NO es una noche más de estancia —`fin` sigue siendo el día real de salida,
+     * con su hora—, pero sí **ocupa la casita esa noche de cara a la venta**: con
+     * la habitación libre a las 17:00 no da tiempo a limpiar y entregar, así que
+     * hay que impedir que se venda.
+     *
+     * Se marca desde el drawer (o desde EasyAdmin) y arrastra dos consecuencias
+     * automáticas (ver docs/PmsBeds24ReservasSync.md §7.1.b):
+     *   1. Nace un evento hermano en estado `extension` que cubre esa noche:
+     *      ocupa la unidad en el PMS y viaja a Beds24 como `black`
+     *      (PmsExtensionEstanciaService).
+     *   2. Se abre un cargo de SERVICIO en 0.00 que valora el operador
+     *      (PmsCargosAutomaticosService::sincronizarExtras()).
+     *
+     * Sustituye a la práctica anterior de crear una SEGUNDA estancia de una
+     * noche: aquella inflaba las noches vendidas y el ADR, partía la reserva en
+     * dos en el calendario y en la guía, y obligaba a inventar un check-in de
+     * las 14:00 que nunca ocurría.
+     */
+    #[ORM\Column(name: 'salida_tardia', type: 'boolean', options: ['default' => false])]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
+    private bool $salidaTardia = false;
+
+    /**
+     * Entrada temprana pactada: el huésped llega por la mañana del día de entrada.
+     *
+     * El espejo de `$salidaTardia`, hacia atrás: `inicio` sigue siendo el día real
+     * de llegada con su hora, pero **la noche ANTERIOR deja de ser vendible** —con
+     * la casita entregada a las 09:00 no se puede alojar a nadie la víspera—, así
+     * que nace una `extension` que la cubre.
+     *
+     * Genera su cargo en 0.00, igual que la salida tardía: lo que se cobre por
+     * entrar antes se negocia caso por caso.
+     */
+    #[ORM\Column(name: 'entrada_temprana', type: 'boolean', options: ['default' => false])]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
+    private bool $entradaTemprana = false;
+
+    /**
+     * Estancia que generó esta EXTENSIÓN (estado `extension`).
+     *
+     * Solo lo llevan los eventos de extensión, y es lo que permite retirarlos
+     * cuando se desmarca la casilla: identificarlos por fechas o por la
+     * descripción sería adivinar. En una estancia normal es `null`.
+     *
+     * Sin cascada a propósito: el borrado de la estancia lo gestiona
+     * `PmsExtensionEstanciaService`, que también avisa a Beds24.
+     */
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(name: 'evento_origen_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
+    private ?self $eventoOrigen = null;
+
     /* ======================================================
      * CAMPOS DE DOMINIO BEDS24 (⚠️ NO ELIMINAR)
      * ====================================================== */
@@ -591,6 +645,56 @@ class PmsEventoCalendario
      * @return int
      */
     #[Groups(['pax_reserva:read', 'pms_evento:read'])]
+    public function isSalidaTardia(): bool
+    {
+        return $this->salidaTardia;
+    }
+
+    public function setSalidaTardia(bool $salidaTardia): self
+    {
+        $this->salidaTardia = $salidaTardia;
+
+        return $this;
+    }
+
+    /**
+     * Fecha de salida que se le declara al CANAL, que no siempre es la real.
+     *
+     * Con salida tardía el huésped se va el mismo día (por la tarde), pero esa
+     * noche no se puede vender: se le suma un día para que Beds24 la bloquee.
+     * Todo lo demás —noches facturadas, guía del huésped, calendario interno—
+     * sigue usando `getFin()`, que es la verdad operativa.
+     */
+    public function getEventoOrigen(): ?self
+    {
+        return $this->eventoOrigen;
+    }
+
+    public function setEventoOrigen(?self $eventoOrigen): self
+    {
+        $this->eventoOrigen = $eventoOrigen;
+
+        return $this;
+    }
+
+    /** ¿Es una extensión de horario (la noche invisible que bloquea la unidad)? */
+    public function esExtension(): bool
+    {
+        return $this->estado?->getId() === PmsEventoEstado::CODIGO_EXTENSION;
+    }
+
+    public function isEntradaTemprana(): bool
+    {
+        return $this->entradaTemprana;
+    }
+
+    public function setEntradaTemprana(bool $entradaTemprana): self
+    {
+        $this->entradaTemprana = $entradaTemprana;
+
+        return $this;
+    }
+
     public function getNoches(): int
     {
         if (null === $this->inicio || null === $this->fin) {

@@ -1132,6 +1132,26 @@ export interface paths {
         patch: operations["api_pmspms_cargo_financieros_id_patch"];
         trace?: never;
     };
+    "/platform/public/pax/pms/pms_guia/{establecimiento}/{unidad}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsCatalogo resource.
+         * @description Retrieves a PmsCatalogo resource.
+         */
+        get: operations["api_publicpaxpmspms_guia_establecimiento_unidad_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/pms/pms_channels": {
         parameters: {
             query?: never;
@@ -1240,7 +1260,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/public/pax/pms/pms_guia/pms_unidad/{unidad}": {
+    "/platform/client/pax/pms/pms_guia/{localizador}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1251,7 +1271,27 @@ export interface paths {
          * Retrieves a PmsGuia resource.
          * @description Retrieves a PmsGuia resource.
          */
-        get: operations["api_publicpaxpmspms_guiapms_unidad_unidad_get"];
+        get: operations["api_clientpaxpmspms_guia_localizador_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/client/pax/pms/pms_guia/{localizador}/{unidad}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsGuia resource.
+         * @description Retrieves a PmsGuia resource.
+         */
+        get: operations["api_clientpaxpmspms_guia_localizador_unidad_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3408,6 +3448,18 @@ export interface components {
              *     isPortada recorriendo el itinerario, o la primera disponible.
              */
             imagenPortada?: string[] | null;
+            /**
+             * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
+             *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
+             *     CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
+             *     contexto donde se pintan tarjetas de tour en el panel interno.
+             */
+            imagenTarjeta?: string[] | null;
+            /**
+             * @description Duración del tour (span de fechas nominales). Virtual, mismo origen que
+             *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
+             */
+            numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -3904,6 +3956,18 @@ export interface components {
              *     isPortada recorriendo el itinerario, o la primera disponible.
              */
             imagenPortada?: string[] | null;
+            /**
+             * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
+             *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
+             *     CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
+             *     contexto donde se pintan tarjetas de tour en el panel interno.
+             */
+            imagenTarjeta?: string[] | null;
+            /**
+             * @description Duración del tour (span de fechas nominales). Virtual, mismo origen que
+             *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
+             */
+            numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -4256,6 +4320,18 @@ export interface components {
              *     isPortada recorriendo el itinerario, o la primera disponible.
              */
             imagenPortada?: string[] | null;
+            /**
+             * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
+             *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
+             *     CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
+             *     contexto donde se pintan tarjetas de tour en el panel interno.
+             */
+            imagenTarjeta?: string[] | null;
+            /**
+             * @description Duración del tour (span de fechas nominales). Virtual, mismo origen que
+             *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
+             */
+            numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -4608,6 +4684,18 @@ export interface components {
              *     isPortada recorriendo el itinerario, o la primera disponible.
              */
             imagenPortada?: string[] | null;
+            /**
+             * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
+             *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
+             *     CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
+             *     contexto donde se pintan tarjetas de tour en el panel interno.
+             */
+            imagenTarjeta?: string[] | null;
+            /**
+             * @description Duración del tour (span de fechas nominales). Virtual, mismo origen que
+             *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
+             */
+            numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -12612,6 +12700,13 @@ export interface components {
              * @enum {string|null}
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
             /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
             moneda?: components["schemas"]["Moneda-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
@@ -12684,6 +12779,13 @@ export interface components {
              * @enum {string|null}
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
             /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
             moneda?: components["schemas"]["Moneda-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
@@ -12727,6 +12829,13 @@ export interface components {
              * @enum {string|null}
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
             /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
             moneda?: components["schemas"]["Moneda.html-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
@@ -12769,6 +12878,13 @@ export interface components {
              * @enum {string|null}
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
             /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
             moneda?: components["schemas"]["Moneda.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
@@ -12812,6 +12928,13 @@ export interface components {
              * @enum {string|null}
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
             /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
             moneda?: components["schemas"]["Moneda.jsonld-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
@@ -12855,6 +12978,13 @@ export interface components {
              * @enum {string|null}
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
             /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
             moneda?: components["schemas"]["Moneda.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
@@ -12898,6 +13028,13 @@ export interface components {
              * @enum {string|null}
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
             /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
             moneda?: components["schemas"]["Moneda.multipart-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
@@ -12940,6 +13077,13 @@ export interface components {
              * @enum {string|null}
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
             /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
             moneda?: components["schemas"]["Moneda.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
@@ -12959,6 +13103,70 @@ export interface components {
             readonly id?: string | null;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
+        };
+        /** @description Escaparate público de una unidad: `.pe/{establecimiento}/{unidad}`. */
+        "PmsCatalogo-pax_catalogo.read": {
+            unidad: components["schemas"]["PmsUnidad-pax_catalogo.read"];
+            /**
+             * @description Título COMERCIAL, independiente del de la guía. La guía puede llamarse
+             *     «Manual de Casita 3» y el escaparate «Casita con vista al bosque».
+             */
+            titulo: string[];
+            /** @description Gancho bajo el título del hero. Opcional. */
+            subtitulo?: string[] | null;
+            /** @description Bloques ya armados y ordenados, listos para pintar. */
+            bloques?: string[][];
+            unidadesHermanas?: string[][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Escaparate público de una unidad: `.pe/{establecimiento}/{unidad}`. */
+        "PmsCatalogo.html-pax_catalogo.read": {
+            unidad: components["schemas"]["PmsUnidad.html-pax_catalogo.read"];
+            /**
+             * @description Título COMERCIAL, independiente del de la guía. La guía puede llamarse
+             *     «Manual de Casita 3» y el escaparate «Casita con vista al bosque».
+             */
+            titulo: string[];
+            /** @description Gancho bajo el título del hero. Opcional. */
+            subtitulo?: string[] | null;
+            /** @description Bloques ya armados y ordenados, listos para pintar. */
+            bloques?: string[][];
+            unidadesHermanas?: string[][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Escaparate público de una unidad: `.pe/{establecimiento}/{unidad}`. */
+        "PmsCatalogo.jsonld-pax_catalogo.read": components["schemas"]["HydraItemBaseSchema"] & {
+            unidad: components["schemas"]["PmsUnidad.jsonld-pax_catalogo.read"];
+            /**
+             * @description Título COMERCIAL, independiente del de la guía. La guía puede llamarse
+             *     «Manual de Casita 3» y el escaparate «Casita con vista al bosque».
+             */
+            titulo: string[];
+            /** @description Gancho bajo el título del hero. Opcional. */
+            subtitulo?: string[] | null;
+            /** @description Bloques ya armados y ordenados, listos para pintar. */
+            bloques?: string[][];
+            unidadesHermanas?: string[][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Escaparate público de una unidad: `.pe/{establecimiento}/{unidad}`. */
+        "PmsCatalogo.multipart-pax_catalogo.read": {
+            unidad: components["schemas"]["PmsUnidad.multipart-pax_catalogo.read"];
+            /**
+             * @description Título COMERCIAL, independiente del de la guía. La guía puede llamarse
+             *     «Manual de Casita 3» y el escaparate «Casita con vista al bosque».
+             */
+            titulo: string[];
+            /** @description Gancho bajo el título del hero. Opcional. */
+            subtitulo?: string[] | null;
+            /** @description Bloques ya armados y ordenados, listos para pintar. */
+            bloques?: string[][];
+            unidadesHermanas?: string[][];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
         "PmsChannel-pax_reserva.read": {
             /** @description El ID es el código string. */
@@ -13116,6 +13324,8 @@ export interface components {
             beds24Config: components["schemas"]["Beds24Config"];
             metaConfig: components["schemas"]["MetaConfig"] | null;
             nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
             direccionLinea1: string | null;
             ciudad: string | null;
             /**
@@ -13143,10 +13353,19 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "PmsEstablecimiento-pax_catalogo.read": {
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            ciudad: string | null;
+            telefonoPrincipal?: string | null;
+        };
         "PmsEstablecimiento.html": {
             beds24Config: components["schemas"]["Beds24Config.html"];
             metaConfig: components["schemas"]["MetaConfig.html"] | null;
             nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
             direccionLinea1: string | null;
             ciudad: string | null;
             /**
@@ -13174,10 +13393,19 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "PmsEstablecimiento.html-pax_catalogo.read": {
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            ciudad: string | null;
+            telefonoPrincipal?: string | null;
+        };
         "PmsEstablecimiento.jsonld": {
             beds24Config: components["schemas"]["Beds24Config.jsonld"];
             metaConfig: components["schemas"]["MetaConfig.jsonld"] | null;
             nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
             direccionLinea1: string | null;
             ciudad: string | null;
             /**
@@ -13205,10 +13433,19 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "PmsEstablecimiento.jsonld-pax_catalogo.read": {
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            ciudad: string | null;
+            telefonoPrincipal?: string | null;
+        };
         "PmsEstablecimiento.multipart": {
             beds24Config: components["schemas"]["Beds24Config.multipart"];
             metaConfig: components["schemas"]["MetaConfig.multipart"] | null;
             nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
             direccionLinea1: string | null;
             ciudad: string | null;
             /**
@@ -13235,6 +13472,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "PmsEstablecimiento.multipart-pax_catalogo.read": {
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            ciudad: string | null;
+            telefonoPrincipal?: string | null;
         };
         PmsEstablecimientoVirtual: {
             /** @description El establecimiento físico (Hotel/Edificio) al que pertenece este listing virtual. */
@@ -13642,6 +13886,16 @@ export interface components {
             tituloCache?: string | null;
             /** @description Indica si la asignación de guía para este evento está deshabilitada. */
             guiaDisabled?: boolean;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /**
+             * Format: iri-reference
+             * @description Estancia que generó esta EXTENSIÓN (estado `extension`).
+             * @example https://example.com/
+             */
+            eventoOrigen?: string | null;
             rateDescription?: string | null;
             estadoBeds24?: string | null;
             subestadoBeds24?: string | null;
@@ -13666,7 +13920,6 @@ export interface components {
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
             readonly trazabilidadLinks?: string | null;
-            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
             readonly noches?: number;
         };
         /**
@@ -13694,6 +13947,10 @@ export interface components {
             comision: string | null;
             cantidadAdultos?: number;
             cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -13705,8 +13962,6 @@ export interface components {
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
             readonly ota?: boolean;
-            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
-            readonly noches?: number;
         };
         /**
          * @description Entidad PmsEventoCalendario.
@@ -13747,6 +14002,10 @@ export interface components {
             comision: string | null;
             cantidadAdultos?: number;
             cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
         };
         /**
          * @description Entidad PmsEventoCalendario.
@@ -13792,6 +14051,10 @@ export interface components {
             comision: string | null;
             cantidadAdultos?: number;
             cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
         };
         "PmsEventoCalendario-pms_reserva.read_timestamp.read": {
             /** Format: uuid */
@@ -13855,6 +14118,16 @@ export interface components {
             tituloCache?: string | null;
             /** @description Indica si la asignación de guía para este evento está deshabilitada. */
             guiaDisabled?: boolean;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /**
+             * Format: iri-reference
+             * @description Estancia que generó esta EXTENSIÓN (estado `extension`).
+             * @example https://example.com/
+             */
+            eventoOrigen?: string | null;
             rateDescription?: string | null;
             estadoBeds24?: string | null;
             subestadoBeds24?: string | null;
@@ -13879,7 +14152,6 @@ export interface components {
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
             readonly trazabilidadLinks?: string | null;
-            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
             readonly noches?: number;
         };
         /**
@@ -13907,6 +14179,10 @@ export interface components {
             comision: string | null;
             cantidadAdultos?: number;
             cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -13918,8 +14194,6 @@ export interface components {
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
             readonly ota?: boolean;
-            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
-            readonly noches?: number;
         };
         "PmsEventoCalendario.html-pms_reserva.read_timestamp.read": {
             /** Format: uuid */
@@ -13983,6 +14257,16 @@ export interface components {
             tituloCache?: string | null;
             /** @description Indica si la asignación de guía para este evento está deshabilitada. */
             guiaDisabled?: boolean;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /**
+             * Format: iri-reference
+             * @description Estancia que generó esta EXTENSIÓN (estado `extension`).
+             * @example https://example.com/
+             */
+            eventoOrigen?: string | null;
             rateDescription?: string | null;
             estadoBeds24?: string | null;
             subestadoBeds24?: string | null;
@@ -14007,7 +14291,6 @@ export interface components {
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
             readonly trazabilidadLinks?: string | null;
-            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
             readonly noches?: number;
         };
         /**
@@ -14035,6 +14318,10 @@ export interface components {
             comision: string | null;
             cantidadAdultos?: number;
             cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -14046,8 +14333,6 @@ export interface components {
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
             readonly ota?: boolean;
-            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
-            readonly noches?: number;
         };
         /**
          * @description Entidad PmsEventoCalendario.
@@ -14117,6 +14402,16 @@ export interface components {
             tituloCache?: string | null;
             /** @description Indica si la asignación de guía para este evento está deshabilitada. */
             guiaDisabled?: boolean;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /**
+             * Format: iri-reference
+             * @description Estancia que generó esta EXTENSIÓN (estado `extension`).
+             * @example https://example.com/
+             */
+            eventoOrigen?: string | null;
             rateDescription?: string | null;
             estadoBeds24?: string | null;
             subestadoBeds24?: string | null;
@@ -14141,7 +14436,6 @@ export interface components {
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
             readonly trazabilidadLinks?: string | null;
-            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
             readonly noches?: number;
         };
         /**
@@ -14169,6 +14463,10 @@ export interface components {
             comision: string | null;
             cantidadAdultos?: number;
             cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -14180,8 +14478,6 @@ export interface components {
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
             readonly ota?: boolean;
-            /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
-            readonly noches?: number;
         };
         "PmsEventoCalendario.multipart-pms_reserva.read_timestamp.read": {
             /** Format: uuid */
@@ -14437,45 +14733,329 @@ export interface components {
          * @description PmsGuia centraliza la información de la guía para el huésped.
          *     La operación principal se accede vía el UUID de la unidad vinculada.
          */
-        "PmsGuia-pax_evento.read": {
-            unidad?: components["schemas"]["PmsUnidad-pax_evento.read"];
-            /** @default true */
-            activo: boolean;
+        "PmsGuia-pax_guia.read": {
+            unidad?: components["schemas"]["PmsUnidad-pax_guia.read"];
             titulo: string[];
-            readonly secciones?: string[];
+            /** @description Árbol ya podado por PmsGuiaArbolFiltro. */
+            secciones?: components["schemas"]["PmsGuiaSeccion-pax_guia.read"][];
+            /** @description Datos de cabecera de la estancia (nombre del huésped, unidad, fechas). */
+            contexto?: {
+                [key: string]: string;
+            };
+            /** @description Redes WiFi; vacío si la ventana no está abierta. */
+            redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
+             *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
+             */
+            acceso?: string[];
         };
         /**
          * @description PmsGuia centraliza la información de la guía para el huésped.
          *     La operación principal se accede vía el UUID de la unidad vinculada.
          */
-        "PmsGuia.html-pax_evento.read": {
-            unidad?: components["schemas"]["PmsUnidad.html-pax_evento.read"];
-            /** @default true */
-            activo: boolean;
+        "PmsGuia.html-pax_guia.read": {
+            unidad?: components["schemas"]["PmsUnidad.html-pax_guia.read"];
             titulo: string[];
-            readonly secciones?: string[];
+            /** @description Árbol ya podado por PmsGuiaArbolFiltro. */
+            secciones?: components["schemas"]["PmsGuiaSeccion.html-pax_guia.read"][];
+            /** @description Datos de cabecera de la estancia (nombre del huésped, unidad, fechas). */
+            contexto?: {
+                [key: string]: string;
+            };
+            /** @description Redes WiFi; vacío si la ventana no está abierta. */
+            redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
+             *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
+             */
+            acceso?: string[];
         };
         /**
          * @description PmsGuia centraliza la información de la guía para el huésped.
          *     La operación principal se accede vía el UUID de la unidad vinculada.
          */
-        "PmsGuia.jsonld-pax_evento.read": components["schemas"]["HydraItemBaseSchema"] & {
-            unidad?: components["schemas"]["PmsUnidad.jsonld-pax_evento.read"];
-            /** @default true */
-            activo: boolean;
+        "PmsGuia.jsonld-pax_guia.read": components["schemas"]["HydraItemBaseSchema"] & {
+            unidad?: components["schemas"]["PmsUnidad.jsonld-pax_guia.read"];
             titulo: string[];
-            readonly secciones?: string[];
+            /** @description Árbol ya podado por PmsGuiaArbolFiltro. */
+            secciones?: components["schemas"]["PmsGuiaSeccion.jsonld-pax_guia.read"][];
+            /** @description Datos de cabecera de la estancia (nombre del huésped, unidad, fechas). */
+            contexto?: {
+                [key: string]: string;
+            };
+            /** @description Redes WiFi; vacío si la ventana no está abierta. */
+            redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
+             *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
+             */
+            acceso?: string[];
         };
         /**
          * @description PmsGuia centraliza la información de la guía para el huésped.
          *     La operación principal se accede vía el UUID de la unidad vinculada.
          */
-        "PmsGuia.multipart-pax_evento.read": {
-            unidad?: components["schemas"]["PmsUnidad.multipart-pax_evento.read"];
-            /** @default true */
-            activo: boolean;
+        "PmsGuia.multipart-pax_guia.read": {
+            unidad?: components["schemas"]["PmsUnidad.multipart-pax_guia.read"];
             titulo: string[];
-            readonly secciones?: string[];
+            /** @description Árbol ya podado por PmsGuiaArbolFiltro. */
+            secciones?: components["schemas"]["PmsGuiaSeccion.multipart-pax_guia.read"][];
+            /** @description Datos de cabecera de la estancia (nombre del huésped, unidad, fechas). */
+            contexto?: {
+                [key: string]: string;
+            };
+            /** @description Redes WiFi; vacío si la ventana no está abierta. */
+            redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
+             *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
+             */
+            acceso?: string[];
+        };
+        "PmsGuiaItem-pax_guia.read": {
+            /**
+             * @default card
+             * @enum {string}
+             */
+            tipo: "card" | "album" | "alert";
+            icono?: string | null;
+            labelBoton?: string[] | null;
+            galeria?: components["schemas"]["PmsGuiaItemGaleria-pax_guia.read"][];
+            /**
+             * @description Título y cuerpo con los placeholders `{{ door_code }}` YA resueltos, en
+             *     todos los idiomas. Antes esa sustitución la hacía el navegador
+             *     (RichContentEngine.interpolateString), lo que obligaba a mandarle al
+             *     cliente el diccionario entero de valores sensibles para que eligiera
+             *     cuál pintar. Ahora el valor real solo sale del servidor si el acceso lo
+             *     permite; si no, en su lugar viaja el mensaje de bloqueo traducido.
+             */
+            titulo?: string[][];
+            descripcion?: string[][];
+            /**
+             * Format: date-time
+             * @description Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
+             *     que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
+             *     pintar "[Disponible el 12/08 a las 15:00]".
+             */
+            bloqueadoHasta?: string | null;
+            /**
+             * @description Si el ítem viaja anunciado pero con el contenido sustituido por el
+             *     mensaje de bloqueo.
+             */
+            bloqueado?: boolean;
+            urlBoton?: string | null;
+            /**
+             * @description Expuesto al cliente para que la UI pueda pintar el candado sin recalcular
+             *     la regla: si el ítem llega bloqueado, ya viene con `bloqueadoHasta`.
+             */
+            readonly visibilidad?: string;
+        };
+        "PmsGuiaItem.html-pax_guia.read": {
+            /**
+             * @default card
+             * @enum {string}
+             */
+            tipo: "card" | "album" | "alert";
+            icono?: string | null;
+            labelBoton?: string[] | null;
+            galeria?: components["schemas"]["PmsGuiaItemGaleria.html-pax_guia.read"][];
+            /**
+             * @description Título y cuerpo con los placeholders `{{ door_code }}` YA resueltos, en
+             *     todos los idiomas. Antes esa sustitución la hacía el navegador
+             *     (RichContentEngine.interpolateString), lo que obligaba a mandarle al
+             *     cliente el diccionario entero de valores sensibles para que eligiera
+             *     cuál pintar. Ahora el valor real solo sale del servidor si el acceso lo
+             *     permite; si no, en su lugar viaja el mensaje de bloqueo traducido.
+             */
+            titulo?: string[][];
+            descripcion?: string[][];
+            /**
+             * Format: date-time
+             * @description Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
+             *     que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
+             *     pintar "[Disponible el 12/08 a las 15:00]".
+             */
+            bloqueadoHasta?: string | null;
+            /**
+             * @description Si el ítem viaja anunciado pero con el contenido sustituido por el
+             *     mensaje de bloqueo.
+             */
+            bloqueado?: boolean;
+            urlBoton?: string | null;
+            /**
+             * @description Expuesto al cliente para que la UI pueda pintar el candado sin recalcular
+             *     la regla: si el ítem llega bloqueado, ya viene con `bloqueadoHasta`.
+             */
+            readonly visibilidad?: string;
+        };
+        "PmsGuiaItem.jsonld-pax_guia.read": {
+            /**
+             * @default card
+             * @enum {string}
+             */
+            tipo: "card" | "album" | "alert";
+            icono?: string | null;
+            labelBoton?: string[] | null;
+            galeria?: components["schemas"]["PmsGuiaItemGaleria.jsonld-pax_guia.read"][];
+            /**
+             * @description Título y cuerpo con los placeholders `{{ door_code }}` YA resueltos, en
+             *     todos los idiomas. Antes esa sustitución la hacía el navegador
+             *     (RichContentEngine.interpolateString), lo que obligaba a mandarle al
+             *     cliente el diccionario entero de valores sensibles para que eligiera
+             *     cuál pintar. Ahora el valor real solo sale del servidor si el acceso lo
+             *     permite; si no, en su lugar viaja el mensaje de bloqueo traducido.
+             */
+            titulo?: string[][];
+            descripcion?: string[][];
+            /**
+             * Format: date-time
+             * @description Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
+             *     que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
+             *     pintar "[Disponible el 12/08 a las 15:00]".
+             */
+            bloqueadoHasta?: string | null;
+            /**
+             * @description Si el ítem viaja anunciado pero con el contenido sustituido por el
+             *     mensaje de bloqueo.
+             */
+            bloqueado?: boolean;
+            urlBoton?: string | null;
+            /**
+             * @description Expuesto al cliente para que la UI pueda pintar el candado sin recalcular
+             *     la regla: si el ítem llega bloqueado, ya viene con `bloqueadoHasta`.
+             */
+            readonly visibilidad?: string;
+        };
+        "PmsGuiaItem.multipart-pax_guia.read": {
+            /**
+             * @default card
+             * @enum {string}
+             */
+            tipo: "card" | "album" | "alert";
+            icono?: string | null;
+            labelBoton?: string[] | null;
+            galeria?: components["schemas"]["PmsGuiaItemGaleria.multipart-pax_guia.read"][];
+            /**
+             * @description Título y cuerpo con los placeholders `{{ door_code }}` YA resueltos, en
+             *     todos los idiomas. Antes esa sustitución la hacía el navegador
+             *     (RichContentEngine.interpolateString), lo que obligaba a mandarle al
+             *     cliente el diccionario entero de valores sensibles para que eligiera
+             *     cuál pintar. Ahora el valor real solo sale del servidor si el acceso lo
+             *     permite; si no, en su lugar viaja el mensaje de bloqueo traducido.
+             */
+            titulo?: string[][];
+            descripcion?: string[][];
+            /**
+             * Format: date-time
+             * @description Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
+             *     que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
+             *     pintar "[Disponible el 12/08 a las 15:00]".
+             */
+            bloqueadoHasta?: string | null;
+            /**
+             * @description Si el ítem viaja anunciado pero con el contenido sustituido por el
+             *     mensaje de bloqueo.
+             */
+            bloqueado?: boolean;
+            urlBoton?: string | null;
+            /**
+             * @description Expuesto al cliente para que la UI pueda pintar el candado sin recalcular
+             *     la regla: si el ítem llega bloqueado, ya viene con `bloqueadoHasta`.
+             */
+            readonly visibilidad?: string;
+        };
+        "PmsGuiaItemGaleria-pax_guia.read": {
+            descripcion?: string[] | null;
+            /** @description PROPIEDAD VIRTUAL */
+            imageUrl?: string | null;
+        };
+        "PmsGuiaItemGaleria.html-pax_guia.read": {
+            descripcion?: string[] | null;
+            /** @description PROPIEDAD VIRTUAL */
+            imageUrl?: string | null;
+        };
+        "PmsGuiaItemGaleria.jsonld-pax_guia.read": {
+            descripcion?: string[] | null;
+            /** @description PROPIEDAD VIRTUAL */
+            imageUrl?: string | null;
+        };
+        "PmsGuiaItemGaleria.multipart-pax_guia.read": {
+            descripcion?: string[] | null;
+            /** @description PROPIEDAD VIRTUAL */
+            imageUrl?: string | null;
+        };
+        "PmsGuiaSeccion-pax_guia.read": {
+            titulo: string[];
+            subtitulo?: string[] | null;
+            /** @default fa-info-circle */
+            icono: string | null;
+            /** @enum {string|null} */
+            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            /**
+             * @description Ítems ya filtrados por visibilidad para esta petición. Los llena
+             *     PmsGuiaArbolFiltro a partir de getItemsApi(), que devuelve el árbol
+             *     completo y no se serializa.
+             */
+            items?: components["schemas"]["PmsGuiaItem-pax_guia.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "PmsGuiaSeccion.html-pax_guia.read": {
+            titulo: string[];
+            subtitulo?: string[] | null;
+            /** @default fa-info-circle */
+            icono: string | null;
+            /** @enum {string|null} */
+            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            /**
+             * @description Ítems ya filtrados por visibilidad para esta petición. Los llena
+             *     PmsGuiaArbolFiltro a partir de getItemsApi(), que devuelve el árbol
+             *     completo y no se serializa.
+             */
+            items?: components["schemas"]["PmsGuiaItem.html-pax_guia.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "PmsGuiaSeccion.jsonld-pax_guia.read": {
+            titulo: string[];
+            subtitulo?: string[] | null;
+            /** @default fa-info-circle */
+            icono: string | null;
+            /** @enum {string|null} */
+            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            /**
+             * @description Ítems ya filtrados por visibilidad para esta petición. Los llena
+             *     PmsGuiaArbolFiltro a partir de getItemsApi(), que devuelve el árbol
+             *     completo y no se serializa.
+             */
+            items?: components["schemas"]["PmsGuiaItem.jsonld-pax_guia.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "PmsGuiaSeccion.multipart-pax_guia.read": {
+            titulo: string[];
+            subtitulo?: string[] | null;
+            /** @default fa-info-circle */
+            icono: string | null;
+            /** @enum {string|null} */
+            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            /**
+             * @description Ítems ya filtrados por visibilidad para esta petición. Los llena
+             *     PmsGuiaArbolFiltro a partir de getItemsApi(), que devuelve el árbol
+             *     completo y no se serializa.
+             */
+            items?: components["schemas"]["PmsGuiaItem.multipart-pax_guia.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
         /** @description Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation). */
         "PmsInformacionFinanciera-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
@@ -14675,6 +15255,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -14733,6 +15315,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -14801,6 +15385,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -14837,6 +15423,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -14873,6 +15461,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -14909,6 +15499,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -14944,6 +15536,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -14980,6 +15574,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15212,6 +15808,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             establecimiento?: components["schemas"]["PmsEstablecimiento"];
@@ -15261,6 +15859,12 @@ export interface components {
             primeraFechaReservaCanal?: string | null;
             /** Format: date-time */
             ultimaFechaModificacionCanal?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -15284,6 +15888,8 @@ export interface components {
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
             readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
             /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
@@ -15320,6 +15926,12 @@ export interface components {
             /** Format: date-time */
             fechaSalida: string | null;
             unidadesAggregate?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -15342,6 +15954,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel-pms_reserva.read_timestamp.read"] | null;
@@ -15380,6 +15994,8 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
@@ -15388,6 +16004,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             /**
@@ -15408,6 +16026,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description Cuál de los dos números usa el sistema. Ver PmsReserva::getTelefonoContacto(). */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             /**
@@ -15445,6 +16065,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             establecimiento?: components["schemas"]["PmsEstablecimiento.html"];
@@ -15494,6 +16116,12 @@ export interface components {
             primeraFechaReservaCanal?: string | null;
             /** Format: date-time */
             ultimaFechaModificacionCanal?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -15517,6 +16145,8 @@ export interface components {
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
             readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
             /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
@@ -15553,6 +16183,12 @@ export interface components {
             /** Format: date-time */
             fechaSalida: string | null;
             unidadesAggregate?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -15575,6 +16211,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel.html-pms_reserva.read_timestamp.read"] | null;
@@ -15613,6 +16251,8 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
@@ -15623,6 +16263,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld"];
@@ -15672,6 +16314,12 @@ export interface components {
             primeraFechaReservaCanal?: string | null;
             /** Format: date-time */
             ultimaFechaModificacionCanal?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -15695,6 +16343,8 @@ export interface components {
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
             readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
             /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
@@ -15731,6 +16381,12 @@ export interface components {
             /** Format: date-time */
             fechaSalida: string | null;
             unidadesAggregate?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -15753,6 +16409,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel.jsonld-pms_reserva.read_timestamp.read"] | null;
@@ -15791,6 +16449,8 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
@@ -15801,6 +16461,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             establecimiento?: components["schemas"]["PmsEstablecimiento.multipart"];
@@ -15850,6 +16512,12 @@ export interface components {
             primeraFechaReservaCanal?: string | null;
             /** Format: date-time */
             ultimaFechaModificacionCanal?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -15873,6 +16541,8 @@ export interface components {
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
             readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
             /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
@@ -15909,6 +16579,12 @@ export interface components {
             /** Format: date-time */
             fechaSalida: string | null;
             unidadesAggregate?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -15931,6 +16607,8 @@ export interface components {
             apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel.multipart-pms_reserva.read_timestamp.read"] | null;
@@ -15969,6 +16647,8 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
@@ -16468,6 +17148,11 @@ export interface components {
         PmsUnidad: {
             establecimiento?: components["schemas"]["PmsEstablecimiento"];
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -16500,6 +17185,12 @@ export interface components {
              * @example https://example.com/
              */
             guia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Escaparate público. Estructura propia, independiente de la guía (ver PmsCatalogo).
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -16527,7 +17218,25 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
-        "PmsUnidad-pax_evento.read": {
+        "PmsUnidad-pax_catalogo.read": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento-pax_catalogo.read"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            capacidad?: number | null;
+        };
+        "PmsUnidad-pax_guia.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
@@ -16542,6 +17251,11 @@ export interface components {
         };
         "PmsUnidad-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @default true */
             activo: boolean;
             /** Format: uuid */
@@ -16557,6 +17271,11 @@ export interface components {
          */
         "PmsUnidad-pms_unidad.read": {
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @default true */
             activo: boolean;
             /** Format: uuid */
@@ -16565,6 +17284,11 @@ export interface components {
         "PmsUnidad.html": {
             establecimiento?: components["schemas"]["PmsEstablecimiento.html"];
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -16597,6 +17321,12 @@ export interface components {
              * @example https://example.com/
              */
             guia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Escaparate público. Estructura propia, independiente de la guía (ver PmsCatalogo).
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -16624,7 +17354,25 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
-        "PmsUnidad.html-pax_evento.read": {
+        "PmsUnidad.html-pax_catalogo.read": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.html-pax_catalogo.read"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            capacidad?: number | null;
+        };
+        "PmsUnidad.html-pax_guia.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
@@ -16639,6 +17387,11 @@ export interface components {
         };
         "PmsUnidad.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @default true */
             activo: boolean;
             /** Format: uuid */
@@ -16654,6 +17407,11 @@ export interface components {
          */
         "PmsUnidad.html-pms_unidad.read": {
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @default true */
             activo: boolean;
             /** Format: uuid */
@@ -16666,6 +17424,11 @@ export interface components {
         "PmsUnidad.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld"];
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -16698,6 +17461,12 @@ export interface components {
              * @example https://example.com/
              */
             guia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Escaparate público. Estructura propia, independiente de la guía (ver PmsCatalogo).
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -16729,7 +17498,29 @@ export interface components {
          * @description Entidad PmsUnidad.
          *     Representa un apartamento o habitación específica.
          */
-        "PmsUnidad.jsonld-pax_evento.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "PmsUnidad.jsonld-pax_catalogo.read": components["schemas"]["HydraItemBaseSchema"] & {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld-pax_catalogo.read"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            capacidad?: number | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pax_guia.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
@@ -16752,6 +17543,11 @@ export interface components {
          */
         "PmsUnidad.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @default true */
             activo: boolean;
             /** Format: uuid */
@@ -16767,6 +17563,11 @@ export interface components {
          */
         "PmsUnidad.jsonld-pms_unidad.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @default true */
             activo: boolean;
             /** Format: uuid */
@@ -16775,6 +17576,11 @@ export interface components {
         "PmsUnidad.multipart": {
             establecimiento?: components["schemas"]["PmsEstablecimiento.multipart"];
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -16807,6 +17613,12 @@ export interface components {
              * @example https://example.com/
              */
             guia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Escaparate público. Estructura propia, independiente de la guía (ver PmsCatalogo).
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -16834,7 +17646,25 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
-        "PmsUnidad.multipart-pax_evento.read": {
+        "PmsUnidad.multipart-pax_catalogo.read": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.multipart-pax_catalogo.read"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            capacidad?: number | null;
+        };
+        "PmsUnidad.multipart-pax_guia.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
@@ -16849,6 +17679,11 @@ export interface components {
         };
         "PmsUnidad.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @default true */
             activo: boolean;
             /** Format: uuid */
@@ -16864,6 +17699,11 @@ export interface components {
          */
         "PmsUnidad.multipart-pms_unidad.read": {
             nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @default true */
             activo: boolean;
             /** Format: uuid */
@@ -26077,6 +26917,56 @@ export interface operations {
             };
         };
     };
+    api_publicpaxpmspms_guia_establecimiento_unidad_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsCatalogo identifier */
+                establecimiento: string;
+                /** @description PmsCatalogo identifier */
+                unidad: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsCatalogo resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsCatalogo.jsonld-pax_catalogo.read"];
+                    "application/json": components["schemas"]["PmsCatalogo-pax_catalogo.read"];
+                    "text/html": components["schemas"]["PmsCatalogo.html-pax_catalogo.read"];
+                    "multipart/form-data": components["schemas"]["PmsCatalogo.multipart-pax_catalogo.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     api_pmspms_channels_get_collection: {
         parameters: {
             query?: never;
@@ -26404,11 +27294,61 @@ export interface operations {
             };
         };
     };
-    api_publicpaxpmspms_guiapms_unidad_unidad_get: {
+    api_clientpaxpmspms_guia_localizador_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
+                /** @description PmsGuia identifier */
+                localizador: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsGuia resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsGuia.jsonld-pax_guia.read"];
+                    "application/json": components["schemas"]["PmsGuia-pax_guia.read"];
+                    "text/html": components["schemas"]["PmsGuia.html-pax_guia.read"];
+                    "multipart/form-data": components["schemas"]["PmsGuia.multipart-pax_guia.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_clientpaxpmspms_guia_localizador_unidad_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsGuia identifier */
+                localizador: string;
                 /** @description PmsGuia identifier */
                 unidad: string;
             };
@@ -26422,10 +27362,21 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["PmsGuia.jsonld-pax_evento.read"];
-                    "application/json": components["schemas"]["PmsGuia-pax_evento.read"];
-                    "text/html": components["schemas"]["PmsGuia.html-pax_evento.read"];
-                    "multipart/form-data": components["schemas"]["PmsGuia.multipart-pax_evento.read"];
+                    "application/ld+json": components["schemas"]["PmsGuia.jsonld-pax_guia.read"];
+                    "application/json": components["schemas"]["PmsGuia-pax_guia.read"];
+                    "text/html": components["schemas"]["PmsGuia.html-pax_guia.read"];
+                    "multipart/form-data": components["schemas"]["PmsGuia.multipart-pax_guia.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Not found */

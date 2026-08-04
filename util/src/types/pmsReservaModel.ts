@@ -173,6 +173,10 @@ export interface PmsEventoExtendedProps {
     estadoPago?: string | null;
     referenciaCanal?: string | null;
     noches?: number;
+    /** Early check-in pactado: la barra lo marca con una puerta. */
+    entradaTemprana?: boolean;
+    /** Late check-out pactado: la barra lo marca con un reloj. */
+    salidaTardia?: boolean;
 
     /**
      * Cifras de la cabecera financiera, ya en su moneda. Son de la RESERVA: si

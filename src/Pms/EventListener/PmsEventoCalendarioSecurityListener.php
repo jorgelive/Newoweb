@@ -9,6 +9,7 @@ use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Event\PreRemoveEventArgs;
+use DateTimeInterface;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Events;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -97,10 +98,17 @@ final class PmsEventoCalendarioSecurityListener
         // 3. NUEVA REGLA: INMUTABILIDAD DE FECHAS OTA
         // El calendario de la OTA es sagrado. Si el huésped quiere extender su
         // estadía, debe hacerlo a través de Booking/Airbnb.
-        if ($args->hasChangedField('inicio') || $args->hasChangedField('fin')) {
+        //
+        // Se compara el DÍA, no el instante: la HORA sí se puede tocar. Lo que
+        // vende el canal son noches, y a Beds24 sólo le viajan `arrival` y
+        // `departure` en formato `Y-m-d` (§7.2), así que ajustar el check-out a
+        // las 17:00 —un late check-out pactado por WhatsApp— no contradice nada
+        // de lo que dice Booking. Bloquear la hora impedía justo eso.
+        if ($this->cambiaDeDia($args, 'inicio') || $this->cambiaDeDia($args, 'fin')) {
             throw new AccessDeniedHttpException(
-                'SEGURIDAD OTA: No puedes modificar las fechas de llegada o salida de una reserva externa. ' .
-                'Cualquier cambio de fechas debe realizarse directamente en el canal (Booking, Airbnb, etc.).'
+                'SEGURIDAD OTA: No puedes cambiar el DÍA de llegada o salida de una reserva externa ' .
+                '(la hora sí). Cualquier cambio de fechas debe realizarse directamente en el canal ' .
+                '(Booking, Airbnb, etc.).'
             );
         }
 
@@ -175,5 +183,24 @@ final class PmsEventoCalendarioSecurityListener
                 );
             }
         }
+    }
+
+    /**
+     * ¿El campo de fecha cambió de DÍA? Un cambio de sólo hora devuelve `false`.
+     */
+    private function cambiaDeDia(PreUpdateEventArgs $args, string $campo): bool
+    {
+        if (!$args->hasChangedField($campo)) {
+            return false;
+        }
+
+        $viejo = $args->getOldValue($campo);
+        $nuevo = $args->getNewValue($campo);
+
+        if (!$viejo instanceof DateTimeInterface || !$nuevo instanceof DateTimeInterface) {
+            return true; // null ↔ fecha: eso sí es un cambio de calendario
+        }
+
+        return $viejo->format('Y-m-d') !== $nuevo->format('Y-m-d');
     }
 }

@@ -38,6 +38,14 @@ final class PmsCargosAutomaticosService
     /** Importe fijo de limpieza para reservas directas, en la moneda de la cabecera. */
     public const string TARIFA_LIMPIEZA = '15.00';
 
+    /**
+     * Descripciones canónicas de los cargos de horario extra. Son la MARCA por la
+     * que se reconocen después para retirarlos: no se tocan sin migrar los cargos
+     * existentes (ver sincronizarExtras()).
+     */
+    public const string DESC_SALIDA_TARDIA = 'Salida tardía (noche bloqueada)';
+    public const string DESC_ENTRADA_TEMPRANA = 'Entrada temprana (noche bloqueada)';
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TarifaPricingEngine $pricingEngine,
@@ -58,7 +66,11 @@ final class PmsCargosAutomaticosService
             return false;
         }
 
-        if ($evento->getEstado()?->getId() === PmsEventoEstado::CODIGO_BLOQUEO) {
+        // Ni los bloqueos ni las EXTENSIONES: no son ventas. La extensión, además,
+        // ya tiene su propio cargo en la estancia que la generó (sincronizarExtras()),
+        // y si entrara aquí estrenaría alojamiento y limpieza por una noche fantasma.
+        $estado = $evento->getEstado()?->getId();
+        if ($estado === PmsEventoEstado::CODIGO_BLOQUEO || $estado === PmsEventoEstado::CODIGO_EXTENSION) {
             return false;
         }
 
@@ -103,6 +115,97 @@ final class PmsCargosAutomaticosService
         );
 
         // SERVICIO: intencionadamente ausente — se exonera en las reservas directas.
+    }
+
+    /**
+     * Pone al día los cargos de HORARIO EXTRA de una estancia: entrada temprana y
+     * salida tardía.
+     *
+     * Las dos bloquean una noche que ya no se puede vender —la víspera y la del
+     * día de salida—: de eso se encarga `PmsExtensionEstanciaService`, creando un
+     * evento hermano. Aquí va solo el dinero, y las dos se cobran igual: **el cargo
+     * se crea con importe CERO y lo valora el operador**. Cuánto vale entrar antes o salir después se
+     * negocia caso por caso; sugerir un precio sería peor que no poner ninguno,
+     * porque se acabaría cobrando el que el sistema inventó.
+     *
+     * Van como SERVICIO y no como ALOJAMIENTO a propósito: no son noches dormidas,
+     * y mezclarlas con el alojamiento falsearía las noches vendidas y el ADR — que
+     * es justo lo que se quería arreglar al dejar de crear estancias de una noche.
+     *
+     * Es idempotente y reversible: llamarlo dos veces no duplica nada, y al
+     * desmarcar la casilla retira el cargo. NO hace flush.
+     */
+    public function sincronizarExtras(PmsEventoCalendario $evento, PmsInformacionFinanciera $info): void
+    {
+        $this->sincronizarExtra($evento, $info, $evento->isEntradaTemprana(), self::DESC_ENTRADA_TEMPRANA);
+        $this->sincronizarExtra($evento, $info, $evento->isSalidaTardia(), self::DESC_SALIDA_TARDIA);
+    }
+
+    /** Crea o retira UN cargo de horario extra según su casilla. */
+    private function sincronizarExtra(
+        PmsEventoCalendario $evento,
+        PmsInformacionFinanciera $info,
+        bool $activo,
+        string $descripcion,
+    ): void {
+        $existente = $this->buscarCargoExtra($evento, $info, $descripcion);
+
+        if (!$activo) {
+            if ($existente !== null) {
+                $info->removeCargo($existente);
+                $this->em->remove($existente);
+            }
+
+            return;
+        }
+
+        // Ya está: no se toca. Si el operador le puso importe, es el suyo el que manda.
+        if ($existente !== null) {
+            return;
+        }
+
+        // La casita va en la descripción porque una reserva puede tener DOS
+        // estancias con salida tardía: sin ella, el panel financiero mostraría dos
+        // líneas idénticas y el operador no sabría cuál está valorando. El cargo
+        // sigue apuntando a su evento, que es lo que manda; esto es para leerlo.
+        $casita = $evento->getPmsUnidad()?->getNombre();
+
+        $this->crearCargo(
+            info: $info,
+            evento: $evento,
+            tipo: PmsTipoCargo::SERVICIO,
+            descripcion: $descripcion . ($casita ? ' · ' . $casita : ''),
+            importe: '0.00',
+            moneda: $info->getMoneda() ?? $this->monedaResolver->resolve(null),
+        );
+    }
+
+    /**
+     * El cargo de horario extra de esta estancia, si existe.
+     *
+     * Se reconoce por tipo + descripción canónica: `PmsCargoFinanciero` no tiene
+     * un campo de "origen", y su `esAutomatico` significa otra cosa (ver su
+     * docblock). Los cargos que vienen de Beds24 (`beds24ItemId`) quedan fuera:
+     * esos los manda el canal y no se tocan.
+     */
+    private function buscarCargoExtra(
+        PmsEventoCalendario $evento,
+        PmsInformacionFinanciera $info,
+        string $descripcion,
+    ): ?PmsCargoFinanciero {
+        foreach ($info->getCargos() as $cargo) {
+            // Por PREFIJO: la descripción lleva la casita detrás (ver crearCargo).
+            // Así los cargos creados antes de añadirla se siguen reconociendo.
+            if ($cargo->getEvento() === $evento
+                && $cargo->getTipoCargo() === PmsTipoCargo::SERVICIO
+                && str_starts_with((string) $cargo->getDescripcion(), $descripcion)
+                && $cargo->getBeds24ItemId() === null
+            ) {
+                return $cargo;
+            }
+        }
+
+        return null;
     }
 
     /** ¿Ya se le generaron cargos a esta estancia? */

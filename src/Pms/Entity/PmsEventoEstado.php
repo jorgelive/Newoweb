@@ -47,6 +47,19 @@ class PmsEventoEstado
     public const string CODIGO_REQUERIMIENTO  = 'requerimiento';
     public const string CODIGO_BLOQUEO        = 'bloqueo';
 
+    /**
+     * Extensión de horario: la noche que una estancia inutiliza sin venderla
+     * (entrada temprana o salida tardía).
+     *
+     * Es un evento REAL —ocupa la unidad y viaja a Beds24 como `black`— pero
+     * INVISIBLE: no sale en los calendarios, ni en el listado de eventos, ni en
+     * las estancias del drawer, ni suma en el rollup de la reserva. Lo crea y lo
+     * retira solo `PmsExtensionEstanciaService`; nadie lo edita a mano.
+     *
+     * Ver docs/PmsBeds24ReservasSync.md §7.1.b.
+     */
+    public const string CODIGO_EXTENSION      = 'extension';
+
     public const array MOSTRAR_EVENTO_GUIA = [
         PmsEventoEstado::CODIGO_PENDIENTE,
         PmsEventoEstado::CODIGO_CONFIRMADA,

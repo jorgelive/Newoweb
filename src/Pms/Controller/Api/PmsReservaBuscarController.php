@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Api;
 
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -63,6 +64,13 @@ final class PmsReservaBuscarController extends AbstractController
             ->innerJoin('e.reserva', 'r')
             ->leftJoin('e.pmsUnidad', 'u')
             ->leftJoin('e.estado', 'es')
+            // Las EXTENSIONES no son estancias: buscar un huésped no debe devolver la
+
+            // noche que bloquea su salida tardía. Ver §7.1.b del doc.
+
+            ->andWhere('es.id IS NULL OR es.id != :estadoExtension')
+
+            ->setParameter('estadoExtension', PmsEventoEstado::CODIGO_EXTENSION)
             ->leftJoin('e.estadoPago', 'ep')
             ->leftJoin('e.channel', 'c')
             // Lo primero que uno busca es la reserva de estos días, no la de hace

@@ -29,6 +29,20 @@ const props = withDefaults(defineProps<{
     modelValue?: string | null;
     /** Oculta el reloj y trabaja sólo con la fecha. */
     soloFecha?: boolean;
+    /**
+     * Congela el DÍA y deja libre la hora.
+     *
+     * Para estancias cuyas fechas no se pueden mover pero cuya hora sí se pacta:
+     * una reserva de OTA (el día lo manda el canal) o una con horario extra (mover
+     * el día obligaría a recolocar la noche bloqueada en Beds24). Un late
+     * check-out ES cambiar la hora de salida, así que bloquear el campo entero
+     * impedía justo lo que se quiere hacer.
+     *
+     * Se implementa con `min-date` = `max-date` = el día del valor, en vez de
+     * `disabled`: el calendario no deja elegir otro día, el reloj sigue vivo y el
+     * campo no se ve apagado.
+     */
+    diaBloqueado?: boolean;
     disabled?: boolean;
     /** Límite inferior, en el mismo formato que `modelValue`. */
     minDate?: string | null;
@@ -37,6 +51,7 @@ const props = withDefaults(defineProps<{
 }>(), {
     modelValue: '',
     soloFecha: false,
+    diaBloqueado: false,
     disabled: false,
     minDate: null,
     invalido: false,
@@ -79,11 +94,30 @@ const valorPicker = computed(() => {
 });
 
 const minPicker = computed(() => {
+    // Con el día congelado, el suelo es la medianoche de ESE día: gana al
+    // `minDate` que venga de fuera, que aquí ya no pinta nada.
+    if (props.diaBloqueado && diaDelValor.value) {
+        return `${diaDelValor.value}T00:00:00`;
+    }
+
     const m = String(props.minDate ?? '').match(PATRON_ISO);
     if (!m) return undefined;
     const [, ano, mes, dia, hh, mm] = m;
     return `${ano}-${mes}-${dia}T${hh ?? '00'}:${mm ?? '00'}:00`;
 });
+
+/** Día (`YYYY-MM-DD`) del valor actual, para poder fijarlo. */
+const diaDelValor = computed(() => {
+    const m = String(props.modelValue ?? '').match(PATRON_ISO);
+    if (!m) return null;
+    const [, ano, mes, dia] = m;
+    return `${ano}-${mes}-${dia}`;
+});
+
+/** Techo del día congelado: las 23:59 del mismo día. */
+const maxPicker = computed(() =>
+    props.diaBloqueado && diaDelValor.value ? `${diaDelValor.value}T23:59:00` : undefined,
+);
 
 function onPickerChange(valor: string | null): void {
     if (!valor) {
@@ -91,7 +125,23 @@ function onPickerChange(valor: string | null): void {
         return;
     }
     // El picker devuelve con segundos; se recortan para dejar el formato de la app.
-    emit('update:modelValue', valor.slice(0, 16));
+    emit('update:modelValue', conDiaCongelado(valor.slice(0, 16)) ?? '');
+}
+
+/**
+ * Con el día congelado, se respeta la HORA nueva y se restaura el día original.
+ *
+ * Hace falta porque el campo se teclea, no sólo se elige: `min-date`/`max-date`
+ * atan el calendario, pero por el input con máscara se puede escribir cualquier
+ * fecha y la máscara la daría por buena. Aquí es donde se corta — el operador ve
+ * que el día vuelve a su sitio y la hora se queda.
+ */
+function conDiaCongelado(iso: string | null): string | null {
+    if (!iso || !props.diaBloqueado || !diaDelValor.value) return iso;
+
+    const hora = iso.slice(11, 16) || '00:00';
+
+    return `${diaDelValor.value}T${hora}`;
 }
 
 // ============================================================================
@@ -104,7 +154,24 @@ function onPickerChange(valor: string | null): void {
 const inputRef = ref<HTMLInputElement | null>(null);
 let mask: ReturnType<typeof IMask> | null = null;
 
-const patron = computed(() => (props.soloFecha ? 'd/m/Y' : 'd/m/Y H:M'));
+/**
+ * Máscara del input. Con el día congelado, la FECHA deja de ser tecleable: se
+ * cuela en el patrón como texto literal y solo quedan editables las posiciones de
+ * la hora.
+ *
+ * Cada carácter del día va escapado con `\\`. No es adorno: en IMask el `0` es un
+ * placeholder de «dígito requerido», así que un día como `10/07/2026` se
+ * interpretaría como huecos que rellenar en vez de como el día fijo que es.
+ */
+const patron = computed(() => {
+    const base = props.soloFecha ? 'd/m/Y' : 'd/m/Y H:M';
+    if (!props.diaBloqueado || !diaDelValor.value) return base;
+
+    const [ano, mes, dia] = diaDelValor.value.split('-');
+    const fijo = `${dia}/${mes}/${ano}`.split('').map(c => `\\${c}`).join('');
+
+    return props.soloFecha ? fijo : `${fijo}\\ H:M`;
+});
 const marcador = computed(() => (props.soloFecha ? 'DD/MM/AAAA' : 'DD/MM/AAAA HH:MM'));
 
 onMounted(() => {
@@ -127,7 +194,7 @@ onMounted(() => {
 
     // `complete` sólo salta con la máscara entera rellena: no se emiten fechas a medias.
     mask.on('complete', () => {
-        const nuevo = aModelo(mask?.value ?? '');
+        const nuevo = conDiaCongelado(aModelo(mask?.value ?? ''));
         if (nuevo && nuevo !== props.modelValue) emit('update:modelValue', nuevo);
     });
 });
@@ -136,6 +203,30 @@ watch(() => props.modelValue, (v) => {
     const texto = aTextoVisible(v);
     if (mask && mask.value !== texto) mask.value = texto;
 });
+
+// El patrón cambia al congelar/soltar el día y cuando la estancia se mueve de
+// fecha: hay que rehacer la máscara y repintar, o el input se queda con el día
+// anterior clavado como literal.
+watch(patron, (nuevo) => {
+    if (!mask) return;
+    mask.updateOptions({ mask: nuevo } as never);
+    mask.value = aTextoVisible(props.modelValue);
+});
+
+/**
+ * Si el día tecleado no cuaja con el congelado, se repinta el texto correcto.
+ *
+ * El `watch` de arriba no basta: cuando se teclea otro día, `conDiaCongelado()`
+ * devuelve el MISMO `modelValue` que ya había —el día vuelve a su sitio—, así que
+ * el prop no cambia, el watch no salta y el input se queda con lo tecleado, que es
+ * mentira. Este `blur` deja el campo diciendo la verdad.
+ */
+function onBlur(): void {
+    if (!props.diaBloqueado || !mask) return;
+
+    const texto = aTextoVisible(props.modelValue);
+    if (mask.value !== texto) mask.value = texto;
+}
 
 onBeforeUnmount(() => {
     mask?.destroy();
@@ -152,6 +243,7 @@ onBeforeUnmount(() => {
         :format="soloFecha ? 'dd/MM/yyyy' : 'dd/MM/yyyy HH:mm'"
         model-type="yyyy-MM-dd'T'HH:mm:ss"
         :min-date="minPicker"
+        :max-date="maxPicker"
         :disabled="disabled"
         auto-apply
     >
@@ -164,6 +256,7 @@ onBeforeUnmount(() => {
                 :placeholder="marcador"
                 @keydown.enter="onEnter"
                 @keydown.tab="onTab"
+                @blur="onBlur"
                 class="w-full border rounded-lg px-3 py-2 text-sm font-bold text-slate-700 tabular-nums outline-none focus:ring-2 focus:ring-[#376875]/30 disabled:bg-slate-100 disabled:text-slate-400 cursor-text"
                 :class="invalido ? 'border-rose-300 bg-rose-50' : 'border-slate-200'"
             />

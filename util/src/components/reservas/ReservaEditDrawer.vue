@@ -94,6 +94,10 @@ interface EventoFormData {
     comision: string;
     cantidadAdultos: number;
     cantidadNinos: number;
+    /** Early check-in pactado: bloquea la noche ANTERIOR en el canal y genera su cargo. */
+    entradaTemprana: boolean;
+    /** Late check-out pactado: bloquea la noche en el canal y genera su cargo. */
+    salidaTardia: boolean;
 }
 
 interface EventoEntry {
@@ -102,6 +106,11 @@ interface EventoEntry {
     estadoActualId: string | null;
     channelNombre: string;
     form: EventoFormData;
+    /**
+     * ¿La estancia llegó del servidor con horario extra marcado? Es lo que congela
+     * las fechas (ver `fechasBloqueadasPara`), y no la casilla actual.
+     */
+    horarioExtraGuardado: boolean;
     /**
      * Último valor conocido de `form.inicio`. No es un dato del formulario: sirve para saber
      * CUÁNTOS días se movió el check-in y arrastrar el check-out la misma distancia
@@ -150,6 +159,8 @@ function formVacio(overrides: Partial<EventoFormData> = {}): EventoFormData {
         monto: '0.00',
         comision: '0.00',
         cantidadAdultos: 1,
+        entradaTemprana: false,
+        salidaTardia: false,
         cantidadNinos: 0,
         ...overrides,
     };
@@ -161,6 +172,7 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
         isOta: !!evento.ota,
         estadoActualId: evento.estado?.id ?? null,
         channelNombre: evento.channel?.nombre ?? '—',
+        horarioExtraGuardado: (evento.entradaTemprana ?? false) || (evento.salidaTardia ?? false),
         inicioPrevio: toDatetimeLocal(evento.inicio),
         form: {
             pmsUnidad: evento.pmsUnidad?.id ?? '',
@@ -173,6 +185,8 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
             monto: evento.monto ?? '0.00',
             comision: evento.comision ?? '0.00',
             cantidadAdultos: evento.cantidadAdultos ?? 1,
+            entradaTemprana: evento.entradaTemprana ?? false,
+            salidaTardia: evento.salidaTardia ?? false,
             cantidadNinos: evento.cantidadNinos ?? 0,
         },
     };
@@ -242,6 +256,28 @@ function pagoFuerzaConfirmada(entry: EventoEntry): boolean {
 
 function fechasUnidadBloqueadasPara(entry: EventoEntry): boolean {
     return entry.isOta;
+}
+
+/**
+ * El DÍA se congela; la hora no.
+ *
+ * Vale tanto para las OTA (el día lo manda el canal) como para las estancias con
+ * horario extra. La hora tiene que seguir siendo editable: pactar un late
+ * check-out ES poner las 17:00 en el check-out, y con el campo entero
+ * deshabilitado no había forma de hacerlo.
+ *
+ * Espejo de `PmsEventoCalendarioIntegrityListener::assertFechasMoviblesConHorarioExtra()`:
+ * mover la estancia obliga a recolocar la noche que bloquea en Beds24, y esa noche
+ * puede chocar con otra reserva. Hay que quitar la casilla, GUARDAR, y entonces
+ * mover — en dos pasos, no en el mismo guardado. Si se toca este criterio, hay que
+ * tocar los dos lados.
+ *
+ * Se compara con el valor GUARDADO (`entry.horarioExtraGuardado`), no con el de la
+ * casilla: si mirase la casilla, desmarcarla desbloquearía los campos en el acto y
+ * el backend rechazaría el guardado combinado.
+ */
+function diaBloqueadoPara(entry: EventoEntry): boolean {
+    return fechasUnidadBloqueadasPara(entry) || entry.horarioExtraGuardado;
 }
 
 function nombreUnidad(entry: EventoEntry): string {
@@ -415,6 +451,7 @@ function agregarEvento(): void {
         isOta: false,
         estadoActualId: null,
         channelNombre: 'Directo',
+        horarioExtraGuardado: false,
         inicioPrevio: inicioLocal,
         form: formVacio({
             inicio: inicioLocal,
@@ -683,6 +720,7 @@ async function cargarDatos(): Promise<void> {
                 isOta: false,
                 estadoActualId: null,
                 channelNombre: 'Directo',
+                horarioExtraGuardado: false,
                 inicioPrevio: toDatetimeLocal(props.createDefaults.inicio),
                 form: formVacio({
                     pmsUnidad: props.createDefaults.unidadId,
@@ -728,7 +766,14 @@ async function cargarDatos(): Promise<void> {
             const ids = idsDeEventos(reserva);
             if (ids.length) {
                 const detalles = await Promise.all(ids.map((id) => reservasStore.fetchEvento(id)));
-                eventos.value = detalles.map(entryDesdeEvento);
+                // Fuera las EXTENSIONES: la noche que bloquea una entrada temprana o
+                // una salida tardía cuelga de la reserva —para que el borrado y las
+                // finanzas la sigan— pero no es una estancia y aquí saldría como una
+                // segunda casita fantasma que además se podría editar. Ver §7.1.b del
+                // doc de sincronización.
+                eventos.value = detalles
+                    .filter((e) => e.estado?.id !== 'extension')
+                    .map(entryDesdeEvento);
             } else if (props.eventoId) {
                 // Fallback defensivo: la reserva no trajo la lista pero sabemos qué evento abrir.
                 const evento = await reservasStore.fetchEvento(props.eventoId);
@@ -774,6 +819,8 @@ function payloadCreacion(entry: EventoEntry, estado: string): PmsEventoCalendari
         comision: entry.form.comision,
         cantidadAdultos: entry.form.cantidadAdultos,
         cantidadNinos: entry.form.cantidadNinos,
+        entradaTemprana: entry.form.entradaTemprana,
+        salidaTardia: entry.form.salidaTardia,
     };
 }
 
@@ -793,7 +840,11 @@ function extraerId(reserva: unknown): string | null {
     return iri ? (iri.split('/').pop() ?? null) : null;
 }
 
+/** Aviso tras guardar un horario extra: el cargo ya está abajo, esperando importe. */
+const avisoHorarioExtra = ref(false);
+
 async function guardar(): Promise<void> {
+    let huboHorarioExtra = false;
     localError.value = null;
 
     // Se corta antes de tocar la red: el backend rechaza ambos casos (400 / 422), pero
@@ -856,6 +907,14 @@ async function guardar(): Promise<void> {
             // existentes se actualizan por PATCH; las agregadas en el acordeón
             // (sin eventoId) se crean y se ligan a la misma reserva.
             for (const entry of eventos.value) {
+                // ¿Se acaba de tocar el horario extra? Entonces el guardado deja
+                // cargos nuevos que hay que valorar, y cerrar el drawer obligaría a
+                // buscar la reserva otra vez (ver el `if` del final).
+                const horarioExtraTocado = entry.form.entradaTemprana || entry.form.salidaTardia
+                    ? !entry.horarioExtraGuardado
+                    : entry.horarioExtraGuardado;
+                if (horarioExtraTocado) huboHorarioExtra = true;
+
                 if (entry.eventoId) {
                     // NOTA: `channel` nunca se manda. El canal es inmutable tras la
                     // creación (blindado también en el backend por el listener).
@@ -868,14 +927,20 @@ async function guardar(): Promise<void> {
                         comision: entry.form.comision,
                         cantidadAdultos: entry.form.cantidadAdultos,
                         cantidadNinos: entry.form.cantidadNinos,
+                        entradaTemprana: entry.form.entradaTemprana,
+                        salidaTardia: entry.form.salidaTardia,
                     };
 
-                    // Fechas y unidad: inmutables para eventos OTA (bloqueadas en la
-                    // UI, y de todas formas el backend las rechazaría con 403).
+                    // La HORA de check-in/out se manda SIEMPRE, también en las OTA:
+                    // el canal vende noches y a Beds24 sólo le viajan los días, así
+                    // que un late check-out pactado aquí no contradice nada suyo. El
+                    // backend rechaza el cambio de DÍA, no el de hora.
+                    payload.inicio = fromDatetimeLocal(entry.form.inicio);
+                    payload.fin = fromDatetimeLocal(entry.form.fin);
+
+                    // La unidad sí es inmutable en OTA (la manda el canal).
                     if (!fechasUnidadBloqueadasPara(entry)) {
                         payload.pmsUnidad = pmsUnidadIri(entry.form.pmsUnidad);
-                        payload.inicio = fromDatetimeLocal(entry.form.inicio);
-                        payload.fin = fromDatetimeLocal(entry.form.fin);
                     }
 
                     await reservasStore.patchEvento(entry.eventoId, payload);
@@ -907,6 +972,17 @@ async function guardar(): Promise<void> {
         // revienta, se muestra el error y el drawer NO se cierra, así no se pierde lo tecleado
         // en el panel. Lo ya guardado arriba es idempotente al reintentar.
         await finanzasPanel.value?.guardarPendientes();
+
+        // Marcar «entrada temprana» o «salida tardía» deja un cargo NUEVO en 0.00 que
+        // el operador tiene que valorar, y ese cargo no existe hasta que el backend
+        // procesa el guardado. Cerrando el drawer habría que buscar la reserva otra
+        // vez para ponerle el importe, así que aquí se recarga y se queda abierto.
+        if (huboHorarioExtra) {
+            await cargarDatos();
+            avisoHorarioExtra.value = true;
+            setTimeout(() => (avisoHorarioExtra.value = false), 8000);
+            return;
+        }
 
         emit('saved');
     } catch (err) {
@@ -1048,6 +1124,17 @@ async function guardar(): Promise<void> {
 
                 <div v-if="localError" class="bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold rounded-xl px-4 py-3">
                     <i class="fas fa-exclamation-triangle mr-2"></i>{{ localError }}
+                </div>
+
+                <!-- El drawer NO se cierra al guardar un horario extra: el cargo nace
+                     ahora, en 0.00, y hay que poder valorarlo sin volver a buscar la
+                     reserva (ver el final de `guardar()`). -->
+                <div v-if="avisoHorarioExtra" class="bg-amber-50 border border-amber-200 text-amber-800 text-sm font-bold rounded-xl px-4 py-3 flex items-start gap-2.5">
+                    <i class="fas fa-circle-check mt-0.5"></i>
+                    <span>
+                        Guardado. La noche queda bloqueada en Beds24 y abajo, en Finanzas, tienes el
+                        cargo en <b>0.00</b>: ponle el importe que se cobra (o déjalo en 0 si se regala).
+                    </span>
                 </div>
 
                 <!-- Nota discreta: es contexto permanente de una reserva OTA, no una alerta. -->
@@ -1208,7 +1295,7 @@ async function guardar(): Promise<void> {
                                                      garantizado y onCambiarInicio podía leer el
                                                      valor anterior. -->
                                                 <FechaHoraPicker :model-value="entry.form.inicio"
-                                                    :disabled="fechasUnidadBloqueadasPara(entry)"
+                                                    :dia-bloqueado="diaBloqueadoPara(entry)"
                                                     @update:model-value="(v: string) => { entry.form.inicio = v; onCambiarInicio(entry); }" />
                                             </div>
                                         </label>
@@ -1218,10 +1305,50 @@ async function guardar(): Promise<void> {
                                             <div class="mt-1">
                                                 <FechaHoraPicker v-model="entry.form.fin"
                                                     :min-date="entry.form.inicio"
-                                                    :disabled="fechasUnidadBloqueadasPara(entry)"
+                                                    :dia-bloqueado="diaBloqueadoPara(entry)"
                                                     :invalido="!!errorFechas(entry)" />
                                             </div>
                                         </label>
+
+                                        <!-- HORARIO EXTRA. Sustituyen a crear una segunda estancia de
+                                             una noche: aquello inflaba noches y ADR y partía la reserva
+                                             en dos. Aquí las horas reales van en el check-in/check-out y
+                                             estas casillas se encargan del resto: bloquear la noche que
+                                             deja de ser vendible y abrir su cargo. -->
+                                        <div class="col-span-2 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 space-y-3">
+                                            <p v-if="entry.horarioExtraGuardado && !entry.isOta"
+                                                class="text-[11px] font-bold text-amber-700 flex items-start gap-2">
+                                                <i class="fas fa-lock mt-0.5"></i>
+                                                <span>Con horario extra el DÍA queda fijo (la hora no): para mover el día, quita la casilla, guarda, y entonces muévelo.</span>
+                                            </p>
+                                            <label class="flex items-start gap-3 cursor-pointer">
+                                                <input type="checkbox" v-model="entry.form.entradaTemprana"
+                                                    class="mt-0.5 w-4 h-4 accent-[#E07845] shrink-0" />
+                                                <span class="min-w-0">
+                                                    <span class="block text-sm font-black text-slate-800">
+                                                        <i class="fas fa-door-open text-amber-500 mr-1.5"></i>Entrada temprana
+                                                    </span>
+                                                    <span class="block text-[11px] font-bold text-slate-500 leading-snug mt-0.5">
+                                                        Llega por la mañana: bloquea la NOCHE ANTERIOR en Beds24 y añade
+                                                        el cargo «Entrada temprana» en 0.00 para que pongas lo que se cobre.
+                                                    </span>
+                                                </span>
+                                            </label>
+
+                                            <label class="flex items-start gap-3 cursor-pointer border-t border-amber-200/70 pt-3">
+                                                <input type="checkbox" v-model="entry.form.salidaTardia"
+                                                    class="mt-0.5 w-4 h-4 accent-[#E07845] shrink-0" />
+                                                <span class="min-w-0">
+                                                    <span class="block text-sm font-black text-slate-800">
+                                                        <i class="fas fa-clock text-amber-500 mr-1.5"></i>Salida tardía
+                                                    </span>
+                                                    <span class="block text-[11px] font-bold text-slate-500 leading-snug mt-0.5">
+                                                        Se va por la tarde: bloquea ESA NOCHE en Beds24 y añade el cargo
+                                                        «Salida tardía» en 0.00. La estancia sigue contando las noches reales.
+                                                    </span>
+                                                </span>
+                                            </label>
+                                        </div>
 
                                         <p v-if="errorFechas(entry)" class="text-[11px] font-bold text-rose-600 -mt-1">
                                             <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorFechas(entry) }}

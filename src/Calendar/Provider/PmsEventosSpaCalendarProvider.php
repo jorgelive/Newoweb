@@ -278,6 +278,11 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             'estadoPago' => $evento->getEstadoPago()?->getNombre(),
             'referenciaCanal' => $evento->getReferenciaCanal(),
             'noches' => $evento->getNoches(),
+            // Horario extra: la barra los marca con un icono. La noche que bloquean
+            // NO se pinta aquí — es un evento `extension` aparte, que este mismo
+            // calendario filtra por YAML (ver PmsExtensionEstanciaService).
+            'entradaTemprana' => $evento->isEntradaTemprana(),
+            'salidaTardia' => $evento->isSalidaTardia(),
 
             // Cifras de la RESERVA, no de la estancia: una reserva de dos casitas
             // repite el mismo total en sus dos barras. Es intencionado — el saldo

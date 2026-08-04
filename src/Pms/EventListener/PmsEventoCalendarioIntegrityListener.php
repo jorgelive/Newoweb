@@ -13,6 +13,8 @@ use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\Persistence\ObjectManager;
+use DateTimeInterface;
+use DomainException;
 use LogicException;
 
 /**
@@ -50,6 +52,12 @@ final class PmsEventoCalendarioIntegrityListener
         // Optimización: Solo validamos si se tocaron las fechas.
         if ($args->hasChangedField('inicio') || $args->hasChangedField('fin')) {
             $this->validarFechas($evento);
+
+            // Solo si cambia el DÍA: ajustar la hora es justo lo que se hace al
+            // pactar un horario extra (poner las 17:00 en el check-out).
+            if ($this->cambiaDeDia($args, 'inicio') || $this->cambiaDeDia($args, 'fin')) {
+                $this->assertFechasMoviblesConHorarioExtra($evento, $args);
+            }
         }
 
         // RED DE SEGURIDAD 1: Recuperación de Canal Directo
@@ -144,6 +152,62 @@ final class PmsEventoCalendarioIntegrityListener
      * Garantiza que Beds24 y el sistema local nunca reciban reservas con duración de cero o negativa.
      * * @throws LogicException Si la fecha de fin es menor o igual a la de inicio.
      */
+    /**
+     * Con horario extra marcado, el DÍA de la estancia queda CONGELADO.
+     *
+     * La HORA sigue siendo editable —quien llama ya filtró por `cambiaDeDia()`—
+     * porque pactar un late check-out ES poner las 17:00 en el check-out: si se
+     * bloqueara el campo entero, la casilla impediría justo lo que la acompaña.
+     *
+     * Mover una estancia con entrada temprana o salida tardía obliga a arrastrar
+     * detrás su extensión (la noche bloqueada), su cargo y el push de las dos a
+     * Beds24. `PmsExtensionEstanciaService` sabe recolocar la extensión, pero el
+     * resultado sigue siendo arriesgado: la noche nueva puede chocar con otra
+     * reserva y el operador no se entera hasta que el canal rebota. Se prefiere
+     * obligar a desmarcar, mover, y volver a marcar — tres pasos conscientes.
+     *
+     * Se mira el valor ANTERIOR de las casillas, no el final: desmarcar y mover en
+     * el mismo guardado también se rechaza. No es purismo — hacer las dos cosas a
+     * la vez deja a medias el borrado de la extensión y su reconstrucción dentro
+     * del mismo flush, y Doctrine revienta con un «new entity was found through
+     * the relationship PmsEventoBeds24Link#evento». Son dos guardados: desmarcar,
+     * guardar, mover.
+     *
+     * A las OTA no les aplica: sus fechas ya son inmutables desde el PMS (§9.4),
+     * las manda el canal.
+     */
+    private function assertFechasMoviblesConHorarioExtra(
+        PmsEventoCalendario $evento,
+        PreUpdateEventArgs $args,
+    ): void {
+        if ($evento->isOta() || $evento->esExtension()) {
+            return;
+        }
+
+        $tenia = static fn (string $campo, bool $actual): bool => $args->hasChangedField($campo)
+            ? (bool) $args->getOldValue($campo)
+            : $actual;
+
+        $marcadas = [];
+        if ($tenia('entradaTemprana', $evento->isEntradaTemprana())) {
+            $marcadas[] = 'entrada temprana';
+        }
+        if ($tenia('salidaTardia', $evento->isSalidaTardia())) {
+            $marcadas[] = 'salida tardía';
+        }
+
+        if ($marcadas === []) {
+            return;
+        }
+
+        throw new DomainException(sprintf(
+            'Esta estancia tiene %s: quita la casilla y GUARDA antes de mover el DÍA (la hora sí se puede ajustar). '
+            . 'Al cambiarlas hay que recolocar también la noche que bloquea en Beds24, '
+            . 'y esa noche puede chocar con otra reserva.',
+            implode(' y ', $marcadas)
+        ));
+    }
+
     private function validarFechas(PmsEventoCalendario $evento): void
     {
         $inicio = $evento->getInicio();
@@ -169,5 +233,22 @@ final class PmsEventoCalendarioIntegrityListener
                 ));
             }
         }
+    }
+
+    /** ¿El campo cambió de DÍA? Un cambio de sólo hora devuelve `false`. */
+    private function cambiaDeDia(PreUpdateEventArgs $args, string $campo): bool
+    {
+        if (!$args->hasChangedField($campo)) {
+            return false;
+        }
+
+        $viejo = $args->getOldValue($campo);
+        $nuevo = $args->getNewValue($campo);
+
+        if (!$viejo instanceof DateTimeInterface || !$nuevo instanceof DateTimeInterface) {
+            return true;
+        }
+
+        return $viejo->format('Y-m-d') !== $nuevo->format('Y-m-d');
     }
 }

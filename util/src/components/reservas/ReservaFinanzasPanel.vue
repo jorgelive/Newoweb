@@ -412,6 +412,21 @@ function cancelarEdicionCargo(): void {
     cargoNuevoAbierto.value = false;
 }
 
+/**
+ * Cerrar el candado cierra también la edición que estaba en marcha.
+ *
+ * Si no, quedaba abierto el formulario de un cargo del canal que ya no se puede
+ * guardar: el botón seguía ahí, el operador lo pulsaba y se llevaba el rechazo.
+ * Los cargos MANUALES no se ven afectados —nunca necesitaron candado— y su
+ * edición sigue abierta.
+ */
+watch(cargosDesbloqueados, (abierto) => {
+    if (abierto || cargoEditandoId.value === null) return;
+
+    const enEdicion = cargosVista.value.find(c => c.id === cargoEditandoId.value);
+    if (enEdicion && enEdicion.manual !== true) cancelarEdicionCargo();
+});
+
 /** Un cargo en otra moneda que la cabecera necesita TC o no sumará al saldo (§12.2). */
 const monedaCargoEsExtranjera = computed(
     () => !!monedaCabecera.value?.id && cargoForm.value.moneda !== monedaCabecera.value.id,
@@ -1006,7 +1021,11 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         </div>
 
                         <!-- Fila en edición -->
-                        <div v-else class="grid grid-cols-2 gap-2">
+                        <!-- Mismo envoltorio que el alta y que el pago: el grid va dentro y la
+                             barra de acción fuera, o el sticky no tendría recorrido dentro de
+                             su celda. -->
+                        <div v-else>
+                        <div class="grid grid-cols-2 gap-2">
                             <label class="col-span-2">
                                 <span class="text-[11px] font-bold text-slate-500">Tipo</span>
                                 <select v-model="cargoForm.tipoCargo"
@@ -1052,14 +1071,20 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             <p v-if="errorCargo" class="col-span-2 text-[10px] font-black text-amber-600">
                                 <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorCargo }}
                             </p>
-                            <div class="col-span-2 flex items-center justify-end gap-2">
-                                <button type="button" @click="cancelarEdicionCargo"
-                                    class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
-                                <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving || !!errorCargo"
-                                    class="px-3 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-lg text-xs font-black">
-                                    <i class="fas" :class="finanzas.isSaving ? 'fa-circle-notch fa-spin' : 'fa-check'"></i> Guardar
-                                </button>
-                            </div>
+                        </div>
+
+                        <!-- Pie STICKY. El formulario es largo y el drawer scrollea: con los
+                             botones al final se perdían de vista y el operador acababa pulsando
+                             «Guardar Cambios» de la reserva creyendo que guardaba el cargo. -->
+                        <div class="sticky -bottom-4 mt-2 px-4 py-2.5 bg-slate-50/95 backdrop-blur
+                                    border-t border-slate-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
+                            <button type="button" @click="cancelarEdicionCargo"
+                                class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
+                            <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving || !!errorCargo"
+                                class="px-4 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-lg text-xs font-black">
+                                <i class="fas" :class="finanzas.isSaving ? 'fa-circle-notch fa-spin' : 'fa-check'"></i> Guardar cargo
+                            </button>
+                        </div>
                         </div>
                     </div>
                     </template>

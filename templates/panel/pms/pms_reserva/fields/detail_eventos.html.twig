@@ -1,6 +1,14 @@
 {# templates/panel/pms/pms_reserva/fields/detail_eventos.html.twig #}
 
-{% if field.value is empty %}
+{#
+  Las EXTENSIONES (estado `extension`: la noche que bloquea una entrada temprana o
+  una salida tardía) se filtran antes de pintar nada. Cuelgan de la reserva para
+  que el borrado y las finanzas las sigan, pero no son estancias y en el detalle
+  aparecerían como una segunda casita fantasma. Ver §7.1.b del doc.
+#}
+{% set estancias = field.value|filter(e => e.estado is null or e.estado.id != 'extension') %}
+
+{% if estancias is empty %}
     <div class="alert alert-light border text-center text-muted">
         <i class="fas fa-info-circle"></i> Sin eventos registrados
     </div>
@@ -48,7 +56,7 @@
     {# LÓGICA PREVIA (columnas condicionales) #}
     {% set hasComision = false %}
     {% set hasMonto = false %}
-    {% for evento in field.value %}
+    {% for evento in estancias %}
         {% if evento.comision is defined and evento.comision != 0 %}{% set hasComision = true %}{% endif %}
         {% if evento.monto is defined and evento.monto != 0 %}{% set hasMonto = true %}{% endif %}
     {% endfor %}
@@ -57,7 +65,7 @@
     {#  VISTA MÓVIL (Cards “más premium”)                        #}
     {# ========================================================= #}
     <div class="d-block d-md-none">
-        {% for evento in field.value %}
+        {% for evento in estancias %}
 
             {% set st = evento.estado ? evento.estado.nombre|lower : '' %}
             {% set colorBase = 'cancel' in st ? 'danger' : ('confirm' in st ? 'success' : 'secondary') %}
@@ -178,7 +186,7 @@
             </tr>
             </thead>
             <tbody>
-            {% for evento in field.value %}
+            {% for evento in estancias %}
                 {% set st = evento.estado ? evento.estado.nombre|lower : '' %}
                 {% set estadoBadge = 'cancel' in st ? 'danger' : ('confirm' in st ? 'success' : 'secondary') %}
                 {% set pg = evento.estadoPago ? evento.estadoPago.nombre|lower : '' %}

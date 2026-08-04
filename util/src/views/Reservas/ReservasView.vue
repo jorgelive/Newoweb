@@ -981,6 +981,11 @@ const calendarOptions: CalendarOptions = {
         // Cada dato es opcional por separado: un bloqueo no trae cifras y una
         // reserva recién creada tampoco. La fila se arma con lo que haya.
         const meta = [
+            // Puerta / reloj = horario extra: esas noches están bloqueadas en el
+            // canal aunque la barra no llegue hasta ellas (ver getInicioCanal()
+            // y getFinCanal() en PmsEventoCalendario).
+            p.entradaTemprana ? '<span class="fc-reserva-dato fc-reserva-tarde" title="Entrada temprana"><i class="fas fa-door-open"></i></span>' : '',
+            p.salidaTardia ? '<span class="fc-reserva-dato fc-reserva-tarde" title="Salida tardía"><i class="fas fa-clock"></i></span>' : '',
             p.pax ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-user"></i>${escaparHtml(String(p.pax))}</span>` : '',
             p.noches ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-moon"></i>${escaparHtml(String(p.noches))}</span>` : '',
             p.total ? `<span class="fc-reserva-dato fc-reserva-total">${escaparHtml(importeCorto(p.total, p.simbolo))}</span>` : '',
@@ -1458,6 +1463,11 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 /* Rojo lo que se debe, azul lo saldado — mismo código que el panel financiero. */
 .fc-reserva-debe {
     color: #b91c1c;
+}
+
+.fc-reserva-tarde {
+    color: #92400e;
+    background: #fde68a;
 }
 
 .fc-reserva-pagado {
