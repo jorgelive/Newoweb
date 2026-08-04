@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useChatStore } from '@/stores/chat/chatStore.ts';
 import { useNotificationStore } from '@/stores/notificationStore';
@@ -31,14 +31,15 @@ const notificationStore = useNotificationStore();
 const secciones = MODULOS_APP;
 
 // ============================================================================
-// PANEL DE HOY — LLEGADAS Y SALIDAS
+// PANEL DEL DÍA — LLEGADAS Y SALIDAS (hoy / mañana)
 //
 // Sale del MISMO feed que pinta el calendario de Reservas
 // (`/fullcalendar/load/event/...`), no de un endpoint nuevo: el backend ya
 // resuelve ahí el solape con el día y manda cliente, casita y pax en
-// `extendedProps`. Se pide el rango [hoy, mañana) y se clasifica por el día de
-// `start` (llega) y de `end` (sale) — una estancia larga aparece en el panel
-// solo el día que entra y el día que se va, que es lo que se quiere ver.
+// `extendedProps`. Se piden DOS días —[hoy, pasado mañana)— y se clasifican por
+// el día de `start` (llega) y de `end` (sale): una estancia larga aparece solo el
+// día que entra y el día que se va, que es lo que se quiere ver. El conmutador
+// Hoy/Mañana elige cuál de los dos se pinta, sin volver a pedir nada.
 //
 // El día se compara por STRING (`slice(0, 10)`): el feed manda hora local sin
 // zona y pasarlo por `new Date()` para leer el día es justo lo que produce
@@ -59,12 +60,37 @@ interface FilaHoy {
 
 const hoyIso = fromDateLocal(new Date());
 const cargandoHoy = ref(true);
-const llegadasHoy = ref<FilaHoy[]>([]);
-const salidasHoy = ref<FilaHoy[]>([]);
 
-const fechaHoyLarga = new Date().toLocaleDateString('es-PE', {
-    weekday: 'long', day: 'numeric', month: 'long',
+/**
+ * Se piden DOS días de una vez —[hoy, pasado mañana)— y el conmutador
+ * Hoy/Mañana filtra en cliente: cambiar de día es instantáneo y no dispara otra
+ * petición. Son pocas filas; no compensa ir al servidor por cada pulsación.
+ */
+const eventosPanel = ref<EventoHoy[]>([]);
+const diaPanel = ref<'hoy' | 'manana'>('hoy');
+
+const diaIso = computed(() => diaPanel.value === 'hoy' ? hoyIso : sumarDias(hoyIso, 1));
+
+const fechaPanelLarga = computed(() => {
+    const d = new Date();
+    if (diaPanel.value === 'manana') d.setDate(d.getDate() + 1);
+    return d.toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
 });
+
+const llegadasHoy = computed<FilaHoy[]>(() =>
+    eventosPanel.value
+        .filter(e => e.start.slice(0, 10) === diaIso.value)
+        .map(e => aFila(e, e.start))
+        .sort((a, b) => a.hora.localeCompare(b.hora)),
+);
+
+// Ojo: en las salidas la hora que importa es la de FIN de la estancia.
+const salidasHoy = computed<FilaHoy[]>(() =>
+    eventosPanel.value
+        .filter(e => e.end.slice(0, 10) === diaIso.value)
+        .map(e => aFila(e, e.end))
+        .sort((a, b) => a.hora.localeCompare(b.hora)),
+);
 
 function aFila(ev: EventoHoy, instante: string): FilaHoy {
     const p = ev.extendedProps;
@@ -84,22 +110,13 @@ async function cargarPanelHoy(): Promise<void> {
     cargandoHoy.value = true;
     try {
         const r = await apiClient.get(`/fullcalendar/load/event/${PMS_OCUPACION_CALENDARIO_KEY}`, {
-            params: { start: hoyIso, end: sumarDias(hoyIso, 1), _t: Date.now() },
+            params: { start: hoyIso, end: sumarDias(hoyIso, 2), _t: Date.now() },
         });
-        const eventos = coleccionFeed<EventoHoy>(r.data);
-
-        llegadasHoy.value = eventos.filter(e => e.start.slice(0, 10) === hoyIso)
-            .map(e => aFila(e, e.start))
-            .sort((a, b) => a.hora.localeCompare(b.hora));
-        // Ojo: en las salidas la hora que importa es la de FIN de la estancia.
-        salidasHoy.value = eventos.filter(e => e.end.slice(0, 10) === hoyIso)
-            .map(e => aFila(e, e.end))
-            .sort((a, b) => a.hora.localeCompare(b.hora));
+        eventosPanel.value = coleccionFeed<EventoHoy>(r.data);
     } catch {
         // Sin sesión o con la API caída, el portal tiene que seguir siendo
         // navegable: el panel se queda vacío y no se avisa de nada.
-        llegadasHoy.value = [];
-        salidasHoy.value = [];
+        eventosPanel.value = [];
     } finally {
         cargandoHoy.value = false;
     }
@@ -252,9 +269,22 @@ const handleLogout = async () => {
         <!-- PANEL DE HOY: lo primero que se mira al entrar. Llegadas y salidas
              del día salen del feed del calendario de Reservas (ver el script). -->
         <section class="mb-8 md:mb-10">
-          <div class="flex items-baseline gap-3 mb-4">
-            <h2 class="text-sm font-black uppercase tracking-[0.18em] text-slate-900">Hoy</h2>
-            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 first-letter:uppercase">{{ fechaHoyLarga }}</span>
+          <div class="flex items-center gap-3 mb-4">
+            <!-- Conmutador de día: los dos días ya están cargados, así que solo
+                 cambia el filtro (ver eventosPanel). -->
+            <div class="flex items-center bg-white border border-slate-200 rounded-xl p-0.5 shadow-sm shrink-0">
+              <button type="button" @click="diaPanel = 'hoy'"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-colors',
+                         diaPanel === 'hoy' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-700']">
+                Hoy
+              </button>
+              <button type="button" @click="diaPanel = 'manana'"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-colors',
+                         diaPanel === 'manana' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-700']">
+                Mañana
+              </button>
+            </div>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 first-letter:uppercase truncate">{{ fechaPanelLarga }}</span>
             <span class="flex-1 h-px bg-slate-200"></span>
           </div>
 
@@ -267,7 +297,7 @@ const handleLogout = async () => {
                 </span>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-black text-slate-900 leading-none">Check-in</p>
-                  <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Llegan hoy</p>
+                  <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{{ diaPanel === 'hoy' ? 'Llegan hoy' : 'Llegan mañana' }}</p>
                 </div>
                 <span class="text-2xl font-black text-slate-900 tabular-nums">{{ llegadasHoy.length }}</span>
               </div>
@@ -276,7 +306,7 @@ const handleLogout = async () => {
                 <i class="fas fa-circle-notch fa-spin mr-2" aria-hidden="true"></i> Cargando…
               </div>
               <p v-else-if="!llegadasHoy.length" class="px-5 py-6 text-sm font-bold text-slate-400">
-                Sin llegadas hoy.
+                {{ diaPanel === 'hoy' ? 'Sin llegadas hoy.' : 'Sin llegadas mañana.' }}
               </p>
               <ul v-else class="divide-y divide-slate-50">
                 <li v-for="fila in llegadasHoy" :key="fila.id">
@@ -304,7 +334,7 @@ const handleLogout = async () => {
                 </span>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-black text-slate-900 leading-none">Check-out</p>
-                  <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Salen hoy</p>
+                  <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{{ diaPanel === 'hoy' ? 'Salen hoy' : 'Salen mañana' }}</p>
                 </div>
                 <span class="text-2xl font-black text-slate-900 tabular-nums">{{ salidasHoy.length }}</span>
               </div>
@@ -313,7 +343,7 @@ const handleLogout = async () => {
                 <i class="fas fa-circle-notch fa-spin mr-2" aria-hidden="true"></i> Cargando…
               </div>
               <p v-else-if="!salidasHoy.length" class="px-5 py-6 text-sm font-bold text-slate-400">
-                Sin salidas hoy.
+                {{ diaPanel === 'hoy' ? 'Sin salidas hoy.' : 'Sin salidas mañana.' }}
               </p>
               <ul v-else class="divide-y divide-slate-50">
                 <li v-for="fila in salidasHoy" :key="fila.id">
