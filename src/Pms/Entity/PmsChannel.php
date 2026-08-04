@@ -18,8 +18,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
     operations: [
         // Solo lectura: alimenta el selector de canal del calendario SPA (Vue).
         new GetCollection(
-            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
             normalizationContext: ['groups' => ['pms_channel:read']],
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
         ),
     ],
     routePrefix: '/pms',

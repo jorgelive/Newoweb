@@ -153,6 +153,67 @@ const pctPagado = computed(() => {
   return Math.min(100, Math.max(0, (finPagado.value / finTotal.value) * 100));
 });
 
+/* ─────────────────────────────────────────────────────────────
+ * DESGLOSE
+ * El backend agrupa por TIPO (`PmsTipoCargo`) y manda el valor del enum, no la
+ * descripción: las descripciones llegan de Beds24 en un idioma y no se pueden
+ * traducir. Aquí el tipo se convierte en etiqueta i18n.
+ * ───────────────────────────────────────────────────────────── */
+
+/** Etiquetas de respaldo en español; la traducción real vive en `pax_ui_i18n`. */
+const CARGO_FALLBACK: Record<string, string> = {
+  alojamiento:  'Alojamiento',
+  limpieza:     'Limpieza',
+  servicio:     'Servicio',
+  penalizacion: 'Penalización',
+  otro:         'Otros',
+};
+
+const MEDIO_FALLBACK: Record<string, string> = {
+  efectivo:               'Efectivo',
+  plin_yape:              'Plin / Yape',
+  tarjeta_credito:        'Tarjeta de crédito',
+  western_union:          'Western Union',
+  transferencia_bancaria: 'Transferencia bancaria',
+  paypal:                 'PayPal',
+};
+
+const MEDIO_ICONO: Record<string, string> = {
+  efectivo:               'fa-money-bill-wave',
+  plin_yape:              'fa-mobile-screen-button',
+  tarjeta_credito:        'fa-credit-card',
+  western_union:          'fa-building-columns',
+  transferencia_bancaria: 'fa-right-left',
+  paypal:                 'fa-paypal',
+};
+
+const nombreCargo = (tipo: string): string =>
+    maestroStore.t(`res_cargo_${tipo}`) || CARGO_FALLBACK[tipo] || tipo;
+
+const nombreMedio = (medio: string): string =>
+    maestroStore.t(`res_medio_${medio}`) || MEDIO_FALLBACK[medio] || medio;
+
+const iconoMedio = (medio: string): string => MEDIO_ICONO[medio] || 'fa-receipt';
+
+/** Lista de cargos lista para pintar; el orden lo fija el backend. */
+const cargosDetalle = computed<Array<{ tipo: string; monto: number }>>(() =>
+    Object.entries(finanzas.value?.cargos ?? {}).map(([tipo, monto]) => ({ tipo, monto: Number(monto) })),
+);
+
+const pagosDetalle = computed(() => finanzas.value?.pagos ?? []);
+
+/** Fecha corta del pago: 'YYYY-MM-DD' -> '15 jun 2026' en el idioma activo. */
+const fechaPago = (iso: string | null): string => {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return '';
+  // Se construye en UTC y se lee en UTC: la fecha es un día natural, no un
+  // instante, y en zonas negativas `new Date('2026-06-15')` retrocede un día.
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(maestroStore.idiomaActual, {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+  });
+};
+
 const formatMonto = (v: number): string => {
   const simbolo = finanzas.value?.simbolo || finanzas.value?.moneda || '';
   return `${simbolo} ${v.toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -309,15 +370,41 @@ const detalleCuentaAbierto = ref(false);
                :class="detalleCuentaAbierto ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
             <div class="overflow-hidden">
 
-              <!-- Desglose -->
-              <div class="space-y-3 pt-6">
-                <div class="flex items-center justify-between gap-4">
+              <!-- Desglose de cargos por tipo -->
+              <div class="pt-6">
+                <div v-if="cargosDetalle.length" class="space-y-2 mb-3">
+                  <div v-for="linea in cargosDetalle" :key="linea.tipo"
+                       class="flex items-center justify-between gap-4">
+                    <span class="text-[13px] font-medium text-slate-500">{{ nombreCargo(linea.tipo) }}</span>
+                    <span class="text-[13px] font-bold text-slate-600 tabular-nums">{{ formatMonto(linea.monto) }}</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-4"
+                     :class="cargosDetalle.length ? 'pt-3 border-t border-slate-100' : ''">
                   <span class="text-[13px] font-semibold text-slate-500">
                     {{ maestroStore.t('res_total_reserva') || 'Total de la reserva' }}
                   </span>
                   <span class="text-[15px] font-black text-gray-900 tabular-nums">{{ formatMonto(finTotal) }}</span>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+              </div>
+
+              <!-- Pagos recibidos, con su fecha y medio -->
+              <div class="mt-5 pt-5 border-t border-dashed border-slate-200">
+                <div v-if="pagosDetalle.length" class="space-y-2 mb-3">
+                  <div v-for="(pago, i) in pagosDetalle" :key="i"
+                       class="flex items-center justify-between gap-4">
+                    <span class="min-w-0 flex items-center gap-2 text-[13px] font-medium text-slate-500">
+                      <i class="fas text-[11px] text-slate-400 shrink-0" :class="iconoMedio(pago.medio)"></i>
+                      <span class="truncate">{{ nombreMedio(pago.medio) }}</span>
+                      <span v-if="pago.fecha" class="text-[11px] text-slate-400 whitespace-nowrap">{{ fechaPago(pago.fecha) }}</span>
+                    </span>
+                    <span class="text-[13px] font-bold text-emerald-600 tabular-nums shrink-0">{{ formatMonto(Number(pago.monto)) }}</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-4"
+                     :class="pagosDetalle.length ? 'pt-3 border-t border-slate-100' : ''">
                   <span class="text-[13px] font-semibold text-slate-500">
                     <i class="fas fa-circle-check text-emerald-500 mr-1.5"></i>{{ maestroStore.t('res_adelanto_pagado') || 'Adelanto pagado' }}
                   </span>

@@ -90,48 +90,69 @@ final class PmsReservaPaxProvider implements ProviderInterface
     private function cifras(PmsInformacionFinanciera $finanzas): array
     {
         $canal = $finanzas->getReserva()?->getChannel()?->getId();
+        $espejo = $canal !== null && in_array($canal, PmsChannel::CANAL_PAGO_TOTAL, true);
 
-        // Canal que no cobra por nosotros: los agregados cacheados de la cabecera
-        // ya son los correctos y no hay nada que recortar.
-        if ($canal === null || !in_array($canal, PmsChannel::CANAL_PAGO_TOTAL, true)) {
-            return [
-                'total'  => $finanzas->getTotalCargos(),
-                'pagado' => $finanzas->getTotalPagos(),
-                'saldo'  => $finanzas->getSaldo(),
-            ];
-        }
+        // El desglose por tipo lo calcula la cabecera: ahí viven las tres reglas
+        // (anulación §12.7, `esCargo()`, `totalLinea ?? monto`) y duplicarlas aquí
+        // era garantía de que se separasen con el tiempo.
+        $cargos = $finanzas->getDesglosePorTipo(excluirEspejoCanal: $espejo);
+        $pagos  = $this->pagosVisibles($finanzas, $espejo);
 
-        // Mismo criterio de importe que PmsInformacionFinanciera::totalPorTipo():
-        // `esCargo()` porque la colección de cargos también trae filas `payment`
-        // de Beds24, y `totalLinea ?? monto` porque el webhook no siempre manda
-        // la primera. Sumar aquí de otra forma daría cifras que no cuadran con
-        // las del panel interno.
-        $total = 0.0;
-        foreach ($finanzas->getCargos() as $cargo) {
-            if ($cargo->isEsAutomatico() || !$cargo->esCargo()) {
-                continue;
-            }
-            $total += (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0');
-        }
-
-        $pagado = 0.0;
-        foreach ($finanzas->getPagos() as $pago) {
-            if ($pago->isEsAutomatico()) {
-                continue;
-            }
-            $pagado += (float) ($pago->getMonto() ?? '0');
-        }
+        $total  = array_sum(array_map('floatval', $cargos));
+        $pagado = array_sum(array_map(static fn (array $p): float => (float) $p['monto'], $pagos));
 
         // Todo lo que había era el espejo del canal: no queda nada que enseñar.
         // La barra llena es puro acuse de recibo ("está cobrado"), sin importes.
-        if ($total <= 0.0) {
+        if ($espejo && $total <= 0.0) {
             return ['soloProgreso' => true];
         }
 
+        // En un canal normal mandan los agregados cacheados de la cabecera. Las
+        // líneas ya vienen en la misma moneda base que ellos, así que suman: no
+        // hay que recalcular nada aquí ni comprobar que cuadren.
         return [
-            'total'  => number_format($total, 2, '.', ''),
-            'pagado' => number_format($pagado, 2, '.', ''),
-            'saldo'  => number_format($total - $pagado, 2, '.', ''),
+            'total'  => $espejo ? number_format($total, 2, '.', '')  : $finanzas->getTotalCargos(),
+            'pagado' => $espejo ? number_format($pagado, 2, '.', '') : $finanzas->getTotalPagos(),
+            'saldo'  => $espejo ? number_format($total - $pagado, 2, '.', '') : $finanzas->getSaldo(),
+            'cargos' => $cargos,
+            'pagos'  => $pagos,
         ];
+    }
+
+    /**
+     * Pagos que el huésped puede ver, del más antiguo al más reciente.
+     *
+     * Viaja el MEDIO (valor del enum, traducible en el front) y la FECHA, no las
+     * notas ni la referencia: son campos libres del operador, en español y con
+     * datos internos. Tampoco el `montoTotalCobrado`, que incluye la comisión de
+     * tarjeta y no es lo que el huésped entregó.
+     *
+     * @return list<array{fecha: string|null, medio: string, monto: string}>
+     */
+    private function pagosVisibles(PmsInformacionFinanciera $finanzas, bool $excluirEspejoCanal): array
+    {
+        $pagos = [];
+
+        foreach ($finanzas->getPagos() as $pago) {
+            if ($excluirEspejoCanal && $pago->isEsAutomatico()) {
+                continue;
+            }
+
+            $pagos[] = [
+                'fecha' => $pago->getFechaPago()?->format('Y-m-d'),
+                'medio' => $pago->getMedioPago()->value,
+                // Convertido a la moneda de la cabecera, como el `total_pagos`
+                // que se muestra debajo. Ver PmsInformacionFinanciera::aMonedaBase().
+                'monto' => $finanzas->convertirAMonedaBase(
+                    (float) $pago->getMonto(),
+                    $pago->getMoneda()?->getId(),
+                    $pago->getTipoCambio(),
+                ),
+            ];
+        }
+
+        usort($pagos, static fn (array $a, array $b): int => ($a['fecha'] ?? '') <=> ($b['fecha'] ?? ''));
+
+        return $pagos;
     }
 }

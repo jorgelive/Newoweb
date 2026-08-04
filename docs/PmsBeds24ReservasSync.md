@@ -1042,10 +1042,29 @@ Si se cambia esa condición hay que tocar **los dos sitios**, o el desglose deja
 `PmsReservaView.vue` (pax) muestra una tarjeta "Estado de cuenta" con total, adelanto, saldo y
 el saldo pagando con tarjeta. Reglas que no se ven en el código:
 
-- **Solo viaja el agregado.** `PmsReservaPaxProvider` decora el Get público por localizador y
-  cuelga `resumenFinanciero` (moneda, símbolo, total, pagado, saldo) como propiedad virtual de
-  `PmsReserva`. El árbol de cargos y pagos (`pms_finanzas:read`) es del panel interno y **nunca**
-  se serializa al cliente. Espejo TS: `PmsResumenFinanciero` en `pax/src/types/paxHuespedModel.ts`.
+- **Viaja el agregado y un desglose, nunca el árbol.** `PmsReservaPaxProvider` decora el Get
+  público por localizador y cuelga `resumenFinanciero` como propiedad virtual de `PmsReserva`:
+  moneda, símbolo, total, pagado, saldo, más `cargos` (agrupados por tipo) y `pagos` (fecha +
+  medio + importe). El árbol real (`pms_finanzas:read`, con descripciones, referencias, notas,
+  IDs de Beds24 y comisiones) es del panel interno y **nunca** se serializa al cliente. Espejo
+  TS: `PmsResumenFinanciero` en `pax/src/types/paxHuespedModel.ts`.
+- **El desglose viaja por TIPO, no por descripción.** Las descripciones las escribe Beds24 en un
+  solo idioma (y son plantillas del estilo `[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]`): no se
+  pueden traducir. Lo que viaja es el **valor del enum** — `PmsTipoCargo` en los cargos,
+  `PmsMedioPago` en los pagos— y el front resuelve la etiqueta por i18n (`res_cargo_*`,
+  `res_medio_*`, sembradas en `Version20260804170000`). Añadir un caso al enum obliga a sembrar
+  su etiqueta **y** a añadirla al mapa de respaldo de `PmsReservaView`.
+- **Las líneas van convertidas a la moneda de la cabecera, igual que el agregado.** Es lo que
+  hace que el desglose SUME el total que se muestra al lado en una reserva con cargos en soles y
+  en dólares. `PmsInformacionFinanciera::aMonedaBase()` es el **espejo en PHP** de
+  `PmsInformacionFinancieraRecalculoService::expresionConvertida()`, que produce
+  `total_cargos` / `total_pagos` en SQL: mismo par de monedas, mismo TC congelado en la línea,
+  mismo `ELSE` sin convertir para un par no contemplado. **Si cambia una, cambia la otra.**
+- **El desglose lo calcula la cabecera, no el provider.** `PmsInformacionFinanciera::getDesglosePorTipo()`
+  concentra las cuatro reglas (anulación §12.7, `esCargo()` porque la colección también trae filas
+  `payment`, `totalLinea ?? monto` porque el webhook no siempre manda la primera, y la conversión
+  de arriba). `getTotalPorTipo()` —que usa la mensajería— es hoy un envoltorio suyo, así que las
+  dos vistas no pueden separarse.
 - **Sin cabecera o con `total_cargos = 0` el campo va `null`** y la tarjeta no se pinta: una
   reserva sin cargos no debe enseñar "total 0.00". Con `activa = false` los caches ya solo suman
   la penalización (§12.7), así que el saldo mostrado sigue siendo el correcto sin lógica extra.

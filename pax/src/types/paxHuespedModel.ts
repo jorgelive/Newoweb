@@ -78,6 +78,27 @@ export interface PmsResumenFinanciero {
     total?: string;
     pagado?: string;
     saldo?: string;
+    /**
+     * Cargos agrupados por tipo: `{ alojamiento: '350.00', limpieza: '15.00' }`.
+     *
+     * La clave es el valor de `PmsTipoCargo` (PHP), **no una descripción**: las
+     * descripciones vienen de Beds24 en un solo idioma y no se pueden traducir.
+     * Con el tipo, el front resuelve la etiqueta por i18n (`res_cargo_*`).
+     *
+     * Llega VACÍO si las líneas no suman el total —cargos en varias monedas—:
+     * un desglose que no cuadra es peor que ninguno.
+     */
+    cargos?: Record<string, string>;
+    /** Pagos visibles, de más antiguo a más reciente. `medio` es `PmsMedioPago`. */
+    pagos?: PmsPagoResumen[];
+}
+
+export interface PmsPagoResumen {
+    /** 'YYYY-MM-DD', o null si el pago no tiene fecha registrada. */
+    fecha: string | null;
+    /** Valor del enum PmsMedioPago; se traduce en el front con `res_medio_*`. */
+    medio: string;
+    monto: string;
 }
 
 export type PmsReserva = Omit<components['schemas']['PmsReserva-pax_reserva.read'], 'eventosActivosGuia'> & {

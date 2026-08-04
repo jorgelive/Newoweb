@@ -199,19 +199,106 @@ class PmsInformacionFinanciera
      */
     public function getTotalPorTipo(PmsTipoCargo $tipo): string
     {
-        if (!$this->activa && $tipo !== PmsTipoCargo::PENALIZACION) {
-            return '0.00';
-        }
+        return $this->getDesglosePorTipo()[$tipo->value] ?? '0.00';
+    }
 
-        $total = 0.0;
+    /**
+     * Desglose de los cargos agrupado por `PmsTipoCargo`, en orden de lectura
+     * (alojamiento → limpieza → servicio → penalización → otro).
+     *
+     * Fuente ÚNICA de las tres reglas del desglose, que antes solo vivían en
+     * getTotalPorTipo() —hoy un envoltorio de este método— y que se habrían
+     * duplicado al necesitarlas también el estado de cuenta del huésped:
+     *
+     *  1. **Anulación (§12.7)**: con `activa = false` sólo cuenta la PENALIZACIÓN.
+     *  2. **`esCargo()`**: la colección también trae filas `payment` de Beds24.
+     *  3. **`totalLinea ?? monto`**: el webhook no siempre manda la primera.
+     *  4. **Conversión a la moneda de la cabecera**, con el TC congelado en cada
+     *     cargo. Sin esto las líneas no sumarían `total_cargos` en una reserva con
+     *     cargos en soles y en dólares, y quien lo lea hará la cuenta.
+     *
+     * Los tipos sin importe NO aparecen en el resultado: quien lo pinta no tiene
+     * que filtrar ceros, y `getTotalPorTipo()` los resuelve con su `?? '0.00'`.
+     *
+     * @param bool $excluirEspejoCanal Deja fuera los cargos marcados como espejo
+     *   contable del canal (Airbnb/VRBO). Lo usa el resumen del huésped, que no
+     *   puede enseñar lo que la OTA nos remite. Ver PmsCargoFinanciero::$esAutomatico.
+     *
+     * @return array<string, string> valor del enum => importe con 2 decimales
+     */
+    public function getDesglosePorTipo(bool $excluirEspejoCanal = false): array
+    {
+        $acumulado = [];
+
         foreach ($this->cargos as $cargo) {
-            if ($cargo->getTipoCargo() !== $tipo || !$cargo->esCargo()) {
+            if (!$cargo->esCargo()) {
                 continue;
             }
-            $total += (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0');
+            if ($excluirEspejoCanal && $cargo->isEsAutomatico()) {
+                continue;
+            }
+
+            $tipo = $cargo->getTipoCargo() ?? PmsTipoCargo::OTRO;
+
+            if (!$this->activa && $tipo !== PmsTipoCargo::PENALIZACION) {
+                continue;
+            }
+
+            $acumulado[$tipo->value] = ($acumulado[$tipo->value] ?? 0.0) + $this->aMonedaBase(
+                (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0'),
+                $cargo->getMoneda()?->getId(),
+                $cargo->getTipoCambio(),
+            );
         }
 
-        return number_format($total, 2, '.', '');
+        // Orden fijo de presentación, no el de llegada de los cargos.
+        $desglose = [];
+        foreach (PmsTipoCargo::cases() as $tipo) {
+            if (isset($acumulado[$tipo->value])) {
+                $desglose[$tipo->value] = number_format($acumulado[$tipo->value], 2, '.', '');
+            }
+        }
+
+        return $desglose;
+    }
+
+    /**
+     * Versión pública y ya formateada de aMonedaBase(), para las líneas que no
+     * pasan por getDesglosePorTipo() — los pagos del estado de cuenta del huésped.
+     */
+    public function convertirAMonedaBase(float $monto, ?string $monedaLinea, ?string $tipoCambio): string
+    {
+        return number_format($this->aMonedaBase($monto, $monedaLinea, $tipoCambio), 2, '.', '');
+    }
+
+    /**
+     * Importe llevado a la moneda de la cabecera con el TC congelado en la línea.
+     *
+     * Espejo EXACTO de PmsInformacionFinancieraRecalculoService::expresionConvertida(),
+     * que es la que produce `total_cargos` / `total_pagos` en SQL. **Si cambia una,
+     * cambia la otra**, o el desglose dejará de sumar el total que se muestra al lado.
+     *
+     * Sin moneda se asume USD (regla de negocio: Beds24 no manda moneda en los
+     * invoiceItems). Un par de monedas no contemplado se deja sin convertir, igual
+     * que el `ELSE` del SQL: es preferible una cifra sin convertir a un cero.
+     */
+    private function aMonedaBase(float $monto, ?string $monedaLinea, ?string $tipoCambio): float
+    {
+        $origen = $monedaLinea ?? 'USD';
+        $base = $this->moneda?->getId() ?? 'USD';
+        $tc = (float) ($tipoCambio ?? '0');
+
+        if ($origen === $base) {
+            return $monto;
+        }
+        if ($origen === 'USD' && $base === 'PEN') {
+            return $monto * $tc;
+        }
+        if ($origen === 'PEN' && $base === 'USD') {
+            return $tc !== 0.0 ? $monto / $tc : 0.0;
+        }
+
+        return $monto;
     }
 
     /**
