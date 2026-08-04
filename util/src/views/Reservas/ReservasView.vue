@@ -304,6 +304,8 @@ interface MenuState {
     kind: 'event' | 'create' | 'whatsapp';
     eventProps?: PmsEventoExtendedProps;
     unidadId?: string;
+    /** Nombre de la casita sobre la que se tocó, para encabezar el menú. */
+    unidadNombre?: string;
     fecha?: Date;
 }
 const menu = ref<MenuState | null>(null);
@@ -345,7 +347,10 @@ function avisar(mensaje: string): void {
 
 // Tamaño aproximado del menú, para que nunca se salga de la pantalla.
 const MENU_ANCHO = 240;
-const MENU_ALTO = 260;
+// Alto aproximado del menú más largo (el de creación: cabecera + tarifa + 3 opciones).
+// Solo sirve para que el menú no nazca fuera de la pantalla; pasarse un poco es
+// inofensivo, quedarse corto lo deja recortado abajo.
+const MENU_ALTO = 320;
 const MENU_BORDE = 8;
 
 /**
@@ -449,10 +454,31 @@ function onDateClick(info: DateClickArg): void {
     const resourceId = info.resource?.id;
     if (!resourceId) return;
     const { x, y } = posicionMenu(info.jsEvent);
-    menu.value = { x, y, kind: 'create', unidadId: resourceId, fecha: info.date };
+    menu.value = {
+        x, y,
+        kind: 'create',
+        unidadId: resourceId,
+        unidadNombre: info.resource?.title,
+        fecha: info.date,
+    };
     limpiarMenuReserva();
     cargarTarifaDelDia(resourceId, fromDateLocal(info.date));
 }
+
+/**
+ * Día tocado, en largo: «mar, 11 de agosto de 2026».
+ *
+ * Encabeza el menú de creación porque en una rejilla de 31 columnas el clic es
+ * fácil de errar por una celda, y el resto del menú (tarifa, «Crear Reserva»)
+ * no da ninguna pista de sobre qué día se está actuando.
+ */
+const menuFechaLarga = computed(() => {
+    const fecha = menu.value?.fecha;
+    if (!fecha) return '';
+    return fecha.toLocaleDateString('es-PE', {
+        weekday: 'short', day: 'numeric', month: 'long', year: 'numeric',
+    });
+});
 
 function cerrarMenu(): void {
     menu.value = null;
@@ -936,6 +962,18 @@ const calendarOptions: CalendarOptions = {
                     </a>
                 </template>
                 <template v-else>
+                    <!-- Sobre qué se está actuando. En una rejilla de 31 columnas el
+                         clic se falla por una celda con facilidad, y ni la tarifa ni
+                         «Crear Reserva» dicen a qué día y casita apuntan. -->
+                    <div class="px-4 pt-2 pb-2.5 border-b border-slate-100">
+                        <p class="text-sm font-black text-slate-800 leading-tight truncate">
+                            <i class="fas fa-home mr-1.5 text-slate-300"></i>{{ menu.unidadNombre || 'Casita' }}
+                        </p>
+                        <p class="text-[11px] font-bold text-slate-500 mt-0.5 first-letter:uppercase">
+                            {{ menuFechaLarga }}
+                        </p>
+                    </div>
+
                     <!-- Precio vigente de esa casita ese día (rango ganador) -->
                     <div class="px-4 py-2 border-b border-slate-100">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tarifa del día</p>

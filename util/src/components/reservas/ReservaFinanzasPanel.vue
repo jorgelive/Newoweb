@@ -244,8 +244,20 @@ async function cambiarMonedaBase(nueva: string): Promise<void> {
     }
 }
 
-/** El saldo manda el color del resumen: en verde si ya no se debe nada. */
 const saldoPositivo = computed(() => totalesVista.value.saldo > 0.005);
+
+/**
+ * Color del SALDO, con el criterio contable: rojo lo que se debe, azul lo saldado.
+ *
+ * El verde queda reservado al dinero que YA entró (cargos cobrados, pagos), así
+ * que un saldo cero en verde daba tres cifras verdes seguidas y había que leer
+ * las etiquetas para distinguirlas. En azul acero, «no se debe nada» se ve de un
+ * vistazo y no compite con la paleta de marca (teal #376875 / naranja #E07845).
+ *
+ * Se define aquí, y no suelto en cada plantilla, porque el saldo se pinta en dos
+ * sitios —la cabecera plegada y el detalle— y tienen que decir lo mismo.
+ */
+const claseSaldo = computed(() => (saldoPositivo.value ? 'text-rose-600' : 'text-[#3E6D9C]'));
 
 /**
  * Activa/anula el cobro de la reserva (§12.7). Anular NO borra nada: los cargos siguen
@@ -747,14 +759,15 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
             </span>
 
             <!-- Sin etiquetas: en móvil no cabían. El color ya dice qué es cada cifra —
-                 arriba en verde lo que vale la reserva, abajo en rojo lo que falta cobrar.
+                 arriba en verde lo que vale la reserva, abajo el saldo: rojo si falta
+                 cobrar, azul acero si está saldado (ver `claseSaldo`).
                  `tabular-nums` mantiene las dos alineadas al apilarlas. -->
             <span v-if="finanzas.info" class="flex flex-col items-end gap-0.5 shrink-0">
                 <span class="px-2 py-0.5 rounded-md bg-white text-emerald-600 text-[11px] font-black tabular-nums">
                     {{ importeVista(totalesVista.cargos) }}
                 </span>
                 <span class="px-2 py-0.5 rounded-md bg-white text-[11px] font-black tabular-nums"
-                    :class="saldoPositivo ? 'text-rose-600' : 'text-emerald-600'">
+                    :class="claseSaldo">
                     {{ importeVista(totalesVista.saldo) }}
                 </span>
             </span>
@@ -813,7 +826,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </div>
                     <div class="px-3 py-3 text-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Saldo</p>
-                        <p class="text-sm font-black mt-0.5" :class="saldoPositivo ? 'text-rose-600' : 'text-emerald-600'">
+                        <p class="text-sm font-black mt-0.5" :class="claseSaldo">
                             {{ importeVista(totalesVista.saldo) }}
                         </p>
                     </div>
