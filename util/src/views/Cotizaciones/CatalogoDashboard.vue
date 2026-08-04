@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { apiClient, getUrls } from '@/services/apiClient';
 import { thumbUrl } from '@/services/imageThumb';
 import {
@@ -220,6 +221,10 @@ const fetchCatalogos = async () => {
   }
 };
 
+/** ¿Está desplegado este catálogo? Se consultaba repitiendo la comparación. */
+const estaAbierto = (cat: CatalogoResumen): boolean =>
+    !!seleccionado.value && extractId(seleccionado.value) === extractId(cat);
+
 const seleccionar = async (cat: CatalogoResumen) => {
   if (seleccionado.value && extractId(seleccionado.value) === extractId(cat)) {
     seleccionado.value = null;
@@ -303,9 +308,7 @@ onMounted(() => {
 
     <header class="bg-slate-900 text-white px-4 md:px-8 py-4 flex items-center justify-between shadow-md">
       <div class="flex items-center gap-3">
-        <button @click="router.push('/')" title="Volver al inicio" class="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
-          <i class="fas fa-home text-sm"></i>
-        </button>
+        <AppSwitcher />
         <div>
           <h1 class="font-black text-lg md:text-xl tracking-tight leading-none">Catálogos de Tours</h1>
           <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Producto Pre-armado por Segmento</p>
@@ -356,7 +359,7 @@ onMounted(() => {
       <div v-else class="space-y-4">
         <div v-for="(cat, catIdx) in catalogos" :key="extractId(cat)"
              class="bg-white border-2 rounded-2xl shadow-sm overflow-hidden transition-all"
-             :class="seleccionado && extractId(seleccionado) === extractId(cat) ? 'border-[#376875]' : 'border-slate-200 hover:border-[#376875]/40'">
+             :class="estaAbierto(cat) ? 'border-[#376875]' : 'border-slate-200 hover:border-[#376875]/40'">
 
           <div @click="seleccionar(cat)" class="p-5 cursor-pointer flex flex-wrap items-center gap-3 justify-between">
             <!-- flex-1 para que el nombre se recorte antes de empujar la barra de acciones,
@@ -425,13 +428,31 @@ onMounted(() => {
                       class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
               </button>
 
-              <i class="fas fa-chevron-down text-slate-300 ml-1 transition-transform"
-                 :class="seleccionado && extractId(seleccionado) === extractId(cat) ? 'rotate-180' : ''"></i>
+              <!-- Desplegar es una ACCIÓN con su botón, no un misterio del clic en la
+                   fila: el chevron vivía dentro de esta barra, que corta la propagación
+                   con `@click.stop`, así que era justo la zona donde uno lo intenta y
+                   NO pasaba nada. Lleva etiqueta en pantallas anchas para que se lea
+                   qué hace, y el clic en el resto de la fila sigue funcionando. -->
+              <button type="button" @click.stop="seleccionar(cat)"
+                      :aria-expanded="estaAbierto(cat)"
+                      :title="estaAbierto(cat) ? 'Ocultar los tours' : 'Ver los tours de este catálogo'"
+                      class="h-9 pl-3 pr-2.5 ml-1 flex items-center gap-2 rounded-lg border transition-colors shadow-sm text-[10px] font-black uppercase tracking-widest"
+                      :class="estaAbierto(cat)
+                        ? 'bg-[#376875] border-[#376875] text-white hover:bg-[#2c5560]'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'">
+                <span class="hidden sm:inline">{{ estaAbierto(cat) ? 'Contraer' : 'Expandir' }}</span>
+                <!-- Plegado, la flecha da un salto corto cada 2,6 s: llama la atención sin
+                     el ruido de un parpadeo, que en una lista de tarjetas cansa enseguida.
+                     Al expandir se cambia la animación por el giro de 180° — las dos usan
+                     `transform` y no pueden convivir. -->
+                <i class="fas fa-chevron-down text-xs transition-transform duration-200"
+                   :class="estaAbierto(cat) ? 'rotate-180' : 'flecha-llamada'"></i>
+              </button>
             </div>
           </div>
 
           <!-- Tours del catálogo seleccionado -->
-          <div v-if="seleccionado && extractId(seleccionado) === extractId(cat)" class="border-t border-slate-100 bg-slate-50/60 p-5">
+          <div v-if="estaAbierto(cat)" class="border-t border-slate-100 bg-slate-50/60 p-5">
 
             <div class="flex items-center justify-between gap-3 mb-4">
               <div class="min-w-0">
@@ -635,3 +656,25 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/*
+  Salto discreto de la flecha «Expandir»: la mayor parte del ciclo está quieta y
+  solo baja 3 px al final, así que se percibe como un guiño, no como un aviso.
+  Se detiene sola en cuanto la tarjeta se despliega (la clase deja de aplicarse).
+*/
+@keyframes flechaLlamada {
+    0%, 80%, 100% { transform: translateY(0); }
+    88%           { transform: translateY(3px); }
+    94%           { transform: translateY(0); }
+}
+
+.flecha-llamada {
+    animation: flechaLlamada 2.6s ease-in-out infinite;
+}
+
+/* Quien pide menos movimiento en el sistema no debería ver nada moverse solo. */
+@media (prefers-reduced-motion: reduce) {
+    .flecha-llamada { animation: none; }
+}
+</style>

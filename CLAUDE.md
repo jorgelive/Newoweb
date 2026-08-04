@@ -41,7 +41,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Pms/`, `src/Exchange/` (reservas, webhooks, push/pull Beds24) | `docs/PmsBeds24ReservasSync.md` |
 | `src/Calendar/`, vistas de calendario de `util/` (Reservas, Tarifas) | `docs/Calendar_architecture.md` |
 | `src/Cotizacion/`, cotizaciones y catálogo en `util/` y `pax/` | `docs/Cotizaciones.md` |
-| `util/src/components/common/` (componentes de UI reutilizables entre módulos) | `docs/UI_Componentes_Compartidos.md` |
+| `util/src/components/common/`, `util/src/types/modulosApp.ts` (UI y navegación reutilizables entre módulos) | `docs/UI_Componentes_Compartidos.md` |
 | `src/Operacion/`, La Biblia y Órdenes de Servicio en `util/` | `docs/Operacion.md` |
 | `src/Pms/Guia/`, entidades `PmsGuia*`, guía del huésped y catálogo en `pax/` | `docs/PmsGuiaHuesped.md` |
 

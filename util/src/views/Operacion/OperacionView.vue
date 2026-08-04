@@ -14,6 +14,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion } from '@/stores/operacion/operacionStore';
+import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
     getEstadoOsConfig,
@@ -404,27 +405,24 @@ onMounted(cargarBiblia);
         <!-- ================================================================
              HEADER
              ================================================================ -->
-        <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md shrink-0">
-            <div class="flex items-center gap-3">
-                <button
-                    @click="router.push('/')"
-                    title="Volver al inicio"
-                    class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors"
-                >
-                    <i class="fas fa-home text-sm"></i>
-                </button>
-                <div class="overflow-hidden">
-                    <h1 class="font-black text-base md:text-xl tracking-tight leading-none">
+        <!-- En móvil la cabecera va en DOS filas: con el título y las pestañas en
+             la misma, el título se partía en varias líneas de dos palabras. Desde
+             `md` vuelve a ser una sola fila. -->
+        <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3 z-20 shadow-md shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <AppSwitcher />
+                <div class="min-w-0">
+                    <h1 class="font-black text-base md:text-xl tracking-tight leading-none truncate">
                         Centro de Operaciones
                     </h1>
-                    <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1 truncate">
                         Tráfico · Órdenes de Servicio
                     </p>
                 </div>
             </div>
 
             <!-- Tabs como segmented control -->
-            <div class="flex items-center bg-slate-800 rounded-lg p-1 gap-1">
+            <div class="flex items-center bg-slate-800 rounded-lg p-1 gap-1 shrink-0 self-start md:self-auto">
                 <button
                     @click="cambiarTab('biblia')"
                     :class="activeTab === 'biblia' ? 'bg-[#376875] text-white shadow' : 'text-slate-400 hover:text-white'"

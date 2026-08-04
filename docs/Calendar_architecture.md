@@ -722,6 +722,31 @@ Puntos que costaron y conviene no re-descubrir:
 - **`generar-masivo` delega en `GeneradorTarifaMasivaService`**, el mismo servicio que
   usa EasyAdmin: el processor solo traduce el payload HTTP al DTO interno.
 
+#### El portal también consume el feed: panel «Hoy» de HomeView
+
+`HomeView` abre con dos tarjetas —**Check-in** y **Check-out** del día— que salen del mismo
+`/fullcalendar/load/event/pms_eventos_ocupacion_spa`, **no de un endpoint nuevo**: el backend ya
+resuelve ahí el solape con el rango y manda cliente, casita y pax en `extendedProps`. Es el
+tercer consumidor de esa clave, después del fondo beige de Tarifas.
+
+- Se pide `[hoy, mañana)` y se clasifica en el front: `start` del día → llega, `end` del día →
+  sale. Una estancia larga aparece solo el día que entra y el día que se va.
+- **El día se compara por string** (`slice(0, 10)`), nunca con `new Date()`: el feed manda hora
+  local sin zona y construir un `Date` para leer el día es lo que produce el clásico desfase de
+  un día en UTC-5.
+- Hereda el criterio de `PmsEventoEstado::OCUPAN_UNIDAD`: un bloqueo o un *inquiry* no son un
+  check-in. Cambiar qué cuenta como llegada se hace en esa constante, no en la vista.
+- El fetch solo se lanza **con sesión activa**; si no, el 401 abriría el modal de login nada más
+  entrar al portal. Un fallo deja las tarjetas vacías y no avisa: el portal tiene que seguir
+  siendo navegable.
+- **Cada fila abre la ficha**: navega a `/reservas?evento=<id>[&reserva=<id>]` y `ReservasView`
+  despliega el drawer en modo LECTURA desde su `onMounted`. Viajan ids por la query —y no un
+  objeto por `state`— porque el drawer solo necesita eso (`abrirEdicion()` usa
+  `eventoId`/`reservaId`) y así el enlace es compartible y sobrevive a un refresco.
+  `ReservasView` **limpia la query** con un `replace` en cuanto abre: si no, cerrar la ficha y
+  volver atrás la reabriría.
+- En las salidas la hora que se pinta es la de **fin** de la estancia, no la de inicio.
+
 #### Ocupación de fondo en el calendario de tarifas
 
 Tarifar a ciegas era el problema: la grilla mostraba precios pero no qué días están vendidos,

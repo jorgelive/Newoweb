@@ -135,6 +135,12 @@ secuencia que vende es una decisión de producto. Dentro de cada bloque manda `o
 multiidioma. Añadir un caso al enum obliga a sembrar su etiqueta **y** a añadirla al mapa de
 respaldo de `CatalogoUnidadView`.
 
+> `cat_bloque_destacado` es el caso raro: **tiene etiqueta pero la página no la pinta**. Se
+> sembró vacía y luego se le puso texto («Lo destacado», `Version20260804220000`) porque en el
+> editor la fila salía en blanco y no se sabía qué se estaba editando. Que ese bloque encabece
+> sin título lo decide `esDestacado()` en `CatalogoUnidadView`, no el contenido de la semilla:
+> vaciarla otra vez no cambiaría nada en la página pública.
+
 > **La red de seguridad no cambia.** `PmsUnidadCatalogoProvider` construye
 > `PmsGuiaAcceso::publico()` y un `PmsGuiaContexto` **sin estancia**, así que no se carga ni una
 > credencial en memoria y cualquier `{{ door_code }}` se sirve con el mensaje de bloqueo.

@@ -33,6 +33,7 @@ import {
 } from '@/types/calendarFeedModel';
 import { extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useTarifasStore } from '@/stores/tarifas/tarifasStore';
+import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import TarifaEditDrawer from '@/components/tarifas/TarifaEditDrawer.vue';
 import TarifaMasivaDrawer from '@/components/tarifas/TarifaMasivaDrawer.vue';
 import {
@@ -731,14 +732,15 @@ const calendarOptions = computed<CalendarOptions>(() => ({
 
 <template>
     <div class="h-screen bg-[#F8FAFC] flex flex-col font-sans overflow-hidden">
-        <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between gap-3 z-20 shadow-md shrink-0">
+        <!-- En móvil la cabecera va en DOS filas: con el título y las acciones en
+             la misma, el título se partía en cuatro líneas de dos palabras. Desde
+             `md` vuelve a ser una sola fila. -->
+        <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3 z-20 shadow-md shrink-0">
             <div class="flex items-center gap-3 min-w-0">
-                <button @click="router.push('/')" title="Volver al inicio" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors shrink-0">
-                    <i class="fas fa-home text-sm"></i>
-                </button>
-                <div class="overflow-hidden">
-                    <h1 class="font-black text-base md:text-xl tracking-tight leading-none">Calendario de Tarifas</h1>
-                    <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                <AppSwitcher />
+                <div class="min-w-0">
+                    <h1 class="font-black text-base md:text-xl tracking-tight leading-none truncate">Calendario de Tarifas</h1>
+                    <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1 truncate">
                         PMS · Precios y estancia mínima
                     </p>
                 </div>

@@ -1,19 +1,26 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useChatStore } from '@/stores/chat/chatStore.ts';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { isSessionExpired } from '@/services/sessionAuth';
+import { MODULOS_APP } from '@/types/modulosApp';
+import { apiClient } from '@/services/apiClient';
+import { coleccionFeed, type CalendarEventoFeed } from '@/types/calendarFeedModel';
+import type { PmsEventoExtendedProps } from '@/types/pmsReservaModel';
+// La clave del calendario de ocupación vive en el modelo de tarifas porque nació
+// allí (el fondo beige del calendario de precios). Aquí sirve para lo mismo que
+// allá: son las estancias que OCUPAN la casita —pendiente, confirmada o
+// requerimiento—, que son justo las que llegan y salen de verdad.
+import { PMS_OCUPACION_CALENDARIO_KEY, fromDateLocal, sumarDias } from '@/types/pmsTarifaModel';
 
+const router = useRouter();
 const store = useChatStore();
 const notificationStore = useNotificationStore();
 
-// ============================================================================
-// MÓDULOS DEL PORTAL, AGRUPADOS POR NEGOCIO
-//
-// Son dos negocios distintos con equipos y rutinas distintas —el alojamiento
-// (PMS) y la agencia de viajes—, así que la rejilla plana obligaba a leer las
-// seis tarjetas para encontrar la propia. Ahora cada bloque lleva su encabezado
-// y su color: teal el PMS, naranja Viajes.
+// Los módulos y su agrupación viven en `@/types/modulosApp`: los comparte el
+// selector de la cabecera de cada vista (AppSwitcher), para que saltar de un
+// módulo a otro no obligue a volver aquí. Añadir uno se hace allí, no aquí.
 //
 // `destacado` marca la puerta de entrada de cada bloque (Reservas y
 // Cotizaciones, las de uso diario): en el mosaico es la pieza 2x2 pintada en
@@ -21,82 +28,95 @@ const notificationStore = useNotificationStore();
 // planas a su derecha. Es una jerarquía visual, no un permiso: todas las piezas
 // llevan al mismo sitio de siempre. `iconBg`/`iconColor` solo los usan las
 // planas; en la grande el icono va sobre un velo blanco.
+const secciones = MODULOS_APP;
+
 // ============================================================================
-interface Modulo {
-  to: string;
-  title: string;
-  icon: string;
-  desc: string;
-  iconBg: string;
-  iconColor: string;
-  bar: string;
-  titleHover: string;
-  /** Tarjeta ancha y resaltada: el módulo que se abre a diario. */
-  destacado?: boolean;
+// PANEL DE HOY — LLEGADAS Y SALIDAS
+//
+// Sale del MISMO feed que pinta el calendario de Reservas
+// (`/fullcalendar/load/event/...`), no de un endpoint nuevo: el backend ya
+// resuelve ahí el solape con el día y manda cliente, casita y pax en
+// `extendedProps`. Se pide el rango [hoy, mañana) y se clasifica por el día de
+// `start` (llega) y de `end` (sale) — una estancia larga aparece en el panel
+// solo el día que entra y el día que se va, que es lo que se quiere ver.
+//
+// El día se compara por STRING (`slice(0, 10)`): el feed manda hora local sin
+// zona y pasarlo por `new Date()` para leer el día es justo lo que produce
+// desfases de un día en UTC-5.
+// ============================================================================
+type EventoHoy = CalendarEventoFeed<PmsEventoExtendedProps>;
+
+interface FilaHoy {
+    id: string;
+    /** Ids con los que Reservas abre la ficha; ver `verEnReservas()`. */
+    eventoId: string;
+    reservaId: string | null;
+    hora: string;
+    cliente: string;
+    unidad: string;
+    pax: number;
 }
 
-interface SeccionModulos {
-  titulo: string;
-  desc: string;
-  /** Color del encabezado del bloque (identidad del negocio). */
-  color: string;
-  modulos: Modulo[];
+const hoyIso = fromDateLocal(new Date());
+const cargandoHoy = ref(true);
+const llegadasHoy = ref<FilaHoy[]>([]);
+const salidasHoy = ref<FilaHoy[]>([]);
+
+const fechaHoyLarga = new Date().toLocaleDateString('es-PE', {
+    weekday: 'long', day: 'numeric', month: 'long',
+});
+
+function aFila(ev: EventoHoy, instante: string): FilaHoy {
+    const p = ev.extendedProps;
+    return {
+        id: String(ev.id),
+        eventoId: p?.eventoId ?? String(ev.id),
+        reservaId: p?.reservaId ?? null,
+        // 'YYYY-MM-DDTHH:mm:ss' -> 'HH:mm', sin construir un Date.
+        hora: instante.slice(11, 16),
+        cliente: p?.cliente || 'Sin nombre',
+        unidad: p?.unidad || '—',
+        pax: p?.pax ?? 0,
+    };
 }
 
-const secciones: SeccionModulos[] = [
-  {
-    titulo: 'Alojamiento',
-    desc: 'PMS · Casitas',
-    color: 'text-[#376875]',
-    modulos: [
-      {
-        to: '/reservas', title: 'Reservas', icon: 'fa-calendar-days',
-        desc: 'Calendario PMS: estancias, bloqueos y disponibilidad por unidad.',
-        iconBg: 'bg-[#376875]', iconColor: 'text-white',
-        bar: 'bg-[#376875]', titleHover: 'group-hover:text-[#376875]',
-        destacado: true,
-      },
-      {
-        to: '/tarifas', title: 'Tarifas', icon: 'fa-tags',
-        desc: 'Rangos de precio y estancia mínima por unidad, con push automático a Beds24.',
-        iconBg: 'bg-[#376875]/10', iconColor: 'text-[#376875]',
-        bar: 'bg-[#376875]', titleHover: 'group-hover:text-[#376875]',
-      },
-      {
-        to: '/chat', title: 'Chat Inbox', icon: 'fa-comments',
-        desc: 'Mensajería omnicanal con huéspedes: Beds24, Airbnb y WhatsApp en una sola bandeja.',
-        iconBg: 'bg-slate-900', iconColor: 'text-white',
-        bar: 'bg-slate-900', titleHover: 'group-hover:text-slate-900',
-      },
-    ],
-  },
-  {
-    titulo: 'Viajes',
-    desc: 'Agencia · Tours',
-    color: 'text-[#E07845]',
-    modulos: [
-      {
-        to: '/cotizacion', title: 'Cotizaciones', icon: 'fa-file-invoice-dollar',
-        desc: 'Motor de armado de propuestas, tarifas y cálculo financiero por expediente.',
-        iconBg: 'bg-[#E07845]', iconColor: 'text-white',
-        bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
-        destacado: true,
-      },
-      {
-        to: '/operacion', title: 'Operaciones', icon: 'fa-car-side',
-        desc: 'Centro de operaciones: logística, proveedores y ejecución día a día.',
-        iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
-        bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
-      },
-      {
-        to: '/catalogo', title: 'Catálogo de Tours', icon: 'fa-book-open',
-        desc: 'Producto pre-armado por segmento, listo para cotizar en minutos.',
-        iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
-        bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
-      },
-    ],
-  },
-];
+async function cargarPanelHoy(): Promise<void> {
+    cargandoHoy.value = true;
+    try {
+        const r = await apiClient.get(`/fullcalendar/load/event/${PMS_OCUPACION_CALENDARIO_KEY}`, {
+            params: { start: hoyIso, end: sumarDias(hoyIso, 1), _t: Date.now() },
+        });
+        const eventos = coleccionFeed<EventoHoy>(r.data);
+
+        llegadasHoy.value = eventos.filter(e => e.start.slice(0, 10) === hoyIso)
+            .map(e => aFila(e, e.start))
+            .sort((a, b) => a.hora.localeCompare(b.hora));
+        // Ojo: en las salidas la hora que importa es la de FIN de la estancia.
+        salidasHoy.value = eventos.filter(e => e.end.slice(0, 10) === hoyIso)
+            .map(e => aFila(e, e.end))
+            .sort((a, b) => a.hora.localeCompare(b.hora));
+    } catch {
+        // Sin sesión o con la API caída, el portal tiene que seguir siendo
+        // navegable: el panel se queda vacío y no se avisa de nada.
+        llegadasHoy.value = [];
+        salidasHoy.value = [];
+    } finally {
+        cargandoHoy.value = false;
+    }
+}
+
+/**
+ * Abre la estancia en el calendario de Reservas, con su ficha ya desplegada en
+ * modo lectura. Los ids viajan por la query porque el drawer de Reservas solo
+ * necesita eso (`abrirEdicion()` usa `eventoId`/`reservaId`), y así el enlace es
+ * compartible y sobrevive a un refresco.
+ */
+function verEnReservas(fila: FilaHoy): void {
+    router.push({
+        path: '/reservas',
+        query: { evento: fila.eventoId, ...(fila.reservaId ? { reserva: fila.reservaId } : {}) },
+    });
+}
 
 const isSessionActive = ref(false);
 const isCheckingSession = ref(true);
@@ -110,6 +130,11 @@ onMounted(async () => {
   isCheckingSession.value = true;
   isSessionActive.value = await store.checkSession();
   isCheckingSession.value = false;
+
+  // Solo con sesión: sin ella el feed responde 401 y el interceptor abriría el
+  // modal de login nada más entrar al portal.
+  if (isSessionActive.value) await cargarPanelHoy();
+  else cargandoHoy.value = false;
 });
 
 /**
@@ -189,9 +214,11 @@ const handleLogout = async () => {
           <div class="w-11 h-11 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-900/20">
             <i class="fas fa-satellite-dish text-lg text-white" aria-hidden="true"></i>
           </div>
-          <div class="leading-none">
-            <p class="font-black text-slate-900 tracking-tight">OpenPeru</p>
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Portal Interno</p>
+          <div class="leading-tight min-w-0">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">OpenPeru</p>
+            <p class="text-lg md:text-2xl font-black text-slate-900 tracking-tighter">
+              Centro de <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#376875] to-[#E07845]">control</span>
+            </p>
           </div>
         </div>
 
@@ -220,17 +247,93 @@ const handleLogout = async () => {
       </header>
 
       <!-- Contenido principal -->
-      <main class="flex-1 w-full max-w-6xl mx-auto px-6 py-10 md:py-16 flex flex-col justify-center">
+      <main class="flex-1 w-full max-w-6xl mx-auto px-6 py-6 md:py-10 flex flex-col justify-center">
 
-        <div class="mb-10 md:mb-14 max-w-2xl">
-          <h1 class="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter mb-4">
-            Centro de <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#376875] to-[#E07845]">control</span>
-          </h1>
-          <p class="text-base md:text-lg text-slate-500 font-medium leading-relaxed">
-            Todo tu ecosistema operativo en un solo lugar: el PMS de las casitas y la operación
-            de viajes, cada uno con sus herramientas a un clic.
-          </p>
-        </div>
+        <!-- PANEL DE HOY: lo primero que se mira al entrar. Llegadas y salidas
+             del día salen del feed del calendario de Reservas (ver el script). -->
+        <section class="mb-8 md:mb-10">
+          <div class="flex items-baseline gap-3 mb-4">
+            <h2 class="text-sm font-black uppercase tracking-[0.18em] text-slate-900">Hoy</h2>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 first-letter:uppercase">{{ fechaHoyLarga }}</span>
+            <span class="flex-1 h-px bg-slate-200"></span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <!-- LLEGADAS -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+              <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+                <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <i class="fas fa-right-to-bracket text-sm" aria-hidden="true"></i>
+                </span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-black text-slate-900 leading-none">Check-in</p>
+                  <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Llegan hoy</p>
+                </div>
+                <span class="text-2xl font-black text-slate-900 tabular-nums">{{ llegadasHoy.length }}</span>
+              </div>
+
+              <div v-if="cargandoHoy" class="px-5 py-6 text-sm font-bold text-slate-400">
+                <i class="fas fa-circle-notch fa-spin mr-2" aria-hidden="true"></i> Cargando…
+              </div>
+              <p v-else-if="!llegadasHoy.length" class="px-5 py-6 text-sm font-bold text-slate-400">
+                Sin llegadas hoy.
+              </p>
+              <ul v-else class="divide-y divide-slate-50">
+                <li v-for="fila in llegadasHoy" :key="fila.id">
+                  <button type="button" @click="verEnReservas(fila)"
+                    class="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition-colors">
+                  <span class="text-xs font-black text-emerald-600 tabular-nums w-11 shrink-0">{{ fila.hora }}</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-bold text-slate-800 truncate">{{ fila.cliente }}</span>
+                    <span class="block text-[11px] font-bold text-slate-400 truncate">{{ fila.unidad }}</span>
+                  </span>
+                  <span v-if="fila.pax" class="text-[11px] font-black text-slate-500 shrink-0">
+                    <i class="fas fa-user text-[9px] mr-1 text-slate-300" aria-hidden="true"></i>{{ fila.pax }}
+                  </span>
+                  <i class="fas fa-chevron-right text-[10px] text-slate-300 shrink-0" aria-hidden="true"></i>
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <!-- SALIDAS -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+              <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+                <span class="w-9 h-9 rounded-xl bg-[#E07845]/10 text-[#E07845] flex items-center justify-center shrink-0">
+                  <i class="fas fa-right-from-bracket text-sm" aria-hidden="true"></i>
+                </span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-black text-slate-900 leading-none">Check-out</p>
+                  <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Salen hoy</p>
+                </div>
+                <span class="text-2xl font-black text-slate-900 tabular-nums">{{ salidasHoy.length }}</span>
+              </div>
+
+              <div v-if="cargandoHoy" class="px-5 py-6 text-sm font-bold text-slate-400">
+                <i class="fas fa-circle-notch fa-spin mr-2" aria-hidden="true"></i> Cargando…
+              </div>
+              <p v-else-if="!salidasHoy.length" class="px-5 py-6 text-sm font-bold text-slate-400">
+                Sin salidas hoy.
+              </p>
+              <ul v-else class="divide-y divide-slate-50">
+                <li v-for="fila in salidasHoy" :key="fila.id">
+                  <button type="button" @click="verEnReservas(fila)"
+                    class="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition-colors">
+                  <span class="text-xs font-black text-[#E07845] tabular-nums w-11 shrink-0">{{ fila.hora }}</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-bold text-slate-800 truncate">{{ fila.cliente }}</span>
+                    <span class="block text-[11px] font-bold text-slate-400 truncate">{{ fila.unidad }}</span>
+                  </span>
+                  <span v-if="fila.pax" class="text-[11px] font-black text-slate-500 shrink-0">
+                    <i class="fas fa-user text-[9px] mr-1 text-slate-300" aria-hidden="true"></i>{{ fila.pax }}
+                  </span>
+                  <i class="fas fa-chevron-right text-[10px] text-slate-300 shrink-0" aria-hidden="true"></i>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
 
         <!-- Mosaico de piezas desiguales, estilo Windows: el módulo de uso diario
              es una pieza 2x2 en color pleno y los otros dos, piezas planas a su
@@ -247,14 +350,15 @@ const handleLogout = async () => {
             <span class="flex-1 h-px bg-slate-200"></span>
           </div>
 
-          <div class="grid grid-cols-2 lg:grid-cols-4 auto-rows-[8.5rem] md:auto-rows-[9rem] gap-3 md:gap-4">
+          <!-- Alturas: ver el comentario de arriba sobre las piezas cuadradas. -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 auto-rows-[9.5rem] lg:auto-rows-[7.5rem] gap-3">
 
             <RouterLink
               v-for="mod in seccion.modulos" :key="mod.to" :to="mod.to"
-              class="module-card group relative rounded-3xl overflow-hidden flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+              class="module-card group relative rounded-3xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
               :class="mod.destacado
-                ? ['col-span-2 row-span-2 p-6 text-white shadow-lg', mod.bar]
-                : 'col-span-1 lg:col-span-2 p-4 md:p-5 bg-white border border-slate-100 shadow-sm'"
+                ? ['col-span-2 row-span-2 p-5 justify-center gap-3 text-white shadow-lg', mod.bar]
+                : 'col-span-1 lg:col-span-2 p-4 justify-between bg-white border border-slate-100 shadow-sm'"
             >
               <!-- Solo en las planas: el filo de color que aparece al pasar por
                    encima. La grande no lo necesita, ya ES el color. -->
@@ -262,8 +366,8 @@ const handleLogout = async () => {
 
               <div class="flex items-start justify-between gap-3">
                 <div class="rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3"
-                  :class="mod.destacado ? 'w-14 h-14 bg-white/15' : ['w-11 h-11', mod.iconBg]">
-                  <i class="fas" :class="[mod.icon, mod.destacado ? 'text-2xl text-white' : ['text-xl', mod.iconColor]]" aria-hidden="true"></i>
+                  :class="mod.destacado ? 'w-12 h-12 bg-white/15' : ['w-10 h-10', mod.iconBg]">
+                  <i class="fas" :class="[mod.icon, mod.destacado ? 'text-xl text-white' : ['text-lg', mod.iconColor]]" aria-hidden="true"></i>
                 </div>
                 <span v-if="mod.destacado" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-[9px] font-black uppercase tracking-widest text-white/90">
                   <i class="fas fa-star text-[8px]" aria-hidden="true"></i> Uso diario
@@ -272,7 +376,7 @@ const handleLogout = async () => {
 
               <div>
                 <h3 class="font-black tracking-tight transition-colors"
-                  :class="mod.destacado ? 'text-2xl md:text-3xl text-white' : ['text-base text-slate-900', mod.titleHover]">
+                  :class="mod.destacado ? 'text-xl md:text-2xl text-white' : ['text-base text-slate-900', mod.titleHover]">
                   {{ mod.title }}
                 </h3>
                 <p class="font-medium leading-snug mt-1"
@@ -280,7 +384,7 @@ const handleLogout = async () => {
                   {{ mod.desc }}
                 </p>
 
-                <span v-if="mod.destacado" class="mt-4 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-white/80 group-hover:gap-3 transition-all">
+                <span v-if="mod.destacado" class="mt-2 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-white/80 group-hover:gap-3 transition-all">
                   Entrar <i class="fas fa-arrow-right text-[10px]" aria-hidden="true"></i>
                 </span>
               </div>

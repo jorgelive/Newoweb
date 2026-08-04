@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, shallowRef, watch, onBeforeUnmount } from 'vue';
-import { useRouter, onBeforeRouteLeave } from 'vue-router';
+import { ref, computed, shallowRef, watch, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import FullCalendar from '@fullcalendar/vue3';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -23,6 +23,7 @@ import '@/assets/fullcalendar-overrides.css';
 import { apiClient, getUrls } from '@/services/apiClient';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useChatStore, type ApiTemplate } from '@/stores/chat/chatStore';
+import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import { escaparHtml } from '@/utils/html';
 import { scrollTimelineADia, encuadrarTimeline, hoyLocal } from '@/utils/calendarTimeline';
@@ -51,6 +52,7 @@ import { telefonoParaWhatsapp } from '@/utils/telefono';
 type ApiTemplateWA = ApiTemplate & { whatsappLinkContent?: boolean };
 
 const router = useRouter();
+const route = useRoute();
 const reservasStore = useReservasStore();
 const chatStore = useChatStore();
 
@@ -262,6 +264,30 @@ function abrirEdicion(props: PmsEventoExtendedProps, readOnly: boolean): void {
     drawerStartReadOnly.value = readOnly;
     drawerVisible.value = true;
 }
+
+/**
+ * Apertura directa de una ficha desde fuera: `/reservas?evento=<id>[&reserva=<id>]`.
+ *
+ * Es como llega el usuario desde el panel «Hoy» del portal (HomeView), que ya
+ * tiene esos ids en el feed del calendario y no necesita que se busque nada.
+ * Siempre en modo LECTURA: se viene a consultar la estancia, no a editarla.
+ *
+ * La query se limpia después para que cerrar la ficha no la reabra al volver
+ * atrás, y para que un refresco no reviva un drawer que el usuario ya cerró.
+ */
+onMounted(() => {
+    const evento = typeof route.query.evento === 'string' ? route.query.evento : null;
+    if (!evento) return;
+
+    drawerEventoId.value = evento;
+    drawerReservaId.value = typeof route.query.reserva === 'string' ? route.query.reserva : null;
+    drawerCreateDefaults.value = null;
+    drawerCreateKind.value = null;
+    drawerStartReadOnly.value = true;
+    drawerVisible.value = true;
+
+    router.replace({ path: '/reservas', query: {} });
+});
 
 /** Noches que abarca una estancia recién creada (espejo de agregarEvento() en el drawer). */
 const RANGO_POR_DEFECTO_DIAS = 2;
@@ -1076,9 +1102,7 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
     <div class="h-screen bg-[#F8FAFC] flex flex-col font-sans overflow-hidden">
         <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md shrink-0">
             <div class="flex items-center gap-3">
-                <button @click="router.push('/')" title="Volver al inicio" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
-                    <i class="fas fa-home text-sm"></i>
-                </button>
+                <AppSwitcher />
                 <div class="overflow-hidden">
                     <h1 class="font-black text-base md:text-xl tracking-tight leading-none">Calendario de Reservas</h1>
                     <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">

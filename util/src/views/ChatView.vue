@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation, type ApiAttachment, type ApiMessageQueue } from '@/stores/chat/chatStore.ts';
 import { useAttachmentStore } from '@/stores/attachmentStore';
+import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import EditConversationModal from '@/components/chat/EditConversationModal.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
@@ -423,6 +424,36 @@ watch(() => route.query.id, async (newId) => {
   }
 });
 
+/**
+ * Marca la vista móvil (lista ↔ conversación) en el historial del navegador,
+ * para que el gesto «atrás» del sistema cierre el chat en vez de salir de la app.
+ *
+ * ⚠️ **Aquí estaba el famoso `undefined`.** Hay que ESCRIBIR SOBRE el
+ * `history.state` existente, nunca reemplazarlo: Vue Router guarda ahí sus
+ * propias claves (`current`, `position`, `back`, `forward`, `scroll`) y las
+ * necesita para construir la siguiente URL. Con un `history.replaceState({ view:
+ * 'sidebar' }, '')` a secas, `current` desaparecía y en el siguiente
+ * `router.push()` —el botón «Volver al inicio», un toast de notificación…—
+ * vue-router hacía:
+ *
+ *     url = createBaseLocation() + base + to
+ *         = 'https://util.openperu.pe' + '' + undefined
+ *         = 'https://util.openperu.peundefined'   → DNS_PROBE_FINISHED_NXDOMAIN
+ *
+ * (`base` es cadena vacía porque `normalizeBase('/')` le quita la barra final, y
+ * `createBaseLocation()` no la pone: por eso el `undefined` se pega al HOST y el
+ * error parecía de DNS, de caché o del Service Worker.) Vue Router avisa de esto
+ * por consola —«history.state seems to have been manually replaced without
+ * preserving the necessary values»— pero SOLO en desarrollo, así que en producción
+ * no dejaba rastro. Es exclusivo del chat porque es la única vista que toca
+ * `history` a mano.
+ */
+const marcarVistaEnHistorial = (view: 'sidebar' | 'chat', modo: 'replace' | 'push'): void => {
+  const estado = { ...(history.state as Record<string, unknown> | null), view };
+  if (modo === 'replace') history.replaceState(estado, '');
+  else history.pushState(estado, '');
+};
+
 const handlePopState = (event: PopStateEvent) => {
   if (window.innerWidth >= 768) return;
   isTransitioning.value = false;
@@ -463,7 +494,7 @@ onMounted(async () => {
   }
 
   if (window.innerWidth < 768 && !route.query.id) {
-    history.replaceState({ view: 'sidebar' }, '');
+    marcarVistaEnHistorial('sidebar', 'replace');
   }
   window.addEventListener('popstate', handlePopState);
 });
@@ -629,9 +660,9 @@ const selectChat = async (id: string) => {
 
   if (window.innerWidth < 768) {
     if (history.state?.view !== 'sidebar') {
-      history.replaceState({ view: 'sidebar' }, '');
+      marcarVistaEnHistorial('sidebar', 'replace');
     }
-    setTimeout(() => { history.pushState({ view: 'chat' }, ''); }, 300);
+    setTimeout(() => marcarVistaEnHistorial('chat', 'push'), 300);
   }
 };
 
@@ -1102,9 +1133,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
       <div class="px-6 pt-6 bg-white shrink-0">
         <div class="flex justify-between items-center mb-6">
           <div class="flex items-center gap-3">
-            <button @click="router.push({ name: 'home' })" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-[#376875] group transition-all shadow-sm shrink-0" title="Volver al Inicio">
-              <i class="fas fa-home text-slate-400 group-hover:text-white text-xs"></i>
-            </button>
+            <AppSwitcher variante="clara" />
             <h1 class="font-black text-2xl tracking-tight text-slate-800">Inbox</h1>
           </div>
           <div class="flex items-center gap-2">

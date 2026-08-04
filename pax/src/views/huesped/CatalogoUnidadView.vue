@@ -218,14 +218,15 @@ const cambiarIdioma = (event: Event) => {
 
     <template v-else>
       <!-- ═══ HERO ═══ -->
-      <header class="relative h-[70vh] min-h-100 w-full overflow-hidden">
+      <header class="relative h-[46vh] min-h-72 md:min-h-80 w-full overflow-hidden">
         <div
             v-if="heroImage"
-            class="absolute inset-0 bg-cover bg-center scale-105"
+            class="absolute inset-0 bg-cover bg-center brightness-90 saturate-[0.85]"
             :style="{ backgroundImage: `url(${heroImage})` }"
         ></div>
         <div v-else class="absolute inset-0 bg-linear-to-br from-[#376875] to-[#0F172A]"></div>
-        <div class="absolute inset-0 bg-linear-to-t from-black/85 via-black/25 to-black/40"></div>
+        <div class="absolute inset-0 bg-black/20"></div>
+        <div class="absolute inset-0 bg-linear-to-t from-black/70 via-black/5 to-transparent"></div>
 
         <!-- Selector de idioma -->
         <div class="absolute top-6 right-6 z-20">
@@ -243,16 +244,12 @@ const cambiarIdioma = (event: Event) => {
           </div>
         </div>
 
-        <!-- `pb-*` generoso a propósito: la parrilla de fotos de abajo sube con
-             `-mt-10` para montarse sobre el hero, y sin este colchón la primera
-             foto tapaba las insignias de capacidad y nº de fotos. En Tailwind el
-             `pb-` gana al `p-` de la misma regla, así que basta con añadirlo. -->
-        <div class="absolute bottom-0 left-0 right-0 p-7 md:p-14 pb-20 md:pb-24 text-white max-w-5xl mx-auto">
+        <div class="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-white max-w-5xl mx-auto">
           <p v-if="ubicacion" class="text-[11px] font-black uppercase tracking-[0.25em] text-[#E07845] mb-3 flex items-center gap-2">
             <i class="fas fa-location-dot"></i> {{ ubicacion }}
           </p>
 
-          <h1 class="text-4xl md:text-6xl font-black tracking-tight leading-[1.05] drop-shadow-lg mb-5">
+          <h1 class="text-3xl md:text-4xl font-black tracking-tight leading-[1.05] drop-shadow-md mb-3.5">
             {{ titulo }}
           </h1>
 
@@ -278,14 +275,17 @@ const cambiarIdioma = (event: Event) => {
       <main class="max-w-5xl mx-auto px-5 md:px-8 pb-32">
 
         <!-- ═══ GALERÍA ═══ -->
-        <section v-if="fotos.length" class="-mt-10 relative z-10 mb-16">
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <!-- Sin solape con el hero (antes `-mt-10`) ni sombra por foto: el hero YA
+             es una imagen a pantalla casi completa, y encadenar otra parrilla
+             montada encima, con sombras y anillos, saturaba la apertura. -->
+        <section v-if="fotos.length" class="pt-8 md:pt-10 mb-12">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
             <button
                 v-for="(foto, idx) in fotos"
                 :key="idx"
                 @click="abrirFoto(idx)"
-                class="group relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 shadow-lg shadow-slate-300/30 ring-1 ring-black/5 cursor-zoom-in"
-                :class="idx === 0 ? 'col-span-2 row-span-2 aspect-square md:aspect-4/3' : ''"
+                class="group relative aspect-4/3 rounded-xl overflow-hidden bg-slate-100 cursor-zoom-in"
+                :class="idx === 0 ? 'col-span-2 md:col-span-2 md:row-span-2' : ''"
             >
               <img
                   :src="thumbUrl(foto.imageUrl, idx === 0 ? 'travel_cliente' : 'travel_thumb_admin')"
@@ -313,24 +313,27 @@ const cambiarIdioma = (event: Event) => {
         <section
             v-for="(bloque, iBloque) in bloquesEnCuerpo"
             :key="bloque.tipo"
-            class="mb-16"
-            :class="iBloque > 0 ? 'pt-12 border-t border-slate-200' : ''"
+            class="mb-12"
+            :class="iBloque > 0 ? 'pt-10 border-t border-slate-100' : ''"
         >
           <h2
               v-if="!esDestacado(bloque) && tituloBloque(bloque.tipo)"
-              class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight leading-tight mb-7"
+              class="text-xl md:text-2xl font-black text-gray-900 tracking-tight leading-tight mb-5"
           >
             {{ tituloBloque(bloque.tipo) }}
           </h2>
 
           <div class="space-y-8">
+            <!-- Solo lo que TIENE que destacar lleva caja (la alerta y el gancho):
+                 el resto es texto corrido. Con todos los ítems en tarjeta gris la
+                 página era una rejilla de cajas donde no resaltaba nada. -->
             <article
                 v-for="item in bloque.items"
                 :key="item['@id']"
-                class="rounded-3xl border border-slate-100 bg-slate-50/60 p-6 md:p-8"
+                class="rounded-2xl"
                 :class="[
-                  item.tipo === 'alert' ? 'border-amber-200 bg-amber-50/70' : '',
-                  esDestacado(bloque) ? 'border-[#E07845]/25 bg-[#E07845]/5' : '',
+                  item.tipo === 'alert' ? 'border border-amber-200 bg-amber-50/70 p-5 md:p-6' : '',
+                  esDestacado(bloque) ? 'border border-[#E07845]/25 bg-[#E07845]/5 p-5 md:p-6' : '',
                 ]"
             >
               <!-- El título del ítem solo se pinta si aporta algo sobre el del
@@ -387,8 +390,8 @@ const cambiarIdioma = (event: Event) => {
         <!-- ═══ OTRAS CASITAS ═══
              Sin esto el catálogo era un callejón sin salida: quien entraba a una
              casita no tenía forma de ver las demás salvo adivinando la URL. -->
-        <section v-if="hermanas.length" class="mb-16 pt-12 border-t border-slate-200">
-          <h2 class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-7">
+        <section v-if="hermanas.length" class="mb-12 pt-10 border-t border-slate-100">
+          <h2 class="text-xl md:text-2xl font-black text-gray-900 tracking-tight mb-5">
             {{ maestroStore.t('cat_otras_unidades') || 'Otros alojamientos' }}
           </h2>
 
@@ -434,15 +437,15 @@ const cambiarIdioma = (event: Event) => {
       <!-- ═══ CTA FIJO ═══ -->
       <div
           v-if="whatsappUrl"
-          class="fixed bottom-0 left-0 right-0 z-40 p-4 bg-linear-to-t from-white via-white to-transparent pt-10"
+          class="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-6 bg-linear-to-t from-white via-white/95 to-transparent"
       >
         <a
             :href="whatsappUrl"
             target="_blank"
             rel="noopener"
-            class="max-w-md mx-auto flex items-center justify-center gap-3 bg-[#E07845] hover:bg-[#D06535] text-white font-black py-4 rounded-2xl shadow-xl shadow-orange-300/40 transition-all active:scale-[0.98]"
+            class="max-w-sm mx-auto flex items-center justify-center gap-3 bg-[#E07845] hover:bg-[#D06535] text-white font-black py-3.5 rounded-xl shadow-lg shadow-orange-300/30 transition-all active:scale-[0.98]"
         >
-          <i class="fab fa-whatsapp text-xl"></i>
+          <i class="fab fa-whatsapp text-lg"></i>
           {{ maestroStore.t('cat_consultar') || 'Consultar disponibilidad' }}
         </a>
       </div>
