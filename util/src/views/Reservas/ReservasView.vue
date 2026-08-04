@@ -844,24 +844,45 @@ const calendarOptions: CalendarOptions = {
     eventResize: onEventResize,
 
     /**
-     * Contenido de la barra. El provider ya manda el `title` listo
-     * («A x8 | Nombre | Casita»), pero aquí se rearma con los datos sueltos de
-     * extendedProps para cambiar la INICIAL del canal por su icono: una «A» y una
-     * «B» no se distinguen de un vistazo, un logo de Airbnb sí. El título de
-     * texto se mantiene como respaldo si el evento llegara sin datos.
+     * Contenido de la barra, en DOS filas: arriba el nombre, abajo las cifras
+     * (pax, noches, total y saldo), con el icono del canal centrado a la
+     * izquierda ocupando el alto completo.
+     *
+     * Por qué dos filas y no una: en una sola línea sólo cabían canal + pax +
+     * nombre, y el dato que de verdad se busca al mirar el calendario —cuánto
+     * falta por cobrar— obligaba a abrir la reserva o esperar al tooltip. El
+     * coste es que la fila del calendario es más alta; a cambio la información
+     * de una estancia se lee sin interacción.
+     *
+     * El `title` de texto que manda el provider («A x8 | Nombre | Casita») se
+     * mantiene como respaldo si el evento llegara sin datos sueltos.
      */
     eventContent: (arg) => {
         const p = arg.event.extendedProps as PmsEventoExtendedProps;
         if (!p?.cliente) return { html: `<div class="fc-reserva">${escaparHtml(arg.event.title)}</div>` };
 
         const canal = canalInfo(p.canalId);
-        const partes = [
-            `<i class="${canal.icono} fc-reserva-canal" title="${escaparHtml(canal.texto)}"></i>`,
-            p.pax ? `<span class="fc-reserva-pax">${escaparHtml(String(p.pax))}</span>` : '',
-            `<span class="fc-reserva-nombre">${escaparHtml(p.cliente)}</span>`,
-        ];
 
-        return { html: `<div class="fc-reserva">${partes.join('')}</div>` };
+        // Cada dato es opcional por separado: un bloqueo no trae cifras y una
+        // reserva recién creada tampoco. La fila se arma con lo que haya.
+        const meta = [
+            p.pax ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-user"></i>${escaparHtml(String(p.pax))}</span>` : '',
+            p.noches ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-moon"></i>${escaparHtml(String(p.noches))}</span>` : '',
+            p.total ? `<span class="fc-reserva-dato fc-reserva-total">${escaparHtml(importeCorto(p.total, p.simbolo))}</span>` : '',
+            saldoPill(p),
+        ].filter(Boolean);
+
+        const filaMeta = meta.length ? `<span class="fc-reserva-meta">${meta.join('')}</span>` : '';
+
+        return {
+            html: `<div class="fc-reserva">`
+                + `<i class="${canal.icono} fc-reserva-canal" title="${escaparHtml(canal.texto)}"></i>`
+                + `<span class="fc-reserva-col">`
+                + `<span class="fc-reserva-nombre">${escaparHtml(p.cliente)}</span>`
+                + filaMeta
+                + `</span>`
+                + `</div>`,
+        };
     },
 
     eventDidMount: (info: EventMountArg) => {
@@ -885,6 +906,44 @@ const calendarOptions: CalendarOptions = {
         info.el.style.cursor = 'pointer';
     },
 };
+
+/**
+ * Importe SIN decimales para la barra del calendario.
+ *
+ * En una barra de 60 px «S/1,250.00» no cabe y «S/1,250» sí; los céntimos, que
+ * ahí no aportan nada, se leen exactos en el tooltip y en el panel financiero.
+ * El backend manda el decimal en texto para no perder precisión en el JSON, así
+ * que el redondeo es sólo de presentación.
+ */
+function importeCorto(monto: string, simbolo?: string | null): string {
+    const n = Number(monto);
+    if (!Number.isFinite(n)) return '';
+
+    return `${simbolo ?? ''}${Math.round(n).toLocaleString('es-PE')}`;
+}
+
+/**
+ * Saldo como pastilla, que es el dato que se busca al barrer el calendario.
+ *
+ * Sigue el código contable del panel financiero —rojo lo que se debe, azul lo
+ * saldado—, que aquí se puede usar porque la pastilla lleva fondo plomo claro
+ * propio: sobre el morado o el azul de la barra, un rojo directo no se leería.
+ */
+function saldoPill(p: PmsEventoExtendedProps): string {
+    if (!p.saldo) return '';
+
+    const n = Number(p.saldo);
+    if (!Number.isFinite(n)) return '';
+
+    // Medio céntimo de tolerancia: los totales son sumas de decimales y un
+    // 0.001 residual no debe pintar la reserva como pendiente de cobro.
+    const cobrada = n <= 0.005;
+
+    return `<span class="fc-reserva-dato ${cobrada ? 'fc-reserva-pagado' : 'fc-reserva-debe'}"`
+        + ` title="${cobrada ? 'Cobrada' : 'Saldo pendiente'}">`
+        + escaparHtml(importeCorto(p.saldo, p.simbolo))
+        + `</span>`;
+}
 
 /**
  * Tooltip con formato: cabecera con el canal y una rejilla etiqueta/valor.
@@ -916,6 +975,8 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
             ${fila('Estado', p.estado)}
             ${fila('Pago', p.estadoPago)}
             ${fila(canal.texto, p.referenciaCanal)}
+            ${p.total ? fila('Total', `${p.simbolo ?? ''}${p.total}`) : ''}
+            ${p.saldo ? fila('Saldo', `${p.simbolo ?? ''}${p.saldo}`) : ''}
         </div>`;
 }
 </script>
@@ -1163,32 +1224,33 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 -->
 <style>
 /* ── Barra del evento ───────────────────────────────────────────── */
+/* Dos filas: el icono del canal a la izquierda, centrado sobre el alto
+   completo, y a su derecha una columna con nombre arriba y cifras abajo. */
 .fc-reserva {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     min-width: 0;
-    padding: 0 2px;
+    padding: 1px 3px;
     overflow: hidden;
     white-space: nowrap;
 }
 
+/* Más grande que antes porque ahora tiene dos filas de alto que ocupar: a
+   0.68rem quedaba flotando arriba y perdía su papel de ancla visual. */
 .fc-reserva-canal {
-    font-size: 0.68rem;
-    opacity: 0.85;
+    font-size: 0.95rem;
+    opacity: 0.9;
     flex-shrink: 0;
 }
 
-/* El número de huéspedes, en pastilla: separa el canal del nombre sin usar la
-   barra vertical del formato antiguo, que se confundía con los bordes. */
-.fc-reserva-pax {
-    flex-shrink: 0;
-    font-size: 0.58rem;
-    font-weight: 800;
-    line-height: 1;
-    padding: 2px 4px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.22);
+.fc-reserva-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px; /* respiro entre el nombre y la fila de cifras */
+    min-width: 0; /* sin esto el flex no deja que los hijos se recorten */
+    line-height: 1.15;
 }
 
 .fc-reserva-nombre {
@@ -1196,6 +1258,58 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
     font-size: 0.72rem;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* La fila de cifras es la primera en sacrificarse: en una estancia de una noche
+   la barra es estrechísima y se recorta entera antes que el nombre. */
+.fc-reserva-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.58rem;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.95;
+}
+
+/* Fondo plomo claro OPACO, no un blanco translúcido: al ser un lienzo neutro
+   propio, el color del texto ya no depende del morado o el azul de la barra, y
+   eso es lo que permite usar aquí el código contable del panel financiero. */
+.fc-reserva-dato {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: #eef0f3;
+    color: #334155;
+}
+
+.fc-reserva-dato i {
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+/* Pax y noches un punto por encima del resto de la fila: son los dos números
+   que más se consultan de un vistazo. */
+.fc-reserva-num {
+    font-size: 0.66rem;
+}
+
+.fc-reserva-total {
+    color: #15803d;
+}
+
+/* Rojo lo que se debe, azul lo saldado — mismo código que el panel financiero. */
+.fc-reserva-debe {
+    color: #b91c1c;
+}
+
+.fc-reserva-pagado {
+    color: #1d4ed8;
 }
 
 /* ── Tooltip ────────────────────────────────────────────────────── */

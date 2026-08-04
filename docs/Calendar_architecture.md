@@ -111,8 +111,50 @@ Además de los ids, los providers SPA mandan los **campos sueltos** que la SPA p
 
 | Calendario | Campos |
 |---|---|
-| Reservas | `canalId`, `cliente`, `unidad`, `pax`, `noches`, `estado`, `estadoPago`, `referenciaCanal` |
+| Reservas | `canalId`, `cliente`, `unidad`, `pax`, `noches`, `estado`, `estadoPago`, `referenciaCanal`, `simbolo`, `total`, `saldo` |
 | Tarifas | `precio`, `minStay`, `moneda`, `importante`, `active` |
+
+#### Las cifras financieras de la barra (`simbolo`, `total`, `saldo`)
+
+Las añade `PmsEventosSpaCalendarProvider::buildContext()` y son las que pinta la segunda
+fila de la barra. Tres cosas que no se ven leyendo el código:
+
+1. **Son de la RESERVA, no de la estancia.** `PmsInformacionFinanciera` cuelga de
+   `PmsReserva`, así que una reserva de dos casitas muestra el MISMO total y el mismo saldo
+   en sus dos barras. Es deliberado —el saldo se cobra una vez, no por casita— pero al leer
+   el calendario hay que saberlo o se cuenta dos veces el dinero.
+2. **Se cargan en lote, nunca por evento.** La relación va de las finanzas hacia la reserva
+   (`JoinColumn` unique del lado de las finanzas), o sea que el evento no puede navegar
+   hasta ella. `PmsEventosSpaCalendarProvider::fetchFinanzas()` resuelve todas las cabeceras
+   del rango de una vez, indexadas por id de reserva: un `findOneBy` por evento serían ~200
+   consultas en la vista de mes. Cualquier dato nuevo que venga de otra entidad debe seguir
+   este patrón — **con la salvedad del punto siguiente**.
+
+   > **Gotcha: ese lote NO puede ser un `IN (:reservas)` en DQL.** `reserva_id` es
+   > `BINARY(16)`, y pasar entidades u objetos `Uuid` por `setParameter()` sin tipo de
+   > parámetro los serializa mal: la consulta **no falla**, devuelve cero filas, y el
+   > calendario se pinta sin cifras sin un solo error en el log. Es exactamente la trampa
+   > que ya documenta `TourTarjetaResolver::binarios()` en el módulo de cotizaciones, y se
+   > cayó en ella al escribir este método. Lo que sí funciona es `findBy(['reserva' => …])`
+   > con las entidades: el persister de Doctrine conoce el tipo de la columna destino del
+   > mapeo. Es la versión en lote del `findOneBy(['reserva' => …])` que ya usaba
+   > `PmsReservaPaxProvider`. El precio es perder el eager load de la moneda — sale a una
+   > consulta por moneda DISTINTA, que el identity map deduplica, no por fila.
+3. **`null` cuando `totalCargos` es 0.** Bloqueos y reservas recién creadas no traen cifras,
+   y la barra simplemente omite esa parte de la fila en vez de pintar «0».
+
+En el front cada cifra va en una pastilla con **fondo plomo claro opaco** (`#eef0f3`), y ese
+detalle es el que sostiene todo lo demás: al darle a la pastilla un lienzo neutro propio, el
+color del texto deja de depender del morado o el azul de la barra, y se puede usar el mismo
+código contable del panel financiero — verde el total, **rojo lo que se debe y azul lo
+saldado** (`saldoPill()`). Sin ese fondo habría que recurrir a colores de alto contraste que
+no significan nada.
+
+La tolerancia de `0.005` en `saldoPill()` evita que un residual de coma flotante pinte como
+pendiente una reserva ya cobrada.
+
+El importe de la barra va **sin decimales** (`importeCorto()`): en 60 px no caben. Los
+céntimos exactos están en el tooltip y en el panel financiero.
 
 El `title` y el `tooltip` de texto plano **siguen existiendo**: son parte del contrato del
 `CalendarEventDto`, los usa el calendario legacy de EasyAdmin, y la SPA cae a ellos si un evento
@@ -506,6 +548,31 @@ recurso REST de API Platform propio para EDITAR. Ningún dato de edición pasa p
 | `src/Pms/Controller/Api/PmsReservaBuscarController.php` | `GET /pms/reservas/buscar?q=` (buscador del calendario) |
 
 Calendarios: `pms_eventos_no_cancelados_spa`, `pms_eventos_todos_spa`.
+
+#### La barra de reserva es de DOS filas (y eso fija la altura de la fila)
+
+`eventContent` pinta icono de canal a la izquierda —centrado sobre el alto completo— y a su
+derecha una columna: nombre arriba, cifras abajo (pax, noches, total, saldo). Antes era una
+sola línea con canal + pax + nombre; el dato que de verdad se busca al barrer el calendario
+—cuánto falta por cobrar— obligaba a abrir la reserva.
+
+**Hay un acoplamiento entre archivos que no se ve desde ninguno de los dos:**
+
+| Archivo | Qué aporta |
+|---|---|
+| `ReservasView.vue` → `eventContent`, `.fc-reserva*` | El HTML de dos filas y sus estilos |
+| `assets/fullcalendar-overrides.css` → `.fc-timeline-lane-frame` | El `min-height: 44px` que hace que quepan |
+
+Si la barra vuelve a una sola fila, ese `44px` baja con ella (era `34px`). Y al revés: subir
+contenido sin subir el `min-height` recorta por abajo sin dar ningún error.
+
+La misma regla vale para `.fc-timeline-event .fc-event-main { height: 100% }` — sin eso el
+harness de FullCalendar no propaga la altura y el icono, que se alinea al centro, se pega
+al borde superior.
+
+En estancias de una noche la barra es estrechísima: la fila de cifras se recorta entera
+antes que el nombre, por diseño (`overflow: hidden` sobre `.fc-reserva-meta`). El tooltip
+sigue trayendo todo, con céntimos incluidos.
 
 #### Buscador de reservas y salto al día
 

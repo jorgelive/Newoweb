@@ -67,14 +67,26 @@
     font-size: 0.7rem;
 }
 
+/* 46px y no 34: la barra de reserva pasó a dos filas (nombre arriba, cifras
+   abajo, ver .fc-reserva en ReservasView.vue), con 3px de respiro entre ellas.
+   Con la altura anterior el contenido se recortaba por abajo. Si algún día la
+   barra vuelve a una fila, este número baja con ella. */
 .fc .fc-datagrid-cell-frame,
 .fc .fc-timeline-lane-frame {
-    min-height: 34px;
+    min-height: 46px;
 }
 
 .fc .fc-event {
     font-size: 0.72rem;
     padding: 1px 4px;
+}
+
+/* El contenido de la barra se centra sobre el alto REAL del evento; sin esto
+   el harness de FullCalendar no propaga la altura y el icono del canal, que se
+   alinea al centro, quedaba pegado al borde superior. */
+.fc .fc-timeline-event .fc-event-main,
+.fc .fc-timeline-event .fc-event-main > * {
+    height: 100%;
 }
 
 @media (max-width: 480px) {

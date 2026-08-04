@@ -173,6 +173,17 @@ export interface PmsEventoExtendedProps {
     estadoPago?: string | null;
     referenciaCanal?: string | null;
     noches?: number;
+
+    /**
+     * Cifras de la cabecera financiera, ya en su moneda. Son de la RESERVA: si
+     * ocupa dos casitas, sus dos barras muestran el mismo total y el mismo saldo.
+     * `null` cuando no hay cabecera o el total es 0 (bloqueos, reservas nuevas).
+     */
+    simbolo?: string | null;
+    /** Decimal en texto («1250.00»): viene tal cual del backend, sin redondear. */
+    total?: string | null;
+    /** Positivo = queda por cobrar. Cero o negativo = cobrada. */
+    saldo?: string | null;
 }
 
 // ============================================================================

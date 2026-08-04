@@ -10,6 +10,7 @@ use App\Calendar\Service\CalendarResourceCatalog;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
+use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidad;
 use DateTimeInterface;
@@ -44,6 +45,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
     public function getEvents(DateTimeInterface $from, DateTimeInterface $to, array $config): array
     {
         $eventos = $this->fetchEventos($from, $to, $config);
+        $finanzas = $this->fetchFinanzas($eventos);
         $out = [];
 
         foreach ($eventos as $evento) {
@@ -67,7 +69,11 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
                 resourceId: $unidad->getId(),
                 backgroundColor: $this->resolveColor($estado, $estadoPago),
                 tooltip: $this->buildTooltip($evento, $reserva),
-                extendedProps: $this->buildContext($evento, $reserva),
+                extendedProps: $this->buildContext(
+                    $evento,
+                    $reserva,
+                    $finanzas[(string) $reserva?->getId()] ?? null,
+                ),
             );
         }
 
@@ -178,21 +184,86 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
     }
 
     /**
+     * Cabeceras financieras de todas las reservas del rango, en UNA consulta.
+     *
+     * La relación va de PmsInformacionFinanciera hacia la reserva (JoinColumn
+     * unique del lado de las finanzas), así que el evento no puede navegar hasta
+     * ella: hay que buscarla. Y hay que hacerlo EN LOTE — un `findOneBy` por
+     * evento serían ~200 consultas en una vista de mes, que es justo el tipo de
+     * N+1 que hace inusable un calendario.
+     *
+     * **Gotcha, y de los caros**: esto NO puede ser un `IN (:reservas)` en DQL.
+     * `reserva_id` es `BINARY(16)`, y pasar entidades u objetos `Uuid` por
+     * `setParameter()` sin tipo de parámetro los serializa mal: la consulta no
+     * falla, devuelve CERO filas, y el calendario se pinta sin cifras sin un
+     * solo error en el log. Es la misma trampa que documenta
+     * `TourTarjetaResolver::binarios()`. `findBy()` con las ENTIDADES sí acierta
+     * porque el persister de Doctrine conoce el tipo de la columna destino del
+     * mapeo: es la versión en lote del `findOneBy(['reserva' => …])` que ya usa
+     * PmsReservaPaxProvider.
+     *
+     * El precio es no poder hacer eager load de la moneda; sale a una consulta
+     * por moneda DISTINTA (el identity map deduplica), no por fila.
+     *
+     * @param array<int, mixed> $eventos
+     *
+     * @return array<string, PmsInformacionFinanciera> indexado por id de reserva
+     */
+    private function fetchFinanzas(array $eventos): array
+    {
+        $reservas = [];
+        foreach ($eventos as $evento) {
+            if ($evento instanceof PmsEventoCalendario && $evento->getReserva()?->getId() !== null) {
+                $reservas[(string) $evento->getReserva()->getId()] = $evento->getReserva();
+            }
+        }
+
+        if ([] === $reservas) {
+            return [];
+        }
+
+        $em = $this->managerRegistry->getManagerForClass(PmsInformacionFinanciera::class);
+        if (!$em instanceof EntityManagerInterface) {
+            return [];
+        }
+
+        $filas = $em->getRepository(PmsInformacionFinanciera::class)
+            ->findBy(['reserva' => array_values($reservas)]);
+
+        $porReserva = [];
+        foreach ($filas as $fila) {
+            if ($fila instanceof PmsInformacionFinanciera && $fila->getReserva()?->getId() !== null) {
+                $porReserva[(string) $fila->getReserva()->getId()] = $fila;
+            }
+        }
+
+        return $porReserva;
+    }
+
+    /**
      * Identificación cruda para que el frontend arme su propia navegación,
      * sin acoplarse a rutas de EasyAdmin.
      *
      * Además de los ids, viajan los DATOS SUELTOS que pinta la barra y el
-     * tooltip (canal, cliente, pax, estados, referencia). El `title` y el
-     * `tooltip` de arriba siguen existiendo como texto plano —son el contrato
-     * del DTO y el respaldo si algo falla—, pero el frontend prefiere esto:
-     * con el canal como identificador puede pintar el icono de Airbnb o Booking
-     * en vez de la inicial «A»/«B», y no tiene que re-parsear la cadena
+     * tooltip (canal, cliente, pax, estados, referencia, y las cifras de la
+     * cabecera financiera). El `title` y el `tooltip` de arriba siguen
+     * existiendo como texto plano —son el contrato del DTO y el respaldo si
+     * algo falla—, pero el frontend prefiere esto: con el canal como
+     * identificador puede pintar el icono de Airbnb o Booking en vez de la
+     * inicial «A»/«B», y no tiene que re-parsear la cadena
      * «A x8 | Nombre | Casita» para saber qué es cada trozo.
      *
      * @return array<string,mixed>
      */
-    private function buildContext(PmsEventoCalendario $evento, ?PmsReserva $reserva): array
-    {
+    private function buildContext(
+        PmsEventoCalendario $evento,
+        ?PmsReserva $reserva,
+        ?PmsInformacionFinanciera $finanzas,
+    ): array {
+        // Sin cargos no hay cifras que pintar: un bloqueo o una reserva recién
+        // creada mandan null y la barra simplemente no muestra la línea de dinero.
+        $hayCifras = $finanzas !== null && (float) $finanzas->getTotalCargos() > 0;
+
         return [
             'context' => $reserva ? 'reserva' : 'bloqueo',
             'eventoId' => (string) $evento->getId(),
@@ -207,6 +278,13 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             'estadoPago' => $evento->getEstadoPago()?->getNombre(),
             'referenciaCanal' => $evento->getReferenciaCanal(),
             'noches' => $evento->getNoches(),
+
+            // Cifras de la RESERVA, no de la estancia: una reserva de dos casitas
+            // repite el mismo total en sus dos barras. Es intencionado — el saldo
+            // se cobra una vez— pero conviene saberlo al leer el calendario.
+            'simbolo' => $hayCifras ? $finanzas->getMoneda()?->getSimbolo() : null,
+            'total' => $hayCifras ? $finanzas->getTotalCargos() : null,
+            'saldo' => $hayCifras ? $finanzas->getSaldo() : null,
         ];
     }
 }
