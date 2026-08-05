@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { useTarifasStore } from '@/stores/tarifas/tarifasStore';
 import { extractApiErrorMessage } from '@/stores/reservas/reservasStore';
-import { diasDeRango, type PmsTarifaMasivaPayload, type PmsTarifaRango } from '@/types/pmsTarifaModel';
+import { fechaLegible, nochesDeRango, sumarDias, type PmsTarifaMasivaPayload, type PmsTarifaRango } from '@/types/pmsTarifaModel';
 
 /**
  * Equivalente Vue de la acción global "Generar Masivo" del CRUD de EasyAdmin
@@ -42,7 +42,7 @@ const rangoInvertido = computed(
     () => !!form.value.fechaInicio && !!form.value.fechaFin && form.value.fechaFin <= form.value.fechaInicio,
 );
 
-const dias = computed(() => diasDeRango(form.value.fechaInicio, form.value.fechaFin));
+const noches = computed(() => nochesDeRango(form.value.fechaInicio, form.value.fechaFin));
 
 /** Etiqueta legible del ajuste, para que nadie confunda el signo del porcentaje. */
 const resumenPorcentaje = computed(() => {
@@ -68,15 +68,20 @@ async function sugerirPrioridad(): Promise<void> {
     if (!fechaInicio || !fechaFin || prioridadTocada.value) return;
 
     try {
-        // Solapamiento clásico: empieza antes de que acabe la ventana y acaba
-        // después de que empiece. `order[prioridad]=desc` deja el máximo en la
-        // primera fila, así que no hace falta paginar (además `itemsPerPage` no
-        // está habilitado como parámetro de cliente).
+        // Solapamiento con extremos EXCLUSIVOS por los dos lados (`strictly_`):
+        // un rango que termina justo el día en que empieza la ventana no la pisa
+        // —su última noche es la víspera—, y uno que empieza el día de fin
+        // tampoco. Con `before`/`after` a secas se contaban esos dos vecinos y la
+        // prioridad salía inflada.
+        //
+        // `order[prioridad]=desc` deja el máximo en la primera fila, así que no
+        // hace falta paginar (además `itemsPerPage` no está habilitado como
+        // parámetro de cliente).
         const r = await apiClient.get('/platform/pms/pms_tarifa_rangos', {
             params: {
                 activo: true,
-                'fechaInicio[before]': fechaFin,
-                'fechaFin[after]': fechaInicio,
+                'fechaInicio[strictly_before]': fechaFin,
+                'fechaFin[strictly_after]': fechaInicio,
                 'order[prioridad]': 'desc',
             },
         });
@@ -202,8 +207,8 @@ async function generar(): Promise<void> {
                     </label>
 
                     <label>
-                        <span class="text-xs font-bold text-slate-500">Fin</span>
-                        <input type="date" v-model="form.fechaFin" :min="form.fechaInicio || undefined"
+                        <span class="text-xs font-bold text-slate-500">Fin (salida)</span>
+                        <input type="date" v-model="form.fechaFin" :min="form.fechaInicio ? sumarDias(form.fechaInicio, 1) : undefined"
                             class="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
                             :class="rangoInvertido ? 'border-rose-300 bg-rose-50' : 'border-slate-200'" />
                     </label>
@@ -212,10 +217,11 @@ async function generar(): Promise<void> {
                         :class="rangoInvertido ? 'text-rose-600' : 'text-slate-400'">
                         <template v-if="rangoInvertido">
                             <i class="fas fa-exclamation-circle mr-1"></i>
-                            La fecha de fin debe ser posterior a la de inicio.
+                            La fecha de fin debe ser POSTERIOR a la de inicio: marca la salida y no lleva tarifa.
                         </template>
-                        <template v-else-if="dias">
-                            <i class="fas fa-calendar-day mr-1"></i> Rango de {{ dias }} día(s).
+                        <template v-else-if="noches">
+                            <i class="fas fa-moon mr-1"></i>
+                            {{ noches }} noche(s). El {{ fechaLegible(form.fechaFin) }} es salida: no lleva tarifa.
                         </template>
                     </p>
 

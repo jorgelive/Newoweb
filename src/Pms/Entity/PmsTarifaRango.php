@@ -125,8 +125,18 @@ class PmsTarifaRango
 
     #[ORM\Column(type: 'date')]
     #[Assert\NotNull(message: 'La fecha de fin es obligatoria.')]
-    // Un rango de un solo día es válido (tarifa puntual), por eso GreaterThanOrEqual.
-    #[Assert\GreaterThanOrEqual(propertyPath: 'fechaInicio', message: 'La fecha de fin no puede ser anterior a la de inicio.')]
+    /*
+     * `fechaFin` es EXCLUSIVA: marca la salida, igual que en una reserva. El motor
+     * normaliza todo rango a `[inicio, fin)` (TarifaDailyPriceFlattener::flatten())
+     * y NO pone precio al día `fin`, así que una tarifa puntual de una noche es
+     * `fin = inicio + 1 día`, no `fin = inicio`.
+     *
+     * Antes era `GreaterThanOrEqual` con la idea de admitir «un rango de un solo
+     * día». No admitía nada: con `fin === inicio` el flattener descarta el rango
+     * entero (`if ($re <= $rs) continue`), o sea que se guardaba sin error y no
+     * hacía absolutamente nada — el peor fallo posible, porque es mudo.
+     */
+    #[Assert\GreaterThan(propertyPath: 'fechaInicio', message: 'La fecha de fin debe ser posterior a la de inicio: es la salida y no lleva tarifa, así que un rango con fin = inicio no cubre ninguna noche.')]
     #[Groups(['pms_tarifa:read', 'pms_tarifa:write'])]
     private ?DateTimeInterface $fechaFin = null;
 

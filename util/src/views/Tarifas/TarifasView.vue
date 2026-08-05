@@ -278,17 +278,20 @@ function abrirCreacion(fechaInicio: string, fechaFin: string, unidadId?: string)
  * no puede depender del calendario (ver también `select` y "Crear tarifa aquí").
  */
 /**
- * Ventana por defecto de una tarifa nueva: 3 días.
+ * Ventana por defecto de una tarifa nueva: 3 NOCHES.
  *
- * Un solo día casi nunca es lo que se quiere —se tarifica un fin de semana, un
- * puente, una temporada—, y dejarlo en un día obligaba a corregir el formulario
+ * Una sola noche casi nunca es lo que se quiere —se tarifica un fin de semana,
+ * un puente, una temporada—, y dejarlo en una obligaba a corregir el formulario
  * siempre. Arrastrando sobre la fila se sigue respetando el rango marcado.
+ *
+ * Se suma entero (y no `- 1`): `fechaFin` es EXCLUSIVA, marca la salida. Ver
+ * `nochesDeRango` en pmsTarifaModel.ts.
  */
-const VENTANA_POR_DEFECTO_DIAS = 3;
+const VENTANA_POR_DEFECTO_NOCHES = 3;
 
 function abrirCreacionLibre(): void {
     const hoy = fromDateLocal(new Date());
-    abrirCreacion(hoy, sumarDias(hoy, VENTANA_POR_DEFECTO_DIAS - 1));
+    abrirCreacion(hoy, sumarDias(hoy, VENTANA_POR_DEFECTO_NOCHES));
 }
 
 function cerrarDrawer(): void {
@@ -513,8 +516,12 @@ function onSelect(info: DateSelectArg): void {
     const unidadId = info.resource?.id;
     if (!unidadId) return;
 
-    const finInclusivo = new Date(info.end.getTime() - 1);
-    abrirCreacion(fromDateLocal(info.start), fromDateLocal(finInclusivo), unidadId);
+    // `info.end` de FullCalendar ya es EXCLUSIVO (medianoche del día siguiente al
+    // último seleccionado) y `fechaFin` también lo es, así que se copia tal cual.
+    // Antes se le restaba un milisegundo para «hacerlo inclusivo»: seleccionar un
+    // solo día daba `fin === inicio`, un rango de CERO noches que el motor de
+    // precios descarta entero — se guardaba sin error y no hacía nada.
+    abrirCreacion(fromDateLocal(info.start), fromDateLocal(info.end), unidadId);
     calendarApiRef.value?.getApi()?.unselect();
 }
 
@@ -531,7 +538,7 @@ function elegirEditar(): void {
 function elegirCrear(): void {
     if (menu.value?.unidadId && menu.value.fecha) {
         const fecha = fromDateLocal(menu.value.fecha);
-        abrirCreacion(fecha, sumarDias(fecha, VENTANA_POR_DEFECTO_DIAS - 1), menu.value.unidadId);
+        abrirCreacion(fecha, sumarDias(fecha, VENTANA_POR_DEFECTO_NOCHES), menu.value.unidadId);
     }
     cerrarMenu();
 }

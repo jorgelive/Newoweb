@@ -682,6 +682,30 @@ Puntos que costaron y conviene no re-descubrir:
 - **Los compactados no son filas de la tabla.** Son segmentos calculados a partir de
   los rangos solapados: se pueden abrir (vía `extendedProps.tarifaRangoId`, que apunta
   al rango ganador) pero NO admiten drag & drop, de ahí el flag `editable` por calendario.
+- **`fechaFin` es EXCLUSIVA: se cuenta en NOCHES, no en días.** `TarifaDailyPriceFlattener::flatten()`
+  normaliza todo rango a `[inicio, fin)` y descarta el día `fin`
+  (`if ($day >= $cand['end']) continue`). Una tarifa **del 1 de abril al 1 de mayo** pone
+  precio a las noches del 1 al 30 de abril: **la del 1 de mayo no se envía a Beds24**. Es la
+  convención de una reserva —`fin` es la salida—, y es coherente con cómo se dibuja la barra
+  (el provider inyecta 12:00 → 11:59, así que el día `fin` sólo se pinta hasta media mañana).
+
+  Corolario que muerde: con **`fin === inicio` el rango cubre CERO noches** y el flattener lo
+  descarta entero (`if ($re <= $rs) continue`). Se guardaba sin error y no hacía nada. Por eso
+  ahora `PmsTarifaRango::$fechaFin` lleva `Assert\GreaterThan` (era `GreaterThanOrEqual`, con
+  un comentario que decía admitir «rangos de un solo día» — no admitía nada), el
+  `PmsTarifaMasivaProcessor` ya exigía `fin > inicio`, y los dos drawers ponen
+  `:min="fechaInicio + 1"`.
+
+  En el front la cuenta es `nochesDeRango()` (`fin - inicio`, en `pmsTarifaModel.ts`), que
+  sustituye a `diasDeRango()` (inclusiva, `+ 1`). Todo lo derivado estaba una noche corrido:
+  la ventana por defecto, el rango al arrastrar sobre el calendario y los textos del
+  formulario. Caso peor: **arrastrar sobre UNA celda** producía `fin === inicio` —
+  `onSelect()` restaba un milisegundo al `end` de FullCalendar para «hacerlo inclusivo»— y
+  creaba una tarifa muerta. Ahora `info.end` se copia tal cual: ya es exclusivo, igual que
+  `fechaFin`.
+
+  Puede haber filas antiguas con `fecha_fin = fecha_inicio`; nunca se aplicaron
+  (`SELECT ... WHERE fecha_fin = fecha_inicio` las lista).
 - **Fechas.** `fechaInicio`/`fechaFin` son columnas `date`. La API las serializa a
   medianoche UTC, así que el día se extrae por string (`iso.slice(0,10)`), nunca con
   `new Date().getDate()` — en UTC-5 eso devuelve el día anterior. En el calendario, en
@@ -733,7 +757,7 @@ Al abrir el drawer **en modo creación** se precarga:
 
 | Campo | Valor por defecto | De dónde sale |
 |---|---|---|
-| `fechaInicio` / `fechaFin` | ventana de **3 días** (`VENTANA_POR_DEFECTO_DIAS` en `TarifasView.vue`) | sólo cuando se crea desde el botón de la cabecera; la selección en el calendario manda |
+| `fechaInicio` / `fechaFin` | ventana de **3 noches** (`VENTANA_POR_DEFECTO_NOCHES` en `TarifasView.vue`, sumada entera porque `fechaFin` es exclusiva) | sólo cuando se crea desde el botón de la cabecera; la selección en el calendario manda |
 | `precio`, `minStay` | los del tramo vigente ese día en esa casita | `GET /fullcalendar/load/event/tarifa_rangos_compactados_spa?start=D&end=D+1` |
 | `prioridad` | **prioridad del rango ganador + 1** | `GET /platform/pms/pms_tarifa_rangos/{tarifaRangoId}` |
 | `moneda` | la del rango ganador | ídem |
@@ -786,7 +810,7 @@ El formulario no pide importe, y eso lo hacía opaco: no se veía el resultado h
 
 | Campo | Valor por defecto | De dónde sale |
 |---|---|---|
-| `fechaInicio` / `fechaFin` | el rango **visible**, del 1 al 1 | `view.currentStart` / `view.currentEnd` de `datesSet`, que `TarifasView` pasa como prop `rangoDefecto` — un mes o dos según la vista |
+| `fechaInicio` / `fechaFin` | el rango **visible**, del 1 al 1 | `view.currentStart` / `view.currentEnd` de `datesSet`, que `TarifasView` pasa como prop `rangoDefecto` — un mes o dos según la vista. Del 1 al 1 es exactamente el mes en noches, porque `fechaFin` es exclusiva |
 | `prioridad` | **la más alta de TODAS las casitas en esa ventana + 1** | `GET /platform/pms/pms_tarifa_rangos?activo=true&fechaInicio[before]=fin&fechaFin[after]=inicio&order[prioridad]=desc` |
 
 Y una **leyenda en vivo** lista casita → `base → efectivo` mientras se teclea el porcentaje
@@ -796,6 +820,10 @@ Si cambia uno, hay que tocar el otro o la leyenda mentirá.
 
 Detalles:
 
+- **El solapamiento se consulta con `strictly_before` / `strictly_after`**, no con
+  `before`/`after`: un rango que termina justo el día en que empieza la ventana no la pisa
+  —su última noche es la víspera—, y uno que empieza el día de fin tampoco. Con los
+  operadores no estrictos se contaban esos dos vecinos y la prioridad salía inflada.
 - **La prioridad se pide de todas las unidades a la vez**, no por casita: el masivo escribe en
   todas y basta una tarifa más alta para dejarlo tapado — generado y sin efecto, que es el peor
   resultado posible porque no da error.

@@ -251,11 +251,27 @@ export const fechaLegible = (fecha?: string | null): string => {
     return y && m && d ? `${d}/${m}/${y}` : '—';
 };
 
-/** Noches entre dos 'YYYY-MM-DD' (inclusive: un rango de un día cuenta 1). */
-export const diasDeRango = (inicio: string, fin: string): number => {
+/**
+ * Noches que cubre un rango de tarifa: `fin - inicio`.
+ *
+ * **`fechaFin` es EXCLUSIVA**, como la salida de una reserva. El motor de precios
+ * (`TarifaDailyPriceFlattener::flatten()`) normaliza todo rango a `[inicio, fin)`
+ * y descarta el día `fin` (`if ($day >= $cand['end']) continue`), así que una
+ * tarifa del 1 de abril al 1 de mayo pone precio a las noches del 1 al 30 de
+ * abril: **la noche del 1 de mayo NO se envía a Beds24**.
+ *
+ * Corolario que muerde: con `fin === inicio` el rango cubre CERO noches y el
+ * flattener lo descarta entero (`if ($re <= $rs) continue`). Se guarda sin error
+ * y no hace nada — de ahí que los formularios exijan `fin > inicio`.
+ *
+ * Antes esto se contaba en días inclusivos (`+ 1`), y todo lo que se derivaba de
+ * ahí —la ventana por defecto, el rango al arrastrar sobre el calendario, el
+ * texto del formulario— salía con una noche de más.
+ */
+export const nochesDeRango = (inicio: string, fin: string): number => {
     if (!inicio || !fin) return 0;
     const ms = Date.parse(`${fin}T00:00:00Z`) - Date.parse(`${inicio}T00:00:00Z`);
-    return Number.isNaN(ms) ? 0 : Math.floor(ms / 86_400_000) + 1;
+    return Number.isNaN(ms) ? 0 : Math.floor(ms / 86_400_000);
 };
 
 // ============================================================================

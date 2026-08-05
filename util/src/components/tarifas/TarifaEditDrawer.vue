@@ -12,7 +12,7 @@ import {
     sumarDias,
     toDateInput,
     fechaLegible,
-    diasDeRango,
+    nochesDeRango,
     netoDe,
     NETO_BOOKING,
     NETO_AIRBNB,
@@ -110,14 +110,19 @@ const simboloMoneda = computed(
     () => tarifasStore.monedas.find(m => m.id === form.value.moneda)?.simbolo || '',
 );
 
-const noches = computed(() => diasDeRango(form.value.fechaInicio, form.value.fechaFin));
+const noches = computed(() => nochesDeRango(form.value.fechaInicio, form.value.fechaFin));
 
 /** Netos que el calendario ya muestra en el título del evento (espejo del provider PHP). */
 const netoBooking = computed(() => netoDe(form.value.precio, NETO_BOOKING));
 const netoAirbnb = computed(() => netoDe(form.value.precio, NETO_AIRBNB));
 
+/**
+ * Rango que no cubre ninguna noche. Incluye `fin === inicio`: no es sólo un
+ * detalle estético, el flattener descarta ese rango entero y la tarifa se guarda
+ * sin efecto y sin error (ver `nochesDeRango`).
+ */
 const rangoInvertido = computed(
-    () => !!form.value.fechaInicio && !!form.value.fechaFin && form.value.fechaFin < form.value.fechaInicio,
+    () => !!form.value.fechaInicio && !!form.value.fechaFin && form.value.fechaFin <= form.value.fechaInicio,
 );
 
 const syncMeta = computed(() => (syncStatus.value ? SYNC_STATUS_META[syncStatus.value] : null));
@@ -249,10 +254,9 @@ watch(
 watch(() => form.value.fechaInicio, (nuevo, anterior) => {
     if (!nuevo || !form.value.fechaFin) return;
 
-    if (form.value.fechaFin < nuevo) {
-        // `diasDeRango` cuenta días INCLUSIVOS, así que el desplazamiento entre
-        // extremos es uno menos.
-        const span = anterior ? Math.max(0, diasDeRango(anterior, form.value.fechaFin) - 1) : 0;
+    if (form.value.fechaFin <= nuevo) {
+        // Conserva las noches que tenía; mínimo una, porque cero no cubre nada.
+        const span = anterior ? Math.max(1, nochesDeRango(anterior, form.value.fechaFin)) : 1;
         form.value.fechaFin = sumarDias(nuevo, span);
     }
 });
@@ -286,7 +290,7 @@ async function guardar(): Promise<void> {
         return;
     }
     if (rangoInvertido.value) {
-        localError.value = 'La fecha de fin no puede ser anterior a la de inicio.';
+        localError.value = 'La fecha de fin debe ser posterior a la de inicio: marca la salida, así que un rango con fin = inicio no cubre ninguna noche.';
         return;
     }
 
@@ -386,7 +390,7 @@ async function eliminar(): Promise<void> {
                             <p class="text-sm font-bold text-slate-800 mt-0.5">{{ fechaLegible(form.fechaInicio) }}</p>
                         </div>
                         <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Fin</p>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Fin (salida)</p>
                             <p class="text-sm font-bold text-slate-800 mt-0.5">{{ fechaLegible(form.fechaFin) }}</p>
                         </div>
                         <div>
@@ -406,7 +410,7 @@ async function eliminar(): Promise<void> {
                         </div>
                         <div>
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Duración</p>
-                            <p class="text-sm font-bold text-slate-800 mt-0.5">{{ noches }} días</p>
+                            <p class="text-sm font-bold text-slate-800 mt-0.5">{{ noches }} noche(s)</p>
                         </div>
                     </div>
                     <div class="px-4 py-3 bg-slate-50">
@@ -438,11 +442,12 @@ async function eliminar(): Promise<void> {
                     </label>
 
                     <label>
-                        <span class="text-xs font-bold text-slate-500">Fin</span>
-                        <!-- `min`: el navegador ya no deja elegir un día anterior al
-                             inicio. El aviso de rango invertido se queda como red para
-                             el valor tecleado a mano. -->
-                        <input type="date" v-model="form.fechaFin" :min="form.fechaInicio || undefined"
+                        <span class="text-xs font-bold text-slate-500">Fin (salida)</span>
+                        <!-- `min` = inicio + 1: `fechaFin` es EXCLUSIVA, así que el
+                             mismo día no cubre ninguna noche y el motor descartaría el
+                             rango entero. El aviso en rojo se queda para lo tecleado a
+                             mano. -->
+                        <input type="date" v-model="form.fechaFin" :min="form.fechaInicio ? sumarDias(form.fechaInicio, 1) : undefined"
                             class="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
                             :class="rangoInvertido ? 'border-rose-300 bg-rose-50' : 'border-slate-200'" />
                     </label>
@@ -451,10 +456,12 @@ async function eliminar(): Promise<void> {
                         :class="rangoInvertido ? 'text-rose-600' : 'text-slate-400'">
                         <template v-if="rangoInvertido">
                             <i class="fas fa-exclamation-circle mr-1"></i>
-                            La fecha de fin no puede ser anterior a la de inicio.
+                            La fecha de fin debe ser POSTERIOR a la de inicio: marca la salida y no lleva tarifa.
                         </template>
                         <template v-else-if="noches">
-                            <i class="fas fa-calendar-day mr-1"></i> El rango cubre {{ noches }} día(s), ambos inclusive.
+                            <i class="fas fa-moon mr-1"></i>
+                            {{ noches }} noche(s): la última es la del {{ fechaLegible(sumarDias(form.fechaFin, -1)) }}.
+                            El {{ fechaLegible(form.fechaFin) }} es salida y no lleva esta tarifa.
                         </template>
                     </p>
 
