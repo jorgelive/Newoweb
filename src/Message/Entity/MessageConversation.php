@@ -299,6 +299,18 @@ class MessageConversation
         return $this;
     }
 
+    /**
+     * Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+     * de MessageRule::matchesSegmentation().
+     */
+    #[Groups(['conversation:read'])]
+    public function getContextAgency(): ?string { return $this->contextData['agency'] ?? null; }
+    public function setContextAgency(?string $agency): self {
+        $this->initContextData();
+        $this->contextData['agency'] = $agency;
+        return $this;
+    }
+
     #[Groups(['conversation:read'])]
     public function getContextStatusTag(): ?string { return $this->contextData['status_tag'] ?? null; }
     public function setContextStatusTag(?string $statusTag): self {

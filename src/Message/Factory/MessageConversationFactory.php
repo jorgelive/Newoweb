@@ -58,6 +58,7 @@ readonly class MessageConversationFactory
 
         // 4. Llenado estricto del JSON (Agnóstico)
         $conversation->setContextOrigin($context->getOrigin());
+        $conversation->setContextAgency($context->getAgencyId());
         $conversation->setContextStatusTag($context->getStatusTag());
         $conversation->setContextMilestones($context->getMilestones());
         $conversation->setContextItems($context->getItems());

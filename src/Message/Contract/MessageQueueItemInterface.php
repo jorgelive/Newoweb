@@ -17,4 +17,12 @@ interface MessageQueueItemInterface extends ExchangeQueueItemInterface
     public function getMessage(): ?Message;
 
     public function setMessage(?Message $message): self;
+
+    /**
+     * Identificador del MessageChannel al que pertenece esta cola ('beds24', 'whatsapp_meta'…).
+     *
+     * Existe para que el MessageRuleEngine pueda podar colas por canal sin conocer las clases
+     * concretas: es el mismo id que el enqueuer declara soportar en `supports()`.
+     */
+    public function getChannelId(): string;
 }

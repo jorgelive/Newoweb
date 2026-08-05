@@ -20,6 +20,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * php bin/console app:message:sync-rules 019cea14-bdd4-769e-bd63-8abac315738c
  * php bin/console app:message:sync-rules --all
  * php bin/console app:message:sync-rules --closed
+ * php bin/console app:message:sync-rules <uuid> --force
+ *
+ * Este comando es además el ÚNICO barrido periódico del módulo: nada más re-evalúa las
+ * reglas por el paso del tiempo. Ver docs/Mensajeria.md §6 para la entrada de cron.
  */
 #[AsCommand(
     name: 'app:message:sync-rules',
@@ -39,7 +43,8 @@ class MessageSyncRulesCommand extends Command
         $this
             ->addArgument('conversation_id', InputArgument::OPTIONAL, 'UUID de una conversación específica a sincronizar')
             ->addOption('all', null, InputOption::VALUE_NONE, 'Sincroniza todas las conversaciones con estado OPEN')
-            ->addOption('closed', null, InputOption::VALUE_NONE, 'Barredora: Sincroniza conversaciones con estado CLOSED o ARCHIVED para cancelar colas pendientes');
+            ->addOption('closed', null, InputOption::VALUE_NONE, 'Barredora: Sincroniza conversaciones con estado CLOSED o ARCHIVED para cancelar colas pendientes')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Reparación: programa hitos CREATED, rescata vencidos dentro de las últimas 24h y regenera mensajes fallidos sin reintentos');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -48,6 +53,7 @@ class MessageSyncRulesCommand extends Command
         $conversationId = $input->getArgument('conversation_id');
         $syncAll = $input->getOption('all');
         $syncClosed = $input->getOption('closed');
+        $force = (bool) $input->getOption('force');
 
         if (!$conversationId && !$syncAll && !$syncClosed) {
             $io->error('Debes proporcionar un UUID de conversación, usar la opción --all, o usar la opción --closed');
@@ -87,7 +93,13 @@ class MessageSyncRulesCommand extends Command
                 $conversation = $repository->find($id);
 
                 if ($conversation) {
-                    $this->ruleEngine->syncConversationRules($conversation);
+                    // TRIGGER_COMMAND, no el UPDATE por defecto: el motor distingue el barrido
+                    // manual del reactivo para decidir blindajes y rescates.
+                    $this->ruleEngine->syncConversationRules(
+                        $conversation,
+                        MessageRuleEngine::TRIGGER_COMMAND,
+                        $force
+                    );
                     $countSynced++;
                 }
             } catch (\Throwable $e) {

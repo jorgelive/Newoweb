@@ -20,6 +20,18 @@ use Doctrine\ORM\Events;
 #[AsDoctrineListener(event: Events::postFlush, priority: 100)]
 final class MessageRuleEngineListener
 {
+    /**
+     * Campos cuya modificación obliga a re-evaluar las reglas.
+     *
+     * `guestPhone` y `whatsappDisabled` están aquí porque son entradas directas de
+     * ChannelEnqueuerInterface::isValid(): rellenar el teléfono que faltaba tiene que poder
+     * resucitar los mensajes que se cancelaron justamente por no tenerlo. Vigilar sólo
+     * `contextData`/`status` dejaba esa edición sin efecto hasta el siguiente cambio de la reserva.
+     *
+     * @var list<string>
+     */
+    private const array CAMPOS_CRITICOS = ['contextData', 'status', 'guestPhone', 'whatsappDisabled'];
+
     /** @var array<string, MessageConversation> */
     private array $conversationsToInsert = [];
 
@@ -63,8 +75,7 @@ final class MessageRuleEngineListener
             if ($entity instanceof MessageConversation) {
                 $changeSet = $uow->getEntityChangeSet($entity);
 
-                // Solo re-evaluamos si cambiaron datos críticos (fechas, origen, estado)
-                if (isset($changeSet['contextData']) || isset($changeSet['status'])) {
+                if (array_intersect_key($changeSet, array_flip(self::CAMPOS_CRITICOS)) !== []) {
                     $id = $entity->getId()->toRfc4122();
                     // Si por casualidad también estaba en insert, priorizamos el insert.
                     if (!isset($this->conversationsToInsert[$id])) {

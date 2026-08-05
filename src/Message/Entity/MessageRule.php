@@ -97,23 +97,30 @@ class MessageRule
             return false;
         }
 
-        // 1. EVALUAR FUENTES (OTAs, Directo, etc.) utilizando el nuevo contrato
+        return $this->matchesSegmentation($context->getOrigin(), $context->getAgencyId());
+    }
+
+    /**
+     * ÚNICA fuente de verdad de los filtros de segmentación.
+     *
+     * Existe en esta forma —tomando escalares en vez de un MessageContextInterface— porque
+     * el MessageRuleEngine evalúa contra la MessageConversation ya persistida, no contra el
+     * adaptador de contexto. Antes cada lado tenía su propia copia del filtro y las dos se
+     * desincronizaron: el motor ignoraba `allowedAgencies` por completo.
+     *
+     * Ambos filtros son de INCLUSIÓN: vacío significa "sin restricción"; con valores, el dato
+     * debe estar en la lista. Un $agency nulo nunca satisface una lista de agencias no vacía.
+     */
+    public function matchesSegmentation(?string $origin, ?string $agency): bool
+    {
         $allowedSources = $this->getAllowedSources();
-        if (!empty($allowedSources)) {
-            // Si el origen del contexto actual (ej: 'booking') no está en los permitidos de esta regla, fallamos.
-            if (!in_array($context->getOrigin(), $allowedSources, true)) {
-                return false;
-            }
+        if (!empty($allowedSources) && !in_array($origin, $allowedSources, true)) {
+            return false;
         }
 
-        // 2. EVALUAR AGENCIAS (Placeholder para el futuro B2B)
         $allowedAgencies = $this->getAllowedAgencies();
-        if (!empty($allowedAgencies)) {
-            // Como el contrato actual no tiene getAgencyId() explícito, asumimos que por ahora
-            // no hay agencias asignadas a la reserva. Cuando las agregues al contrato, solo actualizas este if.
-            if (!method_exists($context, 'getAgencyId') || !in_array($context->getAgencyId(), $allowedAgencies, true)) {
-                return false;
-            }
+        if (!empty($allowedAgencies) && ($agency === null || !in_array($agency, $allowedAgencies, true))) {
+            return false;
         }
 
         return true;

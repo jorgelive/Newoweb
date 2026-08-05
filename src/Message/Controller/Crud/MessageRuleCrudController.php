@@ -9,6 +9,7 @@ use App\Message\Entity\MessageRule;
 use App\Message\Service\MessageSegmentationAggregator;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -37,6 +38,40 @@ class MessageRuleCrudController extends BaseCrudController
     public static function getEntityFqcn(): string
     {
         return MessageRule::class;
+    }
+
+    public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        parent::persistEntity($entityManager, $entityInstance);
+        $this->avisarResincronizacion($entityInstance);
+    }
+
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        parent::updateEntity($entityManager, $entityInstance);
+        $this->avisarResincronizacion($entityInstance);
+    }
+
+    /**
+     * Guardar una regla NO reprograma las conversaciones existentes.
+     *
+     * Es deliberado: el motor evalúa conversación a conversación y un barrido de todas las
+     * abiertas dentro de un request de admin puede tardar minutos y dejar la petición colgada.
+     * En vez de hacerlo a medias, se le dice al operador el comando exacto — que es la misma
+     * herramienta que usa el cron. Ver docs/Mensajeria.md §6.
+     */
+    private function avisarResincronizacion(mixed $entityInstance): void
+    {
+        if (!$entityInstance instanceof MessageRule) {
+            return;
+        }
+
+        $this->addFlash('warning', sprintf(
+            'La regla "%s" queda guardada, pero las reservas ya existentes no se reprograman solas: '
+            . 'sólo se re-evalúan cuando la reserva cambia o cuando corre el barrido. '
+            . 'Para aplicarla ahora: php bin/console app:message:sync-rules --all',
+            $entityInstance->getName()
+        ));
     }
 
     public function configureActions(Actions $actions): Actions

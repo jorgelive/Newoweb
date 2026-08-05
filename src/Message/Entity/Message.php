@@ -122,6 +122,21 @@ class Message
     #[Groups(['message:read', 'message:write'])]
     private ?MessageTemplate $template = null;
 
+    /**
+     * Regla que programó este mensaje. Sólo se rellena en mensajes del sistema.
+     *
+     * La plantilla NO sirve como identidad: dos reglas distintas pueden compartirla
+     * (recordatorio a -7 días y a -1 día), y sin esta columna el motor las confundía
+     * y se pisaban la fecha de envío entre sí. Ver docs/Mensajeria.md §4.3.
+     *
+     * `SET NULL` al borrar la regla: el mensaje ya programado sobrevive como histórico
+     * y el motor lo tratará como legado (emparejado por plantilla).
+     */
+    #[ORM\ManyToOne(targetEntity: MessageRule::class)]
+    #[ORM\JoinColumn(name: 'rule_id', nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['message:read'])]
+    private ?MessageRule $rule = null;
+
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappMetaSendQueue::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
     private Collection $whatsappMetaSendQueues;
@@ -318,6 +333,9 @@ class Message
 
     public function getTemplate(): ?MessageTemplate { return $this->template; }
     public function setTemplate(?MessageTemplate $template): self { $this->template = $template; return $this; }
+
+    public function getRule(): ?MessageRule { return $this->rule; }
+    public function setRule(?MessageRule $rule): self { $this->rule = $rule; return $this; }
 
     public function getTransientChannels(): array { return $this->transientChannels; }
     public function setTransientChannels(array $channels): self { $this->transientChannels = $channels; return $this; }

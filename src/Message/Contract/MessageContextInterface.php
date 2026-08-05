@@ -22,6 +22,15 @@ interface MessageContextInterface
     public function getStatusTag(): ?string;
 
     /**
+     * Agencia mayorista (B2B) dueña del contexto, o null si es venta directa/OTA.
+     *
+     * Alimenta el filtro `allowedAgencies` de MessageRule. Mientras un contexto
+     * devuelva null, cualquier regla que restrinja por agencia simplemente no le
+     * aplicará — que es lo correcto para un filtro de inclusión.
+     */
+    public function getAgencyId(): ?string;
+
+    /**
      * Devuelve un diccionario con todas las fechas clave (Hitos).
      * Ej: ['start' => DateTime, 'end' => DateTime, 'booked_at' => DateTime, 'eta' => '14:00']
      * * @return array<string, mixed>

@@ -161,6 +161,9 @@ class Beds24SendQueue implements MessageQueueItemInterface, MemoryCleanableInter
         }
         $this->endpoint = $endpoint; return $this;
     }
+    /** Espejo del id que declara Beds24SendEnqueuer::supports(). */
+    public function getChannelId(): string { return 'beds24'; }
+
     public function getStatus(): string { return $this->status; }
     public function setStatus(string $status): self { $this->status = $status; return $this; }
     public function getRunAt(): ?DateTimeImmutable { return $this->runAt; }

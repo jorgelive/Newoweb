@@ -83,6 +83,18 @@ class PmsReservaMessageContext implements MessageContextInterface
     }
 
     /**
+     * El PMS todavía no modela agencias mayoristas sobre la reserva.
+     *
+     * Devolver null es deliberado y NO es un "pendiente silencioso": hace que las reglas
+     * con `allowedAgencies` configuradas no apliquen a reservas del PMS, en vez de que el
+     * filtro se ignore. Cuando exista la relación, se devuelve aquí su identificador.
+     */
+    public function getAgencyId(): ?string
+    {
+        return null;
+    }
+
+    /**
      * Etiqueta de estado simplificada para renderizado rápido en el UI del Chat
      * y filtros de reglas en el RuleEngine.
      */
@@ -175,14 +187,29 @@ class PmsReservaMessageContext implements MessageContextInterface
                 // 🚨 CORRECCIÓN DEL CLONE AQUÍ TAMBIÉN
                 $fechaLlegada = $this->reserva->getFechaLlegada();
                 if ($fechaLlegada instanceof \DateTimeInterface) {
-                    try {
-                        $fechaString = $fechaLlegada->format('Y-m-d');
-                        $horaLimpia = trim((string) $expectedArrivalRaw);
+                    // `horaLlegadaCanalAggregate` es un GROUP_CONCAT de todos los eventos de la
+                    // reserva (ver PmsReservaRecalculoService, separador ' | '). Con dos unidades
+                    // que informaron ETA distinta llegaba "14:00 | 16:00", el parseo reventaba y
+                    // el hito desaparecía sin rastro. Nos quedamos con la hora MÁS TEMPRANA: es
+                    // cuando el huésped aparece por recepción, que es lo que dispara el mensaje.
+                    $horasCandidatas = array_filter(array_map('trim', explode('|', (string) $expectedArrivalRaw)));
+                    $fechaString = $fechaLlegada->format('Y-m-d');
+                    $masTemprana = null;
 
-                        $expectedArrivalCompleto = new \DateTimeImmutable("$fechaString $horaLimpia");
-                        $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $expectedArrivalCompleto;
-                    } catch (Throwable $e) {
-                        // Fallback silencioso
+                    foreach ($horasCandidatas as $horaLimpia) {
+                        try {
+                            $candidata = new \DateTimeImmutable("$fechaString $horaLimpia");
+                        } catch (Throwable) {
+                            continue; // Texto libre del canal ("late night"): no es una hora.
+                        }
+
+                        if ($masTemprana === null || $candidata < $masTemprana) {
+                            $masTemprana = $candidata;
+                        }
+                    }
+
+                    if ($masTemprana !== null) {
+                        $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $masTemprana;
                     }
                 }
             }
