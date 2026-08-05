@@ -424,6 +424,30 @@ A 2026-08-05, `welcome_airbnb`, `welcome_booking` y `enviar_guia` llevan
 entregando mensajes desde y hacia Airbnb/Booking hace que un menú interactivo sea mala
 experiencia — el huésped responde «2» y la respuesta tarda de más.
 
+**Por qué no se puede optimizar:** Beds24 no recibe webhooks de Airbnb ni de Booking — las
+**consulta cada 2 minutos**. Desde que el huésped escribe hasta que nos llega el webhook pasan
+hasta 3 minutos, y otros tantos de vuelta: **~6 minutos de round-trip** para un menú numérico.
+Hacer polling nuestro más agresivo (cada 30 s) no sirve de nada: el dato todavía no existe en
+Beds24. El eslabón lento está aguas arriba y es inalcanzable.
+
+### 🔑 Regla de diseño: `url` sí, `quick_reply` no
+
+La latencia sólo castiga a lo que **espera respuesta**:
+
+| Tipo de botón | En OTA por Beds24 | Motivo |
+|---|---|---|
+| `url` | ✅ úsalo | El huésped hace clic y va a la web. **Sin round-trip**, la latencia no le afecta. |
+| `quick_reply` | ❌ evítalo | Exige que responda y que la respuesta vuelva: ~6 min. |
+
+Por eso `recordatorio_llegada` tiene los botones encendidos (su único botón es `url`) y
+`welcome_booking` los tiene apagados (sus dos botones son `quick_reply`). **No es incoherencia.**
+
+Ojo con el todo-o-nada: `disable_meta_buttons` suprime los DOS tipos. Si una plantilla sólo
+tiene botones `url`, apagarla pierde enlaces útiles sin ganar nada — el render ya omite el
+footer «responde con el número» cuando no hay ningún `quick_reply` (`$hasQuickReplies`), así que
+no hay riesgo de menú fantasma. Para plantillas **mixtas** haría falta un modo intermedio
+«sólo enlaces», que hoy no existe.
+
 El cuello de botella es del proveedor, no nuestro. Medido en producción:
 
 | Tramo | Latencia |
