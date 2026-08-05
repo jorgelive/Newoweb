@@ -399,7 +399,7 @@ final class PmsInformacionFinancieraCoherenciaListener
         $cabeceras = [];
 
         foreach ($eventoIds as $eventoId) {
-            $evento = $em->find(PmsEventoCalendario::class, $eventoId . PHP_EOL, FILE_APPEND);
+            $evento = $em->find(PmsEventoCalendario::class, $eventoId);
             $reserva = $evento?->getReserva();
             if (!$evento || !$reserva) {
                 continue;
