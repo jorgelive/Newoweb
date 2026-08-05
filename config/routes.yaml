@@ -60,6 +60,14 @@ pms_api_controllers:
     type: attribute
     host: '%app.host.api%'
 
+# Asistente interno del panel (IA). Ojo: el host de api NO está en `access_control`, así que
+# cae en PUBLIC_ACCESS — la protección de este endpoint es el #[IsGranted('ROLE_USER')] del
+# propio controlador, no el firewall. No lo quites de ahí.
+agent_api_controllers:
+    resource: ../src/Agent/Controller/Api/
+    type: attribute
+    host: '%app.host.api%'
+
 # Panel (Easyadmin)
 panel_controllers:
     resource: ../src/Panel/Controller/

@@ -16,6 +16,7 @@
         "ext-imagick": "*",
         "ext-pdo": "*",
         "ext-zip": "*",
+        "anthropic-ai/sdk": "*",
         "api-platform/doctrine-orm": "^4.2",
         "api-platform/symfony": "^4.2",
         "beberlei/doctrineextensions": "^1.3",

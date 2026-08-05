@@ -6,14 +6,18 @@ namespace App\Agent\Router;
 
 use App\Agent\Action\BotActionHandlerInterface;
 use App\Agent\Entity\AutoResponderRule;
-//use App\Agent\Service\AiConversationProcessor;
+use App\Agent\Service\AiConversationProcessor;
 use App\Message\Entity\Message;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
+use Throwable;
 
 /**
  * Enruta los mensajes entrantes hacia el motor determinista (AutoResponder)
- * o hacia el orquestador de Inteligencia Artificial, basándose en la intención (Intent).
+ * o hacia el procesador de Inteligencia Artificial, basándose en la intención (Intent).
+ *
+ * Ver docs/Mensajeria.md §10.
  */
 final readonly class IntentRouter
 {
@@ -24,12 +28,12 @@ final readonly class IntentRouter
         private EntityManagerInterface $em,
         #[AutowireIterator('app.bot_action_handler')]
         private iterable $actionHandlers,
-        //private AiConversationProcessor $aiProcessor
+        private AiConversationProcessor $aiProcessor,
+        private LoggerInterface $logger,
     ) {}
 
     /**
      * Evalúa la intención del mensaje y decide qué sistema debe procesarlo.
-     * Evita consultas a la base de datos si el mensaje es explícitamente texto libre.
      *
      * @param Message $message El mensaje entrante a procesar.
      */
@@ -43,11 +47,11 @@ final readonly class IntentRouter
         $category = $intent['category'] ?? null;
         $actionCode = $intent['action_code'] ?? null;
 
-        // 1. RUTA DE INTELIGENCIA ARTIFICIAL (Cortocircuito rápido)
-        // Si sabemos que es texto libre, evitamos golpear la base de datos buscando reglas.
+        // 1. RUTA DE INTELIGENCIA ARTIFICIAL
+        // Texto libre: no hay regla que casar, lo atiende el modelo (o nadie, si está
+        // desactivado). El procesador decide si responde y deja el motivo en el intent.
         if ($category === 'free_text') {
-            //$this->aiProcessor->process($message);
-            $this->markAsResolved($message);
+            $this->marcarResuelto($message, $this->aiProcessor->process($message));
             return;
         }
 
@@ -62,22 +66,61 @@ final readonly class IntentRouter
             if ($rule instanceof AutoResponderRule) {
                 foreach ($this->actionHandlers as $handler) {
                     if ($handler->getActionKey() === $rule->getActionType()) {
-                        $handler->execute($message, $rule->getActionParameters() ?? []);
-                        $this->markAsResolved($message);
+                        // 🔥 El intent se marca resuelto PASE LO QUE PASE con el envío.
+                        // Antes `execute()` iba antes del marcado y sin try: si el enqueuer
+                        // rechazaba el mensaje (plantilla sin ID oficial fuera de la ventana
+                        // de 24 h, por ejemplo) la excepción se llevaba por delante el
+                        // marcado, y el mensaje se quedaba `resolved: false` para siempre —
+                        // re-despachándose en cada postUpdate. En producción había 7 casos así.
+                        try {
+                            $handler->execute($message, $rule->getActionParameters() ?? []);
+                            $this->marcarResuelto($message, 'regla:' . $rule->getTriggerValue());
+                        } catch (Throwable $e) {
+                            $this->logger->error(sprintf(
+                                'Agent: la acción "%s" de la regla "%s" falló para el mensaje %s: %s',
+                                $rule->getActionType(),
+                                $rule->getTriggerValue(),
+                                $message->getId(),
+                                $e->getMessage()
+                            ));
+                            $this->marcarResuelto($message, 'error_accion');
+                        }
+
                         return;
                     }
                 }
+
+                $this->logger->warning(sprintf(
+                    'Agent: la regla "%s" pide la acción "%s", que no tiene handler registrado.',
+                    $rule->getTriggerValue(),
+                    $rule->getActionType()
+                ));
+                $this->marcarResuelto($message, 'sin_handler');
+
+                return;
             }
         }
+
+        // 3. NADA QUE HACER — pero hay que dejar constancia.
+        // Sin esto el intent quedaba `resolved: false` indefinidamente y CADA postUpdate del
+        // mensaje (marcarlo leído, una reacción, un cambio de estado) volvía a despachar y a
+        // consultar la BD. Con el procesador de IA enchufado sería peor: volvería a pagar el
+        // modelo en cada actualización.
+        $this->marcarResuelto($message, 'sin_regla');
     }
 
     /**
-     * Marca la intención del mensaje como resuelta para evitar reprocesamientos.
+     * Cierra la intención y anota POR QUÉ. El motivo es lo que permite distinguir después
+     * «lo contestó el bot» de «nadie lo atendió», que en el JSON antiguo eran indistinguibles:
+     * todo acababa en `resolved: true` sin más.
      */
-    private function markAsResolved(Message $message): void
+    private function marcarResuelto(Message $message, string $motivo): void
     {
-        $intent = $message->getInboundIntent();
+        $intent = $message->getInboundIntent() ?? [];
         $intent['resolved'] = true;
+        $intent['resolution'] = $motivo;
+        $intent['resolved_at'] = (new \DateTimeImmutable())->format('Y-m-d\TH:i:sP');
+
         $message->setInboundIntent($intent);
 
         $this->em->flush();

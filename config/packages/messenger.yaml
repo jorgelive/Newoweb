@@ -28,6 +28,15 @@ framework:
 
             App\Pms\Dispatch\ProcessBeds24WebhookDispatch: async
 
+            # Sin esta ruta el dispatch se maneja SÍNCRONO, y como quien lo lanza es un
+            # postPersist/postUpdate de Doctrine, el router del Agent acababa corriendo
+            # DENTRO de un flush: flush anidado, persist de la respuesta dentro de un
+            # postPersist y un `em->refresh()` a media transacción. Con IA en esa rama sería
+            # peor todavía — bloquearía el webhook de Meta varios segundos dentro de la
+            # transacción, y Meta reintenta los webhooks lentos, así que el huésped recibiría
+            # la respuesta duplicada. Ver docs/Mensajeria.md §10.
+            App\Agent\Dispatch\ProcessInboundIntentDispatch: async
+
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async

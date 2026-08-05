@@ -92,6 +92,33 @@ class PmsEventoEstado
     ];
 
     /**
+     * Estados en los que la casita NO se puede vender esa noche.
+     *
+     * ⚠️ NO es lo mismo que OCUPAN_UNIDAD, y por eso se declara aparte en vez de
+     * derivarse de ella. Aquella responde «¿pinto beige esta noche en el calendario de
+     * tarifas?»; ésta responde «¿puedo alojar a alguien aquí?». Dos estados las separan:
+     *
+     * - `bloqueo`: no es una venta que tarifar (fuera de OCUPAN_UNIDAD), pero la casita
+     *   está cerrada por mantenimiento o por el canal — no se puede vender.
+     * - `extension`: la noche que inutiliza una entrada temprana o una salida tardía
+     *   (§7.1.b de docs/PmsBeds24ReservasSync.md). Es invisible en el PMS y no se tarifa,
+     *   pero la unidad está físicamente ocupada.
+     *
+     * `abierto` (inquiry de Airbnb) queda FUERA a propósito: es una consulta sin reserva,
+     * no retiene la unidad. Si algún día se decide que un inquiry sí la retiene, se añade
+     * aquí — no en OCUPAN_UNIDAD.
+     *
+     * La usa PmsDisponibilidadService. Ver docs/PmsDisponibilidad.md.
+     */
+    public const array IMPIDEN_VENTA = [
+        PmsEventoEstado::CODIGO_PENDIENTE,
+        PmsEventoEstado::CODIGO_CONFIRMADA,
+        PmsEventoEstado::CODIGO_REQUERIMIENTO,
+        PmsEventoEstado::CODIGO_BLOQUEO,
+        PmsEventoEstado::CODIGO_EXTENSION,
+    ];
+
+    /**
      * El ID es el código string del estado.
      * Sin GeneratedValue por ser ID Natural.
      */

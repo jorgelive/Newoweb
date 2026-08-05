@@ -20,7 +20,9 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 6. [Lo que NO se re-evalúa solo](#6-lo-que-no-se-re-evalúa-solo)
 7. [Gotchas](#7-gotchas)
 8. [Menús en canales sin botones](#8-menús-en-canales-sin-botones)
-9. [Dónde tocar para cambiar X](#9-dónde-tocar-para-cambiar-x)
+9. [El Agent: autorespuestas e IA](#9-el-agent-autorespuestas-e-ia)
+10. [El asistente interno del panel](#10-el-asistente-interno-del-panel)
+11. [Dónde tocar para cambiar X](#11-dónde-tocar-para-cambiar-x)
 
 ---
 
@@ -512,7 +514,130 @@ menú se **pinta** al salir; `is_active` decide si la plantilla de respuesta **p
 ese canal. Con los menús apagados nadie llega a pedir tours desde una OTA, así que el segundo
 interruptor sólo evita que la respuesta muera en silencio el día que se reactiven.
 
-## 9. Dónde tocar para cambiar X
+## 9. El Agent: autorespuestas e IA
+
+`src/Agent/` decide qué hacer con un mensaje entrante. Dos ramas, según la `category` que el
+persister puso en el intent:
+
+```
+  Message entrante (con inbound_intent)
+        │
+   MessageAutoResponderListener   postPersist / postUpdate
+        │  dispatch → async  ← ver §10
+        ▼
+   IntentRouter::routeIntent()
+        ├─ deterministic / system_alert → AutoResponderRule → BotActionHandlerInterface
+        └─ free_text                    → AiConversationProcessor
+                                              │
+                                              └─ 5 guardias → modelo → Message OUTGOING
+```
+
+**Todo camino acaba en `marcarResuelto()`**, que escribe `resolved`, **`resolution`** (el
+motivo) y `resolved_at` en el intent. Antes sólo se marcaba cuando una regla casaba, así que
+un mensaje sin regla se quedaba `resolved: false` **para siempre** y se re-despachaba en cada
+`postUpdate` — con IA eso sería volver a pagar el modelo en cada actualización del mensaje.
+En producción había 29 `ERR_131049` en ese bucle.
+
+Motivos que puede tomar `resolution`: `ia`, `ia_desactivada`, `ia_sin_credenciales`,
+`ia_sin_respuesta`, `error_ia`, `regla:<trigger>`, `error_accion`, `sin_handler`, `sin_regla`,
+`humano_atendiendo`, `ya_respondido`, `fuera_de_ventana_24h`, `canal_deshabilitado`,
+`conversacion_no_abierta`. Sirven para medir después cuántos contestó el bot y cuántos se
+dejaron pasar — y por qué.
+
+### 🔥 Por qué el dispatch tiene que ir en `async`
+
+`ProcessInboundIntentDispatch` **no estaba en el `routing` de `messenger.yaml`**, y sin ruta
+Symfony lo maneja de forma **síncrona**. Como quien lo lanza es un `postPersist`/`postUpdate`
+de Doctrine, el router corría **dentro de un flush**: flush anidado en `marcarResuelto()`,
+`persist()` de la respuesta dentro de un `postPersist`, y un `em->refresh()` a media
+transacción. Los comentarios del código decían «asíncrono» y «FIX PARA EL WORKER ASÍNCRONO»
+describiendo algo que no ocurría.
+
+Con IA habría sido peor: una llamada al modelo bloquea el webhook de Meta varios segundos
+**dentro de la transacción**, y Meta reintenta los webhooks lentos → el huésped recibe la
+respuesta duplicada. La ruta está ahora en `messenger.yaml`; **no la quites**.
+
+### Los cinco guardias del autoresponder
+
+`AiConversationProcessor` no genera sin preguntarse antes si toca callarse:
+
+| # | Guardia | Por qué |
+|---|---|---|
+| 1 | Conversación no abierta | Cerrada o archivada: su ciclo terminó |
+| 2 | **Humano al mando** (30 min) | El más importante: nada deja peor al hotel que un bot pisando al compañero que ya está atendiendo |
+| 3 | **Ya respondido** | El transporte async reintenta 3 veces; sin esto un reintento duplica el mensaje al huésped |
+| 4 | Fuera de la ventana de 24 h | Meta sólo acepta plantillas fuera de sesión: el texto generado acabaría como `FAILED` |
+| 5 | Canal deshabilitado | Rebote duro previo (número inválido) |
+
+### Configuración
+
+| Variable | Efecto |
+|---|---|
+| `ANTHROPIC_API_KEY` | Vacía ⇒ `AnthropicClientFactory::crear()` devuelve `null` y **todo degrada sin romper**. El webhook que trae el mensaje del huésped nunca debe caerse por esto |
+| `ANTHROPIC_MODEL` | Modelo de ambos productos (`claude-opus-5`) |
+| `AGENT_IA_AUTORESPONDER` | Interruptor del bot del huésped. **Arranca en `0`** |
+
+El autoresponder nace apagado a propósito: es el único componente que **escribe a un cliente
+real** sin que nadie lo revise. Enciéndelo cuando hayas calibrado el prompt con §11.
+
+**Prompt caching:** el prompt de sistema lleva `cacheControl` y es idéntico durante toda la
+conversación, así que a partir del segundo mensaje la mayor parte de la entrada se cobra a
+precio de lectura de caché. El mínimo cacheable en Opus 5 son 512 tokens.
+
+**`stop_reason: "refusal"`:** los clasificadores pueden declinar una petición devolviendo un
+200 con `content` vacío. Leer `content[0]` sin comprobarlo revienta — está comprobado en los
+dos servicios.
+
+## 10. El asistente interno del panel
+
+`PanelAssistant` responde en lenguaje natural a preguntas del equipo desde `HomeView`
+(«¿qué casitas tengo libres del 12 al 15 de marzo?»). **No es el bot del huésped**, y a
+propósito no comparte nada con él salvo la fábrica del cliente:
+
+| | Autoresponder | Asistente del panel |
+|---|---|---|
+| Quién pregunta | Un huésped, por WhatsApp o una OTA | Un empleado autenticado |
+| Qué hace | Genera texto y lo **envía** fuera | Consulta y responde en pantalla |
+| Mecanismo | Generación sobre el hilo | **Tool use** contra el PMS |
+| Riesgo | Alto | Bajo: sólo lee |
+
+Meterlo en `MessageConversation` habría obligado a inventar conversaciones falsas y contextos
+que no existen. Va por su propio endpoint.
+
+```
+HomeView → AsistenteBar.vue → POST /agent/consulta → PanelAssistant
+                                                          │ tool runner
+                                                          ▼
+                                            consultar_disponibilidad
+                                                          │
+                                            PmsDisponibilidadService  (docs/PmsDisponibilidad.md)
+```
+
+- **La fecha de hoy va en el system prompt.** Sin ella «12 de marzo» se resuelve a un año
+  arbitrario. Se calcula en `America/Lima`, no en la del servidor.
+- **La descripción de la herramienta dice CUÁNDO usarla**, no sólo qué hace, y le prohíbe
+  explícitamente responder de memoria sobre disponibilidad. Eso es lo que sube la tasa de
+  llamada; es prompt, no documentación.
+- **Los errores de la herramienta se devuelven al modelo** como `{"error": …}` en vez de
+  romper el turno: así puede pedir la aclaración que falta.
+- **`herramientas` viaja en la respuesta** para que la interfaz pueda decir «Consultado en el
+  PMS». Sin eso el equipo no sabe si el modelo miró datos reales o improvisó.
+- **Seguridad:** el host de `api` **no** está en `access_control` (cae en `PUBLIC_ACCESS`), así
+  que lo que protege el endpoint es el `#[IsGranted('ROLE_USER')]` del controlador. No lo quites.
+- **El dictado no tiene backend**: la Web Speech API transcribe en el navegador y al servidor
+  llega texto. Cero coste de audio. Donde no exista, el botón no se muestra.
+- **Sin streaming por ahora**: son dos llamadas (pregunta → herramienta → respuesta) y la
+  respuesta es corta; el tool runner del SDK de PHP es beta y combinarlo con streaming añadía
+  riesgo sin ganancia. Se puede añadir después.
+
+**Cómo probarlo sin navegador:**
+
+```bash
+php bin/console app:agent:preguntar "¿qué casitas tengo libres del 12 al 15 de marzo?"
+php bin/console app:pms:disponibilidad 2026-03-12 2026-03-15   # lo que ve la herramienta
+```
+
+## 11. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|

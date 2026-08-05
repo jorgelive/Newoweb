@@ -6,6 +6,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { isSessionExpired } from '@/services/sessionAuth';
 import { MODULOS_APP } from '@/types/modulosApp';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
+import AsistenteBar from '@/components/common/AsistenteBar.vue';
 import { apiClient } from '@/services/apiClient';
 import { coleccionFeed, type CalendarEventoFeed } from '@/types/calendarFeedModel';
 import type { PmsEventoExtendedProps } from '@/types/pmsReservaModel';
@@ -289,6 +290,13 @@ const handleLogout = async () => {
 
       <!-- Contenido principal -->
       <main class="flex-1 w-full max-w-6xl mx-auto px-6 py-6 md:py-10 flex flex-col justify-center">
+
+        <!-- ASISTENTE: va antes del panel del día porque resuelve la pregunta que trae al
+             operador aquí ("¿tengo sitio del 12 al 15?"), y el panel es para mirar, no para
+             preguntar. Sólo con sesión: sin ella el endpoint responde 401. -->
+        <section v-if="isSessionActive" class="mb-6">
+          <AsistenteBar />
+        </section>
 
         <!-- PANEL DE HOY: lo primero que se mira al entrar. Llegadas y salidas
              del día salen del feed del calendario de Reservas (ver el script). -->

@@ -12,6 +12,7 @@ Si un patrón se repite en dos vistas, su sitio es aquí y no duplicado en cada 
 2. [Historial del navegador — nunca reemplaces `history.state`](#2-historial-del-navegador--nunca-reemplaces-historystate)
 3. [AppSwitcher — saltar entre módulos](#3-appswitcher--saltar-entre-módulos)
 3.b [Enfocar lo que se acaba de abrir — `utils/scrollEnfoque.ts`](#3b-enfocar-lo-que-se-acaba-de-abrir--utilsscrollenfoquets)
+3.c [AsistenteBar — preguntar al PMS en lenguaje natural](#3c-asistentebar--preguntar-al-pms-en-lenguaje-natural)
 4. [Dónde tocar para cambiar X](#4-dónde-tocar-para-cambiar-x)
 
 ---
@@ -276,6 +277,44 @@ function setFormCargoRef(el: Element | ComponentPublicInstance | null): void {
 Ignorar el `null` del desmontaje es deliberado: al pasar de un formulario a otro, Vue puede
 avisar del cierre **después** de la apertura y dejaría el ref vacío justo antes de enfocar. De
 que el nodo guardado siga vivo se encarga `isConnected`.
+
+## 3.c AsistenteBar — preguntar al PMS en lenguaje natural
+
+`components/common/AsistenteBar.vue`. Una barra donde el operador escribe —o **dicta**— una
+pregunta («¿qué casitas tengo libres del 12 al 15 de marzo?») y el backend la resuelve
+consultando el PMS de verdad. Hoy la monta `HomeView`; es autónoma y se puede poner en
+cualquier vista sin props.
+
+**No es el chat del huésped.** Aquí pregunta un compañero autenticado y la respuesta sólo se
+pinta en pantalla. El backend, los guardias y la herramienta están en `docs/Mensajeria.md` §10.
+
+### El dictado no tiene backend
+
+Usa la **Web Speech API** del navegador: transcribe en el cliente y al servidor viaja texto.
+Ni coste de audio ni endpoint que mantener.
+
+```ts
+const w = window as unknown as {
+    SpeechRecognition?: ConstructorReconocimiento;
+    webkitSpeechRecognition?: ConstructorReconocimiento;
+};
+return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+```
+
+Dos cosas que no son opcionales:
+
+- **El botón desaparece donde no hay soporte** (Firefox, navegadores viejos) en vez de fallar
+  al pulsarlo — de ahí el `v-if="soportaDictado"`.
+- **`onBeforeUnmount` corta el reconocimiento.** Si se navega fuera mientras dicta, el
+  micrófono se queda abierto: el navegador mantiene el indicador de grabación encendido y el
+  usuario no sabe por qué.
+
+### Tipos: `lib.dom` no trae la Web Speech API
+
+No hay tipos estables para `SpeechRecognition`, y ahí es fácil colar un `any`. El componente
+declara **sólo la superficie que usa** (`ReconocimientoVoz`, `ResultadoVozLike`) y acota el
+cast a la línea de arriba, que es un diccionario abierto del navegador y no un contrato
+nuestro. `RespuestaAsistente` es espejo de `PanelAssistantController::__invoke()`.
 
 ## 4. Dónde tocar para cambiar X
 
