@@ -195,6 +195,30 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
 const eventos = ref<EventoEntry[]>([]);
 const activeIndex = ref(0);
 
+/**
+ * Las estancias CANCELADAS se ocultan por defecto.
+ *
+ * Una reserva trabajada acumula canceladas —cambios de casita, duplicados que se
+ * anularon—, y mezcladas con la viva obligan a leer el estado de cada una para
+ * saber cuál es la buena. Se siguen guardando y enviando igual: esto es solo qué
+ * se pinta.
+ *
+ * La lista conserva el ÍNDICE REAL de `eventos`, porque el acordeón y
+ * `entryActiva` indexan sobre él: filtrar renumerando abriría la estancia
+ * equivocada.
+ */
+const mostrarCanceladas = ref(false);
+
+const esCancelada = (entry: EventoEntry): boolean => entry.form.estado === PMS_ESTADO.CANCELADA;
+
+const cuantasCanceladas = computed(() => eventos.value.filter(esCancelada).length);
+
+const eventosVisibles = computed<{ entry: EventoEntry; i: number }[]>(() =>
+    eventos.value
+        .map((entry, i) => ({ entry, i }))
+        .filter(({ entry }) => mostrarCanceladas.value || !esCancelada(entry)),
+);
+
 // Solo mostramos acordeón (cabeceras plegables + botón agregar) cuando estamos
 // editando una reserva ya persistida. En creación (bloqueo o reserva nueva)
 // hay una única estancia y no tiene sentido la envoltura de acordeón.
@@ -786,6 +810,11 @@ async function cargarDatos(): Promise<void> {
 
             const idx = eventos.value.findIndex(e => e.eventoId === props.eventoId);
             activeIndex.value = idx >= 0 ? idx : 0;
+
+            // Si se viene a ver JUSTO una cancelada (desde el calendario «Todas», por
+            // ejemplo), se destapan: si no, el drawer abriría sin nada a la vista.
+            const abierta = eventos.value[activeIndex.value];
+            if (abierta && esCancelada(abierta)) mostrarCanceladas.value = true;
             return;
         }
 
@@ -1156,15 +1185,30 @@ async function guardar(): Promise<void> {
 
                 <!-- ================= ESTANCIA(S) ================= -->
                 <section>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                        <i class="fas fa-bed mr-1"></i> {{ esMultiEvento ? 'Estancias' : 'Estancia' }}
-                    </h3>
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <i class="fas fa-bed mr-1"></i> {{ esMultiEvento ? 'Estancias' : 'Estancia' }}
+                        </h3>
+
+                        <!-- Solo aparece si hay algo que mostrar: en la mayoría de reservas
+                             no hay canceladas y el interruptor sería ruido. -->
+                        <label v-if="cuantasCanceladas" class="flex items-center gap-2 cursor-pointer shrink-0">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                                {{ cuantasCanceladas }} cancelada{{ cuantasCanceladas > 1 ? 's' : '' }}
+                            </span>
+                            <input type="checkbox" v-model="mostrarCanceladas" class="sr-only peer" />
+                            <span class="relative inline-flex h-5 w-9 items-center rounded-full bg-slate-300 transition-colors peer-checked:bg-slate-500">
+                                <span class="inline-block h-3.5 w-3.5 translate-x-1 rounded-full bg-white transition-transform"
+                                    :class="mostrarCanceladas ? 'translate-x-[1.125rem]' : ''"></span>
+                            </span>
+                        </label>
+                    </div>
 
                     <div class="space-y-3">
                         <!-- Cada estancia se tiñe con el color de SU estado: la cabecera más
                              saturada y el cuerpo apenas insinuado, para que se vea de un vistazo
                              dónde empieza y acaba cada una sin leer las fechas. -->
-                        <div v-for="(entry, i) in eventos" :key="entry.eventoId ?? `nuevo-${i}`"
+                        <div v-for="{ entry, i } in eventosVisibles" :key="entry.eventoId ?? `nuevo-${i}`"
                             class="rounded-xl overflow-hidden border"
                             :style="{ borderColor: colorEntry(entry) + BORDE_ALPHA }">
 

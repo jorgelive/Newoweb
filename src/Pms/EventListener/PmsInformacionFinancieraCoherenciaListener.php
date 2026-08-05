@@ -162,7 +162,15 @@ final class PmsInformacionFinancieraCoherenciaListener
             }
 
             $cambios = $uow->getEntityChangeSet($entity);
-            if (array_key_exists('salidaTardia', $cambios) || array_key_exists('entradaTemprana', $cambios)) {
+
+            // También al cambiar el ESTADO: cancelar una estancia tiene que llevarse
+            // su extensión —una estancia cancelada no ocupa nada—, y reactivarla, si
+            // la casilla sigue marcada, la devuelve. Mirando sólo las casillas, la
+            // noche bloqueada sobrevivía a la cancelación.
+            if (array_key_exists('salidaTardia', $cambios)
+                || array_key_exists('entradaTemprana', $cambios)
+                || array_key_exists('estado', $cambios)
+            ) {
                 $this->eventosHorarioExtra[spl_object_id($entity)] = $entity;
             }
         }

@@ -73,10 +73,20 @@ final class PmsExtensionEstanciaService
             return;
         }
 
+        // Una estancia CANCELADA no ocupa nada: no hay noche que bloquear. Si tenía
+        // extensiones, se retiran — y las casillas se tratan como apagadas aunque
+        // sigan marcadas, para que reactivar la estancia sea lo que las devuelva.
+        //
+        // Ojo con el caso que lo destapó: una reserva con la estancia duplicada (una
+        // cancelada y otra viva, misma casita y fechas) generaba desde la cancelada
+        // una extensión IDÉNTICA a la de la viva. Indistinguibles en el calendario y
+        // en el cargo, y bloqueando una noche por una estancia que no existe.
+        $cancelada = $estancia->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA;
+
         // Entrada temprana → la noche ANTERIOR: [inicio-1día, inicio].
         $this->sincronizarUna(
             estancia: $estancia,
-            activa: $estancia->isEntradaTemprana(),
+            activa: !$cancelada && $estancia->isEntradaTemprana(),
             descripcion: self::DESC_ENTRADA,
             desde: $this->menosUnDia($inicio),
             hasta: $inicio,
@@ -85,7 +95,7 @@ final class PmsExtensionEstanciaService
         // Salida tardía → la noche del día de salida: [fin, fin+1día].
         $this->sincronizarUna(
             estancia: $estancia,
-            activa: $estancia->isSalidaTardia(),
+            activa: !$cancelada && $estancia->isSalidaTardia(),
             descripcion: self::DESC_SALIDA,
             desde: $fin,
             hasta: $this->masUnDia($fin),

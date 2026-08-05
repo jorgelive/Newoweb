@@ -599,6 +599,33 @@ desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PAT
 `fin` **siempre**, también en OTA — antes se omitían y por eso la hora no se podía guardar.
 **Es un espejo del listener: si cambia el criterio, se tocan los dos lados.**
 
+#### Una estancia cancelada no tiene extensión
+
+Cancelar una estancia **retira su extensión** (y reactivarla la devuelve, si la casilla sigue
+marcada). Una estancia cancelada no ocupa nada: bloquear una noche por ella en Beds24 es una
+noche que se deja de vender por nada.
+
+El disparo va en `PmsInformacionFinancieraCoherenciaListener`, que además de las casillas vigila
+el cambio de **`estado`** en el `changeSet`. Mirando sólo las casillas, la noche bloqueada
+sobrevivía a la cancelación.
+
+> El caso que lo destapó: una reserva con la estancia **duplicada** —una cancelada y otra viva,
+> misma casita y mismas fechas— generaba desde la cancelada una extensión IDÉNTICA a la de la
+> viva. En el calendario y en el cargo son indistinguibles, así que parecía que el late check-out
+> «se había ido a la estancia activa».
+
+#### Auditar una reserva
+
+```bash
+php bin/console pms:reserva:auditar XTHRMQ
+```
+
+Solo lectura. Saca estancias con sus extensiones anidadas, cargos, pagos y saldo, y **señala los
+descuadres** que ya nos han mordido: estancias duplicadas con la misma casita y fechas, cargos
+colgando de una estancia cancelada, extensiones activas cuya estancia está cancelada, extensiones
+con estado de pago distinto de «no-pagado», registros sin tipo de cambio que aportan 0, y saldo
+negativo. Es lo que había que reconstruir a mano con scripts cada vez que algo no cuadraba.
+
 #### Gotchas
 
 - **Al desmarcar sólo se retira el cargo si sigue en CERO.** Un cargo con importe es dinero
