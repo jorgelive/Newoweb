@@ -12,6 +12,8 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 4. [Camino B — Pull por Cron (Sincronización Programada)](#4-camino-b--pull-por-cron-sincronización-programada)
 5. [Persister Compartido — BookingPullPersister](#5-persister-compartido--bookingpullpersister)
 6. [El Mecanismo de Espejo Virtual](#6-el-mecanismo-de-espejo-virtual)
+    · [6.3.b Cambiar de casita: qué link se mueve y cuál se recrea](#63b-cambiar-de-casita-qué-link-se-mueve-y-cuál-se-recrea)
+    · [6.3.c Los estados del link: cuáles se usan de verdad](#63c-los-estados-del-link-cuáles-se-usan-de-verdad)
 7. [Camino C — Push de vuelta a Beds24](#7-camino-c--push-de-vuelta-a-beds24)
 8. [Motor de Exchange — ExchangeOrchestrator](#8-motor-de-exchange--exchangeorchestrator)
 9. [Anti-duplicación y Seguridad](#9-anti-duplicación-y-seguridad)
@@ -21,6 +23,8 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [12.0.1 Cargos automáticos de una estancia directa](#1201-cargos-automáticos-de-una-estancia-directa)
     · [12.4.3 Vista dual soles / dólares](#1243-vista-dual-soles--dólares)
     · [12.6 Gotcha: SearchFilter y UUID binario](#126--gotcha-searchfilter-no-funciona-sobre-relaciones-con-uuid-binario)
+    · [12.11.b El link ya borrado (2ª causa del «new entity»)](#1211b-la-segunda-causa-del-mismo-error-el-link-ya-borrado)
+    · [12.12 Borrado de una reserva o de una estancia](#1212-borrado-de-una-reserva-o-de-una-estancia)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
 > Horario extra (early check-in / late check-out → evento `extension` invisible): §7.1.b.
@@ -397,6 +401,89 @@ internalHydrate(evento, externalBookId, externalRoomId)
 ### 6.3 Por qué el espejo nace sin beds24BookId
 
 El link espejo nace sin ID porque Beds24 todavía no sabe de esa reserva en el listing espejo. El flujo Push (§7) crea la reserva espejo en Beds24 y sella el ID vía `BookingsPushHandler::handleSuccess()`.
+
+**Ojo: «nace» es literal.** Vale para un link nuevo, no para uno que se recicla. Ver §6.3.b.
+
+### 6.3.b Cambiar de casita: qué link se mueve y cuál se recrea
+
+Mover una estancia de unidad (el *Smart Move*) es una reasignación de mapas, no un borrado.
+`PmsEventoCalendarioFactory::internalHydrate()` recorre los mapas activos de la unidad **nueva**
+y decide, para cada uno, qué link reutilizar.
+
+**Quién puede moverla depende de por dónde entre el cambio**, y es fácil leerlo al revés:
+
+| Origen | ¿Estancia directa? | ¿Estancia OTA? |
+|---|---|---|
+| Manual (panel / API) | ✅ permitido | ❌ `preUpdate()` regla 3b: *"No puedes reasignar la unidad física de una reserva externa"* |
+| Pull o webhook de Beds24 | ✅ | ✅ **también permitido** |
+
+El veto de OTA es **sólo contra el cambio manual**: la habitación la manda el canal, no nosotros.
+Cuando el movimiento lo ordena Beds24, `PmsEventoCalendarioSecurityListener::preUpdate()` sale
+por la puerta de `if ($this->syncContext->isPull()) return;` —que está *antes* de la regla 3b— y
+`BookingPullPersister::upsertEvento()` aplica `setPmsUnidad()` + `rebuildLinks($bookId, $roomId)`.
+El modo lo abre `ExchangeOrchestrator` desde `BookingsPullTask::getSyncMode()` (cron) o
+`Beds24WebhookBookingFastTrackService` (tiempo real).
+
+La regla es **conservar el `beds24BookId` siempre que la reserva siga siendo la misma en
+Beds24**, y eso ocurre cuando sólo cambia el `roomId` dentro del mismo establecimiento virtual:
+
+| Caso | Link | `beds24BookId` | Qué ve Beds24 |
+|---|---|---|---|
+| Principal (rescate) | se reutiliza | **se conserva** | UPDATE: la reserva cambia de habitación |
+| Espejo, mismo virtual (`INTI`→`INTI`) | se reutiliza | **se conserva** | UPDATE: la reserva espejo cambia de habitación |
+| Espejo, sin pareja en la unidad nueva | va a sobrantes → se borra | — | DELETE (§12.12) y un POST nuevo para el mapa entrante |
+| Mapa nuevo sin superviviente | se crea | `null` | POST: reserva nueva, el ID lo sella el Push (§6.3) |
+
+**El bug que esto arregla.** La rama de espejos hacía `setBeds24BookId(null)` *siempre*, también
+al reciclar un link que ya tenía ID. Resultado: mover una casita dejaba la reserva espejo viva
+en Beds24, en el room viejo, bloqueando esas noches, **sin ningún link que la reclamara y sin
+DELETE encolado**; y encima el espejo reciclado creaba una reserva nueva en el room nuevo. Dos
+fugas por cada cambio de casita. Verificado sobre datos reales: `book=83120655` desaparecía de
+todos los links sin dejar rastro.
+
+Por el mismo motivo el **fallback FIFO** sólo recicla links *sin* ID: emparejar por orden un
+link que ya tiene reserva con un mapa de otro virtual perdería esa reserva igual. Los que traen
+ID se dejan en los sobrantes, donde el borrado sí dispara su DELETE.
+
+> **Sobre el supuesto de que Beds24 acepta el cambio de room conservando el `id`.** El diseño
+> lo da por hecho: `BookingsPushMappingStrategy::buildUpsertPayload()` manda siempre `roomId`
+> («ancla de ubicación») y añade `id` cuando existe («ancla de identidad, evita duplicados»), y
+> el Pull reacciona a que Beds24 mueva una reserva pasándole a `rebuildLinks()` el mismo
+> `bookId` con otro `roomId`. Pero **no hay ni un caso registrado**: de 730 colas en producción,
+> las respuestas con `modified` sólo traen `status` y `departure`, **ninguna `roomId`**. Nunca
+> se ha movido de casita una reserva ya sincronizada, y por eso la fuga descrita arriba jamás
+> llegó a verse. Si Beds24 rechazara el movimiento, la cola quedaría en `failed` con su razón —
+> visible, a diferencia de la reserva huérfana que dejaba el comportamiento anterior.
+
+> ⚠️ **Una estancia recién creada no tiene ningún `beds24BookId` todavía.** El principal se
+> identifica entonces por el flag `esPrincipal`, no por el ID. Sin ese segundo criterio ningún
+> link se reconocía como superviviente, el principal se borraba y se insertaba otro en el mismo
+> flush, y Doctrine abortaba con **«A managed+dirty entity Link … can not be scheduled for
+> insertion»** — el error que `PmsExtensionEstanciaService` ya había encontrado por su cuenta.
+> Efecto práctico: no se podía cambiar de casita ninguna reserva aún sin sincronizar.
+
+### 6.3.c Los estados del link
+
+`PmsEventoBeds24Link::$status` tiene **tres** valores, y cada uno tiene quien lo escriba y quien
+lo lea:
+
+| Estado | Quién lo pone | Quién lo lee |
+|---|---|---|
+| `active` | `markActive()`, en cada hidratación. En la práctica, todos. | — (es el caso normal) |
+| `pending_delete` | **Sólo a mano, desde el panel.** Es la vía de borrado remoto que no borra la fila. | `Beds24BookingsPushQueueListener::isLinkBeingDeleted()` |
+| `synced_deleted` | `BookingsPushHandler::handleSuccess()` al completar el DELETE (§12.12.5). Terminal. | `PmsBeds24MessageTargetFinder`, `PmsBeds24InvoiceTargetFinder`, `Beds24BookingsPushJob` |
+
+**Antes había cinco.** `detached` y `pending_move` —con sus `markDetached()` y
+`markPendingMove()`— se eliminaron: en todo el código no había un solo sitio que los escribiera
+ni que los leyera, y en base de datos no existía una sola fila con esos valores (678 links en
+local, 740 en producción, **todos `active`**). Lo único que hacían era aparentar un flujo de
+desvinculación y otro de movimiento en dos fases que nunca se cablearon; el movimiento real se
+resuelve reutilizando el link y cambiándole el mapa (§6.3.b), y los links que sobran se borran
+en lugar de desvincularse. El desplegable del CRUD también los ofrecía, así que elegirlos no
+hacía nada salvo desinformar a quien mirara la ficha después.
+
+> **Regla al añadir un estado nuevo:** que tenga las dos mitades, quien lo produzca y quien lo
+> consuma. Un estado a medio cablear es peor que no tenerlo, porque se lee como una promesa.
 
 ---
 
@@ -2173,6 +2260,172 @@ el evento ya está gestionado —lo normal— no hace nada.
 Si vuelves a ver el error con OTRA relación en el mensaje, busca el `cascade: persist` que la
 alcanza y aplica la misma receta: asegurar el padre, no ampliar la cascada.
 
+### 12.11.b La segunda causa del mismo error: el link ya borrado
+
+El mensaje de arriba tiene **dos** orígenes distintos, y conviene no confundirlos. El de §12.11
+es un evento que aún no ha nacido. Éste es justo el contrario: un evento que ya murió.
+
+Al borrar una estancia, sus `PmsEventoBeds24Link` se van por cascada. Pero las colas
+**históricas** —el `POST_BOOKINGS` en `success` que creó la reserva en su día— siguen
+gestionadas y apuntando a ese link, y `PmsBookingsPushQueue#link` declara `cascade: ['persist']`.
+En el siguiente flush Doctrine recorre esa asociación, alcanza el link borrado y desde él su
+evento, ambos en estado `NEW`, y aborta.
+
+«El siguiente flush» no es hipotético: `PmsReservaRecalculoService::recalcularDesdeEventos()`
+hace uno dentro de su propio `postFlush`. Por eso el borrado de una estancia reventaba siempre,
+no de forma intermitente.
+
+Se arregla cortando la referencia antes de que el link desaparezca:
+`Beds24BookingsPushQueueCreator::detachQueuesFromLink()`, que el listener llama tras encolar el
+DELETE. La FK `link_id` es `ON DELETE SET NULL`, así que la base se arreglaba sola; el problema
+era sólo el grafo en memoria. Ver §12.12.
+
+## 12.12 Borrado de una reserva o de una estancia
+
+Borrar es la operación con más piezas del módulo: intervienen las reglas de negocio, dos
+cascadas de Doctrine, una FK que no estaba mapeada y el encolado del DELETE hacia Beds24. El
+orden importa.
+
+### 12.12.1 Las tres puertas
+
+Una estancia sólo se borra si pasa `PmsEventoCalendario::getMotivoNoBorrable()`, que devuelve
+el motivo legible o `null`:
+
+1. **¿Es OTA?** → se cancela en el canal, no se borra aquí.
+2. **¿Existe en Beds24 y no está cancelada?** → hay que cancelarla primero. Beds24 **sólo
+   permite borrar reservas canceladas**, de ahí la asimetría.
+3. **¿Hay cola en curso** (`processing` o con `locked_at`)? → se espera.
+
+`PmsReserva::getMotivoNoBorrable()` delega en sus estancias: basta que UNA bloquee para vetar
+la reserva entera. Los guardianes son `PmsEventoCalendarioSecurityListener::preRemove()` y
+`PmsReservaDeleteListener::preRemove()`, que lanzan `AccessDeniedHttpException`.
+
+> **Cómo distinguir un veto de negocio de un fallo técnico.** Si el panel muestra *"Este
+> elemento no se puede eliminar porque otros elementos dependen de él"*, eso **no** es una
+> regla tuya: es la etiqueta `entity_remove` de EasyAdmin, que sólo se emite al capturar un
+> `ForeignKeyConstraintViolationException` (`AbstractCrudController::deleteEntity()`). Un veto
+> de negocio se ve siempre con el texto `INTEGRIDAD BEDS24: …` o `NO SE PUEDE ELIMINAR LA
+> RESERVA #…`. Ante la duda, el log de prod trae la constraint exacta.
+
+### 12.12.2 El flujo completo
+
+```
+em->remove(PmsReserva)
+  │
+  ├─ cascade remove ──► PmsInformacionFinanciera   (OneToOne, §12.12.3)
+  │                       ├─ cascade ──► PmsCargoFinanciero
+  │                       └─ cascade ──► PmsPagoFinanciero
+  ├─ cascade remove ──► PmsReservaHuesped
+  └─ cascade remove ──► PmsEventoCalendario
+                          └─ cascade remove ──► PmsEventoBeds24Link
+                                                  │
+   onFlush (prio 200) ── Beds24BookingsPushQueueListener ──────────┘
+     ├─ collectDeleted()      los links caen en $linksDeleted
+     ├─ resolveTasks()        action = 'DELETE' (prioridad absoluta)
+     ├─ ensureBookIdForDelete()   recupera el bookId de colas viejas si hace falta
+     ├─ cancelPendingPostForLink()  mata el POST pendiente del link
+     ├─ enqueueForLink(DELETE_BOOKINGS)
+     │     └─ setLink(null) + snapshot beds24BookIdOriginal / linkIdOriginal
+     └─ detachQueuesFromLink()   corta las colas HISTÓRICAS (§12.11.b)
+
+   onFlush (prio -1000) ── PmsReservaRecalculoListener
+     └─ descarta las reservas que se están borrando (§12.12.4)
+
+   postFlush ──► dispatch RunExchangeTaskDispatch('bookings_push')
+```
+
+La cola de DELETE se desengancha del link **a propósito**: el link desaparece en este mismo
+flush, y guardar el `beds24BookId` y el `linkId` como snapshot es lo que permite al worker
+completar la llamada cuando ya no queda nada a lo que apuntar.
+
+### 12.12.3 Por qué `PmsInformacionFinanciera` es `OneToOne`
+
+Fue durante mucho tiempo un `ManyToOne` **unidireccional** con `unique: true`, y `PmsReserva`
+no tenía el lado inverso. Consecuencia: Doctrine no sabía que esa fila existía, emitía el
+`DELETE FROM pms_reserva` con la FK todavía apuntando y MySQL respondía
+
+```
+1451 Cannot delete or update a parent row: a foreign key constraint fails
+(`pms_informacion_financiera`, CONSTRAINT `FK_2AFB3104D67139E8` FOREIGN KEY (`reserva_id`))
+```
+
+Como **toda** reserva tiene su cabecera financiera, ninguna reserva se podía borrar nunca desde
+el panel, sin importar canal ni estado. El síntoma engañaba: las reglas de negocio daban verde
+y el botón aparecía.
+
+Hoy `PmsReserva::$informacionFinanciera` es el lado inverso con `cascade: ['remove']` y
+`orphanRemoval`. La columna ya tenía índice único (`UNIQ_2AFB3104D67139E8`), así que el cambio
+de mapeo **no arrastró migración**. El campo no lleva `#[Groups]`: existe sólo para cascadear,
+no para serializarse.
+
+### 12.12.4 El recálculo no debe correr sobre lo que ya no existe
+
+`PmsReservaRecalculoListener` recoge la reserva de `getScheduledEntityDeletions()` sin
+distinguir «cambió» de «desapareció», y en su `postFlush` lanza un segundo `flush()`. Sobre una
+reserva recién borrada eso revienta con el error de §12.11.b. Por eso el listener descarta al
+final de su `onFlush` las `PmsReserva` que están en la lista de borrado.
+
+Se descarta **sólo** la reserva que desaparece: borrar una estancia de una reserva que
+sobrevive sigue recalculando sus totales, que es justo lo que debe pasar.
+
+### 12.12.5 El ciclo del borrado manual y el estado `synced_deleted`
+
+`PmsEventoBeds24Link::$status` es editable desde el panel, así que un operador puede poner un
+link en `pending_delete` a mano. `Beds24BookingsPushQueueListener::isLinkBeingDeleted()` lo
+trata como DELETE aunque el link no se esté borrando físicamente.
+
+En ese camino el link **sobrevive** a la operación, y hay que cerrarle el ciclo:
+`BookingsPushHandler::handleSuccess()` lo pasa a `synced_deleted` cuando la tarea era un
+borrado (`PmsBookingsPushQueue::esBorrado()`). Sin esa transición el link se quedaba en
+`pending_delete` para siempre y **cada flush posterior que lo tocara volvía a encolar el mismo
+DELETE** contra Beds24.
+
+`synced_deleted` es el estado terminal, y es el que ya excluían
+`PmsBeds24MessageTargetFinder`, `PmsBeds24InvoiceTargetFinder` y `Beds24BookingsPushJob`: esos
+filtros existían desde antes esperando este cableado.
+
+| Camino | ¿Sobrevive el link? | Quién dispara | Quién cierra |
+|---|---|---|---|
+| Cascada (se borra el evento) | No | `collectDeleted()` desde el UnitOfWork | el propio borrado físico |
+| Manual (`pending_delete` en el panel) | Sí | `isLinkBeingDeleted()` por estado | `handleSuccess()` → `synced_deleted` |
+
+### 12.12.6b La carrera de la cancelación (y por qué el frontend espera)
+
+`isSafeToDelete()` responde «¿está permitido borrar?», **no** «¿conviene borrar ahora?». En
+cuanto la estancia pasa a «cancelada» entra en `ESTADOS_BORRABLES_CON_ID` y el motivo
+desaparece, aunque el push de esa cancelación siga en cola: `getMotivoNoBorrable()` sólo mira
+colas en `processing` o con `lockedAt`, y una `pending` no bloquea.
+
+Borrar en esa ventana pierde la carrera:
+
+```
+1. El operador cancela la estancia      → se encola POST {status: cancelled}   [pending]
+2. safeToDelete pasa a true             → el botón de borrar aparece
+3. El operador borra                    → cancelPendingPostForLink() MATA el POST del paso 1
+                                        → se encola DELETE
+4. Beds24 recibe el DELETE sobre una reserva TODAVÍA CONFIRMADA  → lo rechaza
+   ⇒ la reserva se queda viva en el canal bloqueando esas noches
+```
+
+Por eso `getSyncStatus()` y `getSyncStatusAggregate()` están serializados (`pms_evento:read` /
+`pms_reserva:read`): el frontend exige además `synced` o `local` antes de ofrecer el borrado, y
+mientras tanto muestra «Esperar y eliminar» con un sondeo. La regla espejo vive en
+`util/src/types/pmsReservaModel.ts` → `puedeBorrarseYa()`, y el flujo de UI está en
+«Borrado desde el drawer» de `docs/Calendar_architecture.md`. **Si cambias una, cambia la otra.**
+
+Comprobado en datos reales: hay estancias con `safeToDelete=true` y `syncStatus=pending` a la
+vez; ése es exactamente el estado peligroso.
+
+### 12.12.6 ⚠️ Un DELETE sin `beds24BookId` se descarta
+
+Si al encolar el borrado el link no tiene `beds24BookId` y `ensureBookIdForDelete()` tampoco lo
+recupera de sus colas, **no hay nada que borrar en Beds24** y la tarea se descarta. El PMS borra
+su copia y la reserva sigue viva en el canal bloqueando esas noches.
+
+Es un fallo silencioso con consecuencia externa, así que el listener lo registra como `error`
+con el `link_id` y el `evento_id`. **Si ese mensaje aparece en el log, hay que retirar la
+reserva a mano en Beds24**; no hay reintento posible, porque el identificador se perdió.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -2182,6 +2435,14 @@ alcanza y aplica la misma receta: asegurar el padre, no ampliar la cascada.
 | Cambiar cómo nacen los cargos de horario extra (hoy en 0.00) | `PmsCargosAutomaticosService` | `sincronizarExtras()` |
 | Cambiar ventana anti-dup | `Beds24WebhookController` | `600` (seg) y `15000` (ms) |
 | Tocar cascadas del grafo evento/link/cola de push | `Beds24BookingsPushQueueCreator` | `enqueueForLink()` — **lee §12.11 antes** |
+| Cambiar cuándo se puede borrar una estancia (§12.12.1) | `PmsEventoCalendario` | `getMotivoNoBorrable()` — fuente única; `util` sólo tipa el campo serializado en `PmsBorrableInfo`, no reimplementa la regla |
+| Que el borrado de la reserva arrastre una tabla nueva (§12.12.3) | `PmsReserva` | declarar el lado inverso con `cascade: ['remove']`; una FK sin mapear = 1451 |
+| Tocar el desenganche de colas al borrar un link (§12.11.b) | `Beds24BookingsPushQueueCreator` | `detachQueuesFromLink()` |
+| Cambiar qué link conserva su `beds24BookId` al mover de casita (§6.3.b) | `PmsEventoCalendarioFactory` | `internalHydrate()` — rama de espejos y `$mueveDentroDelMismoVirtual` |
+| Cómo se identifica el link principal sin ID remoto (§6.3.b) | `PmsEventoCalendarioFactory` | `internalHydrate()` — bloque B, `$esElPrincipal` |
+| Cambiar qué se recalcula tras un borrado (§12.12.4) | `PmsReservaRecalculoListener` | `onFlush()` — bloque 5, descarte de reservas borradas |
+| Cerrar el ciclo de un DELETE manual (§12.12.5) | `BookingsPushHandler` | `handleSuccess()` → `markSyncedDeleted()` |
+| Cambiar cuándo la SPA ofrece borrar (§12.12.6b) | `util/src/types/pmsReservaModel.ts` **y** `PmsEventoCalendario` | `puedeBorrarseYa()` / `getSyncStatus()` — son espejo, hay que tocar **los dos** |
 | Añadir canal de pago total | `PmsChannel` | `CANAL_PAGO_TOTAL` — también decide qué canales generan depósito automático (§12.4.5) |
 | Cambiar el importe/fecha del depósito de OTA (§12.4.5) | `PmsPagoOtaAutomaticoService` | `sincronizar()` / `fechaDeposito()` |
 | Permitir editar el depósito automático (§12.4.5) | `PmsInformacionFinancieraCoherenciaListener` | `assertPagoAutomaticoNoEditable()` |

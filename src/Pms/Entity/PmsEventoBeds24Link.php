@@ -47,10 +47,21 @@ class PmsEventoBeds24Link
      */
     use TimestampTrait;
 
+    /**
+     * Estados que el sistema sabe producir Y consumir. No añadas uno sin las dos mitades:
+     * `detached` y `pending_move` vivieron aquí sin que nadie los escribiera ni los leyera,
+     * y lo único que lograron fue aparentar un flujo de desvinculación y otro de movimiento
+     * en dos fases que nunca existieron (el movimiento se resuelve reutilizando el link y
+     * cambiándole el mapa, §6.3.b del doc).
+     *
+     * - `active`         : el normal. Lo pone `markActive()` en cada hidratación.
+     * - `pending_delete` : borrado remoto SIN borrar la fila. Hoy sólo se activa a mano desde
+     *                      el panel; lo consume `Beds24BookingsPushQueueListener`.
+     * - `synced_deleted` : terminal. Lo sella `BookingsPushHandler::handleSuccess()` al
+     *                      completar el DELETE, y es el que excluyen los finders y el job.
+     */
     public const STATUS_ACTIVE = 'active';
-    public const STATUS_DETACHED = 'detached';
     public const STATUS_PENDING_DELETE = 'pending_delete';
-    public const STATUS_PENDING_MOVE = 'pending_move';
     public const STATUS_SYNCED_DELETED = 'synced_deleted';
 
     #[ORM\ManyToOne(targetEntity: PmsEventoCalendario::class, inversedBy: 'beds24Links')]
@@ -247,25 +258,9 @@ class PmsEventoBeds24Link
         return $this;
     }
 
-    public function markDetached(?DateTimeInterface $now = null): self
-    {
-        $this->status = self::STATUS_DETACHED;
-        $this->deactivatedAt = $now;
-        return $this;
-    }
-
     public function markPendingDelete(?DateTimeInterface $now = null): self
     {
         $this->status = self::STATUS_PENDING_DELETE;
-        if ($this->deactivatedAt === null) {
-            $this->deactivatedAt = $now;
-        }
-        return $this;
-    }
-
-    public function markPendingMove(?DateTimeInterface $now = null): self
-    {
-        $this->status = self::STATUS_PENDING_MOVE;
         if ($this->deactivatedAt === null) {
             $this->deactivatedAt = $now;
         }

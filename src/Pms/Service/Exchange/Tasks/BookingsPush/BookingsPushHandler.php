@@ -46,7 +46,22 @@ final class BookingsPushHandler implements ExchangeHandlerInterface
         }
 
         // 4. Lógica de Actualización y Snapshots
-        if ($link) {
+        if ($link && $item->esBorrado()) {
+            // CIERRE DEL CICLO DE BORRADO MANUAL.
+            //
+            // Sólo llega aquí el DELETE disparado a mano: un operador pone el link en
+            // `pending_delete` desde el panel y el link sobrevive a la operación (en el
+            // borrado por cascada el link ya no existe y `getLink()` es null).
+            //
+            // Sin esta transición el link se quedaba en `pending_delete` para siempre, y
+            // como `Beds24BookingsPushQueueListener::isLinkBeingDeleted()` mira justo ese
+            // estado, CADA flush posterior que lo tocara volvía a encolar el mismo DELETE
+            // contra Beds24. `synced_deleted` es el estado terminal que rompe el bucle, y
+            // es además el que ya excluían PmsBeds24MessageTargetFinder,
+            // PmsBeds24InvoiceTargetFinder y Beds24BookingsPushJob.
+            $item->setLinkIdOriginal((string) $link->getId());
+            $link->markSyncedDeleted(new DateTimeImmutable());
+        } elseif ($link) {
             // Snapshot del UUID interno
             $item->setLinkIdOriginal((string) $link->getId());
 

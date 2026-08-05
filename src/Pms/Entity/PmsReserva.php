@@ -197,6 +197,22 @@ class PmsReserva
     #[Assert\Valid]
     private Collection $huespedes;
 
+    /**
+     * Cabecera financiera (1:1). Existe SOLO para que el borrado cascadee.
+     *
+     * Sin este lado inverso, Doctrine ignoraba `pms_informacion_financiera` al borrar la
+     * reserva y MySQL abortaba con «1451 Cannot delete or update a parent row». Como toda
+     * reserva tiene su cabecera, el borrado fallaba siempre, sin importar el estado ni el
+     * canal. La cascada de aquí arrastra además sus cargos y pagos, que ya la tenían
+     * declarada en `PmsInformacionFinanciera`.
+     *
+     * Sin `#[Groups]` a propósito: no viaja en ninguna serialización. El detalle financiero
+     * se sirve por su propio endpoint (`pms_finanzas:read`) y el resumen del huésped lo
+     * arma `PmsReservaPaxProvider` (ver `$resumenFinancieroCliente`).
+     */
+    #[ORM\OneToOne(mappedBy: 'reserva', targetEntity: PmsInformacionFinanciera::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private ?PmsInformacionFinanciera $informacionFinanciera = null;
+
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $canalesAggregate = null;
 
@@ -312,6 +328,13 @@ class PmsReserva
         return null;
     }
 
+    /**
+     * Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+     * entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+     * el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+     * hayan llegado a Beds24.
+     */
+    #[Groups(['pms_reserva:read'])]
     public function getSyncStatusAggregate(): string {
         $allSynced = true; $hasError = false;
         if ($this->eventosCalendario->isEmpty()) return 'local';
@@ -516,7 +539,8 @@ class PmsReserva
     /**
      * Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
      * moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
-     * PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+     * PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+     * el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
      *
      * Es un RESUMEN a propósito: el detalle de cargos/pagos (`pms_finanzas:read`) es del
      * panel interno y no viaja al cliente. Null cuando no hay cabecera o el total es 0
@@ -530,6 +554,18 @@ class PmsReserva
     #[SerializedName('resumenFinanciero')]
     public function getResumenFinancieroCliente(): ?array { return $this->resumenFinancieroCliente; }
     public function setResumenFinancieroCliente(?array $resumen): self { $this->resumenFinancieroCliente = $resumen; return $this; }
+
+    public function getInformacionFinanciera(): ?PmsInformacionFinanciera { return $this->informacionFinanciera; }
+
+    public function setInformacionFinanciera(?PmsInformacionFinanciera $info): self
+    {
+        // Mantener el lado propietario sincronizado: es el que escribe `reserva_id`.
+        if ($info !== null && $info->getReserva() !== $this) {
+            $info->setReserva($this);
+        }
+        $this->informacionFinanciera = $info;
+        return $this;
+    }
 
     public function getHuespedes(): Collection { return $this->huespedes; }
     public function addHuesped(PmsReservaHuesped $huesped): self {

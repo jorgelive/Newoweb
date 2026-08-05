@@ -162,8 +162,18 @@ class PmsEventoCalendarioFactory
 
         // B. Clasificar links existentes
         foreach ($evento->getBeds24Links() as $link) {
-            // ¿Es este el link principal (el que tiene el ID)?
-            if ($targetBookId !== null && $link->getBeds24BookId() === $targetBookId) {
+            // ¿Es este el link principal? Normalmente se identifica por llevar el ID
+            // objetivo, pero una estancia recién creada todavía no tiene ninguno: hasta que
+            // el Push la sella (§6.3) TODOS sus links valen `null`. Sin el segundo criterio
+            // —el flag `esPrincipal`— ningún link se reconocía como superviviente, así que
+            // el principal se borraba y se creaba otro en su lugar; ese vaivén dentro del
+            // mismo flush reventaba con «A managed+dirty entity Link … can not be scheduled
+            // for insertion» e impedía mover de casita cualquier reserva sin sincronizar.
+            $esElPrincipal = $targetBookId !== null
+                ? $link->getBeds24BookId() === $targetBookId
+                : $link->isEsPrincipal();
+
+            if ($esElPrincipal && $principalSurvivor === null) {
                 $principalSurvivor = $link;
                 $rescuedLastSeenAt = $link->getLastSeenAt();
             } else {
@@ -267,24 +277,51 @@ class PmsEventoCalendarioFactory
                 // 1. Intentamos match por CÓDIGO VIRTUAL (Ej: 'INTI' -> 'INTI')
                 $virtualCode = $map->getVirtualEstablecimiento()?->getCodigo();
 
+                // ¿Este espejo conserva su reserva en Beds24 o le toca una nueva?
+                $mueveDentroDelMismoVirtual = false;
+
                 if ($virtualCode && isset($groupedSurvivors[$virtualCode])) {
-                    // ✅ MATCH EXACTO: Reutilizamos el link espejo
+                    // ✅ MATCH EXACTO: mismo establecimiento virtual, sólo cambia el room.
+                    // Es un MOVIMIENTO, no una reserva distinta: se conserva el
+                    // beds24BookId igual que hace el principal unas líneas más arriba, y el
+                    // Push lo traduce en un UPDATE que mueve la reserva de habitación.
                     $linkToUse = $groupedSurvivors[$virtualCode];
                     unset($groupedSurvivors[$virtualCode]); // Consumido
+                    $mueveDentroDelMismoVirtual = true;
                 }
-                // 2. Fallback FIFO
-                elseif (!empty($genericSurvivors)) {
-                    $linkToUse = array_shift($genericSurvivors);
-                }
-                // 3. Nuevo
+                // 2. Fallback FIFO — sólo sobre links SIN id remoto.
+                //    Reciclar aquí un link que ya tiene beds24BookId lo mandaría a otro
+                //    establecimiento virtual, y como abajo se le limpia el ID, esa reserva
+                //    quedaría viva en Beds24 sin que ningún link la reclame: noches
+                //    bloqueadas para siempre y sin DELETE que las libere. Los que traen ID
+                //    se dejan en los sobrantes, que sí se borran y disparan su DELETE (§5).
                 else {
+                    foreach ($genericSurvivors as $i => $candidato) {
+                        if ($candidato->getBeds24BookId() === null) {
+                            $linkToUse = $candidato;
+                            unset($genericSurvivors[$i]);
+                            $genericSurvivors = array_values($genericSurvivors);
+                            break;
+                        }
+                    }
+                }
+
+                // 3. Nuevo
+                if ($linkToUse === null) {
                     $linkToUse = new PmsEventoBeds24Link();
                     $linkToUse->setEvento($evento);
                     $evento->addBeds24Link($linkToUse);
                 }
 
                 $linkToUse->setEsPrincipal(false);
-                $linkToUse->setBeds24BookId(null);
+
+                // Un espejo nuevo nace sin ID: Beds24 aún no conoce esa reserva en el
+                // listing espejo y el Push se lo sella al crearla (§6.3). Pero si sólo se
+                // está moviendo de room dentro de su mismo virtual, borrar el ID sería
+                // perderle la pista a una reserva que sigue existiendo.
+                if (!$mueveDentroDelMismoVirtual) {
+                    $linkToUse->setBeds24BookId(null);
+                }
             }
 
             $linkToUse->markActive();

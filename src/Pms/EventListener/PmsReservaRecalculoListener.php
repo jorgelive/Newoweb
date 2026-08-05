@@ -76,6 +76,25 @@ final class PmsReservaRecalculoListener
         foreach ($uow->getScheduledCollectionDeletions() as $collection) {
             $this->processCollectionOwner($collection->getOwner());
         }
+
+        // 5. DESCARTE DE RESERVAS BORRADAS (no tocar sin leer esto).
+        //
+        // El paso 3 recoge la reserva por sus eventos y por sí misma, sin distinguir si el
+        // cambio es «cambió» o «desapareció». Recalcular una reserva recién borrada rompe
+        // el borrado entero: `recalcularDesdeEventos()` hace un segundo `flush()` dentro de
+        // este mismo postFlush, y para entonces el evento y sus PmsEventoBeds24Link ya no
+        // están gestionados. Doctrine los ve como entidades nuevas alcanzadas desde
+        // `PmsEventoBeds24Link#evento` y aborta con «A new entity was found through the
+        // relationship» — el error que hacía imposible borrar una reserva aunque las reglas
+        // de negocio y las FK dieran paso.
+        //
+        // Se descarta sólo la reserva que desaparece. Borrar UNA estancia de una reserva que
+        // sobrevive sigue recalculando, que es justo lo que debe pasar con sus totales.
+        foreach ($uow->getScheduledEntityDeletions() as $entity) {
+            if ($entity instanceof PmsReserva) {
+                unset($this->reservaIds[(string) $entity->getId()]);
+            }
+        }
     }
 
     /**

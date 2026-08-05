@@ -26,8 +26,8 @@ use Symfony\Contracts\Service\ResetInterface;
  */
 final class Beds24BookingsPushQueueCreator implements ResetInterface
 {
-    private const ENDPOINT_POST_BOOKINGS = 'POST_BOOKINGS';
-    private const ENDPOINT_DELETE_BOOKINGS = 'DELETE_BOOKINGS';
+    private const ENDPOINT_POST_BOOKINGS = PmsBookingsPushQueue::ACCION_POST_BOOKINGS;
+    private const ENDPOINT_DELETE_BOOKINGS = PmsBookingsPushQueue::ACCION_DELETE_BOOKINGS;
 
     /**
      * Cache en memoria para evitar duplicados en el mismo ciclo de flush.
@@ -307,5 +307,62 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
         }
 
         return $changed;
+    }
+
+    /**
+     * Desengancha del link TODAS sus colas históricas, dejando el snapshot en su sitio.
+     *
+     * Hay que llamarlo antes de que el link desaparezca por cascada. La FK
+     * `pms_bookings_push_queue.link_id` es `ON DELETE SET NULL`, así que la base se
+     * arreglaría sola; el problema es Doctrine en memoria:
+     *
+     *   1. Se borra un evento -> sus PmsEventoBeds24Link se van en cascada.
+     *   2. Las colas viejas (el POST que creó la reserva, ya en `success`) siguen
+     *      gestionadas y apuntando a ese link, y `PmsBookingsPushQueue#link` declara
+     *      `cascade: ['persist']`.
+     *   3. En el SIGUIENTE flush —el que hace PmsReservaRecalculoService dentro de su
+     *      postFlush— Doctrine recorre esa asociación, alcanza el link ya borrado y desde
+     *      él su `evento`, ambos en estado NEW, y aborta con «A new entity was found
+     *      through the relationship PmsEventoBeds24Link#evento».
+     *
+     * Ese error es el que hacía imposible borrar una estancia, y el que obligó a
+     * `PmsExtensionEstanciaService::retirar()` a cancelar en vez de borrar. Cortando la
+     * referencia aquí, el grafo en memoria deja de apuntar a lo que ya no existe.
+     */
+    public function detachQueuesFromLink(PmsEventoBeds24Link $link, ?UnitOfWork $uow = null): void
+    {
+        $collection = $link->getQueues();
+
+        $queues = ($collection instanceof PersistentCollection && !$collection->isInitialized() && $link->getId() !== null)
+            ? $this->em->getRepository(PmsBookingsPushQueue::class)->findBy(['link' => $link])
+            : $collection->toArray();
+
+        foreach ($queues as $queue) {
+            if (!$queue instanceof PmsBookingsPushQueue || $queue->getLink() === null) {
+                continue;
+            }
+
+            // La cola es auditoría: no se borra, pero debe conservar a quién se refería.
+            if ($queue->getBeds24BookIdOriginal() === null && $link->getBeds24BookId() !== null) {
+                $queue->setBeds24BookIdOriginal($link->getBeds24BookId());
+            }
+            if ($queue->getLinkIdOriginal() === null) {
+                $queue->setLinkIdOriginal((string) $link->getId());
+            }
+
+            $queue->setLink(null);
+
+            // Dentro de onFlush el changeset ya está calculado: hay que recomputarlo o el
+            // UPDATE de `link_id` no se emite.
+            if ($uow !== null && !$uow->isScheduledForDelete(entity: $queue)) {
+                $uow->recomputeSingleEntityChangeSet(
+                    class: $this->em->getClassMetadata(PmsBookingsPushQueue::class),
+                    entity: $queue
+                );
+            }
+        }
+
+        // Vaciar el lado inverso para que nada en memoria siga alcanzando al link.
+        $collection->clear();
     }
 }

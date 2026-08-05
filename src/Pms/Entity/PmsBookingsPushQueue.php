@@ -39,6 +39,15 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface, MemoryCleanabl
     public const STATUS_FAILED    = 'failed';
     public const STATUS_CANCELLED = 'cancelled';
 
+    /**
+     * Acciones de `ExchangeEndpoint` que sirve esta cola. Viven aquí, y no como constante
+     * privada de cada servicio, porque tres clases necesitan distinguir un push de un
+     * borrado: el listener que encola, el creator que decide el snapshot, y el handler que
+     * cierra el ciclo marcando el link.
+     */
+    public const ACCION_POST_BOOKINGS   = 'POST_BOOKINGS';
+    public const ACCION_DELETE_BOOKINGS = 'DELETE_BOOKINGS';
+
     // --- RELACIONES ---
 
     // ✅ CORRECCIÓN: Agregado cascade: ['persist'] para soportar Links nuevos en batch
@@ -186,6 +195,18 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface, MemoryCleanabl
 
     public function getEndpoint(): ?ExchangeEndpoint { return $this->endpoint; }
     public function setEndpoint(?EndpointInterface $endpoint): self { $this->endpoint = $endpoint; return $this; }
+
+    /**
+     * ¿Esta tarea borra la reserva en Beds24 (en vez de crearla/actualizarla)?
+     *
+     * Se resuelve por el endpoint y no por `link === null`: en el borrado por cascada el
+     * link se desengancha a propósito, pero en el borrado manual (un operador pone el link
+     * en `pending_delete` desde el panel) el link sigue ahí, y ese caso también es un DELETE.
+     */
+    public function esBorrado(): bool
+    {
+        return self::ACCION_DELETE_BOOKINGS === $this->endpoint?->getAccion();
+    }
 
     public function getConfig(): ?Beds24Config { return $this->config; }
     public function setConfig(?ChannelConfigInterface $config): self { $this->config = $config; return $this; }

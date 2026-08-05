@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, type ComponentPublicInstance } from 'vue';
 import { useRouter } from 'vue-router';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { getUrls } from '@/services/apiClient';
 import { formatearTelefono, telefonoParaWhatsapp } from '@/utils/telefono';
+import { enfocarEnScroller } from '@/utils/scrollEnfoque';
 import ReservaFinanzasPanel from '@/components/reservas/ReservaFinanzasPanel.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
@@ -25,7 +26,9 @@ import {
     pagoMandaSobreEstado,
     resolveEventoColor,
     contrastText,
+    puedeBorrarseYa,
     COLOR_ESTADO_FALLBACK,
+    type PmsSyncStatus,
     type PmsEventoCalendario,
     type PmsEventoCalendarioPatch,
     type PmsEventoCalendarioCreate,
@@ -49,8 +52,12 @@ const emit = defineEmits<{
     /**
      * `reservaIdCreada` sólo viaja al crear una reserva directa: la vista deja el drawer
      * abierto sobre ella para poder cargarle finanzas en el acto (ver ReservasView.onGuardado).
+     *
+     * `cerrar` decide si la vista cierra el drawer. Por defecto NO se cierra: guardar suele
+     * ser el paso previo a otra cosa sobre la misma reserva, y el calendario se refresca
+     * igualmente. Sólo lo pide «Guardar y cerrar».
      */
-    saved: [payload?: { reservaIdCreada?: string }];
+    saved: [payload?: { reservaIdCreada?: string; cerrar?: boolean }];
     deleted: [];
 }>();
 
@@ -101,6 +108,14 @@ interface EventoFormData {
 }
 
 interface EventoEntry {
+    /**
+     * Clave estable de la fila, sólo para el `v-for`. No viaja al backend.
+     *
+     * Hace falta porque una estancia nueva no tiene `eventoId` y la clave era el índice:
+     * al descartar una intermedia, las de abajo cambiaban de índice y Vue reutilizaba el
+     * DOM de la equivocada, dejando el formulario de una casita sobre los datos de otra.
+     */
+    uid: string;
     eventoId: string | null;
     isOta: boolean;
     estadoActualId: string | null;
@@ -117,6 +132,18 @@ interface EventoEntry {
      * (ver `onCambiarInicio`). Sin él, al cambiar el inicio no hay contra qué medir el salto.
      */
     inicioPrevio: string;
+    /** Veredicto del backend sobre el borrado, tal cual llegó en la última carga. */
+    safeToDelete: boolean;
+    motivoNoBorrable: string | null;
+    /** Estado de la cola de push. Ver `puedeBorrarseYa()`: `safeToDelete` solo no basta. */
+    syncStatus: PmsSyncStatus | undefined;
+}
+
+let contadorUid = 0;
+/** Clave de fila estable, viva sólo mientras el drawer está abierto. */
+function nuevoUid(): string {
+    contadorUid += 1;
+    return `e${contadorUid}`;
 }
 
 /** Noches que abarca una estancia nueva (espejo de RANGO_POR_DEFECTO_DIAS en ReservasView). */
@@ -139,6 +166,19 @@ function parseLocal(dt: string): Date | null {
 
 /** Alias del helper compartido: una sola definición de "Date -> hora de pared". */
 const aDatetimeLocal = fechaAInputLocal;
+
+/**
+ * Parte de día de un `datetime-local` ("2026-07-13T14:00" -> "2026-07-13").
+ *
+ * Se usa como suelo del check-out. Pasarle la fecha COMPLETA hacía que el suelo llevase
+ * también la hora de entrada, y entonces tocar la hora de check-in movía la de check-out:
+ * el time-picker de `VueDatePicker` toma `min-date` como límite de hora y reajusta el valor.
+ * La salida tiene que ser posterior a la entrada —eso lo valida `errorFechas()`—, pero su
+ * HORA es del establecimiento y no depende de a qué hora entre el huésped.
+ */
+function soloDia(dt: string): string {
+    return (dt || '').slice(0, 10);
+}
 
 /** Días naturales entre dos fechas, ignorando la hora. */
 function diasEntre(desde: Date, hasta: Date): number {
@@ -168,12 +208,16 @@ function formVacio(overrides: Partial<EventoFormData> = {}): EventoFormData {
 
 function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
     return {
+        uid: nuevoUid(),
         eventoId: evento.id ?? null,
         isOta: !!evento.ota,
         estadoActualId: evento.estado?.id ?? null,
         channelNombre: evento.channel?.nombre ?? '—',
         horarioExtraGuardado: (evento.entradaTemprana ?? false) || (evento.salidaTardia ?? false),
         inicioPrevio: toDatetimeLocal(evento.inicio),
+        safeToDelete: evento.safeToDelete ?? false,
+        motivoNoBorrable: evento.motivoNoBorrable ?? null,
+        syncStatus: evento.syncStatus,
         form: {
             pmsUnidad: evento.pmsUnidad?.id ?? '',
             estado: evento.estado?.id ?? '',
@@ -383,16 +427,25 @@ function onCambiarInicio(entry: EventoEntry): void {
     const nuevo = parseLocal(entry.form.inicio);
     if (!nuevo) return;
 
+    // SOLO UN CAMBIO DE DÍA TOCA EL CHECK-OUT.
+    //
+    // Ajustar la hora de llegada —un huésped que avisa de que entra a las 18:00— no dice
+    // nada sobre cuándo se va, y la hora de salida es del establecimiento. Se sale antes de
+    // hacer nada, incluida la red de seguridad de abajo: con las fechas ya válidas y sólo la
+    // hora movida no hay ningún rango que recomponer, y entrar ahí sólo podía estropearlo.
     const previo = parseLocal(entry.inicioPrevio);
-    const fin = parseLocal(entry.form.fin);
+    const desplazamiento = previo ? diasEntre(previo, nuevo) : 0;
 
-    if (previo && fin) {
-        const desplazamiento = diasEntre(previo, nuevo);
-        if (desplazamiento !== 0) {
-            const finNuevo = new Date(fin);
-            finNuevo.setDate(finNuevo.getDate() + desplazamiento); // conserva hora y minutos
-            entry.form.fin = aDatetimeLocal(finNuevo);
-        }
+    if (previo && desplazamiento === 0) {
+        entry.inicioPrevio = entry.form.inicio;
+        return;
+    }
+
+    const fin = parseLocal(entry.form.fin);
+    if (fin && desplazamiento !== 0) {
+        const finNuevo = new Date(fin);
+        finNuevo.setDate(finNuevo.getDate() + desplazamiento); // conserva hora y minutos
+        entry.form.fin = aDatetimeLocal(finNuevo);
     }
 
     // Red de seguridad: nunca dejar un rango imposible tras el arrastre.
@@ -454,8 +507,79 @@ function puedeClonarFechas(entry: EventoEntry, i: number): boolean {
     return i > 0 && !readOnly.value && !fechasUnidadBloqueadasPara(entry);
 }
 
+/**
+ * Quitar del formulario una estancia que se añadió por error y AÚN NO EXISTE.
+ *
+ * No tiene nada que ver con el borrado de la zona roja de abajo: aquí no se llama a la API
+ * ni se toca Beds24, sólo se deshace un «Agregar estancia». Por eso la condición es
+ * `!eventoId` y no `safeToDelete`: una estancia sin id no llegó nunca al servidor, así que
+ * no hay reglas de canal ni de sincronización que consultar.
+ */
+function descartarEstanciaNueva(i: number): void {
+    const entry = eventos.value[i];
+    if (!entry || entry.eventoId || readOnly.value) return;
+
+    eventos.value.splice(i, 1);
+
+    // Las refs se indexan por posición y acaban de correrse; Vue las repuebla al repintar.
+    estanciaEls.clear();
+
+    // Dejar abierta una estancia que exista: si se cerró la última, la nueva última.
+    if (activeIndex.value > i) {
+        activeIndex.value -= 1;
+    } else if (activeIndex.value === i) {
+        activeIndex.value = Math.min(i, eventos.value.length - 1);
+    }
+}
+
+/** ¿Esta fila se puede descartar sin tocar el servidor? Sólo las que aún no se guardaron. */
+function puedeDescartarEstancia(entry: EventoEntry): boolean {
+    return !entry.eventoId && !readOnly.value && eventos.value.length > 1;
+}
+
+// ============================================================================
+// ENFOQUE DE LA ESTANCIA ABIERTA
+//
+// Al expandir una estancia (o añadir una nueva) el panel crece hacia abajo, y con varias
+// apiladas lo normal era quedarse mirando la mitad de un formulario sin ver de cuál era:
+// el navegador no mueve el scroll solo, y la cabecera con la casita y las fechas —lo que
+// dice DÓNDE estás— quedaba fuera de pantalla.
+//
+// Se desplaza a la TARJETA entera, que empieza por esa cabecera, no al cuerpo.
+// ============================================================================
+
+const scrollerRef = ref<HTMLElement | null>(null);
+const estanciaEls = new Map<number, HTMLElement>();
+
+/**
+ * `ref` dentro de un `v-for`: Vue entrega el elemento o `null` al desmontarlo. El tipo del
+ * callback admite también instancias de componente, de ahí el estrechamiento explícito en
+ * vez de un cast: aquí siempre es un `div`.
+ */
+function setEstanciaRef(i: number, el: Element | ComponentPublicInstance | null): void {
+    if (el instanceof HTMLElement) {
+        estanciaEls.set(i, el);
+    } else {
+        estanciaEls.delete(i);
+    }
+}
+
+/**
+ * Lleva la estancia `i` a la parte alta del scroller del drawer.
+ *
+ * `suave = false` al abrir el drawer: el panel entra deslizándose y dos movimientos a la vez
+ * se leen como un fallo.
+ */
+async function enfocarEstancia(i: number, suave = true): Promise<void> {
+    await nextTick();
+    enfocarEnScroller(estanciaEls.get(i) ?? null, { scroller: scrollerRef.value, suave });
+}
+
 function toggleAcordeon(i: number): void {
-    activeIndex.value = activeIndex.value === i ? -1 : i;
+    const seAbre = activeIndex.value !== i;
+    activeIndex.value = seAbre ? i : -1;
+    // Al plegar no se mueve nada: el operador ya está mirando donde quiere estar.
+    if (seAbre) void enfocarEstancia(i);
 }
 
 function agregarEvento(): void {
@@ -471,18 +595,25 @@ function agregarEvento(): void {
     const inicioLocal = aDatetimeLocal(inicio);
 
     eventos.value.push({
+        uid: nuevoUid(),
         eventoId: null,
         isOta: false,
         estadoActualId: null,
         channelNombre: 'Directo',
         horarioExtraGuardado: false,
         inicioPrevio: inicioLocal,
+        // Una estancia que aún no existe no se borra: se quita del formulario.
+        safeToDelete: false,
+        motivoNoBorrable: null,
+        syncStatus: undefined,
         form: formVacio({
             inicio: inicioLocal,
             fin: aDatetimeLocal(fin),
         }),
     });
     activeIndex.value = eventos.value.length - 1;
+    // La nueva nace al final de la lista, casi siempre fuera de pantalla.
+    void enfocarEstancia(activeIndex.value);
 }
 
 /** Acepta IRIs sueltas o los objetos que exponga el schema, según el grupo de serialización activo. */
@@ -525,7 +656,18 @@ const reservaInfo = ref<{
     referenciaCanalAggregate: string | null;
     urlCanalExtranet: string | null;
     channelId: string | null;
-}>({ localizador: null, referenciaCanalAggregate: null, urlCanalExtranet: null, channelId: null });
+    safeToDelete: boolean;
+    motivoNoBorrable: string | null;
+    syncStatusAggregate: PmsSyncStatus | undefined;
+}>({
+    localizador: null,
+    referenciaCanalAggregate: null,
+    urlCanalExtranet: null,
+    channelId: null,
+    safeToDelete: false,
+    motivoNoBorrable: null,
+    syncStatusAggregate: undefined,
+});
 
 /** Link público de la guía del huésped (mismo path que PmsMessageDataResolver::getMessageVariables() -> guide_url). */
 const guideUrl = computed(() => {
@@ -740,12 +882,16 @@ async function cargarDatos(): Promise<void> {
 
         if (isCreate.value && props.createDefaults) {
             eventos.value = [{
+                uid: nuevoUid(),
                 eventoId: null,
                 isOta: false,
                 estadoActualId: null,
                 channelNombre: 'Directo',
                 horarioExtraGuardado: false,
                 inicioPrevio: toDatetimeLocal(props.createDefaults.inicio),
+                safeToDelete: false,
+                motivoNoBorrable: null,
+                syncStatus: undefined,
                 form: formVacio({
                     pmsUnidad: props.createDefaults.unidadId,
                     estado: isCreateReserva.value ? PMS_ESTADO.PENDIENTE : PMS_ESTADO.BLOQUEO,
@@ -785,6 +931,9 @@ async function cargarDatos(): Promise<void> {
                 referenciaCanalAggregate: reservaExtra.referenciaCanalAggregate ?? null,
                 urlCanalExtranet: reservaExtra.urlCanalExtranet ?? null,
                 channelId: reserva.channel?.id ?? null,
+                safeToDelete: reserva.safeToDelete ?? false,
+                motivoNoBorrable: reserva.motivoNoBorrable ?? null,
+                syncStatusAggregate: reserva.syncStatusAggregate,
             };
 
             const ids = idsDeEventos(reserva);
@@ -815,6 +964,12 @@ async function cargarDatos(): Promise<void> {
             // ejemplo), se destapan: si no, el drawer abriría sin nada a la vista.
             const abierta = eventos.value[activeIndex.value];
             if (abierta && esCancelada(abierta)) mostrarCanceladas.value = true;
+
+            // Se abrió sobre una estancia que no es la primera (una reserva de varias
+            // casitas, clicando la segunda en el calendario): sin esto el drawer arranca
+            // arriba del todo y la estancia que se vino a ver queda más abajo, desplegada
+            // pero fuera de pantalla.
+            if (activeIndex.value > 0) void enfocarEstancia(activeIndex.value, false);
             return;
         }
 
@@ -876,7 +1031,10 @@ function extraerId(reserva: unknown): string | null {
 /** Aviso tras guardar un horario extra: el cargo ya está abajo, esperando importe. */
 const avisoHorarioExtra = ref(false);
 
-async function guardar(): Promise<void> {
+/** Confirmación breve tras guardar sin cerrar, para que el botón no parezca inerte. */
+const avisoGuardado = ref(false);
+
+async function guardar(cerrarAlTerminar = false): Promise<void> {
     let huboHorarioExtra = false;
     localError.value = null;
 
@@ -1012,14 +1170,174 @@ async function guardar(): Promise<void> {
         // vez para ponerle el importe, así que aquí se recarga y se queda abierto.
         if (huboHorarioExtra) {
             await cargarDatos();
+            emit('saved', { cerrar: false });
             avisoHorarioExtra.value = true;
             setTimeout(() => (avisoHorarioExtra.value = false), 8000);
             return;
         }
 
-        emit('saved');
+        if (!cerrarAlTerminar) {
+            // El drawer se queda abierto a propósito. Guardar suele ser el paso PREVIO a otra
+            // cosa —cancelar una estancia y esperar a que Beds24 confirme para poder borrarla,
+            // ajustar un cargo, revisar el resultado— y cerrar obligaba a volver a buscar la
+            // reserva en el calendario para cada uno de esos pasos.
+            //
+            // Se recarga del servidor en vez de fiarse del formulario: `safeToDelete`,
+            // `motivoNoBorrable` y `syncStatus` los calcula el backend, y son justo los que
+            // deciden si la zona de borrado de abajo se abre.
+            await cargarDatos();
+            emit('saved', { cerrar: false });
+            avisoGuardado.value = true;
+            setTimeout(() => (avisoGuardado.value = false), 3000);
+            return;
+        }
+
+        emit('saved', { cerrar: true });
     } catch (err) {
         localError.value = extractApiErrorMessage(err, 'No se pudo guardar. Revisa los datos e intenta de nuevo.');
+    }
+}
+
+// ============================================================================
+// BORRADO
+//
+// Dos condiciones, y la segunda es la que no se ve venir:
+//
+//  1. `safeToDelete` — el veredicto del backend (OTA, existe en Beds24 sin cancelar,
+//     cola tomada por el worker). Si es false se muestra `motivoNoBorrable` tal cual.
+//  2. `syncStatus === 'synced' | 'local'` — que NO quede push por delante. En cuanto la
+//     estancia pasa a «cancelada» el backend ya la da por borrable, aunque el push de esa
+//     cancelación siga encolado. Borrar en esa ventana cancela el POST pendiente y manda a
+//     Beds24 un DELETE sobre una reserva todavía confirmada: Beds24 lo rechaza y la reserva
+//     se queda viva allí bloqueando las noches. Por eso aquí se espera a `synced`.
+//
+// La espera es un sondeo: el push lo procesa un worker asíncrono, así que no hay evento
+// que escuchar desde el navegador.
+// ============================================================================
+const POLL_SYNC_MS = 4000;
+const POLL_SYNC_INTENTOS_MAX = 45; // ~3 minutos
+
+const borrando = ref(false);
+const esperandoSync = ref(false);
+const pollIntentos = ref(0);
+const confirmarBorrado = ref<'evento' | 'reserva' | null>(null);
+let pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+function pararEspera(): void {
+    if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+    }
+    esperandoSync.value = false;
+    pollIntentos.value = 0;
+}
+
+onBeforeUnmount(pararEspera);
+
+// `entryActiva` (la estancia abierta en el acordeón) se define arriba, en la sección de
+// cabecera: es la misma sobre la que se informa y sobre la que se borra.
+
+const eventoBorrable = computed(() =>
+    puedeBorrarseYa(
+        { safeToDelete: entryActiva.value?.safeToDelete, motivoNoBorrable: entryActiva.value?.motivoNoBorrable },
+        entryActiva.value?.syncStatus,
+    ),
+);
+
+const reservaBorrable = computed(() =>
+    puedeBorrarseYa(
+        { safeToDelete: reservaInfo.value.safeToDelete, motivoNoBorrable: reservaInfo.value.motivoNoBorrable },
+        reservaInfo.value.syncStatusAggregate,
+    ),
+);
+
+/**
+ * ¿Está sólo pendiente del push? Es el caso que merece esperar: el backend ya la considera
+ * borrable y lo único que falta es que la cola termine. Si además falta `safeToDelete`, no
+ * hay nada que esperar — hace falta una acción del operador (cancelarla, por ejemplo).
+ */
+const soloFaltaSync = computed(() => {
+    const eventoEsperando = !!entryActiva.value?.safeToDelete && entryActiva.value.syncStatus === 'pending';
+    const reservaEsperando = reservaInfo.value.safeToDelete && reservaInfo.value.syncStatusAggregate === 'pending';
+    return eventoEsperando || reservaEsperando;
+});
+
+/** Hay más de una estancia viva: entonces borrar la reserva entera no es lo mismo que borrar ésta. */
+const tieneVariasEstancias = computed(() => eventos.value.filter((e) => e.eventoId).length > 1);
+
+const syncEnError = computed(() =>
+    entryActiva.value?.syncStatus === 'error' || reservaInfo.value.syncStatusAggregate === 'error',
+);
+
+/** Motivo a mostrar cuando el borrado no está disponible. */
+const motivoBorradoBloqueado = computed<string | null>(() => {
+    const objetivo = confirmarBorrado.value === 'reserva' ? 'reserva' : 'evento';
+    if (objetivo === 'reserva' && !reservaInfo.value.safeToDelete) return reservaInfo.value.motivoNoBorrable;
+    if (objetivo === 'evento' && !entryActiva.value?.safeToDelete) return entryActiva.value?.motivoNoBorrable ?? null;
+    return null;
+});
+
+/**
+ * Sondea el estado hasta que la sincronización termine. Se apoya en `cargarDatos()` para no
+ * duplicar la lectura: así `safeToDelete`, `motivoNoBorrable` y `syncStatus` se refrescan a la
+ * vez y no pueden quedar desparejados entre sí.
+ */
+async function esperarSincronizacion(): Promise<void> {
+    if (esperandoSync.value) return;
+    esperandoSync.value = true;
+    pollIntentos.value = 0;
+    localError.value = null;
+
+    const tick = async (): Promise<void> => {
+        pollIntentos.value += 1;
+        await cargarDatos();
+
+        if (eventoBorrable.value || reservaBorrable.value) {
+            pararEspera();
+            return;
+        }
+        if (syncEnError.value) {
+            pararEspera();
+            localError.value = 'La sincronización con Beds24 falló. Revisa la cola de push antes de borrar.';
+            return;
+        }
+        if (pollIntentos.value >= POLL_SYNC_INTENTOS_MAX) {
+            pararEspera();
+            localError.value = 'La sincronización sigue pendiente. Puedes cerrar y volver más tarde.';
+            return;
+        }
+        pollTimer = setTimeout(() => { void tick(); }, POLL_SYNC_MS);
+    };
+
+    pollTimer = setTimeout(() => { void tick(); }, POLL_SYNC_MS);
+}
+
+async function ejecutarBorrado(): Promise<void> {
+    const objetivo = confirmarBorrado.value;
+    if (!objetivo) return;
+
+    borrando.value = true;
+    localError.value = null;
+    try {
+        if (objetivo === 'reserva') {
+            if (!props.reservaId) return;
+            await reservasStore.deleteReserva(props.reservaId);
+        } else {
+            const id = entryActiva.value?.eventoId;
+            if (!id) return;
+            await reservasStore.deleteEvento(id);
+        }
+        confirmarBorrado.value = null;
+        pararEspera();
+        emit('deleted');
+    } catch (err) {
+        // El 403 del listener trae el motivo real; es la última red por si el estado
+        // cambió entre que se pintó el botón y se pulsó.
+        localError.value = extractApiErrorMessage(err, 'No se pudo eliminar.');
+        confirmarBorrado.value = null;
+        await cargarDatos();
+    } finally {
+        borrando.value = false;
     }
 }
 </script>
@@ -1153,7 +1471,7 @@ async function guardar(): Promise<void> {
                 <i class="fas fa-spinner fa-spin text-3xl text-[#376875]"></i>
             </div>
 
-            <div v-else class="flex-1 overflow-y-auto px-5 py-4 space-y-6">
+            <div v-else ref="scrollerRef" class="flex-1 overflow-y-auto px-5 py-4 space-y-6">
 
                 <div v-if="localError" class="bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold rounded-xl px-4 py-3">
                     <i class="fas fa-exclamation-triangle mr-2"></i>{{ localError }}
@@ -1208,8 +1526,12 @@ async function guardar(): Promise<void> {
                         <!-- Cada estancia se tiñe con el color de SU estado: la cabecera más
                              saturada y el cuerpo apenas insinuado, para que se vea de un vistazo
                              dónde empieza y acaba cada una sin leer las fechas. -->
-                        <div v-for="{ entry, i } in eventosVisibles" :key="entry.eventoId ?? `nuevo-${i}`"
-                            class="rounded-xl overflow-hidden border"
+                        <!-- El `ref` es la tarjeta ENTERA (cabecera incluida): es lo que se
+                             lleva a la vista al expandir, para que el operador vea de qué
+                             estancia es el formulario que se acaba de abrir. -->
+                        <div v-for="{ entry, i } in eventosVisibles" :key="entry.uid"
+                            :ref="(el) => setEstanciaRef(i, el)"
+                            class="rounded-xl overflow-hidden border scroll-mt-3"
                             :style="{ borderColor: colorEntry(entry) + BORDE_ALPHA }">
 
                             <!-- Barra: `div` y no `button`, porque lleva dentro el botón de clonar
@@ -1235,17 +1557,33 @@ async function guardar(): Promise<void> {
 
                                 <!-- Las fechas por defecto ENCADENAN (mudanza de casita). Esto cubre el
                                      otro caso frecuente: dos casitas ocupadas en paralelo. -->
+                                <!-- Con icono solo nadie adivinaba qué hacía: lleva etiqueta.
+                                     En pantallas estrechas se queda el icono, con el `title`. -->
                                 <button v-if="puedeClonarFechas(entry, i)" type="button"
                                     @click="clonarFechasDeAnterior(i)"
                                     title="Usar las mismas fechas y horas que la estancia anterior"
-                                    class="px-3 flex items-center text-slate-400 hover:text-[#376875] hover:bg-white/40 transition-colors shrink-0">
+                                    class="px-2.5 flex items-center gap-1.5 text-slate-500 hover:text-[#376875] hover:bg-white/50 transition-colors shrink-0">
                                     <!-- Doble calendario: dos iconos superpuestos. FontAwesome no trae
                                          uno "calendario duplicado", así que se compone; leerlo como
                                          "copiar fechas" es más directo que un icono de copiar genérico. -->
-                                    <span class="relative inline-block w-[15px] h-[13px]">
+                                    <span class="relative inline-block w-[15px] h-[13px] shrink-0">
                                         <i class="far fa-calendar text-[11px] absolute left-0 top-0 opacity-45"></i>
                                         <i class="fas fa-calendar text-[11px] absolute left-[4px] top-[2px]"></i>
                                     </span>
+                                    <span class="hidden sm:inline text-[10px] font-black uppercase tracking-wide whitespace-nowrap">
+                                        Mismas fechas
+                                    </span>
+                                </button>
+
+                                <!-- Descartar una estancia añadida por error. Sólo en las que
+                                     todavía no existen en el servidor: no llama a la API. El
+                                     borrado de verdad vive en la zona roja del final. -->
+                                <button v-if="puedeDescartarEstancia(entry)" type="button"
+                                    @click="descartarEstanciaNueva(i)"
+                                    title="Descartar esta estancia nueva (aún no se ha guardado)"
+                                    class="px-2.5 flex items-center gap-1.5 text-slate-400 hover:text-rose-600 hover:bg-white/50 transition-colors shrink-0">
+                                    <i class="fas fa-trash-can text-[11px]"></i>
+                                    <span class="hidden sm:inline text-[10px] font-black uppercase tracking-wide">Quitar</span>
                                 </button>
                             </div>
 
@@ -1371,8 +1709,10 @@ async function guardar(): Promise<void> {
                                                 <label class="flex-1 min-w-0">
                                                     <span class="text-xs font-bold text-slate-500">Check-out</span>
                                                     <div class="mt-1">
+                                                        <!-- Suelo = el DÍA de entrada, sin su hora (ver `soloDia`):
+                                                             con la hora dentro, cambiar el check-in movía el check-out. -->
                                                         <FechaHoraPicker v-model="entry.form.fin"
-                                                            :min-date="entry.form.inicio"
+                                                            :min-date="soloDia(entry.form.inicio)"
                                                             :dia-bloqueado="diaBloqueadoPara(entry)"
                                                             :borrable="false"
                                                             :invalido="!!errorFechas(entry)" />
@@ -1489,9 +1829,16 @@ async function guardar(): Promise<void> {
                         </div>
                     </div>
 
+                    <!-- Iba en gris sobre borde punteado y se leía como deshabilitado: nadie lo
+                         encontraba. Ahora es un botón sólido con el color de acción del drawer,
+                         y el «+» va en su propia pastilla para que se lea como «añadir». -->
                     <button v-if="permiteVariasEstancias && !readOnly" type="button" @click="agregarEvento"
-                        class="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 hover:border-[#376875] hover:text-[#376875] rounded-xl text-xs font-black text-slate-400 transition-colors">
-                        <i class="fas fa-plus"></i> Agregar estancia en otra casita
+                        title="Añade otra casita a esta misma reserva"
+                        class="mt-3 w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-[#376875] hover:bg-[#2d5660] text-white text-xs font-black shadow-sm transition-colors">
+                        <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                            <i class="fas fa-plus text-[10px]"></i>
+                        </span>
+                        Agregar estancia en otra casita
                     </button>
                 </section>
 
@@ -1632,6 +1979,87 @@ async function guardar(): Promise<void> {
                     </div>
                 </section>
 
+                <!-- ================================================================
+                     ZONA DE BORRADO
+                     Sólo en edición y sobre algo que ya existe. La regla de si se
+                     puede está en `puedeBorrarseYa()`: veredicto del backend + cola
+                     de push terminada. Ver el bloque BORRADO del script.
+                     ================================================================ -->
+                <section v-if="!readOnly && !isCreate && entryActiva?.eventoId"
+                    class="border border-rose-200 bg-rose-50/50 rounded-2xl p-4 space-y-3">
+                    <h3 class="text-xs font-black text-rose-700 uppercase tracking-wide flex items-center gap-2">
+                        <i class="fas fa-trash-can"></i> Eliminar
+                    </h3>
+
+                    <!-- Esperando a que Beds24 confirme -->
+                    <div v-if="esperandoSync"
+                        class="flex items-start gap-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                        <i class="fas fa-circle-notch fa-spin mt-0.5"></i>
+                        <div>
+                            <p class="font-bold">Esperando la sincronización con Beds24…</p>
+                            <p class="mt-0.5 text-amber-700">
+                                No se puede borrar hasta que la cancelación llegue al canal: si no, la reserva
+                                se quedaría viva allí bloqueando las noches. Comprobando cada
+                                {{ Math.round(POLL_SYNC_MS / 1000) }} s ({{ pollIntentos }}).
+                            </p>
+                            <button type="button" @click="pararEspera"
+                                class="mt-1 text-amber-900 underline font-bold">Dejar de esperar</button>
+                        </div>
+                    </div>
+
+                    <!-- Falta sincronizar, pero aún no se está esperando -->
+                    <div v-else-if="soloFaltaSync" class="space-y-2">
+                        <p class="text-xs text-slate-600">
+                            La cancelación está encolada hacia Beds24. En cuanto termine, podrás eliminarla.
+                        </p>
+                        <button type="button" @click="esperarSincronizacion"
+                            class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-black transition-colors">
+                            <i class="fas fa-hourglass-half"></i> Esperar y eliminar
+                        </button>
+                    </div>
+
+                    <!-- Bloqueado por regla de negocio: se muestra el motivo del backend tal cual -->
+                    <p v-else-if="!eventoBorrable && !reservaBorrable"
+                        class="text-xs text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-2">
+                        <i class="fas fa-lock text-slate-400"></i>
+                        {{ entryActiva?.motivoNoBorrable || reservaInfo.motivoNoBorrable || 'Esta estancia no se puede eliminar.' }}
+                    </p>
+
+                    <!-- Confirmación -->
+                    <div v-else-if="confirmarBorrado" class="space-y-2">
+                        <p class="text-xs font-bold text-rose-800">
+                            {{ confirmarBorrado === 'reserva'
+                                ? '¿Eliminar la reserva completa y todas sus estancias?'
+                                : '¿Eliminar esta estancia?' }}
+                            Se pedirá a Beds24 que borre las reservas asociadas.
+                        </p>
+                        <p v-if="motivoBorradoBloqueado" class="text-xs text-slate-600">{{ motivoBorradoBloqueado }}</p>
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="ejecutarBorrado" :disabled="borrando"
+                                class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-lg text-xs font-black transition-colors">
+                                <i class="fas" :class="borrando ? 'fa-circle-notch fa-spin' : 'fa-trash-can'"></i>
+                                Sí, eliminar
+                            </button>
+                            <button type="button" @click="confirmarBorrado = null" :disabled="borrando"
+                                class="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700">
+                                No
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botones de borrado -->
+                    <div v-else class="flex flex-wrap items-center gap-2">
+                        <button v-if="eventoBorrable" type="button" @click="confirmarBorrado = 'evento'"
+                            class="px-3 py-1.5 bg-white border border-rose-300 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-black transition-colors">
+                            <i class="fas fa-trash-can"></i>
+                            {{ tieneVariasEstancias ? 'Eliminar esta estancia' : 'Eliminar estancia' }}
+                        </button>
+                        <button v-if="reservaBorrable && props.reservaId" type="button" @click="confirmarBorrado = 'reserva'"
+                            class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black transition-colors">
+                            <i class="fas fa-trash-can"></i> Eliminar reserva completa
+                        </button>
+                    </div>
+                </section>
 
             </div>
 
@@ -1644,10 +2072,22 @@ async function guardar(): Promise<void> {
                     <button @click="emit('close')" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700">
                         Cancelar
                     </button>
-                    <button @click="guardar" :disabled="reservasStore.isSaving || isLoadingDrawer || hayErroresEstancia"
+
+                    <!-- Guardar deja el drawer ABIERTO (ver `guardar()`): lo normal es
+                         encadenar acciones sobre la misma reserva. Este botón pequeño es
+                         para cuando ya se terminó con ella. -->
+                    <button @click="guardar(true)"
+                        :disabled="reservasStore.isSaving || isLoadingDrawer || hayErroresEstancia"
+                        :title="'Guardar y cerrar el editor'"
+                        class="px-3 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-600 rounded-xl text-xs font-black transition-colors whitespace-nowrap">
+                        <i class="fas fa-check-double"></i> Guardar y cerrar
+                    </button>
+
+                    <button @click="guardar(false)" :disabled="reservasStore.isSaving || isLoadingDrawer || hayErroresEstancia"
                         class="px-5 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-xl text-sm font-black shadow-sm transition-colors">
-                        <i class="fas" :class="reservasStore.isSaving ? 'fa-circle-notch fa-spin' : 'fa-check'"></i>
-                        {{ isCreateReserva ? 'Crear Reserva' : (isCreate ? 'Crear Bloqueo' : 'Guardar Cambios') }}
+                        <i class="fas"
+                            :class="reservasStore.isSaving ? 'fa-circle-notch fa-spin' : (avisoGuardado ? 'fa-circle-check' : 'fa-check')"></i>
+                        {{ isCreateReserva ? 'Crear Reserva' : (isCreate ? 'Crear Bloqueo' : (avisoGuardado ? 'Guardado' : 'Guardar Cambios')) }}
                     </button>
                 </template>
             </footer>

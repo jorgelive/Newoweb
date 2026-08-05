@@ -83,21 +83,21 @@ class PmsEventoBeds24LinkCrudController extends BaseCrudController
         yield TextField::new('beds24BookId', 'Beds24 Book ID')
             ->setHelp('Identificador técnico en la API de Beds24.');
 
+        // Sólo los tres estados que el sistema produce y consume de verdad. Ofrecer
+        // «Detached» y «Pending move» era una trampa: nada los leía, así que elegirlos no
+        // hacía absolutamente nada salvo confundir a quien mirara la ficha después.
         yield ChoiceField::new('status', 'Estado')
             ->setChoices([
                 'Active' => PmsEventoBeds24Link::STATUS_ACTIVE,
-                'Detached' => PmsEventoBeds24Link::STATUS_DETACHED,
                 'Pending delete' => PmsEventoBeds24Link::STATUS_PENDING_DELETE,
-                'Pending move' => PmsEventoBeds24Link::STATUS_PENDING_MOVE,
                 'Synced deleted' => PmsEventoBeds24Link::STATUS_SYNCED_DELETED,
             ])
             ->renderAsBadges([
                 PmsEventoBeds24Link::STATUS_ACTIVE => 'success',
-                PmsEventoBeds24Link::STATUS_DETACHED => 'secondary',
                 PmsEventoBeds24Link::STATUS_PENDING_DELETE => 'warning',
-                PmsEventoBeds24Link::STATUS_PENDING_MOVE => 'warning',
                 PmsEventoBeds24Link::STATUS_SYNCED_DELETED => 'danger',
-            ]);
+            ])
+            ->setHelp('«Pending delete» pide a Beds24 que borre la reserva de este vínculo sin borrar la fila; al completarse pasa solo a «Synced deleted».');
 
         // ============================================================
         // 2. RELACIÓN (EVENTO Y MAPA)

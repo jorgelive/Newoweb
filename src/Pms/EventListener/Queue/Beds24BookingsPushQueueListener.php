@@ -19,6 +19,7 @@ use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\UnitOfWork;
+use Psr\Log\LoggerInterface;
 use SplObjectStorage;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -31,8 +32,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[AsDoctrineListener(event: Events::postFlush, priority: 200)]
 final class Beds24BookingsPushQueueListener
 {
-    private const ENDPOINT_POST_BOOKINGS   = 'POST_BOOKINGS';
-    private const ENDPOINT_DELETE_BOOKINGS = 'DELETE_BOOKINGS';
+    private const ENDPOINT_POST_BOOKINGS   = PmsBookingsPushQueue::ACCION_POST_BOOKINGS;
+    private const ENDPOINT_DELETE_BOOKINGS = PmsBookingsPushQueue::ACCION_DELETE_BOOKINGS;
 
     // Campos que no disparan sincronización si la reserva está bloqueada (OTA)
     private const IGNORED_FIELDS_ON_LOCKED_OTA = [
@@ -55,7 +56,8 @@ final class Beds24BookingsPushQueueListener
     public function __construct(
         private readonly Beds24BookingsPushQueueCreator $queueCreator,
         private readonly SyncContext $syncContext,
-        private readonly MessageBusInterface $bus
+        private readonly MessageBusInterface $bus,
+        private readonly LoggerInterface $logger
     ) {
         $this->reset();
     }
@@ -144,12 +146,32 @@ final class Beds24BookingsPushQueueListener
                 $this->queueCreator->cancelPendingPostForLink($link, 'Link deleted (replaced by DELETE)', $uow);
 
                 // Si tras intentar recuperar no hay ID, no podemos borrar nada en Beds24.
+                //
+                // Se avisa porque es un fallo SILENCIOSO con consecuencia externa: el PMS
+                // borra su copia y la reserva sigue viva en el canal bloqueando esas noches,
+                // sin cola ni error que lo delate. Si esto aparece en el log, hay que
+                // retirarla a mano en Beds24.
                 if (!$link->getBeds24BookId()) {
+                    $this->logger->error(
+                        'Beds24: borrado local sin DELETE remoto — el link no tiene beds24BookId ' .
+                        'ni se pudo recuperar de sus colas. La reserva queda viva en el canal.',
+                        [
+                            'link_id'   => (string) $link->getId(),
+                            'evento_id' => $link->getEvento()?->getId() ? (string) $link->getEvento()->getId() : null,
+                        ]
+                    );
                     continue;
                 }
             }
 
             $this->queueCreator->enqueueForLink($link, $endpoint, $uow);
+
+            // El link desaparece en este mismo flush: hay que cortar las referencias que las
+            // colas históricas mantienen hacia él, o el próximo flush intentará resucitarlo.
+            // Se hace DESPUÉS de encolar para que `enqueueForLink` aún pueda leer su bookId.
+            if ($action === 'DELETE' && $uow->isScheduledForDelete(entity: $link)) {
+                $this->queueCreator->detachQueuesFromLink($link, $uow);
+            }
         }
 
         // 6) CAPTURA DE IDs PARA DISPATCH (Pre-Commit)

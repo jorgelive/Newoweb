@@ -8,8 +8,10 @@ Si un patrón se repite en dos vistas, su sitio es aquí y no duplicado en cada 
 ## Índice
 
 1. [FechaHoraPicker — el selector de fecha/hora del proyecto](#1-fechahorapicker--el-selector-de-fechahora-del-proyecto)
+    · [1.6 `min-date` con hora arrastra la hora del otro campo](#16--min-date-con-hora-arrastra-la-hora-del-otro-campo)
 2. [Historial del navegador — nunca reemplaces `history.state`](#2-historial-del-navegador--nunca-reemplaces-historystate)
 3. [AppSwitcher — saltar entre módulos](#3-appswitcher--saltar-entre-módulos)
+3.b [Enfocar lo que se acaba de abrir — `utils/scrollEnfoque.ts`](#3b-enfocar-lo-que-se-acaba-de-abrir--utilsscrollenfoquets)
 4. [Dónde tocar para cambiar X](#4-dónde-tocar-para-cambiar-x)
 
 ---
@@ -39,14 +41,14 @@ volver a copiarlo.
 ```vue
 <FechaHoraPicker v-model="form.inicio" />                      <!-- fecha + hora 24 h -->
 <FechaHoraPicker v-model="form.fecha" solo-fecha />            <!-- sólo fecha -->
-<FechaHoraPicker v-model="form.fin" :min-date="form.inicio" :invalido="!!error" />
+<FechaHoraPicker v-model="form.fin" :min-date="form.inicio.slice(0, 10)" :invalido="!!error" />
 ```
 
 | Prop | Para qué |
 |---|---|
 | `modelValue` | Hora de pared `"YYYY-MM-DDTHH:mm"` (admite segundos y los ignora) |
 | `soloFecha` | Oculta el reloj |
-| `minDate` | Límite inferior, mismo formato |
+| `minDate` | Límite inferior, mismo formato. **Léete §1.6 antes de pasarle la hora.** |
 | `disabled` / `invalido` | Bloqueado / marcado en rojo por el formulario que lo contiene |
 
 **Ojo al combinar con un handler propio:** si necesitas reaccionar al cambio, **no** pongas
@@ -194,6 +196,87 @@ que el backend rechaza. El resto de usos (Operación) siguen pudiendo limpiar el
 Junto a `diaBloqueado` (§ del doc de sincronización, 7.1.b) son las dos formas de acotar el
 campo: una prohíbe cambiar el día, la otra prohíbe dejarlo vacío.
 
+### 1.6 ⚠️ `min-date` con hora arrastra la hora del otro campo
+
+`minPicker` propaga a `VueDatePicker` la hora que venga en `minDate`, y ese componente la usa
+también como suelo del **reloj**, no sólo del calendario. Consecuencia en un par
+entrada/salida:
+
+```vue
+<!-- MAL: el suelo lleva la hora de entrada -->
+<FechaHoraPicker v-model="form.fin" :min-date="form.inicio" />
+```
+
+Cambiar la hora de check-in movía la hora de check-out. No tiene sentido operativo: la hora de
+salida es del establecimiento y no depende de a qué hora llegue el huésped. Lo que sí debe
+cumplirse —que la salida sea posterior a la entrada— es validación del formulario, no del
+picker.
+
+```vue
+<!-- BIEN: el suelo es el DÍA -->
+<FechaHoraPicker v-model="form.fin" :min-date="soloDia(form.inicio)" />
+```
+
+En `ReservaEditDrawer` el helper es `soloDia()`. La regla hermana vive en `onCambiarInicio()`:
+**sólo un cambio de DÍA arrastra el check-out**, medido con `diasEntre()`, que ignora la hora;
+si sólo cambió la hora se sale antes incluso de la red de seguridad del rango.
+
+## 3.b Enfocar lo que se acaba de abrir — `utils/scrollEnfoque.ts`
+
+**Archivo:** `util/src/utils/scrollEnfoque.ts`
+
+En un formulario largo, desplegar un acordeón o abrir un mini-formulario **no mueve el scroll**:
+el bloque crece hacia abajo y quien lo abrió se queda mirando la mitad de unos campos, sin ver
+la cabecera que dice de qué son. Pasaba en el acordeón de estancias del drawer de reservas y en
+los formularios de cargo y pago del panel financiero, así que la aritmética vive una sola vez.
+
+```ts
+import { enfocarEnScroller } from '@/utils/scrollEnfoque';
+
+await nextTick();                       // el llamador espera al repintado
+enfocarEnScroller(el);                  // busca el scroller subiendo por los ancestros
+enfocarEnScroller(el, { scroller, suave: false });
+```
+
+| Opción | Para qué |
+|---|---|
+| `scroller` | Pásalo si ya lo tienes; si no, se busca por los ancestros |
+| `margen` | Aire sobre el bloque (12 px por defecto) |
+| `suave` | `false` cuando algo más se está animando a la vez |
+
+Cuatro decisiones que no se ven leyendo la firma:
+
+- **No usa `scrollIntoView()`.** Ese método escala hasta el primer ancestro desplazable y, con
+  un drawer abierto sobre la página, acaba moviendo también el fondo.
+- **Un scroller tiene que desplazar de verdad** (`scrollHeight > clientHeight`), no basta con
+  que declare `overflow-y: auto`: si no, se elige un contenedor que no mueve nada y el bloque
+  sigue escondido.
+- **Comprueba `isConnected`.** Un `ref` de función conserva el último nodo visto; si ese bloque
+  ya se cerró, medirlo devuelve ceros y el scroll salta al principio de la lista.
+- **El `await nextTick()` es del llamador.** La posición se mide con `getBoundingClientRect()`,
+  y antes del repintado el bloque está plegado o ni existe.
+
+### ⚠️ `ref` dentro de un `v-for` es un array
+
+Si el elemento que quieres enfocar vive dentro de un `v-for` —el formulario de edición de un
+cargo, por ejemplo—, **`ref="nombre"` no te da el nodo, te da un array**. El typecheck no lo
+detecta (el `ref` lo declaras tú como `HTMLElement | null`) y revienta en ejecución al medirlo.
+Usa un `ref` de función:
+
+```ts
+function setFormCargoRef(el: Element | ComponentPublicInstance | null): void {
+    if (el instanceof HTMLElement) formCargoEl.value = el;   // el desmontaje (null) se ignora
+}
+```
+
+```vue
+<div v-else :ref="setFormCargoRef">…</div>
+```
+
+Ignorar el `null` del desmontaje es deliberado: al pasar de un formulario a otro, Vue puede
+avisar del cierre **después** de la apertura y dejaría el ref vacío justo antes de enfocar. De
+que el nodo guardado siga vivo se encarga `isConnected`.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -202,6 +285,8 @@ campo: una prohíbe cambiar el día, la otra prohíbe dejarlo vacío.
 | Cambiar el rango de años admitido al teclear | `FechaHoraPicker.vue` | bloque `Y` de la máscara (hoy 2024-2099) |
 | Cambiar el ancho al que saltan de línea (§1.4) | Vista que los coloca | `minmax(11rem, 1fr)` de la rejilla |
 | Permitir segundos | `FechaHoraPicker.vue` | `PATRON_ISO`, `aTextoVisible()`, `onPickerChange()` |
+| Que la hora de un campo deje de arrastrar la del otro (§1.6) | Vista que los coloca | `:min-date` — pásale sólo el día |
+| Cambiar el aire o la animación al enfocar un bloque (§3.b) | `utils/scrollEnfoque.ts` | `enfocarEnScroller()` — opciones `margen` / `suave` |
 | Marcar una vista propia en el historial (gesto «atrás») | `ChatView.vue` | `marcarVistaEnHistorial()` — conserva `history.state`, §2 |
 | Añadir un módulo al portal y al selector | `util/src/types/modulosApp.ts` | `MODULOS_APP` — sale en HomeView y en AppSwitcher a la vez |
 | Cambiar el aspecto del selector en una cabecera clara | Vista que lo monta | `<AppSwitcher variante="clara" />` |

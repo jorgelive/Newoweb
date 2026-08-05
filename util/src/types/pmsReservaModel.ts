@@ -43,7 +43,49 @@ export interface PmsBorrableInfo {
     motivoNoBorrable?: string | null;
 }
 
-export type PmsEventoCalendario = components['schemas']['PmsEventoCalendario-pms_evento.read_timestamp.read'] & PmsBorrableInfo;
+/**
+ * Estado consolidado de la cola de push hacia Beds24.
+ * Espejo de `PmsEventoCalendario::getSyncStatus()` y `PmsReserva::getSyncStatusAggregate()`.
+ *
+ * - `local`   : no tiene links con Beds24, no hay nada que esperar.
+ * - `pending` : hay tareas encoladas o ejecutándose.
+ * - `synced`  : todo lo encolado terminó bien.
+ * - `error`   : alguna tarea quedó en `failed`.
+ */
+export type PmsSyncStatus = 'local' | 'pending' | 'synced' | 'error';
+
+export interface PmsSyncInfo {
+    syncStatus?: PmsSyncStatus;
+}
+
+/** Igual que PmsSyncInfo pero para la reserva, que agrega el peor estado de sus estancias. */
+export interface PmsSyncAggregateInfo {
+    syncStatusAggregate?: PmsSyncStatus;
+}
+
+/**
+ * ¿Se puede borrar YA, sin dejar basura en Beds24?
+ *
+ * `safeToDelete` por sí solo no basta y esto no es un detalle: en cuanto la estancia pasa
+ * a «cancelada» el backend la considera borrable, aunque el push de esa cancelación siga
+ * en cola. Si se borra en esa ventana, el DELETE llega a Beds24 sobre una reserva todavía
+ * confirmada —lo único que Beds24 rechaza borrar— y la reserva se queda viva allí
+ * bloqueando esas noches. Por eso se exige además que la sincronización haya terminado.
+ *
+ * Espejo de la regla del backend en `PmsEventoCalendario::getSyncStatus()`, que documenta
+ * la carrera desde el otro lado.
+ */
+export function puedeBorrarseYa(
+    borrable: PmsBorrableInfo | null | undefined,
+    sync: PmsSyncStatus | undefined,
+): boolean {
+    if (!borrable?.safeToDelete) return false;
+    return sync === 'synced' || sync === 'local' || sync === undefined;
+}
+
+export type PmsEventoCalendario = components['schemas']['PmsEventoCalendario-pms_evento.read_timestamp.read']
+    & PmsBorrableInfo
+    & PmsSyncInfo;
 /**
  * Elección del número de contacto. Todavía no está en el api.d.ts generado
  * (ver PmsReserva::$telefono2EsPrincipal y getTelefonoContacto() en el backend),
@@ -57,7 +99,8 @@ export interface PmsTelefonoContactoInfo {
 
 export type PmsReserva = components['schemas']['PmsReserva-pms_reserva.read_timestamp.read']
     & PmsBorrableInfo
-    & PmsTelefonoContactoInfo;
+    & PmsTelefonoContactoInfo
+    & PmsSyncAggregateInfo;
 
 export type PmsUnidadOption = components['schemas']['PmsUnidad-pms_unidad.read'];
 export type PmsEventoEstadoOption = components['schemas']['PmsEventoEstado-pms_evento_estado.read'];

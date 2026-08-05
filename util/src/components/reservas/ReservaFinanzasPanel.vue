@@ -14,10 +14,11 @@
 // Las etiquetas de tipoCargo/medioPago NO se declaran aquí: llegan del backend
 // (PmsEnumAjaxController), que es su única fuente de verdad.
 // ============================================================================
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick, type ComponentPublicInstance } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { useFinanzasStore } from '@/stores/reservas/finanzasStore';
 import { extractApiErrorMessage } from '@/stores/reservas/reservasStore';
+import { enfocarEnScroller } from '@/utils/scrollEnfoque';
 import {
     clasesTipoCargo,
     importeConMoneda,
@@ -363,6 +364,48 @@ const mostrarGrupos = computed(() => gruposCargos.value.length > 1);
 //  · Cargo de Beds24 → editable SOLO con el candado abierto; nunca borrable.
 //  · Cargo manual    → editable y borrable siempre: es nuestro, no del canal.
 // ============================================================================
+// ============================================================================
+// ENFOQUE DE LOS MINI-FORMULARIOS
+//
+// Cargos y pagos se editan en un formulario que se despliega DENTRO de la lista, y el
+// panel vive a su vez dentro del drawer, que es largo. Al abrirlo, el navegador no mueve
+// nada: el formulario aparecía a media pantalla o directamente fuera, sin que se viera
+// dónde empieza ni de qué es. Se le lleva el scroll, igual que al acordeón de estancias.
+//
+// El scroller no se pasa: lo busca `enfocarEnScroller()` subiendo por los ancestros, porque
+// es del componente padre (el drawer) y este panel no lo conoce.
+// ============================================================================
+const formCargoEl = ref<HTMLElement | null>(null);
+const formPagoEl = ref<HTMLElement | null>(null);
+
+/**
+ * `ref` de FUNCIÓN y no `ref="nombre"`. El formulario de edición de un cargo vive dentro del
+ * `v-for` de la lista, y ahí Vue puebla los refs por nombre como un ARRAY: `formCargoEl.value`
+ * dejaría de ser un elemento y `enfocarEnScroller()` reventaría al medirlo. Con una función se
+ * recibe el nodo suelto, monte donde monte.
+ *
+ * El desmontaje (`null`) se ignora a propósito: alta y edición son excluyentes, pero al pasar
+ * de una a otra Vue puede avisar del cierre DESPUÉS de la apertura y dejaría el ref vacío justo
+ * antes de enfocar. De que el nodo guardado siga vivo se encarga `enfocarEnScroller()`.
+ */
+function setFormCargoRef(el: Element | ComponentPublicInstance | null): void {
+    if (el instanceof HTMLElement) formCargoEl.value = el;
+}
+
+function setFormPagoRef(el: Element | ComponentPublicInstance | null): void {
+    if (el instanceof HTMLElement) formPagoEl.value = el;
+}
+
+async function enfocarFormCargo(): Promise<void> {
+    await nextTick();
+    enfocarEnScroller(formCargoEl.value);
+}
+
+async function enfocarFormPago(): Promise<void> {
+    await nextTick();
+    enfocarEnScroller(formPagoEl.value);
+}
+
 const cargoEditandoId = ref<string | null>(null);
 /** 'nuevo' mientras se está dando de alta un cargo manual. */
 const cargoNuevoAbierto = ref(false);
@@ -393,6 +436,7 @@ function empezarEdicionCargo(c: PmsCargoFinanciero): void {
     // de los registros que quedaron cojos al cambiar la moneda base, y así se
     // reparan con un clic en vez de tecleando la cotización.
     void autocompletarTipoCambioCargo();
+    void enfocarFormCargo();
 }
 
 function abrirNuevoCargo(): void {
@@ -410,6 +454,7 @@ function abrirNuevoCargo(): void {
     };
     // El TC se consulta de entrada, coincida o no la moneda (ver `tcSiempre`).
     void autocompletarTipoCambioCargo();
+    void enfocarFormCargo();
 }
 
 function cancelarEdicionCargo(): void {
@@ -585,6 +630,7 @@ function abrirNuevoPago(): void {
     pagoTotalCobrado.value = '';
     pagoFormAbierto.value = true;
     autocompletarTipoCambio();
+    void enfocarFormPago();
 }
 
 function editarPago(p: PmsPagoFinanciero): void {
@@ -603,6 +649,7 @@ function editarPago(p: PmsPagoFinanciero): void {
     };
     refrescarTotalDesdeMonto();
     pagoFormAbierto.value = true;
+    void enfocarFormPago();
 }
 
 function cerrarPagoForm(): void {
@@ -1051,9 +1098,18 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <!-- Fila en edición -->
                         <!-- Mismo envoltorio que el alta y que el pago: el grid va dentro y la
                              barra de acción fuera, o el sticky no tendría recorrido dentro de
-                             su celda. -->
-                        <div v-else>
-                        <div class="grid grid-cols-2 gap-2">
+                             su celda. Y con cabecera, por lo mismo que el alta: sin recuadro
+                             el formulario se confundía con la fila que estaba editando. -->
+                        <!-- ⚠️ NADA de `overflow-hidden` aquí: rompería el pie sticky de abajo
+                             (ver la nota del <section> raíz). El redondeo lo pone cada
+                             elemento: cabecera arriba, barra de acción abajo. -->
+                        <div v-else :ref="setFormCargoRef"
+                            class="-mx-1 rounded-xl border-2 border-emerald-300 bg-emerald-50/60 shadow-sm">
+                            <div class="px-4 py-2 bg-emerald-100/70 border-b border-emerald-200 rounded-t-[0.6rem] flex items-center gap-2">
+                                <i class="fas fa-pen text-emerald-700 text-xs"></i>
+                                <h4 class="text-[11px] font-black text-emerald-900 uppercase tracking-wide">Editar cargo</h4>
+                            </div>
+                        <div class="grid grid-cols-2 gap-2 px-4 py-3">
                             <label class="col-span-2">
                                 <span class="text-[11px] font-bold text-slate-500">Tipo</span>
                                 <select v-model="cargoForm.tipoCargo"
@@ -1111,8 +1167,8 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <!-- Pie STICKY. El formulario es largo y el drawer scrollea: con los
                              botones al final se perdían de vista y el operador acababa pulsando
                              «Guardar Cambios» de la reserva creyendo que guardaba el cargo. -->
-                        <div class="sticky -bottom-4 mt-2 px-4 py-2.5 bg-emerald-50/95 backdrop-blur
-                                    border-t border-emerald-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
+                        <div class="sticky -bottom-4 px-4 py-2.5 bg-emerald-100/95 backdrop-blur
+                                    border-t border-emerald-200 rounded-b-[0.6rem] flex items-center justify-end gap-2 z-10">
                             <button type="button" @click="cancelarEdicionCargo"
                                 class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
                             <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving || !!errorCargo"
@@ -1126,8 +1182,20 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
 
                     <!-- Alta de un cargo manual (reservas directas).
                          Mismo envoltorio que el formulario de pago: el grid va dentro y la barra
-                         de acción fuera, o el sticky no tendría recorrido dentro de su celda. -->
-                    <div v-if="cargoNuevoAbierto" class="bg-emerald-50/50 border-t border-emerald-100">
+                         de acción fuera, o el sticky no tendría recorrido dentro de su celda.
+
+                         Va en un recuadro CON CABECERA porque antes quedaba suelto entre las
+                         filas de la lista: no se veía dónde empezaba ni acababa el mini-form,
+                         y con la lista llena parecía un cargo más a medio pintar. -->
+                    <!-- ⚠️ NADA de `overflow-hidden` aquí: rompería el pie sticky de abajo
+                         (ver la nota del <section> raíz). El redondeo lo pone cada
+                         elemento: cabecera arriba, barra de acción abajo. -->
+                    <div v-if="cargoNuevoAbierto" :ref="setFormCargoRef"
+                        class="m-3 rounded-xl border-2 border-emerald-300 bg-emerald-50/60 shadow-sm">
+                        <div class="px-4 py-2 bg-emerald-100/70 border-b border-emerald-200 rounded-t-[0.6rem] flex items-center gap-2">
+                            <i class="fas fa-file-invoice-dollar text-emerald-700 text-xs"></i>
+                            <h4 class="text-[11px] font-black text-emerald-900 uppercase tracking-wide">Nuevo cargo</h4>
+                        </div>
                     <div class="px-4 py-3 grid grid-cols-2 gap-2">
                         <label class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">Tipo</span>
@@ -1194,8 +1262,8 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </div>
 
                         <!-- Pie sticky, mismo criterio que el del formulario de pago. -->
-                        <div class="sticky -bottom-4 px-4 py-2.5 bg-emerald-50/95 backdrop-blur
-                                    border-t border-emerald-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
+                        <div class="sticky -bottom-4 px-4 py-2.5 bg-emerald-100/95 backdrop-blur
+                                    border-t border-emerald-200 rounded-b-[0.6rem] flex items-center justify-end gap-2 z-10">
                             <button type="button" @click="cancelarEdicionCargo"
                                 class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
                             <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving || !!errorCargo"
@@ -1272,7 +1340,17 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                          El envoltorio NO es el grid: la barra de acción sticky va fuera de él.
                          En un CSS grid el bloque contenedor de un `sticky` es su propia celda,
                          que mide exactamente lo que el elemento: sin recorrido, no se pega. -->
-                    <div v-if="pagoFormAbierto" class="bg-sky-50/50 border-t border-sky-100">
+                    <!-- ⚠️ NADA de `overflow-hidden` aquí: rompería el pie sticky de abajo
+                         (ver la nota del <section> raíz). El redondeo lo pone cada
+                         elemento: cabecera arriba, barra de acción abajo. -->
+                    <div v-if="pagoFormAbierto" :ref="setFormPagoRef"
+                        class="m-3 rounded-xl border-2 border-sky-300 bg-sky-50/60 shadow-sm">
+                        <div class="px-4 py-2 bg-sky-100/70 border-b border-sky-200 rounded-t-[0.6rem] flex items-center gap-2">
+                            <i class="fas fa-hand-holding-dollar text-sky-700 text-xs"></i>
+                            <h4 class="text-[11px] font-black text-sky-900 uppercase tracking-wide">
+                                {{ pagoEditandoId ? 'Editar pago' : 'Nuevo pago' }}
+                            </h4>
+                        </div>
                     <div class="px-4 py-3 grid grid-cols-2 gap-2">
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Monto neto</span>
@@ -1368,8 +1446,8 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                              `-bottom-4` (y no `bottom-0`) compensa el `py-4` del contenedor con
                              scroll del drawer: con 0 quedaba un hueco blanco de 1rem entre las
                              dos barras. Si cambia ese padding, hay que cambiar esto. -->
-                        <div class="sticky -bottom-4 px-4 py-2.5 bg-sky-50/95 backdrop-blur
-                                    border-t border-sky-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
+                        <div class="sticky -bottom-4 px-4 py-2.5 bg-sky-100/95 backdrop-blur
+                                    border-t border-sky-200 rounded-b-[0.6rem] flex items-center justify-end gap-2 z-10">
                             <button type="button" @click="cerrarPagoForm"
                                 class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
                             <button type="button" @click="guardarPago" :disabled="finanzas.isSaving || !pagoForm.monto"

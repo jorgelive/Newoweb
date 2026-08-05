@@ -579,6 +579,133 @@ En estancias de una noche la barra es estrechísima: la fila de cifras se recort
 antes que el nombre, por diseño (`overflow: hidden` sobre `.fc-reserva-meta`). El tooltip
 sigue trayendo todo, con céntimos incluidos.
 
+#### El acordeón de estancias enfoca lo que abre
+
+Al expandir una estancia —o añadir una nueva— el panel crece hacia abajo y el navegador no
+mueve el scroll: con varias casitas apiladas se acababa mirando la mitad de un formulario sin
+ver de cuál era. `enfocarEstancia(i)` lleva al scroller del drawer la **tarjeta entera**, no el
+cuerpo: la cabecera (casita + fechas + pax) es justo lo que dice dónde estás.
+
+Se dispara al expandir (no al plegar: ahí el operador ya está donde quiere), al crear una
+estancia nueva —nace al final de la lista, casi siempre fuera de pantalla— y al abrir el drawer
+sobre una estancia que no es la primera, que es el caso de clicar la segunda casita de una
+reserva en el calendario.
+
+Dos detalles que no se ven leyendo la función:
+
+- **No usa `scrollIntoView()`.** Ese método escala hasta el primer ancestro desplazable y con
+  el drawer abierto acaba moviendo también el fondo. La aritmética vive en
+  `util/src/utils/scrollEnfoque.ts` (§3.b de `UI_Componentes_Compartidos.md`), compartida con
+  los mini-formularios del panel financiero.
+- **Al abrir el drawer el salto es instantáneo** (`suave: false`), no animado: el panel entra
+  deslizándose y dos movimientos a la vez se leen como un fallo de render.
+
+El **panel financiero** aplica lo mismo: al abrir «Nuevo cargo», «Editar cargo», «Nuevo pago» o
+«Editar pago», el mini-formulario se lleva a la vista. Y va **encerrado en un recuadro con
+cabecera de color** (verde para cargos, azul para pagos) porque antes quedaba suelto entre las
+filas de la lista: no se veía dónde empezaba ni acababa, y con la lista llena parecía un cargo
+más a medio pintar. El formulario de edición vive dentro del `v-for` de la lista, así que su
+`ref` **tiene que ser de función** — ver el aviso de §3.b.
+
+#### Dos borrados distintos en la misma pantalla
+
+Conviven, y confundirlos cuesta caro:
+
+| Acción | Dónde | Qué hace | Condición |
+|---|---|---|---|
+| **«Quitar»** (papelera en la cabecera) | barra de la estancia | Saca la fila del formulario. **No llama a la API.** | `!eventoId` — la estancia nunca llegó al servidor |
+| **«Eliminar»** (zona roja del final) | pie del formulario | `DELETE` real + encola el borrado en Beds24 | `puedeBorrarseYa()` (§ anterior) |
+
+La papelera existe para deshacer un «Agregar estancia» pulsado por error. Por eso su condición
+es `!eventoId` y no `safeToDelete`: sobre algo que no existe en el servidor no hay reglas de
+canal ni de sincronización que consultar. Nunca se ofrece sobre la última fila que queda.
+
+**Las filas necesitan clave propia (`entry.uid`).** La clave del `v-for` era
+`eventoId ?? 'nuevo-' + i`, y una estancia nueva no tiene `eventoId`: al descartar una
+intermedia, las de abajo cambiaban de índice, Vue reutilizaba el DOM de la equivocada y el
+formulario de una casita quedaba montado sobre los datos de otra. `uid` es un contador local,
+vive sólo mientras el drawer está abierto y no viaja al backend.
+
+**Affordance de la barra:** «Mismas fechas» y «Quitar» llevan etiqueta además del icono —el
+doble calendario solo no se entendía—, y se repliegan a icono en pantallas estrechas. El botón
+«Agregar estancia en otra casita» pasó de borde punteado gris (se leía como deshabilitado y no
+lo encontraba nadie) a botón sólido con el color de acción del drawer.
+
+#### La hora de entrada no mueve la de salida
+
+`onCambiarInicio()` arrastra el check-out **sólo cuando cambia el DÍA**, medido con
+`diasEntre()`, que ignora la hora. Ajustar la hora de llegada —un huésped que avisa de que
+entra a las 18:00— no dice nada sobre cuándo se va, y la hora de salida es del establecimiento.
+Si sólo cambió la hora se sale antes incluso de la red de seguridad del rango: con las fechas
+ya válidas no hay nada que recomponer y entrar ahí sólo podía estropearlo.
+
+La otra mitad de esta regla está en el template y es la que de verdad rompía: el picker de
+salida recibe `:min-date="soloDia(entry.form.inicio)"`, sin la hora. Ver §1.6 de
+`docs/UI_Componentes_Compartidos.md` — `VueDatePicker` usa la hora de `min-date` como suelo del
+reloj, así que pasarle la fecha completa hacía que tocar el check-in reajustase el check-out.
+
+#### Guardar NO cierra el drawer
+
+`ReservaEditDrawer` tiene dos botones de guardado y el grande **deja el editor abierto**:
+
+| Botón | Emite | La vista |
+|---|---|---|
+| «Guardar Cambios» (principal) | `saved { cerrar: false }` | refresca el calendario y **mantiene** el drawer |
+| «Guardar y cerrar» (pequeño, a su izquierda) | `saved { cerrar: true }` | refresca y cierra |
+
+La razón no es estética: guardar casi siempre es el **paso previo** a otra cosa sobre la misma
+reserva —cancelar una estancia y esperar a que Beds24 lo confirme para poder borrarla, poner
+importe a un cargo recién nacido, revisar el resultado—. Cerrando había que volver a buscar la
+reserva en el calendario para cada uno de esos pasos.
+
+Al guardar sin cerrar se hace `cargarDatos()` en vez de confiar en el formulario: `safeToDelete`,
+`motivoNoBorrable` y `syncStatus` los calcula el backend y son justo los que deciden si la zona
+de borrado se abre. El caso de «horario extra» ya funcionaba así desde antes (§7.1.b de
+`PmsBeds24ReservasSync.md`); ahora es la norma y no la excepción.
+
+#### Borrado desde el drawer: por qué espera a la sincronización
+
+La zona de borrado sólo aparece en edición, sobre una estancia que ya existe, y exige **dos**
+condiciones — la segunda es la que no se ve venir:
+
+```
+puedeBorrarseYa(borrable, sync)          util/src/types/pmsReservaModel.ts
+  ├─ safeToDelete === true               veredicto del backend (OTA / en Beds24 sin cancelar / cola tomada)
+  └─ syncStatus ∈ {synced, local}        que NO quede push por delante
+```
+
+**Con `safeToDelete` solo no basta.** En cuanto la estancia pasa a «cancelada» entra en
+`ESTADOS_BORRABLES_CON_ID` y el motivo desaparece, aunque el push de esa cancelación siga
+encolado (`pending` no bloquea, sólo `processing`). Verificado en datos reales:
+
+```
+estado=pendiente   syncStatus=pending   safeToDelete=true   motivo=—
+```
+
+Si se borra en esa ventana, al eliminar el link `cancelPendingPostForLink()` **mata el POST de
+la cancelación** y el DELETE llega a Beds24 sobre una reserva todavía confirmada — lo único que
+Beds24 no acepta borrar. Resultado: la reserva se queda viva en el canal bloqueando las noches.
+
+Por eso, cuando lo único que falta es el push, el drawer no ofrece «Eliminar» sino **«Esperar y
+eliminar»**: un sondeo de `cargarDatos()` cada 4 s (máx. ~3 min) que habilita el borrado en
+cuanto `syncStatus` pasa a `synced`. Es un sondeo y no un evento porque el push lo procesa un
+worker asíncrono: desde el navegador no hay nada a lo que suscribirse. Se corta solo si la
+sincronización falla (`error`) o si se agotan los intentos, y el operador puede pararlo.
+
+Se ofrecen dos borrados distintos, y la diferencia importa cuando la reserva tiene varias
+casitas: **«Eliminar esta estancia»** (`DELETE` del evento) y **«Eliminar reserva completa»**
+(`DELETE` de la reserva, que cascadea a todas sus estancias). Cada uno con su propio veredicto,
+porque una reserva puede tener una estancia borrable y otra que no.
+
+Tras borrar, el drawer emite `deleted` y la vista (`onBorrado`) refresca y cierra: ya no hay
+nada sobre lo que quedarse abierto.
+
+> **Espejo backend.** El campo `syncStatus` se serializa desde
+> `PmsEventoCalendario::getSyncStatus()` (y `syncStatusAggregate` desde
+> `PmsReserva::getSyncStatusAggregate()`) **sólo para esto**. Si tocas la regla, mira también
+> §12.12 de `PmsBeds24ReservasSync.md`: el comentario de la entidad documenta la misma carrera
+> desde el otro lado.
+
 #### Buscador de reservas y salto al día
 
 El feed del calendario **solo carga el rango visible** (`e.inicio < :to AND e.fin > :from`,

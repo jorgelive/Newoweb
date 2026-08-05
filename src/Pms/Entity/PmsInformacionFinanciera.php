@@ -87,8 +87,21 @@ class PmsInformacionFinanciera
     use IdTrait;
     use TimestampTrait;
 
-    #[ORM\ManyToOne(targetEntity: PmsReserva::class)]
-    #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: false, unique: true)]
+    /**
+     * Cabecera financiera de la reserva, 1:1.
+     *
+     * Es `OneToOne` y NO `ManyToOne+unique` por una razón concreta: el lado inverso
+     * (`PmsReserva::$informacionFinanciera`) es el que cascadea el borrado. Mientras la
+     * relación fue unidireccional, Doctrine no sabía que esta fila existía, emitía el
+     * `DELETE FROM pms_reserva` con la FK todavía apuntando y MySQL lo rechazaba con
+     * un 1451 — ninguna reserva se podía borrar desde el panel. Ver §"Borrado" en
+     * `docs/PmsBeds24ReservasSync.md`.
+     *
+     * La columna ya tenía índice único (`UNIQ_2AFB3104D67139E8`), así que el cambio de
+     * mapeo no arrastra migración.
+     */
+    #[ORM\OneToOne(targetEntity: PmsReserva::class, inversedBy: 'informacionFinanciera')]
+    #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: false)]
     private ?PmsReserva $reserva = null;
 
     /** Moneda principal de la reserva (resolver contra maestro; default USD). */

@@ -376,8 +376,18 @@ class PmsEventoCalendario
     /**
      * Obtiene el estado consolidado de la sincronización.
      *
+     * Se serializa porque `isSafeToDelete()` NO basta para decidir si conviene borrar:
+     * en cuanto la estancia pasa a «cancelada» entra en ESTADOS_BORRABLES_CON_ID y el
+     * motivo desaparece, aunque el push de esa cancelación siga en cola (`pending` no
+     * bloquea, sólo `processing`). Borrar en esa ventana es una carrera perdida: al
+     * eliminar el link, `cancelPendingPostForLink()` mata el POST de la cancelación y el
+     * DELETE llega a Beds24 sobre una reserva todavía confirmada, que es justo lo único
+     * que Beds24 no acepta borrar. El frontend espera a `synced` antes de ofrecer el
+     * borrado (ver `ReservaEditDrawer`).
+     *
      * @return string Puede ser 'local', 'error', 'pending' o 'synced'.
      */
+    #[Groups(['pms_evento:read'])]
     public function getSyncStatus(): string
     {
         if ($this->beds24Links->isEmpty()) return 'local';

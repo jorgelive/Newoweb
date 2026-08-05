@@ -718,7 +718,7 @@ async function elegirAbrirWhatsapp(): Promise<void> {
     }
 }
 
-function onGuardado(payload?: { reservaIdCreada?: string }): void {
+function onGuardado(payload?: { reservaIdCreada?: string; cerrar?: boolean }): void {
     reservasStore.clearActivo();
 
     const api = calendarApiRef.value?.getApi();
@@ -737,7 +737,23 @@ function onGuardado(payload?: { reservaIdCreada?: string }): void {
         return;
     }
 
-    drawerVisible.value = false;
+    // Por defecto el drawer se queda abierto: guardar suele ser el paso previo a otra cosa
+    // sobre la misma reserva (cancelar y esperar a Beds24 para poder borrar, ajustar un
+    // cargo…). Cerrar es ahora una petición explícita de «Guardar y cerrar».
+    if (payload?.cerrar) {
+        drawerVisible.value = false;
+    }
+}
+
+/** La estancia o la reserva ya no existe: el drawer no tiene sobre qué quedarse abierto. */
+function onBorrado(): void {
+    reservasStore.clearActivo();
+
+    const api = calendarApiRef.value?.getApi();
+    api?.refetchEvents();
+    api?.refetchResources();
+
+    cerrarDrawer();
 }
 
 // ============================================================================
@@ -1346,6 +1362,7 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
             :start-read-only="drawerStartReadOnly"
             @close="cerrarDrawer"
             @saved="onGuardado"
+            @deleted="onBorrado"
         />
     </div>
 </template>
