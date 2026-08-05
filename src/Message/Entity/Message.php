@@ -644,4 +644,28 @@ class Message
 
         return $queues;
     }
+
+    /**
+     * Añade una cola a la colección física que le corresponde, sin que quien la crea
+     * tenga que saber de qué canal es.
+     *
+     * ES EL PUNTO ÚNICO que conoce las clases concretas de cola. Antes esta decisión estaba
+     * repartida por MessageEnqueuerEntityListener con `str_contains(get_class($queue),'Beds24')`
+     * y `method_exists($message,'addBeds24SendQueue')`, así que **cada channel manager nuevo
+     * obligaba a tocar el listener en varios sitios** — y olvidar uno no rompía nada: sólo
+     * dejaba de cancelar, y el mensaje salía por un canal que ya no tocaba.
+     *
+     * 🔥 Al añadir un canal (Beds24, WhatsApp, el CM que venga) se tocan DOS métodos y ninguno
+     * más: éste y `getAllQueues()`. Ver docs/Mensajeria.md §5.
+     */
+    public function addQueue(MessageQueueItemInterface $queue): self
+    {
+        if ($queue instanceof Beds24SendQueue) {
+            $this->addBeds24SendQueue($queue);
+        } elseif ($queue instanceof WhatsappMetaSendQueue) {
+            $this->addWhatsappMetaSendQueue($queue);
+        }
+
+        return $this;
+    }
 }

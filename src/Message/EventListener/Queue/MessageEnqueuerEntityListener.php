@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\EventListener\Queue;
 
+use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Service\Queue\MessageDispatcher;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
@@ -16,11 +17,18 @@ use Doctrine\ORM\Events;
  * Listener encargado de orquestar el ciclo de vida completo de las colas de envío (Outbox Pattern).
  * Desacopla la infraestructura (colas) de la lógica de negocio (MessageRuleEngine).
  * Actúa como ÚNICO punto de creación, modificación, reprogramación y cancelación de colas.
+ *
+ * 🔥 ES AGNÓSTICO AL CANAL. No nombra ni Beds24 ni WhatsApp: reparte por
+ * `MessageQueueItemInterface::getChannelId()` e itera `Message::getAllQueues()`. Añadir un
+ * channel manager nuevo NO exige tocar este archivo. Ver docs/Mensajeria.md §5.
  */
 #[AsEntityListener(event: Events::prePersist, method: 'prePersist', entity: Message::class)]
 #[AsEntityListener(event: Events::preUpdate, method: 'preUpdate', entity: Message::class)]
 readonly class MessageEnqueuerEntityListener
 {
+    /** Estados de cola sobre los que todavía se puede actuar (reprogramar o cancelar). */
+    private const array ESTADOS_VIVOS = ['pending', 'queued'];
+
     public function __construct(
         private MessageDispatcher      $dispatcher,
         private EntityManagerInterface $em,
@@ -54,18 +62,7 @@ readonly class MessageEnqueuerEntityListener
             && in_array($message->getStatus(), [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
 
             // El dispatcher evalúa los 'transientChannels' y genera las entidades de cola
-            $queues = $this->dispatcher->dispatch($message);
-
-            foreach ($queues as $queue) {
-                // Sincronización estricta de memoria (Previene la "Amnesia de Doctrine")
-                if (method_exists($message, 'addBeds24SendQueue') && str_contains(get_class($queue), 'Beds24')) {
-                    $message->addBeds24SendQueue($queue);
-                } elseif (method_exists($message, 'addWhatsappMetaSendQueue') && str_contains(get_class($queue), 'Whatsapp')) {
-                    $message->addWhatsappMetaSendQueue($queue);
-                }
-
-                $this->em->persist($queue);
-            }
+            $this->fabricarColas($message);
         }
     }
 
@@ -82,84 +79,84 @@ readonly class MessageEnqueuerEntityListener
             return;
         }
 
-        $uow = $this->em->getUnitOfWork();
         $queuesToRecompute = [];
 
         // 1. CASCADA DE CANCELACIÓN TOTAL
         if ($event->hasChangedField('status') && $message->getStatus() === Message::STATUS_CANCELLED) {
-            foreach ($message->getBeds24SendQueues() as $queue) {
-                if (in_array($queue->getStatus(), ['pending', 'queued'], true)) {
-                    $queue->setStatus('cancelled');
-                    $queuesToRecompute[] = $queue;
-                }
+            foreach ($this->colasVivas($message) as $queue) {
+                $queue->setStatus('cancelled');
+                $queuesToRecompute[] = $queue;
             }
-            foreach ($message->getWhatsappMetaSendQueues() as $queue) {
-                if (in_array($queue->getStatus(), ['pending', 'queued'], true)) {
-                    $queue->setStatus('cancelled');
-                    $queuesToRecompute[] = $queue;
-                }
-            }
-        }
-        else {
+        } else {
             // 2. CASCADA DE REPROGRAMACIÓN (Last-Minute Booking o cambios de fecha)
             if ($event->hasChangedField('scheduledAt') && $message->getScheduledAt() !== null) {
-                foreach ($message->getBeds24SendQueues() as $queue) {
-                    if (in_array($queue->getStatus(), ['pending', 'queued'], true)) {
-                        $queue->setRunAt($message->getScheduledAt());
-                        $queuesToRecompute[] = $queue;
-                    }
-                }
-                foreach ($message->getWhatsappMetaSendQueues() as $queue) {
-                    if (in_array($queue->getStatus(), ['pending', 'queued'], true)) {
-                        $queue->setRunAt($message->getScheduledAt());
-                        $queuesToRecompute[] = $queue;
-                    }
+                foreach ($this->colasVivas($message) as $queue) {
+                    $queue->setRunAt($message->getScheduledAt());
+                    $queuesToRecompute[] = $queue;
                 }
             }
 
             // 3. LIMPIEZA DE HUÉRFANOS (Diffing de canales cancelados parcialmente)
+            //
+            // Antes había un `if (!in_array('beds24', …))` y otro para 'whatsapp_meta', escritos
+            // a mano: el canal N+1 exigía añadir un bloque, y olvidarlo NO fallaba — simplemente
+            // no cancelaba, y el mensaje acababa saliendo por un canal ya descartado.
             $requestedChannels = $message->getTransientChannels();
             if (!empty($requestedChannels) && in_array($message->getStatus(), [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
-
-                if (!in_array('beds24', $requestedChannels, true)) {
-                    foreach ($message->getBeds24SendQueues() as $queue) {
-                        if (in_array($queue->getStatus(), ['pending', 'queued'], true)) {
-                            $queue->setStatus('cancelled');
-                            $queuesToRecompute[] = $queue;
-                        }
-                    }
-                }
-
-                if (!in_array('whatsapp_meta', $requestedChannels, true)) {
-                    foreach ($message->getWhatsappMetaSendQueues() as $queue) {
-                        if (in_array($queue->getStatus(), ['pending', 'queued'], true)) {
-                            $queue->setStatus('cancelled');
-                            $queuesToRecompute[] = $queue;
-                        }
+                foreach ($this->colasVivas($message) as $queue) {
+                    if (!in_array($queue->getChannelId(), $requestedChannels, true)) {
+                        $queue->setStatus('cancelled');
+                        $queuesToRecompute[] = $queue;
                     }
                 }
             }
 
             // 4. FABRICACIÓN DE NUEVOS CANALES
             if (in_array($message->getStatus(), [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
-                $newQueues = $this->dispatcher->dispatch($message);
-
-                foreach ($newQueues as $queue) {
-                    if (method_exists($message, 'addBeds24SendQueue') && str_contains(get_class($queue), 'Beds24')) {
-                        $message->addBeds24SendQueue($queue);
-                    } elseif (method_exists($message, 'addWhatsappMetaSendQueue') && str_contains(get_class($queue), 'Whatsapp')) {
-                        $message->addWhatsappMetaSendQueue($queue);
-                    }
-                    $this->em->persist($queue);
-                }
+                $this->fabricarColas($message);
             }
         }
 
         // Obligamos a Doctrine a registrar los UPDATEs de las colas modificadas
         // ya que estamos dentro del evento preUpdate del padre.
+        $uow = $this->em->getUnitOfWork();
         foreach ($queuesToRecompute as $mutatedQueue) {
             $this->em->persist($mutatedQueue);
             $uow->computeChangeSet($this->em->getClassMetadata(get_class($mutatedQueue)), $mutatedQueue);
         }
+    }
+
+    /**
+     * Pide colas al dispatcher y las engancha al mensaje.
+     *
+     * El reparto por canal lo resuelve `Message::addQueue()`, que es el único punto del sistema
+     * que conoce las clases concretas de cola.
+     */
+    private function fabricarColas(Message $message): void
+    {
+        foreach ($this->dispatcher->dispatch($message) as $queue) {
+            // Sincronización estricta de memoria (Previene la "Amnesia de Doctrine")
+            $message->addQueue($queue);
+            $this->em->persist($queue);
+        }
+    }
+
+    /**
+     * Colas sobre las que todavía se puede actuar, en cualquier canal.
+     *
+     * @return list<MessageQueueItemInterface>
+     */
+    private function colasVivas(Message $message): array
+    {
+        $vivas = [];
+
+        foreach ($message->getAllQueues() as $queue) {
+            if ($queue instanceof MessageQueueItemInterface
+                && in_array($queue->getStatus(), self::ESTADOS_VIVOS, true)) {
+                $vivas[] = $queue;
+            }
+        }
+
+        return $vivas;
     }
 }

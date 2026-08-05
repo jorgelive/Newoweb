@@ -255,6 +255,43 @@ Fallo parcial: si al menos una cola se crea, el mensaje queda `QUEUED` y los err
 guardan en `metadata.dispatch_partial_errors`. Sólo si **ninguna** se crea el mensaje pasa a
 `FAILED` con `metadata.dispatch_errors`.
 
+### 🔑 Añadir un channel manager: qué se toca y qué no
+
+La estrategia es **coexistencia**, no sustitución: Beds24 se queda y convive con conectores
+nuevos. Por eso importa que el canal N+1 sea barato.
+
+**Ya soporta operar en paralelo, sin tocar nada:**
+
+- Un `Message` tiene N colas a la vez; hoy ya sale por Beds24 **y** WhatsApp.
+- `MessageRule::targetCommunicationChannels` es ManyToMany.
+- **El enrutado ya está resuelto por `ChannelEnqueuerInterface::isValid()`**: cada enqueuer
+  decide si la reserva es suya. `Beds24SendEnqueuer` mira `beds24_book_id`/`beds24_config`, así
+  que una reserva de otro channel manager sencillamente no le valida. No hay que inventar
+  enrutado nuevo.
+- La conversación se identifica por `contextType`+`contextId` (la reserva del PMS): dos channel
+  managers sobre la misma reserva **no** duplican chat.
+
+**Lo que hay que escribir para un canal nuevo:**
+
+| Pieza | Qué |
+|---|---|
+| `ChannelEnqueuerInterface` | Clase nueva. El tag `app.message.enqueuer` la registra sola |
+| `MappingStrategyInterface` | Cómo se arma el payload del proveedor |
+| Entidad de cola | Implementa `MessageQueueItemInterface`, incluido `getChannelId()` |
+| Fila en `msg_channel` | Con su `templateColumn` |
+| `MessageTemplate` | Columna JSON del canal + su caso en `getActiveChannels()` ⚠️ migración |
+| `Message` | La colección nueva en **`getAllQueues()` y `addQueue()`**, y en ningún sitio más |
+
+**`MessageEnqueuerEntityListener` NO se toca.** Es agnóstico: reparte por
+`MessageQueueItemInterface::getChannelId()` e itera `getAllQueues()`. Antes decidía con
+`str_contains(get_class($queue),'Beds24')` y tenía un `if (!in_array('beds24', …))` por canal
+escrito a mano; olvidar uno **no fallaba**, simplemente dejaba de cancelar y el mensaje salía
+por un canal ya descartado — el mismo fallo silencioso de §7.
+
+Lo que sigue creciendo a mano, y es la deuda pendiente: la **columna por canal** de
+`MessageTemplate` (exige migración cada vez) y el hecho de que `buttons_map` viva dentro de
+`whatsappMetaTmpl` aunque defina el menú de todos los canales (§8).
+
 ### Recibos de lectura: proactivos, no reactivos
 
 `MessageEnqueuerEntityListener` ignora deliberadamente los mensajes `INCOMING`. Marcar como leído
