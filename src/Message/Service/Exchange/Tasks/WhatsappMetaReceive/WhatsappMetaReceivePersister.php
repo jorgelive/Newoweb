@@ -10,6 +10,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
+use App\Message\Service\Inbound\InboundMenuResolver;
 use App\Message\Service\MessageJsonMerger;
 use App\Message\Service\Translation\GuestLanguageDetectorService;
 use DateTimeImmutable;
@@ -31,7 +32,8 @@ readonly class WhatsappMetaReceivePersister
         private HttpClientInterface          $httpClient,
         private LoggerInterface              $logger,
         private MessageJsonMerger            $merger,
-        private GuestLanguageDetectorService $languageDetector
+        private GuestLanguageDetectorService $languageDetector,
+        private InboundMenuResolver          $menuResolver
     ) {}
 
     /**
@@ -146,37 +148,15 @@ readonly class WhatsappMetaReceivePersister
                 'action_code' => 'TXT_FREE'
             ]);
 
-            // INTERCEPTOR DE MENÚS (Basado estrictamente en el último estado absoluto)
-            if (strlen($textoRecibido) <= 20) {
-                if (preg_match('/^(?:opci[oó]n|opc|opt|option|n[uú]mero|num|#)?\s*(\d{1,2})$/i', $textoRecibido, $matches)) {
-                    $opcionElegida = (int) $matches[1];
-
-                    // Buscamos el ABSOLUTO ÚLTIMO mensaje (sin importar dirección ni tipo)
-                    $lastMessage = $this->em->getRepository(Message::class)->findOneBy(
-                        ['conversation' => $conversation],
-                        ['createdAt' => 'DESC']
-                    );
-
-                    // Solo procesamos si el mensaje INMEDIATAMENTE ANTERIOR fue la plantilla
-                    if ($lastMessage && $lastMessage->getTemplate() !== null) {
-                        $metaJson = $lastMessage->getTemplate()->getWhatsappMetaTmpl();
-                        $quickReplies = array_filter(
-                            $metaJson['buttons_map'] ?? [],
-                            fn($b) => strtolower($b['type'] ?? '') === 'quick_reply'
-                        );
-                        $quickRepliesList = array_values($quickReplies);
-
-                        if (isset($quickRepliesList[$opcionElegida - 1])) {
-                            $matchedButton = $quickRepliesList[$opcionElegida - 1];
-                            $payloadOriginal = $matchedButton['payload'] ?? $matchedButton['resolver_key'] ?? null;
-                            if ($payloadOriginal) {
-                                $intent['category'] = 'deterministic';
-                                $intent['action_code'] = $payloadOriginal;
-                            }
-                        }
-                    }
-                }
+            // INTERCEPTOR DE MENÚS. Aquí es una red de seguridad —en WhatsApp los botones son
+            // pulsables y llegan como `button`/`interactive` con su payload—, pero el huésped
+            // siempre puede teclear el número a mano. Lógica compartida con Beds24.
+            $actionCode = $this->menuResolver->resolveActionCode($conversation, $textoRecibido);
+            if ($actionCode !== null) {
+                $intent['category'] = 'deterministic';
+                $intent['action_code'] = $actionCode;
             }
+
             $message->setInboundIntent($intent);
 
         } elseif ($type === 'button') {

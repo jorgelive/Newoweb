@@ -11,6 +11,7 @@ use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Factory\MessageConversationFactory;
+use App\Message\Service\Inbound\InboundMenuResolver;
 use App\Message\Service\MessageJsonMerger;
 use App\Message\Service\Translation\GuestLanguageDetectorService;
 use App\Pms\Entity\PmsInformacionFinanciera;
@@ -36,7 +37,8 @@ readonly class Beds24ReceivePersister
         private MessageAttachmentFactory     $attachmentFactory,
         private LoggerInterface              $logger,
         private MessageJsonMerger            $merger,
-        private GuestLanguageDetectorService $languageDetector
+        private GuestLanguageDetectorService $languageDetector,
+        private InboundMenuResolver          $menuResolver
     ) {}
 
     /**
@@ -198,36 +200,17 @@ readonly class Beds24ReceivePersister
                     'resolved'       => false
                 ];
 
-                // 🎯 INTERCEPTOR DE MENÚS (Basado estrictamente en el último estado absoluto)
-                if (strlen($textoRecibido) <= 20) {
-                    if (preg_match('/^(?:opci[oó]n|opc|opt|option|n[uú]mero|num|#)?\s*(\d{1,2})$/i', $textoRecibido, $matches)) {
-                        $opcionElegida = (int) $matches[1];
-
-                        $lastMessage = $this->em->getRepository(Message::class)->findOneBy(
-                            ['conversation' => $conversation],
-                            ['createdAt' => 'DESC']
-                        );
-
-                        if ($lastMessage && $lastMessage->getTemplate() !== null) {
-                            $metaJson = $lastMessage->getTemplate()->getWhatsappMetaTmpl();
-                            $quickReplies = array_filter(
-                                $metaJson['buttons_map'] ?? [],
-                                fn($b) => strtolower($b['type'] ?? '') === 'quick_reply'
-                            );
-                            $quickRepliesList = array_values($quickReplies);
-
-                            if (isset($quickRepliesList[$opcionElegida - 1])) {
-                                $matchedButton = $quickRepliesList[$opcionElegida - 1];
-                                $payloadOriginal = $matchedButton['payload'] ?? $matchedButton['resolver_key'] ?? null;
-
-                                if ($payloadOriginal) {
-                                    $intent['category'] = 'deterministic';
-                                    $intent['action_code'] = $payloadOriginal;
-                                }
-                            }
-                        }
-                    }
+                // 🎯 INTERCEPTOR DE MENÚS.
+                // Es la ÚNICA puerta del motor determinista para las OTA: aquí no hay botones
+                // pulsables, sólo el número que el huésped teclea contra el menú que
+                // Beds24SendMappingStrategy le pintó. La lógica vive en el resolutor porque
+                // WhatsApp la comparte y antes estaba duplicada a mano en los dos persisters.
+                $actionCode = $this->menuResolver->resolveActionCode($conversation, $textoRecibido);
+                if ($actionCode !== null) {
+                    $intent['category'] = 'deterministic';
+                    $intent['action_code'] = $actionCode;
                 }
+
                 $message->setInboundIntent($intent);
 
             } else {

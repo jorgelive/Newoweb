@@ -19,7 +19,8 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 5. [Canales y colas](#5-canales-y-colas)
 6. [Lo que NO se re-evalúa solo](#6-lo-que-no-se-re-evalúa-solo)
 7. [Gotchas](#7-gotchas)
-8. [Dónde tocar para cambiar X](#8-dónde-tocar-para-cambiar-x)
+8. [Menús en canales sin botones](#8-menús-en-canales-sin-botones)
+9. [Dónde tocar para cambiar X](#9-dónde-tocar-para-cambiar-x)
 
 ---
 
@@ -359,7 +360,71 @@ intercambiables**: confundirlas deja a los inquiries de Airbnb sin chat.
 
 ---
 
-## 8. Dónde tocar para cambiar X
+## 8. Menús en canales sin botones
+
+Airbnb y Booking, que viajan por Beds24, son **texto plano**: no existen los botones pulsables.
+El sistema los emula, y son dos mitades de un mismo contrato que hay que mantener simétricas.
+
+```
+   PLANTILLA (whatsappMetaTmpl.buttons_map)   ← fuente ÚNICA del menú, para todos los canales
+        │
+   ┌────┴─────────────────────────────┐
+   ▼ ENVÍO                            ▼ VUELTA
+ Beds24SendMappingStrategy::map()    InboundMenuResolver::resolveActionCode()
+   «1️⃣ *Guía*»                        "1"  → payload del 1º quick_reply
+   «2️⃣ *Tours*»                       "2"  → payload del 2º
+   «🔗 *Ver mapa*: https://…»         (los `url` NO consumen número)
+   «👉 Responde con el número…»
+```
+
+**El `buttons_map` vive en el bloque de WhatsApp Meta aunque el mensaje salga por Airbnb.** No
+es un descuido: es la definición única del menú, y `Beds24SendMappingStrategy` la reutiliza para
+pintar el texto. Si una plantilla necesita salir sin menú por Beds24, está
+`MessageTemplate::isBeds24MetaButtonsDisabled()`.
+
+**La numeración cuenta sólo los `quick_reply`.** Los botones de tipo `url` se renderizan como
+enlace y no gastan número. Los dos lados filtran igual; si tocas uno, tocas el otro.
+
+### 🔥 Por qué esto no funcionaba: `createdAt` no es el orden del chat
+
+El resolutor busca «el último mensaje que vio el huésped» para saber a qué menú se refiere el
+número. Antes ordenaba por `createdAt DESC`, y eso es **falso** para los mensajes automáticos:
+el motor de reglas los CREA cuando programa la reserva y se ENVÍAN mucho después. Medido en
+producción sobre 1008 mensajes de sistema con plantilla:
+
+| Desfase entre `created_at` y `scheduled_at` | Mensajes |
+|---|---|
+| más de 1 hora | 653 |
+| más de 24 horas | 615 |
+| máximo observado | 7771 h (≈ 324 días) |
+
+Con `createdAt DESC`, «el último mensaje» era a menudo un recordatorio programado para dentro de
+medio año que el huésped aún no había recibido. Resultado: el menú no casaba —y cuando casaba
+por casualidad, podía apuntar a **otra** plantilla y responder algo que nadie pidió.
+
+El criterio correcto es la **fecha efectiva**, `COALESCE(scheduledAt, createdAt)`, filtrando
+además los estados que no llegaron al huésped y descartando el futuro. Es el mismo criterio que
+ya usaba `RebuildConversationContextCommand`. Al cambiarlo, las conversaciones en las que el
+menú puede resolverse pasaron de **82 a 151** de 284.
+
+**Por qué WhatsApp no sufría esto:** allí los botones son pulsables y llegan como
+`button`/`interactive` **con su payload**, sin pasar por el resolutor. El interceptor numérico
+es, en la práctica, la única puerta del motor determinista para las OTA — por eso el bug lo
+dejaba prácticamente muerto en Beds24 (2 disparos frente a 835 mensajes) y no se notaba en Meta.
+
+### El menú caduca
+
+`InboundMenuResolver::VENTANA_VALIDEZ` (24 h). Sin ella, un huésped que contesta «2» a un
+«¿cuántos sois?» revive un menú de hace semanas y recibe la lista de tours.
+
+### Requisito de configuración, no de código
+
+Para que una opción funcione por Beds24, la plantilla de **respuesta** debe tener su canal
+`beds24Tmpl.is_active = true`. Si no, `MessageDispatcher::resolveChannels()` intersecta a vacío
+y el mensaje queda `QUEUED` sin ninguna cola — nunca sale. A 2026-08-05, `menu_tours` está en
+`false`, así que la opción de tours no puede responderse por Airbnb/Booking.
+
+## 9. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
@@ -374,4 +439,8 @@ intercambiables**: confundirlas deja a los inquiries de Airbnb sin chat.
 | Cambiar cómo se deduce el estado de un mensaje | `src/Message/Service/Queue/MessageRuleEngine.php` | `resolveMessageStatus()` + `healZombieMessages()` |
 | Reparar mensajes fallidos de una reserva | — | `php bin/console app:message:sync-rules <uuid> --force` |
 | Aplicar una regla recién creada al parque existente | — | `php bin/console app:message:sync-rules --all` |
+| Cambiar cómo se numera el menú al SALIR por una OTA | `Beds24SendMappingStrategy` | `map()` — §8, simétrico con el resolutor |
+| Cambiar cómo se interpreta el número al VOLVER | `InboundMenuResolver` | `resolveActionCode()` — §8, simétrico con el render |
+| Añadir un idioma al footer «responde con el número» | `Beds24SendMappingStrategy` | `getMenuTranslations()` |
+| Que una opción del menú pueda responderse por Airbnb/Booking | EasyAdmin | `beds24Tmpl.is_active` de la plantilla de respuesta — §8 |
 | Entender por qué un mensaje no salió | `var/log/` | busca "Omisión preventiva", "Rescate descartado", "Poda de canales", "Caducidad", "Sanidad" |
