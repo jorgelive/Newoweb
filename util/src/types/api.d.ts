@@ -17223,6 +17223,9 @@ export interface components {
              * @example https://example.com/
              */
             readonly tarifaBaseMonedaOrFail?: string;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map"] | null;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
@@ -17267,12 +17270,21 @@ export interface components {
             slug?: string | null;
             /** @default true */
             activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -17287,8 +17299,17 @@ export interface components {
             slug?: string | null;
             /** @default true */
             activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
         };
         "PmsUnidad.html": {
             establecimiento?: components["schemas"]["PmsEstablecimiento.html"];
@@ -17359,6 +17380,9 @@ export interface components {
              * @example https://example.com/
              */
             readonly tarifaBaseMonedaOrFail?: string;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.html"] | null;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
@@ -17403,12 +17427,21 @@ export interface components {
             slug?: string | null;
             /** @default true */
             activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -17423,8 +17456,17 @@ export interface components {
             slug?: string | null;
             /** @default true */
             activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -17499,6 +17541,9 @@ export interface components {
              * @example https://example.com/
              */
             readonly tarifaBaseMonedaOrFail?: string;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.jsonld"] | null;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
@@ -17559,12 +17604,21 @@ export interface components {
             slug?: string | null;
             /** @default true */
             activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -17579,8 +17633,17 @@ export interface components {
             slug?: string | null;
             /** @default true */
             activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
         };
         "PmsUnidad.multipart": {
             establecimiento?: components["schemas"]["PmsEstablecimiento.multipart"];
@@ -17651,6 +17714,9 @@ export interface components {
              * @example https://example.com/
              */
             readonly tarifaBaseMonedaOrFail?: string;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.multipart"] | null;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
@@ -17695,12 +17761,21 @@ export interface components {
             slug?: string | null;
             /** @default true */
             activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -17715,8 +17790,17 @@ export interface components {
             slug?: string | null;
             /** @default true */
             activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
         };
         PmsUnidadBeds24Map: {
             /**

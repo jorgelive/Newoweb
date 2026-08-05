@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { apiClient } from '@/services/apiClient';
 import { useTarifasStore } from '@/stores/tarifas/tarifasStore';
 import { extractApiErrorMessage } from '@/stores/reservas/reservasStore';
-import { diasDeRango, type PmsTarifaMasivaPayload } from '@/types/pmsTarifaModel';
+import { diasDeRango, type PmsTarifaMasivaPayload, type PmsTarifaRango } from '@/types/pmsTarifaModel';
 
 /**
  * Equivalente Vue de la acción global "Generar Masivo" del CRUD de EasyAdmin
@@ -12,6 +13,16 @@ import { diasDeRango, type PmsTarifaMasivaPayload } from '@/types/pmsTarifaModel
  * aplicando `porcentaje` sobre el precio base de cada unidad — no sobre un
  * precio único, por eso el formulario no pide importe.
  */
+const props = defineProps<{
+    /**
+     * Rango que se está viendo en el calendario, del 1 al 1 (un mes o dos, según
+     * la vista). Es con lo que arranca el formulario: se genera para lo que se
+     * está mirando, y teclear las dos fechas a mano cada vez era el paso más
+     * pesado del proceso.
+     */
+    rangoDefecto?: { fechaInicio: string; fechaFin: string } | null;
+}>();
+
 const emit = defineEmits<{ close: []; generated: [creadas: number] }>();
 
 const tarifasStore = useTarifasStore();
@@ -19,8 +30,8 @@ const tarifasStore = useTarifasStore();
 const localError = ref<string | null>(null);
 
 const form = ref<PmsTarifaMasivaPayload>({
-    fechaInicio: '',
-    fechaFin: '',
+    fechaInicio: props.rangoDefecto?.fechaInicio ?? '',
+    fechaFin: props.rangoDefecto?.fechaFin ?? '',
     porcentaje: 0,
     minStay: 2,
     prioridad: 0,
@@ -39,6 +50,99 @@ const resumenPorcentaje = computed(() => {
     if (!p) return 'exactamente la tarifa base de cada unidad';
     return p > 0 ? `la tarifa base +${p}%` : `la tarifa base ${p}%`;
 });
+
+// ============================================================================
+// PRIORIDAD SUGERIDA
+//
+// El masivo compite con lo que ya hay: si nace con una prioridad igual o menor
+// que la de un rango que pisa esas fechas, se genera y NO se aplica — el
+// operador ve el calendario igual que antes y no sabe por qué. Se propone la
+// prioridad más alta de TODAS las casitas en la ventana + 1, porque el masivo
+// escribe en todas a la vez y basta una para dejarlo tapado.
+// ============================================================================
+const prioridadTocada = ref(false);
+const prioridadGanadora = ref<number | null>(null);
+
+async function sugerirPrioridad(): Promise<void> {
+    const { fechaInicio, fechaFin } = form.value;
+    if (!fechaInicio || !fechaFin || prioridadTocada.value) return;
+
+    try {
+        // Solapamiento clásico: empieza antes de que acabe la ventana y acaba
+        // después de que empiece. `order[prioridad]=desc` deja el máximo en la
+        // primera fila, así que no hace falta paginar (además `itemsPerPage` no
+        // está habilitado como parámetro de cliente).
+        const r = await apiClient.get('/platform/pms/pms_tarifa_rangos', {
+            params: {
+                activo: true,
+                'fechaInicio[before]': fechaFin,
+                'fechaFin[after]': fechaInicio,
+                'order[prioridad]': 'desc',
+            },
+        });
+
+        const filas = (r.data['hydra:member'] ?? r.data['member'] ?? []) as PmsTarifaRango[];
+        if (prioridadTocada.value) return;
+
+        prioridadGanadora.value = filas.length ? (filas[0].prioridad ?? 0) : null;
+        form.value.prioridad = (prioridadGanadora.value ?? -1) + 1;
+    } catch {
+        // Sin respuesta se deja la prioridad como esté: es una sugerencia.
+    }
+}
+
+// ============================================================================
+// PRECIO EFECTIVO POR CASITA (leyenda en vivo)
+//
+// El formulario no pide importe —cada unidad parte de SU tarifa base—, así que
+// con sólo el porcentaje no había forma de saber qué precio iba a quedar sin
+// generar y mirar el calendario. Espejo de GeneradorTarifaMasivaService: el
+// mismo `round(base * (1 + %/100))`, SIN decimales — el precio se publica redondo
+// en los canales. Si cambia allí, cambia aquí.
+// ============================================================================
+interface FilaEfectiva {
+    id: string;
+    nombre: string;
+    simbolo: string;
+    base: number;
+    efectivo: number;
+}
+
+const filasEfectivas = computed<FilaEfectiva[]>(() => {
+    const factor = 1 + (Number(form.value.porcentaje) || 0) / 100;
+
+    return tarifasStore.unidades
+        // Mismo filtro que el servicio: `activo = true` y `tarifaBaseActiva = true`.
+        // Una unidad sin tarifa base no recibe rango, y decirlo aquí evita la
+        // sorpresa de «se generaron 6 y tengo 8 casitas».
+        .filter((u) => u.activo && u.tarifaBaseActiva && Number(u.tarifaBasePrecio ?? 0) > 0)
+        .map((u) => {
+            const base = Number(u.tarifaBasePrecio ?? 0);
+
+            return {
+                id: String(u.id),
+                nombre: u.nombre ?? '—',
+                simbolo: u.tarifaBaseMonedaSimbolo ?? '',
+                base,
+                efectivo: Math.round(base * factor),
+            };
+        });
+});
+
+/**
+ * La base se muestra tal cual está guardada (puede llevar céntimos de una carga
+ * antigua); el efectivo, redondo, porque es lo que se va a escribir.
+ */
+const importeBase = (valor: number): string => (Number.isInteger(valor) ? String(valor) : valor.toFixed(2));
+
+onMounted(() => {
+    void tarifasStore.fetchMasters();
+    void sugerirPrioridad();
+});
+
+// Cambiar el rango cambia quién es el ganador: se vuelve a sugerir mientras el
+// operador no haya tecleado una prioridad propia.
+watch(() => [form.value.fechaInicio, form.value.fechaFin], () => void sugerirPrioridad());
 
 async function generar(): Promise<void> {
     localError.value = null;
@@ -99,7 +203,7 @@ async function generar(): Promise<void> {
 
                     <label>
                         <span class="text-xs font-bold text-slate-500">Fin</span>
-                        <input type="date" v-model="form.fechaFin"
+                        <input type="date" v-model="form.fechaFin" :min="form.fechaInicio || undefined"
                             class="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
                             :class="rangoInvertido ? 'border-rose-300 bg-rose-50' : 'border-slate-200'" />
                     </label>
@@ -130,8 +234,17 @@ async function generar(): Promise<void> {
 
                     <label>
                         <span class="text-xs font-bold text-slate-500">Prioridad</span>
+                        <!-- En cuanto el operador la teclea, deja de sugerirse
+                             (ver sugerirPrioridad). -->
                         <input type="number" v-model.number="form.prioridad"
+                            @input="prioridadTocada = true"
                             class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                        <span class="text-[10px] font-bold text-slate-400">
+                            <template v-if="prioridadGanadora !== null">
+                                La más alta en estas fechas es {{ prioridadGanadora }}: con {{ form.prioridad }} manda la nueva.
+                            </template>
+                            <template v-else>No hay tarifas en estas fechas todavía.</template>
+                        </span>
                     </label>
 
                     <label class="col-span-2 flex items-center gap-2">
@@ -140,10 +253,35 @@ async function generar(): Promise<void> {
                     </label>
                 </div>
 
-                <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-600">
-                    <i class="fas fa-magic mr-1.5 text-[#376875]"></i>
-                    Cada unidad recibirá {{ resumenPorcentaje }}, con estancia mínima de
-                    {{ form.minStay }} noche(s).
+                <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 space-y-3">
+                    <p class="text-xs font-bold text-slate-600">
+                        <i class="fas fa-magic mr-1.5 text-[#376875]"></i>
+                        Cada unidad recibirá {{ resumenPorcentaje }}, con estancia mínima de
+                        {{ form.minStay }} noche(s).
+                    </p>
+
+                    <!-- Qué precio queda en cada casita, EN VIVO: el formulario no
+                         pide importe (sale de la tarifa base de cada unidad), así
+                         que sin esto se generaba sin saber el resultado. -->
+                    <div v-if="filasEfectivas.length" class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+                        <div v-for="fila in filasEfectivas" :key="fila.id"
+                            class="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-slate-100 last:border-b-0">
+                            <span class="text-xs font-bold text-slate-600 truncate">{{ fila.nombre }}</span>
+                            <span class="text-xs font-bold shrink-0 tabular-nums">
+                                <span class="text-slate-400">{{ fila.simbolo }} {{ importeBase(fila.base) }}</span>
+                                <i class="fas fa-arrow-right mx-1.5 text-[9px] text-slate-300"></i>
+                                <span :class="fila.efectivo === fila.base ? 'text-slate-700'
+                                    : (fila.efectivo > fila.base ? 'text-emerald-600' : 'text-rose-600')">
+                                    {{ fila.simbolo }} {{ fila.efectivo }}
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <p v-else class="text-[11px] font-bold text-amber-700">
+                        <i class="fas fa-triangle-exclamation mr-1"></i>
+                        Ninguna unidad activa tiene tarifa base configurada: no se generará nada.
+                    </p>
                 </div>
             </div>
 

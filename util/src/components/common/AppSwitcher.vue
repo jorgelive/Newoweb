@@ -17,8 +17,19 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { MODULOS_APP, moduloDeRuta, type ModuloApp } from '@/types/modulosApp';
 
-const props = withDefaults(defineProps<{ variante?: 'oscura' | 'clara' }>(), {
+const props = withDefaults(defineProps<{
+    /**
+     * Aspecto del botón. Las cabeceras del portal no son iguales: las de los
+     * calendarios y el chat son oscuras (slate-900) y las de cotizaciones,
+     * claras. `marca` es el logotipo del propio portal —el cuadro oscuro con el
+     * satélite—, que además de identificar despliega el selector.
+     */
+    variante?: 'oscura' | 'clara' | 'marca';
+    /** Oculta «Inicio». Para usarlo EN el inicio, donde no lleva a ningún lado. */
+    sinInicio?: boolean;
+}>(), {
     variante: 'oscura',
+    sinInicio: false,
 });
 
 const route = useRoute();
@@ -114,13 +125,16 @@ onBeforeUnmount(() => {
             aria-haspopup="menu"
             @click="alternar"
             :class="[
-                'w-8 md:w-10 h-10 flex items-center justify-center rounded-full transition-colors',
-                variante === 'oscura'
-                    ? 'bg-slate-800 hover:bg-slate-700 text-white'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200',
+                variante === 'marca'
+                    ? 'w-11 h-11 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20 flex items-center justify-center transition-colors'
+                    : 'w-8 md:w-10 h-10 flex items-center justify-center rounded-full transition-colors',
+                variante === 'oscura' ? 'bg-slate-800 hover:bg-slate-700 text-white' : '',
+                variante === 'clara' ? 'bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200' : '',
             ]"
         >
-            <i class="fas text-sm" :class="abierto ? 'fa-xmark' : 'fa-grip'" aria-hidden="true"></i>
+            <i v-if="variante === 'marca'" class="fas text-lg"
+                :class="abierto ? 'fa-xmark' : 'fa-satellite-dish'" aria-hidden="true"></i>
+            <i v-else class="fas text-sm" :class="abierto ? 'fa-xmark' : 'fa-grip'" aria-hidden="true"></i>
         </button>
 
         <!--
@@ -146,6 +160,7 @@ onBeforeUnmount(() => {
                         role="menu"
                     >
                     <button
+                        v-if="!sinInicio"
                         type="button"
                         role="menuitem"
                         class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50 transition-colors"

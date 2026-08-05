@@ -36,7 +36,11 @@ final class GeneradorTarifaMasivaService
 
             $base = (float) $unidad->getTarifaBasePrecio();
             $factor = 1 + ($dto->porcentaje / 100);
-            $precioCalculado = round($base * $factor, 2);
+
+            // SIN decimales: un +7% sobre 265 no vale 283.55 — el precio de venta se
+            // publica redondo en los canales y nadie tarifica al céntimo. La leyenda
+            // del drawer usa el mismo redondeo (ver TarifaMasivaDrawer.vue).
+            $precioCalculado = round($base * $factor);
 
             $rango = new PmsTarifaRango();
             $rango->setUnidad($unidad);

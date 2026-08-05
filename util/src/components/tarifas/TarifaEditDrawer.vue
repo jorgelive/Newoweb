@@ -4,9 +4,12 @@ import { useTarifasStore } from '@/stores/tarifas/tarifasStore';
 // extractApiErrorMessage es un helper puro (no toca el store de reservas):
 // se reutiliza para que ambos módulos PMS muestren los errores 403/422 igual.
 import { extractApiErrorMessage } from '@/stores/reservas/reservasStore';
+import { apiClient } from '@/services/apiClient';
+import { coleccionFeed, type CalendarEventoFeed } from '@/types/calendarFeedModel';
 import {
     pmsUnidadIri,
     maestroMonedaIri,
+    sumarDias,
     toDateInput,
     fechaLegible,
     diasDeRango,
@@ -14,6 +17,7 @@ import {
     NETO_BOOKING,
     NETO_AIRBNB,
     SYNC_STATUS_META,
+    type PmsTarifaExtendedProps,
     type PmsTarifaRango,
     type PmsTarifaRangoCreate,
     type PmsTarifaRangoPatch,
@@ -119,6 +123,76 @@ const rangoInvertido = computed(
 const syncMeta = computed(() => (syncStatus.value ? SYNC_STATUS_META[syncStatus.value] : null));
 
 // ============================================================================
+// PRECARGA DESDE LA TARIFA VIGENTE
+//
+// Una tarifa nueva casi siempre nace para RETOCAR la que ya rige ese día: subirla
+// un fin de semana, bajarla en temporada baja. Arrancar el formulario en blanco
+// obligaba a ir al calendario, mirar el precio vigente y teclearlo — y a acertar
+// con una prioridad que lo dejara por encima, o la tarifa nueva no se aplicaba.
+//
+// Se lee del MISMO calendario compactado que pinta la vista (el motor ya resolvió
+// ahí quién gana ese día), y la prioridad sale del rango ganador +1: se crea una
+// tarifa para que sea efectiva, no para que quede tapada.
+// ============================================================================
+
+/** El operador ya tecleó un precio: la precarga no lo pisa. */
+const precioTocado = ref(false);
+
+/**
+ * Última pareja casita|día ya consultada. `cargarDatos()` pide la precarga al
+ * abrir y el watch la repite cuando el operador cambia casita o día; sin esta
+ * marca, abrir el cajón disparaba las dos y se pedía el feed por duplicado.
+ */
+const ultimaPrecarga = ref('');
+
+async function precargarTarifaVigente(unidadId: string, fecha: string): Promise<void> {
+    if (!unidadId || !fecha || precioTocado.value) return;
+
+    const clave = `${unidadId}|${fecha}`;
+    if (ultimaPrecarga.value === clave) return;
+    ultimaPrecarga.value = clave;
+
+    try {
+        // `end` EXCLUSIVO: [D, D+1) es «sólo el día D» (misma técnica que
+        // `cargarTarifaDelDia()` en ReservasView).
+        const r = await apiClient.get('/fullcalendar/load/event/tarifa_rangos_compactados_spa', {
+            params: { start: fecha, end: sumarDias(fecha, 1), _t: Date.now() },
+        });
+
+        const tramo = coleccionFeed<CalendarEventoFeed<PmsTarifaExtendedProps>>(r.data)
+            .find((e) => String(e.resourceId) === String(unidadId));
+        const vigente = tramo?.extendedProps;
+        if (!vigente?.precio || precioTocado.value) return;
+
+        form.value.precio = vigente.precio;
+        if (vigente.minStay) form.value.minStay = vigente.minStay;
+
+        // La prioridad NO viaja en el feed —el compactado sólo lleva el precio
+        // ganador—, así que se pide el rango de origen, que el propio tramo
+        // identifica con `tarifaRangoId`.
+        //
+        // Se pide con `apiClient` y no con `tarifasStore.fetchTarifa()` a
+        // propósito: el store guardaría el rango ganador en `tarifaActiva` y
+        // encendería su `isLoading`, y aquí no estamos editando ese rango —
+        // sólo espiándolo.
+        if (!vigente.tarifaRangoId) return;
+
+        const ganador = (await apiClient.get(
+            `/platform/pms/pms_tarifa_rangos/${vigente.tarifaRangoId}`
+        )).data as PmsTarifaRango;
+
+        // +1 sobre el ganador: una tarifa se crea para que sea efectiva. Con la
+        // misma prioridad el desempate lo decide el motor y el operador no sabría
+        // por qué su precio nuevo no se aplica.
+        form.value.prioridad = (ganador.prioridad ?? 0) + 1;
+        if (ganador.moneda?.id) form.value.moneda = ganador.moneda.id;
+    } catch {
+        // Sin tarifa vigente ese día (o con el feed caído) el formulario se queda
+        // como estaba: esto es una comodidad, no un requisito para crear.
+    }
+}
+
+// ============================================================================
 // CARGA
 // ============================================================================
 async function cargarDatos(): Promise<void> {
@@ -143,6 +217,10 @@ async function cargarDatos(): Promise<void> {
             fechaInicio: props.createDefaults?.fechaInicio ?? '',
             fechaFin: props.createDefaults?.fechaFin ?? '',
         });
+        precioTocado.value = false;
+        ultimaPrecarga.value = '';
+
+        await precargarTarifaVigente(form.value.unidad, form.value.fechaInicio);
     } catch (err) {
         localError.value = extractApiErrorMessage(err, 'No se pudo cargar la tarifa.');
     } finally {
@@ -155,6 +233,29 @@ watch(
     () => cargarDatos(),
     { immediate: true },
 );
+
+// Creando desde el botón de la cabecera no hay casita todavía: en cuanto se
+// elige (o se mueve el día), se mira qué tarifa rige y se propone.
+watch(
+    () => [form.value.unidad, form.value.fechaInicio],
+    ([unidad, fecha]) => {
+        if (props.tarifaId || readOnly.value) return;
+        void precargarTarifaVigente(String(unidad ?? ''), String(fecha ?? ''));
+    },
+);
+
+// (b) el fin NUNCA queda antes que el inicio: si el inicio lo adelanta, el fin
+// se arrastra y conserva la duración que tenía.
+watch(() => form.value.fechaInicio, (nuevo, anterior) => {
+    if (!nuevo || !form.value.fechaFin) return;
+
+    if (form.value.fechaFin < nuevo) {
+        // `diasDeRango` cuenta días INCLUSIVOS, así que el desplazamiento entre
+        // extremos es uno menos.
+        const span = anterior ? Math.max(0, diasDeRango(anterior, form.value.fechaFin) - 1) : 0;
+        form.value.fechaFin = sumarDias(nuevo, span);
+    }
+});
 
 // ============================================================================
 // GUARDAR
@@ -338,7 +439,10 @@ async function eliminar(): Promise<void> {
 
                     <label>
                         <span class="text-xs font-bold text-slate-500">Fin</span>
-                        <input type="date" v-model="form.fechaFin"
+                        <!-- `min`: el navegador ya no deja elegir un día anterior al
+                             inicio. El aviso de rango invertido se queda como red para
+                             el valor tecleado a mano. -->
+                        <input type="date" v-model="form.fechaFin" :min="form.fechaInicio || undefined"
                             class="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
                             :class="rangoInvertido ? 'border-rose-300 bg-rose-50' : 'border-slate-200'" />
                     </label>
@@ -356,7 +460,10 @@ async function eliminar(): Promise<void> {
 
                     <label>
                         <span class="text-xs font-bold text-slate-500">Precio</span>
+                        <!-- En cuanto el operador teclea, la precarga deja de
+                             pisar el precio (ver precargarTarifaVigente). -->
                         <input type="text" inputmode="decimal" v-model="form.precio"
+                            @input="precioTocado = true"
                             class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
                     </label>
 

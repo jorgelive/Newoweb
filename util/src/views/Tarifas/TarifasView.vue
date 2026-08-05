@@ -17,7 +17,7 @@ import type {
     EventInput,
 } from '@fullcalendar/core';
 import type { DateClickArg, EventResizeDoneArg } from '@fullcalendar/interaction';
-import type { ResourceFuncArg, ResourceInput } from '@fullcalendar/resource';
+import type { ResourceFuncArg, ResourceInput, ResourceLabelContentArg } from '@fullcalendar/resource';
 import tippy from 'tippy.js';
 import type { ReferenceElement } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
@@ -41,6 +41,7 @@ import {
     PMS_OCUPACION_CALENDARIO_KEY,
     COLOR_OCUPADO,
     fromDateLocal,
+    sumarDias,
     colorCasita,
     pmsUnidadIri,
     type PmsTarifaExtendedProps,
@@ -171,6 +172,19 @@ function pintarPorCasita(eventos: TarifaEventoFeed[]): TarifaEventoFeed[] {
 // ============================================================================
 type OcupacionEventoFeed = CalendarEventoFeed<PmsEventoExtendedProps>;
 
+/**
+ * Los avisos de la cabecera se pueden plegar, y se quedan plegados.
+ *
+ * Son útiles el primer día y estorban el resto: ocupan dos franjas fijas encima
+ * del calendario, que es justo el espacio que falta en móvil. Al plegarlos queda
+ * el botón «?» de la cabecera para recuperarlos, porque un aviso que se cierra
+ * sin forma de volver a verlo es información perdida.
+ */
+const AYUDA_STORAGE_KEY = `${FC_STORAGE_KEY}_ayuda`;
+const mostrarAyuda = ref(localStorage.getItem(AYUDA_STORAGE_KEY) !== '0');
+
+watch(mostrarAyuda, (v) => localStorage.setItem(AYUDA_STORAGE_KEY, v ? '1' : '0'));
+
 const OCUPACION_STORAGE_KEY = `${FC_STORAGE_KEY}_ocupacion`;
 const mostrarOcupacion = ref(localStorage.getItem(OCUPACION_STORAGE_KEY) !== '0');
 
@@ -193,6 +207,40 @@ function comoFondo(eventos: OcupacionEventoFeed[]): EventInput[] {
 }
 
 // ============================================================================
+// TARIFA BASE POR CASITA
+//
+// El precio base vive en la unidad (`tarifaBasePrecio`), no en los rangos, y es
+// el que usa «Generar Masivo» para calcular el precio de cada casita. Se pinta
+// bajo el nombre del recurso para no tener que abrir la ficha de la unidad —ni
+// generar el masivo a ciegas— y para tener a la vista la referencia con la que
+// se comparan los precios del calendario.
+// ============================================================================
+const basePorUnidad = computed<Map<string, string>>(() => {
+    const mapa = new Map<string, string>();
+
+    for (const u of tarifasStore.unidades) {
+        if (!u.id || !u.tarifaBaseActiva) continue;
+
+        const precio = Number(u.tarifaBasePrecio ?? 0);
+        if (!precio) continue;
+
+        mapa.set(String(u.id), `${u.tarifaBaseMonedaSimbolo ?? ''} ${formatearPrecio(precio)}`.trim());
+    }
+
+    return mapa;
+});
+
+/** Sin decimales cuando el precio es redondo: en 110 px cada carácter cuenta. */
+function formatearPrecio(valor: number): string {
+    return Number.isInteger(valor) ? String(valor) : valor.toFixed(2);
+}
+
+// Los catálogos se piden aquí (no solo en los drawers) porque la etiqueta de
+// cada casita depende de ellos. Como FullCalendar NO reacciona a Pinia, al
+// llegar los datos hay que repintar los recursos a mano.
+void tarifasStore.fetchMasters().then(() => calendarApiRef.value?.getApi()?.refetchResources());
+
+// ============================================================================
 // DRAWERS
 // ============================================================================
 const drawerVisible = ref(false);
@@ -200,6 +248,14 @@ const drawerTarifaId = ref<string | null>(null);
 const drawerCreateDefaults = ref<{ unidadId?: string; fechaInicio: string; fechaFin: string } | null>(null);
 const drawerStartReadOnly = ref(false);
 const masivaVisible = ref(false);
+
+/**
+ * Rango que se está viendo, del 1 al 1: `[currentStart, currentEnd)` de la vista
+ * —un mes o dos, según el botón—. Es el rango con el que arranca «Generar
+ * Masivo»: generar tarifas para un mes que no se está mirando no es lo normal, y
+ * teclear las dos fechas a mano cada vez lo era.
+ */
+const rangoVisible = ref<{ fechaInicio: string; fechaFin: string } | null>(null);
 
 function abrirEdicion(tarifaId: string, readOnly: boolean): void {
     drawerTarifaId.value = tarifaId;
@@ -221,9 +277,18 @@ function abrirCreacion(fechaInicio: string, fechaFin: string, unidadId?: string)
  * cubren toda la línea de tiempo no queda hueco libre donde hacer clic, así que
  * no puede depender del calendario (ver también `select` y "Crear tarifa aquí").
  */
+/**
+ * Ventana por defecto de una tarifa nueva: 3 días.
+ *
+ * Un solo día casi nunca es lo que se quiere —se tarifica un fin de semana, un
+ * puente, una temporada—, y dejarlo en un día obligaba a corregir el formulario
+ * siempre. Arrastrando sobre la fila se sigue respetando el rango marcado.
+ */
+const VENTANA_POR_DEFECTO_DIAS = 3;
+
 function abrirCreacionLibre(): void {
     const hoy = fromDateLocal(new Date());
-    abrirCreacion(hoy, hoy);
+    abrirCreacion(hoy, sumarDias(hoy, VENTANA_POR_DEFECTO_DIAS - 1));
 }
 
 function cerrarDrawer(): void {
@@ -466,7 +531,7 @@ function elegirEditar(): void {
 function elegirCrear(): void {
     if (menu.value?.unidadId && menu.value.fecha) {
         const fecha = fromDateLocal(menu.value.fecha);
-        abrirCreacion(fecha, fecha, menu.value.unidadId);
+        abrirCreacion(fecha, sumarDias(fecha, VENTANA_POR_DEFECTO_DIAS - 1), menu.value.unidadId);
     }
     cerrarMenu();
 }
@@ -542,8 +607,27 @@ const calendarOptions = computed<CalendarOptions>(() => ({
     resourceOrder: 'orden',
     eventOrder: '-prioridadImportante,-duration,start',
     eventOrderStrict: true,
-    resourceAreaWidth: '90px',
+    // 110 px (antes 90): la etiqueta lleva ahora una segunda línea con el precio
+    // base y con 90 px se partía en dos.
+    resourceAreaWidth: '110px',
     resourceAreaHeaderContent: 'Casita',
+
+    /**
+     * Nombre de la casita + su tarifa base debajo. El feed de recursos sólo trae
+     * `title`, así que el precio sale de `basePorUnidad` (catálogo REST de
+     * unidades) cruzando por el id del recurso.
+     */
+    resourceLabelContent: (arg: ResourceLabelContentArg) => {
+        const base = basePorUnidad.value.get(String(arg.resource.id));
+        const nombre = escaparHtml(arg.resource.title || '');
+
+        return {
+            html: base
+                ? `<div class="fc-tarifa-recurso"><span class="fc-tarifa-recurso-nombre">${nombre}</span>`
+                    + `<span class="fc-tarifa-recurso-base" title="Tarifa base de la casita">${escaparHtml(base)}</span></div>`
+                : `<div class="fc-tarifa-recurso"><span class="fc-tarifa-recurso-nombre">${nombre}</span></div>`,
+        };
+    },
 
     headerToolbar: {
         left: 'irHoy prev,next',
@@ -578,6 +662,11 @@ const calendarOptions = computed<CalendarOptions>(() => ({
     },
 
     datesSet: (info: DatesSetArg) => {
+        rangoVisible.value = {
+            fechaInicio: fromDateLocal(info.view.currentStart),
+            fechaFin: fromDateLocal(info.view.currentEnd),
+        };
+
         const titulo = String(info.view.title || '');
         calendarTitulo.value = titulo ? titulo.charAt(0).toUpperCase() + titulo.slice(1) : '';
 
@@ -747,16 +836,27 @@ const calendarOptions = computed<CalendarOptions>(() => ({
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
-                <button @click="abrirCreacionLibre"
+                <!-- Los dos botones de alta llevan SIEMPRE su etiqueta, también en
+                     móvil: una varita y un «+» naranja no dicen qué hacen, y estos
+                     dos hacen cosas muy distintas —una tarifa suelta frente a
+                     generar el tarifario de todas las casitas—. La versión larga
+                     aparece cuando hay sitio. -->
+                <button @click="abrirCreacionLibre" title="Crear una tarifa suelta"
                     class="h-9 px-3 flex items-center gap-1.5 bg-[#376875] hover:bg-[#2d5660] rounded-lg text-xs font-black transition-colors">
-                    <i class="fas fa-plus"></i>
-                    <span class="hidden sm:inline">Nueva</span>
+                    <i class="fas fa-tag"></i>
+                    <span>Nueva</span>
                 </button>
 
                 <button @click="masivaVisible = true"
+                    title="Generar tarifas en bloque para todas las casitas con tarifa base"
                     class="h-9 px-3 flex items-center gap-1.5 bg-[#E07845] hover:bg-[#c9663a] rounded-lg text-xs font-black transition-colors">
-                    <i class="fas fa-magic"></i>
-                    <span class="hidden sm:inline">Generar Masivo</span>
+                    <i class="fas fa-layer-group"></i>
+                    <span>Masivo<span class="hidden sm:inline">: generar</span></span>
+                </button>
+
+                <button v-if="!mostrarAyuda" @click="mostrarAyuda = true" title="Mostrar las ayudas de la vista"
+                    class="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition-colors">
+                    <i class="fas fa-circle-question"></i>
                 </button>
 
                 <button @click="mostrarOcupacion = !mostrarOcupacion"
@@ -781,24 +881,42 @@ const calendarOptions = computed<CalendarOptions>(() => ({
             <i class="fas fa-check-circle mr-2"></i>{{ avisoOk }}
         </div>
 
-        <!-- Los segmentos compactados no son filas reales de la tabla: se avisa
-             para que nadie espere poder arrastrarlos como en la vista "Todas". -->
-        <div v-if="!calendarioActual.editable" class="bg-slate-100 border-b border-slate-200 text-slate-500 text-xs font-bold px-4 py-2">
-            <i class="fas fa-info-circle mr-2"></i>
-            Vista compactada (solo lectura): son segmentos calculados a partir de los rangos solapados.
-            Para mover o redimensionar, cambia a «Todas».
-        </div>
-        <div v-else class="bg-slate-100 border-b border-slate-200 text-slate-500 text-[11px] font-bold px-4 py-1.5">
-            <i class="fas fa-hand-pointer mr-2"></i>
-            Arrastra sobre una fila para crear una tarifa con ese rango, o usa «Nueva».
-            Sobre una tarifa existente, el menú ofrece «Crear tarifa aquí».
-        </div>
+        <!-- Avisos de la vista. Plegables y con memoria (ver `mostrarAyuda`): son
+             útiles al principio y estorban después, y en móvil se comen el sitio
+             del calendario. -->
+        <template v-if="mostrarAyuda">
+            <!-- Los segmentos compactados no son filas reales de la tabla: se avisa
+                 para que nadie espere poder arrastrarlos como en la vista "Todas". -->
+            <div class="bg-slate-100 border-b border-slate-200 text-slate-500 text-[11px] font-bold px-4 py-1.5 flex items-start gap-2">
+                <template v-if="!calendarioActual.editable">
+                    <i class="fas fa-info-circle mt-0.5"></i>
+                    <span class="flex-1">
+                        Vista compactada (solo lectura): son segmentos calculados a partir de los rangos
+                        solapados. Para mover o redimensionar, cambia a «Todas».
+                    </span>
+                </template>
+                <template v-else>
+                    <i class="fas fa-hand-pointer mt-0.5"></i>
+                    <span class="flex-1">
+                        Arrastra sobre una fila para crear una tarifa con ese rango, o usa «Nueva».
+                        Sobre una tarifa existente, el menú ofrece «Crear tarifa aquí».
+                    </span>
+                </template>
 
-        <div v-if="mostrarOcupacion" class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[11px] font-bold px-4 py-1.5 flex items-center gap-2">
-            <span class="inline-block w-4 h-3 rounded-sm border border-slate-300" :style="{ backgroundColor: COLOR_OCUPADO }"></span>
-            Fondo beige = casita vendida (pendiente, confirmada o requerimiento). No incluye
-            canceladas, consultas abiertas ni bloqueos.
-        </div>
+                <button @click="mostrarAyuda = false" title="Ocultar las ayudas"
+                    class="shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-xmark text-[11px]"></i>
+                </button>
+            </div>
+
+            <div v-if="mostrarOcupacion" class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[11px] font-bold px-4 py-1.5 flex items-center gap-2">
+                <span class="inline-block w-4 h-3 rounded-sm border border-slate-300 shrink-0" :style="{ backgroundColor: COLOR_OCUPADO }"></span>
+                <span class="flex-1">
+                    Fondo beige = casita vendida (pendiente, confirmada o requerimiento). No incluye
+                    canceladas, consultas abiertas ni bloqueos.
+                </span>
+            </div>
+        </template>
 
         <!-- `fc-tarifas` acota los estilos de calendario de este archivo: ver la
              nota del bloque <style>. -->
@@ -881,6 +999,7 @@ const calendarOptions = computed<CalendarOptions>(() => ({
 
         <TarifaMasivaDrawer
             v-if="masivaVisible"
+            :rango-defecto="rangoVisible"
             @close="masivaVisible = false"
             @generated="onGenerado"
         />
@@ -913,6 +1032,25 @@ const calendarOptions = computed<CalendarOptions>(() => ({
   `scoped` y el CSS del bundle vive en el documento aunque la vista esté
   desmontada: sin acotar, el margen se colaría en el calendario de Reservas.
 */
+/*
+  Etiqueta de cada casita: nombre arriba y tarifa base debajo, en pequeño. Se
+  pinta desde `resourceLabelContent`, así que el CSS también va aquí (fuera de
+  `scoped`, como el resto del bloque).
+*/
+.fc-tarifas .fc-tarifa-recurso {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+.fc-tarifas .fc-tarifa-recurso-nombre {
+    font-weight: 700;
+}
+.fc-tarifas .fc-tarifa-recurso-base {
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b; /* slate-500 */
+}
+
 .fc-tarifas .fc-timeline-event,
 .fc-tarifas .fc-timeline-event.fc-event-start,
 .fc-tarifas .fc-timeline-event.fc-event-end {

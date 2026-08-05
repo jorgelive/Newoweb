@@ -302,9 +302,16 @@ class PmsUnidad
     // 💰 TARIFA BASE
     // ============================================================
 
+    // La tarifa base viaja en `pms_unidad:read` porque el calendario de Tarifas
+    // la pinta bajo el nombre de cada casita y el drawer «Generar Masivo» calcula
+    // en vivo el precio efectivo de cada unidad con el % de ajuste. Sin ella, el
+    // operador generaba a ciegas: el masivo no pide importe, sale del precio base
+    // de cada unidad (GeneradorTarifaMasivaService).
+    #[Groups(['pms_unidad:read'])]
     public function getTarifaBasePrecio(): string { return $this->tarifaBasePrecio; }
     public function setTarifaBasePrecio(string $val): self { $this->tarifaBasePrecio = $val; return $this; }
 
+    #[Groups(['pms_unidad:read'])]
     public function getTarifaBaseMinStay(): int { return $this->tarifaBaseMinStay; }
     public function setTarifaBaseMinStay(int $val): self { $this->tarifaBaseMinStay = $val; return $this; }
 
@@ -319,6 +326,20 @@ class PmsUnidad
     }
     public function setTarifaBaseMoneda(?MaestroMoneda $val): self { $this->tarifaBaseMoneda = $val; return $this; }
 
+    /**
+     * Moneda de la tarifa base APLANADA (id y símbolo sueltos).
+     *
+     * No se serializa la relación: `/platform/pms/pms_unidads` normaliza sólo con
+     * `pms_unidad:read`, y `MaestroMoneda` no publica nada en ese grupo — saldría
+     * como IRI, inútil para pintar «S/ 250» en la casita.
+     */
+    #[Groups(['pms_unidad:read'])]
+    public function getTarifaBaseMonedaId(): ?string { return $this->tarifaBaseMoneda?->getId(); }
+
+    #[Groups(['pms_unidad:read'])]
+    public function getTarifaBaseMonedaSimbolo(): ?string { return $this->tarifaBaseMoneda?->getSimbolo(); }
+
+    #[Groups(['pms_unidad:read'])]
     public function isTarifaBaseActiva(): bool { return $this->tarifaBaseActiva; }
     public function setTarifaBaseActiva(bool $val): self { $this->tarifaBaseActiva = $val; return $this; }
 

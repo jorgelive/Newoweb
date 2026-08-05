@@ -722,6 +722,90 @@ Puntos que costaron y conviene no re-descubrir:
 - **`generar-masivo` delega en `GeneradorTarifaMasivaService`**, el mismo servicio que
   usa EasyAdmin: el processor solo traduce el payload HTTP al DTO interno.
 
+#### Valores por defecto al crear una tarifa
+
+Una tarifa nueva casi nunca se inventa de cero: nace para **retocar la que ya rige** ese día
+(subirla un puente, bajarla en temporada baja). El formulario en blanco obligaba a ir al
+calendario, leer el precio vigente, teclearlo, y encima adivinar una prioridad que dejara la
+tarifa nueva por encima — si no, se guardaba sin efecto y nadie se enteraba.
+
+Al abrir el drawer **en modo creación** se precarga:
+
+| Campo | Valor por defecto | De dónde sale |
+|---|---|---|
+| `fechaInicio` / `fechaFin` | ventana de **3 días** (`VENTANA_POR_DEFECTO_DIAS` en `TarifasView.vue`) | sólo cuando se crea desde el botón de la cabecera; la selección en el calendario manda |
+| `precio`, `minStay` | los del tramo vigente ese día en esa casita | `GET /fullcalendar/load/event/tarifa_rangos_compactados_spa?start=D&end=D+1` |
+| `prioridad` | **prioridad del rango ganador + 1** | `GET /platform/pms/pms_tarifa_rangos/{tarifaRangoId}` |
+| `moneda` | la del rango ganador | ídem |
+
+Detalles que no se ven en el código:
+
+- **El `end` del feed es EXCLUSIVO**: `[D, D+1)` es «sólo el día D». Misma técnica que
+  `cargarTarifaDelDia()` en `ReservasView`.
+- **La prioridad no viaja en `extendedProps`** —el compactado sólo lleva el precio ganador—,
+  por eso hace falta el segundo GET al rango que identifica `extendedProps.tarifaRangoId`.
+  Se pide con `apiClient` y **no** con `tarifasStore.fetchTarifa()`: el store guardaría ese
+  rango en `tarifaActiva` y encendería su `isLoading`, y aquí no se está editando, sólo
+  espiando.
+- **`precioTocado`**: en cuanto el operador teclea en el precio, la precarga deja de pisarlo.
+  Cambiar casita o día después de eso ya no lo revierte.
+- **`ultimaPrecarga`** evita la petición duplicada: `cargarDatos()` precarga al abrir y el
+  watch de `[unidad, fechaInicio]` volvería a hacerlo con los mismos valores.
+- Si no hay tarifa vigente ese día (o el feed falla) el formulario se queda como estaba: es
+  una comodidad, no un requisito para crear.
+
+**Fin nunca antes que el inicio**, en tres capas: el `min` del `<input type="date">` (el
+navegador no ofrece días anteriores), un watch que **arrastra** el fin conservando la duración
+si el inicio lo adelanta, y el guard de `guardar()` para lo tecleado a mano.
+
+#### La tarifa base de la unidad, visible en el calendario
+
+El precio base **no vive en los rangos**, sino en la unidad (`PmsUnidad::$tarifaBasePrecio`,
+`$tarifaBaseMinStay`, `$tarifaBaseMoneda`, `$tarifaBaseActiva`) y es el único insumo de
+«Generar Masivo». Estaba oculto: había que abrir la ficha de la unidad en EasyAdmin para
+saberlo.
+
+Ahora viaja en `pms_unidad:read` y se pinta bajo el nombre de cada casita
+(`resourceLabelContent` en `TarifasView.vue`, con `resourceAreaWidth` subido a 110 px).
+
+- La moneda va **aplanada** — `getTarifaBaseMonedaId()` / `getTarifaBaseMonedaSimbolo()`—
+  porque `/platform/pms/pms_unidads` normaliza sólo con `pms_unidad:read` y `MaestroMoneda`
+  no publica nada en ese grupo: la relación saldría como IRI.
+- El feed de recursos sólo trae `title`, así que el precio se cruza por id contra el catálogo
+  REST (`tarifasStore.unidades`). Por eso `TarifasView` llama a `fetchMasters()` y, al
+  resolverse, hace `refetchResources()`: **FullCalendar no reacciona a Pinia**.
+- Tras tocar los grupos hay que **regenerar `api.d.ts`** (ver `docs/Operacion.md` §8), o
+  `vue-tsc` no conoce los campos nuevos.
+
+#### «Generar Masivo»: qué propone el formulario
+
+`GeneradorTarifaMasivaService` crea un rango por cada unidad con `activo = true` y
+`tarifaBaseActiva = true`, con precio `round(base × (1 + %/100))` — **sin decimales**: el
+precio de venta se publica redondo en los canales y no tiene sentido tarificar al céntimo.
+El formulario no pide importe, y eso lo hacía opaco: no se veía el resultado hasta generar.
+
+| Campo | Valor por defecto | De dónde sale |
+|---|---|---|
+| `fechaInicio` / `fechaFin` | el rango **visible**, del 1 al 1 | `view.currentStart` / `view.currentEnd` de `datesSet`, que `TarifasView` pasa como prop `rangoDefecto` — un mes o dos según la vista |
+| `prioridad` | **la más alta de TODAS las casitas en esa ventana + 1** | `GET /platform/pms/pms_tarifa_rangos?activo=true&fechaInicio[before]=fin&fechaFin[after]=inicio&order[prioridad]=desc` |
+
+Y una **leyenda en vivo** lista casita → `base → efectivo` mientras se teclea el porcentaje
+(verde si sube, rojo si baja). Es **espejo PHP ↔ TS** del redondeo: `filasEfectivas` en
+`TarifaMasivaDrawer.vue` repite el `round()` de `GeneradorTarifaMasivaService::procesar()`.
+Si cambia uno, hay que tocar el otro o la leyenda mentirá.
+
+Detalles:
+
+- **La prioridad se pide de todas las unidades a la vez**, no por casita: el masivo escribe en
+  todas y basta una tarifa más alta para dejarlo tapado — generado y sin efecto, que es el peor
+  resultado posible porque no da error.
+- **No hace falta paginar** para el máximo: `order[prioridad]=desc` deja el mayor en la primera
+  fila. Funciona porque `FilterExtension` (prioridad −16) corre ANTES que `OrderExtension`
+  (−32), y ésta se abstiene si el `QueryBuilder` ya trae un `orderBy` — así que el
+  `order: ['fechaInicio' => 'ASC']` del `#[ApiResource]` **no** se antepone. `itemsPerPage` no
+  está habilitado como parámetro de cliente.
+- `prioridadTocada` congela la sugerencia en cuanto el operador teclea la suya.
+
 #### El portal también consume el feed: panel «Hoy» de HomeView
 
 `HomeView` abre con dos tarjetas —**Check-in** y **Check-out** del día— que salen del mismo

@@ -1328,77 +1328,80 @@ async function guardar(): Promise<void> {
                                         </span>
                                     </label>
 
-                                    <!-- Fechas: rejilla propia con `auto-fit` + `minmax`. Una fecha con
-                                         hora ("DD/MM/AAAA HH:MM") necesita ~11rem para no cortarse;
-                                         por debajo de 2×11rem + gap, el navegador baja el check-out a
-                                         la fila siguiente solo, sin media queries. -->
-                                    <div class="col-span-2 grid gap-3"
-                                        style="grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr))">
-                                        <label>
-                                            <span class="text-xs font-bold text-slate-500">Check-in</span>
-                                            <!-- Al mover la entrada, la salida se arrastra los mismos días (onCambiarInicio). -->
-                                            <div class="mt-1">
-                                                <!-- Handler explícito en vez de `v-model` + `@update`:
-                                                     con los dos, el orden de ejecución no está
-                                                     garantizado y onCambiarInicio podía leer el
-                                                     valor anterior. -->
-                                                <FechaHoraPicker :model-value="entry.form.inicio"
-                                                    :dia-bloqueado="diaBloqueadoPara(entry)"
-                                                    @update:model-value="(v: string) => { entry.form.inicio = v; onCambiarInicio(entry); }" />
-                                            </div>
-                                        </label>
+                                    <!-- Cada fecha con SU casilla de horario extra al lado, en una
+                                         fila propia. Antes las dos fechas iban una junto a otra y el
+                                         bloque de casillas debajo: en móvil no entraban los dos
+                                         selectores y el bloque de texto ocupaba media pantalla.
+                                         La explicación pasa al `title` y al aviso que aparece SOLO al
+                                         marcar, que es cuando importa. -->
+                                    <div class="col-span-2 space-y-3">
+                                        <div>
+                                            <div class="flex items-end gap-2">
+                                                <label class="flex-1 min-w-0">
+                                                    <span class="text-xs font-bold text-slate-500">Check-in</span>
+                                                    <!-- Al mover la entrada, la salida se arrastra los mismos días
+                                                         (onCambiarInicio). Handler explícito en vez de `v-model` +
+                                                         `@update`: con los dos, el orden no está garantizado y
+                                                         onCambiarInicio leía el valor anterior. -->
+                                                    <div class="mt-1">
+                                                        <FechaHoraPicker :model-value="entry.form.inicio"
+                                                            :dia-bloqueado="diaBloqueadoPara(entry)"
+                                                            :borrable="false"
+                                                            @update:model-value="(v: string) => { entry.form.inicio = v; onCambiarInicio(entry); }" />
+                                                    </div>
+                                                </label>
 
-                                        <label>
-                                            <span class="text-xs font-bold text-slate-500">Check-out</span>
-                                            <div class="mt-1">
-                                                <FechaHoraPicker v-model="entry.form.fin"
-                                                    :min-date="entry.form.inicio"
-                                                    :dia-bloqueado="diaBloqueadoPara(entry)"
-                                                    :invalido="!!errorFechas(entry)" />
+                                                <label class="shrink-0 h-[38px] px-2.5 flex items-center gap-2 rounded-lg border cursor-pointer transition-colors"
+                                                    :class="entry.form.entradaTemprana ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white hover:bg-slate-50'"
+                                                    title="Entrada temprana: llega por la mañana. Bloquea la NOCHE ANTERIOR en Beds24 y añade el cargo «Entrada temprana» en 0.00 para que pongas lo que se cobre.">
+                                                    <input type="checkbox" v-model="entry.form.entradaTemprana"
+                                                        class="w-4 h-4 accent-[#E07845]" />
+                                                    <i class="fas fa-door-open text-sm" :class="entry.form.entradaTemprana ? 'text-amber-600' : 'text-slate-400'"></i>
+                                                </label>
                                             </div>
-                                        </label>
 
-                                        <!-- HORARIO EXTRA. Sustituyen a crear una segunda estancia de
-                                             una noche: aquello inflaba noches y ADR y partía la reserva
-                                             en dos. Aquí las horas reales van en el check-in/check-out y
-                                             estas casillas se encargan del resto: bloquear la noche que
-                                             deja de ser vendible y abrir su cargo. -->
-                                        <div class="col-span-2 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 space-y-3">
-                                            <p v-if="entry.horarioExtraGuardado && !entry.isOta"
-                                                class="text-[11px] font-bold text-amber-700 flex items-start gap-2">
-                                                <i class="fas fa-lock mt-0.5"></i>
-                                                <span>Con horario extra el DÍA queda fijo (la hora no): para mover el día, quita la casilla, guarda, y entonces muévelo.</span>
+                                            <p v-if="entry.form.entradaTemprana" class="mt-1.5 text-[11px] font-bold text-amber-700 leading-snug">
+                                                <i class="fas fa-door-open mr-1"></i>
+                                                Entrada temprana: bloquea la noche ANTERIOR en Beds24 y abre su cargo en 0.00.
                                             </p>
-                                            <label class="flex items-start gap-3 cursor-pointer">
-                                                <input type="checkbox" v-model="entry.form.entradaTemprana"
-                                                    class="mt-0.5 w-4 h-4 accent-[#E07845] shrink-0" />
-                                                <span class="min-w-0">
-                                                    <span class="block text-sm font-black text-slate-800">
-                                                        <i class="fas fa-door-open text-amber-500 mr-1.5"></i>Entrada temprana
-                                                    </span>
-                                                    <span class="block text-[11px] font-bold text-slate-500 leading-snug mt-0.5">
-                                                        Llega por la mañana: bloquea la NOCHE ANTERIOR en Beds24 y añade
-                                                        el cargo «Entrada temprana» en 0.00 para que pongas lo que se cobre.
-                                                    </span>
-                                                </span>
-                                            </label>
-
-                                            <label class="flex items-start gap-3 cursor-pointer border-t border-amber-200/70 pt-3">
-                                                <input type="checkbox" v-model="entry.form.salidaTardia"
-                                                    class="mt-0.5 w-4 h-4 accent-[#E07845] shrink-0" />
-                                                <span class="min-w-0">
-                                                    <span class="block text-sm font-black text-slate-800">
-                                                        <i class="fas fa-clock text-amber-500 mr-1.5"></i>Salida tardía
-                                                    </span>
-                                                    <span class="block text-[11px] font-bold text-slate-500 leading-snug mt-0.5">
-                                                        Se va por la tarde: bloquea ESA NOCHE en Beds24 y añade el cargo
-                                                        «Salida tardía» en 0.00. La estancia sigue contando las noches reales.
-                                                    </span>
-                                                </span>
-                                            </label>
                                         </div>
 
-                                        <p v-if="errorFechas(entry)" class="text-[11px] font-bold text-rose-600 -mt-1">
+                                        <div>
+                                            <div class="flex items-end gap-2">
+                                                <label class="flex-1 min-w-0">
+                                                    <span class="text-xs font-bold text-slate-500">Check-out</span>
+                                                    <div class="mt-1">
+                                                        <FechaHoraPicker v-model="entry.form.fin"
+                                                            :min-date="entry.form.inicio"
+                                                            :dia-bloqueado="diaBloqueadoPara(entry)"
+                                                            :borrable="false"
+                                                            :invalido="!!errorFechas(entry)" />
+                                                    </div>
+                                                </label>
+
+                                                <label class="shrink-0 h-[38px] px-2.5 flex items-center gap-2 rounded-lg border cursor-pointer transition-colors"
+                                                    :class="entry.form.salidaTardia ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white hover:bg-slate-50'"
+                                                    title="Salida tardía: se va por la tarde. Bloquea ESA NOCHE en Beds24 y añade el cargo «Salida tardía» en 0.00. La estancia sigue contando las noches reales.">
+                                                    <input type="checkbox" v-model="entry.form.salidaTardia"
+                                                        class="w-4 h-4 accent-[#E07845]" />
+                                                    <i class="fas fa-clock text-sm" :class="entry.form.salidaTardia ? 'text-amber-600' : 'text-slate-400'"></i>
+                                                </label>
+                                            </div>
+
+                                            <p v-if="entry.form.salidaTardia" class="mt-1.5 text-[11px] font-bold text-amber-700 leading-snug">
+                                                <i class="fas fa-clock mr-1"></i>
+                                                Salida tardía: bloquea ESA noche en Beds24 y abre su cargo en 0.00.
+                                                Las noches de la estancia no cambian.
+                                            </p>
+                                        </div>
+
+                                        <p v-if="entry.horarioExtraGuardado && !entry.isOta"
+                                            class="text-[11px] font-bold text-slate-500 flex items-start gap-2">
+                                            <i class="fas fa-lock mt-0.5 text-slate-400"></i>
+                                            <span>Con horario extra el DÍA queda fijo (la hora no): para moverlo, quita la casilla, guarda, y entonces cámbialo.</span>
+                                        </p>
+
+                                        <p v-if="errorFechas(entry)" class="text-[11px] font-bold text-rose-600">
                                             <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorFechas(entry) }}
                                         </p>
                                     </div>

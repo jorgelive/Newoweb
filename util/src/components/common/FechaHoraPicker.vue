@@ -43,6 +43,12 @@ const props = withDefaults(defineProps<{
      * campo no se ve apagado.
      */
     diaBloqueado?: boolean;
+    /**
+     * ¿Se puede vaciar el campo? En las fechas de una estancia NO: una estancia
+     * sin entrada o sin salida no existe, y la «x» del picker sólo servía para
+     * dejar el formulario en un estado que el backend rechaza.
+     */
+    borrable?: boolean;
     disabled?: boolean;
     /** Límite inferior, en el mismo formato que `modelValue`. */
     minDate?: string | null;
@@ -52,6 +58,7 @@ const props = withDefaults(defineProps<{
     modelValue: '',
     soloFecha: false,
     diaBloqueado: false,
+    borrable: true,
     disabled: false,
     minDate: null,
     invalido: false,
@@ -244,6 +251,7 @@ onBeforeUnmount(() => {
         model-type="yyyy-MM-dd'T'HH:mm:ss"
         :min-date="minPicker"
         :max-date="maxPicker"
+        :clearable="borrable"
         :disabled="disabled"
         auto-apply
     >

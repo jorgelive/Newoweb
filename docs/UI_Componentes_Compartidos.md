@@ -185,6 +185,15 @@ Detalles que no se ven leyendo el componente:
 
 ---
 
+### 1.5 Fechas que no se pueden vaciar
+
+`borrable=false` quita la «x» del picker. Es el caso de las fechas de una estancia: una estancia
+sin entrada o sin salida no existe, y ese botón sólo servía para dejar el formulario en un estado
+que el backend rechaza. El resto de usos (Operación) siguen pudiendo limpiar el campo.
+
+Junto a `diaBloqueado` (§ del doc de sincronización, 7.1.b) son las dos formas de acotar el
+campo: una prohíbe cambiar el día, la otra prohíbe dejarlo vacío.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -196,3 +205,4 @@ Detalles que no se ven leyendo el componente:
 | Marcar una vista propia en el historial (gesto «atrás») | `ChatView.vue` | `marcarVistaEnHistorial()` — conserva `history.state`, §2 |
 | Añadir un módulo al portal y al selector | `util/src/types/modulosApp.ts` | `MODULOS_APP` — sale en HomeView y en AppSwitcher a la vez |
 | Cambiar el aspecto del selector en una cabecera clara | Vista que lo monta | `<AppSwitcher variante="clara" />` |
+| Usar el logotipo del portal como selector | Vista que lo monta | `<AppSwitcher variante="marca" sin-inicio />` — `sinInicio` para no ofrecer «Inicio» estando en él |

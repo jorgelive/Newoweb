@@ -1057,7 +1057,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             <label class="col-span-2">
                                 <span class="text-[11px] font-bold text-slate-500">Tipo</span>
                                 <select v-model="cargoForm.tipoCargo"
-                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                     <option value="">—</option>
                                     <option v-for="t in finanzas.tiposCargo" :key="t.id" :value="t.id">{{ t.label }}</option>
                                 </select>
@@ -1065,7 +1065,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             <label v-if="hayVariasEstancias" class="col-span-2">
                                 <span class="text-[11px] font-bold text-slate-500">Estancia</span>
                                 <select v-model="cargoForm.evento"
-                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                     <option value="">Toda la reserva</option>
                                     <option v-for="e in finanzas.info?.estancias ?? []" :key="e.eventoId" :value="e.eventoId">
                                         {{ e.unidad ?? 'Estancia' }} · {{ fechaLegible(e.inicio) }} → {{ fechaLegible(e.fin) }}
@@ -1075,12 +1075,12 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             <label class="col-span-2">
                                 <span class="text-[11px] font-bold text-slate-500">Descripción</span>
                                 <input type="text" v-model="cargoForm.descripcion"
-                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                             </label>
                             <label>
                                 <span class="text-[11px] font-bold text-slate-500">Importe</span>
                                 <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"
-                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                             </label>
                             <!-- SIEMPRE presente (ver `tcSiempre`): es la venta USD→PEN del día.
                                  Si el cargo ya lo tenía guardado, se muestra bloqueado — es la
@@ -1132,7 +1132,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <label class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">Tipo</span>
                             <select v-model="cargoForm.tipoCargo"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option value="">—</option>
                                 <option v-for="t in finanzas.tiposCargo" :key="t.id" :value="t.id">{{ t.label }}</option>
                             </select>
@@ -1141,7 +1141,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <label v-if="hayVariasEstancias" class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">Estancia</span>
                             <select v-model="cargoForm.evento"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option value="">Toda la reserva</option>
                                 <option v-for="e in finanzas.info?.estancias ?? []" :key="e.eventoId" :value="e.eventoId">
                                     {{ e.unidad ?? 'Estancia' }} · {{ fechaLegible(e.inicio) }} → {{ fechaLegible(e.fin) }}
@@ -1152,17 +1152,17 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <label class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">Descripción</span>
                             <input type="text" v-model="cargoForm.descripcion" placeholder="Ej. Alojamiento 3 noches"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Importe</span>
                             <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Moneda</span>
                             <select v-model="cargoForm.moneda" @change="autocompletarTipoCambioCargo"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option v-for="m in finanzas.monedas" :key="m.id ?? ''" :value="m.id ?? ''">
                                     {{ m.id }}{{ m.simbolo ? ` (${m.simbolo})` : '' }}
                                 </option>
@@ -1175,7 +1175,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <i v-if="cargandoTipoCambio" class="fas fa-circle-notch fa-spin ml-1 text-slate-300"></i>
                             </span>
                             <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio" placeholder="Ej. 3.750"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                             <!-- Equivalente en vivo: quita la duda de "¿cuánto es esto en dólares?". -->
                             <span v-if="cargoForm.tipoCambio && cargoForm.totalLinea"
                                 class="mt-1 block text-[10px] font-bold text-slate-400">
@@ -1277,7 +1277,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Monto neto</span>
                             <input type="text" inputmode="decimal" v-model="pagoForm.monto" @input="refrescarTotalDesdeMonto"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                             <span class="mt-1 block text-[10px] font-bold text-slate-400">Es lo que abona la reserva.</span>
                         </label>
                         <label>
@@ -1295,7 +1295,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Medio de pago</span>
                             <select v-model="pagoForm.medioPago" @change="onCambiarMedioPago"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option v-for="m in finanzas.mediosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
                             </select>
                         </label>
@@ -1303,7 +1303,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             <span class="text-[11px] font-bold text-slate-500">Fecha</span>
                             <!-- El TC es el del día del pago: al cambiar la fecha se vuelve a consultar. -->
                             <input type="date" v-model="pagoForm.fechaPago" @change="autocompletarTipoCambio"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
                         <!-- Comisión en PORCENTAJE, con el sufijo % dentro del campo. -->
                         <label>
@@ -1323,7 +1323,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Total cobrado</span>
                             <input type="text" inputmode="decimal" v-model="pagoTotalCobrado" @input="onCambiarTotalCobrado"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                             <span class="mt-1 block text-[10px] font-bold text-slate-400">
                                 Neto + comisión. Si lo editas, se recalcula el neto.
                             </span>
@@ -1337,7 +1337,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 </span>
                             </span>
                             <input type="text" inputmode="decimal" v-model="pagoForm.tipoCambio" placeholder="Ej. 3.750"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                             <span v-if="monedaPagoEsExtranjera && !pagoForm.tipoCambio"
                                 class="mt-1 block text-[10px] font-bold text-amber-600">
                                 <i class="fas fa-triangle-exclamation text-[9px] mr-1"></i>
@@ -1351,12 +1351,12 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <label class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">Referencia / Nº operación</span>
                             <input type="text" v-model="pagoForm.referencia"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
                         <label class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">Notas</span>
                             <textarea v-model="pagoForm.notas" rows="2"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea>
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"></textarea>
                         </label>
                     </div>
 

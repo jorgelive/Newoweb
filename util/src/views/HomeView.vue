@@ -5,6 +5,7 @@ import { useChatStore } from '@/stores/chat/chatStore.ts';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { isSessionExpired } from '@/services/sessionAuth';
 import { MODULOS_APP } from '@/types/modulosApp';
+import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { apiClient } from '@/services/apiClient';
 import { coleccionFeed, type CalendarEventoFeed } from '@/types/calendarFeedModel';
 import type { PmsEventoExtendedProps } from '@/types/pmsReservaModel';
@@ -106,6 +107,28 @@ function aFila(ev: EventoHoy, instante: string): FilaHoy {
     };
 }
 
+/**
+ * ¿Ya pasó la última llegada y la última salida de hoy?
+ *
+ * A media tarde el panel de «hoy» es historia: lo que importa es quién llega
+ * mañana. Se compara con la hora local en el mismo formato de texto en que viene
+ * el feed —`HH:mm`—, sin construir Dates. Si hoy no había nada, no se salta:
+ * un día vacío no es un día terminado, y saltar sin motivo despista.
+ */
+function todoLoDeHoyYaPaso(): boolean {
+    const deHoy = eventosPanel.value.filter(
+        e => e.start.slice(0, 10) === hoyIso || e.end.slice(0, 10) === hoyIso,
+    );
+    if (!deHoy.length) return false;
+
+    const ahora = new Date().toTimeString().slice(0, 5);
+
+    return deHoy.every((e) => {
+        const hora = e.start.slice(0, 10) === hoyIso ? e.start.slice(11, 16) : e.end.slice(11, 16);
+        return hora <= ahora;
+    });
+}
+
 async function cargarPanelHoy(): Promise<void> {
     cargandoHoy.value = true;
     try {
@@ -113,6 +136,7 @@ async function cargarPanelHoy(): Promise<void> {
             params: { start: hoyIso, end: sumarDias(hoyIso, 2), _t: Date.now() },
         });
         eventosPanel.value = coleccionFeed<EventoHoy>(r.data);
+        if (todoLoDeHoyYaPaso()) diaPanel.value = 'manana';
     } catch {
         // Sin sesión o con la API caída, el portal tiene que seguir siendo
         // navegable: el panel se queda vacío y no se avisa de nada.
@@ -228,9 +252,9 @@ const handleLogout = async () => {
       <!-- Barra superior: marca + control de sesión -->
       <header class="w-full max-w-6xl mx-auto px-6 pt-6 flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <div class="w-11 h-11 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-900/20">
-            <i class="fas fa-satellite-dish text-lg text-white" aria-hidden="true"></i>
-          </div>
+          <!-- El logo ES el selector de módulos: desde el portal se salta a
+               cualquiera sin bajar al mosaico. Sin «Inicio», que es donde estamos. -->
+          <AppSwitcher variante="marca" sin-inicio />
           <div class="leading-tight min-w-0">
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">OpenPeru</p>
             <p class="text-lg md:text-2xl font-black text-slate-900 tracking-tighter">
