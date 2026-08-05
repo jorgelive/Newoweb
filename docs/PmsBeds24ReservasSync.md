@@ -2134,6 +2134,45 @@ formulario *sin guardar* mientras el operador teclea y marca la casilla. Todo lo
 
 Migración: `Version20260804180000` (arranca en `false`, o sea el comportamiento anterior).
 
+## 12.11 ⚠️ Gotcha: el `cascade: persist` de la cola de push y el evento a medio nacer
+
+Síntoma, esporádico y con el flush entero abortado:
+
+```
+A new entity was found through the relationship 'App\Pms\Entity\PmsEventoBeds24Link#evento'
+that was not configured to cascade persist operations for entity: Casita 2 | 19/09 - Reserva
+```
+
+La cadena que lo produce:
+
+```
+Beds24BookingsPushQueueCreator::enqueueForLink()
+   └─ em->persist(PmsBookingsPushQueue)
+        └─ cascade: ['persist']  ──►  PmsEventoBeds24Link      (PmsBookingsPushQueue#link)
+                                        └─ ManyToOne SIN cascade ──► PmsEventoCalendario
+                                             ¿entidad nueva todavía no gestionada? → 💥
+```
+
+**Por qué es intermitente.** El evento suele llegar gestionado porque la cascada de
+`PmsReserva` ya lo alcanzó. Pero si el `onFlush` llega antes al listener de push que a esa
+cascada, el link apunta a un evento que Doctrine considera desconocido y aborta. Depende del
+orden de recorrido del UnitOfWork, no de los datos: por eso aparece una vez cada muchas.
+
+**Cómo NO se arregla: añadiendo `cascade: ['persist']` a `PmsEventoBeds24Link#evento`.** Es lo
+que sugiere el propio mensaje de Doctrine y es una trampa — de hecho el `cascade: ['persist']`
+de `PmsBookingsPushQueue#link` (con el comentario *"para soportar Links nuevos en batch"*) fue
+exactamente ese parche, y es la primera mitad de este bug. Encadenar cascadas empuja el
+problema un nivel más arriba cada vez (evento → reserva → unidad…) y hace que cualquier grafo a
+medio construir se inserte por sorpresa.
+
+**Cómo se arregla:** garantizando el orden padre→hijo antes de encolar. En
+`Beds24BookingsPushQueueCreator::enqueueForLink()`, justo antes del `persist()` de la cola, se
+persiste el evento si no está gestionado. La guarda sólo actúa en el caso que hoy revienta: si
+el evento ya está gestionado —lo normal— no hace nada.
+
+Si vuelves a ver el error con OTRA relación en el mensaje, busca el `cascade: persist` que la
+alcanza y aplica la misma receta: asegurar el padre, no ampliar la cascada.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -2142,6 +2181,7 @@ Migración: `Version20260804180000` (arranca en `false`, o sea el comportamiento
 | Que las extensiones dejen de ser invisibles en una vista nueva | — | la tabla de filtros de §7.1.b |
 | Cambiar cómo nacen los cargos de horario extra (hoy en 0.00) | `PmsCargosAutomaticosService` | `sincronizarExtras()` |
 | Cambiar ventana anti-dup | `Beds24WebhookController` | `600` (seg) y `15000` (ms) |
+| Tocar cascadas del grafo evento/link/cola de push | `Beds24BookingsPushQueueCreator` | `enqueueForLink()` — **lee §12.11 antes** |
 | Añadir canal de pago total | `PmsChannel` | `CANAL_PAGO_TOTAL` — también decide qué canales generan depósito automático (§12.4.5) |
 | Cambiar el importe/fecha del depósito de OTA (§12.4.5) | `PmsPagoOtaAutomaticoService` | `sincronizar()` / `fechaDeposito()` |
 | Permitir editar el depósito automático (§12.4.5) | `PmsInformacionFinancieraCoherenciaListener` | `assertPagoAutomaticoNoEditable()` |

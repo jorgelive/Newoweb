@@ -9,6 +9,7 @@ use App\Exchange\Enum\ConnectivityProvider;
 use App\Exchange\Service\Context\SyncContext;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEventoBeds24Link;
+use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Factory\PmsBookingsPushQueueFactory;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -171,6 +172,34 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
             ->setDedupeKey($dedupeKey)
             ->setPayloadHash($payloadHash)
             ->setBeds24BookIdOriginal($link->getBeds24BookId());
+
+        // ---------------------------------------------------------------------
+        // GARANTÍA DE ORDEN PADRE → HIJO (no tocar sin leer esto)
+        // ---------------------------------------------------------------------
+        // `PmsBookingsPushQueue#link` tiene `cascade: ['persist']`, así que el persist de
+        // abajo arrastra al link; y al alcanzarlo, Doctrine recorre `PmsEventoBeds24Link#evento`,
+        // que NO cascadea. Si ese evento todavía no está gestionado —se está creando en este
+        // mismo flush y la cascada que lo persiste aún no ha llegado a él— Doctrine aborta el
+        // flush ENTERO con «A new entity was found through the relationship
+        // PmsEventoBeds24Link#evento». Es esporádico porque depende del orden en que el
+        // onFlush alcance cada entidad.
+        //
+        // Se arregla asegurando el padre antes que el hijo, y NO añadiendo otro
+        // `cascade: persist` al mapeo del evento: encadenar cascadas sólo empuja el problema
+        // un nivel más arriba (evento → reserva → unidad…) y hace que cualquier grafo a medio
+        // construir se inserte por sorpresa. El cascade del link ya fue ese parche una vez.
+        //
+        // Sólo actúa en el caso que hoy revienta: si el evento ya está gestionado, no hace nada.
+        if ($queue->getLink() !== null && $evento !== null && !$this->em->contains($evento)) {
+            $this->em->persist($evento);
+
+            if ($uow !== null) {
+                $uow->computeChangeSet(
+                    class: $this->em->getClassMetadata(PmsEventoCalendario::class),
+                    entity: $evento
+                );
+            }
+        }
 
         // Persistir
         $this->em->persist($queue);
