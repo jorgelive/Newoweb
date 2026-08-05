@@ -30,23 +30,36 @@ final class Version20260805120000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->skipIf($this->columnaExiste(), 'La columna msg_message.rule_id ya existe.');
-
-        $this->addSql("ALTER TABLE msg_message ADD rule_id BINARY(16) DEFAULT NULL COMMENT '(DC2Type:uuid)'");
+        // Cada paso se comprueba por separado, y NO con un skipIf global al principio.
+        //
+        // El despliegue seguro aplica el ALTER a mano ANTES del pull (la columna es nullable, así
+        // que el código viejo la ignora y ningún cron queda a medias). Con un skipIf global, esa
+        // secuencia saltaba también el índice, la FK y el backfill, y dejaba la migración marcada
+        // como aplicada con el trabajo a medio hacer.
+        if (!$this->columnaExiste()) {
+            $this->addSql("ALTER TABLE msg_message ADD rule_id BINARY(16) DEFAULT NULL COMMENT '(DC2Type:uuid)'");
+        }
 
         // Los nombres son los que genera Doctrine para esta relación. Ponerlos "bonitos" haría
         // que cada `doctrine:schema:update --dump-sql` posterior propusiera recrearlos.
-        $this->addSql(<<<'SQL'
-            ALTER TABLE msg_message
-            ADD CONSTRAINT FK_726CB64E744E0351
-            FOREIGN KEY (rule_id) REFERENCES msg_rule (id) ON DELETE SET NULL
-        SQL);
+        if (!$this->restriccionExiste('FK_726CB64E744E0351')) {
+            $this->addSql(<<<'SQL'
+                ALTER TABLE msg_message
+                ADD CONSTRAINT FK_726CB64E744E0351
+                FOREIGN KEY (rule_id) REFERENCES msg_rule (id) ON DELETE SET NULL
+            SQL);
+        }
 
-        $this->addSql('CREATE INDEX IDX_726CB64E744E0351 ON msg_message (rule_id)');
+        if (!$this->indiceExiste('IDX_726CB64E744E0351')) {
+            $this->addSql('CREATE INDEX IDX_726CB64E744E0351 ON msg_message (rule_id)');
+        }
 
         // Backfill conservador: sólo se adopta la regla cuando la plantilla identifica a UNA
         // sola. Si varias reglas comparten plantilla el vínculo es ambiguo justo por el bug que
         // esta migración cierra, así que se deja NULL y el motor sigue emparejando por plantilla.
+        //
+        // Es re-ejecutable: el `rule_id IS NULL` del WHERE lo hace idempotente, y además
+        // garantiza que esta migración siempre emita al menos una sentencia.
         $this->addSql(<<<'SQL'
             UPDATE msg_message m
             JOIN (
@@ -65,8 +78,14 @@ final class Version20260805120000 extends AbstractMigration
     {
         $this->skipIf(!$this->columnaExiste(), 'La columna msg_message.rule_id no existe.');
 
-        $this->addSql('ALTER TABLE msg_message DROP FOREIGN KEY FK_726CB64E744E0351');
-        $this->addSql('DROP INDEX IDX_726CB64E744E0351 ON msg_message');
+        if ($this->restriccionExiste('FK_726CB64E744E0351')) {
+            $this->addSql('ALTER TABLE msg_message DROP FOREIGN KEY FK_726CB64E744E0351');
+        }
+
+        if ($this->indiceExiste('IDX_726CB64E744E0351')) {
+            $this->addSql('DROP INDEX IDX_726CB64E744E0351 ON msg_message');
+        }
+
         $this->addSql('ALTER TABLE msg_message DROP rule_id');
     }
 
@@ -77,6 +96,28 @@ final class Version20260805120000 extends AbstractMigration
              WHERE TABLE_SCHEMA = DATABASE()
                AND TABLE_NAME = 'msg_message'
                AND COLUMN_NAME = 'rule_id'"
+        );
+    }
+
+    private function indiceExiste(string $nombre): bool
+    {
+        return (bool) $this->connection->fetchOne(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'msg_message'
+               AND INDEX_NAME = ?",
+            [$nombre]
+        );
+    }
+
+    private function restriccionExiste(string $nombre): bool
+    {
+        return (bool) $this->connection->fetchOne(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'msg_message'
+               AND CONSTRAINT_NAME = ?",
+            [$nombre]
         );
     }
 }
