@@ -941,23 +941,27 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
 
             <!-- ===== ACORDEÓN: CARGOS ===== -->
             <!-- Sin overflow-hidden: ver la nota del <section> raíz (rompe el sticky). -->
-            <div class="border border-slate-200 rounded-xl mb-3">
+            <!-- Cada bloque tiene SU color —verde lo que se factura, azul lo que
+                 entra— para no perder de vista en cuál se está trabajando: los dos
+                 formularios se parecen mucho y con todo en gris se confundían. -->
+            <div class="border rounded-xl mb-3 transition-colors"
+                :class="seccionAbierta === 'cargos' ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200'">
                 <button type="button" @click="toggleSeccion('cargos')"
-                    class="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 text-left transition-colors"
-                    :class="seccionAbierta === 'cargos' ? 'rounded-t-xl' : 'rounded-xl'">
-                    <span class="flex items-center gap-2 text-sm font-bold text-slate-700">
-                        <i class="fas fa-chevron-right text-[10px] text-slate-400 transition-transform"
-                            :class="{ 'rotate-90': seccionAbierta === 'cargos' }"></i>
-                        <i class="fas fa-receipt text-slate-400"></i>
+                    class="w-full flex items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-emerald-50/70"
+                    :class="seccionAbierta === 'cargos' ? 'rounded-t-xl bg-emerald-50/80' : 'rounded-xl'">
+                    <span class="flex items-center gap-2 text-sm font-bold" :class="seccionAbierta === 'cargos' ? 'text-emerald-900' : 'text-slate-700'">
+                        <i class="fas fa-chevron-right text-[10px] transition-transform"
+                            :class="[seccionAbierta === 'cargos' ? 'rotate-90 text-emerald-500' : 'text-slate-400']"></i>
+                        <i class="fas fa-receipt" :class="seccionAbierta === 'cargos' ? 'text-emerald-600' : 'text-slate-400'"></i>
                         Cargos
-                        <span class="text-slate-400 font-normal text-xs">({{ finanzas.info.cargos?.length ?? 0 }})</span>
+                        <span class="font-normal text-xs" :class="seccionAbierta === 'cargos' ? 'text-emerald-600/70' : 'text-slate-400'">({{ finanzas.info.cargos?.length ?? 0 }})</span>
                     </span>
-                    <span class="text-sm font-black text-slate-700">
+                    <span class="text-sm font-black" :class="seccionAbierta === 'cargos' ? 'text-emerald-800' : 'text-slate-700'">
                         {{ importeConMoneda(finanzas.info.totalCargos, monedaCabecera) }}
                     </span>
                 </button>
 
-                <div v-show="seccionAbierta === 'cargos'" class="border-t border-slate-100">
+                <div v-show="seccionAbierta === 'cargos'" class="border-t border-emerald-100">
                     <!-- 🔒 Candado: sólo protege los cargos sincronizados desde el canal.
                          Los manuales (reservas directas) se editan y borran sin candado. -->
                     <div v-if="!readOnly" class="flex items-start gap-2 px-4 py-2.5 bg-amber-50 border-b border-amber-100">
@@ -1107,8 +1111,8 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <!-- Pie STICKY. El formulario es largo y el drawer scrollea: con los
                              botones al final se perdían de vista y el operador acababa pulsando
                              «Guardar Cambios» de la reserva creyendo que guardaba el cargo. -->
-                        <div class="sticky -bottom-4 mt-2 px-4 py-2.5 bg-slate-50/95 backdrop-blur
-                                    border-t border-slate-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
+                        <div class="sticky -bottom-4 mt-2 px-4 py-2.5 bg-emerald-50/95 backdrop-blur
+                                    border-t border-emerald-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
                             <button type="button" @click="cancelarEdicionCargo"
                                 class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
                             <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving || !!errorCargo"
@@ -1123,7 +1127,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     <!-- Alta de un cargo manual (reservas directas).
                          Mismo envoltorio que el formulario de pago: el grid va dentro y la barra
                          de acción fuera, o el sticky no tendría recorrido dentro de su celda. -->
-                    <div v-if="cargoNuevoAbierto" class="bg-slate-50 border-t border-slate-100">
+                    <div v-if="cargoNuevoAbierto" class="bg-emerald-50/50 border-t border-emerald-100">
                     <div class="px-4 py-3 grid grid-cols-2 gap-2">
                         <label class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">Tipo</span>
@@ -1190,8 +1194,8 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </div>
 
                         <!-- Pie sticky, mismo criterio que el del formulario de pago. -->
-                        <div class="sticky -bottom-4 px-4 py-2.5 bg-slate-50/95 backdrop-blur
-                                    border-t border-slate-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
+                        <div class="sticky -bottom-4 px-4 py-2.5 bg-emerald-50/95 backdrop-blur
+                                    border-t border-emerald-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
                             <button type="button" @click="cancelarEdicionCargo"
                                 class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
                             <button type="button" @click="guardarCargo" :disabled="finanzas.isSaving || !!errorCargo"
@@ -1210,23 +1214,24 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
 
             <!-- ===== ACORDEÓN: PAGOS ===== -->
             <!-- Sin overflow-hidden: ver la nota del <section> raíz (rompe el sticky). -->
-            <div class="border border-slate-200 rounded-xl">
+            <div class="border rounded-xl transition-colors"
+                :class="seccionAbierta === 'pagos' ? 'border-sky-200 bg-sky-50/40' : 'border-slate-200'">
                 <button type="button" @click="toggleSeccion('pagos')"
-                    class="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 text-left transition-colors"
-                    :class="seccionAbierta === 'pagos' ? 'rounded-t-xl' : 'rounded-xl'">
-                    <span class="flex items-center gap-2 text-sm font-bold text-slate-700">
-                        <i class="fas fa-chevron-right text-[10px] text-slate-400 transition-transform"
-                            :class="{ 'rotate-90': seccionAbierta === 'pagos' }"></i>
-                        <i class="fas fa-hand-holding-dollar text-slate-400"></i>
+                    class="w-full flex items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-sky-50/70"
+                    :class="seccionAbierta === 'pagos' ? 'rounded-t-xl bg-sky-50/80' : 'rounded-xl'">
+                    <span class="flex items-center gap-2 text-sm font-bold" :class="seccionAbierta === 'pagos' ? 'text-sky-900' : 'text-slate-700'">
+                        <i class="fas fa-chevron-right text-[10px] transition-transform"
+                            :class="[seccionAbierta === 'pagos' ? 'rotate-90 text-sky-500' : 'text-slate-400']"></i>
+                        <i class="fas fa-hand-holding-dollar" :class="seccionAbierta === 'pagos' ? 'text-sky-600' : 'text-slate-400'"></i>
                         Pagos
-                        <span class="text-slate-400 font-normal text-xs">({{ finanzas.info.pagos?.length ?? 0 }})</span>
+                        <span class="font-normal text-xs" :class="seccionAbierta === 'pagos' ? 'text-sky-600/70' : 'text-slate-400'">({{ finanzas.info.pagos?.length ?? 0 }})</span>
                     </span>
-                    <span class="text-sm font-black text-emerald-600">
+                    <span class="text-sm font-black" :class="seccionAbierta === 'pagos' ? 'text-sky-800' : 'text-emerald-600'">
                         {{ importeConMoneda(finanzas.info.totalPagos, monedaCabecera) }}
                     </span>
                 </button>
 
-                <div v-show="seccionAbierta === 'pagos'" class="border-t border-slate-100">
+                <div v-show="seccionAbierta === 'pagos'" class="border-t border-sky-100">
                     <p v-if="!finanzas.info.pagos?.length && !pagoFormAbierto" class="px-4 py-3 text-xs font-bold text-slate-400">
                         Sin pagos registrados.
                     </p>
@@ -1267,7 +1272,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                          El envoltorio NO es el grid: la barra de acción sticky va fuera de él.
                          En un CSS grid el bloque contenedor de un `sticky` es su propia celda,
                          que mide exactamente lo que el elemento: sin recorrido, no se pega. -->
-                    <div v-if="pagoFormAbierto" class="bg-slate-50 border-t border-slate-100">
+                    <div v-if="pagoFormAbierto" class="bg-sky-50/50 border-t border-sky-100">
                     <div class="px-4 py-3 grid grid-cols-2 gap-2">
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Monto neto</span>
@@ -1363,8 +1368,8 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                              `-bottom-4` (y no `bottom-0`) compensa el `py-4` del contenedor con
                              scroll del drawer: con 0 quedaba un hueco blanco de 1rem entre las
                              dos barras. Si cambia ese padding, hay que cambiar esto. -->
-                        <div class="sticky -bottom-4 px-4 py-2.5 bg-slate-50/95 backdrop-blur
-                                    border-t border-slate-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
+                        <div class="sticky -bottom-4 px-4 py-2.5 bg-sky-50/95 backdrop-blur
+                                    border-t border-sky-200 rounded-b-xl flex items-center justify-end gap-2 z-10">
                             <button type="button" @click="cerrarPagoForm"
                                 class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
                             <button type="button" @click="guardarPago" :disabled="finanzas.isSaving || !pagoForm.monto"
