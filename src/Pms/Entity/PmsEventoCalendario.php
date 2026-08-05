@@ -108,9 +108,18 @@ class PmsEventoCalendario
      * - `bloqueo` no es la estancia de un huésped, es calendario cerrado.
      * El resto sí se auto-confirma (ver requiereAutoConfirmacionPorPago()).
      */
+    /**
+     * Estados a los que NO les aplica la auto-confirmación por pago.
+     *
+     * `extension` está aquí por seguridad doble: `PmsEstadoPagoEventosService` ya
+     * no toca las extensiones, pero si por cualquier vía una acabara con estado de
+     * pago «confiable», esta regla la convertiría en CONFIRMADA —dejaría de ser
+     * una extensión y pasaría de `black` a `confirmed` en Beds24—.
+     */
     public const ESTADOS_SIN_AUTO_CONFIRMACION = [
         PmsEventoEstado::CODIGO_CANCELADA,
         PmsEventoEstado::CODIGO_BLOQUEO,
+        PmsEventoEstado::CODIGO_EXTENSION,
     ];
 
 
@@ -272,6 +281,10 @@ class PmsEventoCalendario
      */
     #[ORM\ManyToOne(targetEntity: self::class)]
     #[ORM\JoinColumn(name: 'evento_origen_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
+    // Se expone en lectura para que el frontend distinga una extensión de una
+    // estancia. Va el dato crudo y no un flag calculado: API Platform sólo
+    // serializa métodos con prefijo `get`/`is`, y `esExtension()` no lo tiene.
+    #[Groups(['pms_evento:read'])]
     private ?self $eventoOrigen = null;
 
     /* ======================================================
@@ -658,12 +671,7 @@ class PmsEventoCalendario
     }
 
     /**
-     * Fecha de salida que se le declara al CANAL, que no siempre es la real.
-     *
-     * Con salida tardía el huésped se va el mismo día (por la tarde), pero esa
-     * noche no se puede vender: se le suma un día para que Beds24 la bloquee.
-     * Todo lo demás —noches facturadas, guía del huésped, calendario interno—
-     * sigue usando `getFin()`, que es la verdad operativa.
+     * La estancia que generó esta extensión. `null` en una estancia normal.
      */
     public function getEventoOrigen(): ?self
     {
@@ -677,10 +685,19 @@ class PmsEventoCalendario
         return $this;
     }
 
-    /** ¿Es una extensión de horario (la noche invisible que bloquea la unidad)? */
+    /**
+     * ¿Es una extensión de horario (la noche invisible que bloquea la unidad)?
+     *
+     * Se mira `eventoOrigen`, NO el estado. El estado `extension` sólo lo tiene
+     * mientras está activa: al desmarcar la casilla pasa a `cancelada` y seguiría
+     * siendo una extensión, no una estancia. Filtrar por estado las dejaba
+     * reaparecer como estancias fantasma en el drawer y en el calendario «Todas»
+     * —una por cada vez que se marcó y desmarcó—, que es justo lo que hay que
+     * evitar. `eventoOrigen` no cambia nunca.
+     */
     public function esExtension(): bool
     {
-        return $this->estado?->getId() === PmsEventoEstado::CODIGO_EXTENSION;
+        return $this->eventoOrigen !== null;
     }
 
     public function isEntradaTemprana(): bool

@@ -62,8 +62,9 @@ final class PmsReservaRecalculoService
         // Las EXTENSIONES (la noche que bloquea un horario extra) se excluyen del
         // rollup ENTERO, no solo de los importes: si entraran, `fecha_salida` de la
         // reserva se iría al día siguiente y la cabecera diría que el huésped se va
-        // el 06 cuando se va el 05. Ver §7.1.b del doc.
-        $estadoExtension = PmsEventoEstado::CODIGO_EXTENSION;
+        // el 06 cuando se va el 05. Se filtran por `evento_origen_id` y no por
+        // estado: al retirarlas pasan a `cancelada` y seguirían siendo extensiones
+        // (§7.1.b del doc).
 
         foreach (array_chunk($reservaIds, 400) as $chunk) {
             $binaryIds = [];
@@ -94,7 +95,7 @@ LEFT JOIN (
     FROM pms_evento_calendario e
     LEFT JOIN pms_unidad u ON e.pms_unidad_id = u.id 
     WHERE e.reserva_id IN ($in)
-      AND e.estado_id != '$estadoExtension'
+      AND e.evento_origen_id IS NULL
     GROUP BY e.reserva_id
 ) s ON s.reserva_id = r.id
 SET

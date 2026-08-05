@@ -35,6 +35,22 @@ use Symfony\Component\Uid\Uuid;
  */
 final class PmsEstadoPagoEventosService
 {
+    /*
+     * QUÉ EVENTOS QUEDAN FUERA, y por qué los dos `UPDATE` lo repiten:
+     *
+     * · EXTENSIONES (`evento_origen_id IS NOT NULL`) — la noche que bloquea un
+     *   horario extra no vende nada, así que no tiene estado de pago que seguir.
+     *   Marcarlas tenía dos efectos feos: encolaba un push inútil a Beds24 por el
+     *   cambio de fila, y sobre todo, con un estado de pago «confiable»,
+     *   `requiereAutoConfirmacionPorPago()` las habría convertido en CONFIRMADA —
+     *   una extensión dejaría de serlo sola y pasaría de `black` a `confirmed` en
+     *   el canal.
+     * · CANCELADAS — no participan del saldo de la reserva; dejarlas seguir el
+     *   cobro de las estancias vivas sólo confunde al leer el histórico.
+     *
+     * Va en el WHERE y no en PHP porque estos UPDATE son masivos por cabecera: no
+     * hay entidades cargadas donde preguntar.
+     */
     /**
      * @param string[] $informacionIds UUIDs (string) de las cabeceras afectadas.
      *
@@ -72,6 +88,8 @@ final class PmsEstadoPagoEventosService
                           AND i.total_cargos > 0
                           AND (i.total_cargos - i.total_pagos) <= 0
                           AND e.estado_pago_id <> '%s'
+                          AND e.evento_origen_id IS NULL
+                          AND e.estado_id <> 'cancelada'
                         SQL,
                     PmsEventoEstadoPago::ID_PAGO_TOTAL,
                     $in,
@@ -94,6 +112,8 @@ final class PmsEstadoPagoEventosService
                           AND i.total_pagos > 0
                           AND (i.total_cargos - i.total_pagos) > 0
                           AND e.estado_pago_id = '%s'
+                          AND e.evento_origen_id IS NULL
+                          AND e.estado_id <> 'cancelada'
                         SQL,
                     PmsEventoEstadoPago::ID_PAGO_PARCIAL,
                     $in,

@@ -47,9 +47,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         FieldCollection $fields,
         FilterCollection $filters,
     ): QueryBuilder {
+        // Por `eventoOrigen` y no por estado: al retirar una extensión pasa a
+        // `cancelada` y con el filtro de estado reaparecía en el listado.
         return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters)
-            ->andWhere('entity.estado != :estadoExtension OR entity.estado IS NULL')
-            ->setParameter('estadoExtension', PmsEventoEstado::CODIGO_EXTENSION);
+            ->andWhere('entity.eventoOrigen IS NULL');
     }
 
     public function __construct(

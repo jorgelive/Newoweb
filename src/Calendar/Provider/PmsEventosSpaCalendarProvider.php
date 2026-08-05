@@ -121,6 +121,11 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             ->leftJoin('e.estado', 'es')
             ->leftJoin('e.estadoPago', 'ep')
             ->andWhere('e.inicio < :to AND e.fin > :from')
+            // Las EXTENSIONES no se pintan NUNCA, en ningún calendario: son la
+            // noche que bloquea un horario extra, no una estancia. Se filtra por
+            // `eventoOrigen` y no por estado, porque al retirarlas pasan a
+            // `cancelada` y con un filtro de estado reaparecían en «Todas».
+            ->andWhere('e.eventoOrigen IS NULL')
             ->setParameter('from', $from)
             ->setParameter('to', $to);
 

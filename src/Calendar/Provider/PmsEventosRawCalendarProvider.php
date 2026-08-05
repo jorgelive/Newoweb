@@ -111,6 +111,8 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             ->leftJoin('e.estado', 'es')
             ->leftJoin('e.estadoPago', 'ep')
             ->andWhere('e.inicio < :to AND e.fin > :from')
+            // Ver PmsEventosSpaCalendarProvider: las extensiones no son estancias.
+            ->andWhere('e.eventoOrigen IS NULL')
             ->setParameter('from', $from)
             ->setParameter('to', $to);
 

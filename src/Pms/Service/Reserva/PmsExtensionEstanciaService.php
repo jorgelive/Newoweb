@@ -112,11 +112,28 @@ final class PmsExtensionEstanciaService
 
         if ($existente !== null) {
             // La estancia pudo moverse de fechas o de casita después de marcarla.
+            $cambioDeCasita = $existente->getPmsUnidad() !== $estancia->getPmsUnidad();
+
             $existente->setInicio($desde);
             $existente->setFin($hasta);
             $existente->setPmsUnidad($estancia->getPmsUnidad());
-            // Si cambió de casita, el link apunta al mapa de la anterior.
-            $this->eventoFactory->rebuildLinks($existente);
+
+            // Y si estaba retirada, REVIVE. Antes se creaba una extensión nueva y
+            // la cancelada se quedaba para siempre: marcar y desmarcar tres veces
+            // dejaba tres eventos muertos colgando de la reserva. Siempre hay como
+            // mucho UNA extensión por tipo y estancia.
+            $existente->setEstado(
+                $this->em->getReference(PmsEventoEstado::class, PmsEventoEstado::CODIGO_EXTENSION)
+            );
+
+            // Los links SÓLO se rehacen si cambió la casita: son los del mapa de la
+            // anterior y ya no valen. Llamarlo siempre reventaba al revivir una
+            // extensión en el mismo proceso —«A managed+dirty entity Link … can not
+            // be scheduled for insertion»—, porque la fábrica intenta insertar links
+            // que el UnitOfWork ya está gestionando.
+            if ($cambioDeCasita) {
+                $this->eventoFactory->rebuildLinks($existente);
+            }
 
             return;
         }
@@ -219,12 +236,8 @@ final class PmsExtensionEstanciaService
             ->findBy(['eventoOrigen' => $estancia]);
 
         foreach ($extensiones as $extension) {
-            // Las canceladas son historia: ya se retiraron del canal y volver a
-            // marcarlas no las revive — nace una extensión nueva.
-            if ($extension->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
-                continue;
-            }
-
+            // Las canceladas TAMBIÉN cuentan: se reviven en vez de crear otra
+            // (ver `sincronizarUna`).
             if (str_starts_with((string) $extension->getDescripcion(), $descripcion)) {
                 return $extension;
             }

@@ -69,8 +69,9 @@ final class PmsCargosAutomaticosService
         // Ni los bloqueos ni las EXTENSIONES: no son ventas. La extensión, además,
         // ya tiene su propio cargo en la estancia que la generó (sincronizarExtras()),
         // y si entrara aquí estrenaría alojamiento y limpieza por una noche fantasma.
-        $estado = $evento->getEstado()?->getId();
-        if ($estado === PmsEventoEstado::CODIGO_BLOQUEO || $estado === PmsEventoEstado::CODIGO_EXTENSION) {
+        // `esExtension()` y no el estado: una extensión retirada queda en
+        // `cancelada` y tampoco debe estrenar cargos si alguien la revive.
+        if ($evento->getEstado()?->getId() === PmsEventoEstado::CODIGO_BLOQUEO || $evento->esExtension()) {
             return false;
         }
 
@@ -151,7 +152,14 @@ final class PmsCargosAutomaticosService
         $existente = $this->buscarCargoExtra($evento, $info, $descripcion);
 
         if (!$activo) {
-            if ($existente !== null) {
+            // Sólo se retira si sigue en CERO, o sea si nadie llegó a valorarlo.
+            //
+            // Un cargo con importe es dinero facturado —y probablemente cobrado—:
+            // borrarlo al desmarcar la casilla dejaba el pago huérfano y la reserva
+            // con saldo negativo, sin rastro de por qué. Si el horario extra se
+            // anula de verdad, el operador borra el cargo a mano, que es una
+            // decisión sobre dinero y le toca a él.
+            if ($existente !== null && (float) ($existente->getTotalLinea() ?? $existente->getMonto() ?? '0') === 0.0) {
                 $info->removeCargo($existente);
                 $this->em->remove($existente);
             }

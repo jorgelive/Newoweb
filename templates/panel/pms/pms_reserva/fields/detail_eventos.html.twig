@@ -1,12 +1,13 @@
 {# templates/panel/pms/pms_reserva/fields/detail_eventos.html.twig #}
 
 {#
-  Las EXTENSIONES (estado `extension`: la noche que bloquea una entrada temprana o
-  una salida tardía) se filtran antes de pintar nada. Cuelgan de la reserva para
-  que el borrado y las finanzas las sigan, pero no son estancias y en el detalle
-  aparecerían como una segunda casita fantasma. Ver §7.1.b del doc.
+  Las EXTENSIONES (la noche que bloquea una entrada temprana o una salida tardía)
+  se filtran antes de pintar nada. Cuelgan de la reserva para que el borrado y las
+  finanzas las sigan, pero no son estancias y en el detalle aparecerían como una
+  casita fantasma. Se filtra por `eventoOrigen` y NO por estado: al retirarlas
+  pasan a `cancelada` y con el filtro de estado reaparecían. Ver §7.1.b del doc.
 #}
-{% set estancias = field.value|filter(e => e.estado is null or e.estado.id != 'extension') %}
+{% set estancias = field.value|filter(e => e.eventoOrigen is null) %}
 
 {% if estancias is empty %}
     <div class="alert alert-light border text-center text-muted">

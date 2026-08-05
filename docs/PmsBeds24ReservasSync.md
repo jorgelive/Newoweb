@@ -601,6 +601,10 @@ desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PAT
 
 #### Gotchas
 
+- **Al desmarcar sólo se retira el cargo si sigue en CERO.** Un cargo con importe es dinero
+  facturado —y probablemente cobrado—: borrarlo dejaba el pago huérfano y la reserva con saldo
+  negativo sin rastro de por qué (pasó en producción con XTHRMQ: saldo −50.00). Si el horario
+  extra se anula de verdad, el cargo lo borra el operador: es una decisión sobre dinero.
 - **`findBy()` y no DQL para localizar la extensión.** `PmsExtensionEstanciaService::buscar()`
   usa `findBy(['eventoOrigen' => $estancia])`: con `createQueryBuilder()->setParameter('origen',
   $estancia)` el UUID `BINARY(16)` se serializa mal, la consulta **no falla** y devuelve cero
@@ -618,8 +622,18 @@ desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PAT
   recoge para encolar el DELETE y al armar la cola con un link ya eliminado intenta revivirlo —
   «A new entity was found through the relationship `PmsEventoBeds24Link#evento`». Cancelar es un
   UPDATE simple que el push traduce a `cancelled`. Consecuencia: la extensión retirada queda como
-  evento cancelado de una noche, y al volver a marcar la casilla **nace una nueva** (las
-  canceladas se ignoran en la búsqueda).
+  evento cancelado de una noche, y al volver a marcar la casilla esa misma **se revive** — nunca
+  hay más de una por tipo y estancia.
+- ⚠️ **Se filtran por `eventoOrigen`, NUNCA por el estado.** Es el error que se cometió al
+  empezar y no se ve venir: el estado `extension` sólo lo tienen mientras están ACTIVAS, y al
+  retirarlas pasan a `cancelada` sin dejar de ser extensiones. Con el filtro por estado
+  reaparecían como estancias fantasma en el drawer, en el detalle de EasyAdmin y en el calendario
+  «Todas» — **una por cada vez que se marcó y se desmarcó**. `eventoOrigen` no cambia nunca. Los
+  sitios que filtran: los dos providers de calendario, el índice del CRUD, el rollup de la
+  reserva, el buscador de reservas, el drawer y `detail_eventos.html.twig`.
+- **Los links de la extensión sólo se rehacen si cambió la casita.** Hacerlo en cada revivida
+  revienta con «A managed+dirty entity Link … can not be scheduled for insertion»: la fábrica
+  intenta insertar links que el UnitOfWork ya está gestionando.
 - **Se busca por `eventoOrigen` + descripción, nunca por fechas**: si la estancia se mueve, las
   fechas de la extensión dejan de cuadrar, y ese es justo el caso en que hay que **recolocarla**,
   no crear otra.

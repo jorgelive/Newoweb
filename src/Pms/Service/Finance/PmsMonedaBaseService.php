@@ -84,8 +84,14 @@ final class PmsMonedaBaseService
                 $cargo->setMonto($nuevo);
                 $cargo->setTotalLinea($nuevo);
                 $cargo->setMoneda($destino);
-                // Ya está en la moneda base: sin conversión pendiente, el TC deja de aplicar.
-                $cargo->setTipoCambio(null);
+
+                // Se guarda el TC CON EL QUE SE CONVIRTIÓ, no null. Ya no hace falta
+                // para sumar —el cargo queda en la moneda base y el rollup lo ignora—,
+                // pero es la foto de la conversión: si mañana se vuelve a la moneda
+                // anterior, deshacerla con este mismo número devuelve el importe
+                // exacto. Dejándolo vacío, el formulario lo autocompletaba después con
+                // la cotización de HOY y volver atrás daba 37.02 donde había 37.00.
+                $cargo->setTipoCambio($tc);
             }
 
             // Los pagos NO se convierten. Sólo se les da el TC que les falte, para que el rollup

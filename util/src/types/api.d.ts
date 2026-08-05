@@ -13951,6 +13951,8 @@ export interface components {
             salidaTardia?: boolean;
             /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
             entradaTemprana?: boolean;
+            /** @description Estancia que generó esta EXTENSIÓN (estado `extension`). */
+            eventoOrigen?: components["schemas"]["PmsEventoCalendario-pms_evento.read_timestamp.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -14183,6 +14185,8 @@ export interface components {
             salidaTardia?: boolean;
             /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
             entradaTemprana?: boolean;
+            /** @description Estancia que generó esta EXTENSIÓN (estado `extension`). */
+            eventoOrigen?: components["schemas"]["PmsEventoCalendario.html-pms_evento.read_timestamp.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -14299,7 +14303,21 @@ export interface components {
          *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
          *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
          */
-        "PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read": {
+            /** @description Estancia que generó esta EXTENSIÓN (estado `extension`). */
+            eventoOrigen?: components["schemas"]["PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read"] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            readonly ota?: boolean;
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
             pmsUnidad: components["schemas"]["PmsUnidad.jsonld-pms_evento.read_timestamp.read"];
             reserva?: components["schemas"]["PmsReserva.jsonld-pms_evento.read_timestamp.read"] | null;
             channel: components["schemas"]["PmsChannel.jsonld-pms_evento.read_timestamp.read"] | null;
@@ -14322,18 +14340,7 @@ export interface components {
             salidaTardia?: boolean;
             /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
             entradaTemprana?: boolean;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
-            readonly safeToDelete?: boolean;
-            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
-            readonly motivoNoBorrable?: string | null;
-            readonly ota?: boolean;
-        };
+        });
         /**
          * @description Entidad PmsEventoCalendario.
          *     Gestiona bloqueos y reservas.
@@ -14467,6 +14474,8 @@ export interface components {
             salidaTardia?: boolean;
             /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
             entradaTemprana?: boolean;
+            /** @description Estancia que generó esta EXTENSIÓN (estado `extension`). */
+            eventoOrigen?: components["schemas"]["PmsEventoCalendario.multipart-pms_evento.read_timestamp.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
