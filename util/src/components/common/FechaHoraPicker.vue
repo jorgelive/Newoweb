@@ -257,7 +257,7 @@ onBeforeUnmount(() => {
                 @keydown.enter="onEnter"
                 @keydown.tab="onTab"
                 @blur="onBlur"
-                class="w-full border rounded-lg px-3 py-2 text-sm font-bold text-slate-700 tabular-nums outline-none focus:ring-2 focus:ring-[#376875]/30 disabled:bg-slate-100 disabled:text-slate-400 cursor-text"
+                class="w-full border rounded-lg px-3 py-2 text-sm font-bold text-slate-700 tabular-nums outline-none focus:ring-2 focus:ring-[#376875]/30 bg-white disabled:bg-slate-100 disabled:text-slate-400 cursor-text"
                 :class="invalido ? 'border-rose-300 bg-rose-50' : 'border-slate-200'"
             />
         </template>

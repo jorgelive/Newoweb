@@ -1410,7 +1410,7 @@ async function guardar(): Promise<void> {
                                             Estado
                                         </span>
                                         <select v-model="entry.form.estado" @change="aplicarAutoConfirmacionPorPago(entry)"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                             <option v-for="e in estadosDisponiblesPara(entry)" :key="e.id ?? ''" :value="e.id ?? ''"
                                                 :style="{ backgroundColor: e.color || undefined, color: e.color ? contrastText(e.color) : undefined }">
                                                 {{ e.nombre }}
@@ -1430,7 +1430,7 @@ async function guardar(): Promise<void> {
                                             Estado de Pago
                                         </span>
                                         <select v-model="entry.form.estadoPago" @change="aplicarAutoConfirmacionPorPago(entry)"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                             <option v-for="ep in reservasStore.estadosPago" :key="ep.id ?? ''" :value="ep.id ?? ''"
                                                 :style="{ backgroundColor: ep.color || undefined, color: ep.color ? contrastText(ep.color) : undefined }">
                                                 {{ ep.nombre }}
@@ -1454,13 +1454,13 @@ async function guardar(): Promise<void> {
                                         <label>
                                             <span class="text-xs font-bold text-slate-500">Adultos</span>
                                             <input type="number" min="0" v-model.number="entry.form.cantidadAdultos"
-                                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                                         </label>
 
                                         <label>
                                             <span class="text-xs font-bold text-slate-500">Niños</span>
                                             <input type="number" min="0" v-model.number="entry.form.cantidadNinos"
-                                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                                         </label>
                                     </div>
 
@@ -1472,14 +1472,14 @@ async function guardar(): Promise<void> {
                                     <label class="col-span-2">
                                         <span class="text-xs font-bold text-slate-500">{{ isCreate && !isCreateReserva ? 'Motivo del bloqueo' : 'Descripción' }}</span>
                                         <input type="text" v-model="entry.form.descripcion"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                                     </label>
 
                                     <!-- Comentarios del huésped: ocultos al editar una estancia OTA. -->
                                     <label class="col-span-2" v-if="!isCreate && !entry.isOta">
                                         <span class="text-xs font-bold text-slate-500">Comentarios del huésped</span>
                                         <textarea v-model="entry.form.comentariosHuesped" rows="2"
-                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea>
+                                            class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"></textarea>
                                     </label>
                                 </div>
                             </div>
@@ -1564,26 +1564,26 @@ async function guardar(): Promise<void> {
                         <label>
                             <span class="text-xs font-bold text-slate-500">Nombre</span>
                             <input type="text" v-model="clienteForm.nombreCliente"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
                         <label>
                             <span class="text-xs font-bold text-slate-500">Apellido</span>
                             <input type="text" v-model="clienteForm.apellidoCliente"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
                         <label>
                             <span class="text-xs font-bold text-slate-500">Teléfono</span>
                             <span v-if="formatearTelefono(clienteForm.telefono) && formatearTelefono(clienteForm.telefono) !== clienteForm.telefono"
                                 class="ml-1.5 text-[10px] font-bold text-slate-400">{{ formatearTelefono(clienteForm.telefono) }}</span>
                             <input type="text" v-model="clienteForm.telefono"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
                         <label>
                             <span class="text-xs font-bold text-slate-500">Teléfono 2</span>
                             <span v-if="formatearTelefono(clienteForm.telefono2) && formatearTelefono(clienteForm.telefono2) !== clienteForm.telefono2"
                                 class="ml-1.5 text-[10px] font-bold text-slate-400">{{ formatearTelefono(clienteForm.telefono2) }}</span>
                             <input type="text" v-model="clienteForm.telefono2"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
 
                         <!-- Elección del número de contacto. Solo tiene sentido con los dos
@@ -1599,12 +1599,12 @@ async function guardar(): Promise<void> {
                         <label class="col-span-2">
                             <span class="text-xs font-bold text-slate-500">Email</span>
                             <input type="email" v-model="clienteForm.emailCliente"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
                         <label>
                             <span class="text-xs font-bold text-slate-500">País</span>
                             <select v-model="clienteForm.pais"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option value="">-</option>
                                 <option v-for="p in maestroStore.paises" :key="p.id ?? ''" :value="p.id ?? ''">{{ p.nombre }}</option>
                             </select>
@@ -1612,7 +1612,7 @@ async function guardar(): Promise<void> {
                         <label>
                             <span class="text-xs font-bold text-slate-500">Idioma</span>
                             <select v-model="clienteForm.idioma"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option value="">-</option>
                                 <option v-for="i in maestroStore.idiomas" :key="i.id ?? ''" :value="i.id ?? ''">{{ i.nombre }}</option>
                             </select>
@@ -1620,7 +1620,7 @@ async function guardar(): Promise<void> {
                         <label class="col-span-2">
                             <span class="text-xs font-bold text-slate-500">Nota interna</span>
                             <textarea v-model="clienteForm.nota" rows="2"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea>
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"></textarea>
                         </label>
                         <label class="col-span-2 flex items-center gap-2" v-if="!isCreateReserva">
                             <input type="checkbox" v-model="clienteForm.datosLocked" class="rounded" />
