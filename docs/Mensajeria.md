@@ -417,12 +417,39 @@ dejaba prácticamente muerto en Beds24 (2 disparos frente a 835 mensajes) y no s
 `InboundMenuResolver::VENTANA_VALIDEZ` (24 h). Sin ella, un huésped que contesta «2» a un
 «¿cuántos sois?» revive un menú de hace semanas y recibe la lista de tours.
 
+### ⚠️ Decisión de producto: los menús están APAGADOS en Beds24
+
+A 2026-08-05, `welcome_airbnb`, `welcome_booking` y `enviar_guia` llevan
+`beds24Tmpl.disable_meta_buttons = true`. **Es deliberado, no un olvido**: la latencia de Beds24
+entregando mensajes desde y hacia Airbnb/Booking hace que un menú interactivo sea mala
+experiencia — el huésped responde «2» y la respuesta tarda de más.
+
+El cuello de botella es del proveedor, no nuestro. Medido en producción:
+
+| Tramo | Latencia |
+|---|---|
+| Envío nuestro (cola Beds24 `run_at` → ejecutada) | **media 5 s**, máx 35 s (155 envíos/14 días) |
+| Recepción | por **webhook**, sin esperar al pull |
+
+Los cron de `*/5` son sólo red de seguridad: `MessagerDispatcherSendQueueEventListener` despacha
+al worker de Messenger en el acto, y `Beds24WebhookController` no aplica el delay de 15 s a los
+mensajes de huésped (*«queremos lo más rápido posible los guests»*). Optimizar nuestro lado no
+mueve la aguja; **antes de reactivar los menús en Beds24 hay que comprobar que el proveedor ha
+mejorado**, no el código.
+
+En WhatsApp Meta no aplica: allí los botones son nativos y la entrega es inmediata.
+
 ### Requisito de configuración, no de código
 
 Para que una opción funcione por Beds24, la plantilla de **respuesta** debe tener su canal
 `beds24Tmpl.is_active = true`. Si no, `MessageDispatcher::resolveChannels()` intersecta a vacío
-y el mensaje queda `QUEUED` sin ninguna cola — nunca sale. A 2026-08-05, `menu_tours` está en
-`false`, así que la opción de tours no puede responderse por Airbnb/Booking.
+y el mensaje queda `QUEUED` sin ninguna cola — nunca sale, sin error visible.
+
+`menu_tours` estaba en `false` por ese motivo y se activó el 2026-08-05. No contradice el
+apagado de menús de arriba: son dos interruptores distintos. `disable_meta_buttons` decide si el
+menú se **pinta** al salir; `is_active` decide si la plantilla de respuesta **puede salir** por
+ese canal. Con los menús apagados nadie llega a pedir tours desde una OTA, así que el segundo
+interruptor sólo evita que la respuesta muera en silencio el día que se reactiven.
 
 ## 9. Dónde tocar para cambiar X
 
