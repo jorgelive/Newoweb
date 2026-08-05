@@ -388,6 +388,11 @@ function empezarEdicionCargo(c: PmsCargoFinanciero): void {
         moneda: c.moneda?.id ?? monedaCabecera.value?.id ?? 'USD',
         evento: idDeIri(c.evento) ?? '',
     };
+
+    // Al abrir un cargo que se guardó sin TC, se ofrece ya el del día: es el caso
+    // de los registros que quedaron cojos al cambiar la moneda base, y así se
+    // reparan con un clic en vez de tecleando la cotización.
+    void autocompletarTipoCambioCargo();
 }
 
 function abrirNuevoCargo(): void {
@@ -403,7 +408,7 @@ function abrirNuevoCargo(): void {
         // Con una sola casita no hay nada que elegir: se preselecciona.
         evento: estancias.length === 1 ? estancias[0].eventoId : '',
     };
-    // Si la moneda por defecto ya difiere de la cabecera, el TC se pide de entrada.
+    // El TC se consulta de entrada, coincida o no la moneda (ver `tcSiempre`).
     void autocompletarTipoCambioCargo();
 }
 
@@ -431,6 +436,22 @@ watch(cargosDesbloqueados, (abierto) => {
 const monedaCargoEsExtranjera = computed(
     () => !!monedaCabecera.value?.id && cargoForm.value.moneda !== monedaCabecera.value.id,
 );
+
+/**
+ * EL TIPO DE CAMBIO SE PIDE SIEMPRE, en cualquier moneda.
+ *
+ * Antes el campo sólo aparecía cuando la moneda del registro no era la de la
+ * cabecera, y eso dejaba los registros COJOS: el día que se cambia la moneda base
+ * de la reserva (USD → PEN), todos los que se guardaron «en la moneda de casa» se
+ * quedan sin TC y dejan de sumar — hay que ir uno por uno a repararlos.
+ *
+ * Guardarlo siempre no tiene coste ni riesgo, porque el TC de este módulo NO es
+ * «moneda del registro → cabecera»: es la venta **USD→PEN** del día
+ * (`PmsInformacionFinancieraRecalculoService::expresionConvertida()` multiplica o
+ * divide según el par, y cuando las dos monedas coinciden lo IGNORA). O sea que
+ * un TC de más nunca deforma un total; uno de menos sí lo rompe.
+ */
+const tcSiempre = true;
 
 /**
  * Motivo por el que el cargo no se puede guardar todavía, o null si está listo.
@@ -626,7 +647,10 @@ async function consultarVenta(fecha: string): Promise<string | null> {
 }
 
 async function autocompletarTipoCambio(): Promise<void> {
-    if (!monedaPagoEsExtranjera.value || pagoForm.value.tipoCambio) return;
+    // Se rellena SIEMPRE, coincida o no la moneda con la de la reserva: ver la
+    // nota de `tcSiempre` — es la foto del día, y sin ella el registro queda cojo
+    // en cuanto alguien cambia la moneda base.
+    if (pagoForm.value.tipoCambio) return;
 
     cargandoTipoCambio.value = true;
     try {
@@ -649,7 +673,7 @@ async function autocompletarTipoCambio(): Promise<void> {
  * cotización de hoy — el mismo criterio que `TipoCambioDelDia` en el backend.
  */
 async function autocompletarTipoCambioCargo(): Promise<void> {
-    if (!monedaCargoEsExtranjera.value || cargoForm.value.tipoCambio) return;
+    if (cargoForm.value.tipoCambio) return;
 
     cargandoTipoCambio.value = true;
     try {
@@ -1054,18 +1078,25 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"
                                     class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
                             </label>
-                            <!-- Reparación: sólo aparece si el cargo se guardó SIN tipo de cambio.
-                                 Uno que ya lo tenga no se puede tocar (es la foto del día). -->
-                            <label v-if="cargoSinTipoCambio(c)" class="col-span-2">
+                            <!-- SIEMPRE presente (ver `tcSiempre`): es la venta USD→PEN del día.
+                                 Si el cargo ya lo tenía guardado, se muestra bloqueado — es la
+                                 foto del día y el backend rechaza cambiarlo. -->
+                            <label class="col-span-2">
                                 <span class="text-[11px] font-bold text-slate-500">
-                                    Tipo de cambio
+                                    Tipo de cambio (USD→PEN)
                                     <i v-if="cargandoTipoCambio" class="fas fa-circle-notch fa-spin ml-1 text-slate-300"></i>
                                 </span>
                                 <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio"
+                                    :disabled="!!c.tipoCambio"
                                     placeholder="Ej. 3.750" @focus="autocompletarTipoCambioCargo"
-                                    class="mt-1 w-full border border-amber-300 rounded-lg px-3 py-2 text-sm" />
-                                <span class="mt-1 block text-[10px] font-bold text-amber-600">
-                                    Al completarlo, este cargo empezará a sumar al total en {{ monedaCabecera?.id }}.
+                                    class="mt-1 w-full rounded-lg px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500"
+                                    :class="cargoSinTipoCambio(c) ? 'border border-amber-300' : 'border border-slate-200'" />
+                                <span v-if="c.tipoCambio" class="mt-1 block text-[10px] font-bold text-slate-400">
+                                    Fijo: es la cotización del día en que se registró.
+                                </span>
+                                <span v-else class="mt-1 block text-[10px] font-bold text-amber-600">
+                                    Guárdalo aunque el cargo esté en la moneda de la reserva: si mañana se
+                                    cambia la moneda base, sin él este cargo dejaría de sumar.
                                 </span>
                             </label>
                             <p v-if="errorCargo" class="col-span-2 text-[10px] font-black text-amber-600">
@@ -1133,9 +1164,10 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 </option>
                             </select>
                         </label>
-                        <label v-if="monedaCargoEsExtranjera" class="col-span-2">
+                        <!-- Siempre, en cualquier moneda: ver `tcSiempre`. -->
+                        <label class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">
-                                Tipo de cambio
+                                Tipo de cambio (USD→PEN)
                                 <i v-if="cargandoTipoCambio" class="fas fa-circle-notch fa-spin ml-1 text-slate-300"></i>
                             </span>
                             <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio" placeholder="Ej. 3.750"
@@ -1294,7 +1326,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
 
                         <label class="col-span-2">
                             <span class="text-[11px] font-bold text-slate-500">
-                                Tipo de cambio
+                                Tipo de cambio (USD→PEN)
                                 <span v-if="cargandoTipoCambio" class="ml-1 font-normal text-slate-400">
                                     <i class="fas fa-spinner fa-spin text-[9px]"></i> consultando…
                                 </span>
@@ -1305,6 +1337,10 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 class="mt-1 block text-[10px] font-bold text-amber-600">
                                 <i class="fas fa-triangle-exclamation text-[9px] mr-1"></i>
                                 Sin tipo de cambio este pago no suma al saldo (moneda distinta a la reserva).
+                            </span>
+                            <span v-else-if="!pagoForm.tipoCambio" class="mt-1 block text-[10px] font-bold text-slate-400">
+                                Guárdalo aunque coincida la moneda: si mañana se cambia la moneda base
+                                de la reserva, sin él este pago dejaría de sumar.
                             </span>
                         </label>
                         <label class="col-span-2">

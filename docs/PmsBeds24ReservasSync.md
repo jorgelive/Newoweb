@@ -1639,6 +1639,41 @@ editarlos. Se identifican por su `notas` para poder revertirlos en el `down()`.
 
 ## 12.5 Panel financiero en la SPA (`util/`) y patrón de Enums por AJAX
 
+**El tipo de cambio se pide SIEMPRE, en cualquier moneda.** El campo aparecía sólo cuando la
+moneda del registro no era la de la cabecera, y eso dejaba los registros **cojos**: el día que se
+cambia la moneda base de la reserva (USD → PEN), todos los que se guardaron «en la moneda de
+casa» se quedan sin TC, dejan de sumar y hay que ir uno por uno a repararlos.
+
+Guardarlo siempre no tiene coste ni riesgo, y la razón está en el SQL: el TC de este módulo **no
+es «moneda del registro → cabecera»**, es la venta **USD→PEN** del día.
+`PmsInformacionFinancieraRecalculoService::expresionConvertida()` multiplica o divide según el
+par y **lo ignora cuando las dos monedas coinciden** — o sea que un TC de más nunca deforma un
+total, mientras que uno de menos sí lo rompe.
+
+En el formulario: el campo va en alta y en edición de cargos y de pagos, rotulado «Tipo de cambio
+(USD→PEN)», y se autocompleta con la cotización del día al abrir el formulario —también al editar
+un cargo que se guardó sin él, que es justo el que hay que reparar—. Si el registro ya lo tenía,
+se muestra **bloqueado**: es la foto del día y el backend rechaza cambiarlo (§12.4), aunque sí
+permite rellenar el vacío.
+
+**Reparar los que ya están cojos:**
+
+```bash
+php bin/console pms:finanzas:completar-tipo-cambio            # simula y lista lo que tocaría
+php bin/console pms:finanzas:completar-tipo-cambio --aplicar  # escribe
+```
+
+Rellena cargos y pagos sin TC con la cotización **de su propia fecha** (`createdAt` en los
+cargos, que no tienen fecha propia; `fechaPago` en los pagos), nunca con la de hoy: el TC es la
+foto del día en que se movió el dinero. Arranca en simulación a propósito, es idempotente —sólo
+toca los vacíos— y al hacer flush dispara el listener de coherencia, que recalcula las cabeceras.
+Si para alguna fecha no hay cotización, salta ese registro y lo reporta en vez de inventarse un
+valor.
+
+Es un **comando y no una migración** por dos motivos: consulta un servicio externo (SUNAT), que
+no pinta nada dentro de una migración, y hace falta cada vez que se cambia la moneda base de una
+reserva, no una sola vez.
+
 **Formularios abiertos y candado.** Tres reglas que salieron de usarlo:
 
 - **«Guardar Cambios» del drawer arrastra los formularios internos.** Ese botón es mucho más
