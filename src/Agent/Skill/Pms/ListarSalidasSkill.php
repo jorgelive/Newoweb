@@ -47,9 +47,12 @@ final readonly class ListarSalidasSkill implements SkillInterface
     {
         return new SkillDefinition(
             descripcion: 'Lista las estancias que ENTRAN o SALEN en los próximos días, con '
-                . 'el huésped, la casita y la hora. Úsala para preguntas como «quién sale '
-                . 'mañana», «qué llegadas hay esta semana» o «qué casitas hay que limpiar». '
-                . 'Devuelve varias filas: eso es lo esperado, no hace falta acotar a una.',
+                . 'el huésped, la casita, la hora y el localizador. Úsala para preguntas como '
+                . '«quién sale mañana», «qué llegadas hay esta semana» o «qué casitas hay que '
+                . 'limpiar». Devuelve varias filas: eso es lo esperado, no hace falta acotar a '
+                . 'una. Cada fila trae reserva_id y evento_id, así que puedes seguir desde '
+                . 'aquí sin volver a buscar al huésped: pásalos a consultar_cuenta, '
+                . 'localizar_conversacion, evaluar_cambio_horario o aplicar_cambio_horario.',
             parametros: [
                 SkillParameter::texto(
                     'tipo',

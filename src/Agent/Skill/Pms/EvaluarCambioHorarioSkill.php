@@ -56,7 +56,11 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface
                 . 'de una estancia, y explica qué implicaría. NO aplica el cambio: sólo lo '
                 . 'evalúa. Necesita el evento_id que devuelve buscar_estancias_de_reserva. '
                 . 'Úsala cuando pregunten si un huésped puede entrar antes, salir más tarde o '
-                . 'quedarse un día más.',
+                . 'quedarse un día más. Lee siempre el campo aplicable_por_el_agente de la '
+                . 'respuesta: si viene false, NO existe ninguna skill que haga ese cambio '
+                . 'aunque el negocio lo permita, así que dilo y no llames a '
+                . 'aplicar_cambio_horario. Mover días (mover_salida, mover_entrada) nunca es '
+                . 'aplicable: se hace a mano en el calendario del panel.',
             parametros: [
                 SkillParameter::texto('evento_id', 'Identificador de la estancia, tal cual lo '
                     . 'devolvió buscar_estancias_de_reserva.'),
@@ -128,6 +132,7 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface
         if ($yaMarcado) {
             return [
                 'permitido' => true,
+                'aplicable_por_el_agente' => true,
                 'ya_aplicado' => true,
                 'explicacion' => sprintf(
                     'Esta estancia ya tiene marcada la %s. No hace falta volver a aplicarla.',
@@ -138,6 +143,7 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface
 
         return [
             'permitido' => true,
+            'aplicable_por_el_agente' => true,
             'ya_aplicado' => false,
             'implica' => sprintf(
                 'Se marcará la %s y se creará un evento de extensión que bloquea la noche %s. '
@@ -176,10 +182,17 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface
         return [
             'permitido' => true,
             'requiere_comprobacion' => true,
-            'explicacion' => 'Es una reserva directa, así que las fechas se pueden mover. '
-                . 'Antes de aplicarlo hay que comprobar con consultar_disponibilidad que la '
-                . 'casita esté libre las noches nuevas: alargar sobre una noche ya vendida '
-                . 'crearía un doble booking.',
+            // ⚠️ El negocio lo permite, pero NINGUNA skill lo aplica: aplicar_cambio_horario
+            // sólo acepta salida_tardia y entrada_temprana. Sin decirlo aquí, el modelo lee
+            // «permitido: true», intenta aplicarlo y choca con un error que no esperaba.
+            'aplicable_por_el_agente' => false,
+            'explicacion' => 'Es una reserva directa, así que el negocio permite mover las '
+                . 'fechas — pero NO puedes hacerlo tú: no hay ninguna skill que mueva fechas. '
+                . 'Dile al usuario que se puede hacer y que hay que hacerlo desde el '
+                . 'calendario del panel, y no intentes aplicarlo con aplicar_cambio_horario, '
+                . 'que sólo marca salidas tardías y entradas tempranas. Quien lo haga en el '
+                . 'panel debe comprobar antes que la casita esté libre las noches nuevas: '
+                . 'alargar sobre una noche ya vendida crearía un doble booking.',
         ];
     }
 }

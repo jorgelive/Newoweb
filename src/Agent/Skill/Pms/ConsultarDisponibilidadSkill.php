@@ -35,10 +35,14 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
     public function definicion(): SkillDefinition
     {
         return new SkillDefinition(
-            descripcion: 'Consulta qué casitas están libres en un rango de fechas. '
-                . 'Úsala siempre que pregunten por disponibilidad, casitas libres, huecos, '
-                . 'o si se puede alojar a alguien en unas fechas. Nunca respondas de memoria '
-                . 'sobre disponibilidad: llama siempre a esta skill.',
+            descripcion: 'Consulta qué casitas están libres en un rango de fechas. Devuelve '
+                . 'cuántas hay y, de cada una, el nombre, el establecimiento, la capacidad en '
+                . 'personas y la tarifa base con su moneda. Úsala siempre que pregunten por '
+                . 'disponibilidad, casitas libres, huecos, si se puede alojar a alguien en '
+                . 'unas fechas, o cuánto costaría alojarse. Nunca respondas de memoria sobre '
+                . 'disponibilidad: llama siempre a esta skill. La tarifa base es orientativa y '
+                . 'por noche: preséntala como precio de referencia, nunca como el total ni '
+                . 'como precio final de venta, y no la multipliques por las noches.',
             parametros: [
                 SkillParameter::texto('desde', 'Fecha de entrada en formato YYYY-MM-DD.'),
                 SkillParameter::texto('hasta', 'Fecha de salida en formato YYYY-MM-DD. '

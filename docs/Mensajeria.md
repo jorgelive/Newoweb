@@ -742,6 +742,46 @@ Por eso el arreglo va **en la descripción de la skill, no en el system prompt**
 **Al añadir una clave a `getMessageVariables()`, decide si se anuncia.** Si no aporta, mejor
 recortarla de la salida: son tokens en cada llamada que nadie va a pedir.
 
+### ✍️ Escribe la descripción para el modelo más tonto que la va a ejecutar
+
+Las descripciones no se leen desde un modelo grande. En producción esto lo mueve un modelo
+pequeño y barato —es una consulta de panel, no vale pagar Opus por «¿quién sale mañana?»—, y un
+modelo pequeño **no rellena huecos**: no deduce que una skill devuelve el enlace de la guía
+porque «tiene sentido», ni infiere que una evaluación positiva no se puede aplicar.
+
+Lo que hay que dejar explícito, porque es justo lo que un modelo grande adivina y uno pequeño no:
+
+- **Los campos que devuelve, por su nombre.** Ver el apartado anterior.
+- **Las claves de encadenado.** `listar_entradas_salidas` devolvía `reserva_id` y `evento_id`
+  sin anunciarlos: se podía ir de «quién sale mañana» directo a marcarle la salida tardía, y el
+  modelo volvía a buscar al huésped por su nombre.
+- **Lo que la skill NO hace**, si el nombre sugiere más de lo que cubre.
+- **Cómo se presenta un dato ambiguo.** `tarifa_base` es por noche y orientativa; sin decirlo,
+  se multiplica por las noches y se presenta como precio final.
+
+#### ⚠️ El caso que costó: evaluar decía que sí y aplicar no podía
+
+`evaluar_cambio_horario` acepta cuatro cambios; `aplicar_cambio_horario` sólo aplica dos
+(`salida_tardia`, `entrada_temprana`). Para «que se quede un día más» sobre una reserva directa,
+la evaluación devolvía **`permitido: true`** y remataba con «antes de aplicarlo, comprueba la
+disponibilidad» — una invitación a aplicar algo inaplicable. Al llamar a `aplicar_cambio_horario`
+salía un error de validación.
+
+Un modelo grande lee el error y lo explica. Uno pequeño reintenta con otro valor, o —peor— da el
+cambio por hecho porque la evaluación dijo que sí.
+
+La causa es que **`permitido` responde a una pregunta de negocio y el modelo lo leía como una de
+capacidad**. Por eso la respuesta lleva ahora un `aplicable_por_el_agente` explícito en las tres
+ramas, y la descripción de `evaluar_cambio_horario` obliga a mirarlo. La regla general:
+
+> Cuando el dominio permita algo que ninguna skill implementa, dilo **en la respuesta**, con la
+> salida alternativa. El silencio se lee como permiso.
+
+Presente en dos sitios a la vez, que hay que mantener sincronizados: `evaluarMoverFecha()` /
+`evaluarHorarioExtra()` en `EvaluarCambioHorarioSkill`, y el `in_array()` de
+`AplicarCambioHorarioSkill::ejecutar()`. **Si algún día se implementa mover fechas, hay que tocar
+los dos** o el aviso mentirá al revés.
+
 ### 🔑 Lo que no puedes usar, ni se te menciona
 
 `SkillRegistry::paraActor()` filtra **antes** de construir la petición. No es que el modelo lo
@@ -1018,6 +1058,7 @@ perfil que no debería, ese perfil puede invocarla.
 | **Añadir una capacidad al agente** | `src/Agent/Skill/` | Una clase con `SkillInterface` — §11. No se toca motor ni adaptador |
 | Cambiar quién puede usar una skill | la propia skill | `rolesRequeridos()` — comprueba con `app:agent:permisos` |
 | Que el agente sepa que puede dar un dato que ya devuelve | la propia skill | `definicion()->descripcion` — **no el system prompt**, §11 |
+| Permitir que el agente mueva fechas de estancia | `AplicarCambioHorarioSkill` | `in_array()` de `ejecutar()` **y** `aplicable_por_el_agente` en `EvaluarCambioHorarioSkill::evaluarMoverFecha()` — §11, los dos o ninguno |
 | Cambiar el enlace a la guía o al catálogo de tours | `config/services/services_parameters.yaml` | `pax_book_guide_url` = `PAX_HOST_URL` + localizador; se arma en `PmsMessageDataResolver::getMessageVariables()` |
 | Cambiar si algo pide confirmación o PIN | la propia skill | `nivelRiesgo()` — §11 |
 | Acotar una skill a la reserva del que pregunta | la propia skill | Usa `$actor->contextoId()`, no un parámetro — §11 |

@@ -52,12 +52,15 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
     public function definicion(): SkillDefinition
     {
         return new SkillDefinition(
-            descripcion: 'Marca la salida tardía o la entrada temprana de una estancia. '
-                . 'MODIFICA DATOS: antes de llamarla con confirmado=true, dile al usuario '
-                . 'exactamente qué vas a hacer (huésped, casita, qué se marca) y espera su '
-                . 'sí. Si la llamas con confirmado=false te devuelve la previsualización sin '
-                . 'tocar nada. Necesita el evento_id de buscar_estancias_de_reserva, y '
-                . 'conviene comprobar antes con evaluar_cambio_horario que está permitido.',
+            descripcion: 'Marca la salida tardía o la entrada temprana de una estancia. Hace '
+                . 'SÓLO esas dos cosas: NO mueve fechas, no cambia de casita, no alarga la '
+                . 'estancia un día más. Si te piden mover un día, di que hay que hacerlo en el '
+                . 'calendario del panel y no llames a esta skill. MODIFICA DATOS: antes de '
+                . 'llamarla con confirmado=true, dile al usuario exactamente qué vas a hacer '
+                . '(huésped, casita, qué se marca) y espera su sí. Si la llamas con '
+                . 'confirmado=false te devuelve la previsualización sin tocar nada. Necesita '
+                . 'el evento_id de buscar_estancias_de_reserva, y conviene comprobar antes con '
+                . 'evaluar_cambio_horario que está permitido.',
             parametros: [
                 SkillParameter::texto('evento_id', 'Identificador de la estancia.'),
                 SkillParameter::texto('cambio', '"salida_tardia" o "entrada_temprana".'),
