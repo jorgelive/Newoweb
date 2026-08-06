@@ -15,6 +15,7 @@ use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Service\Finance\MonedaResolver;
+use App\Pms\Service\Finance\PmsCuentaSimulador;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use App\Security\Roles;
 use DateTimeImmutable;
@@ -66,6 +67,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface
         private EntityManagerInterface $em,
         private MonedaResolver $monedas,
         private TipoCambioDelDia $tipoCambio,
+        private PmsCuentaSimulador $simulador,
     ) {}
 
     public function nombre(): string
@@ -96,7 +98,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                 . 'una cuenta en USD. Nunca lo des por hecho: si no lo dicen, pregunta. Si la '
                 . 'respuesta trae falta_datos, traslada su pregunta al operador y vuelve a '
                 . 'llamarme con lo que conteste, sin inventar nada. Si trae advertencia, '
-                . 'LÉESELA antes de pedir la confirmación. Necesita el reserva_id.',
+                . 'LÉESELA antes de pedir la confirmación. ENSEÑA SIEMPRE LA SIMULACIÓN: la respuesta trae un bloque «simulacion» con cargos, pagado y saldo ANTES y DESPUÉS. Muéstraselo al operador como una comparación, no lo resumas en una frase, y termina con la pregunta exacta de pregunta_aprobacion. No apliques nada hasta que responda que sí. Necesita el reserva_id.',
                 $pctTarjeta
             ),
             parametros: [
@@ -298,6 +300,10 @@ final readonly class RegistrarPagoSkill implements SkillInterface
             return SkillResult::ok($resumen + [
                 'registrado' => false,
                 'motivo' => 'falta_confirmacion',
+                // La foto entera de la cuenta, no sólo el saldo: el operador aprueba mejor
+                // viendo en qué queda todo que leyendo una frase.
+                'simulacion' => $this->simulador->simular($info, deltaPagos: $neto),
+                'pregunta_aprobacion' => '¿Apruebas el cambio?',
                 'previsualizacion' => sprintf(
                     'Se registrará un pago de %s por %s a nombre de %s (%s). Abona %s y el '
                     . 'saldo quedará en %s. CONFIRMA CON EL OPERADOR QUE ES ESE HUÉSPED antes '

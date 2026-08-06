@@ -1071,6 +1071,30 @@ pago son una de más.
                 se pasó por el POS o lo que debe abonar a la deuda?"
 ```
 
+#### 🧮 La previsualización enseña la cuenta entera, no una frase
+
+`registrar_pago` y `registrar_cargo` devuelven un bloque `simulacion` con **cargos, pagado y
+saldo, antes y después**, y una `pregunta_aprobacion` literal con la que el modelo tiene que
+cerrar. Un operador aprueba mejor viendo en qué queda todo que leyendo «se cargarán 20».
+
+```
+             cargos    pagado     saldo
+  antes      217.86    217.86      0.00
+  después    217.86    223.75     -5.89   USD     ← pago
+  después    223.75    217.86      5.89   USD     ← cargo del mismo importe
+```
+
+Lo calcula `PmsCuentaSimulador`, **un solo servicio para las dos skills** y para cualquier
+«previsualizar» que quiera el panel mañana. Si cada skill hiciera su resta, bastaría con que una
+redondeara distinto para que la previsualización dejara de coincidir con lo que se guarda — que
+es justo el fallo que una previsualización existe para evitar.
+
+🪞 El saldo se calcula igual que `PmsInformacionFinanciera::getSaldo()`: cargos menos pagos con
+`number_format(…, 2)`. **Si allí cambia la fórmula, aquí también.**
+
+`saldo_a_favor_del_huesped` va como booleano y no se deja deducir del signo: quien lo lee es un
+modelo, y un `-5.89` no siempre se interpreta como lo que es.
+
 #### ⚠️ Un número anómalo no se señala solo
 
 Charline Morin tenía la cuenta **saldada** (217.86 de 217.86). Un pago encima la deja en

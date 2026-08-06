@@ -15,6 +15,7 @@ use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsTipoCargo;
 use App\Pms\Service\Finance\MonedaResolver;
+use App\Pms\Service\Finance\PmsCuentaSimulador;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -43,6 +44,7 @@ final readonly class RegistrarCargoSkill implements SkillInterface
         private EntityManagerInterface $em,
         private MonedaResolver $monedas,
         private TipoCambioDelDia $tipoCambio,
+        private PmsCuentaSimulador $simulador,
     ) {}
 
     public function nombre(): string
@@ -57,7 +59,7 @@ final readonly class RegistrarCargoSkill implements SkillInterface
                 . 'extra, penalización, consumo…). MODIFICA DATOS: antes de llamarla con '
                 . 'confirmado=true, dile al usuario el importe, la moneda y el concepto, y '
                 . 'espera su sí. Con confirmado=false devuelve la previsualización —incluida '
-                . 'la conversión de moneda— sin tocar nada. Si el importe viene en otra moneda '
+                . 'la conversión de moneda— sin tocar nada. ENSEÑA SIEMPRE LA SIMULACIÓN: la respuesta trae un bloque «simulacion» con cargos, pagado y saldo ANTES y DESPUÉS. Muéstraselo al operador como una comparación, no lo resumas en una frase, y termina con la pregunta exacta de pregunta_aprobacion. No apliques nada hasta que responda que sí. Si el importe viene en otra moneda '
                 . 'que la de la cuenta, se convierte automáticamente: no conviertas tú.',
             parametros: [
                 SkillParameter::texto('reserva_id', 'Identificador de la reserva.'),
@@ -163,6 +165,10 @@ final readonly class RegistrarCargoSkill implements SkillInterface
             return SkillResult::ok($resumen + [
                 'aplicado' => false,
                 'motivo' => 'falta_confirmacion',
+                // Misma foto que en registrar_pago, por el mismo simulador: un cargo y un pago
+                // mueven la misma cuenta y el operador debe verla igual en los dos casos.
+                'simulacion' => $this->simulador->simular($info, deltaCargos: $importeFinal),
+                'pregunta_aprobacion' => '¿Apruebas el cambio?',
                 'previsualizacion' => $tipoAplicado !== null
                     ? sprintf(
                         'Se cargarán %s (equivalen a %s al tipo de cambio %s). Confírmalo para aplicarlo.',
