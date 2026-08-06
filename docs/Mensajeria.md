@@ -1071,6 +1071,50 @@ pago son una de más.
                 se pasó por el POS o lo que debe abonar a la deuda?"
 ```
 
+#### 📋 Toda escritura previsualiza, enumera consecuencias y pide aprobación
+
+Las cuatro skills de escritura (`aplicar_cambio_horario`, `registrar_cargo`, `registrar_pago`,
+`enviar_mensaje_huesped`) devuelven con `confirmado: false` el mismo contrato:
+
+1. **A quién afecta**, con nombre, casita y localizador — nunca sólo un id.
+2. **Qué va a pasar**, entero.
+3. Una `pregunta_aprobacion` literal con la que el modelo tiene que cerrar.
+
+##### ⚠️ Enumerar lo que dispara, no lo que escribe
+
+`aplicar_cambio_horario` escribe **un booleano**. Ese booleano dispara tres cosas más al hacer
+flush, en tres servicios distintos, y la previsualización decía sólo «se marcará la salida
+tardía… bloqueará esa noche en los canales». El operador aprobaba una cosa y ocurrían cuatro:
+
+```
+1. Se marca la salida tardía. Las horas de entrada y salida NO cambian: esta
+   acción no fija una hora concreta.
+2. Se crea un evento de extensión que ocupa la noche del día de salida en
+   Casita 2, así que Casita 2 deja de estar disponible esa noche.
+3. La extensión viaja al canal como bloqueo, así que Casita 2 deja de venderse
+   esa noche en TODOS los portales (esta reserva vino de Booking.com).
+   Deshacerlo exige desmarcarlo y esperar otro push.
+4. Se abre en la cuenta una línea «Salida tardía (noche bloqueada) · Casita 2»
+   con importe 0.00. NO cobra nada por sí sola: el importe se lo pone el
+   operador desde el panel financiero.
+```
+
+**La regla: la previsualización describe el efecto, no la escritura.** Lo que el operador
+aprueba es que la casita deje de venderse en Booking, no que un booleano pase a `true`.
+
+##### 🔥 `aplicar_cambio_horario` NO fija una hora
+
+Marca la bandera; **no toca `inicio` ni `fin`**. «Que salga a las 18h» no se puede pedir por
+aquí, y la previsualización lo dice en su primer punto para que el modelo no lo dé por hecho al
+oír una hora en la petición.
+
+##### 🔥 Después de marcarla, NO uses `registrar_cargo`
+
+`PmsCargosAutomaticosService::sincronizarExtras()` **ya abre la línea a 0.00**, a propósito:
+cuánto vale salir más tarde se negocia caso por caso y sugerir un precio sería peor que no poner
+ninguno. Añadir un cargo dejaría **dos conceptos iguales** en la cuenta sin saber cuál es el
+bueno. El `siguiente_paso_sugerido` de la skill decía justo lo contrario y estaba mal.
+
 #### 🧮 La previsualización enseña la cuenta entera, no una frase
 
 `registrar_pago` y `registrar_cargo` devuelven un bloque `simulacion` con **cargos, pagado y

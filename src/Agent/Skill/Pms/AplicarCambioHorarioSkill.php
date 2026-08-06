@@ -18,10 +18,17 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Marca la salida tardía o la entrada temprana de una estancia. **Escribe.**
  *
- * 🔗 Último eslabón de la cadena, y el primero que toca datos. Deliberadamente hace UNA cosa:
- * marcar el flag. No cobra nada — cobrar es {@see RegistrarCargoSkill}, y el modelo encadena
- * las dos si el operador lo pide. Meter el cobro aquí ataría dos decisiones que el negocio
- * toma por separado: hay late check-outs de cortesía.
+ * 🔗 Último eslabón de la cadena, y el primero que toca datos. Escribe **un booleano** — pero
+ * ese booleano dispara tres cosas más al hacer flush, y las tres se enumeran en
+ * {@see self::consecuencias()} para que la previsualización no mienta por omisión.
+ *
+ * ### ⚠️ No uses RegistrarCargoSkill después de ésta
+ *
+ * `PmsCargosAutomaticosService::sincronizarExtras()` abre sola la línea «Salida tardía (noche
+ * bloqueada) · Casita N» con importe **0.00**, a la espera de que el operador la valore: cuánto
+ * vale salir más tarde se negocia caso por caso y sugerir un precio sería peor que no poner
+ * ninguno. Añadir un cargo con `registrar_cargo` dejaría **dos conceptos iguales** en la cuenta
+ * y el operador no sabría cuál es el bueno. El importe se pone en la línea que ya existe.
  *
  * ### Por qué marca un flag y no mueve `fin`
  *
@@ -32,11 +39,11 @@ use Symfony\Component\Uid\Uuid;
  *
  * Por eso esto SÍ funciona en reservas de OTA, mientras que mover fechas está prohibido.
  *
- * ### La confirmación no la garantiza el prompt
+ * ### ⚠️ La confirmación depende del modelo, no del código
  *
- * `confirmado` es un parámetro obligatorio. Sin él la skill devuelve la previsualización y
- * **no escribe**. Confiar sólo en que el system prompt diga «pregunta antes de aplicar» deja
- * la puerta a que el modelo se salte el paso; así el freno está en el código.
+ * Con `confirmado: false` la skill devuelve la previsualización y no escribe. Pero **nada
+ * impide llamarla con `true` a la primera**: `confirmado` es un parámetro más y el servidor no
+ * recuerda si hubo previsualización. Ver §11.1 de docs/Mensajeria.md.
  */
 final readonly class AplicarCambioHorarioSkill implements SkillInterface
 {
@@ -60,7 +67,13 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
                 . '(huésped, casita, qué se marca) y espera su sí. Si la llamas con '
                 . 'confirmado=false te devuelve la previsualización sin tocar nada. Necesita '
                 . 'el evento_id de buscar_estancias_de_reserva, y conviene comprobar antes con '
-                . 'evaluar_cambio_horario que está permitido.',
+                . 'evaluar_cambio_horario que está permitido. LOCALIZA PRIMERO A QUIÉN: si te '
+                . 'dicen «el de la casita 2», usa consultar_ocupacion con la fecha de hoy para '
+                . 'saber quién es y con qué evento_id, y confirma el nombre con el operador. '
+                . 'ENSEÑA LA PREVISUALIZACIÓN ENTERA: la respuesta trae «que_va_a_pasar» con '
+                . 'TODAS las consecuencias —el bloqueo que sale a los portales, la línea de '
+                . 'cargo que se abre—. Léeselas una a una al operador, no las resumas, y '
+                . 'termina con la pregunta de pregunta_aprobacion.',
             parametros: [
                 SkillParameter::texto('evento_id', 'Identificador de la estancia.'),
                 SkillParameter::texto('cambio', '"salida_tardia" o "entrada_temprana".'),
@@ -109,7 +122,12 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
                 ($evento->getReserva()?->getApellidoCliente() ?? '')
             ),
             'casita' => $evento->getPmsUnidad()?->getNombre() ?? '—',
+            'localizador' => $evento->getReserva()?->getLocalizador(),
             'cambio' => $cambio,
+            'es_ota' => $evento->isOta(),
+            'canal' => $evento->getReserva()?->getChannel()?->getNombre(),
+            'entrada_actual' => $evento->getInicio()?->format('Y-m-d H:i'),
+            'salida_actual' => $evento->getFin()?->format('Y-m-d H:i'),
         ];
 
         if ($yaMarcado) {
@@ -124,18 +142,28 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
             return SkillResult::ok($resumen + [
                 'aplicado' => false,
                 'motivo' => 'falta_confirmacion',
+                // Las tres consecuencias, enumeradas. Dos de ellas —el bloqueo que sale al
+                // canal y la línea de cargo a cero— las provocan servicios de más abajo al
+                // hacer flush, no esta skill: si no se nombran aquí, el operador aprueba una
+                // cosa y ocurren tres.
+                'que_va_a_pasar' => $this->consecuencias($evento, $esSalida),
+                'pregunta_aprobacion' => '¿Apruebas el cambio?',
                 'previsualizacion' => sprintf(
-                    'Se marcará la %s de %s en %s, lo que bloqueará esa noche también en los '
-                    . 'canales de venta. Confírmalo para aplicarlo.',
-                    $esSalida ? 'salida tardía' : 'entrada temprana',
+                    'La estancia de %s en %s (%s) quedará marcada con %s. Enséñale al operador '
+                    . 'la lista de «que_va_a_pasar» entera antes de pedirle el sí.',
                     $resumen['huesped'] !== '' ? $resumen['huesped'] : 'el huésped',
-                    $resumen['casita']
+                    $resumen['casita'],
+                    $resumen['localizador'] ?? 'sin localizador',
+                    $esSalida ? 'salida tardía' : 'entrada temprana'
                 ),
             ]);
         }
 
-        // Al hacer flush, PmsExtensionEstanciaService crea el evento de extensión y el push
-        // lo manda al canal. Esta skill no orquesta nada de eso: sólo marca.
+        // Al hacer flush pasan tres cosas que esta skill NO orquesta, sólo dispara al marcar:
+        // PmsExtensionEstanciaService crea el evento de extensión, el push lo manda al canal
+        // como bloqueo, y PmsCargosAutomaticosService abre la línea de cargo a 0.00.
+        // Están enumeradas en consecuencias() para que la previsualización no mienta por
+        // omisión.
         if ($esSalida) {
             $evento->setSalidaTardia(true);
         } else {
@@ -146,11 +174,68 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
 
         return SkillResult::ok($resumen + [
             'aplicado' => true,
+            'que_ha_pasado' => $this->consecuencias($evento, $esSalida),
             'mensaje' => sprintf(
                 'Marcada la %s. Se ha creado la extensión que bloquea esa noche.',
                 $esSalida ? 'salida tardía' : 'entrada temprana'
             ),
-            'siguiente_paso_sugerido' => 'Si corresponde cobrarlo, usa registrar_cargo.',
+            // NO se sugiere registrar_cargo: PmsCargosAutomaticosService ya ha creado la línea
+            // «Salida tardía (noche bloqueada) · Casita N» a 0.00. Añadir otra con
+            // registrar_cargo dejaría dos conceptos iguales en la cuenta, y el operador no
+            // sabría cuál es el bueno. Valorar la que existe se hace en el panel.
+            'siguiente_paso_sugerido' => 'Ya se ha creado la línea del cargo con importe 0.00 '
+                . 'para que la valore el operador. NO uses registrar_cargo para esto: '
+                . 'duplicaría el concepto. El importe se le pone a esa línea desde el panel '
+                . 'financiero de la reserva.',
         ]);
+    }
+
+    /**
+     * Todo lo que se dispara al marcar, con nombre y apellidos.
+     *
+     * La skill escribe **un booleano**; lo demás lo hacen listeners y servicios al hacer flush.
+     * Enumerarlo aquí es lo que separa «¿apruebas marcar la salida tardía?» de «¿apruebas que
+     * la casita deje de venderse esa noche en todos los portales?» — que es la misma acción y
+     * la segunda es la que el operador necesita oír.
+     *
+     * @return list<string>
+     */
+    private function consecuencias(PmsEventoCalendario $evento, bool $esSalida): array
+    {
+        $casita = $evento->getPmsUnidad()?->getNombre() ?? 'la casita';
+        $noche = $esSalida ? 'la noche del día de salida' : 'la noche anterior a la llegada';
+        $concepto = $esSalida ? 'Salida tardía (noche bloqueada)' : 'Entrada temprana (noche bloqueada)';
+
+        $lista = [
+            sprintf(
+                'Se marca la %s en la estancia. Las horas de entrada y salida NO cambian: '
+                . 'esta acción no fija una hora concreta.',
+                $esSalida ? 'salida tardía' : 'entrada temprana'
+            ),
+            sprintf(
+                'Se crea un evento de extensión que ocupa %s en %s, así que %s deja de estar '
+                . 'disponible esa noche.',
+                $noche,
+                $casita,
+                $casita
+            ),
+        ];
+
+        $canal = $evento->getReserva()?->getChannel()?->getNombre();
+        $lista[] = sprintf(
+            'La extensión viaja al canal como bloqueo, así que %s deja de venderse esa noche '
+            . 'en TODOS los portales%s. Deshacerlo exige desmarcarlo y esperar otro push.',
+            $casita,
+            $canal !== null ? ' (esta reserva vino de ' . $canal . ')' : ''
+        );
+
+        $lista[] = sprintf(
+            'Se abre en la cuenta una línea «%s · %s» con importe 0.00. NO cobra nada por sí '
+            . 'sola: el importe se lo pone el operador desde el panel financiero.',
+            $concepto,
+            $casita
+        );
+
+        return $lista;
     }
 }

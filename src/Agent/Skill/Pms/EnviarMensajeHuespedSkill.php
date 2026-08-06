@@ -158,9 +158,11 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface
             return SkillResult::ok($resumen + [
                 'enviado' => false,
                 'motivo' => 'falta_confirmacion',
+                'pregunta_aprobacion' => '¿Apruebas el envío?',
                 'previsualizacion' => sprintf(
-                    'Se enviará este mensaje a %s por %s. Enséñaselo al operador tal cual y '
-                    . 'espera su confirmación.',
+                    'Se enviará este mensaje a %s por %s. Es IRREVERSIBLE: una vez enviado no '
+                    . 'se puede retirar. Enséñaselo al operador tal cual, palabra por palabra, '
+                    . 'y espera su confirmación.',
                     $conversacion->getGuestName() ?? 'el huésped',
                     implode(' y ', $pedidos)
                 ),
