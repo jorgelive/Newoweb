@@ -913,6 +913,46 @@ Dos cosas que la skill filtra a propósito:
 Es un patrón a repetir en cualquier skill nueva: **un dato que un humano tolera en pantalla
 puede ser ruido o mentira dicho en voz alta por el agente.**
 
+### Escribirle al huésped: localizar y enviar
+
+Dos skills, porque son dos preguntas distintas:
+
+```
+  localizar_conversacion(reserva_id)   → chat + POR QUÉ CANALES se puede escribir AHORA
+        ↓
+  enviar_mensaje_huesped(...)      ✍️  → borrador → «¿lo mando?» → sale
+```
+
+**`localizar_conversacion` no reimplementa las reglas de canal: se las pregunta a quien las
+tiene.** Recorre los `ChannelEnqueuerInterface` y llama a su `isValid()` con un `Message` en
+memoria, **sin persistir**. Es el mismo juez que decidirá en el envío real, así que lo que
+diga aquí es lo que pasará después. Copiar aquí «Beds24 no admite directas» o la ventana de
+24 h habría creado una segunda verdad que se desincroniza a la primera.
+
+Verificado sobre dos reservas reales: en una de OTA salen los dos canales; en una directa,
+Beds24 aparece como no disponible **con el motivo en lenguaje de operador**.
+
+**El texto lo compone el modelo, no la skill.** No hay un `enviar_estado_de_cuenta` que arme
+la tabla por dentro: el modelo consulta `consultar_cuenta`, redacta en el idioma del huésped y
+`enviar_mensaje_huesped` lo manda. Así sirve igual para un estado de cuenta, una instrucción
+de llegada o lo que haga falta mañana — sin una skill nueva por cada tipo de mensaje.
+
+**Formato por canal:** el mismo texto no se lee igual en los dos sitios. WhatsApp interpreta
+`*negrita*` y respeta los saltos de línea; el chat de una OTA es texto plano en una caja
+estrecha. Eso se le dice al modelo **en la descripción de la skill**, no se reformatea por
+código: reescribir a ciegas un texto que un humano acaba de aprobar es cambiar el mensaje
+después de la revisión.
+
+Tres decisiones más:
+
+- **`MENSAJES_WRITE`, no `RESERVAS_WRITE`.** Escribirle a un huésped es mensajería; quien
+  gestiona reservas no tiene por qué poder hacerlo.
+- **`SENDER_HOST`, no `SENDER_SYSTEM`.** Lo manda una persona a través del asistente y en el
+  chat debe verse así. Además `SENDER_HOST` es lo que activa el guardia «humano al mando» y
+  calla al autoresponder 30 minutos — justo lo que corresponde tras escribir a mano.
+- **Un canal pedido que no vale se descarta, no rompe el envío.** Pedir «email, whatsapp» y
+  que salga por WhatsApp es mejor que no enviar nada.
+
 ### Comprobar el alcance
 
 ```bash
