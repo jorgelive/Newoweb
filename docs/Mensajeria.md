@@ -890,6 +890,29 @@ La descripción de la skill le dice al modelo explícitamente que **no convierta
 tipo de cambio disponible no se inventa uno: se devuelve el error y lo mete una persona — un
 cargo con una cifra inventada es peor que un cargo que falta.
 
+### Detalle sí, pero sólo cuando se pide
+
+`consultar_cuenta` devuelve los cargos y pagos línea a línea. **No duplica los totales**:
+`buscar_reserva` y `consultar_mi_reserva` ya traen `total_amount`, `paid_amount` y `balance`,
+que es lo que responde «¿cuánto debe Carlos?».
+
+Meter el detalle en todas las skills habría hinchado cada respuesta con veinte líneas que el
+90% de las veces no se miran — y eso se paga en tokens **en cada consulta**. Separarlo es una
+decisión de coste, no de organización.
+
+Dos cosas que la skill filtra a propósito:
+
+- **Las notas de los pagos no salen.** Son apuntes internos («el huésped discutió el cargo»),
+  y esta respuesta puede acabar copiada y pegada a un huésped.
+- **🔥 Los placeholders de Beds24 se traducen.** Los cargos importados del canal pueden traer
+  la plantilla sin sustituir —`[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]`, hay casos así en
+  producción—. En el panel se ve raro pero se entiende; puesto delante de un modelo, se lo lee
+  al operador tal cual. Cuando el concepto es sólo placeholders se cae al nombre del tipo de
+  cargo («Alojamiento»), que es información verdadera y legible.
+
+Es un patrón a repetir en cualquier skill nueva: **un dato que un humano tolera en pantalla
+puede ser ruido o mentira dicho en voz alta por el agente.**
+
 ### Comprobar el alcance
 
 ```bash
