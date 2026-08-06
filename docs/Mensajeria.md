@@ -945,10 +945,10 @@ con qué responder, así que pedírsela a él sería confiar en lo que acaba de 
 **Marcar y cobrar son skills distintas** porque son decisiones distintas: hay late check-outs
 de cortesía. El modelo encadena las dos sólo si el operador lo pide.
 
-### 🔒 La confirmación está en el código, no en el prompt
+### ⚠️ La confirmación la decide el modelo: hoy NO hay freno en el código
 
-Las skills de escritura llevan un parámetro **`confirmado` obligatorio**. Con `false` devuelven
-la previsualización y **no tocan nada**:
+Las skills de escritura llevan un parámetro `confirmado`. Con `false` devuelven la
+previsualización y **no tocan nada**:
 
 ```
 "aplicado": false,
@@ -957,9 +957,53 @@ la previsualización y **no tocan nada**:
                      bloqueará esa noche también en los canales de venta."
 ```
 
-Confiar sólo en que el system prompt diga «pregunta antes de aplicar» deja la puerta a que el
-modelo se salte el paso. Así el freno es del código y la previsualización sale de los datos
-reales, no de lo que el modelo cree que va a pasar.
+Lo que sí es del código es **el contenido** de esa previsualización: sale de los datos reales
+—incluida la conversión de moneda ya hecha—, no de lo que el modelo cree que va a pasar.
+
+**Pero el paso previo no está forzado.** `confirmado` es un parámetro más que el modelo rellena:
+`nivelRiesgo()` sólo se usa en `SkillRegistry::paraActor()` para incluir o excluir la skill del
+catálogo, y ninguna parte del servidor recuerda si hubo previsualización. Una sola llamada con
+`confirmado: true` registra el cargo o manda el WhatsApp. Lo único que lo evita es que la
+descripción de la skill se lo pida al modelo.
+
+Consecuencia directa: **la seguridad de las escrituras depende hoy de la capacidad del modelo**,
+que es justo de lo que no debería depender. Ver §11.1 para qué modelo aguanta eso y para los dos
+niveles de freno real que quedan por implementar.
+
+### 11.1 Qué modelo aguanta este prompt
+
+El catálogo son ~1.600 tokens en 12 descripciones. La dificultad no está en el tamaño, sino en
+que **el coste de un error no es uniforme**:
+
+| Zona | Si el modelo se equivoca | Suelo razonable |
+|---|---|---|
+| Lectura (disponibilidad, ocupación, cuenta) | Respuesta mala que el operador ve y contrasta | Modelo pequeño |
+| Escritura sobre datos (`registrar_cargo`, `aplicar_cambio_horario`) | Cargo indebido, o un bloqueo que **viaja al canal** y retira la noche de todos los portales | Alto, mientras no haya freno |
+| Escritura hacia fuera (`enviar_mensaje_huesped`) | Un WhatsApp a una persona real. **No se deshace** | Alto, mientras no haya freno |
+
+Las trampas concretas de la parte de lectura ya están cubiertas en las descripciones: el rango
+semiabierto, las tres skills de fechas que se parecen (§ `consultar_ocupacion`), `tarifa_base`
+por noche, `aplicable_por_el_agente`. Fallan **ruidosamente**: un UUID mal copiado no valida y la
+skill responde «no existe», que es un error visible y barato.
+
+La escritura no falla ruidosamente, y ahí el modelo es hoy el único guardia.
+
+#### Los dos frenos que faltan, por orden de valor
+
+1. **Token de confirmación ligado al payload.** La primera llamada devuelve la previsualización y
+   un token HMAC del payload normalizado; sólo ejecuta una llamada que traiga ese token y cuyos
+   parámetros produzcan el mismo hash. Sin estado que guardar. El modelo deja de poder ejecutar
+   sin haber previsualizado **exactamente esos** parámetros, y cambiar el importe entre los dos
+   pasos invalida el token.
+2. **Aprobación fuera del bucle.** El token evita el salto, pero no garantiza que un humano lo
+   viera: el modelo puede previsualizar y confirmar en el mismo turno. Para eso la escritura
+   tiene que suspenderse y volver al panel como acción pendiente que alguien pulsa.
+
+Sólo el segundo es **independiente del modelo**. Con él, la elección de modelo vuelve a ser una
+cuestión de calidad de respuesta y de coste — no de seguridad.
+
+> **Regla:** no se compra un modelo más caro para cubrir un `if` que falta. Mientras el freno no
+> exista, el modelo es parte del perímetro de seguridad, y eso hay que decirlo en voz alta.
 
 ### 💱 Conversión de moneda: la hace la skill, no el modelo
 
