@@ -14,6 +14,7 @@ use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Enum\PmsMedioPago;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -115,6 +116,11 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
                 && (float) $info->getSaldo() <= 0.0,
             'cargos' => $this->cargos($info),
             'pagos' => $this->pagos($info),
+            'pago_con_tarjeta' => $this->conRecargoTarjeta($info->getSaldo(), $moneda),
+            // El idioma del huésped viaja con los datos para que el modelo sepa en qué
+            // lengua dirigirse a él si hay que redactarle algo. La skill NO traduce: devuelve
+            // datos y quien redacta es el modelo, que es lo que mejor hace.
+            'idioma_huesped' => $reserva->getIdioma()?->getId(),
         ]);
     }
 
@@ -150,7 +156,10 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
             $filas[] = array_filter([
                 'importe' => $pago->getMonto(),
                 'moneda' => $pago->getMoneda()?->getId(),
-                'medio' => $pago->getMedioPago()->value,
+                // `label()` y no el value crudo: el enum se declara «la ÚNICA fuente de
+                // verdad» de la etiqueta, y «western_union» dicho por el agente suena a
+                // identificador, no a Western Union.
+                'medio' => $pago->getMedioPago()->label(),
                 'fecha' => $pago->getFechaPago()?->format('Y-m-d'),
                 'referencia' => $pago->getReferencia(),
                 'tipo_cambio' => $pago->getTipoCambio(),
@@ -161,6 +170,40 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
         }
 
         return $filas;
+    }
+
+    /**
+     * Cuánto sale pagar el saldo con tarjeta.
+     *
+     * Es la pregunta que el huésped hace en cuanto ve el saldo, y la vista de `pax` ya se lo
+     * muestra — si el agente no lo sabe, dará una cifra distinta a la que el huésped tiene
+     * delante. El porcentaje sale de `PmsMedioPago`, que es donde vive: codificar «5.5» aquí
+     * lo dejaría desactualizado el día que cambie.
+     *
+     * @return array<string, mixed>|null `null` si no hay nada pendiente.
+     */
+    private function conRecargoTarjeta(string $saldo, string $moneda): ?array
+    {
+        $pendiente = (float) $saldo;
+
+        if ($pendiente <= 0.0) {
+            return null;
+        }
+
+        $porcentaje = (float) PmsMedioPago::TARJETA_CREDITO->comisionPorcentaje();
+
+        return [
+            'total' => sprintf('%.2f', round($pendiente * (1 + $porcentaje / 100), 2)),
+            'moneda' => $moneda,
+            'recargo_porcentaje' => $porcentaje,
+            'nota' => sprintf(
+                'Sólo si paga con tarjeta: incluye el %s%% de comisión. Por transferencia, '
+                . 'Western Union o efectivo son %s %s.',
+                rtrim(rtrim(sprintf('%.1f', $porcentaje), '0'), '.'),
+                sprintf('%.2f', $pendiente),
+                $moneda
+            ),
+        ];
     }
 
     /**
