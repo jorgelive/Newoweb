@@ -759,6 +759,25 @@ Lo que hay que dejar explícito, porque es justo lo que un modelo grande adivina
 - **Cómo se presenta un dato ambiguo.** `tarifa_base` es por noche y orientativa; sin decirlo,
   se multiplica por las noches y se presenta como precio final.
 
+#### Capacidad va en la descripción; vocabulario, en el prompt
+
+La regla del apartado anterior —*el arreglo va en la descripción, no en el system prompt*— tiene
+una frontera que conviene no borrar:
+
+| Qué es | Dónde va | Por qué |
+|---|---|---|
+| **Qué puede hacer o devolver una skill** | `definicion()->descripcion` | Es de esa skill, y se filtra por rol: anunciarlo en el prompt compartido se lo promete a quien no puede invocarla |
+| **Cómo habla el equipo** | `PanelAssistant::systemPrompt()` | Aplica igual a las 12 skills. Repetirlo en cada una son 12 sitios que se desincronizan |
+
+El caso real: **«pasajero» y «huésped» son la misma persona.** El negocio opera también como
+agencia, así que los dos términos se mezclan a diario — pero las 12 skills dicen «huésped» y
+ninguna dice «pasajero». No es un sinónimo del diccionario que el modelo deba adivinar: es
+vocabulario de esta casa, y lo mismo vale para «la 1» como nombre de la Casita 1.
+
+Va en el prompt del panel y **no** en el del chat del huésped
+(`AiConversationProcessor::systemPrompt()`): un huésped habla de «mi reserva», no se llama a sí
+mismo pasajero. Es jerga de operación interna.
+
 #### ⚠️ El caso que costó: evaluar decía que sí y aplicar no podía
 
 `evaluar_cambio_horario` acepta cuatro cambios; `aplicar_cambio_horario` sólo aplica dos
