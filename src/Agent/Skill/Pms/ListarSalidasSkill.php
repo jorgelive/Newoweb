@@ -1,0 +1,164 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Agent\Skill\Pms;
+
+use App\Agent\Access\ActorInterface;
+use App\Agent\Access\NivelRiesgo;
+use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillInterface;
+use App\Agent\Skill\SkillParameter;
+use App\Agent\Skill\SkillResult;
+use App\Pms\Entity\PmsEventoEstado;
+use App\Security\Roles;
+use DateTimeImmutable;
+use DateTimeZone;
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\ORM\EntityManagerInterface;
+
+/**
+ * Quién entra o sale en los próximos días.
+ *
+ * Es el ejemplo de **skill de cardinalidad abierta**: devolver muchas filas es el resultado
+ * correcto, no un problema a refinar. Contrasta con {@see BuscarReservaSkill}, donde varias
+ * coincidencias significan «pregunta cuál» porque detrás suele venir una acción.
+ *
+ * La distinción importa al encadenar: una skill de la que se espera UNA entidad para actuar
+ * sobre ella no se comporta igual que un listado.
+ *
+ * Sirve además a limpieza: `ROLE_LIMPIEZA` la tiene aunque no vea el resto del PMS.
+ */
+final readonly class ListarSalidasSkill implements SkillInterface
+{
+    private const string TZ = 'America/Lima';
+    private const int MAX_DIAS = 30;
+
+    public function __construct(
+        private EntityManagerInterface $em
+    ) {}
+
+    public function nombre(): string
+    {
+        return 'listar_entradas_salidas';
+    }
+
+    public function definicion(): SkillDefinition
+    {
+        return new SkillDefinition(
+            descripcion: 'Lista las estancias que ENTRAN o SALEN en los próximos días, con '
+                . 'el huésped, la casita y la hora. Úsala para preguntas como «quién sale '
+                . 'mañana», «qué llegadas hay esta semana» o «qué casitas hay que limpiar». '
+                . 'Devuelve varias filas: eso es lo esperado, no hace falta acotar a una.',
+            parametros: [
+                SkillParameter::texto(
+                    'tipo',
+                    'Qué listar: "salidas", "entradas" o "ambas".',
+                ),
+                SkillParameter::entero(
+                    'dias',
+                    'Cuántos días hacia delante mirar, contando hoy. Por defecto 1 (sólo hoy).',
+                ),
+            ],
+        );
+    }
+
+    /** Limpieza también: es justo lo que necesita para organizar el día. */
+    public function rolesRequeridos(): array
+    {
+        return [Roles::RESERVAS_SHOW, Roles::LIMPIEZA, Roles::MANTENIMIENTO];
+    }
+
+    public function nivelRiesgo(): NivelRiesgo
+    {
+        return NivelRiesgo::Lectura;
+    }
+
+    public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
+    {
+        $tipo = strtolower(trim((string) ($entrada['tipo'] ?? 'ambas')));
+        if (!in_array($tipo, ['salidas', 'entradas', 'ambas'], true)) {
+            $tipo = 'ambas';
+        }
+
+        $dias = max(1, min((int) ($entrada['dias'] ?? 1), self::MAX_DIAS));
+
+        $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
+        $desde = $hoy->format('Y-m-d');
+        $hasta = $hoy->modify(sprintf('+%d days', $dias - 1))->format('Y-m-d');
+
+        $filas = [];
+
+        if ($tipo === 'salidas' || $tipo === 'ambas') {
+            $filas = array_merge($filas, $this->consultar('fin', $desde, $hasta, 'sale'));
+        }
+
+        if ($tipo === 'entradas' || $tipo === 'ambas') {
+            $filas = array_merge($filas, $this->consultar('inicio', $desde, $hasta, 'entra'));
+        }
+
+        usort($filas, static fn (array $a, array $b) => [$a['fecha'], $a['hora']] <=> [$b['fecha'], $b['hora']]);
+
+        return SkillResult::ok([
+            'desde' => $desde,
+            'hasta' => $hasta,
+            'total' => count($filas),
+            'estancias' => $filas,
+        ]);
+    }
+
+    /**
+     * SQL nativo por el `DATE()`: `inicio` y `fin` llevan hora de check-in/check-out, y
+     * comparar los instantes tal cual desplaza el día (docs/PmsDisponibilidad.md §3).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function consultar(string $columna, string $desde, string $hasta, string $movimiento): array
+    {
+        $sql = <<<SQL
+            SELECT
+                BIN_TO_UUID(e.id)         AS evento_id,
+                BIN_TO_UUID(e.reserva_id) AS reserva_id,
+                DATE(e.$columna)          AS fecha,
+                TIME(e.$columna)          AS hora,
+                u.nombre                  AS casita,
+                TRIM(CONCAT(COALESCE(r.nombre_cliente, ''), ' ', COALESCE(r.apellido_cliente, ''))) AS huesped,
+                r.localizador             AS localizador,
+                e.is_ota                  AS es_ota
+            FROM pms_evento_calendario e
+            LEFT JOIN pms_unidad u  ON u.id = e.pms_unidad_id
+            LEFT JOIN pms_reserva r ON r.id = e.reserva_id
+            WHERE e.estado_id IN (:estados)
+              AND e.evento_origen_id IS NULL
+              AND DATE(e.$columna) BETWEEN :desde AND :hasta
+            ORDER BY e.$columna
+        SQL;
+
+        $filas = $this->em->getConnection()->executeQuery(
+            $sql,
+            [
+                // Las extensiones quedan fuera por `evento_origen_id IS NULL`: no son
+                // estancias y nadie las espera en una lista de llegadas.
+                'estados' => PmsEventoEstado::OCUPAN_UNIDAD,
+                'desde' => $desde,
+                'hasta' => $hasta,
+            ],
+            ['estados' => ArrayParameterType::STRING]
+        )->fetchAllAssociative();
+
+        return array_map(
+            static fn (array $f) => [
+                'movimiento' => $movimiento,
+                'fecha' => $f['fecha'],
+                'hora' => substr((string) $f['hora'], 0, 5),
+                'huesped' => $f['huesped'] !== '' ? $f['huesped'] : 'Sin nombre',
+                'casita' => $f['casita'] ?? '—',
+                'localizador' => $f['localizador'],
+                'es_ota' => (bool) $f['es_ota'],
+                'evento_id' => $f['evento_id'],
+                'reserva_id' => $f['reserva_id'],
+            ],
+            $filas
+        );
+    }
+}

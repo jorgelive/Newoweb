@@ -70,9 +70,16 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface
 
         // Sólo escalares: las variables del resolver alimentan plantillas, y colar aquí
         // estructuras internas sería filtrar más de lo que se pidió.
-        return SkillResult::ok(array_filter(
+        $datos = array_filter(
             $variables,
             static fn ($valor) => is_scalar($valor) && (string) $valor !== ''
-        ));
+        );
+
+        // 🔗 El id es lo que permite ENCADENAR: sin él, el modelo no puede pasar esta
+        // reserva a la siguiente skill y cada consulta muere en sí misma. `getMessageVariables()`
+        // no lo trae porque nació para rellenar plantillas, donde un UUID no pinta nada.
+        $datos['reserva_id'] = $actor->contextoId();
+
+        return SkillResult::ok($datos);
     }
 }

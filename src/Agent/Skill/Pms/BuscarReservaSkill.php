@@ -105,10 +105,16 @@ final readonly class BuscarReservaSkill implements SkillInterface
         foreach ($reservas as $reserva) {
             $datos = $resolver?->getMessageVariables((string) $reserva->getId()) ?? [];
 
-            $salida[] = array_filter(
+            $fila = array_filter(
                 $datos,
                 static fn ($valor) => is_scalar($valor) && (string) $valor !== ''
             );
+
+            // 🔗 El eslabón de la cadena: con esto el modelo puede llevar la reserva elegida
+            // a la siguiente skill. Ver docs/Mensajeria.md §11.
+            $fila['reserva_id'] = (string) $reserva->getId();
+
+            $salida[] = $fila;
         }
 
         return SkillResult::ok([

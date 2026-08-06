@@ -780,11 +780,65 @@ No hace falta desconfiar de ese historial: los permisos salen del actor que se c
 el servidor** con la sesión. Lo peor que consigue un cliente manipulando su propio hilo es
 confundirse a sí mismo.
 
+### 🔗 Cadenas de skills
+
+Las skills se **componen**. El encadenamiento no se programa: el tool runner deja que el
+modelo llame una, lea el resultado y decida la siguiente. Lo que sí hay que hacer es
+**diseñarlas para que encajen**.
+
+«Carlos se va mañana a las 5» son tres eslabones, y ninguno es exclusivo de ese caso:
+
+```
+  buscar_reserva("Carlos")            → reserva_id  (¿varios? pregunta cuál)
+        ↓
+  buscar_estancias_de_reserva(id)     → evento_id, casita, fechas, es_ota
+        ↓
+  evaluar_cambio_horario(evento_id)   → permitido / prohibido + por qué
+```
+
+**Lo que hace posible la cadena es el `id`.** Cada skill que identifica algo devuelve
+`reserva_id` o `evento_id`, y ese valor es lo que el modelo pasa a la siguiente. Sin él, cada
+consulta muere en sí misma. Ojo: `getMessageVariables()` **no** trae el id —nació para
+rellenar plantillas, donde un UUID no pinta nada—, así que las skills lo añaden a mano.
+
+**Cardinalidad: no todas quieren un resultado.**
+
+| Skill | Cuántos espera | Por qué |
+|---|---|---|
+| `buscar_reserva` | Idealmente **1** | Detrás suele venir una acción: con dos Carlos, hay que preguntar |
+| `buscar_estancias_de_reserva` | 1 o varias | Una reserva puede tener dos casitas o un cambio a mitad |
+| `listar_entradas_salidas` | **Muchas** | Devolver 20 filas es el resultado correcto, no algo a refinar |
+
+La diferencia va en la descripción de cada skill, que es lo que el modelo lee para decidir si
+repreguntar o listar.
+
+**Evaluar y aplicar son skills distintas.** `evaluar_cambio_horario` no escribe: responde si
+se puede y qué implicaría. Así el operador pregunta «¿puedo mover la salida de Carlos?» y
+recibe un no razonado **sin que se haya tocado nada** — que es el 80% de las veces que se hace
+esa pregunta. La versión que aplica será otra skill, con `NivelRiesgo::Escritura`, y podrá
+apoyarse en esta evaluación en vez de repetirla.
+
+**Las reglas del dominio viven en el eslabón que corresponde**, no en el prompt. Probado
+contra datos reales sobre una reserva de Booking:
+
+| Petición | Resultado |
+|---|---|
+| Mover la fecha de salida | ❌ *«el canal es la fuente de verdad y el cambio no se le enviaría»* (§9.4) |
+| Salida tardía el mismo día | ✅ *«no cambia las fechas, sólo añade la noche que el horario extra inutiliza»* |
+
+Esa asimetría —una OTA no admite mover fechas pero sí una salida tardía— es justo lo que un
+prompt no debe tener que saber: la sabe la skill.
+
 ### Comprobar el alcance
 
 ```bash
 php bin/console app:agent:permisos                    # qué ve cada perfil
 php bin/console app:agent:preguntar "…" --como=susan@ejemplo.com
+
+# Ejecutar UNA skill sin modelo: separa «¿falla la skill o falla el prompt?»
+php bin/console app:agent:skill listar_entradas_salidas '{"tipo":"salidas","dias":5}'
+php bin/console app:agent:skill buscar_reserva '{"busqueda":"Acuña"}'
+php bin/console app:agent:skill buscar_reserva '{"busqueda":"x"}' --como-huesped   # debe denegar
 ```
 
 El primero es la comprobación obligatoria al añadir una skill: si aparece en la fila de un
