@@ -13,6 +13,7 @@ use App\Agent\Skill\SkillResult;
 use App\Message\Service\MessageDataResolverRegistry;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
+use Symfony\Component\String\UnicodeString;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -66,8 +67,12 @@ final readonly class BuscarReservaSkill implements SkillInterface
                 . 'catálogo de tours; son públicos y están pensados para compartirse, así que '
                 . 'úsalos tal cual cuando pidan «el enlace de la guía de X» sin buscar otra '
                 . 'skill. Úsala siempre que pregunten por un huésped concreto o por una '
-                . 'reserva concreta. Si devuelve varias coincidencias, pregunta al usuario '
-                . 'cuál es antes de continuar: nunca elijas tú.',
+                . 'reserva concreta. Aguanta nombres mal escritos, sin acentos y con el orden '
+                . 'cambiado. Si la respuesta trae coincidencia_aproximada, NO des por hecho que '
+                . 'acertaste: lee su aviso, di el nombre completo tal como está guardado con su '
+                . 'localizador y haz que el operador lo confirme antes de enviar o tocar nada. '
+                . 'Si devuelve varias coincidencias, pregunta al usuario cuál es antes de '
+                . 'continuar: nunca elijas tú.',
             parametros: [
                 SkillParameter::texto('busqueda', 'Nombre, apellido o localizador del huésped.'),
             ],
@@ -93,20 +98,14 @@ final readonly class BuscarReservaSkill implements SkillInterface
             return SkillResult::error('Indica al menos 3 caracteres para buscar.');
         }
 
-        $reservas = $this->em->getRepository(PmsReserva::class)
-            ->createQueryBuilder('r')
-            ->where('r.localizador = :exacto')
-            ->orWhere('LOWER(r.nombreCliente) LIKE :like')
-            ->orWhere('LOWER(r.apellidoCliente) LIKE :like')
-            ->orWhere('LOWER(CONCAT(r.nombreCliente, \' \', r.apellidoCliente)) LIKE :like')
-            ->setParameter('exacto', $busqueda)
-            ->setParameter('like', '%' . mb_strtolower($busqueda) . '%')
-            // Las más recientes primero: al preguntar por alguien se busca su estancia actual
-            // o la próxima, casi nunca una de hace tres años.
-            ->orderBy('r.fechaLlegada', 'DESC')
-            ->setMaxResults(self::MAX_RESULTADOS + 1)
-            ->getQuery()
-            ->getResult();
+        ['reservas' => $reservas, 'parcial' => $aproximada] = $this->porTokens($busqueda);
+
+        // Fase 2: nadie encaja literalmente. Antes de rendirse, se busca por parecido — el
+        // operador escribe «Landeau» donde pone «Landemaine» y eso no es un caso raro.
+        if ($reservas === []) {
+            $reservas = $this->porParecido($busqueda);
+            $aproximada = $reservas !== [];
+        }
 
         if ($reservas === []) {
             return SkillResult::ok(['total' => 0, 'reservas' => []]);
@@ -133,10 +132,157 @@ final readonly class BuscarReservaSkill implements SkillInterface
             $salida[] = $fila;
         }
 
-        return SkillResult::ok([
+        return SkillResult::ok(array_filter([
             'total' => count($salida),
             'hay_mas' => $hayMas,
+            // Que la coincidencia sea aproximada NO puede quedarse implícito: detrás de esta
+            // skill vienen las de escritura, y cobrarle a quien se parece al que dijeron es
+            // peor que no encontrar a nadie.
+            'coincidencia_aproximada' => $aproximada ?: null,
+            'aviso' => $aproximada
+                ? 'NINGUNA coincide del todo con lo que buscabas: éstas se PARECEN. Los nombres '
+                    . 'guardados llevan acentos y grafías que no siempre se teclean igual. Di el '
+                    . 'nombre completo TAL COMO ESTÁ GUARDADO, con su localizador, y pregunta al '
+                    . 'operador si es esa persona ANTES de enviar nada ni tocar nada. Si hay '
+                    . 'varias, enséñalas todas: no elijas tú.'
+                : null,
             'reservas' => $salida,
-        ]);
+        ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * Fase 1: cada palabra tiene que aparecer en algún sitio, en cualquier orden.
+     *
+     * El `LIKE` sobre la cadena entera fallaba con «Landemaine Aurélie» y —peor— con dos
+     * espacios entre nombre y apellido, que es un tropiezo de teclado, no una búsqueda distinta.
+     * Partiendo en palabras, el orden y los espacios dejan de importar.
+     *
+     * Los acentos NO se tocan: las columnas son `utf8mb4_unicode_ci`, así que «aurelie» ya
+     * casa con «Aurélie» en la propia base. Normalizarlos aquí sería trabajo duplicado.
+     *
+     * Devuelve además si hubo que conformarse con coincidencias PARCIALES —sólo algunas de
+     * las palabras—, porque eso el que pregunta tiene que saberlo: “thea landau” encuentra a
+     * Théa Landeau y a Théa Signor, y elegir por él sería mandarle la guía a la otra.
+     *
+     * @return array{reservas: list<PmsReserva>, parcial: bool}
+     */
+    private function porTokens(string $busqueda): array
+    {
+        $qb = $this->em->getRepository(PmsReserva::class)->createQueryBuilder('r');
+
+        // El localizador es un identificador exacto: si coincide, manda sobre cualquier nombre.
+        $qb->where('r.localizador = :exacto')->setParameter('exacto', $busqueda);
+
+        $tokens = array_values(array_filter(
+            preg_split('/\s+/u', trim($busqueda)) ?: [],
+            static fn (string $t) => $t !== ''
+        ));
+
+        foreach ($tokens as $i => $token) {
+            $qb->orWhere(sprintf(
+                '(LOWER(r.nombreCliente) LIKE :t%1$d OR LOWER(r.apellidoCliente) LIKE :t%1$d)',
+                $i
+            ))->setParameter('t' . $i, '%' . mb_strtolower($token) . '%');
+        }
+
+        // Con varias palabras, un OR traería a todos los «Aurélie» del mundo. Se exige que
+        // TODAS aparezcan, y eso se filtra después: son 307 filas, no hace falta más máquina.
+        $candidatas = $qb->orderBy('r.fechaLlegada', 'DESC')->getQuery()->getResult();
+
+        if (count($tokens) < 2) {
+            return [
+                'reservas' => array_slice($candidatas, 0, self::MAX_RESULTADOS + 1),
+                'parcial' => false,
+            ];
+        }
+
+        $todas = array_values(array_filter(
+            $candidatas,
+            function (PmsReserva $r) use ($tokens): bool {
+                $nombre = $this->normalizar($r->getNombreCliente() . ' ' . $r->getApellidoCliente());
+
+                foreach ($tokens as $token) {
+                    if (!str_contains($nombre, $this->normalizar($token))) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        ));
+
+        // Si exigir todas las palabras deja la lista vacía, vale más devolver las parciales
+        // que un «no existe»: el operador reconoce a su huésped en una lista corta. Pero se
+        // marca como parcial, porque «encontré a alguien que encaja a medias» y «encontré a
+        // tu huésped» no son la misma respuesta.
+        $parcial = $todas === [];
+        $resultado = $parcial ? $candidatas : $todas;
+
+        return [
+            'reservas' => array_slice($resultado, 0, self::MAX_RESULTADOS + 1),
+            'parcial' => $parcial,
+        ];
+    }
+
+    /**
+     * Fase 2: por parecido, cuando el nombre viene mal escrito.
+     *
+     * `Landeau` por `Landemaine`, `aurely` por `aurelie`: errores de un par de letras que el
+     * `LIKE` no perdona. Con 271 nombres distintos, comparar en PHP contra todos es más rápido
+     * que discutirlo — y evita meter una extensión de MySQL o un índice full-text por esto.
+     *
+     * Se compara también el nombre invertido, así «Landeau Thea» encuentra a «Théa Landeau»
+     * aunque además esté mal escrito.
+     *
+     * @return list<PmsReserva>
+     */
+    private function porParecido(string $busqueda): array
+    {
+        $aguja = $this->normalizar($busqueda);
+
+        if ($aguja === '') {
+            return [];
+        }
+
+        // Tolerancia proporcional: en un nombre largo se perdonan más letras que en uno de
+        // cinco, pero con techo, o «Ana» empezaría a parecerse a cualquiera.
+        $tolerancia = min(5, max(2, (int) floor(mb_strlen($aguja) * 0.25)));
+
+        $puntuadas = [];
+
+        foreach ($this->em->getRepository(PmsReserva::class)->findAll() as $reserva) {
+            $nombre = $this->normalizar($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente());
+            $invertido = $this->normalizar($reserva->getApellidoCliente() . ' ' . $reserva->getNombreCliente());
+
+            if ($nombre === '') {
+                continue;
+            }
+
+            $distancia = min(levenshtein($aguja, $nombre), levenshtein($aguja, $invertido));
+
+            if ($distancia <= $tolerancia) {
+                $puntuadas[] = ['reserva' => $reserva, 'distancia' => $distancia];
+            }
+        }
+
+        // Del más parecido al menos, y a igual parecido la llegada más reciente primero.
+        usort($puntuadas, static function (array $a, array $b): int {
+            if ($a['distancia'] !== $b['distancia']) {
+                return $a['distancia'] <=> $b['distancia'];
+            }
+
+            return ($b['reserva']->getFechaLlegada()?->getTimestamp() ?? 0)
+                <=> ($a['reserva']->getFechaLlegada()?->getTimestamp() ?? 0);
+        });
+
+        return array_slice(array_column($puntuadas, 'reserva'), 0, self::MAX_RESULTADOS + 1);
+    }
+
+    /** Minúsculas, sin acentos y con los espacios colapsados, para comparar en PHP. */
+    private function normalizar(string $texto): string
+    {
+        $ascii = (new UnicodeString($texto))->ascii()->lower()->toString();
+
+        return trim((string) preg_replace('/\s+/', ' ', $ascii));
     }
 }

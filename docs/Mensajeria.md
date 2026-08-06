@@ -1071,6 +1071,48 @@ pago son una de más.
                 se pasó por el POS o lo que debe abonar a la deuda?"
 ```
 
+#### 🔤 Encontrar al huésped: el eslabón del que cuelgan todos los demás
+
+Casi toda cadena empieza en `buscar_reserva`. Si ahí no aparece nadie, no hay guía que enviar ni
+pago que registrar — y los nombres reales del parque son **Théa Landeau**, **Aurélie
+Landemaine**, **Ghiță Viorel**: acentos y grafías que nadie teclea igual dos veces.
+
+Probado contra el dump, el `LIKE` sobre la cadena entera fallaba en cuatro casos cotidianos:
+
+| Se escribe | Antes | Por qué |
+|---|---|---|
+| `Aurelie Landemaine` | ✅ | Las columnas son `utf8mb4_unicode_ci`: **los acentos ya casan solos** en MySQL |
+| `landemaine aurelie` | ❌ | El `CONCAT` sólo contempla nombre-apellido |
+| `Aurelie··Landemaine` | ❌ | Dos espacios. Un tropiezo de teclado, no otra búsqueda |
+| `aurelie landemane` | ❌ | Una letra de menos dentro de la palabra |
+| `aurely landemaine` | ❌ | Nombre mal escrito |
+
+Se arregla en dos fases, y **no hacía falta ni full-text ni una extensión de MySQL**: son 307
+reservas con 271 nombres distintos.
+
+1. **Por palabras.** Cada token tiene que aparecer en nombre o apellido, en cualquier orden. El
+   orden y los espacios dejan de importar. Los acentos **no se normalizan**: ya lo hace la
+   collation, y hacerlo aquí sería trabajo duplicado.
+2. **Por parecido.** Si no encaja nadie, se compara con `levenshtein()` en PHP contra los 271
+   nombres, también invertidos, con tolerancia proporcional al largo y con techo — o «Ana»
+   acabaría pareciéndose a cualquiera.
+
+##### ⚠️ Lo importante no es encontrarla: es no mentir sobre cómo
+
+`thea landau` devuelve **Théa Landeau y Théa Signor**. Hay dos Théa. Devolver eso como una
+coincidencia normal y dejar que el modelo tome la primera es mandarle la guía a la otra huésped.
+
+Por eso la respuesta distingue **tres desenlaces**, y no dos:
+
+| | Cuándo | Qué dice |
+|---|---|---|
+| exacta | Todas las palabras encajan | — |
+| `coincidencia_aproximada` | Sólo algunas (parcial), o hubo que ir por parecido | Aviso de confirmar el nombre completo con su localizador **antes** de enviar o tocar nada |
+| vacía | Ni por parecido | `total: 0` |
+
+Una búsqueda difusa sin ese aviso es peor que una búsqueda estricta: la estricta falla de forma
+visible, la difusa acierta *casi siempre* y el fallo se cuela hasta una escritura.
+
 #### 📋 Toda escritura previsualiza, enumera consecuencias y pide aprobación
 
 Las cuatro skills de escritura (`aplicar_cambio_horario`, `registrar_cargo`, `registrar_pago`,
