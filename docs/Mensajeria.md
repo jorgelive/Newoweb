@@ -714,6 +714,34 @@ Dos reglas al escribirla:
 
 Y sé una fachada delgada: la lógica vive en el servicio del dominio, no en la skill.
 
+### ⚠️ Lo que devuelves y no anuncias, no existe
+
+**Un campo que la skill devuelve pero su `descripcion` no menciona es inalcanzable.** El modelo
+elige a quién llamar leyendo *sólo* las descripciones; los datos le llegan después, y únicamente
+si acertó. Ampliar la salida no amplía lo que se puede pedir — hay que anunciarlo.
+
+Se paga caro cuando la salida no se escribe campo a campo. `BuscarReservaSkill` y
+`ConsultarMiReservaSkill` vuelcan `getMessageVariables()` entera, 23 claves, y durante un tiempo
+las dos devolvieron `guide_url` mientras **sólo la del huésped lo anunciaba**: el huésped podía
+pedir el enlace de su guía y el operador no, con el dato idéntico en las dos respuestas. Nada
+fallaba; el agente simplemente contestaba que no sabía hacerlo, teniéndolo delante.
+
+El síntoma es difícil de leer, porque **se parece a un modelo torpe**: responde «no tengo esa
+información» y la tentación es cambiar de modelo o retocar el system prompt. La causa está una
+capa más abajo.
+
+Por eso el arreglo va **en la descripción de la skill, no en el system prompt**:
+
+- El system prompt es común a todos los productos y actores; la descripción viaja sólo a quien
+  tiene la skill, y se filtra con los roles (`SkillRegistry::paraActor()`).
+- Anunciar allí una capacidad que el modelo no puede invocar —porque su rol no la incluye— es
+  prometer lo que no se puede cumplir.
+- Escala: si cada capacidad nueva engorda el prompt compartido, en veinte skills es ilegible y
+  se paga en cada consulta.
+
+**Al añadir una clave a `getMessageVariables()`, decide si se anuncia.** Si no aporta, mejor
+recortarla de la salida: son tokens en cada llamada que nadie va a pedir.
+
 ### 🔑 Lo que no puedes usar, ni se te menciona
 
 `SkillRegistry::paraActor()` filtra **antes** de construir la petición. No es que el modelo lo
@@ -989,6 +1017,8 @@ perfil que no debería, ese perfil puede invocarla.
 | Que una opción del menú pueda responderse por Airbnb/Booking | EasyAdmin | `beds24Tmpl.is_active` de la plantilla de respuesta — §8 |
 | **Añadir una capacidad al agente** | `src/Agent/Skill/` | Una clase con `SkillInterface` — §11. No se toca motor ni adaptador |
 | Cambiar quién puede usar una skill | la propia skill | `rolesRequeridos()` — comprueba con `app:agent:permisos` |
+| Que el agente sepa que puede dar un dato que ya devuelve | la propia skill | `definicion()->descripcion` — **no el system prompt**, §11 |
+| Cambiar el enlace a la guía o al catálogo de tours | `config/services/services_parameters.yaml` | `pax_book_guide_url` = `PAX_HOST_URL` + localizador; se arma en `PmsMessageDataResolver::getMessageVariables()` |
 | Cambiar si algo pide confirmación o PIN | la propia skill | `nivelRiesgo()` — §11 |
 | Acotar una skill a la reserva del que pregunta | la propia skill | Usa `$actor->contextoId()`, no un parámetro — §11 |
 | **Cambiar de proveedor de IA / actualizar el SDK** | `src/Agent/Provider/<Proveedor>/` | Implementa `AgentEngineInterface` y cambia el alias en `services_agent.yaml` — §11 |

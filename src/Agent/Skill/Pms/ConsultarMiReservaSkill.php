@@ -37,10 +37,13 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface
     {
         return new SkillDefinition(
             descripcion: 'Devuelve los datos de la reserva de la persona con la que estás '
-                . 'hablando: fechas de entrada y salida, casita, noches, huéspedes, enlace a '
-                . 'la guía, total, pagado y saldo pendiente. Úsala cuando pregunten por su '
-                . 'propia reserva, su check-in, su casita, su guía o lo que deben. No necesita '
-                . 'parámetros: siempre consulta la reserva de esta conversación.',
+                . 'hablando: fechas de entrada y salida, casita, noches, huéspedes, '
+                . 'localizador, total, pagado y saldo pendiente. Incluye dos enlaces que '
+                . 'puedes darle directamente: guide_url, su guía personal con la llegada, el '
+                . 'wifi y las instrucciones, y tours_catalog_url, el catálogo de tours. Úsala '
+                . 'cuando pregunten por su propia reserva, su check-in, su casita, su guía, '
+                . 'qué hacer en la zona o lo que deben. No necesita parámetros: siempre '
+                . 'consulta la reserva de esta conversación.',
         );
     }
 

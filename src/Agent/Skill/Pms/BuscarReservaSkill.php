@@ -27,6 +27,17 @@ use Doctrine\ORM\EntityManagerInterface;
  * NUNCA elige entre varias coincidencias: las devuelve todas para que el modelo pregunte
  * cuál. Con dos Carlos González, adivinar es peor que preguntar — y cuando la skill sea de
  * escritura, adivinar significará mover la reserva equivocada.
+ *
+ * ### ⚠️ Lo que devuelve y no está en la `descripcion` no existe
+ *
+ * La salida es el volcado de `getMessageVariables()`: 23 claves. El modelo sólo ve la
+ * descripción cuando decide **a quién llamar** —los datos llegan después, y sólo si acertó—,
+ * así que un campo no anunciado es un campo inalcanzable. `guide_url` estuvo devolviéndose
+ * aquí sin figurar en la descripción mientras {@see ConsultarMiReservaSkill} sí lo anunciaba:
+ * el huésped podía pedir su guía y el operador no, con el dato idéntico en las dos salidas.
+ *
+ * Al añadir una clave a `getMessageVariables()` hay que decidir si se anuncia. La descripción
+ * es el contrato; lo demás es carga que se paga en tokens y nadie pide.
  */
 final readonly class BuscarReservaSkill implements SkillInterface
 {
@@ -48,10 +59,15 @@ final readonly class BuscarReservaSkill implements SkillInterface
         return new SkillDefinition(
             descripcion: 'Busca la reserva de un huésped por su nombre, apellido o '
                 . 'localizador, y devuelve sus datos: fechas de entrada y salida, casita, '
-                . 'noches, huéspedes, total, pagado y saldo pendiente. Úsala siempre que '
-                . 'pregunten por un huésped concreto o por una reserva concreta. Si devuelve '
-                . 'varias coincidencias, pregunta al usuario cuál es antes de continuar: '
-                . 'nunca elijas tú.',
+                . 'noches, huéspedes, localizador, canal por el que reservó, país, total, '
+                . 'pagado, saldo pendiente y el desglose en alojamiento, limpieza y servicio. '
+                . 'Devuelve también los ENLACES que se le pueden pasar al huésped: guide_url '
+                . 'es su guía personal (llegada, wifi, instrucciones) y tours_catalog_url el '
+                . 'catálogo de tours; son públicos y están pensados para compartirse, así que '
+                . 'úsalos tal cual cuando pidan «el enlace de la guía de X» sin buscar otra '
+                . 'skill. Úsala siempre que pregunten por un huésped concreto o por una '
+                . 'reserva concreta. Si devuelve varias coincidencias, pregunta al usuario '
+                . 'cuál es antes de continuar: nunca elijas tú.',
             parametros: [
                 SkillParameter::texto('busqueda', 'Nombre, apellido o localizador del huésped.'),
             ],
