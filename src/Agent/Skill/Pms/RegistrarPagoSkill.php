@@ -52,6 +52,16 @@ use Symfony\Component\Uid\Uuid;
  */
 final readonly class RegistrarPagoSkill implements SkillInterface
 {
+    /**
+     * La moneda en la que habla el operador cuando no dice ninguna.
+     *
+     * Se opera en Cusco y se cobra en soles a diario, pero 304 de las 307 cuentas se llevan en
+     * USD. Así que «me pagó 20» casi siempre son soles sobre una cuenta en dólares: caer a la
+     * moneda de la cuenta registraría 20 USD en vez de 5.89, un 240% de más y a favor del
+     * huésped. Por eso no hay defecto: se pregunta.
+     */
+    private const string MONEDA_LOCAL = 'PEN';
+
     public function __construct(
         private EntityManagerInterface $em,
         private MonedaResolver $monedas,
@@ -81,7 +91,12 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                 . 'no lo supongas. La tarjeta de crédito lleva %s%%%% de comisión, que se aplica '
                 . 'sola: no la calcules tú. Si el medio lleva comisión y no está claro si el '
                 . 'importe la incluye, la skill te devolverá las dos cifras para que preguntes '
-                . 'al operador cuál es. Necesita el reserva_id.',
+                . 'al operador cuál es. OJO CON LA MONEDA: se opera en Perú y casi todas las '
+                . 'cuentas se llevan en dólares, así que «me pagó 20» suele ser 20 SOLES sobre '
+                . 'una cuenta en USD. Nunca lo des por hecho: si no lo dicen, pregunta. Si la '
+                . 'respuesta trae falta_datos, traslada su pregunta al operador y vuelve a '
+                . 'llamarme con lo que conteste, sin inventar nada. Si trae advertencia, '
+                . 'LÉESELA antes de pedir la confirmación. Necesita el reserva_id.',
                 $pctTarjeta
             ),
             parametros: [
@@ -91,8 +106,10 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                     static fn (PmsMedioPago $m) => $m->value,
                     PmsMedioPago::cases()
                 )) . '.'),
-                SkillParameter::texto('moneda', 'Moneda del importe (PEN, USD…). Si se omite, la '
-                    . 'de la cuenta.', requerido: false),
+                SkillParameter::texto('moneda', 'Moneda del importe: PEN si el operador dice '
+                    . 'soles, USD si dice dólares. NO la adivines: si sólo te dan un número, '
+                    . 'omítela y la skill te dirá cuánto sale de cada forma para que preguntes.',
+                    requerido: false),
                 SkillParameter::texto('importe_incluye_comision', 'Sólo para medios con '
                     . 'comisión. "si" = el importe es lo que se pasó por el POS; "no" = es lo '
                     . 'que debe abonar a la deuda. Omítelo para que la skill te dé las dos '
@@ -161,36 +178,51 @@ final readonly class RegistrarPagoSkill implements SkillInterface
         $huesped = trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente());
         $pct = (float) $medio->comisionPorcentaje();
 
-        // 💳 Con comisión, «20» no basta: hay que saber si los 20 son lo cobrado o lo que abona.
-        // Se devuelven las dos cifras en vez de elegir una, que aquí es dinero.
+        $monedaIndicada = strtoupper(trim((string) ($entrada['moneda'] ?? '')));
         $incluye = strtolower(trim((string) ($entrada['importe_incluye_comision'] ?? '')));
 
+        // Los dos datos que un importe suelto no trae y que valen dinero. Se piden JUNTOS: dos
+        // repreguntas seguidas al operador por el mismo pago son una de más.
+        $faltan = [];
+
+        // 💱 «20» no dice de qué. Sólo es inequívoco si la cuenta ya está en la moneda local.
+        if ($monedaIndicada === '' && $monedaCuenta->getId() !== self::MONEDA_LOCAL) {
+            $faltan[] = 'moneda';
+        }
+
+        // 💳 Con comisión, «20» tampoco dice si es lo del POS o lo que abona.
         if ($pct > 0.0 && !in_array($incluye, ['si', 'sí', 'no'], true)) {
-            return SkillResult::ok([
+            $faltan[] = 'importe_incluye_comision';
+        }
+
+        if ($faltan !== []) {
+            return SkillResult::ok(array_filter([
                 'reserva_id' => $reservaId,
                 'huesped' => $huesped,
+                'moneda_de_la_cuenta' => $monedaCuenta->getId(),
                 'medio' => $medio->label(),
-                'comision_porcentaje' => $medio->comisionPorcentaje(),
-                'falta_dato' => 'importe_incluye_comision',
-                'si_incluye_comision' => $this->desglose($importe, $pct, true, $monedaCuenta->getId()),
-                'si_no_incluye_comision' => $this->desglose($importe, $pct, false, $monedaCuenta->getId()),
-                'pregunta' => sprintf(
-                    'Con %s hay %s%% de comisión. ¿Los %.2f son lo que se pasó por el POS, o lo '
-                    . 'que tiene que abonar a la deuda? Pregúntaselo al operador y vuelve a '
-                    . 'llamarme con importe_incluye_comision.',
-                    $medio->label(),
-                    $medio->comisionPorcentaje(),
-                    $importe
-                ),
-            ]);
+                'falta_datos' => $faltan,
+                'si_son_' . strtolower(self::MONEDA_LOCAL) => in_array('moneda', $faltan, true)
+                    ? $this->equivalencia($importe, self::MONEDA_LOCAL, $monedaCuenta->getId())
+                    : null,
+                'si_son_' . strtolower($monedaCuenta->getId()) => in_array('moneda', $faltan, true)
+                    ? sprintf('%.2f %s', $importe, $monedaCuenta->getId())
+                    : null,
+                'si_incluye_comision' => in_array('importe_incluye_comision', $faltan, true)
+                    ? $this->desglose($importe, $pct, true, $monedaIndicada ?: '(por aclarar)')
+                    : null,
+                'si_no_incluye_comision' => in_array('importe_incluye_comision', $faltan, true)
+                    ? $this->desglose($importe, $pct, false, $monedaIndicada ?: '(por aclarar)')
+                    : null,
+                'pregunta' => $this->pregunta($faltan, $importe, $medio, $monedaCuenta->getId()),
+            ], static fn ($v) => $v !== null));
         }
 
         $cobrado = $pct > 0.0 && $incluye !== 'no' ? $importe : $importe * (1 + $pct / 100);
         $neto = $pct > 0.0 && $incluye !== 'no' ? $importe / (1 + $pct / 100) : $importe;
 
-        // Conversión de moneda: mismo criterio que RegistrarCargoSkill — el pago se guarda en
-        // la moneda de la cuenta, con el tipo aplicado registrado para poder auditarlo.
-        $monedaIndicada = strtoupper(trim((string) ($entrada['moneda'] ?? '')));
+        // Conversión: el pago se guarda en la moneda de la cuenta, con el tipo aplicado
+        // registrado para poder auditarlo. Mismo criterio que RegistrarCargoSkill.
         $monedaOrigen = $monedaIndicada !== ''
             ? $this->monedas->resolve($monedaIndicada)
             : $monedaCuenta;
@@ -221,6 +253,30 @@ final readonly class RegistrarPagoSkill implements SkillInterface
         $neto = round($neto, 2);
 
         $saldoAntes = (float) $info->getSaldo();
+        $saldoDespues = round($saldoAntes - $neto, 2);
+
+        // Un número raro no se señala solo: si queda a favor del huésped hay que DECIRLO, o el
+        // modelo lo lee como un dato más y el operador confirma sin fijarse.
+        $advertencia = null;
+
+        if ($saldoDespues < 0.0) {
+            $advertencia = $saldoAntes <= 0.0
+                ? sprintf(
+                    'ATENCIÓN: esta cuenta YA estaba saldada (saldo %.2f). Este pago la deja en '
+                    . '%.2f %s a favor del huésped. Díselo al operador y pregúntale si falta '
+                    . 'registrar algún cargo antes.',
+                    $saldoAntes,
+                    $saldoDespues,
+                    $monedaCuenta->getId()
+                )
+                : sprintf(
+                    'ATENCIÓN: el pago excede lo pendiente (%.2f %s). La cuenta queda en %.2f a '
+                    . 'favor del huésped. Confírmalo con el operador antes de aplicarlo.',
+                    $saldoAntes,
+                    $monedaCuenta->getId(),
+                    $saldoDespues
+                );
+        }
 
         $resumen = [
             'reserva_id' => $reservaId,
@@ -232,8 +288,11 @@ final readonly class RegistrarPagoSkill implements SkillInterface
             'abona_a_la_deuda' => sprintf('%.2f %s', $neto, $monedaCuenta->getId()),
             'tipo_cambio_aplicado' => $tipoAplicado,
             'saldo_antes' => sprintf('%.2f %s', $saldoAntes, $monedaCuenta->getId()),
-            'saldo_despues' => sprintf('%.2f %s', round($saldoAntes - $neto, 2), $monedaCuenta->getId()),
+            'saldo_despues' => sprintf('%.2f %s', $saldoDespues, $monedaCuenta->getId()),
+            'advertencia' => $advertencia,
         ];
+
+        $resumen = array_filter($resumen, static fn ($v) => $v !== null);
 
         if (!$confirmado) {
             return SkillResult::ok($resumen + [
@@ -282,6 +341,60 @@ final readonly class RegistrarPagoSkill implements SkillInterface
             'saldo_real' => sprintf('%.2f %s', (float) $info->getSaldo(), $monedaCuenta->getId()),
             'mensaje' => sprintf('Registrado el pago de %s de %s.', $resumen['cobrado_al_huesped'], $huesped),
         ]);
+    }
+
+    /**
+     * Qué son esos N en la moneda de la cuenta, para que el operador vea la diferencia.
+     */
+    private function equivalencia(float $importe, string $origen, string $destino): string
+    {
+        $tipo = $this->tipoCambio->venta();
+
+        if ($tipo === null) {
+            return sprintf('%.2f %s (sin tipo de cambio para convertir)', $importe, $origen);
+        }
+
+        $convertido = $origen === 'PEN' ? $importe / (float) $tipo : $importe * (float) $tipo;
+
+        return sprintf(
+            '%.2f %s = %.2f %s (tipo %s)',
+            $importe,
+            $origen,
+            round($convertido, 2),
+            $destino,
+            $tipo
+        );
+    }
+
+    /**
+     * Una sola frase que el modelo pueda trasladar tal cual, con las dos dudas juntas.
+     *
+     * @param list<string> $faltan
+     */
+    private function pregunta(array $faltan, float $importe, PmsMedioPago $medio, string $monedaCuenta): string
+    {
+        $partes = [];
+
+        if (in_array('moneda', $faltan, true)) {
+            $partes[] = sprintf(
+                '¿los %.2f son soles o %s? La cuenta se lleva en %s',
+                $importe,
+                $monedaCuenta,
+                $monedaCuenta
+            );
+        }
+
+        if (in_array('importe_incluye_comision', $faltan, true)) {
+            $partes[] = sprintf(
+                'con %s hay %s%% de comisión, ¿el importe es lo que se pasó por el POS o lo que '
+                . 'debe abonar a la deuda?',
+                $medio->label(),
+                $medio->comisionPorcentaje()
+            );
+        }
+
+        return 'Pregúntale al operador: ' . implode('; y ', $partes)
+            . '. Luego vuelve a llamarme con esos datos.';
     }
 
     /**

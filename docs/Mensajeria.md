@@ -1049,6 +1049,45 @@ un dato en abstracto.
 Igual con el medio de pago: si no viene, se devuelve un error que enumera los válidos. Suponer
 «efectivo» habría sido cómodo y falso.
 
+#### 💱 «20» tampoco dice de qué moneda, y ése es el error caro
+
+**304 de las 307 cuentas se llevan en USD**, pero se opera en Cusco y se cobra en soles a
+diario. Así que «me pagó 20» es casi siempre 20 soles sobre una cuenta en dólares.
+
+Caer a la moneda de la cuenta —el defecto obvio— registraría **20 USD en vez de 5.89**: un 240%
+de más, a favor del huésped, y sin nada que chirríe en la respuesta. Por eso `MONEDA_LOCAL` no
+es un defecto sino la referencia para detectar la ambigüedad: si la cuenta no está ya en PEN y
+no dicen moneda, **se pregunta**.
+
+Las dos dudas se piden **juntas** cuando faltan las dos: dos repreguntas seguidas por el mismo
+pago son una de más.
+
+```
+"falta_datos": ["moneda", "importe_incluye_comision"],
+"si_son_pen":  "20.00 PEN = 5.89 USD (tipo 3.394)",
+"si_son_usd":  "20.00 USD",
+"pregunta":    "Pregúntale al operador: ¿los 20.00 son soles o USD?...; y con
+                Tarjeta de Crédito hay 5.5% de comisión, ¿el importe es lo que
+                se pasó por el POS o lo que debe abonar a la deuda?"
+```
+
+#### ⚠️ Un número anómalo no se señala solo
+
+Charline Morin tenía la cuenta **saldada** (217.86 de 217.86). Un pago encima la deja en
+negativo, y la previsualización lo mostraba —`saldo_despues: -5.89 USD`— sin decir que fuera
+raro. Un modelo pequeño lee eso como un dato más, pregunta «¿confirmo?» y el operador dice que
+sí sin fijarse.
+
+Ahora hay un campo `advertencia` **en palabras**, que la descripción obliga a leer en voz alta:
+
+> *ATENCIÓN: esta cuenta YA estaba saldada (saldo 0.00). Este pago la deja en -5.89 USD a favor
+> del huésped. Díselo al operador y pregúntale si falta registrar algún cargo antes.*
+
+La regla, que es la misma que aparece en `aplicable_por_el_agente` y en el rango de
+`listar_entradas_salidas`: **si la skill sabe que algo es raro, tiene que decirlo con palabras.**
+Dejarlo deducido en un campo numérico es confiar en que el modelo haga una inferencia que nadie
+le ha pedido.
+
 #### El porcentaje no se teclea en ningún prompt
 
 Sale de `PmsMedioPago::comisionPorcentaje()` **incluso en el texto que lee el modelo**: la
