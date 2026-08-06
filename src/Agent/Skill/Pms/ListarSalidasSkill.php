@@ -52,15 +52,24 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 . 'limpiar». Devuelve varias filas: eso es lo esperado, no hace falta acotar a '
                 . 'una. Cada fila trae reserva_id y evento_id, así que puedes seguir desde '
                 . 'aquí sin volver a buscar al huésped: pásalos a consultar_cuenta, '
-                . 'localizar_conversacion, evaluar_cambio_horario o aplicar_cambio_horario.',
+                . 'localizar_conversacion, evaluar_cambio_horario o aplicar_cambio_horario. '
+                . 'Para un día concreto usa «desde» con esa fecha y dias=1, y responde SÓLO con '
+                . 'lo que devuelva: no des por salido de un día a quien figure en otro.',
             parametros: [
                 SkillParameter::texto(
                     'tipo',
                     'Qué listar: "salidas", "entradas" o "ambas".',
                 ),
+                SkillParameter::texto(
+                    'desde',
+                    'Primer día a mirar, en formato YYYY-MM-DD. Si se omite, hoy. Para «mañana» '
+                    . 'pon la fecha de mañana con dias=1, NO hoy con dias=2: eso devolvería '
+                    . 'también los de hoy y son los que confunden la respuesta.',
+                    requerido: false,
+                ),
                 SkillParameter::entero(
                     'dias',
-                    'Cuántos días hacia delante mirar, contando hoy. Por defecto 1 (sólo hoy).',
+                    'Cuántos días mirar, contando el de «desde». Por defecto 1 (sólo ese día).',
                 ),
             ],
         );
@@ -86,9 +95,15 @@ final readonly class ListarSalidasSkill implements SkillInterface
 
         $dias = max(1, min((int) ($entrada['dias'] ?? 1), self::MAX_DIAS));
 
-        $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
-        $desde = $hoy->format('Y-m-d');
-        $hasta = $hoy->modify(sprintf('+%d days', $dias - 1))->format('Y-m-d');
+        // El día de partida es un parámetro y no siempre hoy: sin él, «quién sale mañana»
+        // obliga a pedir dos días y descartar los de hoy por fuera. La fila de hoy se cuela
+        // en la respuesta como distractor, y contestar «sale mañana» sobre alguien que se fue
+        // hoy es un error que llega al huésped.
+        $inicio = $this->fecha($entrada['desde'] ?? null)
+            ?? new DateTimeImmutable('now', new DateTimeZone(self::TZ));
+
+        $desde = $inicio->format('Y-m-d');
+        $hasta = $inicio->modify(sprintf('+%d days', $dias - 1))->format('Y-m-d');
 
         $filas = [];
 
@@ -163,5 +178,19 @@ final readonly class ListarSalidasSkill implements SkillInterface
             ],
             $filas
         );
+    }
+
+    /** Fecha estricta: un texto que no sea YYYY-MM-DD cae a `null` y se usa hoy. */
+    private function fecha(mixed $valor): ?DateTimeImmutable
+    {
+        $texto = trim((string) ($valor ?? ''));
+
+        if ($texto === '') {
+            return null;
+        }
+
+        $fecha = DateTimeImmutable::createFromFormat('!Y-m-d', $texto, new DateTimeZone(self::TZ));
+
+        return $fecha !== false ? $fecha : null;
     }
 }

@@ -759,6 +759,26 @@ Lo que hay que dejar explícito, porque es justo lo que un modelo grande adivina
 - **Cómo se presenta un dato ambiguo.** `tarifa_base` es por noche y orientativa; sin decirlo,
   se multiplica por las noches y se presenta como precio final.
 
+#### Si los parámetros no expresan la pregunta, el modelo improvisa
+
+`listar_entradas_salidas` nació con un solo parámetro de tiempo, `dias`, contado **siempre desde
+hoy**. Con eso, «¿quiénes salen mañana?» no se puede pedir: hay que pasar `dias: 2` y descartar
+las filas de hoy por fuera.
+
+Lo caro no es el filtrado extra, es **el distractor**. Probado con datos reales el 5 de agosto:
+la respuesta a `dias: 2` traía exactamente una fila —Dennis Chacon, que salía **hoy** a las
+17:00— porque mañana no salía nadie. La respuesta correcta era «nadie», y lo que el modelo tiene
+delante es un nombre con su casita y su hora. Contestar «mañana sale Dennis de la Casita 4» es
+el resultado probable, y es un error que acaba dicho a un huésped.
+
+La regla: **si una pregunta habitual no se puede expresar con los parámetros, el hueco lo rellena
+el modelo — y lo rellena mal.** No se arregla en el prompt: se añade el parámetro. Ahora hay
+`desde`, y «mañana» es `desde: <mañana>, dias: 1`, que devuelve `total: 0` sin nada que
+malinterpretar.
+
+Se descubrió ejecutando la skill, no leyéndola. Merece la pena probar cada skill nueva con la
+pregunta **cuya respuesta correcta es «ninguno»**: es donde se ve si la salida induce a error.
+
 #### Capacidad va en la descripción; vocabulario, en el prompt
 
 La regla del apartado anterior —*el arreglo va en la descripción, no en el system prompt*— tiene
