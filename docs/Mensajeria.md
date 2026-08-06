@@ -1097,6 +1097,38 @@ reservas con 271 nombres distintos.
    nombres, también invertidos, con tolerancia proporcional al largo y con techo — o «Ana»
    acabaría pareciéndose a cualquiera.
 
+##### Para elegir hacen falta el estado y los tramos, no las fechas envolventes
+
+Encontrar a la persona es medio trabajo; el otro medio es que el operador pueda **distinguir
+entre sus reservas**. `getMessageVariables()` nació para rellenar plantillas de una reserva *ya
+elegida*, así que da `checkin_date`/`checkout_date` —el envolvente— y **no da el estado**.
+
+Con eso, los tres casos reales del dump son inelegibles:
+
+```
+Dheeraj Palakurthy        antes: dos filas idénticas, 21/05→24/05, casitas 6 y 7
+  WXFM34  [cancelada]     ← la diferencia era ésta, y no se devolvía
+  GMJ4UY  [confirmada]
+      Casita 7  05-21 → 05-22
+      Casita 7  05-22 → 05-24
+      Casita 6  05-22 → 05-24
+
+Karina Barrio  K5VUDA     misma casita en dos tramos con un hueco de un día
+      Casita 7  03-27 → 04-02
+      Casita 7  04-03 → 04-08
+
+Jeremy Hart  9RSDXH       cuatro casitas a la vez — el envolvente decía «Casita 7»
+      Casita 7 / 6 / 5 / 4   04-15 → 04-18
+```
+
+Por eso cada reserva devuelve ahora `estado` y `estancias` (casita, entra, sale y estado de cada
+tramo). Los `bloqueo` y `extension` se excluyen: son el efecto de una salida tardía, no un tramo
+del huésped, y al elegir sólo son ruido.
+
+**Una reserva sin ningún tramo vivo es `cancelada`**, y eso manda sobre todo lo demás: lleva un
+`aviso_cancelada` que la descripción obliga a decir lo primero. Sin él, «mándale su guía a
+Dheeraj» tenía un 50% de acabar en una reserva muerta.
+
 ##### ⚠️ Lo importante no es encontrarla: es no mentir sobre cómo
 
 `thea landau` devuelve **Théa Landeau y Théa Signor**. Hay dos Théa. Devolver eso como una

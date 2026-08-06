@@ -72,7 +72,13 @@ final readonly class BuscarReservaSkill implements SkillInterface
                 . 'acertaste: lee su aviso, di el nombre completo tal como está guardado con su '
                 . 'localizador y haz que el operador lo confirme antes de enviar o tocar nada. '
                 . 'Si devuelve varias coincidencias, pregunta al usuario cuál es antes de '
-                . 'continuar: nunca elijas tú.',
+                . 'continuar: nunca elijas tú, y para que pueda elegir enséñale de cada una el '
+                . 'ESTADO, el localizador y su lista de «estancias» (casita, entra y sale de '
+                . 'cada tramo): dos reservas del mismo huésped pueden tener las mismas fechas y '
+                . 'diferenciarse sólo en eso. Una reserva puede ocupar VARIAS casitas a la vez, '
+                . 'cambiar de casita a mitad, o repetir casita en dos tramos con un hueco: di '
+                . 'los tramos, no sólo la primera entrada y la última salida. Si el estado es '
+                . '«cancelada», DILO LO PRIMERO y no envíes ni apuntes nada sin preguntar.',
             parametros: [
                 SkillParameter::texto('busqueda', 'Nombre, apellido o localizador del huésped.'),
             ],
@@ -128,6 +134,10 @@ final readonly class BuscarReservaSkill implements SkillInterface
             // 🔗 El eslabón de la cadena: con esto el modelo puede llevar la reserva elegida
             // a la siguiente skill. Ver docs/Mensajeria.md §11.
             $fila['reserva_id'] = (string) $reserva->getId();
+
+            // Lo que hace falta para ELEGIR entre varias, y que `getMessageVariables()` no
+            // trae porque nació para rellenar plantillas de una reserva ya elegida.
+            $fila += $this->paraDistinguir($reserva);
 
             $salida[] = $fila;
         }
@@ -284,5 +294,60 @@ final readonly class BuscarReservaSkill implements SkillInterface
         $ascii = (new UnicodeString($texto))->ascii()->lower()->toString();
 
         return trim((string) preg_replace('/\s+/', ' ', $ascii));
+    }
+
+    /**
+     * Lo que distingue una reserva de otra cuando hay varias del mismo huésped.
+     *
+     * Nace de un caso real: Dheeraj Palakurthy tiene **dos** reservas, WXFM34 y GMJ4UY, con las
+     * mismas fechas y las mismas casitas. En la lista salían como dos filas idénticas y era
+     * imposible elegir. La diferencia es que **una está entera cancelada** — y el estado no se
+     * devolvía.
+     *
+     * `checkin_date`/`checkout_date` son el envolvente de la reserva y colapsan el detalle: una
+     * reserva de grupo con cuatro casitas, o una que cambia de casita a mitad, o Karina Barrio
+     * con la misma casita en dos tramos separados por un hueco, se ven todas igual. Por eso va
+     * el desglose por estancia.
+     *
+     * @return array<string, mixed>
+     */
+    private function paraDistinguir(PmsReserva $reserva): array
+    {
+        $estancias = [];
+        $estados = [];
+
+        foreach ($reserva->getEventosCalendario() as $evento) {
+            $estado = $evento->getEstado()?->getId() ?? '';
+
+            // Bloqueos y extensiones no son tramos del huésped: son el efecto de una entrada
+            // temprana o una salida tardía. Mostrarlos aquí sería ruido al elegir.
+            if (in_array($estado, ['bloqueo', 'extension'], true)) {
+                continue;
+            }
+
+            $estados[] = $estado;
+
+            $estancias[] = array_filter([
+                'casita' => $evento->getPmsUnidad()?->getNombre(),
+                'entra' => $evento->getInicio()?->format('Y-m-d'),
+                'sale' => $evento->getFin()?->format('Y-m-d'),
+                'estado' => $estado,
+            ], static fn ($v) => $v !== null && $v !== '');
+        }
+
+        usort($estancias, static fn (array $a, array $b) => ($a['entra'] ?? '') <=> ($b['entra'] ?? ''));
+
+        $vivos = array_values(array_filter($estados, static fn (string $e) => $e !== 'cancelada'));
+
+        return array_filter([
+            'estancias' => $estancias !== [] ? $estancias : null,
+            // Una reserva sin ningún tramo vivo está cancelada, y eso manda sobre todo lo
+            // demás: es lo primero que hay que decir y basta para descartarla.
+            'estado' => $estados === [] ? null : ($vivos === [] ? 'cancelada' : implode('/', array_unique($vivos))),
+            'aviso_cancelada' => $estados !== [] && $vivos === []
+                ? 'Esta reserva está CANCELADA. No le envíes nada ni le apuntes cargos sin '
+                    . 'preguntar antes al operador.'
+                : null,
+        ], static fn ($v) => $v !== null);
     }
 }
