@@ -52,10 +52,20 @@ final class PanelAssistantController extends AbstractController
         $payload = json_decode($request->getContent(), true);
         $pregunta = is_array($payload) ? (string) ($payload['pregunta'] ?? '') : '';
 
+        // El hilo lo mantiene el cliente y viaja en cada petición: así el endpoint no guarda
+        // estado y el operador ve exactamente el mismo contexto que el modelo.
+        $historial = is_array($payload) && is_array($payload['historial'] ?? null)
+            ? $payload['historial']
+            : [];
+
         try {
             // El actor lleva los roles del usuario: el registro decide con ellos qué
             // herramientas se le ofrecen al modelo. Limpieza y administración no ven lo mismo.
-            $resultado = $this->asistente->preguntar($pregunta, AgentActor::delPanel($usuario));
+            $resultado = $this->asistente->preguntar(
+                $pregunta,
+                AgentActor::delPanel($usuario),
+                $historial
+            );
         } catch (InvalidArgumentException $e) {
             return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
         } catch (Throwable $e) {

@@ -40,9 +40,15 @@ interface ReconocimientoVoz {
 
 type ConstructorReconocimiento = new () => ReconocimientoVoz;
 
+/** Un turno del hilo. `rol` viaja al backend, que lo traduce al formato de la API. */
+interface Turno {
+    rol: 'usuario' | 'asistente';
+    texto: string;
+    herramientas?: string[];
+}
+
 const pregunta = ref('');
-const respuesta = ref('');
-const herramientas = ref<string[]>([]);
+const hilo = ref<Turno[]>([]);
 const cargando = ref(false);
 const error = ref('');
 const dictando = ref(false);
@@ -69,13 +75,23 @@ async function preguntar(): Promise<void> {
 
     cargando.value = true;
     error.value = '';
-    respuesta.value = '';
-    herramientas.value = [];
+
+    // El hilo se envía SIN el turno nuevo (el backend lo añade) y se pinta CON él, para que
+    // el operador vea su pregunta en cuanto la manda y no mientras espera en blanco.
+    const historial = hilo.value.map(({ rol, texto: t }) => ({ rol, texto: t }));
+    hilo.value.push({ rol: 'usuario', texto });
+    pregunta.value = '';
 
     try {
-        const r = await apiClient.post<RespuestaAsistente>('/agent/consulta', { pregunta: texto });
-        respuesta.value = r.data.respuesta;
-        herramientas.value = r.data.herramientas ?? [];
+        const r = await apiClient.post<RespuestaAsistente>('/agent/consulta', {
+            pregunta: texto,
+            historial,
+        });
+        hilo.value.push({
+            rol: 'asistente',
+            texto: r.data.respuesta,
+            herramientas: r.data.herramientas ?? [],
+        });
     } catch (e: unknown) {
         // El backend manda `{error: string}` en 4xx/5xx; cualquier otra cosa es un fallo de red.
         const detalle =
@@ -83,9 +99,18 @@ async function preguntar(): Promise<void> {
                 ? (e as { response?: { data?: { error?: string } } }).response?.data?.error
                 : undefined;
         error.value = detalle ?? 'No se pudo consultar al asistente.';
+        // Se retira la pregunta del hilo: si falló, no formó parte de la conversación y
+        // mandarla en el siguiente historial confundiría al modelo.
+        hilo.value.pop();
+        pregunta.value = texto;
     } finally {
         cargando.value = false;
     }
+}
+
+function limpiar(): void {
+    hilo.value = [];
+    error.value = '';
 }
 
 function alternarDictado(): void {
@@ -163,16 +188,30 @@ onBeforeUnmount(() => reconocimiento?.stop());
       <i class="fas fa-circle text-[7px] animate-pulse mr-1" aria-hidden="true"></i> Escuchando…
     </div>
 
-    <div v-if="error" class="border-t border-slate-100 px-4 py-3 text-sm font-medium text-red-600">
-      {{ error }}
+    <!-- El hilo: sostiene el ir y venir cuando el asistente repregunta ("¿cuál de los dos
+         Carlos?"). Se pinta en orden y el más reciente queda abajo. -->
+    <div v-if="hilo.length" class="border-t border-slate-100 divide-y divide-slate-50">
+      <div v-for="(turno, i) in hilo" :key="i" class="px-4 py-3">
+        <p v-if="turno.rol === 'usuario'" class="text-sm font-bold text-slate-500">
+          <i class="fas fa-angle-right text-slate-300 mr-1" aria-hidden="true"></i>{{ turno.texto }}
+        </p>
+        <template v-else>
+          <p class="text-sm text-slate-800 whitespace-pre-line leading-relaxed">{{ turno.texto }}</p>
+          <p v-if="turno.herramientas?.length" class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <i class="fas fa-database text-[9px] mr-1" aria-hidden="true"></i> Consultado en el PMS
+          </p>
+        </template>
+      </div>
+
+      <div class="px-4 py-2 flex justify-end">
+        <button type="button" class="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700" @click="limpiar">
+          Empezar de nuevo
+        </button>
+      </div>
     </div>
 
-    <div v-else-if="respuesta" class="border-t border-slate-100 px-4 py-3">
-      <p class="text-sm text-slate-800 whitespace-pre-line leading-relaxed">{{ respuesta }}</p>
-      <p v-if="herramientas.length" class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-        <i class="fas fa-database text-[9px] mr-1" aria-hidden="true"></i>
-        Consultado en el PMS
-      </p>
+    <div v-if="error" class="border-t border-slate-100 px-4 py-3 text-sm font-medium text-red-600">
+      {{ error }}
     </div>
   </div>
 </template>

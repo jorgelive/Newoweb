@@ -724,6 +724,37 @@ Dos reglas al escribirla:
 Y sé una fachada delgada: la lógica vive en el servicio del dominio (`PmsDisponibilidadService`,
 `MessageDataResolverRegistry`), no en la herramienta.
 
+### Dos herramientas, no una con permisos distintos
+
+`consultar_mi_reserva` y `buscar_reserva` hacen algo parecido y están separadas a propósito:
+
+| | `consultar_mi_reserva` | `buscar_reserva` |
+|---|---|---|
+| Qué reserva | La del **contexto de la conversación** | La que se pida por nombre o localizador |
+| Parámetros | Ninguno | `busqueda` |
+| Quién | Huésped **y** equipo | Sólo `RESERVAS_SHOW` |
+
+Fundirlas obligaría a comprobar en tiempo de ejecución si el parámetro está permitido para
+quien pregunta — justo el `if` que se olvida al añadir la siguiente. Separadas, un huésped no
+puede apuntar a otra reserva porque **no hay parámetro donde escribirlo**.
+
+`buscar_reserva` nunca elige entre varias coincidencias: las devuelve todas para que el
+modelo pregunte cuál. Con dos Carlos González, adivinar es peor que preguntar — y cuando la
+herramienta sea de escritura, adivinar significará mover la reserva equivocada.
+
+### El bucle de decisiones
+
+Para que ese «¿cuál de los dos?» funcione hace falta memoria: el asistente del panel
+**conserva el hilo**. El cliente lo mantiene y lo manda en cada petición (`historial`), así
+que el endpoint no guarda estado y el operador ve el mismo contexto que el modelo.
+
+No hace falta desconfiar de ese historial: los permisos salen del `AgentActor` que se
+construye **en el servidor** con la sesión. Lo peor que consigue un cliente manipulando su
+propio hilo es confundirse a sí mismo.
+
+`MAX_TURNOS` (12) acota el coste; si una petición falla, su pregunta se retira del hilo para
+no mandar al modelo un turno que nunca ocurrió.
+
 ### Comprobar el alcance
 
 ```bash

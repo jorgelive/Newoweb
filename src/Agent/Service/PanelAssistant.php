@@ -38,6 +38,15 @@ final readonly class PanelAssistant
     /** Techo de la pregunta. Corta pegotes accidentales antes de pagar tokens. */
     private const int MAX_CARACTERES = 500;
 
+    /**
+     * Turnos de ida y vuelta que se conservan.
+     *
+     * Sin historial no hay bucle de decisiones: si el modelo responde «hay dos Carlos
+     * González, ¿cuál?», la respuesta del operador llegaría sin saber de qué hablaba. Con
+     * esto la conversación se sostiene; el techo evita que un hilo largo se vuelva caro.
+     */
+    private const int MAX_TURNOS = 12;
+
     public function __construct(
         private AnthropicClientFactory $anthropic,
         private AgentToolRegistry $herramientas,
@@ -50,9 +59,13 @@ final readonly class PanelAssistant
     }
 
     /**
+     * @param list<array{rol: string, texto: string}> $historial Turnos previos del hilo, en
+     *        orden. Es lo que sostiene el bucle de decisiones: sin ellos, un «el de la casita
+     *        3» tras un «¿cuál de los dos Carlos?» llegaría sin contexto.
+     *
      * @return array{respuesta: string, herramientas: list<string>}
      */
-    public function preguntar(string $pregunta, AgentActor $actor): array
+    public function preguntar(string $pregunta, AgentActor $actor, array $historial = []): array
     {
         $pregunta = trim($pregunta);
 
@@ -87,7 +100,7 @@ final readonly class PanelAssistant
 
         $runner = $cliente->beta->messages->toolRunner(
             maxTokens: 4096,
-            messages: [['role' => 'user', 'content' => $pregunta]],
+            messages: [...$this->turnosPrevios($historial), ['role' => 'user', 'content' => $pregunta]],
             model: $this->anthropic->modelo(),
             tools: $tools,
             system: [[
@@ -120,6 +133,44 @@ final readonly class PanelAssistant
         ];
     }
 
+    /**
+     * Normaliza el hilo que manda el cliente.
+     *
+     * Viene del navegador, así que no se confía en su forma — pero tampoco hace falta
+     * desconfiar de su contenido: los permisos se resuelven del `AgentActor` en el servidor,
+     * no de aquí. Lo peor que consigue un cliente manipulando su propio historial es
+     * confundirse a sí mismo.
+     *
+     * @param list<array{rol: string, texto: string}> $historial
+     * @return list<array{role: string, content: string}>
+     */
+    private function turnosPrevios(array $historial): array
+    {
+        $turnos = [];
+
+        foreach ($historial as $turno) {
+            $texto = trim((string) ($turno['texto'] ?? ''));
+            if ($texto === '') {
+                continue;
+            }
+
+            $turnos[] = [
+                'role' => ($turno['rol'] ?? '') === 'asistente' ? 'assistant' : 'user',
+                'content' => mb_substr($texto, 0, self::MAX_CARACTERES * 4),
+            ];
+        }
+
+        $turnos = array_slice($turnos, -self::MAX_TURNOS);
+
+        // La API exige que el hilo empiece por `user`; recortar por el final puede dejar un
+        // `assistant` al principio.
+        while ($turnos !== [] && $turnos[0]['role'] !== 'user') {
+            array_shift($turnos);
+        }
+
+        return $turnos;
+    }
+
     private function systemPrompt(): string
     {
         $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
@@ -141,6 +192,10 @@ final readonly class PanelAssistant
           Si no hay ninguna, dilo claramente en una frase.
         - La tarifa base es sólo orientativa: no la presentes como el precio final de la venta.
         - Si la pregunta es ambigua en fechas, pide la aclaración concreta que te falta.
+        - Si una herramienta devuelve varias coincidencias (dos huéspedes con el mismo
+          nombre, por ejemplo), NO elijas: enséñalas con el dato que las distingue —fechas,
+          casita, localizador— y pregunta cuál. Es una conversación: puedes repreguntar y
+          continuar con lo que te respondan.
         PROMPT;
     }
 }
