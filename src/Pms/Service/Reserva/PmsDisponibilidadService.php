@@ -164,9 +164,14 @@ final readonly class PmsDisponibilidadService
                    TIME_FORMAT(e.fin,    '%H:%i') AS hora_salida,
                    e.estado_id                   AS estado,
                    e.is_ota                      AS es_ota,
-                   e.localizador                 AS localizador
+                   -- ⚠️ El de la RESERVA, no el del evento (`e.localizador`, que también
+                   -- existe y es distinto). El de la reserva es el que ve el huésped: es el
+                   -- que arma la URL de su guía. Devolver el del evento hacía que dos skills
+                   -- dieran códigos distintos del mismo huésped.
+                   r.localizador                 AS localizador
             FROM pms_evento_calendario e
             JOIN pms_unidad u          ON u.id = e.pms_unidad_id
+            LEFT JOIN pms_reserva r    ON r.id = e.reserva_id
             LEFT JOIN pms_establecimiento est ON est.id = u.establecimiento_id
             WHERE e.estado_id IN (:estados)
               AND DATE(e.inicio) < :hasta

@@ -1025,6 +1025,51 @@ cuestión de calidad de respuesta y de coste — no de seguridad.
 > **Regla:** no se compra un modelo más caro para cubrir un `if` que falta. Mientras el freno no
 > exista, el modelo es parte del perímetro de seguridad, y eso hay que decirlo en voz alta.
 
+### 💳 `registrar_pago`: la ambigüedad se pregunta, no se resuelve
+
+`pms_pago_financiero.monto` guarda el **neto** —lo que abona la deuda— y la comisión va aparte
+en `comisionPorcentaje`. Lo que pasó por el POS es `neto × (1 + pct/100)`.
+
+Por eso **«pagó 20 soles con tarjeta» no es un dato suficiente**, y la diferencia es dinero:
+
+| Lectura | Cobrado | Comisión | Abona |
+|---|---|---|---|
+| Los 20 son lo del POS | 20.00 | 1.04 | **18.96** |
+| Los 20 son lo que abona | 21.10 | 1.10 | **20.00** |
+
+La skill **no elige ni asume un defecto**: cuando el medio lleva comisión y no se ha dicho cuál
+de las dos es, devuelve `falta_dato: 'importe_incluye_comision'` con **las dos cifras ya
+calculadas** y una `pregunta` lista para trasladar al operador. Con los medios al 0% no pregunta,
+porque coinciden.
+
+Es el patrón general para datos que faltan y son caros de adivinar: **la skill conduce la
+repregunta con números reales**, en vez de dejar que el modelo improvise una suposición o pida
+un dato en abstracto.
+
+Igual con el medio de pago: si no viene, se devuelve un error que enumera los válidos. Suponer
+«efectivo» habría sido cómodo y falso.
+
+#### El porcentaje no se teclea en ningún prompt
+
+Sale de `PmsMedioPago::comisionPorcentaje()` **incluso en el texto que lee el modelo**: la
+descripción se compone en `definicion()` interpolando el valor real. Así la regla está siempre
+delante del modelo —que es lo que se quería— sin crear una segunda verdad que se olvide de
+actualizar el día que el banco cambie la comisión.
+
+#### 🪞 Espejo con el panel
+
+Las fórmulas son las de `util/src/types/pmsFinanzasModel.ts` (`totalConComision()`,
+`netoDesdeTotal()`). **Si cambia una, cambian las dos**, o el agente y el formulario guardarán
+importes distintos para el mismo pago.
+
+#### ⚠️ Dos localizadores distintos
+
+`pms_evento_calendario.localizador` y `pms_reserva.localizador` existen los dos y **no son el
+mismo código** (probado: evento `JK746S`, reserva `9EBXHW`, mismo huésped). El que ve el huésped
+es el de la **reserva**: es el que arma la URL de su guía. Las skills devuelven ése; devolver el
+del evento hacía que dos skills dieran códigos distintos de la misma persona y que el operador le
+dictara al huésped uno que su guía no reconoce.
+
 ### 💱 Conversión de moneda: la hace la skill, no el modelo
 
 El operador dice «20 soles» y la cuenta puede llevarse en dólares. `registrar_cargo` guarda
