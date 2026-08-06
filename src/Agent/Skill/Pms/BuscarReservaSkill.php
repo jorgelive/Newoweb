@@ -339,12 +339,15 @@ final readonly class BuscarReservaSkill implements SkillInterface
 
         $vivos = array_values(array_filter($estados, static fn (string $e) => $e !== 'cancelada'));
 
+        // La regla vive en la entidad: ver PmsReserva::estaCancelada().
+        $cancelada = $reserva->estaCancelada();
+
         return array_filter([
             'estancias' => $estancias !== [] ? $estancias : null,
-            // Una reserva sin ningún tramo vivo está cancelada, y eso manda sobre todo lo
-            // demás: es lo primero que hay que decir y basta para descartarla.
-            'estado' => $estados === [] ? null : ($vivos === [] ? 'cancelada' : implode('/', array_unique($vivos))),
-            'aviso_cancelada' => $estados !== [] && $vivos === []
+            // Una reserva cancelada manda sobre todo lo demás: es lo primero que hay que decir
+            // y basta para descartarla.
+            'estado' => $estados === [] ? null : ($cancelada ? 'cancelada' : implode('/', array_unique($vivos))),
+            'aviso_cancelada' => $cancelada
                 ? 'Esta reserva está CANCELADA. No le envíes nada ni le apuntes cargos sin '
                     . 'preguntar antes al operador.'
                 : null,

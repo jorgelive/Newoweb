@@ -500,6 +500,43 @@ class PmsReserva
      * * @return array<int, PmsEventoCalendario> Arreglo indexado secuencialmente de eventos activos.
      */
     #[Groups(['pax_reserva:read'])]
+    /**
+     * ¿Está cancelada esta reserva por completo?
+     *
+     * La reserva **no tiene estado propio**: lo llevan sus eventos. Está cancelada cuando no le
+     * queda ningún tramo vivo — y eso hay que preguntarlo antes de escribirle al huésped o de
+     * apuntarle nada, porque el resto de datos (nombre, fechas, casita, chat) siguen ahí
+     * intactos y no delatan que la reserva está muerta.
+     *
+     * **Fuente única de la regla.** La usan `BuscarReservaSkill::paraDistinguir()`,
+     * `LocalizarConversacionSkill` y `EnviarMensajeHuespedSkill`; escribirla en cada sitio era
+     * garantizar que un día dejaran de coincidir. Ver docs/Mensajeria.md §11.
+     *
+     * Los `bloqueo` y `extension` no cuentan: no son tramos del huésped sino el efecto de una
+     * entrada temprana o una salida tardía, y una reserva cancelada puede conservarlos.
+     */
+    public function estaCancelada(): bool
+    {
+        $tramos = 0;
+
+        foreach ($this->eventosCalendario as $evento) {
+            $estado = $evento->getEstado()?->getId();
+
+            if (in_array($estado, [PmsEventoEstado::CODIGO_BLOQUEO, PmsEventoEstado::CODIGO_EXTENSION], true)) {
+                continue;
+            }
+
+            ++$tramos;
+
+            if ($estado !== PmsEventoEstado::CODIGO_CANCELADA) {
+                return false;
+            }
+        }
+
+        // Sin tramos no está cancelada: está incompleta, que es otra cosa y no toca decidirla aquí.
+        return $tramos > 0;
+    }
+
     public function getEventosActivosGuia(): array
     {
         $estadosPermitidos = PmsEventoEstado::MOSTRAR_EVENTO_GUIA;

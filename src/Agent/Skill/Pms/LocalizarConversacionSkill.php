@@ -14,6 +14,7 @@ use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
+use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -57,7 +58,9 @@ final readonly class LocalizarConversacionSkill implements SkillInterface
             descripcion: 'Encuentra el chat de una reserva y dice por qué canales se le puede '
                 . 'escribir al huésped ahora mismo (WhatsApp, Beds24…), con el motivo de los '
                 . 'que no estén disponibles. Úsala SIEMPRE antes de enviar_mensaje_huesped, y '
-                . 'cuando pregunten si se puede contactar a alguien o por dónde. Necesita el '
+                . 'cuando pregunten si se puede contactar a alguien o por dónde. Si trae '
+                . 'reserva_cancelada, DÍSELO al operador antes de nada: el chat de una reserva '
+                . 'cancelada sigue funcionando y ningún otro dato lo delata. Necesita el '
                 . 'reserva_id.',
             parametros: [
                 SkillParameter::texto('reserva_id', 'Identificador de la reserva.'),
@@ -93,13 +96,26 @@ final readonly class LocalizarConversacionSkill implements SkillInterface
             );
         }
 
-        return SkillResult::ok([
+        $reserva = $this->em->getRepository(PmsReserva::class)->find($reservaId);
+
+        return SkillResult::ok(array_filter([
             'conversacion_id' => (string) $conversacion->getId(),
             'huesped' => $conversacion->getGuestName(),
             'idioma_huesped' => $conversacion->getIdioma()?->getId(),
             'estado_chat' => $conversacion->getStatus(),
+            // ⚠️ El chat de una reserva cancelada sigue vivo y con teléfono válido, así que
+            // los canales salen «disponible: true» y nada delata que no hay estancia. El aviso
+            // viaja aquí porque este es el paso ANTERIOR al envío: quien llegue por otra vía
+            // que no sea buscar_reserva no habría visto el suyo.
+            'reserva_cancelada' => $reserva?->estaCancelada() ? true : null,
+            'advertencia' => $reserva?->estaCancelada()
+                ? 'ATENCIÓN: la reserva de este chat está CANCELADA. Técnicamente se le puede '
+                    . 'escribir, pero avisa al operador y que te confirme que quiere hacerlo: '
+                    . 'mandarle instrucciones de llegada a quien ya no viene es un error que '
+                    . 've el huésped.'
+                : null,
             'canales' => $this->canales($conversacion),
-        ]);
+        ], static fn ($v) => $v !== null));
     }
 
     /**

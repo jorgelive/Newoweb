@@ -1129,6 +1129,32 @@ del huésped, y al elegir sólo son ruido.
 `aviso_cancelada` que la descripción obliga a decir lo primero. Sin él, «mándale su guía a
 Dheeraj» tenía un 50% de acabar en una reserva muerta.
 
+##### 🚫 Una reserva cancelada no se nota en ninguna otra parte
+
+Probado con WXFM34, la reserva cancelada de Dheeraj: **el chat sigue vivo**
+(`estado_chat: closed`, que no bloquea nada), el teléfono es válido, y
+`ChannelEnqueuerInterface::isValid()` da `whatsapp_meta` como **disponible**. Nada en la cadena
+`localizar_conversacion → enviar_mensaje_huesped` delataba que no hay estancia: se le podía
+mandar la guía de llegada a alguien que ya no viene, y eso lo ve el huésped.
+
+El `aviso_cancelada` de `buscar_reserva` no bastaba, porque **la cadena no lo arrastra**: quien
+llega con un `reserva_id` de `consultar_ocupacion` o de `listar_entradas_salidas` nunca pasó por
+ahí. Por eso el aviso se repite en los dos eslabones siguientes, cada uno con el suyo.
+
+**Se avisa, no se bloquea.** Hay envíos legítimos a una reserva cancelada —confirmar el
+reembolso, disculparse, recuperarla—, así que prohibirlo dejaría al agente inútil justo cuando
+más falta hace escribir bien.
+
+###### 🔑 La regla vive en la entidad
+
+`PmsReserva::estaCancelada()`: **una reserva no tiene estado propio**, lo llevan sus eventos, y
+está cancelada cuando no le queda ningún tramo vivo. Los `bloqueo` y `extension` no cuentan —una
+reserva cancelada puede conservarlos.
+
+Escrita una vez y usada desde `BuscarReservaSkill::paraDistinguir()`,
+`LocalizarConversacionSkill` y `EnviarMensajeHuespedSkill`. Iba camino de estar en tres sitios
+distintos, que es como se garantiza que un día dejen de coincidir.
+
 ##### ⚠️ Lo importante no es encontrarla: es no mentir sobre cómo
 
 `thea landau` devuelve **Théa Landeau y Théa Signor**. Hay dos Théa. Devolver eso como una

@@ -14,6 +14,7 @@ use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
+use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -74,8 +75,9 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface
                 . 'antes de llamar con confirmado=true. Escribe el texto en el idioma del '
                 . 'huésped. Ten en cuenta el canal: por WhatsApp puedes usar *negrita* y saltos '
                 . 'de línea; el chat de una OTA es texto plano y se lee en una caja estrecha, '
-                . 'así que conviene más corto y sin adornos. Usa localizar_conversacion antes '
-                . 'para saber qué canales están disponibles.',
+                . 'así que conviene más corto y sin adornos. Si la respuesta trae reserva_cancelada, DÍSELO AL OPERADOR ANTES de pedirle nada: el chat de una reserva cancelada sigue funcionando y nada mas lo delata. Usa localizar_conversacion antes '
+                . 'para saber qué canales están disponibles. Si la respuesta trae advertencia, '
+                . 'LÉESELA al operador antes de pedirle la aprobación.',
             parametros: [
                 SkillParameter::texto('conversacion_id', 'Identificador del chat, de '
                     . 'localizar_conversacion.'),
@@ -146,13 +148,22 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface
             ));
         }
 
-        $resumen = [
+        // Último punto donde se puede avisar: después de esto sale de verdad.
+        $cancelada = $this->reservaCancelada($conversacion);
+
+        $resumen = array_filter([
             'conversacion_id' => $conversacionId,
             'huesped' => $conversacion->getGuestName(),
             'idioma_huesped' => $conversacion->getIdioma()?->getId(),
             'canales' => $pedidos,
             'texto' => $texto,
-        ];
+            'reserva_cancelada' => $cancelada ?: null,
+            'advertencia' => $cancelada
+                ? 'ATENCIÓN: la reserva de este huésped está CANCELADA. Díselo al operador '
+                    . 'ANTES de pedirle la aprobación y que confirme que aun así quiere '
+                    . 'enviarlo.'
+                : null,
+        ], static fn ($v) => $v !== null);
 
         if (!$confirmado) {
             return SkillResult::ok($resumen + [
@@ -236,5 +247,21 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface
         // Se intersecta contra los disponibles en vez de fallar: pedir un canal que no vale
         // y que salga por el otro es mejor que no enviar nada.
         return array_values(array_intersect($pedidos, $disponibles));
+    }
+
+    /**
+     * ¿La reserva de este chat está cancelada?
+     *
+     * La conversación apunta a su contexto por tipo e id; sólo `pms_reserva` tiene estado que
+     * mirar. La regla en sí no se repite aquí: la contesta {@see PmsReserva::estaCancelada()}.
+     */
+    private function reservaCancelada(MessageConversation $conversacion): bool
+    {
+        if ($conversacion->getContextType() !== 'pms_reserva' || $conversacion->getContextId() === null) {
+            return false;
+        }
+
+        return $this->em->getRepository(PmsReserva::class)
+            ->find($conversacion->getContextId())?->estaCancelada() ?? false;
     }
 }
