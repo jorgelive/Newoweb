@@ -1129,7 +1129,62 @@ del huésped, y al elegir sólo son ruido.
 `aviso_cancelada` que la descripción obliga a decir lo primero. Sin él, «mándale su guía a
 Dheeraj» tenía un 50% de acabar en una reserva muerta.
 
-##### 🚫 Una reserva cancelada no se nota en ninguna otra parte
+##### 🏷️ Plantillas: había que etiquetarlas para que el agente pudiera elegir
+
+Las 11 plantillas estaban registradas con lo que hace falta para **enviarlas** (`code`, `name`,
+`contextType`, `allowedSources`, un cuerpo por canal con su `is_active`) y sin nada de lo que
+hace falta para **elegirlas**:
+
+- **`name` es una etiqueta de panel, no un criterio.** Una se llama *«Autorespuesta ER130497»*,
+  que a un modelo no le dice absolutamente nada.
+- **`parameters` está vacío en las once.** No declara qué variables necesita.
+- **Nada distinguía las automáticas.** Seis de las once las dispara el motor de reglas en su hito
+  —`welcome_*` al crear, `recordatorio_llegada` al empezar, `check_out` y `despedida_*` al
+  terminar—. Se sabe uniendo con `msg_rule`, o sea infiriendo, no leyendo.
+
+Se añaden dos columnas a `msg_template` (migración `Version20260805190000`):
+
+| Campo | Para qué |
+|---|---|
+| `agente_uso` | **Cuándo usarla, escrito para el modelo.** Es lo único que lee para elegir |
+| `agente_habilitada` | Si el agente puede mandarla a petición de un operador. **`false` por defecto** |
+
+`MessageTemplate::disponibleParaAgente()` exige **las dos**: la marca sin la frase dejaría al
+modelo eligiendo por el `code`, que es adivinar. Se editan desde el panel de plantillas
+(«Asistente de IA»), así que habilitar una nueva no toca código.
+
+Quedan habilitadas las tres que no dispara ninguna regla —`enviar_guia`,
+`solicitar_numero_whatsapp`, `menu_tours`— y apagadas las seis automáticas, **con su frase ya
+escrita** para que quien la lea en el panel entienda por qué no debe encenderla.
+
+##### El catálogo viaja en la descripción, compuesto al vuelo
+
+`EnviarPlantillaSkill::definicion()` enumera las habilitadas con su `agente_uso` leyéndolas de la
+base — mismo recurso que el porcentaje de comisión en `registrar_pago`. Sin eso, elegir plantilla
+sería adivinar un `code`.
+
+Tres frenos, todos probados contra el dump:
+
+```
+welcome_booking      → «no está habilitada para el agente… la manda sola el motor
+                        de reglas y enviarla a mano la duplicaría»
+enviar_bienvenida    → «no existe… usa uno de: solicitar_numero_whatsapp,
+                        enviar_guia, menu_tours»
+solicitar_numero_…   → «es sólo para reservas de booking o airbnb, y ésta vino de
+   sobre una directa     «directo»»   ← respeta allowedSources
+```
+
+La previsualización enseña **el texto que va a recibir el huésped**, en su idioma, no sólo el
+nombre de la plantilla: aprobar «se enviará enviar_guia» a ciegas no es aprobar nada.
+
+##### No confundir con `SendTemplateActionHandler`
+
+Existe desde antes en `src/Agent/Action/` y hace algo distinto: lo dispara un mensaje **entrante**
+vía regla, sin humano en medio, y puede **forzar** un canal. `EnviarPlantillaSkill` la pide un
+operador y pasa por aprobación. Son los dos caminos de la §8 —determinista y no determinista— y
+conviven.
+
+#### 🚫 Una reserva cancelada no se nota en ninguna otra parte
 
 Probado con WXFM34, la reserva cancelada de Dheeraj: **el chat sigue vivo**
 (`estado_chat: closed`, que no bloquea nada), el teléfono es válido, y

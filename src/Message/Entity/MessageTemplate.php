@@ -71,6 +71,34 @@ class MessageTemplate
     #[Groups(['template:read'])]
     private ?string $contextType = null;
 
+    /**
+     * Cuándo usar esta plantilla, escrito **para el agente de IA**.
+     *
+     * `name` no vale para esto: es una etiqueta de panel, y algunas son referencias internas
+     * («Autorespuesta ER130497») que a un modelo no le dicen nada. Aquí va la frase que le
+     * permite ELEGIR: en qué situación se manda y en cuál no.
+     *
+     * Sin esto la plantilla es inalcanzable para el agente, igual que un campo que se devuelve
+     * y no se anuncia. Ver docs/Mensajeria.md §11.
+     */
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['template:read'])]
+    private ?string $agenteUso = null;
+
+    /**
+     * ¿Puede el agente mandarla a petición de un operador?
+     *
+     * Por defecto **no**, y es deliberado: 6 de las 11 plantillas las dispara solo el motor de
+     * reglas en su hito (bienvenida al crear, llegada al empezar, despedida al terminar).
+     * Mandarlas a mano duplica lo que el sistema ya envió o va a enviar, y el huésped recibe
+     * dos veces lo mismo.
+     *
+     * Se habilita una a una desde el panel, que es una decisión de negocio y no del código.
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    #[Groups(['template:read'])]
+    private bool $agenteHabilitada = false;
+
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array')]
     #[Groups(['template:read'])]
@@ -138,6 +166,23 @@ class MessageTemplate
     public function getId(): UuidV7
     {
         return $this->id;
+    }
+
+    public function getAgenteUso(): ?string { return $this->agenteUso; }
+    public function setAgenteUso(?string $agenteUso): self { $this->agenteUso = $agenteUso; return $this; }
+
+    public function isAgenteHabilitada(): bool { return $this->agenteHabilitada; }
+    public function setAgenteHabilitada(bool $agenteHabilitada): self { $this->agenteHabilitada = $agenteHabilitada; return $this; }
+
+    /**
+     * Utilizable por el agente sólo si además se le ha escrito para qué sirve.
+     *
+     * La marca sin la frase deja al modelo eligiendo por el `code`, que es adivinar. Se exigen
+     * las dos para que habilitar una plantilla a medias no la ponga en circulación.
+     */
+    public function disponibleParaAgente(): bool
+    {
+        return $this->agenteHabilitada && trim((string) $this->agenteUso) !== '';
     }
 
     public function getCode(): ?string

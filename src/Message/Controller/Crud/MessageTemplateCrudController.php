@@ -20,6 +20,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
@@ -154,6 +155,33 @@ class MessageTemplateCrudController extends BaseCrudController
             ->allowMultipleChoices()
             ->setRequired(false)
             ->setColumns(4);
+
+        // --- ASISTENTE DE IA ---
+        // Las dos etiquetas van juntas a propósito: habilitarla sin decir para qué sirve deja
+        // al modelo eligiendo por el código, que es adivinar. `disponibleParaAgente()` exige
+        // las dos, así que una a medias no entra en circulación.
+        yield FormField::addPanel('Asistente de IA')
+            ->setIcon('fa fa-robot')
+            ->collapsible()
+            ->renderCollapsed()
+            ->setHelp('Controla si el <b>asistente interno</b> puede mandar esta plantilla cuando '
+                . 'un operador se lo pide. <b>Ojo:</b> las plantillas que ya dispara el motor de '
+                . 'reglas en su hito (bienvenida, llegada, despedida) deben quedarse '
+                . '<b>desactivadas</b>: mandarlas también a mano hace que el huésped las reciba '
+                . 'dos veces.');
+
+        yield BooleanField::new('agenteHabilitada', 'El asistente puede enviarla')
+            ->setHelp('Sólo surte efecto si además rellenas «Cuándo usarla».')
+            ->setColumns(4);
+
+        yield TextareaField::new('agenteUso', 'Cuándo usarla (para la IA)')
+            ->setRequired(false)
+            ->setNumOfRows(3)
+            ->setHelp('Escrito <b>para el modelo</b>, no para el equipo: en qué situación se manda '
+                . 'y en cuál no. Es lo único que lee para elegir, así que el nombre de la '
+                . 'plantilla no sirve aquí. Ej.: <i>«El huésped pide su guía, o hay que '
+                . 'reenviársela porque no la encuentra.»</i>')
+            ->setColumns(8);
 
         // --- PANEL 3: WHATSAPP / META ---
         yield FormField::addPanel('Configuración WhatsApp / Meta')
