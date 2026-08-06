@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Agent\Command;
 
-use App\Agent\Tool\AgentActor;
-use App\Agent\Tool\AgentToolInterface;
-use App\Agent\Tool\AgentToolRegistry;
+use App\Agent\Access\AgentActor;
+use App\Agent\Skill\SkillInterface;
+use App\Agent\Skill\SkillRegistry;
 use App\Entity\User;
 use App\Security\Roles;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -27,12 +27,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:agent:permisos',
-    description: 'Muestra qué herramientas del agente ve cada perfil.',
+    description: 'Muestra qué skills del agente ve cada perfil.',
 )]
 final class AgentPermisosCommand extends Command
 {
     public function __construct(
-        private readonly AgentToolRegistry $registro
+        private readonly SkillRegistry $registro
     ) {
         parent::__construct();
     }
@@ -68,27 +68,27 @@ final class AgentPermisosCommand extends Command
             )),
         ];
 
-        $io->table(['Perfil', 'Herramientas visibles'], $filas);
+        $io->table(['Perfil', 'Skills visibles'], $filas);
 
         return Command::SUCCESS;
     }
 
     /**
-     * @param list<AgentToolInterface> $herramientas
+     * @param list<SkillInterface> $skills
      */
-    private function listar(array $herramientas): string
+    private function listar(array $skills): string
     {
-        if ($herramientas === []) {
+        if ($skills === []) {
             return '—';
         }
 
         return implode(', ', array_map(
-            static fn (AgentToolInterface $h) => sprintf(
+            static fn (SkillInterface $h) => sprintf(
                 '%s (%s)',
                 $h->nombre(),
                 $h->nivelRiesgo()->value
             ),
-            $herramientas
+            $skills
         ));
     }
 }

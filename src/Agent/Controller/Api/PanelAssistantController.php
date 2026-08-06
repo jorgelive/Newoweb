@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Controller\Api;
 
 use App\Agent\Service\PanelAssistant;
-use App\Agent\Tool\AgentActor;
+use App\Agent\Access\AgentActor;
 use App\Entity\User;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;

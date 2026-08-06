@@ -27,10 +27,14 @@ services:
     # =========================
     # La clave y el modelo se resuelven UNA vez aquí. Con ANTHROPIC_API_KEY vacía la fábrica
     # devuelve null y todo lo que dependa de ella degrada sin romper.
-    App\Agent\Service\AnthropicClientFactory:
+    App\Agent\Provider\Anthropic\AnthropicClientFactory:
         arguments:
             $apiKey: '%env(resolve:ANTHROPIC_API_KEY)%'
             $modelo: '%env(resolve:ANTHROPIC_MODEL)%'
+
+    # LA FRONTERA con el proveedor. Cambiar de motor —o tener dos en paralelo— es cambiar
+    # este alias: nada por encima de AgentEngineInterface conoce ningún SDK.
+    App\Agent\Conversation\AgentEngineInterface: '@App\Agent\Provider\Anthropic\AnthropicEngine'
 
     # El autoresponder del huésped arranca APAGADO a propósito: es el único componente que
     # escribe a un cliente real sin que nadie lo revise. Ver docs/Mensajeria.md §10.

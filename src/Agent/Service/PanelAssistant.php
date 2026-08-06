@@ -4,68 +4,45 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
-use App\Agent\Tool\AgentActor;
-use App\Agent\Tool\AgentToolRegistry;
+use App\Agent\Access\ActorInterface;
+use App\Agent\Conversation\AgentEngineInterface;
+use App\Agent\Conversation\ConversationRequest;
+use App\Agent\Conversation\ConversationResponse;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
-use Psr\Log\LoggerInterface;
-use RuntimeException;
 
 /**
- * El asistente del panel interno: responde en lenguaje natural a preguntas del equipo
- * («¿qué casitas tengo libres del 12 al 15 de marzo?», «¿tengo algo para 3 personas?»).
+ * El asistente del panel: adaptador delgado entre la interfaz del equipo y el motor.
  *
- * NO es el bot del huésped. Son dos productos distintos y a propósito no comparten nada
- * salvo la fábrica del cliente:
- *
- * | | Autoresponder ({@see AiConversationProcessor}) | Este |
- * |---|---|---|
- * | Quién pregunta | Un huésped, por WhatsApp o una OTA | Un empleado autenticado |
- * | Qué hace | Genera texto y lo ENVÍA a un cliente real | Consulta y responde en pantalla |
- * | Riesgo | Alto: escribe fuera | Bajo: sólo lee |
- *
- * Por eso este no pasa por `MessageConversation` ni por el motor de reglas: forzarlo ahí
- * obligaría a inventar conversaciones falsas y contextos que no existen.
+ * Sólo aporta lo que es suyo — el prompt del contexto interno y la política de qué hacer
+ * cuando el motor responde sin usar ninguna skill. Ni el modelo, ni las skills, ni los
+ * permisos: eso vive en el motor y el registro.
  *
  * Ver docs/Mensajeria.md §11.
  */
 final readonly class PanelAssistant
 {
-    /** Zona del negocio: decide qué es «hoy» y, con ello, a qué año se refiere «12 de marzo». */
+    /** Zona del negocio: decide qué es «hoy» y a qué año se refiere «12 de marzo». */
     private const string TZ = 'America/Lima';
 
     /** Techo de la pregunta. Corta pegotes accidentales antes de pagar tokens. */
     private const int MAX_CARACTERES = 500;
 
-    /**
-     * Turnos de ida y vuelta que se conservan.
-     *
-     * Sin historial no hay bucle de decisiones: si el modelo responde «hay dos Carlos
-     * González, ¿cuál?», la respuesta del operador llegaría sin saber de qué hablaba. Con
-     * esto la conversación se sostiene; el techo evita que un hilo largo se vuelva caro.
-     */
-    private const int MAX_TURNOS = 12;
-
     public function __construct(
-        private AnthropicClientFactory $anthropic,
-        private AgentToolRegistry $herramientas,
-        private LoggerInterface $logger,
+        private AgentEngineInterface $motor
     ) {}
 
     public function estaDisponible(): bool
     {
-        return $this->anthropic->estaConfigurado();
+        return $this->motor->estaDisponible();
     }
 
     /**
-     * @param list<array{rol: string, texto: string}> $historial Turnos previos del hilo, en
-     *        orden. Es lo que sostiene el bucle de decisiones: sin ellos, un «el de la casita
-     *        3» tras un «¿cuál de los dos Carlos?» llegaría sin contexto.
-     *
+     * @param list<array{rol: string, texto: string}> $historial Turnos previos del hilo.
      * @return array{respuesta: string, herramientas: list<string>}
      */
-    public function preguntar(string $pregunta, AgentActor $actor, array $historial = []): array
+    public function preguntar(string $pregunta, ActorInterface $actor, array $historial = []): array
     {
         $pregunta = trim($pregunta);
 
@@ -80,95 +57,36 @@ final readonly class PanelAssistant
             ));
         }
 
-        $cliente = $this->anthropic->crear();
-        if ($cliente === null) {
-            throw new RuntimeException('El asistente no está configurado: falta ANTHROPIC_API_KEY.');
-        }
-
-        $usadas = [];
-
-        // El registro decide qué ve este actor: a limpieza no se le mencionan siquiera las
-        // herramientas de reservas. Ver AgentToolRegistry.
-        $tools = $this->herramientas->comoRunnables($actor, $usadas);
-
-        if ($tools === []) {
-            return [
-                'respuesta' => 'No tienes permisos para consultar nada por aquí.',
-                'herramientas' => [],
-            ];
-        }
-
-        $runner = $cliente->beta->messages->toolRunner(
-            maxTokens: 4096,
-            messages: [...$this->turnosPrevios($historial), ['role' => 'user', 'content' => $pregunta]],
-            model: $this->anthropic->modelo(),
-            tools: $tools,
-            system: [[
-                'type' => 'text',
-                'text' => $this->systemPrompt(),
-                'cacheControl' => ['type' => 'ephemeral'],
-            ]],
-        );
-
-        $respuesta = '';
-
-        // El runner itera: pregunta → llamada a la herramienta → resultado → respuesta final.
-        // Nos quedamos con el texto del último turno, que es el que contesta al usuario.
-        foreach ($runner as $mensaje) {
-            if ($mensaje->stopReason === 'refusal') {
-                $this->logger->warning('Asistente del panel: petición declinada por los clasificadores.');
-                return ['respuesta' => 'No he podido procesar esa consulta.', 'herramientas' => $usadas];
-            }
-
-            foreach ($mensaje->content as $bloque) {
-                if ($bloque->type === 'text' && trim($bloque->text) !== '') {
-                    $respuesta = $bloque->text;
-                }
-            }
-        }
+        $respuesta = $this->motor->conversar(new ConversationRequest(
+            actor: $actor,
+            systemPrompt: $this->systemPrompt(),
+            mensaje: $pregunta,
+            historial: $historial,
+        ));
 
         return [
-            'respuesta' => trim($respuesta) !== '' ? $respuesta : 'No he sabido responder a eso.',
-            'herramientas' => $usadas,
+            'respuesta' => $this->texto($respuesta),
+            'herramientas' => $respuesta->skillsUsadas,
         ];
     }
 
     /**
-     * Normaliza el hilo que manda el cliente.
+     * Aquí se decide qué ve el operador en cada desenlace.
      *
-     * Viene del navegador, así que no se confía en su forma — pero tampoco hace falta
-     * desconfiar de su contenido: los permisos se resuelven del `AgentActor` en el servidor,
-     * no de aquí. Lo peor que consigue un cliente manipulando su propio historial es
-     * confundirse a sí mismo.
-     *
-     * @param list<array{rol: string, texto: string}> $historial
-     * @return list<array{role: string, content: string}>
+     * A diferencia del chat del huésped, un `sin_skill` **sí se muestra**: quien pregunta es
+     * un compañero que sabe interpretar un «esto no lo sé hacer», y saberlo es más útil que
+     * un silencio.
      */
-    private function turnosPrevios(array $historial): array
+    private function texto(ConversationResponse $respuesta): string
     {
-        $turnos = [];
-
-        foreach ($historial as $turno) {
-            $texto = trim((string) ($turno['texto'] ?? ''));
-            if ($texto === '') {
-                continue;
-            }
-
-            $turnos[] = [
-                'role' => ($turno['rol'] ?? '') === 'asistente' ? 'assistant' : 'user',
-                'content' => mb_substr($texto, 0, self::MAX_CARACTERES * 4),
-            ];
-        }
-
-        $turnos = array_slice($turnos, -self::MAX_TURNOS);
-
-        // La API exige que el hilo empiece por `user`; recortar por el final puede dejar un
-        // `assistant` al principio.
-        while ($turnos !== [] && $turnos[0]['role'] !== 'user') {
-            array_shift($turnos);
-        }
-
-        return $turnos;
+        return match ($respuesta->motivo) {
+            'sin_permisos' => 'No tienes permisos para consultar nada por aquí.',
+            'motor_no_disponible' => 'El asistente no está configurado en este entorno.',
+            'rechazado' => 'No he podido procesar esa consulta.',
+            default => $respuesta->tieneTexto()
+                ? (string) $respuesta->texto
+                : 'No he sabido responder a eso.',
+        };
     }
 
     private function systemPrompt(): string
@@ -184,18 +102,19 @@ final readonly class PanelAssistant
         refieren a la próxima vez que ocurra esa fecha, no a una pasada.
 
         Reglas:
-        - Para cualquier pregunta de disponibilidad, LLAMA a la herramienta. Nunca respondas
-          de memoria ni estimes: si la herramienta falla, dilo.
+        - Para cualquier dato del PMS, LLAMA a la skill correspondiente. Nunca respondas de
+          memoria ni estimes: si falla, dilo.
+        - Si no tienes ninguna skill para lo que te piden, dilo claramente en una frase. No
+          improvises una respuesta ni prometas hacerlo luego.
         - Responde en español, breve y directo, como un compañero: sin preámbulos ni resúmenes
           de lo que vas a hacer.
-        - Al listar casitas, di cuántas hay y nómbralas con su capacidad y tarifa base.
-          Si no hay ninguna, dilo claramente en una frase.
-        - La tarifa base es sólo orientativa: no la presentes como el precio final de la venta.
-        - Si la pregunta es ambigua en fechas, pide la aclaración concreta que te falta.
-        - Si una herramienta devuelve varias coincidencias (dos huéspedes con el mismo
-          nombre, por ejemplo), NO elijas: enséñalas con el dato que las distingue —fechas,
-          casita, localizador— y pregunta cuál. Es una conversación: puedes repreguntar y
-          continuar con lo que te respondan.
+        - Al listar casitas, di cuántas hay y nómbralas con su capacidad y tarifa base. Si no
+          hay ninguna, dilo en una frase.
+        - La tarifa base es orientativa: no la presentes como el precio final de venta.
+        - Si una skill devuelve varias coincidencias (dos huéspedes con el mismo nombre, por
+          ejemplo), NO elijas: enséñalas con el dato que las distingue —fechas, casita,
+          localizador— y pregunta cuál. Es una conversación: puedes repreguntar y continuar
+          con lo que te respondan.
         PROMPT;
     }
 }

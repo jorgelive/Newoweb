@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Command;
 
 use App\Agent\Service\PanelAssistant;
-use App\Agent\Tool\AgentActor;
+use App\Agent\Access\AgentActor;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;

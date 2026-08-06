@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Agent\Tool;
+namespace App\Agent\Access;
 
 /**
  * Cuánto daño puede hacer una herramienta. El control se escala con el daño: una consulta

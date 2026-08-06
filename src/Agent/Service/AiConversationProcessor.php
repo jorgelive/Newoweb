@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
-use App\Agent\Tool\AgentActor;
-use App\Agent\Tool\AgentToolRegistry;
+use App\Agent\Access\AgentActor;
+use App\Agent\Conversation\AgentEngineInterface;
+use App\Agent\Conversation\ConversationRequest;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\MessageDataResolverRegistry;
@@ -42,9 +43,8 @@ final readonly class AiConversationProcessor
     public function __construct(
         private EntityManagerInterface $em,
         private LoggerInterface $logger,
-        private AnthropicClientFactory $anthropic,
+        private AgentEngineInterface $motor,
         private MessageDataResolverRegistry $resolvers,
-        private AgentToolRegistry $herramientas,
         private bool $habilitado,
     ) {}
 
@@ -57,7 +57,7 @@ final readonly class AiConversationProcessor
             return 'ia_desactivada';
         }
 
-        if (!$this->anthropic->estaConfigurado()) {
+        if (!$this->motor->estaDisponible()) {
             $this->logger->warning('IA: habilitada pero sin ANTHROPIC_API_KEY; no se responde.');
             return 'ia_sin_credenciales';
         }
@@ -178,83 +178,45 @@ final readonly class AiConversationProcessor
     }
 
     /**
-     * Llama al modelo con el contexto de la reserva y el hilo reciente.
+     * Pide la respuesta al motor. Aquí no hay SDK: sólo el contexto del huésped y la política
+     * de cuándo su respuesta vale.
      */
     private function generar(MessageConversation $conversacion, Message $entrante): ?string
     {
-        $cliente = $this->anthropic->crear();
-        if ($cliente === null) {
-            return null;
-        }
-
-        // El huésped es un actor con rol (ROLE_HUESPED), no un caso sin permisos. Sus
-        // herramientas quedan acotadas a SU reserva por el contexto de la conversación:
-        // `ConsultarMiReservaTool` ni siquiera acepta un parámetro con el que apuntar a otra.
+        // El huésped es un actor con rol (ROLE_HUESPED), no un caso sin permisos. Sus skills
+        // quedan acotadas a SU reserva por el contexto de la conversación:
+        // ConsultarMiReservaSkill ni siquiera acepta un parámetro con el que apuntar a otra.
         $actor = AgentActor::huesped(
             (string) ($entrante->getChannel()?->getId() ?? 'chat'),
             $conversacion->getContextType(),
             $conversacion->getContextId(),
         );
 
-        $usadas = [];
-        // Sólo lectura hacia fuera: una escritura disparada por un huésped tendría que pasar
-        // por confirmación, y aquí no hay a quién preguntar. Ver NivelRiesgo.
-        $tools = $this->herramientas->comoRunnables($actor, $usadas, incluirEscritura: false);
+        $respuesta = $this->motor->conversar(new ConversationRequest(
+            actor: $actor,
+            systemPrompt: $this->systemPrompt($conversacion),
+            mensaje: trim((string) $entrante->getContentExternal()),
+            historial: $this->historial($conversacion, $entrante),
+            // Sólo lectura hacia fuera: una escritura disparada por un huésped tendría que
+            // confirmarse, y aquí no hay a quién preguntar. Ver NivelRiesgo.
+            permitirEscritura: false,
+            maxTokens: 1024,
+        ));
 
-        $comunes = [
-            'model' => $this->anthropic->modelo(),
-            'maxTokens' => 1024,
-            'system' => [[
-                'type' => 'text',
-                'text' => $this->systemPrompt($conversacion),
-                // El prompt de sistema es idéntico para toda la conversación: cachearlo
-                // ahorra la mayor parte del coste de entrada a partir del segundo mensaje.
-                'cacheControl' => ['type' => 'ephemeral'],
-            ]],
-            'messages' => $this->historial($conversacion, $entrante),
-        ];
+        // 🔑 LA DIFERENCIA CON EL PANEL. Allí un «no sé hacer eso» se muestra: quien pregunta
+        // es un compañero que sabe interpretarlo. Aquí NO: sin skill, la respuesta salió del
+        // modelo y no de los datos, y mandársela a un huésped es improvisar sobre su reserva.
+        // Se calla y contesta una persona — que es lo que hoy ya pasa con todo el free_text.
+        if ($respuesta->motivo === 'sin_skill') {
+            $this->logger->info(sprintf(
+                'IA: sin skill para la consulta de la conversación %s; la deja para un humano.',
+                $conversacion->getId()
+            ));
 
-        // Sin herramientas es una sola llamada; con ellas, el runner hace el ciclo
-        // pregunta → consulta → redacta. El resto del método no cambia.
-        if ($tools === []) {
-            return $this->primerTexto([$cliente->messages->create(...$comunes)], $conversacion);
+            return null;
         }
 
-        return $this->primerTexto(
-            iterator_to_array($cliente->beta->messages->toolRunner(...$comunes, tools: $tools)),
-            $conversacion
-        );
-    }
-
-    /**
-     * Saca el texto final y absorbe el caso de rechazo por clasificadores.
-     *
-     * @param list<object> $mensajes Turnos devueltos por la API.
-     */
-    private function primerTexto(array $mensajes, MessageConversation $conversacion): ?string
-    {
-        $texto = null;
-
-        foreach ($mensajes as $mensaje) {
-            // Los clasificadores pueden declinar una petición: llega un 200 con stopReason
-            // 'refusal' y `content` vacío. Leer content[0] sin comprobarlo revienta.
-            if ($mensaje->stopReason === 'refusal') {
-                $this->logger->warning(sprintf(
-                    'IA: petición declinada por los clasificadores en la conversación %s.',
-                    $conversacion->getId()
-                ));
-
-                return null;
-            }
-
-            foreach ($mensaje->content as $bloque) {
-                if ($bloque->type === 'text' && trim($bloque->text) !== '') {
-                    $texto = $bloque->text;
-                }
-            }
-        }
-
-        return $texto;
+        return $respuesta->tieneTexto() ? $respuesta->texto : null;
     }
 
     private function systemPrompt(MessageConversation $conversacion): string
@@ -295,17 +257,19 @@ final readonly class AiConversationProcessor
     }
 
     /**
-     * Hilo reciente en el formato de la API. El huésped es `user`; todo lo que salió del
-     * alojamiento —operador, plantilla automática o el propio bot— es `assistant`.
+     * Hilo reciente en el formato neutral del motor. El huésped es `usuario`; todo lo que
+     * salió del alojamiento —operador, plantilla automática o el propio bot— es `asistente`.
      *
-     * @return list<array{role: string, content: string}>
+     * El mensaje que dispara el turno NO se incluye: lo aporta la petición.
+     *
+     * @return list<array{rol: string, texto: string}>
      */
     private function historial(MessageConversation $conversacion, Message $entrante): array
     {
-        $mensajes = [];
+        $turnos = [];
 
         foreach ($conversacion->getMessages() as $m) {
-            if ($m->getStatus() === Message::STATUS_CANCELLED) {
+            if ($m->getStatus() === Message::STATUS_CANCELLED || $m === $entrante) {
                 continue;
             }
 
@@ -314,29 +278,13 @@ final readonly class AiConversationProcessor
                 continue;
             }
 
-            $mensajes[] = [
-                'role' => $m->getDirection() === Message::DIRECTION_INCOMING ? 'user' : 'assistant',
-                'content' => $texto,
+            $turnos[] = [
+                'rol' => $m->getDirection() === Message::DIRECTION_INCOMING ? 'usuario' : 'asistente',
+                'texto' => $texto,
             ];
         }
 
-        $mensajes = array_slice($mensajes, -self::HISTORIAL_MAX);
-
-        // La API exige que el hilo empiece por `user` y termine por `user`. Recortar por el
-        // final puede dejar un `assistant` al principio, y el mensaje que dispara todo esto
-        // puede no estar aún en la colección si el flush no lo ha materializado.
-        while ($mensajes !== [] && $mensajes[0]['role'] !== 'user') {
-            array_shift($mensajes);
-        }
-
-        $ultimo = trim((string) ($entrante->getContentExternal() ?? ''));
-        if ($mensajes === [] || end($mensajes)['content'] !== $ultimo) {
-            if ($ultimo !== '') {
-                $mensajes[] = ['role' => 'user', 'content' => $ultimo];
-            }
-        }
-
-        return $mensajes;
+        return array_slice($turnos, -self::HISTORIAL_MAX);
     }
 
     /**

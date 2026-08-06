@@ -22,7 +22,7 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 8. [Menús en canales sin botones](#8-menús-en-canales-sin-botones)
 9. [El Agent: autorespuestas e IA](#9-el-agent-autorespuestas-e-ia)
 10. [El asistente interno del panel](#10-el-asistente-interno-del-panel)
-11. [Herramientas del agente: registro y permisos](#11-herramientas-del-agente-registro-y-permisos)
+11. [El agente: skills, acceso y proveedor](#11-el-agente-skills-acceso-y-proveedor)
 12. [Dónde tocar para cambiar X](#12-dónde-tocar-para-cambiar-x)
 
 ---
@@ -638,132 +638,157 @@ php bin/console app:agent:preguntar "¿qué casitas tengo libres del 12 al 15 de
 php bin/console app:pms:disponibilidad 2026-03-12 2026-03-15   # lo que ve la herramienta
 ```
 
-## 11. Herramientas del agente: registro y permisos
+## 11. El agente: skills, acceso y proveedor
 
-Añadir una capacidad al agente es **crear una clase**. Ni el asistente del panel ni el del
-chat se tocan: el tag `app.agent_tool` la registra sola, igual que `ChannelEnqueuerInterface`
-hace con los canales de envío.
+El módulo está partido en cuatro capas con una regla que lo ordena todo: **el dominio no
+conoce al proveedor**.
 
 ```
-        AgentToolInterface  (#[AutoconfigureTag('app.agent_tool')])
-                │
-        AgentToolRegistry::paraActor($actor)   ← filtra por rol y nivel de riesgo
-                │
-        ┌───────┴────────┐
-   PanelAssistant   AiConversationProcessor
-   (empleado)       (huésped)
+  src/Agent/
+  ├── Skill/          DOMINIO PURO — qué sabe hacer el agente. Cero SDK.
+  │   ├── SkillInterface, SkillDefinition, SkillParameter, SkillResult
+  │   ├── SkillRegistry            ← catálogo + filtro por actor
+  │   └── Pms/                     ← las skills concretas
+  ├── Access/         QUIÉN pregunta y qué puede
+  │   ├── ActorInterface, AgentActor
+  │   └── NivelRiesgo
+  ├── Conversation/   LA FRONTERA
+  │   ├── AgentEngineInterface     ← todo lo de arriba habla con esto
+  │   └── ConversationRequest / ConversationResponse
+  └── Provider/
+      └── Anthropic/  TODO el SDK, empaquetado
+          ├── AnthropicEngine          (implementa AgentEngineInterface)
+          ├── AnthropicSkillAdapter    (SkillDefinition → tool del SDK)
+          └── AnthropicClientFactory
 ```
 
-### 🔑 Lo que no puedes usar, ni se te menciona
+### Por qué esta frontera y no otra
 
-El registro filtra **antes** de construir la petición: las herramientas que el actor no
-puede usar no llegan a `tools`. No es que las pida y se le denieguen — es que no existen en
-su contexto. Un modelo no puede invocar algo que no sabe que hay, y de paso se ahorran los
-tokens de su esquema.
+`AgentEngineInterface` corta en la **conversación completa**, no en un cliente HTTP genérico.
+Es deliberado: abstraer el transporte daría portabilidad aparente y obligaría a renunciar a
+lo que de verdad se usa —tool use, caché de prompts, control de rechazos—. Cortando aquí,
+cada motor aprovecha lo mejor de su API y arriba nadie se entera.
 
-### Todos los que preguntan son actores con rol
+Qué compra:
 
-`AgentActor` unifica los tres orígenes, y **el huésped es uno más** (`ROLE_HUESPED`), no un
-caso especial sin permisos:
+- **Actualizar el SDK o la API** toca una carpeta, no el módulo entero.
+- **Dos motores en paralelo**: se registran los dos y se elige por caso de uso —el panel con
+  uno barato, el chat del huésped con otro— sin duplicar skills ni permisos.
 
-| Constructor | Quién | Roles |
-|---|---|---|
-| `AgentActor::delPanel($user)` | Empleado con sesión | Los suyos |
-| `AgentActor::delEquipoPorChat($user, $origen)` | Empleado desde su móvil | Los suyos |
-| `AgentActor::huesped($origen, $tipo, $id)` | Quien escribe sin ser del equipo | `ROLE_HUESPED` |
+Y lo que **no** compra, conviene saberlo: los **prompts**. Cambiar de motor obliga a
+recalibrarlos, y eso no lo salva ninguna interfaz.
 
-Lo que distingue al huésped no es tener menos derechos: es que sus herramientas están
-**acotadas a su reserva** por `contextoId`.
+Cambiar de motor es una línea:
 
-**El patrón importa más que la comprobación.** `ConsultarMiReservaTool` no recibe *qué*
-reserva consultar — la saca del contexto de la conversación. Un huésped no puede pedir la
-reserva de otro porque **no hay parámetro donde escribirlo**. La frontera está en el diseño
-de la herramienta, no en un `if` que alguien pueda olvidar al copiar y pegar.
+```yaml
+App\Agent\Conversation\AgentEngineInterface: '@App\Agent\Provider\Anthropic\AnthropicEngine'
+```
 
-### El riesgo escala con el daño
+### Una skill no sabe de proveedores
 
-`NivelRiesgo` decide el trato, y la política se aplica **una vez** en el asistente:
+Describe sus parámetros con `SkillParameter` —no con JSON Schema— y devuelve un `SkillResult`.
+Traducir eso al formato de turno es trabajo de `AnthropicSkillAdapter`, **el único sitio del
+proyecto que sabe cómo Anthropic espera una herramienta**.
 
-| Nivel | Trato |
-|---|---|
-| `Lectura` | Se ejecuta sin preguntar |
-| `Escritura` | El asistente propone y espera un «sí» |
-| `Destructivo` | Propone **y pide PIN** |
-
-La confirmación en `Escritura` no es desconfianza del usuario: es que **el modelo puede
-equivocarse de persona**. Con dos Carlos González, mover la reserva del que no era es una
-alucinación, no un ataque.
-
-Por el chat del huésped se pasa `incluirEscritura: false`: una escritura ahí tendría que
-confirmarse y no hay a quién preguntar.
-
-### Añadir una herramienta
-
-Una clase en `src/Agent/Tool/`, cinco métodos, y ya está disponible en los dos asistentes
-para quien tenga el rol:
+Añadir una capacidad es crear una clase en `Skill/`: el tag `app.agent_skill` la registra
+sola y no se toca ni un motor ni un adaptador.
 
 ```php
-final readonly class LoQueSea implements AgentToolInterface
+final readonly class LoQueSea implements SkillInterface
 {
     public function nombre(): string { return 'lo_que_sea'; }
-    public function definicion(): array { return ['description' => '…', 'inputSchema' => [...]]; }
+    public function definicion(): SkillDefinition { /* descripción + parámetros */ }
     public function rolesRequeridos(): array { return [Roles::RESERVAS_WRITE]; }
     public function nivelRiesgo(): NivelRiesgo { return NivelRiesgo::Escritura; }
-    public function ejecutar(array $entrada, AgentActor $actor): string { /* JSON */ }
+    public function ejecutar(array $entrada, ActorInterface $actor): SkillResult { /* … */ }
 }
 ```
 
 Dos reglas al escribirla:
 
-- **La `description` es prompt, no documentación.** Di *cuándo* usarla, no sólo qué hace, y
-  prohíbe responder de memoria si el dato tiene que salir de ahí. Eso es lo que sube la tasa
-  de llamada.
-- **Los errores de negocio se devuelven, no se lanzan**: `{"error": "…"}` deja que el modelo
-  reformule o pida la aclaración que falta; una excepción rompe el turno.
+- **La descripción es prompt, no documentación.** Di *cuándo* usarla y prohíbe responder de
+  memoria si el dato tiene que salir de ahí. Eso es lo que sube la tasa de invocación.
+- **Los errores de negocio se devuelven** (`SkillResult::error()`), no se lanzan: el modelo
+  puede reformular. Una excepción es un fallo de infraestructura; «no encuentro a ese huésped»
+  no lo es.
 
-Y sé una fachada delgada: la lógica vive en el servicio del dominio (`PmsDisponibilidadService`,
-`MessageDataResolverRegistry`), no en la herramienta.
+Y sé una fachada delgada: la lógica vive en el servicio del dominio, no en la skill.
 
-### Dos herramientas, no una con permisos distintos
+### 🔑 Lo que no puedes usar, ni se te menciona
 
-`consultar_mi_reserva` y `buscar_reserva` hacen algo parecido y están separadas a propósito:
+`SkillRegistry::paraActor()` filtra **antes** de construir la petición. No es que el modelo lo
+pida y se le deniegue: es que no existe en su contexto. No puede invocar algo que no sabe que
+hay, y de paso se ahorran los tokens de su definición.
 
-| | `consultar_mi_reserva` | `buscar_reserva` |
+### Todos los que preguntan son actores con rol
+
+| Constructor | Quién | Roles |
 |---|---|---|
-| Qué reserva | La del **contexto de la conversación** | La que se pida por nombre o localizador |
-| Parámetros | Ninguno | `busqueda` |
-| Quién | Huésped **y** equipo | Sólo `RESERVAS_SHOW` |
+| `AgentActor::delPanel($user)` | Empleado con sesión | Los suyos |
+| `AgentActor::delEquipoPorChat($user, …)` | Empleado desde su móvil | Los suyos |
+| `AgentActor::huesped($origen, $tipo, $id)` | Quien escribe sin ser del equipo | `ROLE_HUESPED` |
 
-Fundirlas obligaría a comprobar en tiempo de ejecución si el parámetro está permitido para
-quien pregunta — justo el `if` que se olvida al añadir la siguiente. Separadas, un huésped no
-puede apuntar a otra reserva porque **no hay parámetro donde escribirlo**.
+**El huésped no es un caso sin permisos**: es un actor más. Lo que lo distingue es que sus
+skills están acotadas a su reserva por el contexto.
 
-`buscar_reserva` nunca elige entre varias coincidencias: las devuelve todas para que el
-modelo pregunte cuál. Con dos Carlos González, adivinar es peor que preguntar — y cuando la
-herramienta sea de escritura, adivinar significará mover la reserva equivocada.
+**El patrón importa más que la comprobación.** `ConsultarMiReservaSkill` no recibe *qué*
+reserva consultar — la saca del contexto. Un huésped no puede pedir la de otro porque **no hay
+parámetro donde escribirlo**. Por eso `BuscarReservaSkill` es una skill **distinta** y no la
+misma con otro permiso: fundirlas obligaría a comprobar en ejecución si el parámetro está
+permitido, que es el `if` que se olvida al añadir la siguiente.
+
+`BuscarReservaSkill` nunca elige entre varias coincidencias: las devuelve todas para que el
+modelo pregunte. Con dos Carlos González, adivinar es peor que preguntar — y cuando la skill
+sea de escritura, adivinar significará mover la reserva equivocada.
+
+### El riesgo escala con el daño
+
+| `NivelRiesgo` | Trato |
+|---|---|
+| `Lectura` | Se ejecuta sin preguntar |
+| `Escritura` | Se propone y se espera un «sí» |
+| `Destructivo` | Se propone **y se pide PIN** |
+
+La confirmación no desconfía del usuario: protege de que **el modelo se equivoque de persona**.
+
+Por el chat del huésped se pasa `permitirEscritura: false` — una escritura ahí tendría que
+confirmarse y no hay a quién preguntar.
+
+### 🔑 `sin_skill`: la misma respuesta, dos políticas
+
+Cuando el motor responde **sin invocar ninguna skill**, la respuesta salió del modelo y no de
+los datos. `ConversationResponse::sinSkill()` lo marca, y **cada canal decide**:
+
+| Canal | Qué hace | Por qué |
+|---|---|---|
+| **Panel** | Lo muestra | Quien pregunta es un compañero que sabe interpretar un «esto no lo sé hacer» |
+| **Chat del huésped** | **Se calla** y lo deja para una persona | Mandarle eso a un huésped es improvisar sobre su reserva |
+
+Por eso el motor **informa y no decide**: es la misma conversación con dos políticas de
+entrega, no dos sistemas.
+
+Además, los `sin_skill` acumulados en el log son la lista de skills que faltan por construir,
+ordenada por frecuencia real de uso.
 
 ### El bucle de decisiones
 
-Para que ese «¿cuál de los dos?» funcione hace falta memoria: el asistente del panel
-**conserva el hilo**. El cliente lo mantiene y lo manda en cada petición (`historial`), así
-que el endpoint no guarda estado y el operador ve el mismo contexto que el modelo.
+Para que el «¿cuál de los dos?» funcione hace falta memoria: el hilo lo mantiene el cliente y
+viaja en cada petición (`historial`), así que el endpoint no guarda estado y el operador ve el
+mismo contexto que el modelo.
 
-No hace falta desconfiar de ese historial: los permisos salen del `AgentActor` que se
-construye **en el servidor** con la sesión. Lo peor que consigue un cliente manipulando su
-propio hilo es confundirse a sí mismo.
-
-`MAX_TURNOS` (12) acota el coste; si una petición falla, su pregunta se retira del hilo para
-no mandar al modelo un turno que nunca ocurrió.
+No hace falta desconfiar de ese historial: los permisos salen del actor que se construye **en
+el servidor** con la sesión. Lo peor que consigue un cliente manipulando su propio hilo es
+confundirse a sí mismo.
 
 ### Comprobar el alcance
 
 ```bash
-php bin/console app:agent:permisos     # qué ve cada perfil
+php bin/console app:agent:permisos                    # qué ve cada perfil
 php bin/console app:agent:preguntar "…" --como=susan@ejemplo.com
 ```
 
-El primero es la comprobación que hay que hacer al añadir una herramienta: si aparece en la
-fila de un perfil que no debería, ese perfil puede invocarla.
+El primero es la comprobación obligatoria al añadir una skill: si aparece en la fila de un
+perfil que no debería, ese perfil puede invocarla.
 
 ## 12. Dónde tocar para cambiar X
 
@@ -784,8 +809,11 @@ fila de un perfil que no debería, ese perfil puede invocarla.
 | Cambiar cómo se interpreta el número al VOLVER | `InboundMenuResolver` | `resolveActionCode()` — §8, simétrico con el render |
 | Añadir un idioma al footer «responde con el número» | `Beds24SendMappingStrategy` | `getMenuTranslations()` |
 | Que una opción del menú pueda responderse por Airbnb/Booking | EasyAdmin | `beds24Tmpl.is_active` de la plantilla de respuesta — §8 |
-| **Añadir una capacidad al agente** | `src/Agent/Tool/` | Una clase con `AgentToolInterface` — §11. No se toca ningún asistente |
-| Cambiar quién puede usar una herramienta | la propia herramienta | `rolesRequeridos()` — comprueba con `app:agent:permisos` |
-| Cambiar si algo pide confirmación o PIN | la propia herramienta | `nivelRiesgo()` — §11 |
-| Acotar una herramienta a la reserva del que pregunta | la propia herramienta | Usa `$actor->contextoId`, no un parámetro — §11 |
+| **Añadir una capacidad al agente** | `src/Agent/Skill/` | Una clase con `SkillInterface` — §11. No se toca motor ni adaptador |
+| Cambiar quién puede usar una skill | la propia skill | `rolesRequeridos()` — comprueba con `app:agent:permisos` |
+| Cambiar si algo pide confirmación o PIN | la propia skill | `nivelRiesgo()` — §11 |
+| Acotar una skill a la reserva del que pregunta | la propia skill | Usa `$actor->contextoId()`, no un parámetro — §11 |
+| **Cambiar de proveedor de IA / actualizar el SDK** | `src/Agent/Provider/<Proveedor>/` | Implementa `AgentEngineInterface` y cambia el alias en `services_agent.yaml` — §11 |
+| Cambiar cómo se traduce una skill al formato del proveedor | `AnthropicSkillAdapter` | `esquema()` — único sitio que conoce el formato |
+| Cambiar qué se hace cuando el modelo no usa ninguna skill | el adaptador del canal | `PanelAssistant::texto()` / `AiConversationProcessor::generar()` — §11 |
 | Entender por qué un mensaje no salió | `var/log/` | busca "Omisión preventiva", "Rescate descartado", "Poda de canales", "Caducidad", "Sanidad" |

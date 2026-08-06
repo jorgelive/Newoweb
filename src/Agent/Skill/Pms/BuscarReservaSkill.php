@@ -2,8 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Agent\Tool;
+namespace App\Agent\Skill\Pms;
 
+use App\Agent\Access\ActorInterface;
+use App\Agent\Access\NivelRiesgo;
+use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillInterface;
+use App\Agent\Skill\SkillParameter;
+use App\Agent\Skill\SkillResult;
 use App\Message\Service\MessageDataResolverRegistry;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
@@ -12,19 +18,19 @@ use Doctrine\ORM\EntityManagerInterface;
 /**
  * Busca la reserva de un huésped por nombre o localizador.
  *
- * Es la hermana de `ConsultarMiReservaTool` para el equipo, y **son dos herramientas
+ * Es la hermana de {@see ConsultarMiReservaSkill} para el equipo, y **son dos skills
  * distintas a propósito**, no una con permisos distintos: aquella saca la reserva del
- * contexto de la conversación (por eso un huésped no puede apuntar a otra), y ésta acepta a
- * quién buscar. Fundir las dos obligaría a comprobar en tiempo de ejecución si el parámetro
- * está permitido — justo el `if` que se olvida.
+ * contexto (por eso un huésped no puede apuntar a otra), y ésta acepta a quién buscar.
+ * Fundirlas obligaría a comprobar en ejecución si el parámetro está permitido — justo el
+ * `if` que se olvida al añadir la siguiente.
  *
- * NUNCA elige por su cuenta entre varias coincidencias: las devuelve todas para que el
- * modelo pregunte cuál. Con dos Carlos González, adivinar es peor que preguntar — y cuando
- * la herramienta sea de escritura, adivinar significará mover la reserva equivocada.
+ * NUNCA elige entre varias coincidencias: las devuelve todas para que el modelo pregunte
+ * cuál. Con dos Carlos González, adivinar es peor que preguntar — y cuando la skill sea de
+ * escritura, adivinar significará mover la reserva equivocada.
  */
-final readonly class BuscarReservaTool implements AgentToolInterface
+final readonly class BuscarReservaSkill implements SkillInterface
 {
-    /** Coincidencias devueltas. Más que esto no ayuda al modelo: le pide que acote. */
+    /** Coincidencias devueltas. Más que esto no ayuda: se le pide al usuario que acote. */
     private const int MAX_RESULTADOS = 8;
 
     public function __construct(
@@ -37,26 +43,19 @@ final readonly class BuscarReservaTool implements AgentToolInterface
         return 'buscar_reserva';
     }
 
-    public function definicion(): array
+    public function definicion(): SkillDefinition
     {
-        return [
-            'description' => 'Busca la reserva de un huésped por su nombre, apellido o '
+        return new SkillDefinition(
+            descripcion: 'Busca la reserva de un huésped por su nombre, apellido o '
                 . 'localizador, y devuelve sus datos: fechas de entrada y salida, casita, '
                 . 'noches, huéspedes, total, pagado y saldo pendiente. Úsala siempre que '
                 . 'pregunten por un huésped concreto o por una reserva concreta. Si devuelve '
                 . 'varias coincidencias, pregunta al usuario cuál es antes de continuar: '
                 . 'nunca elijas tú.',
-            'inputSchema' => [
-                'type' => 'object',
-                'properties' => [
-                    'busqueda' => [
-                        'type' => 'string',
-                        'description' => 'Nombre, apellido o localizador del huésped.',
-                    ],
-                ],
-                'required' => ['busqueda'],
+            parametros: [
+                SkillParameter::texto('busqueda', 'Nombre, apellido o localizador del huésped.'),
             ],
-        ];
+        );
     }
 
     /** Sólo el equipo: consultar la reserva de OTRA persona. El huésped tiene la suya. */
@@ -70,12 +69,12 @@ final readonly class BuscarReservaTool implements AgentToolInterface
         return NivelRiesgo::Lectura;
     }
 
-    public function ejecutar(array $entrada, AgentActor $actor): string
+    public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
         $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
 
         if (mb_strlen($busqueda) < 3) {
-            return $this->json(['error' => 'Indica al menos 3 caracteres para buscar.']);
+            return SkillResult::error('Indica al menos 3 caracteres para buscar.');
         }
 
         $reservas = $this->em->getRepository(PmsReserva::class)
@@ -86,15 +85,15 @@ final readonly class BuscarReservaTool implements AgentToolInterface
             ->orWhere('LOWER(CONCAT(r.nombreCliente, \' \', r.apellidoCliente)) LIKE :like')
             ->setParameter('exacto', $busqueda)
             ->setParameter('like', '%' . mb_strtolower($busqueda) . '%')
-            // Las más recientes primero: al preguntar por alguien se busca su estancia
-            // actual o la próxima, casi nunca una de hace tres años.
+            // Las más recientes primero: al preguntar por alguien se busca su estancia actual
+            // o la próxima, casi nunca una de hace tres años.
             ->orderBy('r.fechaLlegada', 'DESC')
             ->setMaxResults(self::MAX_RESULTADOS + 1)
             ->getQuery()
             ->getResult();
 
         if ($reservas === []) {
-            return $this->json(['total' => 0, 'reservas' => []]);
+            return SkillResult::ok(['total' => 0, 'reservas' => []]);
         }
 
         $hayMas = count($reservas) > self::MAX_RESULTADOS;
@@ -112,15 +111,10 @@ final readonly class BuscarReservaTool implements AgentToolInterface
             );
         }
 
-        return $this->json([
+        return SkillResult::ok([
             'total' => count($salida),
             'hay_mas' => $hayMas,
             'reservas' => $salida,
         ]);
-    }
-
-    private function json(array $datos): string
-    {
-        return json_encode($datos, JSON_UNESCAPED_UNICODE) ?: '{"error":"respuesta no serializable"}';
     }
 }

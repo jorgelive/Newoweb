@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Agent\Service;
+namespace App\Agent\Provider\Anthropic;
 
 use Anthropic\Client;
 
