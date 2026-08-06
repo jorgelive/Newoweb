@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
-use Anthropic\Lib\Tools\BetaRunnableTool;
-use App\Pms\Service\Reserva\PmsDisponibilidadService;
+use App\Agent\Tool\AgentActor;
+use App\Agent\Tool\AgentToolRegistry;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
-use Throwable;
 
 /**
  * El asistente del panel interno: responde en lenguaje natural a preguntas del equipo
@@ -41,7 +40,7 @@ final readonly class PanelAssistant
 
     public function __construct(
         private AnthropicClientFactory $anthropic,
-        private PmsDisponibilidadService $disponibilidad,
+        private AgentToolRegistry $herramientas,
         private LoggerInterface $logger,
     ) {}
 
@@ -53,7 +52,7 @@ final readonly class PanelAssistant
     /**
      * @return array{respuesta: string, herramientas: list<string>}
      */
-    public function preguntar(string $pregunta): array
+    public function preguntar(string $pregunta, AgentActor $actor): array
     {
         $pregunta = trim($pregunta);
 
@@ -75,11 +74,22 @@ final readonly class PanelAssistant
 
         $usadas = [];
 
+        // El registro decide qué ve este actor: a limpieza no se le mencionan siquiera las
+        // herramientas de reservas. Ver AgentToolRegistry.
+        $tools = $this->herramientas->comoRunnables($actor, $usadas);
+
+        if ($tools === []) {
+            return [
+                'respuesta' => 'No tienes permisos para consultar nada por aquí.',
+                'herramientas' => [],
+            ];
+        }
+
         $runner = $cliente->beta->messages->toolRunner(
             maxTokens: 4096,
             messages: [['role' => 'user', 'content' => $pregunta]],
             model: $this->anthropic->modelo(),
-            tools: [$this->toolDisponibilidad($usadas)],
+            tools: $tools,
             system: [[
                 'type' => 'text',
                 'text' => $this->systemPrompt(),
@@ -108,68 +118,6 @@ final readonly class PanelAssistant
             'respuesta' => trim($respuesta) !== '' ? $respuesta : 'No he sabido responder a eso.',
             'herramientas' => $usadas,
         ];
-    }
-
-    /**
-     * @param list<string> $usadas Se rellena por referencia para poder mostrar en la interfaz
-     *                             qué consultó el modelo — sin eso, la respuesta es una caja
-     *                             negra y el equipo no sabe si miró datos reales o improvisó.
-     */
-    private function toolDisponibilidad(array &$usadas): BetaRunnableTool
-    {
-        return new BetaRunnableTool(
-            definition: [
-                'name' => 'consultar_disponibilidad',
-                // La descripción es prompt: dice CUÁNDO usarla, no sólo qué hace.
-                'description' => 'Consulta qué casitas están libres en un rango de fechas. '
-                    . 'Úsala siempre que pregunten por disponibilidad, casitas libres, huecos, '
-                    . 'o si se puede alojar a alguien en unas fechas. Nunca respondas de memoria '
-                    . 'sobre disponibilidad: llama siempre a esta herramienta.',
-                'inputSchema' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'desde' => [
-                            'type' => 'string',
-                            'description' => 'Fecha de entrada en formato YYYY-MM-DD.',
-                        ],
-                        'hasta' => [
-                            'type' => 'string',
-                            'description' => 'Fecha de salida en formato YYYY-MM-DD. '
-                                . 'Es el día en que la casita queda libre: del 12 al 15 son 3 noches.',
-                        ],
-                        'pax' => [
-                            'type' => 'integer',
-                            'description' => 'Número de personas, si lo indican.',
-                        ],
-                    ],
-                    'required' => ['desde', 'hasta'],
-                ],
-            ],
-            run: function (array $input) use (&$usadas): string {
-                $usadas[] = 'consultar_disponibilidad';
-
-                try {
-                    $libres = $this->disponibilidad->buscar(
-                        new DateTimeImmutable((string) $input['desde']),
-                        new DateTimeImmutable((string) $input['hasta']),
-                        isset($input['pax']) ? (int) $input['pax'] : null,
-                    );
-                } catch (InvalidArgumentException $e) {
-                    // Se le devuelve al modelo para que reformule o pida aclaración, en vez de
-                    // romper el turno: es un error de datos, no del sistema.
-                    return json_encode(['error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
-                } catch (Throwable $e) {
-                    $this->logger->error('Asistente del panel: fallo consultando disponibilidad: ' . $e->getMessage());
-
-                    return json_encode(['error' => 'No se pudo consultar la disponibilidad.'], JSON_UNESCAPED_UNICODE);
-                }
-
-                return json_encode([
-                    'total' => count($libres),
-                    'casitas' => array_map(static fn ($u) => $u->toArray(), $libres),
-                ], JSON_UNESCAPED_UNICODE);
-            },
-        );
     }
 
     private function systemPrompt(): string

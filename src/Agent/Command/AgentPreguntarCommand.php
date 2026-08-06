@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace App\Agent\Command;
 
 use App\Agent\Service\PanelAssistant;
+use App\Agent\Tool\AgentActor;
+use App\Entity\User;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use App\Security\Roles;
+use RuntimeException;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
@@ -28,14 +34,22 @@ use Throwable;
 final class AgentPreguntarCommand extends Command
 {
     public function __construct(
-        private readonly PanelAssistant $asistente
+        private readonly PanelAssistant $asistente,
+        private readonly EntityManagerInterface $em,
     ) {
         parent::__construct();
     }
 
     protected function configure(): void
     {
-        $this->addArgument('pregunta', InputArgument::REQUIRED, 'La pregunta en lenguaje natural');
+        $this
+            ->addArgument('pregunta', InputArgument::REQUIRED, 'La pregunta en lenguaje natural')
+            ->addOption(
+                'como',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Email del usuario cuyos permisos usar. Sin él, se pregunta como SUPER_ADMIN.'
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -47,10 +61,19 @@ final class AgentPreguntarCommand extends Command
             return Command::FAILURE;
         }
 
+        try {
+            $actor = $this->resolverActor($input->getOption('como'));
+        } catch (Throwable $e) {
+            $io->error($e->getMessage());
+            return Command::INVALID;
+        }
+
+        $io->comment('Preguntando como: ' . $actor->etiqueta());
+
         $inicio = microtime(true);
 
         try {
-            $resultado = $this->asistente->preguntar((string) $input->getArgument('pregunta'));
+            $resultado = $this->asistente->preguntar((string) $input->getArgument('pregunta'), $actor);
         } catch (Throwable $e) {
             $io->error($e->getMessage());
             return Command::FAILURE;
@@ -65,5 +88,28 @@ final class AgentPreguntarCommand extends Command
         ));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Con `--como` se pregunta con los permisos reales de ese usuario, que es la forma de
+     * comprobar que limpieza y administración NO ven las mismas herramientas. Sin la opción
+     * se usa un SUPER_ADMIN sintético, para probar el prompt sin depender de la base de datos.
+     */
+    private function resolverActor(mixed $email): AgentActor
+    {
+        if ($email === null) {
+            $admin = new User();
+            $admin->setEmail('cli@local');
+            $admin->setRoles([Roles::SUPER_ADMIN]);
+
+            return AgentActor::delPanel($admin);
+        }
+
+        $usuario = $this->em->getRepository(User::class)->findOneBy(['email' => (string) $email]);
+        if (!$usuario instanceof User) {
+            throw new RuntimeException(sprintf('No existe ningún usuario con el email "%s".', $email));
+        }
+
+        return AgentActor::delPanel($usuario);
     }
 }

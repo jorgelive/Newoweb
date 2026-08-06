@@ -41,6 +41,16 @@ final class Roles
     public const GUIA               = 'ROLE_GUIA';
 
     /**
+     * Rol SINTÉTICO del huésped. Ningún `User` lo tiene ni debe tenerlo: se lo asigna
+     * `AgentActor::huesped()` a quien escribe por el chat sin ser del equipo.
+     *
+     * Existe para que el huésped sea un actor más del agente —con sus propias herramientas,
+     * acotadas a SU reserva— en vez de un caso especial sin permisos. No se ofrece en
+     * `getChoices()` a propósito: no es asignable desde el panel.
+     */
+    public const HUESPED            = 'ROLE_HUESPED';
+
+    /**
      * Devuelve los roles filtrados por grupo funcional.
      */
     public static function getChoices(?string $group = null): array

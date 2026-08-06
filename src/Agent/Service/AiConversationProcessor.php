@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Tool\AgentActor;
+use App\Agent\Tool\AgentToolRegistry;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\MessageDataResolverRegistry;
@@ -42,6 +44,7 @@ final readonly class AiConversationProcessor
         private LoggerInterface $logger,
         private AnthropicClientFactory $anthropic,
         private MessageDataResolverRegistry $resolvers,
+        private AgentToolRegistry $herramientas,
         private bool $habilitado,
     ) {}
 
@@ -184,37 +187,74 @@ final readonly class AiConversationProcessor
             return null;
         }
 
-        $respuesta = $cliente->messages->create(
-            model: $this->anthropic->modelo(),
-            maxTokens: 1024,
-            system: [[
+        // El huésped es un actor con rol (ROLE_HUESPED), no un caso sin permisos. Sus
+        // herramientas quedan acotadas a SU reserva por el contexto de la conversación:
+        // `ConsultarMiReservaTool` ni siquiera acepta un parámetro con el que apuntar a otra.
+        $actor = AgentActor::huesped(
+            (string) ($entrante->getChannel()?->getId() ?? 'chat'),
+            $conversacion->getContextType(),
+            $conversacion->getContextId(),
+        );
+
+        $usadas = [];
+        // Sólo lectura hacia fuera: una escritura disparada por un huésped tendría que pasar
+        // por confirmación, y aquí no hay a quién preguntar. Ver NivelRiesgo.
+        $tools = $this->herramientas->comoRunnables($actor, $usadas, incluirEscritura: false);
+
+        $comunes = [
+            'model' => $this->anthropic->modelo(),
+            'maxTokens' => 1024,
+            'system' => [[
                 'type' => 'text',
                 'text' => $this->systemPrompt($conversacion),
                 // El prompt de sistema es idéntico para toda la conversación: cachearlo
                 // ahorra la mayor parte del coste de entrada a partir del segundo mensaje.
                 'cacheControl' => ['type' => 'ephemeral'],
             ]],
-            messages: $this->historial($conversacion, $entrante),
-        );
+            'messages' => $this->historial($conversacion, $entrante),
+        ];
 
-        // Los clasificadores pueden declinar una petición: llega un 200 con stopReason
-        // 'refusal' y `content` vacío. Leer content[0] sin comprobarlo revienta.
-        if ($respuesta->stopReason === 'refusal') {
-            $this->logger->warning(sprintf(
-                'IA: petición declinada por los clasificadores en la conversación %s.',
-                $conversacion->getId()
-            ));
-
-            return null;
+        // Sin herramientas es una sola llamada; con ellas, el runner hace el ciclo
+        // pregunta → consulta → redacta. El resto del método no cambia.
+        if ($tools === []) {
+            return $this->primerTexto([$cliente->messages->create(...$comunes)], $conversacion);
         }
 
-        foreach ($respuesta->content as $bloque) {
-            if ($bloque->type === 'text') {
-                return $bloque->text;
+        return $this->primerTexto(
+            iterator_to_array($cliente->beta->messages->toolRunner(...$comunes, tools: $tools)),
+            $conversacion
+        );
+    }
+
+    /**
+     * Saca el texto final y absorbe el caso de rechazo por clasificadores.
+     *
+     * @param list<object> $mensajes Turnos devueltos por la API.
+     */
+    private function primerTexto(array $mensajes, MessageConversation $conversacion): ?string
+    {
+        $texto = null;
+
+        foreach ($mensajes as $mensaje) {
+            // Los clasificadores pueden declinar una petición: llega un 200 con stopReason
+            // 'refusal' y `content` vacío. Leer content[0] sin comprobarlo revienta.
+            if ($mensaje->stopReason === 'refusal') {
+                $this->logger->warning(sprintf(
+                    'IA: petición declinada por los clasificadores en la conversación %s.',
+                    $conversacion->getId()
+                ));
+
+                return null;
+            }
+
+            foreach ($mensaje->content as $bloque) {
+                if ($bloque->type === 'text' && trim($bloque->text) !== '') {
+                    $texto = $bloque->text;
+                }
             }
         }
 
-        return null;
+        return $texto;
     }
 
     private function systemPrompt(MessageConversation $conversacion): string

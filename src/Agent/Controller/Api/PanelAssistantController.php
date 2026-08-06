@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Agent\Controller\Api;
 
 use App\Agent\Service\PanelAssistant;
+use App\Agent\Tool\AgentActor;
+use App\Entity\User;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -42,11 +44,18 @@ final class PanelAssistantController extends AbstractController
             );
         }
 
+        $usuario = $this->getUser();
+        if (!$usuario instanceof User) {
+            return $this->json(['error' => 'Sesión no válida.'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
         $payload = json_decode($request->getContent(), true);
         $pregunta = is_array($payload) ? (string) ($payload['pregunta'] ?? '') : '';
 
         try {
-            $resultado = $this->asistente->preguntar($pregunta);
+            // El actor lleva los roles del usuario: el registro decide con ellos qué
+            // herramientas se le ofrecen al modelo. Limpieza y administración no ven lo mismo.
+            $resultado = $this->asistente->preguntar($pregunta, AgentActor::delPanel($usuario));
         } catch (InvalidArgumentException $e) {
             return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
         } catch (Throwable $e) {
