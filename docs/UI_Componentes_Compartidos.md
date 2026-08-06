@@ -286,7 +286,31 @@ consultando el PMS de verdad. Hoy la monta `HomeView`; es autónoma y se puede p
 cualquier vista sin props.
 
 **No es el chat del huésped.** Aquí pregunta un compañero autenticado y la respuesta sólo se
-pinta en pantalla. El backend, los guardias y la herramienta están en `docs/Mensajeria.md` §10.
+pinta en pantalla. El backend, los guardias y las herramientas están en `docs/Mensajeria.md`
+§10 y §11.
+
+### El hilo lo guarda el cliente, no el servidor
+
+No es una caja de pregunta-respuesta: mantiene la conversación, porque el asistente
+**repregunta** cuando algo es ambiguo («hay dos Carlos González, ¿cuál?»). Sin memoria, el
+«el de la casita 3» siguiente llegaría sin contexto.
+
+**El estado vive en el componente** (`hilo`) y viaja entero en cada petición dentro de
+`historial`. Consecuencias que conviene tener presentes:
+
+- El endpoint **no guarda estado**: no hay sesión de conversación que caducar ni limpiar.
+- **Se pierde al recargar la página.** Es deliberado: son consultas de operación, no un
+  historial que valga la pena persistir. Si algún día hace falta, se guarda en el store.
+- **No hay que desconfiar de ese historial**: los permisos salen del `AgentActor` que el
+  backend construye con la sesión, nunca de lo que mande el cliente. Manipular el propio
+  hilo sólo confunde a quien lo manipula.
+
+Dos detalles de la interacción que parecen menores y no lo son:
+
+- La pregunta se pinta en el hilo **antes** de que llegue la respuesta, y el input se vacía:
+  si no, el operador se queda mirando una caja con su texto sin saber si se envió.
+- Si la petición **falla**, la pregunta se retira del hilo y vuelve al input. Dejarla
+  mandaría al modelo, en la siguiente vuelta, un turno de usuario que nunca tuvo respuesta.
 
 ### El dictado no tiene backend
 
@@ -319,6 +343,9 @@ nuestro. `RespuestaAsistente` es espejo de `PanelAssistantController::__invoke()
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
+|---|---|---|
+| Que el asistente recuerde más (o menos) turnos | `PanelAssistant` | `MAX_TURNOS` — el hilo se recorta en el backend, no en el componente (§3.c) |
+| Persistir la conversación del asistente entre recargas | `AsistenteBar.vue` | `hilo` — hoy es estado local a propósito (§3.c) |
 |---|---|---|
 | Cambiar el formato visible de la fecha | `FechaHoraPicker.vue` | `aTextoVisible()` / `format` del `VueDatePicker` |
 | Cambiar el rango de años admitido al teclear | `FechaHoraPicker.vue` | bloque `Y` de la máscara (hoy 2024-2099) |
