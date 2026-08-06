@@ -203,17 +203,21 @@ final readonly class AiConversationProcessor
             maxTokens: 1024,
         ));
 
-        // 🔑 LA DIFERENCIA CON EL PANEL. Allí un «no sé hacer eso» se muestra: quien pregunta
-        // es un compañero que sabe interpretarlo. Aquí NO: sin skill, la respuesta salió del
-        // modelo y no de los datos, y mandársela a un huésped es improvisar sobre su reserva.
-        // Se calla y contesta una persona — que es lo que hoy ya pasa con todo el free_text.
+        // 🔑 LA DIFERENCIA CON EL PANEL. Allí un «no sé hacer eso» se muestra tal cual: quien
+        // pregunta es un compañero que sabe interpretarlo. Aquí NO — sin skill, la respuesta
+        // salió del modelo y no de los datos, e improvisar sobre la reserva de un huésped es
+        // justo lo que no se quiere.
+        //
+        // Pero callarse del todo tampoco vale: el huésped se queda mirando el chat sin saber
+        // si alguien le leyó. Se le manda el acuse de recibo y la petición queda para una
+        // persona, que es quien tiene los permisos que a él le faltan.
         if ($respuesta->motivo === 'sin_skill') {
             $this->logger->info(sprintf(
-                'IA: sin skill para la consulta de la conversación %s; la deja para un humano.',
+                'IA: sin skill para la consulta de la conversación %s; acuse de recibo y a un humano.',
                 $conversacion->getId()
             ));
 
-            return null;
+            return $this->acuseDeRecibo($conversacion);
         }
 
         return $respuesta->tieneTexto() ? $respuesta->texto : null;
@@ -254,6 +258,29 @@ final readonly class AiConversationProcessor
           discúlpate brevemente y dile que un compañero le atiende enseguida.
         - No menciones que eres una IA salvo que te lo pregunten directamente.
         PROMPT;
+    }
+
+    /**
+     * «Un compañero te responde en breve», en el idioma de la conversación.
+     *
+     * Va escrito a mano y NO se le pide al modelo: es la respuesta que se da precisamente
+     * cuando el modelo no tenía con qué responder, así que generarla sería volver a confiar
+     * en lo que acaba de fallar. Además debe ser idéntica siempre — es un acuse de recibo,
+     * no una conversación.
+     */
+    private function acuseDeRecibo(MessageConversation $conversacion): string
+    {
+        $idioma = $conversacion->getIdioma()?->getId() ?? 'es';
+
+        return match ($idioma) {
+            'en' => 'Thanks for your message. A member of our team will get back to you shortly.',
+            'pt' => 'Obrigado pela sua mensagem. Um membro da nossa equipa responder-lhe-á em breve.',
+            'fr' => 'Merci pour votre message. Un membre de notre équipe vous répondra sous peu.',
+            'it' => 'Grazie per il suo messaggio. Un membro del nostro team le risponderà a breve.',
+            'de' => 'Vielen Dank für Ihre Nachricht. Ein Mitarbeiter meldet sich in Kürze bei Ihnen.',
+            'nl' => 'Bedankt voor uw bericht. Een collega neemt zo spoedig mogelijk contact met u op.',
+            default => 'Gracias por tu mensaje. Un compañero te responderá en breve.',
+        };
     }
 
     /**

@@ -829,6 +829,67 @@ contra datos reales sobre una reserva de Booking:
 Esa asimetría —una OTA no admite mover fechas pero sí una salida tardía— es justo lo que un
 prompt no debe tener que saber: la sabe la skill.
 
+### El mismo mensaje, dos desenlaces según el rol
+
+> «Quiero cambiar mi hora de salida»
+
+| Quién lo dice | Qué pasa |
+|---|---|
+| **Huésped** | No tiene `RESERVAS_WRITE`, así que `aplicar_cambio_horario` **ni se le menciona**. El motor responde sin skill → acuse de recibo en su idioma y la petición queda para una persona |
+| **Susan** (recepción con RW) | Ve la cadena entera y la recorre hasta el final |
+
+Es **la misma conversación con dos catálogos**, no dos sistemas. Y el acuse de recibo va
+escrito a mano, no generado: es precisamente la respuesta que se da cuando el modelo no tenía
+con qué responder, así que pedírsela a él sería confiar en lo que acaba de fallar.
+
+### La cadena completa, con escritura
+
+```
+  Susan: «Carlos se va mañana a las 5»
+
+  buscar_reserva            → reserva_id
+  buscar_estancias_de_reserva → evento_id, es_ota
+  evaluar_cambio_horario    → permitido: salida tardía sí, mover fechas no si es OTA
+  aplicar_cambio_horario    ✍️  «¿confirmas?» → sí → marca el flag
+        ↓ PmsExtensionEstanciaService crea la extensión y el push la manda como bloqueo
+  registrar_cargo           ✍️  «¿lo cobramos? 20 soles» → sí → cargo en la cuenta
+```
+
+**Marcar y cobrar son skills distintas** porque son decisiones distintas: hay late check-outs
+de cortesía. El modelo encadena las dos sólo si el operador lo pide.
+
+### 🔒 La confirmación está en el código, no en el prompt
+
+Las skills de escritura llevan un parámetro **`confirmado` obligatorio**. Con `false` devuelven
+la previsualización y **no tocan nada**:
+
+```
+"aplicado": false,
+"motivo": "falta_confirmacion",
+"previsualizacion": "Se marcará la salida tardía de Susan Acuña en Casita 3, lo que
+                     bloqueará esa noche también en los canales de venta."
+```
+
+Confiar sólo en que el system prompt diga «pregunta antes de aplicar» deja la puerta a que el
+modelo se salte el paso. Así el freno es del código y la previsualización sale de los datos
+reales, no de lo que el modelo cree que va a pasar.
+
+### 💱 Conversión de moneda: la hace la skill, no el modelo
+
+El operador dice «20 soles» y la cuenta puede llevarse en dólares. `registrar_cargo` guarda
+siempre en la moneda de la cabecera, convierte con `TipoCambioDelDia` y **deja registrado el
+tipo aplicado** en el cargo — que es lo que permite auditar después de dónde salió la cifra.
+
+```
+"importe_indicado":  "20.00 PEN"
+"importe_en_cuenta": "5.88 USD"
+"tipo_cambio_aplicado": "3.400"
+```
+
+La descripción de la skill le dice al modelo explícitamente que **no convierta él**. Y sin
+tipo de cambio disponible no se inventa uno: se devuelve el error y lo mete una persona — un
+cargo con una cifra inventada es peor que un cargo que falta.
+
 ### Comprobar el alcance
 
 ```bash
