@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Reserva;
 
+use App\Pms\Dto\PmsOcupacionDto;
 use App\Pms\Dto\PmsUnidadDisponibleDto;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsUnidad;
@@ -110,6 +111,100 @@ final readonly class PmsDisponibilidadService
                 moneda:          $u->getTarifaBaseMonedaId(),
             ),
             $qb->getQuery()->getResult()
+        );
+    }
+
+    /**
+     * Quién ocupa las casitas entre dos fechas. El reverso exacto de {@see buscar()}.
+     *
+     * **Comparte `IMPIDEN_VENTA` y el solape por `DATE()` con la disponibilidad a propósito.**
+     * Son la misma pregunta mirada por sus dos caras, así que si divergieran —una contando
+     * `bloqueo` y la otra no— el operador vería 5 libres y 4 ocupadas de 7 casitas sin saber
+     * qué creerse. Cuadran por construcción, no por disciplina.
+     *
+     * Devuelve también bloqueos y extensiones, que no son personas: `esEstancia` los separa.
+     * Esconderlos habría descuadrado la suma justo en los casos raros, que son los que se
+     * consultan.
+     *
+     * @param string|null $unidadId Una casita concreta; `null` para todo el parque.
+     *
+     * @return list<PmsOcupacionDto> Ordenado por casita y fecha de entrada.
+     */
+    public function ocupacion(
+        DateTimeInterface $desde,
+        DateTimeInterface $hasta,
+        ?string $unidadId = null
+    ): array {
+        $desdeDia = DateTimeImmutable::createFromInterface($desde)->setTime(0, 0);
+        $hastaDia = DateTimeImmutable::createFromInterface($hasta)->setTime(0, 0);
+
+        if ($hastaDia <= $desdeDia) {
+            throw new InvalidArgumentException('La fecha de salida debe ser posterior a la de entrada.');
+        }
+
+        if ($desdeDia->diff($hastaDia)->days > self::MAX_NOCHES) {
+            throw new InvalidArgumentException(sprintf(
+                'El rango no puede superar %d noches.',
+                self::MAX_NOCHES
+            ));
+        }
+
+        // SQL nativo por el mismo motivo que unidadesOcupadas(): el DATE() sobre las horas de
+        // pared. Ver la nota de ese método.
+        $sql = <<<'SQL'
+            SELECT BIN_TO_UUID(e.id)             AS evento_id,
+                   BIN_TO_UUID(e.reserva_id)     AS reserva_id,
+                   BIN_TO_UUID(e.pms_unidad_id)  AS casita_id,
+                   u.nombre                      AS casita,
+                   est.nombre_comercial          AS establecimiento,
+                   e.titulo_cache                AS huesped,
+                   DATE(e.inicio)                AS entra,
+                   DATE(e.fin)                   AS sale,
+                   TIME_FORMAT(e.inicio, '%H:%i') AS hora_entrada,
+                   TIME_FORMAT(e.fin,    '%H:%i') AS hora_salida,
+                   e.estado_id                   AS estado,
+                   e.is_ota                      AS es_ota,
+                   e.localizador                 AS localizador
+            FROM pms_evento_calendario e
+            JOIN pms_unidad u          ON u.id = e.pms_unidad_id
+            LEFT JOIN pms_establecimiento est ON est.id = u.establecimiento_id
+            WHERE e.estado_id IN (:estados)
+              AND DATE(e.inicio) < :hasta
+              AND DATE(e.fin)    > :desde
+              AND (:unidad IS NULL OR e.pms_unidad_id = UUID_TO_BIN(:unidad))
+            ORDER BY u.nombre ASC, e.inicio ASC
+        SQL;
+
+        $filas = $this->em->getConnection()->executeQuery(
+            $sql,
+            [
+                'estados' => PmsEventoEstado::IMPIDEN_VENTA,
+                'desde'   => $desdeDia->format('Y-m-d'),
+                'hasta'   => $hastaDia->format('Y-m-d'),
+                'unidad'  => $unidadId,
+            ],
+            ['estados' => ArrayParameterType::STRING]
+        )->fetchAllAssociative();
+
+        return array_map(
+            static fn (array $f) => new PmsOcupacionDto(
+                casita:          (string) ($f['casita'] ?? '—'),
+                casitaId:        (string) $f['casita_id'],
+                establecimiento: (string) ($f['establecimiento'] ?? '—'),
+                // Un bloqueo no tiene huésped: el título cacheado trae el motivo o va vacío.
+                huesped:         ($f['huesped'] ?? '') !== '' ? (string) $f['huesped'] : null,
+                entra:           (string) $f['entra'],
+                sale:            (string) $f['sale'],
+                horaEntrada:     $f['hora_entrada'] !== null ? (string) $f['hora_entrada'] : null,
+                horaSalida:      $f['hora_salida'] !== null ? (string) $f['hora_salida'] : null,
+                estado:          (string) $f['estado'],
+                esEstancia:      in_array($f['estado'], PmsEventoEstado::OCUPAN_UNIDAD, true),
+                esOta:           (bool) $f['es_ota'],
+                localizador:     ($f['localizador'] ?? '') !== '' ? (string) $f['localizador'] : null,
+                reservaId:       $f['reserva_id'] !== null ? (string) $f['reserva_id'] : null,
+                eventoId:        (string) $f['evento_id'],
+            ),
+            $filas
         );
     }
 

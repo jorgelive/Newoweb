@@ -100,7 +100,36 @@ desarrollo: devolvía las 7 casitas con 5 de ellas ocupadas.
 - **Techo de 365 noches** (`MAX_NOCHES`) para que una fecha mal tecleada no barra años.
 - **Sólo unidades activas** (`u.activo = true`).
 
-## 7. Cómo se prueba
+## 7. La otra cara: quién está dentro (`ocupacion()`)
+
+`buscar()` dice qué se puede vender; `ocupacion()` dice quién ocupa. **Son la misma pregunta por
+sus dos caras, y viven en el mismo servicio a propósito**: comparten `IMPIDEN_VENTA` (§4) y el
+solape por `DATE()` (§3). Si el cálculo se duplicara, bastaría con que uno contase `bloqueo` y el
+otro no para que el operador viese *5 libres y 4 ocupadas de 7 casitas* sin saber qué creerse.
+Cuadran por construcción, no por disciplina.
+
+### El invariante que hay que mantener
+
+> **libres + casitas distintas ocupadas = parque activo.**
+
+Es la prueba de humo de cualquier cambio en el solape o en los estados. Con datos reales del
+10 al 12 de agosto de 2026: `2 + 5 = 7`. Si un día no suma, el error está en §3 o en §4, no en
+quien consulta.
+
+### Bloqueos y extensiones se devuelven, marcados
+
+Un `bloqueo` o una `extension` ocupan la casita pero no son personas. Se devuelven igual, con
+`es_estancia: false`, porque esconderlos descuadraría la suma justo en los casos raros — que son
+los que se consultan. Quien pinte la respuesta decide si los muestra; el servicio no miente.
+
+### Por qué no vale `listar_entradas_salidas`
+
+Se parecen y contestan cosas distintas. Aquélla da los **movimientos** de unos días; ésta, quién
+**duerme dentro**. Catherine entró el 9 y se va el 18: no aparece en ningún listado de entradas y
+salidas del 10 al 12, y sin embargo es quien está en la Casita 1. Confundirlas es el error
+probable de un modelo pequeño, así que la descripción de `consultar_ocupacion` lo dice explícito.
+
+## 8. Cómo se prueba
 
 El proyecto no tiene tests: el comando **es** la prueba.
 
@@ -108,18 +137,32 @@ El proyecto no tiene tests: el comando **es** la prueba.
 php bin/console app:pms:disponibilidad 2026-08-05 2026-08-07          # rango ocupado
 php bin/console app:pms:disponibilidad 2026-08-07 2026-08-08          # el día que sale
 php bin/console app:pms:disponibilidad 2026-08-07 2026-08-08 --pax=8  # filtro de capacidad
+
+# Las dos caras, que deben sumar el parque activo:
+php bin/console app:agent:skill consultar_disponibilidad '{"desde":"2026-08-10","hasta":"2026-08-12"}'
+php bin/console app:agent:skill consultar_ocupacion      '{"desde":"2026-08-10","hasta":"2026-08-12"}'
+php bin/console app:agent:skill consultar_ocupacion      '{"desde":"2026-08-10","hasta":"2026-08-12","casita":"1"}'
 ```
 
 Las dos primeras son la prueba de la regla de solape: una casita que sale el 7 **no** debe
 aparecer en el primer rango y **sí** en el segundo.
 
-## 8. Dónde tocar para cambiar X
+**`ocupacion()` es además la única forma de comprobar que las canceladas se ignoran.** En
+disponibilidad no se ve: si una casita tiene una reserva cancelada y otra vigente, sale ocupada
+igual y el filtro roto daría el mismo resultado. En la ocupación se listan los eventos uno a uno,
+así que una cancelada mal filtrada **aparece con nombre y apellido**. Comprobado en Casita 2, que
+tiene las dos y sólo devuelve la vigente.
+
+## 9. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
-| Que un estado nuevo bloquee (o deje de bloquear) la venta | `PmsEventoEstado` | `IMPIDEN_VENTA` — §4, **no** toques `OCUPAN_UNIDAD` |
-| Cambiar la regla de solape | `PmsDisponibilidadService` | `unidadesOcupadas()` — §3 |
+| Que un estado nuevo bloquee (o deje de bloquear) la venta | `PmsEventoEstado` | `IMPIDEN_VENTA` — §4, **no** toques `OCUPAN_UNIDAD`. Afecta a las dos caras a la vez |
+| Cambiar la regla de solape | `PmsDisponibilidadService` | `unidadesOcupadas()` **y** `ocupacion()` — §3, las dos o el invariante de §7 deja de cumplirse |
 | Filtrar por más criterios (tipo de casita, servicios…) | `PmsDisponibilidadService` | `buscar()` |
-| Cambiar qué datos ve el agente al consultar | `PmsUnidadDisponibleDto` | `toArray()` — las claves son parte del prompt |
+| Cambiar qué datos ve el agente al consultar disponibilidad | `PmsUnidadDisponibleDto` | `toArray()` — las claves son parte del prompt |
+| Cambiar qué datos ve el agente al consultar ocupación | `PmsOcupacionDto` | `toArray()` — ídem |
+| Cambiar cómo se resuelve «casita 1» a una unidad | `ConsultarOcupacionSkill` | `resolverCasita()` — §7 |
 | Subir el techo de noches | `PmsDisponibilidadService` | `MAX_NOCHES` |
 | Comprobar disponibilidad a mano | — | `php bin/console app:pms:disponibilidad <desde> <hasta>` |
+| Comprobar que las dos caras cuadran | — | Los tres comandos de §8 |
