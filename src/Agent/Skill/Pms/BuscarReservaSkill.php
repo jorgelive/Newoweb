@@ -339,8 +339,8 @@ final readonly class BuscarReservaSkill implements SkillInterface
 
         $vivos = array_values(array_filter($estados, static fn (string $e) => $e !== 'cancelada'));
 
-        // La regla vive en la entidad: ver PmsReserva::estaCancelada().
-        $cancelada = $reserva->estaCancelada();
+        // La regla vive en la entidad: ver PmsReserva::isCancelada().
+        $cancelada = $reserva->isCancelada();
 
         return array_filter([
             'estancias' => $estancias !== [] ? $estancias : null,

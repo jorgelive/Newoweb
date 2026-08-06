@@ -312,7 +312,7 @@ final readonly class EnviarPlantillaSkill implements SkillInterface
 
     private function reservaCancelada(MessageConversation $conversacion): bool
     {
-        return $this->reserva($conversacion)?->estaCancelada() ?? false;
+        return $this->reserva($conversacion)?->isCancelada() ?? false;
     }
 
     private function reserva(MessageConversation $conversacion): ?PmsReserva

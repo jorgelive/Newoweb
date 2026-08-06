@@ -515,7 +515,7 @@ class PmsReserva
      * Los `bloqueo` y `extension` no cuentan: no son tramos del huésped sino el efecto de una
      * entrada temprana o una salida tardía, y una reserva cancelada puede conservarlos.
      */
-    public function estaCancelada(): bool
+    public function isCancelada(): bool
     {
         $tramos = 0;
 

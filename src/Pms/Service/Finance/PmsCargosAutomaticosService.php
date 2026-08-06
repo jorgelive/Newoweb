@@ -239,10 +239,26 @@ final class PmsCargosAutomaticosService
      */
     private function calcularAlojamiento(PmsEventoCalendario $evento): ?float
     {
-        $inicio = $evento->getInicio();
-        $fin = $evento->getFin();
-        $unidad = $evento->getPmsUnidad();
+        return $this->estimarAlojamiento(
+            $evento->getPmsUnidad(),
+            $evento->getInicio(),
+            $evento->getFin()
+        );
+    }
 
+    /**
+     * El mismo cálculo, sin necesidad de un evento.
+     *
+     * Lo usa `CrearReservaSkill` para PREVISUALIZAR cuánto saldría del tarifario antes de crear
+     * nada, que es lo que permite al operador decidir si prefiere poner un precio cerrado. Es
+     * público y delega aquí `calcularAlojamiento()` para que no haya dos fórmulas: la que se
+     * enseña y la que se cobra tienen que ser la misma.
+     */
+    public function estimarAlojamiento(
+        ?\App\Pms\Entity\PmsUnidad $unidad,
+        ?\DateTimeInterface $inicio,
+        ?\DateTimeInterface $fin
+    ): ?float {
         if (!$inicio || !$fin || !$unidad || $fin <= $inicio) {
             return null;
         }

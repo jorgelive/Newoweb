@@ -253,7 +253,7 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface
      * ¿La reserva de este chat está cancelada?
      *
      * La conversación apunta a su contexto por tipo e id; sólo `pms_reserva` tiene estado que
-     * mirar. La regla en sí no se repite aquí: la contesta {@see PmsReserva::estaCancelada()}.
+     * mirar. La regla en sí no se repite aquí: la contesta {@see PmsReserva::isCancelada()}.
      */
     private function reservaCancelada(MessageConversation $conversacion): bool
     {
@@ -262,6 +262,6 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface
         }
 
         return $this->em->getRepository(PmsReserva::class)
-            ->find($conversacion->getContextId())?->estaCancelada() ?? false;
+            ->find($conversacion->getContextId())?->isCancelada() ?? false;
     }
 }

@@ -1257,6 +1257,63 @@ tardía… bloqueará esa noche en los canales». El operador aprobaba una cosa 
 **La regla: la previsualización describe el efecto, no la escritura.** Lo que el operador
 aprueba es que la casita deje de venderse en Booking, no que un booleano pase a `true`.
 
+##### `crear_reserva`: un INSERT que dispara cuatro cosas
+
+Es la skill de mayor alcance del catálogo. Escribe dos filas y provoca, **sin orquestar nada**:
+
+| # | Qué pasa | Quién lo hace |
+|---|---|---|
+| 1 | Se abre la cabecera financiera | `PmsInformacionFinancieraCoherenciaListener` (auto-provisión) |
+| 2 | Se crean los cargos del tarifario y la limpieza | `PmsCargosAutomaticosService` |
+| 3 | **La casita sale de la venta** en Beds24 y en todos los portales | `Beds24BookingsPushQueueListener` |
+| 4 | **Se programan dos mensajes reales** al huésped | Motor de reglas, hitos `start` y `end` |
+
+Comprobado tras crear una de prueba: `recordatorio_llegada` quedó en cola para el 2027-01-11 y
+`check_out` para el 2027-01-14 — con la reserva creada en agosto de 2026. La previsualización
+enumera las cuatro **antes**, porque aprobar «se creará una reserva» sin saber que retira
+inventario de Booking y que se programan mensajes no es aprobar lo que pasa.
+
+###### Obligatorios y recomendados no son lo mismo
+
+«Crea una reserva en la casita 1 del 12 al 15» no trae ni la mitad de lo necesario. Se reúne
+**todo lo que falta y se pregunta de una vez**:
+
+```
+falta_datos:          ["nombre", "idioma", "adultos"]     ← sin esto no se crea
+conviene_preguntar:   ["telefono"]                        ← se puede crear sin él
+pregunta: "¿a nombre de quién?; ¿en qué idioma le escribimos? (es, en, pt…);
+           ¿cuántos adultos?; ¿tienes su teléfono con prefijo? sin él no hay
+           WhatsApp ni le llegan la guía ni los recordatorios"
+```
+
+El teléfono **no lo exige la base**, pero sin él la reserva nace muda: no hay WhatsApp, ni guía
+que enviar, ni recordatorio que llegue. Que la skill distinga los dos niveles es lo que permite
+al operador decir «no lo tengo, créala igual» en vez de quedarse bloqueado.
+
+La disponibilidad se comprueba **antes** de preguntar nada: si la casita está ocupada, hacer que
+el operador teclee nombre e idioma para nada sería hacerle perder el tiempo.
+
+###### Los tres desvíos del cálculo automático
+
+Por defecto el sistema pone alojamiento del tarifario noche a noche, limpieza fija de 15.00 y
+**exonera el servicio**. Al vender se negocia otra cosa, así que la skill acepta apartarse:
+
+```
+Alojamiento                180.00   precio cerrado por el operador (NO se usa el tarifario)
+Suplemento de limpieza       0.00   PERDONADO por el operador
+Cargo por servicio (10%)    18.00   lo añade el operador — normalmente se exonera
+TOTAL                      198.00 USD          (el tarifario habría dado 210.00 + 15.00)
+```
+
+Se aplican **corrigiendo lo que el listener ya generó**, no reimplementando la generación: el
+precio del tarifario sale de `PmsCargosAutomaticosService::estimarAlojamiento()`, el mismo método
+que luego cobra, expuesto para poder previsualizarlo. Una fórmula, no dos.
+
+###### Las horas salen del establecimiento
+
+`PmsEstablecimiento::getHoraCheckIn()` / `getHoraCheckOut()`. Codificar 14:00 y 10:00 en la skill
+habría creado una segunda verdad que se rompe el día que un establecimiento cambie su horario.
+
 ##### 🔥 `aplicar_cambio_horario` NO fija una hora
 
 Marca la bandera; **no toca `inicio` ni `fin`**. «Que salga a las 18h» no se puede pedir por

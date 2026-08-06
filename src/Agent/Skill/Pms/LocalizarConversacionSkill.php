@@ -107,8 +107,8 @@ final readonly class LocalizarConversacionSkill implements SkillInterface
             // los canales salen «disponible: true» y nada delata que no hay estancia. El aviso
             // viaja aquí porque este es el paso ANTERIOR al envío: quien llegue por otra vía
             // que no sea buscar_reserva no habría visto el suyo.
-            'reserva_cancelada' => $reserva?->estaCancelada() ? true : null,
-            'advertencia' => $reserva?->estaCancelada()
+            'reserva_cancelada' => $reserva?->isCancelada() ? true : null,
+            'advertencia' => $reserva?->isCancelada()
                 ? 'ATENCIÓN: la reserva de este chat está CANCELADA. Técnicamente se le puede '
                     . 'escribir, pero avisa al operador y que te confirme que quiere hacerlo: '
                     . 'mandarle instrucciones de llegada a quien ya no viene es un error que '
