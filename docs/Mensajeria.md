@@ -3204,6 +3204,32 @@ Dos decisiones dentro de ese método:
 El componente sólo avisa de que *algo* cambió: no sabe qué pinta cada vista. Cada una engancha
 el evento a su propia recarga (`@datos-cambiados="cargarPanelHoy"`).
 
+#### 📜 El hilo: tope de altura y una hora de vida
+
+Dos problemas del hilo de `AsistenteBar`, los dos por vivir sólo en memoria y sin tope:
+
+- **Crecía sin límite hacia abajo.** La barra está ARRIBA de `HomeView`, así que una
+  conversación de seis turnos empujaba el panel de llegadas y salidas fuera de la pantalla.
+  Ahora para en `max-h-96` y hace scroll, con `bajarAlFinal()` llevándolo al último turno tras
+  cada mensaje.
+- **Se perdía al recargar.** Y como el asistente ahora provoca recargas de datos, era fácil
+  quedarse sin el hilo justo después de una acción. Se guarda en `localStorage`
+  (`asistente_hilo`) con **una hora** de vida.
+
+El reloj se reinicia **en cada cambio**, no en el primer turno: lo que caduca es el hilo que
+lleva una hora sin tocarse, no una conversación viva que empezó hace 59 minutos.
+
+Una hora y no más porque pasado ese rato el contexto ya no es el mismo —otro día, otra
+incidencia— y arrastrarlo sólo sirve para que el modelo responda sobre algo que nadie recuerda.
+
+⚠️ **Todo lo que se lee de `localStorage` se valida.** JSON corrupto, un formato viejo (el
+array pelado de antes de este cambio), `guardadoEn` ausente o el almacenamiento bloqueado en
+modo privado devuelven hilo vacío en vez de reventar la barra al entrar al portal. Comprobado
+con los seis casos; sólo restauran «recién guardado» y «hace 59 minutos».
+
+El botón *Empezar de nuevo* quedó **fuera** del área con scroll: dentro, en un hilo largo
+habría que bajar hasta el final para encontrarlo. Vaciar el hilo borra también la clave.
+
 ### ⚠️ Las plantillas NO se degradan
 
 Cada plantilla tiene su cuerpo POR CANAL, ya escrito con el formato que le toca. Las
@@ -3310,6 +3336,7 @@ url.») se devuelve al texto, para que las marcas se vean en pareja. Verificado 
 | Que el asistente del panel enlace a una ficha | `ListarSalidasSkill` | `fichaDe()` — espejo de `verEnReservas()` en `HomeView.vue` |
 | Que una vista se recargue tras una acción del asistente | la propia vista | engancha `@datos-cambiados` de `AsistenteBar` a su función de carga |
 | Cambiar qué cuenta como «escritura» para ese refresco | `NivelRiesgo` | `modificaDatos()` — un solo sitio, no una lista en el front |
+| Cuánto sobrevive el hilo del asistente a un refresco | `AsistenteBar.vue` | `HILO_TTL_MS` (1 h) y `restaurarHilo()` |
 | Cambiar cómo degrada un canal el texto libre | `Beds24SendMappingStrategy` / `WhatsappMetaSendMappingStrategy` | `paraTextoPlano()` / `paraWhatsapp()`, sólo con `getTemplate() === null`, §14 |
 | Cambiar la barra B/I/U/S del compositor del chat | `ChatView.vue` | `aplicarFormato()` + `envolverSeleccion()` de `formatoDeTexto.ts`, §14 |
 | Probar el formateador sin gastar API | — | `php var/probar-formato.php` — §14 |

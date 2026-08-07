@@ -10,7 +10,7 @@
  * al backend llega texto, así que no hay coste de audio ni endpoint que mantener. Donde no
  * exista (Firefox, navegadores viejos) el botón simplemente no se muestra.
  */
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { formatoAHtml } from '@/utils/formatoDeTexto';
 
@@ -91,6 +91,79 @@ const cargando = ref(false);
 const error = ref('');
 const dictando = ref(false);
 
+/** Contenedor del hilo: se necesita la referencia para bajarlo al último turno. */
+const contenedorHilo = ref<HTMLElement | null>(null);
+
+const HILO_STORAGE_KEY = 'asistente_hilo';
+
+/**
+ * Cuánto sobrevive el hilo a un refresco.
+ *
+ * Una hora es el turno de trabajo largo: el operador pregunta algo, se va a recepción, vuelve
+ * y sigue. Más allá el contexto ya no es el suyo —otro día, otra incidencia— y arrastrarlo
+ * sólo sirve para que el modelo responda sobre una conversación que nadie recuerda.
+ */
+const HILO_TTL_MS = 60 * 60 * 1000;
+
+/** Lo que se guarda: los turnos y CUÁNDO, que es lo que permite caducarlos. */
+interface HiloGuardado {
+    guardadoEn: number;
+    turnos: Turno[];
+}
+
+/**
+ * Rescata el hilo del último rato, si no ha caducado.
+ *
+ * Cualquier fallo de lectura —JSON corrupto, otra versión del formato, `localStorage`
+ * bloqueado en modo privado— se traga y devuelve vacío: perder el hilo es un incordio, pero
+ * romper la barra del asistente al entrar al portal es peor.
+ */
+function restaurarHilo(): Turno[] {
+    try {
+        const crudo = localStorage.getItem(HILO_STORAGE_KEY);
+        if (!crudo) return [];
+
+        const guardado = JSON.parse(crudo) as HiloGuardado;
+
+        if (!Array.isArray(guardado?.turnos) || typeof guardado.guardadoEn !== 'number') return [];
+        if (Date.now() - guardado.guardadoEn > HILO_TTL_MS) {
+            localStorage.removeItem(HILO_STORAGE_KEY);
+            return [];
+        }
+
+        return guardado.turnos;
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * El reloj se reinicia en CADA cambio, no en el primer turno.
+ *
+ * Así una conversación viva no caduca a mitad por haber empezado hace 59 minutos; lo que
+ * caduca es el hilo que lleva una hora sin tocarse, que es la intención.
+ */
+watch(hilo, (turnos) => {
+    try {
+        if (turnos.length === 0) {
+            localStorage.removeItem(HILO_STORAGE_KEY);
+            return;
+        }
+
+        const guardado: HiloGuardado = { guardadoEn: Date.now(), turnos };
+        localStorage.setItem(HILO_STORAGE_KEY, JSON.stringify(guardado));
+    } catch {
+        // Cuota llena o almacenamiento bloqueado: el hilo sigue funcionando en memoria.
+    }
+}, { deep: true });
+
+/** Baja el hilo al último turno; sin esto la respuesta nueva queda fuera de la vista. */
+async function bajarAlFinal(): Promise<void> {
+    await nextTick();
+    const caja = contenedorHilo.value;
+    if (caja) caja.scrollTop = caja.scrollHeight;
+}
+
 const motores = ref<Motor[]>([]);
 const proveedor = ref('');
 const modelo = ref('');
@@ -112,6 +185,11 @@ watch(proveedor, () => {
 });
 
 onMounted(async () => {
+    // El hilo se recupera antes de pedir el catálogo: no depende de la red y así el operador
+    // ve lo que estaba haciendo sin esperar a que responda `/agent/motores`.
+    hilo.value = restaurarHilo();
+    if (hilo.value.length) void bajarAlFinal();
+
     try {
         const r = await apiClient.get<{ motores: Motor[] }>('/agent/motores');
         motores.value = r.data.motores ?? [];
@@ -155,6 +233,7 @@ async function preguntar(): Promise<void> {
     const historial = hilo.value.map(({ rol, texto: t }) => ({ rol, texto: t }));
     hilo.value.push({ rol: 'usuario', texto });
     pregunta.value = '';
+    void bajarAlFinal();
 
     try {
         const r = await apiClient.post<RespuestaAsistente>('/agent/consulta', {
@@ -172,6 +251,7 @@ async function preguntar(): Promise<void> {
             herramientas: r.data.herramientas ?? [],
             firma: [etiqueta ?? r.data.proveedor, r.data.modelo].filter(Boolean).join(' · '),
         });
+        void bajarAlFinal();
 
         // Se avisa DESPUÉS de pintar la respuesta: el operador ve primero el «listo» y la
         // recarga ocurre detrás. Al revés, la vista se recargaría con el hilo aún sin el turno.
@@ -310,8 +390,17 @@ onBeforeUnmount(() => reconocimiento?.stop());
     </div>
 
     <!-- El hilo: sostiene el ir y venir cuando el asistente repregunta ("¿cuál de los dos
-         Carlos?"). Se pinta en orden y el más reciente queda abajo. -->
-    <div v-if="hilo.length" class="border-t border-slate-100 divide-y divide-slate-50">
+         Carlos?"). Se pinta en orden y el más reciente queda abajo.
+
+         Crece hasta `max-h-96` y a partir de ahí hace scroll en vez de seguir empujando el
+         panel de llegadas y salidas fuera de la pantalla: la barra vive ARRIBA de HomeView, y
+         sin tope una conversación de seis turnos dejaba el panel de hoy fuera de vista. El
+         desplazamiento al último turno lo hace `bajarAlFinal()`. -->
+    <div
+      v-if="hilo.length"
+      ref="contenedorHilo"
+      class="border-t border-slate-100 divide-y divide-slate-50 max-h-96 overflow-y-auto"
+    >
       <div v-for="(turno, i) in hilo" :key="i" class="px-4 py-3">
         <p v-if="turno.rol === 'usuario'" class="text-sm font-bold text-slate-500">
           <i class="fas fa-angle-right text-slate-300 mr-1" aria-hidden="true"></i>{{ turno.texto }}
@@ -334,12 +423,14 @@ onBeforeUnmount(() => reconocimiento?.stop());
           </p>
         </template>
       </div>
+    </div>
 
-      <div class="px-4 py-2 flex justify-end">
-        <button type="button" class="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700" @click="limpiar">
-          Empezar de nuevo
-        </button>
-      </div>
+    <!-- FUERA del área con scroll: si viajara con los turnos, en un hilo largo habría que
+         desplazarse hasta el final para encontrar el botón de vaciarlo. -->
+    <div v-if="hilo.length" class="border-t border-slate-100 px-4 py-2 flex justify-end">
+      <button type="button" class="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700" @click="limpiar">
+        Empezar de nuevo
+      </button>
     </div>
 
     <div v-if="error" class="border-t border-slate-100 px-4 py-3 text-sm font-medium text-red-600">
