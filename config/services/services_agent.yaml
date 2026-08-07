@@ -56,6 +56,22 @@ services:
             $motores: !tagged_iterator app.agent_engine
             $proveedorPorDefecto: '%env(resolve:AGENT_IA_PROVEEDOR)%'
 
+    # QUÉ MODELO ATIENDE CADA PASO. Las tres claves van en la forma «proveedor:modelo» y pueden
+    # apuntar a proveedores distintos entre sí. Vacías, todo se atiende como antes de que este
+    # mecanismo existiera. Ver App\Agent\Conversation\PotenciaRequerida.
+    App\Agent\Conversation\SelectorDePotencia:
+        arguments:
+            $alta: '%env(resolve:AGENT_IA_POTENCIA_ALTA)%'
+            $media: '%env(resolve:AGENT_IA_POTENCIA_MEDIA)%'
+            $baja: '%env(resolve:AGENT_IA_POTENCIA_BAJA)%'
+
+    # El triaje corre en TODOS los mensajes entrantes, así que tiene su propio interruptor: si
+    # sale mal se apaga sin desplegar y el agente vuelve al camino de siempre.
+    App\Agent\Triage\Triaje:
+        arguments:
+            $habilitado: '%env(bool:AGENT_IA_TRIAJE)%'
+            $potencia: '%env(resolve:AGENT_IA_TRIAJE_POTENCIA)%'
+
     # El autoresponder del huésped arranca APAGADO a propósito: es el único componente que
     # escribe a un cliente real sin que nadie lo revise. Ver docs/Mensajeria.md §9.
     App\Agent\Service\AiConversationProcessor:

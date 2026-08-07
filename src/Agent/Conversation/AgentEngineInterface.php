@@ -48,4 +48,31 @@ interface AgentEngineInterface
     public function modeloPorDefecto(): string;
 
     public function conversar(ConversationRequest $peticion): ConversationResponse;
+
+    /**
+     * Un turno SECO: una sola llamada, sin herramientas y sin bucle.
+     *
+     * 🔑 **La diferencia con `conversar()` no es de tamaño, es de coste.** `conversar()` adjunta
+     * el catálogo de skills del actor —entre 1 800 y 7 800 tokens— y gira un bucle hasta que el
+     * modelo deja de pedir herramientas. Para dos de los pasos del turno eso es tirar dinero:
+     *
+     * - **Clasificar** («¿esto es una pregunta, una charla o una emergencia?»): la respuesta es
+     *   una palabra y no hace falta ninguna herramienta para darla.
+     * - **Contestar cortesía** («hola», «gracias»): tampoco hay nada que consultar.
+     *
+     * Con `$esquema` la respuesta viene forzada a ese JSON Schema por el proveedor, así que no
+     * hay que rezar para que el modelo no envuelva el JSON en ```json ni añada un preámbulo.
+     * Lo que devuelve entonces es el JSON en crudo, sin decodificar: quien llama sabe qué forma
+     * pidió y es quien debe validarla.
+     *
+     * ⚠️ `permitirEscritura` y las skills del actor se IGNORAN aquí, porque no hay herramientas
+     * que autorizar. Un turno seco no puede tocar nada por construcción, que es justo lo que lo
+     * hace seguro para el tramo bajo de potencia.
+     *
+     * @param array<string, mixed>|null $esquema JSON Schema al que se fuerza la salida.
+     * @return string|null El texto del modelo, o `null` si no hubo (motor sin credenciales,
+     *         filtros del proveedor, respuesta vacía). Nunca lanza por culpa del proveedor:
+     *         quien llama decide qué hacer sin respuesta.
+     */
+    public function turnoDirecto(ConversationRequest $peticion, ?array $esquema = null): ?string;
 }

@@ -24,7 +24,8 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 10. [El asistente interno del panel](#10-el-asistente-interno-del-panel)
 11. [El agente: skills, acceso y proveedor](#11-el-agente-skills-acceso-y-proveedor)
 12. [Proveedores de IA: elegir motor y modelo](#12-proveedores-de-ia-elegir-motor-y-modelo)
-13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
+13. [Triaje de entrada y tramos de potencia](#13-triaje-de-entrada-y-tramos-de-potencia)
+14. [Dónde tocar para cambiar X](#14-dónde-tocar-para-cambiar-x)
 
 ---
 
@@ -532,8 +533,16 @@ persister puso en el intent:
         ├─ deterministic / system_alert → AutoResponderRule → BotActionHandlerInterface
         └─ free_text                    → AiConversationProcessor
                                               │
-                                              └─ 6 guardias → modelo → 2.ª mirada → Message OUTGOING
+                                              ├─ 6 guardias
+                                              ├─ triaje (§13) ──┬─ charla  → tramo bajo, sin catálogo
+                                              │                 └─ resto   → camino largo, catálogo entero
+                                              └─ 2.ª mirada (¿llegó otro?) → Message OUTGOING
 ```
+
+`generar()` dejó de ser un solo paso: hoy son tres —clasificar, y después charlar barato **o**
+ir al camino largo con todas las herramientas—. El detalle, con lo que cuesta cada uno, está en
+**§13**; aquí basta con saber que **el resultado observable no cambió**: si el triaje falla o va
+apagado, todo baja por el camino largo, que es el de siempre.
 
 **Todo camino acaba en `marcarResuelto()`**, que escribe `resolved`, **`resolution`** (el
 motivo) y `resolved_at` en el intent. Antes sólo se marcaba cuando una regla casaba, así que
@@ -861,6 +870,9 @@ respuesta del propio bot redefina el idioma del huésped es un bucle esperando a
 | `ANTHROPIC_MODELS` / `GOOGLE_AI_MODELS` | Lista blanca de modelos que el panel puede pedir — §12 |
 | `AGENT_IA_AUTORESPONDER` | Interruptor del bot del huésped. **Arranca en `0`** |
 | `AGENT_IA_ESPERA_RAFAGA` | Segundos de silencio antes de contestar a un `free_text`. `20`; `0` lo desactiva. Se suma a `check_delayed_interval` — sección anterior |
+| `AGENT_IA_TRIAJE` | Interruptor del clasificador de entrada. Con `0`, todo va por el camino largo con el catálogo entero, como antes — §13 |
+| `AGENT_IA_TRIAJE_POTENCIA` | Tramo del clasificador: `alta` \| `media`. Nunca `baja`: corre en TODOS los mensajes — §13.5 |
+| `AGENT_IA_POTENCIA_ALTA` / `_MEDIA` / `_BAJA` | Qué `proveedor:modelo` atiende cada paso. Pueden cruzar proveedores. Vacías = el de `AGENT_IA_PROVEEDOR` — §13.5 |
 
 El autoresponder nace apagado a propósito: es el único componente que **escribe a un cliente
 real** sin que nadie lo revise. Enciéndelo cuando hayas calibrado el prompt con §11.
@@ -2707,7 +2719,315 @@ php bin/console app:agent:preguntar --motor=anthropic "¿qué casitas tengo libr
 php bin/console app:agent:preguntar --motor=google --modelo=gemini-2.5-pro "¿qué casitas tengo libres del 12 al 15 de marzo?"
 ```
 
-## 13. Dónde tocar para cambiar X
+## 13. Triaje de entrada y tramos de potencia
+
+Hasta aquí, un turno del agente costaba lo mismo dijera lo que dijera el huésped. «Hola» y
+«¿por qué me cobráis 40 soles de más?» pagaban idéntico: el catálogo entero de skills en el
+prompt, el bucle de herramientas girando y el modelo grande decidiendo. En un chat donde una
+buena parte de los mensajes son cortesía, eso es pagar el precio del caso difícil por el caso
+trivial — y es lo que hace que un asistente con IA no salga a cuenta.
+
+Este apartado describe las dos piezas que lo parten: **el triaje** (qué clase de mensaje es) y
+**los tramos de potencia** (qué modelo atiende cada paso).
+
+### 13.1 El camino de un mensaje, ahora
+
+```
+  mensaje entrante del huésped
+            │
+            ▼
+  ┌──────────────────────────────────────────────────────┐
+  │ TRIAJE  ·  App\Agent\Triage\Triaje                   │
+  │ · sin herramientas · una sola llamada · JSON forzado │
+  │ · prompt = reglas + índice de skills (1 línea c/u)   │  ← 908 tok, 100 % cacheable
+  │ · tramo AGENT_IA_TRIAJE_POTENCIA (media por defecto) │
+  └──────────────────────────────────────────────────────┘
+            │
+            ├─ conversacion  ─►  charlar()          tramo BAJO, SIN catálogo   278 tok
+            │                    (si no contesta, cae al camino largo)
+            │
+            ├─ emergencia    ─►  camino largo, tramo ALTO
+            │                    + orden explícita de llamar a escalar_al_equipo
+            │
+            ├─ peticion      ─►  camino largo, tramo de la skill elegida
+            │                    + la skill sugerida como PISTA, no como orden
+            │
+            └─ indeterminado ─►  camino largo, tramo MEDIO
+                                 (exactamente lo de antes del triaje)
+```
+
+El camino largo es el de siempre: `AgentEngineInterface::conversar()`, con el catálogo entero
+del actor y el bucle de herramientas. No ha cambiado nada dentro.
+
+### 13.2 🔑 Lo que el triaje NO hace, y es lo importante
+
+**No recorta el catálogo.** Elige skill, sí, pero la manda como sugerencia en el bloque de
+contexto: el paso siguiente sigue viendo todas sus herramientas y puede llamar a otra, o a
+ninguna. Recortar sería lo obvio —ahí está el grueso de los tokens— y es justo lo que no se
+hace:
+
+> **Un filtro previo puede AÑADIR, nunca QUITAR.**
+
+El motivo no es teórico: son los dos fallos que ya costaron caro en este módulo. Cuando hay dos
+que deciden y uno puede quitarle opciones al otro, lo descartado **no aparece en ningún log** —
+la skill que no se ofreció no deja rastro— y el error se descubre semanas después, en la cara
+del huésped. La sugerencia sí deja rastro: la línea `Agent: triaje con …` dice qué propuso, y
+la firma de la respuesta dice qué se usó de verdad. Si no coinciden, se ve.
+
+**No tira ningún mensaje.** Las cuatro salidas terminan en una respuesta. `indeterminado` no es
+«ninguna de las anteriores»: es «no lo sé», y lleva al camino largo. Por eso el triaje no puede
+dejar a nadie sin contestar — cuando falla, el agente se comporta como antes de que existiera.
+Lo mismo con la charla: si el tramo bajo no devuelve texto, se sigue por el camino largo.
+
+`indeterminado` **no se le ofrece al modelo** (`TipoDeMensaje::opciones()` lo omite): teniendo
+la salida fácil disponible, un clasificador la usa para todo lo que le da pereza y el triaje
+deja de ahorrar nada. Que no sepa decidir tiene que notarse como un fallo, no como una opción.
+
+### 13.3 Por qué el prompt del triaje es 100 % cacheable
+
+No lleva **nada** del huésped: ni nombre, ni idioma, ni su reserva. Son las reglas y el índice
+de skills de su rol, idénticas byte a byte en todas las conversaciones. El mensaje va en
+`messages`, después del corte de caché (§12, «dónde va la marca»).
+
+El índice se monta con la **primera frase** de cada `definicion()->descripcion`, así que no hay
+una segunda lista que mantener: añadir una skill la mete en el triaje sola. Y es la frase que
+dice *para qué sirve*, que es lo único que el clasificador necesita — no tiene que saber usar la
+herramienta, sólo reconocerla.
+
+Medido con `var/medir-triaje.php` (no llama a ninguna API), para el actor huésped y sus 6
+skills:
+
+| Prompt | Tokens ≈ | Cacheable |
+|---|---:|---|
+| Catálogo de skills del huésped (camino largo) | 1 842 | sí |
+| Reglas del camino largo (`reglas()`) | 754 | sí |
+| **Prefijo del camino largo** | **2 596** | **sí** |
+| Prompt del triaje (reglas + índice) | 908 | sí, entero |
+| Reglas de cortesía (`reglasDeCortesia()`) | 278 | sí, entero |
+| Contexto volátil (nombre + idioma) | ~24 | no |
+| Pista del triaje, cuando la hay | ~40 | no |
+
+### 13.4 Qué se ahorra de verdad, y qué se paga de más
+
+Hay que decirlo en los dos sentidos, porque **el triaje no es gratis**:
+
+| Tipo de mensaje | Antes | Ahora | Efecto |
+|---|---|---|---|
+| Cortesía («hola», «gracias») | prefijo 2 596 sobre el tramo medio | 908 (triaje, medio) + 278 (charla, **bajo**) | La respuesta la redacta el modelo barato, y el catálogo no se toca |
+| Petición | prefijo 2 596 sobre el tramo medio | lo mismo **+ 908** del triaje | Se paga de más; con caché acertando son ~91 tokens efectivos |
+| Emergencia | prefijo 2 596 sobre el tramo medio | lo mismo, sobre el tramo **alto** | Más caro a propósito: son unos pocos mensajes al año |
+
+O sea: **las peticiones pagan un recargo pequeño para que la cortesía deje de pagar de más.**
+Si el chat resultara ser casi todo peticiones, el triaje no compensa y se apaga con
+`AGENT_IA_TRIAJE=0` — por eso tiene interruptor propio.
+
+> ⚠️ **Las cifras de dinero están sin confirmar.** Todo lo de arriba son **tokens contados en
+> local**; convertirlos a euros exige los multiplicadores reales de escritura y lectura de caché
+> del proveedor, y `ANTHROPIC_API_KEY` está vacía en este entorno. La primera consulta real con
+> clave los da: la línea `Agent (anthropic): … caché leído N · caché escrito M …` de §12 es
+> justo eso.
+
+### 13.5 Los tramos de potencia
+
+Tres tramos, cada uno resuelto por una variable de entorno en la forma `proveedor:modelo`:
+
+```
+AGENT_IA_POTENCIA_ALTA=anthropic:claude-opus-5
+AGENT_IA_POTENCIA_MEDIA=anthropic:claude-sonnet-5
+AGENT_IA_POTENCIA_BAJA=anthropic:claude-haiku-4-5-20251001
+```
+
+**Pueden cruzar proveedores.** Es el motivo de que la clave lleve el proveedor dentro en vez de
+heredar el de `AGENT_IA_PROVEEDOR`: el tramo bajo en Gemini Flash Lite y el alto en Opus es una
+combinación perfectamente válida, y con una clave por tramo se prueba sin desplegar.
+
+Qué va en cada uno:
+
+| Tramo | Para qué | Regla para decidir |
+|---|---|---|
+| **Alta** | Emergencias; lo que compromete algo caro de deshacer | ¿Equivocarse aquí cuesta más que la diferencia de precio? |
+| **Media** | El trabajo normal: elegir herramienta, encadenar consultas, responder con lo devuelto | Es el defecto, y es lo que hace hoy el agente entero |
+| **Baja** | Charla, rellenar huecos, dar formato | ¿Queda alguna decisión de negocio por tomar? Si no, baja |
+
+#### 🔻 Aquí SÍ se cae hacia otro motor, al revés que en §12
+
+`AgentEngineRegistry::elegir()` no hace fallback a propósito: quien elige proveedor en el
+desplegable del panel está comparando, y recibir en silencio la respuesta del otro le arruina la
+comparación. `SelectorDePotencia` hace lo contrario, y por el mismo tipo de razón: el tramo de
+potencia es una **optimización interna que el huésped no pidió**. Si el tramo bajo apunta a un
+proveedor sin credenciales, la alternativa correcta no es dejar de contestarle — es contestarle
+con el motor de siempre y dejar constancia. Un ajuste de coste mal configurado no puede tumbar
+el chat.
+
+Todos los caminos degradan y **todos avisan** con un `warning` por consulta. Es molesto a
+propósito: significa que se está pagando el tramo que no era.
+
+Con las tres claves **vacías**, todo se atiende como antes: el motor de `AGENT_IA_PROVEEDOR`
+con su modelo por defecto. El mecanismo se puede desplegar sin cambiar nada.
+
+> 🚧 **Estado real de este entorno hoy.** Las tres claves apuntan a Anthropic (`opus-5`,
+> `sonnet-5`, `haiku-4.5`), pero `ANTHROPIC_API_KEY` está **vacía**, así que los tres tramos
+> degradan al mismo motor. Comprobado con `php var/probar-triaje.php`:
+>
+> ```
+>   alta   → google/gemini-3.6-flash (alta)
+>   media  → google/gemini-3.6-flash (media)
+>   baja   → google/gemini-3.6-flash (baja)
+> ```
+>
+> Es decir: **el mecanismo está puesto y verificado, pero todavía no separa nada** — hasta que
+> haya clave de Anthropic, los tres tramos son el mismo modelo y el ahorro de la charla se
+> reduce al catálogo que no se manda. Cada consulta deja un `warning` diciéndolo.
+
+#### La potencia de cada skill
+
+`SkillDefinition::$siguientePaso` dice cuánta cabeza hace falta **después** de que el triaje
+haya elegido esa skill: pedir los datos que falten y redactar con lo que devuelva. No es la
+potencia para *elegirla* —eso lo decide el triaje, que ve todo el catálogo—.
+
+Por defecto `Media`, que es exactamente lo que hace hoy el agente entero: **ninguna de las 22
+skills cambia de comportamiento** hasta que alguien la baje a mano.
+
+> ⚠️ Hoy **ninguna** está bajada, y es deliberado. El candidato obvio eran `consultar_wifi` y
+> `consultar_codigos` —lo que queda tras elegirlas es leer un literal en voz alta—, pero su
+> salida es una **credencial que el huésped va a teclear**: un dígito mal en el código de la
+> puerta deja a alguien fuera de su casa a las 23:00 en Cusco. «Bajar de tramo es reversible»
+> deja de ser cierto cuando el error ya llegó al huésped. Se bajarán cuando haya con qué medir
+> la tasa de error, no antes.
+
+### 13.6 El turno seco: `turnoDirecto()`
+
+Las dos piezas nuevas necesitan algo que `conversar()` no daba: **una llamada sin herramientas
+y sin bucle**. `AgentEngineInterface::turnoDirecto()` es eso, y la diferencia no es de tamaño
+sino de coste — `conversar()` adjunta el catálogo del actor y gira el bucle hasta que el modelo
+deja de pedir herramientas, y para clasificar o para decir «hola» eso es tirar dinero.
+
+Con un JSON Schema, la salida viene **forzada por el proveedor**, así que no hay que defenderse
+de un ```` ```json ```` ni de un «Claro, aquí tienes:» delante. Los dos proveedores lo tienen y
+**no hablan el mismo dialecto**:
+
+| | Anthropic | Google |
+|---|---|---|
+| Dónde va | `outputConfig.format` (`outputFormat` está deprecado en el SDK) | `generationConfig.responseSchema` |
+| Qué hace falta además | nada | `responseMimeType: application/json` — **sin él el esquema se ignora en silencio** |
+| Qué rechaza | — | `additionalProperties` y `type` en lista (`["string","null"]`): 400, no aviso |
+
+Esa última fila la resuelve `GoogleAIEngine::esquemaGemini()`, que traduce el JSON Schema al
+subconjunto de OpenAPI que Gemini admite: borra `additionalProperties` y convierte los tipos
+opcionales en «no exigido» sacándolos de `required`.
+
+`turnoDirecto()` **ignora** `permitirEscritura` y las skills del actor, porque no hay
+herramientas que autorizar. Un turno seco no puede tocar nada por construcción, y eso es lo que
+lo hace seguro para el tramo bajo. Nunca lanza por culpa del proveedor: devuelve `null` y quien
+llama decide.
+
+### 13.7 La charla barata
+
+`AiConversationProcessor::charlar()` responde a la cortesía en el tramo bajo, sin catálogo.
+
+> 🔑 **La seguridad de este camino no está en el prompt: está en que no hay herramientas.** El
+> modelo no puede consultar nada, así que tampoco puede citar mal nada. Lo peor que puede hacer
+> es contestar de memoria, y para eso el prompt le prohíbe dar cifras y le da la salida buena.
+
+Esa salida buena es **ofrecerse a mirarlo** («dime qué necesitas y lo consulto») en vez de
+responder de memoria si resulta que sí había una pregunta escondida. Tiene una propiedad que
+merece la pena entender: cuando el huésped lo repita, **ese mensaje ya llegará clasificado como
+`peticion`** y entrará por el camino que sí puede consultar. El error del triaje se corrige solo
+en el turno siguiente.
+
+Tras `CHARLA_ANTES_DE_OFRECER` respuestas del asistente en el historial, el contexto añade una
+línea pidiendo cerrar con una oferta de ayuda concreta. Dos respuestas de cortesía son
+educación; a la tercera, el bot está dando conversación a alguien que quizá entró a preguntar
+algo y no sabe que puede. No hace falta guardar ningún estado de «modo charla»: el historial ya
+lo dice.
+
+⚠️ **La charla no pasa por el guardia de `sin_skill`.** No puede: ese motivo lo pone
+`ConversationResponse`, y aquí no hay `ConversationResponse` —`turnoDirecto()` devuelve texto o
+`null`—. Hoy da igual para el huésped, porque `sin_skill` ya no tira nada (§9, *El saludo se
+entrega*), pero **sí importa para auditar**: una respuesta de cortesía no aparece en el log como
+`IA: respuesta sin skill entregada`, sino como `IA: charla resuelta con <motor> en la
+conversación <id>: «…»`. Son dos grep distintos para la misma pregunta —«¿qué dijo el bot sin
+consultar nada?»—, y quien vuelva a poner una política sobre `sin_skill` tiene que acordarse de
+este camino o creerá que la ha aplicado a todo.
+
+### 13.8 La pista, y por qué está redactada como sugerencia
+
+Lo que el triaje le cuenta al camino largo va en el bloque volátil del `system`
+(`pistaDelTriaje()`), y son dos líneas como mucho:
+
+> Una revisión previa del mensaje sugiere que «consultar_guia» puede responder a esto. El tema
+> parece ser «ducha». Es una sugerencia, no una orden: tienes todas tus herramientas y decides
+> tú cuál usar, o ninguna.
+
+El triaje ve el mensaje pero **no** lo que devolverán las herramientas; quien responde ve las
+dos cosas. Con un «USA consultar_guia», un triaje equivocado arrastraría al modelo bueno a una
+skill que no toca y el error no aparecería más que en la respuesta al huésped.
+
+**La emergencia es la excepción y va imperativa**, porque ahí el coste de no hacer nada es peor
+que el de avisar de más — y por eso el propio prompt del triaje le dice que ante la duda entre
+`peticion` y `emergencia` elija `emergencia`.
+
+#### La pista es lo que resuelve la sección de la guía
+
+`ConsultarGuiaSkill` funciona en dos pasos: se llama sin parámetros, devuelve el catálogo de
+temas de *esa* casita, y el modelo elige uno. Con la pista, el modelo puede ir directo con
+`busqueda: "ducha"` y saltarse una vuelta entera del bucle.
+
+> ⚠️ **No es el triaje quien lee la guía.** Los temas de una casita salen de la base de datos y
+> son distintos en cada una; meterlos en el prompt del triaje costaría una consulta por mensaje
+> y **rompería el caché** (prefijo distinto por reserva). La pista es una palabra que ayuda a
+> acertar antes; la poda de acceso y la elección de tema siguen viviendo enteras en la skill.
+
+Por eso la pista se descarta si trae más de tres palabras: con una frase larga la búsqueda
+acierta por casualidad, que es el fallo documentado en `ConsultarGuiaSkill::MAX_PALABRAS_BUSQUEDA`.
+
+### 13.9 🐛 El `system` de `toolRunner()` iba mal, y no saltaba
+
+Al montar esto salió un fallo que llevaba tiempo escondido. El SDK declara:
+
+```php
+toolRunner(int $maxTokens, array $messages, Model|string $model,
+           array $tools = [], ?int $maxIterations = null, array $extraParams = [])
+```
+
+`system` **no es un parámetro suyo**: va dentro de `extraParams`. `AnthropicEngine::conversar()`
+lo pasaba como argumento con nombre (`system:`), lo que en PHP es un
+`Error: Unknown named parameter $system` — el turno entero reventaba **antes de llegar a la
+API**.
+
+No saltó nunca porque `AGENT_IA_PROVEEDOR=google` en este entorno y esa rama no se ejecutaba.
+Es el aviso que deja: **sin suite de tests, una rama que no se ejecuta no está verificada**, por
+muy bien que se lea. Arreglado; queda por ejercitarla de verdad con una clave puesta.
+
+### 13.10 Cómo se mira si esto funciona
+
+```bash
+# Tamaño de cada prompt, sin llamar a ninguna API.
+php var/medir-triaje.php
+
+# Las dos piezas frágiles, sin API: qué hace el triaje con lo que devuelva el modelo (skills
+# inventadas, pistas que son el mensaje entero, JSON envuelto en backticks) y la traducción
+# del esquema a Gemini. Termina imprimiendo qué motor resuelve cada tramo en ESTE entorno.
+php var/probar-triaje.php
+
+# Qué decidió el triaje en cada mensaje, y con qué modelo.
+grep 'Agent: triaje con' var/log/dev.log
+
+# Si el caché acierta. «leído» alto y «escrito» a 0 es lo que se busca (§12).
+grep 'Agent (anthropic)' var/log/dev.log
+
+# Las charlas que resolvió el tramo bajo, con el texto que leyó el huésped.
+grep 'IA: charla resuelta' var/log/dev.log
+```
+
+La línea del triaje trae la decisión entera: `conversacion → — (motivo)`, `peticion →
+consultar_guia («ducha») — …`. Cruzarla con la firma de skills de la respuesta es lo que dice
+si el triaje acierta. Y `Agent: el triaje propuso una skill inexistente` avisa de que el
+clasificador se está inventando nombres, que es el fallo más probable de este diseño.
+
+---
+
+## 14. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
@@ -2765,7 +3085,7 @@ php bin/console app:agent:preguntar --motor=google --modelo=gemini-2.5-pro "¿qu
 | Cambiar cuál se elige si un número tiene varias reservas | `PmsReservaRepository` | `findVivasByTelefono()` (orden) + `tramoRelevante()` — actual > próxima |
 | Que el operador vea (o no) las reservas canceladas al buscar | `BuscarReservaSkill` | Filtro por `isCancelada()` + parámetro `incluir_canceladas` |
 | Cambiar el orden en que se le presentan las reservas al operador | `BuscarReservaSkill` | `ordenarPorPertinencia()` — alojado ahora > por llegar > ya se fue |
-| **Reconocer al equipo en el chat entrante** (pendiente) | `AiConversationProcessor::generar()` | Hoy siempre `AgentActor::huesped()`. Falta consultar `UserRepository::findByTelefono()` y, si hay usuario, `delEquipoPorChat()` |
+| **Reconocer al equipo en el chat entrante** (pendiente) | `AiConversationProcessor::generar()` | Hoy siempre `AgentActor::huesped()`. Falta consultar `UserRepository::findByTelefono()` y, si hay usuario, `delEquipoPorChat()`. El actor se arma **una vez** y lo usan los tres pasos (triaje, charla, camino largo): cambiarlo ahí cambia también qué skills ve el clasificador, §13.1 |
 | Cambiar qué tipos de cargo suman en una cuenta anulada | `PmsInformacionFinancieraRecalculoService` **y** `RegistrarCargoSkill` | el `AND (i2.activa = 1 OR …)` del SQL y la `$advertencia` de la skill — los dos o la previsualización vuelve a mentir |
 | **Cuánto espera el bot a que el huésped termine de escribir** | `.env` | `AGENT_IA_ESPERA_RAFAGA` — §9. Si lo subes, revisa `check_delayed_interval` en `messenger.yaml`: el retraso real es la suma |
 | Que el retraso de la espera de ráfaga se note en el chat | `config/packages/messenger.yaml` | `check_delayed_interval` — cada cuánto mira el worker los diferidos, §9 |
@@ -2773,7 +3093,7 @@ php bin/console app:agent:preguntar --motor=google --modelo=gemini-2.5-pro "¿qu
 | Cambiar cómo se decide qué mensaje de la ráfaga contesta | `AiConversationProcessor` | `hayMensajePosterior()` — `createdAt` manda, el UUIDv7 desempata el mismo segundo. **No** lo pases a `COALESCE(scheduledAt, …)`, §9 |
 | Filtrar por una entidad con id UUID en un QueryBuilder | cualquier repositorio | `setParameter(…, $entidad->getId(), 'uuid')` — sin el tipo devuelve **cero filas en silencio**, §9 |
 | **Que el huésped pueda contestarse algo nuevo por sí mismo** | una skill de `Lectura` + `Roles::HUESPED` | Nunca metiendo el dato en `systemPrompt()`: ahí lo responde sin herramienta y sin rastro que auditar, §9 |
-| Qué recibe el huésped cuando el modelo no usa ninguna skill | `AiConversationProcessor::generar()` | Se entrega el texto tal cual. **Volver a tirarlo exige devolver antes los datos al prompt**, o el bot deja de saber saludar, §9 |
+| Qué recibe el huésped cuando el modelo no usa ninguna skill | `AiConversationProcessor::generar()` | Se entrega el texto tal cual. **Volver a tirarlo exige devolver antes los datos al prompt**, o el bot deja de saber saludar, §9. Ojo: la charla barata **no** pasa por aquí, §13.7 |
 | Cuándo sale el acuse de recibo genérico | `AiConversationProcessor::generar()` | Sólo si el motor no devuelve texto. Es el suelo, no la política — y **no escala**, §11 |
 | **Añadir algo al prompt del huésped** | `reglas()` si vale para todos, `contexto()` si es suyo | Un `{$…}` en `reglas()` rompe el caché de todos y **no da error**, sólo sube la factura, §12 |
 | Dónde se marca el caché de Anthropic | `AnthropicSkillAdapter::traducir()` (última herramienta) y `AnthropicEngine::bloquesDeSistema()` | Las dos marcas juntas cachean catálogo + reglas; lo volátil va detrás, §12 |
@@ -2782,3 +3102,16 @@ php bin/console app:agent:preguntar --motor=google --modelo=gemini-2.5-pro "¿qu
 | Cambiar qué se filtra en el chat del huésped (sólo lectura) | `SkillRegistry::paraActor()` | `NivelRiesgo::exigePermisoDeEscritura()` — **no** comparar con `Lectura`, §11 |
 | Que el huésped consulte su saldo o el desglose de su cuenta | `ConsultarMiReservaSkill` (cifra) / `ConsultarCuentaSkill` (detalle) | La segunda ignora `reserva_id` si hay contexto: `reservaDelContexto()`, §11 |
 | Que el huésped pueda avisar al equipo | `EscalarAlEquipoSkill` | Ya la tiene (`Roles::HUESPED` + `Interna`). El prompt le obliga a llamarla si promete respuesta, §9 |
+| **Apagar el triaje y volver al agente de antes** | `.env` | `AGENT_IA_TRIAJE=0` — todo pasa por el camino largo con el catálogo entero, §13 |
+| **Cambiar qué modelo atiende cada paso** | `.env` | `AGENT_IA_POTENCIA_ALTA` / `_MEDIA` / `_BAJA`, en la forma `proveedor:modelo`. Vacías = como antes, §13.5 |
+| Subir o bajar la potencia del clasificador | `.env` | `AGENT_IA_TRIAJE_POTENCIA` — `alta` \| `media`. Nunca `baja`: corre en TODOS los mensajes, §13.5 |
+| Bajar de tramo el trabajo que queda tras elegir una skill | la propia skill | `definicion()->siguientePaso` — hoy ninguna está bajada, y §13.5 dice por qué |
+| Cambiar qué cuenta como emergencia | `Triaje::reglas()` | El prompt, no un regex. Ante la duda elige `emergencia` a propósito, §13.2 |
+| Que el triaje ofrezca otra clase de mensaje | `TipoDeMensaje` | El `case` **y** `opciones()`, que es lo que ve el modelo — `Indeterminado` se omite a propósito, §13.2 |
+| Que la sugerencia del triaje mande de verdad | `AiConversationProcessor::pistaDelTriaje()` | Está redactada como sugerencia a propósito: §13.8. Piénsalo antes |
+| Cambiar cuántas vueltas de charla antes de ofrecer ayuda | `AiConversationProcessor::CHARLA_ANTES_DE_OFRECER` | Se cuenta sobre el historial; no hay estado que guardar, §13.7 |
+| Ajustar qué puede decir el bot en la charla barata | `AiConversationProcessor::reglasDeCortesia()` | Prompt estable y cacheable. La seguridad viene de que NO hay herramientas, §13.7 |
+| Añadir una llamada sin herramientas a un motor nuevo | `AgentEngineInterface` | `turnoDirecto()` — con esquema, la salida la fuerza el proveedor, §13.6 |
+| Que un esquema JSON funcione también en Gemini | `GoogleAIEngine::esquemaGemini()` | Gemini rechaza `additionalProperties` y los `type` en lista con un 400, §13.6 |
+| Medir cuánto ocupa cada prompt sin gastar API | — | `php var/medir-triaje.php` — §13.3 |
+| Comprobar el triaje y el esquema de Gemini sin gastar API | — | `php var/probar-triaje.php` — 15 comprobaciones + qué motor resuelve cada tramo, §13.10 |

@@ -9,6 +9,7 @@ use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
 use App\Agent\Skill\SkillRegistry;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
  * Motor de conversación sobre Google AI Studio (Gemini).
@@ -214,6 +215,119 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
         ));
 
         return ConversationResponse::vacia();
+    }
+
+    public function turnoDirecto(ConversationRequest $peticion, ?array $esquema = null): ?string
+    {
+        if (!$this->google->estaConfigurado()) {
+            return null;
+        }
+
+        $generacion = ['maxOutputTokens' => $peticion->maxTokens];
+
+        // El equivalente de los structured outputs de Anthropic. Los dos campos van JUNTOS: con
+        // `responseSchema` y sin `responseMimeType`, Gemini devuelve texto normal y el esquema
+        // se ignora en silencio, que es el peor de los desenlaces.
+        if ($esquema !== null) {
+            $generacion['responseMimeType'] = 'application/json';
+            $generacion['responseSchema'] = $this->esquemaGemini($esquema);
+        } elseif (($nivel = $this->google->razonamiento()) !== null) {
+            // Con esquema no se pide pensamiento: la salida está tan acotada que pagarlo no
+            // cambia la clasificación, y es un paso que se ejecuta en CADA mensaje entrante.
+            $generacion['thinkingConfig'] = ['thinkingLevel' => $nivel];
+        }
+
+        $partes = [['text' => $peticion->systemPrompt]];
+        if (trim((string) $peticion->contexto) !== '') {
+            $partes[] = ['text' => trim((string) $peticion->contexto)];
+        }
+
+        try {
+            $datos = $this->google->generarContenido($peticion->modelo ?? $this->google->modelo(), [
+                'systemInstruction' => ['parts' => $partes],
+                'generationConfig' => $generacion,
+                'contents' => [
+                    ...$this->turnosPrevios($peticion->historial),
+                    ['role' => 'user', 'parts' => [['text' => $peticion->mensaje]]],
+                ],
+            ]);
+        } catch (Throwable $e) {
+            // Igual que en Anthropic: un turno seco es un paso auxiliar. Que falle devuelve
+            // `null` y quien llama se cae al camino de siempre.
+            $this->logger->warning(sprintf(
+                'Agent (google): turno directo fallido para %s: %s',
+                $peticion->actor->etiqueta(),
+                $e->getMessage()
+            ));
+
+            return null;
+        }
+
+        $candidato = $datos['candidates'][0] ?? null;
+        if (!is_array($candidato) || in_array($candidato['finishReason'] ?? '', self::FIN_RECHAZADO, true)) {
+            return null;
+        }
+
+        $texto = '';
+        foreach ((is_array($candidato['content']['parts'] ?? null) ? $candidato['content']['parts'] : []) as $parte) {
+            if (is_string($parte['text'] ?? null)) {
+                $texto .= $parte['text'];
+            }
+        }
+
+        return trim($texto) === '' ? null : $texto;
+    }
+
+    /**
+     * Recorta un JSON Schema a lo que el `responseSchema` de Gemini admite.
+     *
+     * ⚠️ **No es el mismo dialecto que el de Anthropic**, y ahí está la trampa: Gemini usa un
+     * subconjunto de OpenAPI 3.0 y rechaza la petición entera —400, no un aviso— si encuentra
+     * `additionalProperties` o un `type` en forma de lista (`["string","null"]`, que es como se
+     * declara un campo opcional en JSON Schema). Se limpian los dos:
+     *
+     * - `additionalProperties` se borra.
+     * - Un `type` en lista se queda con el primer tipo que no sea `null`, y el campo se saca de
+     *   `required`. Es la traducción honesta: en Gemini «opcional» se dice no exigiéndolo.
+     *
+     * @param array<string, mixed> $esquema
+     * @return array<string, mixed>
+     */
+    private function esquemaGemini(array $esquema): array
+    {
+        unset($esquema['additionalProperties']);
+
+        if (is_array($esquema['type'] ?? null)) {
+            $tipos = array_values(array_filter($esquema['type'], static fn ($t) => $t !== 'null'));
+            $esquema['type'] = $tipos[0] ?? 'string';
+            $esquema['nullable'] = true;
+        }
+
+        if (is_array($esquema['properties'] ?? null)) {
+            $opcionales = [];
+
+            foreach ($esquema['properties'] as $nombre => $propiedad) {
+                if (!is_array($propiedad)) {
+                    continue;
+                }
+
+                if (is_array($propiedad['type'] ?? null) && in_array('null', $propiedad['type'], true)) {
+                    $opcionales[] = $nombre;
+                }
+
+                $esquema['properties'][$nombre] = $this->esquemaGemini($propiedad);
+            }
+
+            if ($opcionales !== [] && is_array($esquema['required'] ?? null)) {
+                $esquema['required'] = array_values(array_diff($esquema['required'], $opcionales));
+            }
+        }
+
+        if (is_array($esquema['items'] ?? null)) {
+            $esquema['items'] = $this->esquemaGemini($esquema['items']);
+        }
+
+        return $esquema;
     }
 
     /**

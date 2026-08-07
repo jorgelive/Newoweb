@@ -9,6 +9,7 @@ use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
 use App\Agent\Skill\SkillRegistry;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
  * Motor de conversación sobre la API de Anthropic.
@@ -76,15 +77,6 @@ final readonly class AnthropicEngine implements AgentEngineInterface
             ['role' => 'user', 'content' => $peticion->mensaje],
         ];
 
-        $comunes = [
-            // La petición manda cuando trae modelo (el desplegable del panel); el registro ya
-            // comprobó que pertenece a este proveedor.
-            'model' => $peticion->modelo ?? $this->anthropic->modelo(),
-            'maxTokens' => $peticion->maxTokens,
-            'system' => $this->bloquesDeSistema($peticion),
-            'messages' => $mensajes,
-        ];
-
         $texto = null;
         $vueltas = 0;
         $entrada = 0;
@@ -92,7 +84,22 @@ final readonly class AnthropicEngine implements AgentEngineInterface
         $cacheEscrito = 0;
         $salida = 0;
 
-        foreach ($cliente->beta->messages->toolRunner(...$comunes, tools: $tools) as $mensaje) {
+        // ⚠️ `system` va en `extraParams`, NO como argumento con nombre. `toolRunner()` sólo
+        // declara maxTokens, messages, model, tools, maxIterations y extraParams; pasarle
+        // `system:` suelto es un `Error: Unknown named parameter`, y revienta el turno entero
+        // antes de llegar a la API. Lo tuvo un tiempo y no saltó porque el proveedor por
+        // defecto era Google y esta rama no se ejecutaba nunca.
+        $runner = $cliente->beta->messages->toolRunner(
+            maxTokens: $peticion->maxTokens,
+            messages: $mensajes,
+            // La petición manda cuando trae modelo (el desplegable del panel, o el tramo de
+            // potencia); el registro ya comprobó que pertenece a este proveedor.
+            model: $peticion->modelo ?? $this->anthropic->modelo(),
+            tools: $tools,
+            extraParams: ['system' => $this->bloquesDeSistema($peticion)],
+        );
+
+        foreach ($runner as $mensaje) {
             $vueltas++;
             $uso = $mensaje->usage ?? null;
             if ($uso !== null) {
@@ -141,6 +148,71 @@ final readonly class AnthropicEngine implements AgentEngineInterface
         return $usadas === []
             ? ConversationResponse::sinSkill($texto)
             : ConversationResponse::ok($texto, array_values(array_unique($usadas)));
+    }
+
+    public function turnoDirecto(ConversationRequest $peticion, ?array $esquema = null): ?string
+    {
+        $cliente = $this->anthropic->crear();
+        if ($cliente === null) {
+            return null;
+        }
+
+        $parametros = [
+            'maxTokens' => $peticion->maxTokens,
+            'messages' => [
+                ...$this->turnosPrevios($peticion->historial),
+                ['role' => 'user', 'content' => $peticion->mensaje],
+            ],
+            'model' => $peticion->modelo ?? $this->anthropic->modelo(),
+            'system' => $this->bloquesDeSistema($peticion),
+        ];
+
+        // Structured outputs: el proveedor obliga a que la salida case con el esquema, así que
+        // no hay que defenderse de un ```json ni de un «Claro, aquí tienes:» delante. Va por
+        // `outputConfig.format`; `outputFormat` a secas está deprecado en el SDK.
+        if ($esquema !== null) {
+            $parametros['outputConfig'] = ['format' => ['type' => 'json_schema', 'schema' => $esquema]];
+        }
+
+        try {
+            // Todo va desplegado como argumentos CON NOMBRE. `create()` tiene una veintena de
+            // parámetros opcionales en medio, así que por posición es imposible de mantener.
+            $mensaje = $cliente->beta->messages->create(...$parametros);
+        } catch (Throwable $e) {
+            // Un turno seco es SIEMPRE un paso auxiliar —clasificar, redactar cortesía—, nunca
+            // la única respuesta posible. Que falle no puede tumbar el mensaje del huésped: se
+            // devuelve `null` y quien llama se cae al camino largo, que es el de siempre.
+            $this->logger->warning(sprintf(
+                'Agent (anthropic): turno directo fallido para %s: %s',
+                $peticion->actor->etiqueta(),
+                $e->getMessage()
+            ));
+
+            return null;
+        }
+
+        $uso = $mensaje->usage ?? null;
+        $this->logger->info(sprintf(
+            'Agent (anthropic): turno directo · %s · entrada %d · caché leído %d · caché escrito %d · salida %d tokens.',
+            $peticion->modelo ?? $this->anthropic->modelo(),
+            $uso?->inputTokens ?? 0,
+            $uso?->cacheReadInputTokens ?? 0,
+            $uso?->cacheCreationInputTokens ?? 0,
+            $uso?->outputTokens ?? 0
+        ));
+
+        if ($mensaje->stopReason === 'refusal') {
+            return null;
+        }
+
+        $texto = '';
+        foreach ($mensaje->content as $bloque) {
+            if ($bloque->type === 'text') {
+                $texto .= $bloque->text;
+            }
+        }
+
+        return trim($texto) === '' ? null : $texto;
     }
 
     /**
