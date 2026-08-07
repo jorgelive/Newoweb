@@ -534,7 +534,7 @@ persister puso en el intent:
         └─ free_text                    → AiConversationProcessor
                                               │
                                               ├─ 6 guardias
-                                              ├─ triaje (§13) ──┬─ charla  → tramo bajo, sin catálogo
+                                              ├─ triaje (§13) ──┬─ charla  → la contesta el triaje mismo
                                               │                 └─ resto   → camino largo, catálogo entero
                                               └─ 2.ª mirada (¿llegó otro?) → Message OUTGOING
 ```
@@ -2739,12 +2739,13 @@ Este apartado describe las dos piezas que lo parten: **el triaje** (qué clase d
   ┌──────────────────────────────────────────────────────┐
   │ TRIAJE  ·  App\Agent\Triage\Triaje                   │
   │ · sin herramientas · una sola llamada · JSON forzado │
-  │ · prompt = reglas + índice de skills (1 línea c/u)   │  ← 908 tok, 100 % cacheable
+  │ · prompt = reglas + índice de skills (1 línea c/u)   │  ← 1 187 tok, cacheable entero
+  │ · contexto volátil (idioma, nombre): ~24 tok sin caché│
   │ · tramo AGENT_IA_TRIAJE_POTENCIA (media por defecto) │
   └──────────────────────────────────────────────────────┘
             │
-            ├─ conversacion  ─►  charlar()          tramo BAJO, SIN catálogo   278 tok
-            │                    (si no contesta, cae al camino largo)
+            ├─ conversacion  ─►  la «respuesta» viene EN el propio JSON del triaje
+            │                    (0 llamadas más; si vino vacía, cae al camino largo)
             │
             ├─ emergencia    ─►  camino largo, tramo ALTO
             │                    + orden explícita de llamar a escalar_al_equipo
@@ -2777,17 +2778,30 @@ la firma de la respuesta dice qué se usó de verdad. Si no coinciden, se ve.
 **No tira ningún mensaje.** Las cuatro salidas terminan en una respuesta. `indeterminado` no es
 «ninguna de las anteriores»: es «no lo sé», y lleva al camino largo. Por eso el triaje no puede
 dejar a nadie sin contestar — cuando falla, el agente se comporta como antes de que existiera.
-Lo mismo con la charla: si el tramo bajo no devuelve texto, se sigue por el camino largo.
+Lo mismo con la charla: si el JSON vino sin `respuesta`, se sigue por el camino largo.
 
 `indeterminado` **no se le ofrece al modelo** (`TipoDeMensaje::opciones()` lo omite): teniendo
 la salida fácil disponible, un clasificador la usa para todo lo que le da pereza y el triaje
 deja de ahorrar nada. Que no sepa decidir tiene que notarse como un fallo, no como una opción.
 
-### 13.3 Por qué el prompt del triaje es 100 % cacheable
+### 13.3 Por qué el prompt del triaje se cachea entero
 
-No lleva **nada** del huésped: ni nombre, ni idioma, ni su reserva. Son las reglas y el índice
-de skills de su rol, idénticas byte a byte en todas las conversaciones. El mensaje va en
-`messages`, después del corte de caché (§12, «dónde va la marca»).
+Las reglas y el índice de skills no llevan **nada** del huésped: son idénticos byte a byte en
+todas las conversaciones, y son el bloque con la marca de caché. Lo del huésped —idioma y
+nombre, que hacen falta desde que el triaje contesta la charla— va en el bloque de contexto,
+DESPUÉS del corte: dos líneas que se pagan enteras contra el prefijo que ya pagó otra
+conversación. El mensaje va en `messages` (§12, «dónde va la marca»).
+
+El caché de Anthropic vive **1 hora** (`ttl: '1h'`) y el prefijo es **el mismo para todos los
+huéspedes**: no hay un caché por conversación, hay uno por catálogo. Cada mensaje que entra en
+esa hora —da igual de qué reserva— lo lee a 0,1× y le renueva el TTL.
+
+> 🚧 **TODO (Google):** Gemini no cachea prefijos tan pequeños — su caché explícito exige un
+> mínimo de tokens que el catálogo actual no alcanza, así que con Google el prefijo se paga
+> entero en cada mensaje. Cuando el catálogo de skills crezca lo bastante para superar ese
+> mínimo, evaluar el context caching explícito de Gemini (crear el caché del catálogo y
+> referenciarlo por nombre). Hasta entonces la optimización de caché es sólo Anthropic, que es
+> el proveedor para el que se optimiza primero.
 
 El índice se monta con la **primera frase** de cada `definicion()->descripcion`, así que no hay
 una segunda lista que mantener: añadir una skill la mete en el triaje sola. Y es la frase que
@@ -2802,8 +2816,7 @@ skills:
 | Catálogo de skills del huésped (camino largo) | 1 842 | sí |
 | Reglas del camino largo (`reglas()`) | 754 | sí |
 | **Prefijo del camino largo** | **2 596** | **sí** |
-| Prompt del triaje (reglas + índice) | 908 | sí, entero |
-| Reglas de cortesía (`reglasDeCortesia()`) | 278 | sí, entero |
+| Prompt del triaje (reglas + índice + reglas de charla) | 1 187 | sí, entero |
 | Contexto volátil (nombre + idioma) | ~24 | no |
 | Pista del triaje, cuando la hay | ~40 | no |
 
@@ -2813,8 +2826,8 @@ Hay que decirlo en los dos sentidos, porque **el triaje no es gratis**:
 
 | Tipo de mensaje | Antes | Ahora | Efecto |
 |---|---|---|---|
-| Cortesía («hola», «gracias») | prefijo 2 596 sobre el tramo medio | 908 (triaje, medio) + 278 (charla, **bajo**) | La respuesta la redacta el modelo barato, y el catálogo no se toca |
-| Petición | prefijo 2 596 sobre el tramo medio | lo mismo **+ 908** del triaje | Se paga de más; con caché acertando son ~91 tokens efectivos |
+| Cortesía («hola», «gracias») | prefijo 2 596 sobre el tramo medio + bucle de herramientas | **una** llamada de 1 187 (triaje, medio), que además contesta | El catálogo no se toca, no hay bucle, y no hay segunda llamada |
+| Petición | prefijo 2 596 sobre el tramo medio | lo mismo **+ 1 187** del triaje | Se paga de más; con caché acertando son ~120 tokens efectivos |
 | Emergencia | prefijo 2 596 sobre el tramo medio | lo mismo, sobre el tramo **alto** | Más caro a propósito: son unos pocos mensajes al año |
 
 O sea: **las peticiones pagan un recargo pequeño para que la cortesía deje de pagar de más.**
@@ -2918,37 +2931,47 @@ opcionales en «no exigido» sacándolos de `required`.
 
 `turnoDirecto()` **ignora** `permitirEscritura` y las skills del actor, porque no hay
 herramientas que autorizar. Un turno seco no puede tocar nada por construcción, y eso es lo que
-lo hace seguro para el tramo bajo. Nunca lanza por culpa del proveedor: devuelve `null` y quien
-llama decide.
+lo hace seguro para contestar la charla. Nunca lanza por culpa del proveedor: devuelve `null` y
+quien llama decide.
 
-### 13.7 La charla barata
+### 13.7 La charla: la contesta el propio clasificador
 
-`AiConversationProcessor::charlar()` responde a la cortesía en el tramo bajo, sin catálogo.
+La charla **no tiene llamada propia**: el campo `respuesta` del JSON del triaje trae la
+contestación cuando el tipo es `conversacion`, escrita por el mismo modelo que clasificó.
+Clasificar un «hola» y contestarlo son el mismo trabajo de leerlo; separarlos —como estuvo un
+tiempo, con un `charlar()` en el tramo bajo— era pagar **dos** llamadas por mensaje de
+cortesía: el triaje en tramo medio y la charla en tramo bajo. Ahora es una, en el tramo del
+triaje, que además es el que hace falta: si en mitad de la charla aparece una petición, quien
+la detecta es el mismo clasificador que estaba charlando — no hay «modo charla» del que salir,
+ni forma de quedarse atrapado en él. Por eso tampoco hay ningún corte ni cooldown de charla:
+cada mensaje pasa por el clasificador igual, charle lo que charle.
 
-> 🔑 **La seguridad de este camino no está en el prompt: está en que no hay herramientas.** El
-> modelo no puede consultar nada, así que tampoco puede citar mal nada. Lo peor que puede hacer
-> es contestar de memoria, y para eso el prompt le prohíbe dar cifras y le da la salida buena.
+> 🔑 **La seguridad de este camino no está en el prompt: está en que no hay herramientas.** En
+> la llamada del triaje el modelo no puede consultar nada, así que tampoco puede citar mal
+> nada. Lo peor que puede hacer es contestar de memoria, y para eso el prompt le prohíbe dar
+> cifras y le da la salida buena.
 
-Esa salida buena es **ofrecerse a mirarlo** («dime qué necesitas y lo consulto») en vez de
-responder de memoria si resulta que sí había una pregunta escondida. Tiene una propiedad que
-merece la pena entender: cuando el huésped lo repita, **ese mensaje ya llegará clasificado como
-`peticion`** y entrará por el camino que sí puede consultar. El error del triaje se corrige solo
-en el turno siguiente.
+Esa salida buena es **cambiar el tipo**: el prompt le dice que si al escribir la respuesta ve
+que había una pregunta escondida, no era `conversacion` — reclasifica y deja la respuesta
+vacía, y el mensaje entra por el camino que sí puede consultar. Y `interpretar()` remata por
+código lo que el prompt pide por las buenas: una `respuesta` que venga con tipo `peticion` o
+`emergencia` **se tira** — contestar sin herramientas no es su trabajo.
 
-Tras `CHARLA_ANTES_DE_OFRECER` respuestas del asistente en el historial, el contexto añade una
-línea pidiendo cerrar con una oferta de ayuda concreta. Dos respuestas de cortesía son
-educación; a la tercera, el bot está dando conversación a alguien que quizá entró a preguntar
-algo y no sabe que puede. No hace falta guardar ningún estado de «modo charla»: el historial ya
-lo dice.
+El «¿te ayudo con algo?» tras varias vueltas ya no necesita contador: es una regla del propio
+prompt del triaje («si el historial muestra varias vueltas de charla, cierra ofreciendo ayuda
+concreta»), y el historial que ve el clasificador ya lo dice. La constante
+`CHARLA_ANTES_DE_OFRECER` y los métodos `charlar()` / `reglasDeCortesia()` /
+`contextoDeCortesia()` del procesador **ya no existen**.
 
 ⚠️ **La charla no pasa por el guardia de `sin_skill`.** No puede: ese motivo lo pone
-`ConversationResponse`, y aquí no hay `ConversationResponse` —`turnoDirecto()` devuelve texto o
-`null`—. Hoy da igual para el huésped, porque `sin_skill` ya no tira nada (§9, *El saludo se
+`ConversationResponse`, y aquí no hay `ConversationResponse` — la respuesta viene en el JSON
+del triaje. Hoy da igual para el huésped, porque `sin_skill` ya no tira nada (§9, *El saludo se
 entrega*), pero **sí importa para auditar**: una respuesta de cortesía no aparece en el log como
-`IA: respuesta sin skill entregada`, sino como `IA: charla resuelta con <motor> en la
-conversación <id>: «…»`. Son dos grep distintos para la misma pregunta —«¿qué dijo el bot sin
-consultar nada?»—, y quien vuelva a poner una política sobre `sin_skill` tiene que acordarse de
-este camino o creerá que la ha aplicado a todo.
+`IA: respuesta sin skill entregada`, sino como `IA: charla resuelta en el propio triaje en la
+conversación <id>: «…»` (y entera en la línea `Agent: triaje con …`). Son dos grep distintos
+para la misma pregunta —«¿qué dijo el bot sin consultar nada?»—, y quien vuelva a poner una
+política sobre `sin_skill` tiene que acordarse de este camino o creerá que la ha aplicado a
+todo.
 
 ### 13.8 La pista, y por qué está redactada como sugerencia
 
@@ -3016,7 +3039,7 @@ grep 'Agent: triaje con' var/log/dev.log
 # Si el caché acierta. «leído» alto y «escrito» a 0 es lo que se busca (§12).
 grep 'Agent (anthropic)' var/log/dev.log
 
-# Las charlas que resolvió el tramo bajo, con el texto que leyó el huésped.
+# Las charlas que contestó el propio triaje, con el texto que leyó el huésped.
 grep 'IA: charla resuelta' var/log/dev.log
 ```
 
@@ -3093,7 +3116,7 @@ clasificador se está inventando nombres, que es el fallo más probable de este 
 | Cambiar cómo se decide qué mensaje de la ráfaga contesta | `AiConversationProcessor` | `hayMensajePosterior()` — `createdAt` manda, el UUIDv7 desempata el mismo segundo. **No** lo pases a `COALESCE(scheduledAt, …)`, §9 |
 | Filtrar por una entidad con id UUID en un QueryBuilder | cualquier repositorio | `setParameter(…, $entidad->getId(), 'uuid')` — sin el tipo devuelve **cero filas en silencio**, §9 |
 | **Que el huésped pueda contestarse algo nuevo por sí mismo** | una skill de `Lectura` + `Roles::HUESPED` | Nunca metiendo el dato en `systemPrompt()`: ahí lo responde sin herramienta y sin rastro que auditar, §9 |
-| Qué recibe el huésped cuando el modelo no usa ninguna skill | `AiConversationProcessor::generar()` | Se entrega el texto tal cual. **Volver a tirarlo exige devolver antes los datos al prompt**, o el bot deja de saber saludar, §9. Ojo: la charla barata **no** pasa por aquí, §13.7 |
+| Qué recibe el huésped cuando el modelo no usa ninguna skill | `AiConversationProcessor::generar()` | Se entrega el texto tal cual. **Volver a tirarlo exige devolver antes los datos al prompt**, o el bot deja de saber saludar, §9. Ojo: la charla del triaje **no** pasa por aquí, §13.7 |
 | Cuándo sale el acuse de recibo genérico | `AiConversationProcessor::generar()` | Sólo si el motor no devuelve texto. Es el suelo, no la política — y **no escala**, §11 |
 | **Añadir algo al prompt del huésped** | `reglas()` si vale para todos, `contexto()` si es suyo | Un `{$…}` en `reglas()` rompe el caché de todos y **no da error**, sólo sube la factura, §12 |
 | Dónde se marca el caché de Anthropic | `AnthropicSkillAdapter::traducir()` (última herramienta) y `AnthropicEngine::bloquesDeSistema()` | Las dos marcas juntas cachean catálogo + reglas; lo volátil va detrás, §12 |
@@ -3109,8 +3132,7 @@ clasificador se está inventando nombres, que es el fallo más probable de este 
 | Cambiar qué cuenta como emergencia | `Triaje::reglas()` | El prompt, no un regex. Ante la duda elige `emergencia` a propósito, §13.2 |
 | Que el triaje ofrezca otra clase de mensaje | `TipoDeMensaje` | El `case` **y** `opciones()`, que es lo que ve el modelo — `Indeterminado` se omite a propósito, §13.2 |
 | Que la sugerencia del triaje mande de verdad | `AiConversationProcessor::pistaDelTriaje()` | Está redactada como sugerencia a propósito: §13.8. Piénsalo antes |
-| Cambiar cuántas vueltas de charla antes de ofrecer ayuda | `AiConversationProcessor::CHARLA_ANTES_DE_OFRECER` | Se cuenta sobre el historial; no hay estado que guardar, §13.7 |
-| Ajustar qué puede decir el bot en la charla barata | `AiConversationProcessor::reglasDeCortesia()` | Prompt estable y cacheable. La seguridad viene de que NO hay herramientas, §13.7 |
+| Ajustar qué puede decir el bot en la charla (y cuándo ofrece ayuda) | `Triaje::reglas()` | Las reglas de la «respuesta» viven en el prompt del clasificador. La seguridad viene de que NO hay herramientas, §13.7 |
 | Añadir una llamada sin herramientas a un motor nuevo | `AgentEngineInterface` | `turnoDirecto()` — con esquema, la salida la fuerza el proveedor, §13.6 |
 | Que un esquema JSON funcione también en Gemini | `GoogleAIEngine::esquemaGemini()` | Gemini rechaza `additionalProperties` y los `type` en lista con un 400, §13.6 |
 | Medir cuánto ocupa cada prompt sin gastar API | — | `php var/medir-triaje.php` — §13.3 |

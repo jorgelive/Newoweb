@@ -28,12 +28,18 @@ final readonly class DecisionDeTriaje
      *        el catálogo y elige, como hasta ahora.
      * @param string $motivo Una línea del propio modelo explicando por qué. No se le enseña a
      *        nadie: es para el log, que es donde se audita si el triaje acierta.
+     * @param string|null $respuesta Sólo cuando el tipo es «conversacion»: la contestación al
+     *        huésped, escrita por el propio clasificador EN LA MISMA LLAMADA. Clasificar un
+     *        «hola» y contestarlo son el mismo trabajo de leerlo; separarlos era pagar dos
+     *        llamadas (triaje + charla) por lo que cabe en una. Si viene `null` con tipo
+     *        «conversacion», el mensaje sigue por el camino largo: nunca se queda sin respuesta.
      */
     public function __construct(
         public TipoDeMensaje $tipo,
         public ?string $skill = null,
         public ?string $pista = null,
         public string $motivo = '',
+        public ?string $respuesta = null,
     ) {}
 
     /** El triaje no pudo decidir. Lleva al camino largo, que es el de siempre. */
@@ -42,15 +48,16 @@ final readonly class DecisionDeTriaje
         return new self(TipoDeMensaje::Indeterminado, motivo: $motivo);
     }
 
-    /** Para el log, en una línea. */
+    /** Para el log, en una línea. La respuesta de charla no se recorta: es lo que se audita. */
     public function etiqueta(): string
     {
         return trim(sprintf(
-            '%s%s%s — %s',
+            '%s%s%s — %s%s',
             $this->tipo->value,
             $this->skill !== null ? ' → ' . $this->skill : '',
             $this->pista !== null ? sprintf(' («%s»)', $this->pista) : '',
-            $this->motivo !== '' ? $this->motivo : 'sin motivo'
+            $this->motivo !== '' ? $this->motivo : 'sin motivo',
+            $this->respuesta !== null ? sprintf(' · respuesta: «%s»', $this->respuesta) : ''
         ));
     }
 }

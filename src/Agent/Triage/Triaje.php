@@ -24,9 +24,13 @@ use Throwable;
  * mitad de los mensajes son cortesía, eso es pagar el precio del caso difícil por el caso
  * trivial, y es lo que hace que un asistente con IA no salga a cuenta.
  *
- * El triaje es una llamada **barata y sin herramientas** que dice sólo tres cosas: si esto es
- * charla, una petición o una emergencia; qué skill parece responder; y —si es la guía— por qué
- * tema. Con eso, cada camino se paga a su precio.
+ * El triaje es una llamada **barata y sin herramientas** que dice si esto es charla, una
+ * petición o una emergencia; qué skill parece responder; y —si es la guía— por qué tema. Y una
+ * cosa más: **si es charla, la contesta él mismo, en esta misma llamada.** Clasificar un «hola»
+ * y responderlo son el mismo trabajo de leerlo; separarlos era pagar dos llamadas (clasificar
+ * en tramo medio + charlar en tramo bajo) por lo que cabe en una. De paso resuelve el caso que
+ * preocupa de verdad: si en mitad de la charla aparece una petición, quien la detecta es el
+ * mismo clasificador que estaba charlando — no hay un «modo charla» del que salir.
  *
  * ```
  *   mensaje del huésped
@@ -34,14 +38,20 @@ use Throwable;
  *          ▼
  *   ┌─────────────────────────────────────────────┐
  *   │ TRIAJE  ·  sin herramientas  ·  JSON forzado│
- *   │ prompt: reglas + lista de skills (1 línea)  │  ← estable ⇒ 100 % cacheable
+ *   │ prompt: reglas + lista de skills (1 línea)  │  ← estable ⇒ cacheable
+ *   │ contexto volátil: idioma y nombre, 2 líneas │  ← fuera del caché
  *   └─────────────────────────────────────────────┘
  *          │
- *          ├─ conversacion  → turno seco, tramo BAJO, sin catálogo  ·  céntimos
+ *          ├─ conversacion  → `respuesta` viene en el MISMO JSON  ·  0 llamadas más
  *          ├─ emergencia    → camino largo + orden explícita de avisar al equipo
  *          ├─ peticion      → camino largo, tramo de la skill elegida
  *          └─ indeterminado → camino largo, como si el triaje no existiera
  * ```
+ *
+ * La seguridad de esa respuesta de charla no está en el prompt: está en que **en esta llamada
+ * no hay herramientas**. El modelo no puede consultar nada, así que tampoco puede citar mal
+ * nada; lo peor que puede hacer es contestar de memoria, y para eso el prompt le prohíbe dar
+ * cifras y le da la salida buena: ofrecerse a mirarlo.
  *
  * ### 🔑 Lo que el triaje NO hace, y es lo más importante de este archivo
  *
@@ -54,21 +64,26 @@ use Throwable;
  *
  * **No tira ningún mensaje.** Ninguna de las cuatro salidas termina en silencio.
  *
- * ### Y por qué el prompt del triaje es 100 % cacheable
+ * ### Y por qué el prompt del triaje sigue siendo cacheable
  *
- * No lleva NADA del huésped: ni nombre, ni idioma, ni su reserva. Son las reglas y la lista de
- * skills de su rol, idénticas byte a byte en todas las conversaciones. El mensaje va en
- * `messages`, después del corte de caché. Es el prefijo más barato de todo el módulo.
+ * Las reglas y la lista de skills no llevan NADA del huésped: son idénticas byte a byte en
+ * todas las conversaciones, y son el bloque con marca de caché. Lo del huésped —idioma y
+ * nombre, que hacen falta desde que el triaje contesta la charla— viaja en `$contexto`, que
+ * los motores ponen DESPUÉS del corte: dos líneas que se pagan enteras, contra el prefijo
+ * grande que ya pagó otra conversación.
  *
- * Ver docs/Mensajeria.md §12.
+ * Ver docs/Mensajeria.md §13.
  */
 final readonly class Triaje
 {
     /** Turnos previos que ve el clasificador. Le basta con saber de qué se venía hablando. */
     private const int HISTORIAL_MAX = 6;
 
-    /** La salida son cuatro campos cortos; más presupuesto sólo invita a razonar en voz alta. */
-    private const int MAX_TOKENS = 300;
+    /**
+     * Cuatro campos cortos más la respuesta de charla, que son dos frases. Más presupuesto
+     * sólo invita a razonar en voz alta — o a charlar de más, que aquí es lo mismo.
+     */
+    private const int MAX_TOKENS = 500;
 
     /** Tope del resumen de cada skill en la lista. Es un índice, no la descripción entera. */
     private const int RESUMEN_MAX = 180;
@@ -88,9 +103,15 @@ final readonly class Triaje
 
     /**
      * @param list<array{rol: string, texto: string}> $historial
+     * @param string $contexto Lo volátil de la conversación —idioma y nombre—, para que la
+     *        respuesta de charla salga en el idioma del huésped. Va fuera del bloque cacheado.
      */
-    public function clasificar(ActorInterface $actor, string $mensaje, array $historial = []): DecisionDeTriaje
-    {
+    public function clasificar(
+        ActorInterface $actor,
+        string $mensaje,
+        array $historial = [],
+        string $contexto = ''
+    ): DecisionDeTriaje {
         if (!$this->habilitado) {
             return DecisionDeTriaje::indeterminado('triaje desactivado');
         }
@@ -118,6 +139,7 @@ final readonly class Triaje
                 new ConversationRequest(
                     actor: $actor,
                     systemPrompt: $this->reglas($skills),
+                    contexto: $contexto,
                     mensaje: $mensaje,
                     historial: array_slice($historial, -self::HISTORIAL_MAX),
                     permitirEscritura: false,
@@ -188,11 +210,19 @@ final readonly class Triaje
             $pista = '';
         }
 
+        // La respuesta de charla sólo vale con su tipo. Con cualquier otro es el modelo
+        // saltándose el reparto de trabajo —contestar una petición sin herramientas— y se tira.
+        $respuesta = trim((string) ($datos['respuesta'] ?? ''));
+        if ($tipo !== TipoDeMensaje::Conversacion) {
+            $respuesta = '';
+        }
+
         return new DecisionDeTriaje(
             tipo: $tipo,
             skill: $skill !== '' ? $skill : null,
             pista: $pista !== '' ? $pista : null,
             motivo: trim((string) ($datos['motivo'] ?? '')),
+            respuesta: $respuesta !== '' ? $respuesta : null,
         );
     }
 
@@ -216,9 +246,9 @@ final readonly class Triaje
         $tipos = implode('», «', TipoDeMensaje::opciones());
 
         return <<<PROMPT
-        Clasificas el mensaje que un huésped acaba de escribir en el chat de su reserva. NO le
-        contestas y NO llamas a nada: sólo dices de qué clase es. Otro paso se encarga de
-        responder.
+        Clasificas el mensaje que un huésped acaba de escribir en el chat de su reserva de un
+        alojamiento en Cusco, Perú. NO llamas a nada: dices de qué clase es, y sólo si es pura
+        charla la contestas tú. Todo lo demás lo responde otro paso.
 
         TIPOS POSIBLES («{$tipos}»):
 
@@ -251,6 +281,19 @@ final readonly class Triaje
           casualidad. Si no está clarísimo, déjalo vacío.
         - «motivo»: media línea en español diciendo por qué lo has clasificado así. Es para el
           registro interno; no lo lee ningún huésped.
+        - «respuesta»: SÓLO cuando el tipo es «conversacion»: contesta tú al huésped, como
+          contestaría un anfitrión amable, en una o dos frases y en SU idioma. Con cualquier
+          otro tipo va vacío. Reglas de esa respuesta:
+          · EN ESTE TURNO NO PUEDES CONSULTAR NADA. No des ni una fecha, ni un importe, ni un
+            horario, ni un código, ni una norma — tampoco si crees recordarlos: aquí no hay
+            nada que los respalde.
+          · Si al escribirla ves que sí había una pregunta escondida, NO era «conversacion»:
+            cambia el tipo y deja la respuesta vacía.
+          · No prometas plazos ni digas que has avisado a nadie: en este turno no has avisado.
+          · No menciones que eres una IA salvo que te lo pregunten directamente.
+          · Escribe como se habla: sin listas, sin negritas, sin títulos. Es un chat.
+          · Si el historial muestra que ya lleváis varias vueltas de charla, cierra ofreciendo
+            ayuda concreta con su reserva o su casita, en una frase corta y sin insistir.
 
         MIRA EL HISTORIAL ANTES DE DECIDIR. Que insista —«sigue sin funcionar», «ya lo probé»—
         después de que ya se le explicara algo NO es la misma pregunta otra vez: es una avería,
@@ -297,8 +340,13 @@ final readonly class Triaje
                     'type' => 'string',
                     'description' => 'Media línea en español explicando la clasificación.',
                 ],
+                'respuesta' => [
+                    'type' => 'string',
+                    'description' => 'Sólo con tipo «conversacion»: la contestación al huésped, '
+                        . 'en su idioma. Con cualquier otro tipo, cadena vacía.',
+                ],
             ],
-            'required' => ['tipo', 'skill', 'pista', 'motivo'],
+            'required' => ['tipo', 'skill', 'pista', 'motivo', 'respuesta'],
             'additionalProperties' => false,
         ];
     }

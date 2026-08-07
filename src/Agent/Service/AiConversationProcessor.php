@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
-use App\Agent\Access\ActorInterface;
 use App\Agent\Access\AgentActor;
 use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
@@ -45,15 +44,6 @@ final readonly class AiConversationProcessor
      * hotel— que un bot pisando a la persona que ya le está atendiendo.
      */
     private const string HUMANO_AL_MANDO = '-30 minutes';
-
-    /**
-     * Vueltas de pura charla tras las cuales se ofrece ayuda concreta.
-     *
-     * Dos respuestas de cortesía son educación; a la tercera, el bot ya está dando conversación
-     * a alguien que quizá entró para preguntar algo y no sabe que puede. Ver
-     * {@see self::contextoDeCortesia()}.
-     */
-    private const int CHARLA_ANTES_DE_OFRECER = 2;
 
     public function __construct(
         private EntityManagerInterface $em,
@@ -307,22 +297,21 @@ final readonly class AiConversationProcessor
         $historial = $this->historial($conversacion, $entrante);
 
         // PASO 1 — TRIAJE. Barato, sin herramientas, y con un desenlace («indeterminado») que
-        // deja todo exactamente como estaba antes de que existiera. Ver App\Agent\Triage\Triaje.
-        $decision = $this->triaje->clasificar($actor, $mensaje, $historial);
+        // deja todo exactamente como estaba antes de que existiera. Se le pasa el contexto
+        // (idioma, nombre) porque la charla la contesta él mismo. Ver App\Agent\Triage\Triaje.
+        $decision = $this->triaje->clasificar($actor, $mensaje, $historial, $this->contexto($conversacion));
 
-        // PASO 2a — CHARLA. «Hola» no necesita ver veinte herramientas ni un modelo grande. Si
-        // el tramo bajo no contesta, se sigue por el camino largo: no se pierde el mensaje.
-        if ($decision->tipo === TipoDeMensaje::Conversacion) {
-            $texto = $this->charlar($conversacion, $actor, $mensaje, $historial);
-
-            if ($texto !== null) {
-                return $texto;
-            }
-
+        // PASO 2a — CHARLA. La respuesta vino EN la llamada del triaje: «hola» cuesta una sola
+        // llamada, y quien vigila que no se cuele una petición es el propio clasificador. Si
+        // vino sin respuesta —modelo tacaño, JSON roto—, camino largo: no se pierde el mensaje.
+        if ($decision->tipo === TipoDeMensaje::Conversacion && $decision->respuesta !== null) {
             $this->logger->info(sprintf(
-                'IA: la charla barata no respondió en la conversación %s; se sigue por el camino largo.',
-                $conversacion->getId()
+                'IA: charla resuelta en el propio triaje en la conversación %s: «%s».',
+                $conversacion->getId(),
+                $decision->respuesta
             ));
+
+            return $decision->respuesta;
         }
 
         // PASO 2b — CAMINO LARGO, con el catálogo entero. El tramo de potencia lo pone lo que
@@ -483,112 +472,6 @@ final readonly class AiConversationProcessor
         }
 
         return PotenciaRequerida::Media;
-    }
-
-    /**
-     * Contesta a la cortesía sin catálogo, sin bucle y en el tramo barato.
-     *
-     * 🔑 **La seguridad de este camino no está en el prompt, está en que no hay herramientas.**
-     * Aquí el modelo no puede consultar nada, así que tampoco puede citar mal nada: lo peor que
-     * puede hacer es contestar de memoria, y para eso el prompt le prohíbe dar cifras y le da
-     * la salida buena —ofrecerse a mirarlo—, que además es la que hace que el mensaje siguiente
-     * llegue ya como «peticion».
-     *
-     * Devuelve `null` cuando el motor no contesta. Quien llama sigue por el camino largo: este
-     * atajo puede fallar sin que el huésped se quede sin respuesta.
-     *
-     * @param list<array{rol: string, texto: string}> $historial
-     */
-    private function charlar(
-        MessageConversation $conversacion,
-        ActorInterface $actor,
-        string $mensaje,
-        array $historial
-    ): ?string {
-        $elegido = $this->potencias->elegir(PotenciaRequerida::Baja);
-        if ($elegido === null) {
-            return null;
-        }
-
-        $texto = $elegido->motor->turnoDirecto(new ConversationRequest(
-            actor: $actor,
-            systemPrompt: $this->reglasDeCortesia(),
-            contexto: $this->contextoDeCortesia($conversacion, $historial),
-            mensaje: $mensaje,
-            historial: $historial,
-            permitirEscritura: false,
-            // Dos frases. El tope es la mitad de la barrera: un modelo pequeño con presupuesto
-            // largo se pone a improvisar, y aquí no hay ninguna herramienta que le corrija.
-            maxTokens: 300,
-            modelo: $elegido->modelo,
-        ));
-
-        if ($texto === null) {
-            return null;
-        }
-
-        $this->logger->info(sprintf(
-            'IA: charla resuelta con %s en la conversación %s: «%s».',
-            $elegido->etiqueta(),
-            $conversacion->getId(),
-            trim($texto)
-        ));
-
-        return $texto;
-    }
-
-    /**
-     * El prompt de la charla. Estable byte a byte, así que se cachea entero.
-     *
-     * Es mucho más corto que {@see self::reglas()} porque no tiene que explicar ninguna
-     * herramienta: en este camino no hay ninguna. Lo único que hace falta decirle es qué NO
-     * puede decir y cuál es la salida buena cuando resulta que sí había una pregunta dentro.
-     */
-    private function reglasDeCortesia(): string
-    {
-        return <<<PROMPT
-        Eres el asistente de reservas de un alojamiento en Cusco, Perú. Hablas con un huésped
-        por el chat de su reserva.
-
-        Este mensaje ya se ha revisado y NO pide ni pregunta nada: es cortesía o charla. Tu
-        único trabajo es contestar como contestaría un anfitrión amable, en una o dos frases.
-
-        NO TIENES NINGÚN DATO DE SU RESERVA Y NO PUEDES CONSULTAR NADA EN ESTE TURNO. Por tanto:
-        - No des ni una fecha, ni un importe, ni un horario, ni un código, ni una norma. Tampoco
-          si crees recordarlos: aquí no hay nada que los respalde.
-        - Si al leerlo ves que sí había una pregunta escondida, NO la respondas de memoria.
-          Ofrécete a mirarlo —«dime qué necesitas y lo consulto»— y déjalo ahí: cuando te lo
-          repita, ese mensaje sí llegará por el camino que puede consultar de verdad.
-        - No prometas plazos, ni digas que has avisado a nadie: en este turno no has avisado.
-        - No menciones que eres una IA salvo que te lo pregunten directamente.
-        - Escribe como se habla: sin listas, sin negritas, sin títulos. Es un chat.
-        PROMPT;
-    }
-
-    /**
-     * Lo volátil de la charla: con quién hablas, en qué idioma y si ya lleváis un rato.
-     *
-     * @param list<array{rol: string, texto: string}> $historial
-     */
-    private function contextoDeCortesia(MessageConversation $conversacion, array $historial): string
-    {
-        $contexto = $this->contexto($conversacion);
-
-        // Contar las respuestas ya dadas evita tener que guardar un estado de «modo charla» en
-        // ninguna parte: el historial ya lo dice. No distingue charla de respuesta con datos, y
-        // no hace falta —lo que se busca es «¿lleváis rato hablando?»—.
-        $vueltas = count(array_filter(
-            $historial,
-            static fn (array $turno): bool => ($turno['rol'] ?? '') === 'asistente'
-        ));
-
-        if ($vueltas < self::CHARLA_ANTES_DE_OFRECER) {
-            return $contexto;
-        }
-
-        return $contexto . "\n" . 'Ya lleváis varias vueltas de charla: cierra tu respuesta '
-            . 'ofreciéndole ayuda concreta con su reserva o su casita, en una frase corta y sin '
-            . 'insistir.';
     }
 
     /**
