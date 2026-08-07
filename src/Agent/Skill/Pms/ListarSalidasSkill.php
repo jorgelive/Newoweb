@@ -16,6 +16,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Quién entra o sale en los próximos días.
@@ -28,6 +29,17 @@ use Doctrine\ORM\EntityManagerInterface;
  * sobre ella no se comporta igual que un listado.
  *
  * Sirve además a limpieza: `ROLE_LIMPIEZA` la tiene aunque no vea el resto del PMS.
+ *
+ * ### 🔗 Cada fila trae su enlace a la ficha
+ *
+ * La misma URL que abre el panel de «salen hoy» al pinchar una fila:
+ * `/reservas?evento=…&reserva=…` ({@see util/src/views/HomeView.vue} `verEnReservas()`). Sin
+ * ella el operador leía tres nombres en el chat y tenía que ir a buscarlos al calendario a
+ * mano — teniendo la skill los dos ids delante.
+ *
+ * ⚠️ Sólo para el equipo. La lista ya está detrás de `RESERVAS_SHOW`/`LIMPIEZA`/`MANTENIMIENTO`
+ * y ningún huésped la alcanza, pero el enlace apunta al panel interno: si algún día se abre a
+ * otro actor, esto se queda fuera.
  */
 final readonly class ListarSalidasSkill implements SkillInterface
 {
@@ -35,7 +47,9 @@ final readonly class ListarSalidasSkill implements SkillInterface
     private const int MAX_DIAS = 30;
 
     public function __construct(
-        private EntityManagerInterface $em
+        private EntityManagerInterface $em,
+        #[Autowire('%util_host_url%')]
+        private string $urlPanel,
     ) {}
 
     public function nombre(): string
@@ -54,7 +68,11 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 . 'aquí sin volver a buscar al huésped: pásalos a consultar_cuenta, '
                 . 'localizar_conversacion, evaluar_cambio_horario o aplicar_cambio_horario. '
                 . 'Para un día concreto usa «desde» con esa fecha y dias=1, y responde SÓLO con '
-                . 'lo que devuelva: no des por salido de un día a quien figure en otro.',
+                . 'lo que devuelva: no des por salido de un día a quien figure en otro. '
+                . 'CADA FILA TRAE «url»: es la ficha de esa reserva en el panel. Pon SIEMPRE el '
+                . 'nombre del huésped como enlace a su url, con el formato [Nombre](url), para '
+                . 'que el operador pueda abrirla de un clic igual que en el panel de salidas. '
+                . 'No escribas la URL suelta ni repitas el enlace en otra parte de la línea.',
             parametros: [
                 SkillParameter::texto(
                     'tipo',
@@ -165,7 +183,7 @@ final readonly class ListarSalidasSkill implements SkillInterface
         )->fetchAllAssociative();
 
         return array_map(
-            static fn (array $f) => [
+            fn (array $f) => [
                 'movimiento' => $movimiento,
                 'fecha' => $f['fecha'],
                 'hora' => substr((string) $f['hora'], 0, 5),
@@ -175,8 +193,31 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 'es_ota' => (bool) $f['es_ota'],
                 'evento_id' => $f['evento_id'],
                 'reserva_id' => $f['reserva_id'],
+                'url' => $this->fichaDe($f['evento_id'], $f['reserva_id']),
             ],
             $filas
+        );
+    }
+
+    /**
+     * La ficha de la estancia en el panel, con el drawer ya desplegado.
+     *
+     * 🪞 Espejo de `verEnReservas()` en `util/src/views/HomeView.vue`: los dos ids viajan por la
+     * query porque es lo único que necesita `abrirEdicion()` del drawer de Reservas. **Si allí
+     * cambia la ruta o el nombre de los parámetros, aquí también** — o el enlace del asistente
+     * llevará al calendario sin abrir nada.
+     */
+    private function fichaDe(?string $eventoId, ?string $reservaId): ?string
+    {
+        if ($eventoId === null) {
+            return null;
+        }
+
+        return sprintf(
+            '%s/reservas?evento=%s%s',
+            rtrim($this->urlPanel, '/'),
+            urlencode($eventoId),
+            $reservaId !== null ? '&reserva=' . urlencode($reservaId) : ''
         );
     }
 

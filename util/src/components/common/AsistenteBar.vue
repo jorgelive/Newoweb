@@ -12,6 +12,7 @@
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { apiClient } from '@/services/apiClient';
+import { formatoAHtml } from '@/utils/formatoDeTexto';
 
 /** Espejo de App\Agent\Controller\Api\PanelAssistantController::consulta(). */
 interface RespuestaAsistente {
@@ -297,7 +298,13 @@ onBeforeUnmount(() => reconocimiento?.stop());
           <i class="fas fa-angle-right text-slate-300 mr-1" aria-hidden="true"></i>{{ turno.texto }}
         </p>
         <template v-else>
-          <p class="text-sm text-slate-800 whitespace-pre-line leading-relaxed">{{ turno.texto }}</p>
+          <!-- El modelo responde con el marcado canónico (*negrita*, listas, [texto](url)) y
+               `formatoAHtml` lo pinta —escapando antes— igual que el chat de mensajería. Sin
+               esto los asteriscos y los enlaces llegaban crudos al operador. -->
+          <p
+            class="asistente-respuesta text-sm text-slate-800 whitespace-pre-line leading-relaxed"
+            v-html="formatoAHtml(turno.texto)"
+          ></p>
           <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
             <template v-if="turno.herramientas?.length">
               <i class="fas fa-database text-[9px] mr-1" aria-hidden="true"></i> Consultado en el PMS

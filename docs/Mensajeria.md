@@ -3138,9 +3138,43 @@ operador, la respuesta del agente de IA y las skills (`enviar_mensaje_huesped`)�
 hay que formatear en ningún otro sitio.
 
 🔁 **Espejo PHP ↔ TS.** `util/src/utils/formatoDeTexto.ts` replica las reglas para pintar el
-HTML del panel (`ChatView.vue`, `formatMessageText`) y para la barra B/I/U/S del compositor
-(`envolverSeleccion`). **Si tocas una marca o una regla en un lado, tócala en el otro** — o el
-operador verá en el panel un formato distinto del que recibe el huésped.
+HTML del panel (`ChatView.vue`, `formatMessageText`), la barra B/I/U/S del compositor
+(`envolverSeleccion`) y la respuesta del asistente interno (`AsistenteBar.vue`). **Si tocas una
+marca o una regla en un lado, tócala en el otro** — o el operador verá en el panel un formato
+distinto del que recibe el huésped.
+
+#### ⚠️ El espejo se separa a propósito en UN punto: `[texto](url)`
+
+| Salida | `[Marcelo Calderón](https://…)` se convierte en |
+|---|---|
+| **HTML** (`formatoAHtml`) | `<a href="…">Marcelo Calderón</a>` — la URL queda detrás del nombre |
+| **WhatsApp / Beds24** (`FormatoDeTexto`) | `Marcelo Calderón: https://…` — la URL **tiene** que verse |
+
+No es una divergencia que corregir. Ninguno de los dos canales de texto tiene enlaces con
+etiqueta: si allí escondiéramos la URL, el huésped se quedaría sin ella. En el panel es al
+revés — un enlace con el nombre visible es lo que hace legible una lista de salidas, en vez de
+un UUID de setenta caracteres en mitad de cada línea.
+
+El resto de reglas sí son espejo estricto.
+
+#### 🔗 El asistente del panel pinta HTML, no texto plano
+
+`AsistenteBar.vue` mostraba `{{ turno.texto }}` con `whitespace-pre-line`, así que los `**` del
+modelo llegaban crudos al operador y las URLs no se podían pinchar. Ahora pasa por
+`formatoAHtml()` igual que el chat de mensajería.
+
+De la mano, `listar_entradas_salidas` devuelve un campo **`url`** por fila: la ficha de esa
+estancia en el panel, con el drawer ya desplegado. Es la misma URL que abre `verEnReservas()`
+en `util/src/views/HomeView.vue` al pinchar una fila de «salen hoy»:
+
+```
+{util_host_url}/reservas?evento={eventoId}&reserva={reservaId}
+```
+
+🪞 **Espejo con el front:** los dos ids viajan por la query porque es lo único que necesita
+`abrirEdicion()` del drawer. Si allí cambia la ruta o el nombre de los parámetros,
+`ListarSalidasSkill::fichaDe()` hay que tocarlo también, o el enlace llevará al calendario sin
+abrir nada. La skill ya tenía los dos ids; lo único que le faltaba era saber la URL base.
 
 ### ⚠️ Las plantillas NO se degradan
 
@@ -3245,6 +3279,7 @@ url.») se devuelve al texto, para que las marcas se vean en pareja. Verificado 
 | Qué plantillas puede mandar el agente del panel | CRUD de plantillas | TODAS las que tengan «Cuándo usarla» escrito — ya no hay flag; guardan la confirmación del operador y `allowedSources`, §11 |
 | Que una plantilla sólo salga a su OTA (Booking vs Airbnb) | CRUD de plantillas | `allowedSources` — lo validan por código las dos skills de plantillas, §11 |
 | **Añadir o cambiar una marca de formato** (*negrita*, __subrayado__…) | `FormatoDeTexto` **y** `util/src/utils/formatoDeTexto.ts` | Son espejo: los dos o el panel pinta distinto de lo que llega, §14 |
+| Que el asistente del panel enlace a una ficha | `ListarSalidasSkill` | `fichaDe()` — espejo de `verEnReservas()` en `HomeView.vue` |
 | Cambiar cómo degrada un canal el texto libre | `Beds24SendMappingStrategy` / `WhatsappMetaSendMappingStrategy` | `paraTextoPlano()` / `paraWhatsapp()`, sólo con `getTemplate() === null`, §14 |
 | Cambiar la barra B/I/U/S del compositor del chat | `ChatView.vue` | `aplicarFormato()` + `envolverSeleccion()` de `formatoDeTexto.ts`, §14 |
 | Probar el formateador sin gastar API | — | `php var/probar-formato.php` — §14 |
