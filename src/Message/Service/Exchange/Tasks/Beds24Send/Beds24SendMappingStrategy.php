@@ -11,13 +11,15 @@ use App\Exchange\Service\Mapping\MappingStrategyInterface;
 use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Service\MessageDataResolverRegistry;
+use App\Message\Service\Formato\FormatoDeTexto;
 use Vich\UploaderBundle\Storage\StorageInterface;
 
 final readonly class Beds24SendMappingStrategy implements MappingStrategyInterface
 {
     public function __construct(
         private MessageDataResolverRegistry $resolverRegistry,
-        private StorageInterface $vichStorage
+        private StorageInterface $vichStorage,
+        private FormatoDeTexto $formato
     ) {}
 
     /**
@@ -88,6 +90,14 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             $subject = $msg->getSubjectExternal() ?? $msg->getSubjectLocal() ?? '';
             if (!empty(trim($subject))) {
                 $content = trim($subject) . "\n\n" . trim($content);
+            }
+
+            // Texto libre (sin plantilla): el canónico lleva marcas de WhatsApp (*negrita*…)
+            // y Beds24 es texto puro que acaba en la bandeja de Airbnb/Booking tal cual — se
+            // degradan aquí. Las plantillas NO pasan: su cuerpo de Beds24 ya está escrito con
+            // el formato que le toca. Ver App\Message\Service\Formato\FormatoDeTexto.
+            if ($template === null) {
+                $content = $this->formato->paraTextoPlano($content);
             }
 
             // Extraemos las variables una sola vez para usarlas en texto y botones

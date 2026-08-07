@@ -25,7 +25,8 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 11. [El agente: skills, acceso y proveedor](#11-el-agente-skills-acceso-y-proveedor)
 12. [Proveedores de IA: elegir motor y modelo](#12-proveedores-de-ia-elegir-motor-y-modelo)
 13. [Triaje de entrada y tramos de potencia](#13-triaje-de-entrada-y-tramos-de-potencia)
-14. [Dónde tocar para cambiar X](#14-dónde-tocar-para-cambiar-x)
+14. [El formato del texto libre y su degradación por canal](#14-el-formato-del-texto-libre-y-su-degradación-por-canal)
+15. [Dónde tocar para cambiar X](#15-dónde-tocar-para-cambiar-x)
 
 ---
 
@@ -2022,37 +2023,60 @@ hace falta para **elegirlas**:
   —`welcome_*` al crear, `recordatorio_llegada` al empezar, `check_out` y `despedida_*` al
   terminar—. Se sabe uniendo con `msg_rule`, o sea infiriendo, no leyendo.
 
-Se añaden dos columnas a `msg_template` (migración `Version20260805190000`):
+Se añaden dos columnas a `msg_template` (migración `Version20260805190000`; la segunda,
+renombrada por `Version20260807161847` al cambiar de significado):
 
 | Campo | Para qué |
 |---|---|
 | `agente_uso` | **Cuándo usarla, escrito para el modelo.** Es lo único que lee para elegir |
-| `agente_habilitada` | Si el agente puede mandarla a petición de un operador. **`false` por defecto** |
+| `autoenvio_habilitada` | Si el **huésped** puede pedírsela él mismo por el chat. **`false` por defecto** |
 
-`MessageTemplate::disponibleParaAgente()` exige **las dos**: la marca sin la frase dejaría al
-modelo eligiendo por el `code`, que es adivinar. Se editan desde el panel de plantillas
-(«Asistente de IA»), así que habilitar una nueva no toca código.
+⚠️ **`autoenvio_habilitada` se llamó `agente_habilitada` y significaba otra cosa** («el agente
+puede mandarla a petición de un operador»). Ese candado se quitó: **el agente puede mandar
+cualquier plantilla con `agente_uso` escrito**, porque al operador ya lo protege su propia
+confirmación —ve el texto y aprueba—, el uso de las automáticas dice en mayúsculas que LAS
+MANDA SOLA el motor de reglas, y la correspondencia de OTA se valida por código
+(`allowedSources`: la bienvenida de Booking al huésped de Booking, la de Airbnb al de Airbnb).
+El flag renombrado guarda lo otro: el **autoenvío**, donde no hay operador que confirme.
 
-Quedan habilitadas las tres que no dispara ninguna regla —`enviar_guia`,
-`solicitar_numero_whatsapp`, `menu_tours`— y apagadas las seis automáticas, **con su frase ya
-escrita** para que quien la lea en el panel entienda por qué no debe encenderla.
+`MessageTemplate::disponibleParaAgente()` (uso escrito) es la puerta del agente;
+`disponibleParaAutoenvio()` (uso escrito **y** flag) es la del huésped. Se editan desde el
+panel de plantillas («Asistente de IA»), así que habilitar una nueva no toca código.
 
 ##### El catálogo viaja en la descripción, compuesto al vuelo
 
-`EnviarPlantillaSkill::definicion()` enumera las habilitadas con su `agente_uso` leyéndolas de la
+`EnviarPlantillaSkill::definicion()` enumera las que tienen uso escrito leyéndolas de la
 base — mismo recurso que el porcentaje de comisión en `registrar_pago`. Sin eso, elegir plantilla
 sería adivinar un `code`.
 
-Tres frenos, todos probados contra el dump:
+Los frenos que quedan, por código:
 
 ```
-welcome_booking      → «no está habilitada para el agente… la manda sola el motor
-                        de reglas y enviarla a mano la duplicaría»
-enviar_bienvenida    → «no existe… usa uno de: solicitar_numero_whatsapp,
-                        enviar_guia, menu_tours»
+sin agente_uso       → «no tiene escrito su “cuándo usarla”, así que no está en
+                        circulación para el agente»
+enviar_bienvenida    → «no existe… usa uno de: …»   ← códigos reales, no inventados
 solicitar_numero_…   → «es sólo para reservas de booking o airbnb, y ésta vino de
    sobre una directa     «directo»»   ← respeta allowedSources
 ```
+
+##### 📮 El autoenvío: `enviarme_plantilla`, la hermana del huésped
+
+`EnviarmePlantillaSkill` (`Roles::HUESPED`, `NivelRiesgo::Interna`) es la misma idea con los
+papeles invertidos: el huésped se pide un material a sí mismo — «mándame mi guía», «el menú de
+tours». Es **acción propia**, como borrar tu propio post: el destinatario es quien pide, el
+contenido está pre-aprobado y traducido, y el peor caso es recibir dos veces algo que él mismo
+pidió. Por eso puede escribir «hacia fuera» siendo `Interna` y sin confirmación de nadie.
+
+Sus tres candados, en orden:
+
+1. **El destino no es un parámetro**: la conversación sale de `contextoId()` del actor, patrón
+   `consultar_mi_reserva`. No hay UUID con el que apuntar al chat de otro.
+2. **Sólo la lista corta**: `disponibleParaAutoenvio()`. «No existe» y «existe pero no es de
+   autoenvío» dan el mismo error a propósito: al modelo no le incumbe la diferencia.
+3. **La misma correspondencia de OTA** que la skill del operador.
+
+El mensaje sale como `SENDER_SYSTEM`, **no** `SENDER_HOST`: HOST activaría el guardia de
+«humano al mando» y callaría al bot 30 minutos justo después de atender bien.
 
 La previsualización enseña **el texto que va a recibir el huésped**, en su idioma, no sólo el
 nombre de la plantilla: aprobar «se enviará enviar_guia» a ciegas no es aprobar nada.
@@ -2199,6 +2223,16 @@ habría creado una segunda verdad que se rompe el día que un establecimiento ca
 Marca la bandera; **no toca `inicio` ni `fin`**. «Que salga a las 18h» no se puede pedir por
 aquí, y la previsualización lo dice en su primer punto para que el modelo no lo dé por hecho al
 oír una hora en la petición.
+
+##### ⚠️ Con la noche ya ocupada, la pregunta cambia de tono
+
+La casilla sigue siendo el mismo bit de siempre —marcarla concede el horario **y** bloquea la
+noche adyacente, sin excepción—. Lo que cambió es sólo la pregunta que se le hace al operador
+cuando `alertaDeOcupacion()` detecta que esa noche **ya la tiene otra reserva**: en vez de la
+genérica «¿apruebas el cambio?», `pregunta_aprobacion` ofrece explícitamente la opción de NO
+aplicar nada («¿aplico igual, con el solape, o prefieres que no haga nada?»). Si el operador dice
+que no, el modelo simplemente no vuelve a llamar con `confirmado: true` — no hace falta ningún
+dato ni parámetro nuevo, es la misma casilla y la misma consecuencia de siempre.
 
 ##### 🔥 Después de marcarla, NO uses `registrar_cargo`
 
@@ -3076,7 +3110,63 @@ clasificador se está inventando nombres, que es el fallo más probable de este 
 
 ---
 
-## 14. Dónde tocar para cambiar X
+## 14. El formato del texto libre y su degradación por canal
+
+Un mensaje de texto libre se escribe **una vez** y sale por varios canales que no hablan el
+mismo formato. El canónico en que se guarda (`contentExternal`) es **el de WhatsApp**, porque
+es el único canal de salida con formato propio, más una marca nuestra:
+
+```
+  *negrita*   _cursiva_   ~tachado~   __subrayado__ (nuestra: WhatsApp no tiene subrayado)
+```
+
+```
+                       texto libre (operador, IA, skills)
+                                    │  canónico en contentExternal
+              ┌─────────────────────┼──────────────────────┐
+              ▼                     ▼                      ▼
+        Panel (ChatView)      WhatsApp Meta            Beds24 (OTA)
+        formatoAHtml() TS     paraWhatsapp() PHP       paraTextoPlano() PHP
+        <strong>/<em>/<u>/<s> marcas tal cual,         SIN marcas: acaba en la
+        + enlaces clicables   __subrayado__ se pierde  bandeja de Airbnb/Booking
+```
+
+La fuente de verdad es `App\Message\Service\Formato\FormatoDeTexto`, llamada desde la rama de
+texto libre de las dos *mapping strategies* (`Beds24SendMappingStrategy`,
+`WhatsappMetaSendMappingStrategy`). Ahí pasan **todos** los caminos de escritura —el chat del
+operador, la respuesta del agente de IA y las skills (`enviar_mensaje_huesped`)— así que no
+hay que formatear en ningún otro sitio.
+
+🔁 **Espejo PHP ↔ TS.** `util/src/utils/formatoDeTexto.ts` replica las reglas para pintar el
+HTML del panel (`ChatView.vue`, `formatMessageText`) y para la barra B/I/U/S del compositor
+(`envolverSeleccion`). **Si tocas una marca o una regla en un lado, tócala en el otro** — o el
+operador verá en el panel un formato distinto del que recibe el huésped.
+
+### ⚠️ Las plantillas NO se degradan
+
+Cada plantilla tiene su cuerpo POR CANAL, ya escrito con el formato que le toca. Las
+estrategias sólo formatean cuando `getTemplate() === null`; pasar una plantilla por el
+degradador rompería texto pensado a mano. Es la razón de que la rama de plantilla y la de
+texto libre no compartan este paso.
+
+### `normalizar()`: la red para el Markdown del modelo
+
+Los modelos emiten Markdown aunque el prompt lo prohíba: `**negrita**`, `# títulos`, listas
+con `- `, enlaces `[texto](url)`. Antes de degradar se normaliza al canónico (`**x**` → `*x*`,
+`# Título` → `*Título*`, `- item` → `• item`, `[texto](url)` → `texto: url`), para que al
+huésped nunca le lleguen los asteriscos dobles literales — el fallo pendiente que dejó Gemini
+sirviendo `**negrita**` a WhatsApp. Es una red, no un permiso: el prompt sigue pidiendo texto
+de chat, sin listas ni títulos.
+
+### Las URLs son intocables
+
+Una URL lleva `_` y `*` con todo el derecho (`/mi_guia`), y el quitado de marcas la mutilaría
+en silencio. Los dos lados apartan las URLs con marcadores `\x00N\x00` antes de transformar y
+las devuelven intactas al final — y lo pegado al final de una URL («mira *url*», «visita
+url.») se devuelve al texto, para que las marcas se vean en pareja. Verificado en
+`var/probar-formato.php` (19 comprobaciones, sin API).
+
+## 15. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
@@ -3151,6 +3241,13 @@ clasificador se está inventando nombres, que es el fallo más probable de este 
 | Cambiar qué se filtra en el chat del huésped (sólo lectura) | `SkillRegistry::paraActor()` | `NivelRiesgo::exigePermisoDeEscritura()` — **no** comparar con `Lectura`, §11 |
 | Que el huésped consulte su saldo o el desglose de su cuenta | `ConsultarMiReservaSkill` (cifra) / `ConsultarCuentaSkill` (detalle) | La segunda ignora `reserva_id` si hay contexto: `reservaDelContexto()`, §11 |
 | Que el huésped pueda avisar al equipo | `EscalarAlEquipoSkill` | Ya la tiene (`Roles::HUESPED` + `Interna`). El prompt le obliga a llamarla si promete respuesta, §9 |
+| **Que el huésped pueda pedirse una plantilla** (su guía, tours) | CRUD de plantillas | Interruptor «autoenvío» (`autoenvio_habilitada`) + «Cuándo usarla» rellenado. La manda `EnviarmePlantillaSkill`, §11 |
+| Qué plantillas puede mandar el agente del panel | CRUD de plantillas | TODAS las que tengan «Cuándo usarla» escrito — ya no hay flag; guardan la confirmación del operador y `allowedSources`, §11 |
+| Que una plantilla sólo salga a su OTA (Booking vs Airbnb) | CRUD de plantillas | `allowedSources` — lo validan por código las dos skills de plantillas, §11 |
+| **Añadir o cambiar una marca de formato** (*negrita*, __subrayado__…) | `FormatoDeTexto` **y** `util/src/utils/formatoDeTexto.ts` | Son espejo: los dos o el panel pinta distinto de lo que llega, §14 |
+| Cambiar cómo degrada un canal el texto libre | `Beds24SendMappingStrategy` / `WhatsappMetaSendMappingStrategy` | `paraTextoPlano()` / `paraWhatsapp()`, sólo con `getTemplate() === null`, §14 |
+| Cambiar la barra B/I/U/S del compositor del chat | `ChatView.vue` | `aplicarFormato()` + `envolverSeleccion()` de `formatoDeTexto.ts`, §14 |
+| Probar el formateador sin gastar API | — | `php var/probar-formato.php` — §14 |
 | **Apagar el triaje y volver al agente de antes** | `.env` | `AGENT_IA_TRIAJE=0` — todo pasa por el camino largo con el catálogo entero, §13 |
 | **Cambiar qué modelo atiende cada paso** | `.env` | `AGENT_IA_POTENCIA_ALTA` / `_MEDIA` / `_BAJA`, en la forma `proveedor:modelo`. Vacías = como antes, §13.5 |
 | Subir o bajar la potencia del clasificador | `.env` | `AGENT_IA_TRIAJE_POTENCIA` — `alta` \| `media`. Nunca `baja`: corre en TODOS los mensajes, §13.5 |

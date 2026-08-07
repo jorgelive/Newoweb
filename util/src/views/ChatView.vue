@@ -7,6 +7,7 @@ import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import EditConversationModal from '@/components/chat/EditConversationModal.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useRoute, useRouter } from 'vue-router';
+import { formatoAHtml, envolverSeleccion } from '@/utils/formatoDeTexto';
 
 const store = useChatStore();
 const attachmentStore = useAttachmentStore();
@@ -941,23 +942,25 @@ const isShowingTranslation = (msgId: string | undefined): boolean => {
   return !!translatedMessages.value[msgId];
 };
 
+// Escapa, normaliza el canónico (*negrita*, _cursiva_, __subrayado__, ~tachado~) a etiquetas
+// y enlaza URLs. Es el espejo TS de FormatoDeTexto.php: lo que se pinta aquí es lo que el
+// huésped recibe formateado en WhatsApp y plano en Beds24.
 const formatMessageText = (text: string | null | undefined): string => {
   if (!text) return '';
+  return formatoAHtml(text);
+};
 
-  const escapeHtml = (unsafe: string) => {
-    return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-  };
+// La barra B/I/U/S del compositor: envuelve la selección con la marca del canónico.
+const aplicarFormato = (marca: string) => {
+  const area = messageTextarea.value;
+  if (!area) return;
 
-  const safeText = escapeHtml(text);
+  const resultado = envolverSeleccion(newMessageText.value, area.selectionStart, area.selectionEnd, marca);
+  newMessageText.value = resultado.texto;
 
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return safeText.replace(urlRegex, (url) => {
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline font-bold hover:opacity-70 transition-opacity">${url}</a>`;
+  nextTick(() => {
+    area.focus();
+    area.setSelectionRange(resultado.inicio, resultado.fin);
   });
 };
 
@@ -1519,7 +1522,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
           <input type="file" ref="fileInput" class="hidden" @change="onFileSelected" />
 
-          <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-3xl focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative min-w-0">
+          <form @submit.prevent="send" class="max-w-4xl mx-auto flex flex-col gap-1 bg-slate-50 border-2 border-slate-100 p-2 rounded-3xl focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative min-w-0">
 
             <Transition name="fade-scale">
               <div v-if="sharedFileFromDB && !attachmentStore.file" class="absolute -top-14 left-0 bg-[#E07845] text-white px-4 py-2 rounded-xl shadow-xl z-20 flex items-center gap-3 animate-bounce">
@@ -1543,15 +1546,32 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
               <button type="button" @click="attachmentStore.clear()" class="text-slate-400 hover:text-red-500 ml-2 shrink-0"><i class="fas fa-times"></i></button>
             </div>
 
-            <div class="flex items-center gap-1 shrink-0 pb-1">
+            <div class="flex items-center gap-1 w-full">
               <button type="button" @click="showTemplateDropdown = !showTemplateDropdown" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
                 <i class="fas fa-robot text-xs"></i>
               </button>
               <button type="button" @click="fileInput?.click()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
                 <i class="fas fa-paperclip text-xs"></i>
               </button>
+              <!-- Formateador ligero: marcas del canónico (espejo de FormatoDeTexto.php).
+                   WhatsApp las pinta, Beds24 las pierde con gracia, el panel las renderiza. -->
+              <template v-if="!selectedTemplateId">
+                <button type="button" title="Negrita (*texto*)" @click="aplicarFormato('*')" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
+                  <i class="fas fa-bold text-xs"></i>
+                </button>
+                <button type="button" title="Cursiva (_texto_)" @click="aplicarFormato('_')" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
+                  <i class="fas fa-italic text-xs"></i>
+                </button>
+                <button type="button" title="Subrayado (__texto__) — WhatsApp y Beds24 lo pierden" @click="aplicarFormato('__')" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
+                  <i class="fas fa-underline text-xs"></i>
+                </button>
+                <button type="button" title="Tachado (~texto~)" @click="aplicarFormato('~')" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
+                  <i class="fas fa-strikethrough text-xs"></i>
+                </button>
+              </template>
             </div>
 
+            <div class="flex items-end gap-2 md:gap-3 w-full min-w-0">
             <div class="flex-1 min-h-10 flex items-center min-w-0">
               <div v-if="selectedTemplateId" class="w-full bg-white border border-[#376875]/20 rounded-xl px-3 py-1.5 flex justify-between items-center shadow-sm overflow-hidden min-w-0 mr-1">
                 <div class="flex items-center gap-2 min-w-0">
@@ -1577,6 +1597,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
             <button type="submit" :disabled="(!newMessageText.trim() && !selectedTemplateId && !attachmentStore.file) || store.sendingMessage" class="w-10 h-10 shrink-0 bg-[#E07845] text-white rounded-full flex items-center justify-center shadow-md hover:scale-105 transition-all disabled:opacity-30 mb-0.5">
               <i class="fas text-xs" :class="store.sendingMessage ? 'fa-circle-notch fa-spin' : 'fa-paper-plane'"></i>
             </button>
+            </div>
           </form>
         </footer>
       </template>

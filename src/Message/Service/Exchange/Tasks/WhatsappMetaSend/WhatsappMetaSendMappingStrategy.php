@@ -11,6 +11,7 @@ use App\Exchange\Service\Mapping\MappingStrategyInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageAttachment;
 use App\Message\Entity\WhatsappMetaSendQueue;
+use App\Message\Service\Formato\FormatoDeTexto;
 use App\Message\Service\MessageDataResolverRegistry;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -34,6 +35,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     public function __construct(
         private MessageDataResolverRegistry $resolverRegistry,
         private StorageInterface $vichStorage,
+        private FormatoDeTexto $formato,
         #[Autowire('%env(PMS_META_PUBLIC_URL)%')]
         private string $pmsMetaPublicUrl
     ) {}
@@ -270,6 +272,14 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                 if (empty(trim($bodyText))) {
                     $bodyText = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
+
+                    // Texto libre (sin plantilla): se normaliza el Markdown que se le escapa
+                    // al modelo (**negrita** → *negrita*) y se quita el __subrayado__, que
+                    // WhatsApp no tiene. Las plantillas no pasan por aquí: su cuerpo ya viene
+                    // escrito en el formato de WhatsApp. Ver FormatoDeTexto.
+                    if ($template === null) {
+                        $bodyText = $this->formato->paraWhatsapp($bodyText);
+                    }
                 }
 
                 // CONCATENACIÓN VIRTUAL (Simulando visualmente la UI de Meta)

@@ -86,18 +86,20 @@ class MessageTemplate
     private ?string $agenteUso = null;
 
     /**
-     * ¿Puede el agente mandarla a petición de un operador?
+     * ¿Puede el huésped pedírsela a sí mismo por el chat (autoenvío)?
      *
-     * Por defecto **no**, y es deliberado: 6 de las 11 plantillas las dispara solo el motor de
-     * reglas en su hito (bienvenida al crear, llegada al empezar, despedida al terminar).
-     * Mandarlas a mano duplica lo que el sistema ya envió o va a enviar, y el huésped recibe
-     * dos veces lo mismo.
+     * ⚠️ Cambió de significado (antes `agenteHabilitada`): **ya no acota lo que el agente puede
+     * mandar** — el agente puede mandar cualquiera que tenga `agenteUso` escrito, a petición de
+     * un operador y con la correspondencia de OTA como guardia (`allowedSources`: la bienvenida
+     * de Booking va al de Booking, la de Airbnb al de Airbnb). Este flag acota lo OTRO: qué
+     * plantillas puede dispararse el huésped él solo («mándame mi guía», «el menú de tours»),
+     * donde no hay ningún operador que confirme.
      *
-     * Se habilita una a una desde el panel, que es una decisión de negocio y no del código.
+     * Por defecto **no**, y se enciende una a una desde el panel: es una decisión de negocio.
      */
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     #[Groups(['template:read'])]
-    private bool $agenteHabilitada = false;
+    private bool $autoenvioHabilitada = false;
 
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array')]
@@ -171,18 +173,30 @@ class MessageTemplate
     public function getAgenteUso(): ?string { return $this->agenteUso; }
     public function setAgenteUso(?string $agenteUso): self { $this->agenteUso = $agenteUso; return $this; }
 
-    public function isAgenteHabilitada(): bool { return $this->agenteHabilitada; }
-    public function setAgenteHabilitada(bool $agenteHabilitada): self { $this->agenteHabilitada = $agenteHabilitada; return $this; }
+    public function isAutoenvioHabilitada(): bool { return $this->autoenvioHabilitada; }
+    public function setAutoenvioHabilitada(bool $autoenvioHabilitada): self { $this->autoenvioHabilitada = $autoenvioHabilitada; return $this; }
 
     /**
-     * Utilizable por el agente sólo si además se le ha escrito para qué sirve.
+     * Utilizable por el agente (a petición de un operador): basta con que tenga escrito para
+     * qué sirve.
      *
-     * La marca sin la frase deja al modelo eligiendo por el `code`, que es adivinar. Se exigen
-     * las dos para que habilitar una plantilla a medias no la ponga en circulación.
+     * Sin el `agenteUso` el modelo elegiría por el `code`, que es adivinar — la plantilla sin
+     * frase queda inalcanzable a propósito. El flag de autoenvío NO se mira aquí: al operador
+     * lo protege su propia confirmación, y la correspondencia de OTA la valida la skill.
      */
     public function disponibleParaAgente(): bool
     {
-        return $this->agenteHabilitada && trim((string) $this->agenteUso) !== '';
+        return trim((string) $this->agenteUso) !== '';
+    }
+
+    /**
+     * Pedible por el propio huésped: habilitada para autoenvío Y con su uso escrito.
+     *
+     * Se exigen las dos para que habilitar una plantilla a medias no la ponga en circulación.
+     */
+    public function disponibleParaAutoenvio(): bool
+    {
+        return $this->autoenvioHabilitada && $this->disponibleParaAgente();
     }
 
     public function getCode(): ?string

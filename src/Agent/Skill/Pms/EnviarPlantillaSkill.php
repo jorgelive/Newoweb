@@ -29,19 +29,21 @@ use Symfony\Component\Uid\Uuid;
  *
  * ### 🏷️ El catálogo se compone en tiempo de ejecución
  *
- * La descripción enumera **las plantillas habilitadas y para qué sirve cada una**, leyéndolas de
- * la base. Un `code` suelto (`enviar_guia`, `menu_tours`) no le dice a un modelo cuándo tocan, y
- * `name` tampoco: es una etiqueta de panel, y alguna es una referencia interna («Autorespuesta
- * ER130497»). El texto que decide viene de `MessageTemplate::getAgenteUso()`.
+ * La descripción enumera **las plantillas con uso escrito y para qué sirve cada una**,
+ * leyéndolas de la base. Un `code` suelto (`enviar_guia`, `menu_tours`) no le dice a un modelo
+ * cuándo tocan, y `name` tampoco: es una etiqueta de panel, y alguna es una referencia interna
+ * («Autorespuesta ER130497»). El texto que decide viene de `MessageTemplate::getAgenteUso()` —
+ * escribirlo en el panel pone la plantilla en circulación sin tocar código.
  *
- * Así, habilitar una plantilla nueva desde el panel la pone en circulación sin tocar código.
+ * ### El agente puede mandarlas TODAS; lo que guarda es la OTA y la confirmación
  *
- * ### 🚫 Por qué la mayoría están apagadas
- *
- * Seis de las once las dispara **solo el motor de reglas** en su hito —bienvenida al crear,
- * llegada al empezar, despedida al terminar—. Mandarlas a mano duplicaría lo que el huésped ya
- * recibió o va a recibir. `agenteHabilitada` está en `false` por defecto justo por eso: se
- * enciende una a una, y es una decisión de negocio.
+ * Antes un flag (`agenteHabilitada`) apagaba la mayoría por miedo a duplicar lo que el motor
+ * de reglas manda solo en su hito. Se quitó: al operador ya lo protege su propia confirmación
+ * —ve el texto y aprueba—, el `agenteUso` de esas plantillas dice en mayúsculas que las manda
+ * sola el motor, y la **correspondencia de OTA** se valida por código: la bienvenida de
+ * Booking no sale hacia un huésped de Airbnb aunque se equivoque el código. El flag renombrado
+ * (`autoenvioHabilitada`) guarda otra cosa: el autoenvío del huésped, ver
+ * {@see EnviarmePlantillaSkill}.
  *
  * ### Los canales los acota la plantilla
  *
@@ -65,7 +67,7 @@ final readonly class EnviarPlantillaSkill implements SkillInterface
         $catalogo = $this->disponibles();
 
         $lista = $catalogo === []
-            ? 'AHORA MISMO NO HAY NINGUNA HABILITADA: dilo y no la uses.'
+            ? 'AHORA MISMO NO HAY NINGUNA EN CIRCULACIÓN: dilo y no la uses.'
             : implode(' ', array_map(
                 static fn (MessageTemplate $t) => sprintf('«%s»: %s', $t->getCode(), $t->getAgenteUso()),
                 $catalogo
@@ -124,13 +126,12 @@ final readonly class EnviarPlantillaSkill implements SkillInterface
             ));
         }
 
-        // La marca del panel manda sobre lo que pida el modelo: una plantilla automática no se
-        // manda a mano ni aunque acierte el código.
+        // Sin uso escrito la plantilla no está en el catálogo que vio el modelo: si aun así
+        // acertó el código, fue adivinando, y eso no se premia.
         if (!$plantilla->disponibleParaAgente()) {
             return SkillResult::error(sprintf(
-                'La plantilla «%s» no está habilitada para el agente. Suele ser porque la manda '
-                . 'sola el motor de reglas y enviarla a mano la duplicaría. Dile al operador que '
-                . 'la mande desde el panel si de verdad hace falta.',
+                'La plantilla «%s» no tiene escrito su «cuándo usarla», así que no está en '
+                . 'circulación para el agente. Se rellena en el panel de plantillas.',
                 $codigo
             ));
         }
@@ -228,14 +229,15 @@ final readonly class EnviarPlantillaSkill implements SkillInterface
     }
 
     /**
-     * Las que el panel ha habilitado Y tienen escrito para qué sirven.
+     * Todas las que tienen escrito para qué sirven. El flag de autoenvío aquí NO pinta nada:
+     * es del camino del huésped ({@see EnviarmePlantillaSkill}).
      *
      * @return list<MessageTemplate>
      */
     private function disponibles(): array
     {
         return array_values(array_filter(
-            $this->em->getRepository(MessageTemplate::class)->findBy(['agenteHabilitada' => true]),
+            $this->em->getRepository(MessageTemplate::class)->findAll(),
             static fn (MessageTemplate $t) => $t->disponibleParaAgente()
         ));
     }

@@ -41,6 +41,16 @@ use Symfony\Component\Uid\Uuid;
  *
  * Por eso esto SÍ funciona en reservas de OTA, mientras que mover fechas está prohibido.
  *
+ * ### ⚠️ Cuando la noche ya está ocupada, la pregunta cambia
+ *
+ * Si la noche que el horario extra ocuparía ya la tiene otra reserva —el caso típico de
+ * Airbnb, uno sale y otro entra el mismo día—, marcar la casilla igual crea un evento de
+ * extensión superpuesto a una estancia real. La skill no lo decide por su cuenta: cuando
+ * {@see self::alertaDeOcupacion()} detecta ese conflicto, la `pregunta_aprobacion` deja de
+ * ser genérica y ofrece explícitamente la opción de NO aplicar nada. Si el operador dice que
+ * no, el modelo simplemente no vuelve a llamar con `confirmado: true` — no hace falta ningún
+ * dato ni parámetro nuevo, es la misma casilla de siempre.
+ *
  * ### ⚠️ La confirmación depende del modelo, no del código
  *
  * Con `confirmado: false` la skill devuelve la previsualización y no escribe. Pero **nada
@@ -84,8 +94,10 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
                 . 'dicen («sale a las 14:00»): si cabe dentro del horario del alojamiento sólo '
                 . 'la registro y no bloqueo nada; si lo excede, además marco el horario extra. '
                 . 'Y si la respuesta trae «⛔ conflicto», esa noche YA ESTÁ VENDIDA a otra '
-                . 'reserva: léeselo al operador ANTES de pedirle el sí, porque el bloqueo se '
-                . 'solaparía.',
+                . 'reserva: en ese caso la pregunta_aprobacion te va a ofrecer explícitamente '
+                . 'la opción de NO aplicar nada. Léesela tal cual al operador —incluida esa '
+                . 'opción— antes de pedirle una respuesta, y si dice que no, simplemente no '
+                . 'vuelvas a llamarme con confirmado=true: no hace falta nada más.',
             parametros: [
                 SkillParameter::texto('evento_id', 'Identificador de la estancia.'),
                 SkillParameter::texto('cambio', '"salida_tardia" o "entrada_temprana".'),
@@ -190,15 +202,27 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
         }
 
         if (!$confirmado) {
+            // 🔑 Con la noche adyacente YA ocupada por otra reserva, marcar la casilla igual
+            // crearía un evento de extensión superpuesto a una estancia real. La skill no lo
+            // decide sola: la pregunta deja de ser genérica y ofrece explícitamente NO aplicar
+            // nada. Si el operador dice que no, el modelo no vuelve a llamar con confirmado=true
+            // — es la misma casilla de siempre, no hace falta ningún dato adicional.
+            $conflicto = $bloquea && $alerta !== null && !$alerta['libre'];
+
             return SkillResult::ok($resumen + [
                 'aplicado' => false,
                 'motivo' => 'falta_confirmacion',
-                // Las tres consecuencias, enumeradas. Dos de ellas —el bloqueo que sale al
-                // canal y la línea de cargo a cero— las provocan servicios de más abajo al
-                // hacer flush, no esta skill: si no se nombran aquí, el operador aprueba una
-                // cosa y ocurren tres.
+                // Las consecuencias, enumeradas. El bloqueo que sale al canal y la línea de
+                // cargo a cero las provocan servicios de más abajo al hacer flush, no esta
+                // skill: si no se nombran aquí, el operador aprueba una cosa y ocurren varias.
                 'que_va_a_pasar' => $this->consecuencias($evento, $esSalida, $bloquea, $horaPedida),
-                'pregunta_aprobacion' => '¿Apruebas el cambio?',
+                'pregunta_aprobacion' => $conflicto
+                    ? sprintf(
+                        'Esa noche ya está ocupada, así que marcar esto crearía un evento '
+                        . 'superpuesto a esa reserva. ¿Aplico igual (marca y bloquea, con el '
+                        . 'solape) o prefieres que NO haga nada?'
+                    )
+                    : '¿Apruebas el cambio?',
                 'previsualizacion' => sprintf(
                     'La estancia de %s en %s (%s) quedará marcada con %s. Enséñale al operador '
                     . 'la lista de «que_va_a_pasar» entera antes de pedirle el sí.',

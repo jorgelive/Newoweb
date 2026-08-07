@@ -157,20 +157,20 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setColumns(4);
 
         // --- ASISTENTE DE IA ---
-        // Las dos etiquetas van juntas a propósito: habilitarla sin decir para qué sirve deja
-        // al modelo eligiendo por el código, que es adivinar. `disponibleParaAgente()` exige
-        // las dos, así que una a medias no entra en circulación.
+        // El asistente puede mandar cualquier plantilla CON «Cuándo usarla» escrito (el
+        // operador confirma y la correspondencia de OTA guarda). El interruptor controla lo
+        // otro: el AUTOENVÍO, que el huésped se la pida él solo, sin operador que confirme.
         yield FormField::addPanel('Asistente de IA')
             ->setIcon('fa fa-robot')
             ->collapsible()
             ->renderCollapsed()
-            ->setHelp('Controla si el <b>asistente interno</b> puede mandar esta plantilla cuando '
-                . 'un operador se lo pide. <b>Ojo:</b> las plantillas que ya dispara el motor de '
-                . 'reglas en su hito (bienvenida, llegada, despedida) deben quedarse '
-                . '<b>desactivadas</b>: mandarlas también a mano hace que el huésped las reciba '
-                . 'dos veces.');
+            ->setHelp('El <b>asistente interno</b> puede mandar cualquier plantilla que tenga '
+                . '«Cuándo usarla» rellenado — el operador confirma antes de cada envío. El '
+                . 'interruptor de <b>autoenvío</b> es otra cosa: permite que el <b>huésped</b> '
+                . 'se la pida él mismo por el chat («mándame mi guía»), sin nadie que confirme. '
+                . 'Actívalo sólo en plantillas inocuas de pedir dos veces.');
 
-        yield BooleanField::new('agenteHabilitada', 'El asistente puede enviarla')
+        yield BooleanField::new('autoenvioHabilitada', 'El huésped puede pedirla (autoenvío)')
             ->setHelp('Sólo surte efecto si además rellenas «Cuándo usarla».')
             ->setColumns(4);
 
