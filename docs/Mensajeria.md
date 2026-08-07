@@ -2739,8 +2739,9 @@ Este apartado describe las dos piezas que lo parten: **el triaje** (qué clase d
   ┌──────────────────────────────────────────────────────┐
   │ TRIAJE  ·  App\Agent\Triage\Triaje                   │
   │ · sin herramientas · una sola llamada · JSON forzado │
-  │ · prompt = reglas + índice de skills (1 línea c/u)   │  ← 1 187 tok, cacheable entero
-  │ · contexto volátil (idioma, nombre): ~24 tok sin caché│
+  │ · prompt = reglas + índice de skills (1 línea c/u)   │
+  │   + índice global de temas de la guía (§13.8)        │  ← 2 066 tok, cacheable entero
+  │ · contexto volátil (idioma, nombre, casita): ~30 tok  │  ← fuera del caché
   │ · tramo AGENT_IA_TRIAJE_POTENCIA (media por defecto) │
   └──────────────────────────────────────────────────────┘
             │
@@ -2816,9 +2817,11 @@ skills:
 | Catálogo de skills del huésped (camino largo) | 1 842 | sí |
 | Reglas del camino largo (`reglas()`) | 754 | sí |
 | **Prefijo del camino largo** | **2 596** | **sí** |
-| Prompt del triaje (reglas + índice + reglas de charla) | 1 187 | sí, entero |
-| Contexto volátil (nombre + idioma) | ~24 | no |
-| Pista del triaje, cuando la hay | ~40 | no |
+| Prompt del triaje (reglas + índice de skills + reglas de charla) | 1 187 | sí, entero |
+| Índice global de temas de la guía (§13.8) | 787 | sí, mismo bloque |
+| **Prompt del triaje completo** | **2 066** | **sí, entero** |
+| Contexto volátil (nombre + idioma + casita) | ~30 | no |
+| Pista o tema_id del triaje, cuando los hay | ~40 | no |
 
 ### 13.4 Qué se ahorra de verdad, y qué se paga de más
 
@@ -2826,8 +2829,9 @@ Hay que decirlo en los dos sentidos, porque **el triaje no es gratis**:
 
 | Tipo de mensaje | Antes | Ahora | Efecto |
 |---|---|---|---|
-| Cortesía («hola», «gracias») | prefijo 2 596 sobre el tramo medio + bucle de herramientas | **una** llamada de 1 187 (triaje, medio), que además contesta | El catálogo no se toca, no hay bucle, y no hay segunda llamada |
-| Petición | prefijo 2 596 sobre el tramo medio | lo mismo **+ 1 187** del triaje | Se paga de más; con caché acertando son ~120 tokens efectivos |
+| Cortesía («hola», «gracias») | prefijo 2 596 sobre el tramo medio + bucle de herramientas | **una** llamada de 2 066 (triaje, medio), que además contesta | El catálogo no se toca, no hay bucle, y no hay segunda llamada |
+| Petición | prefijo 2 596 sobre el tramo medio | lo mismo **+ 2 066** del triaje | Se paga de más; con caché acertando son ~205 tokens efectivos |
+| Pregunta de guía | lo anterior **+ una vuelta extra** del bucle (pedir el catálogo: 2.º pase del prefijo + el catálogo como resultado) | el triaje trae `tema_id` y la skill responde a la primera | La vuelta ahorrada pesa mucho más que lo que cuesta el índice, §13.8 |
 | Emergencia | prefijo 2 596 sobre el tramo medio | lo mismo, sobre el tramo **alto** | Más caro a propósito: son unos pocos mensajes al año |
 
 O sea: **las peticiones pagan un recargo pequeño para que la cortesía deje de pagar de más.**
@@ -2990,19 +2994,41 @@ skill que no toca y el error no aparecería más que en la respuesta al huésped
 que el de avisar de más — y por eso el propio prompt del triaje le dice que ante la duda entre
 `peticion` y `emergencia` elija `emergencia`.
 
-#### La pista es lo que resuelve la sección de la guía
+#### El índice global de la guía: el triaje elige el tema exacto
 
-`ConsultarGuiaSkill` funciona en dos pasos: se llama sin parámetros, devuelve el catálogo de
-temas de *esa* casita, y el modelo elige uno. Con la pista, el modelo puede ir directo con
-`busqueda: "ducha"` y saltarse una vuelta entera del bucle.
+El triaje lleva en su bloque cacheado un **índice global** de temas de la guía
+(`IndiceDeGuia::construir()`): una línea por ítem con su uuid, su etiqueta y en qué casitas
+aplica. Con él, el JSON del triaje puede traer `tema_id`, y el camino largo llama a
+`consultar_guia(tema_id)` **directo al contenido**: se ahorra la vuelta entera de pedir el
+catálogo (segundo pase del prefijo de 2 596 tokens + el catálogo como resultado de
+herramienta).
 
-> ⚠️ **No es el triaje quien lee la guía.** Los temas de una casita salen de la base de datos y
-> son distintos en cada una; meterlos en el prompt del triaje costaría una consulta por mensaje
-> y **rompería el caché** (prefijo distinto por reserva). La pista es una palabra que ayuda a
-> acertar antes; la poda de acceso y la elección de tema siguen viviendo enteras en la skill.
+Que el índice pueda ser global —y por tanto **cachearse en el mismo bloque que las reglas,
+compartido por todo el parque**— no es suerte: los ítems de la guía son entidades N-a-N que
+las casitas comparten. En los datos reales, 11 de los 39 ítems («Wifi», «Reglas», «Pago»…)
+están en las 7 casitas **con el mismo uuid** y salen como una línea con «todas»; el resto son
+variantes por casita de cuatro etiquetas (Ducha, Puerta, Descripción, Álbum). Lo único por
+huésped es la línea volátil «Su casita: X» y la validación:
 
-Por eso la pista se descarta si trae más de tres palabras: con una frase larga la búsqueda
-acierta por casualidad, que es el fallo documentado en `ConsultarGuiaSkill::MAX_PALABRAS_BUSQUEDA`.
+- **`interpretar()` valida el `tema_id` contra los temas de LA CASITA del huésped**
+  (`porUnidad`), no contra el índice entero. Un uuid inventado, de otra casita, o elegido sin
+  casita resuelta, se descarta con un log y queda la `pista` de palabras.
+- **La skill re-filtra igual**: `buscarPorId()` busca dentro del árbol ya podado por acceso, y
+  si no está devuelve el catálogo. La equivocación del triaje degrada al comportamiento de
+  siempre, nunca a contenido de otra casita.
+- Con una reserva de **varias casitas**, la línea volátil las nombra todas y los temas
+  permitidos son la unión: los generales comparten uuid igual, y en los propios el modelo no
+  puede estar seguro — que es exactamente cuando el prompt le manda dejar el tema vacío.
+
+El índice pesa **~787 tokens cacheados** (39 temas, 7 unidades) y se reescribe el caché solo
+cuando alguien edita la guía, que es lo correcto. 🚧 Crece O(casitas × ítems propios): si el
+parque crece hasta que pese miles de tokens, la compresión prevista es sustituir el uuid por
+un ordinal y mapear ordinal→uuid en `IndiceDeGuia` al interpretar — el mapa se reconstruye en
+la misma petición con la misma consulta, así que no puede desincronizarse del prompt.
+
+La **pista** sigue existiendo como red: si el triaje no pudo fijar el ítem, la palabra alimenta
+`busqueda` y se descarta si trae más de tres palabras — con una frase larga la búsqueda acierta
+por casualidad, el fallo documentado en `ConsultarGuiaSkill::MAX_PALABRAS_BUSQUEDA`.
 
 ### 13.9 🐛 El `system` de `toolRunner()` iba mal, y no saltaba
 
@@ -3132,6 +3158,9 @@ clasificador se está inventando nombres, que es el fallo más probable de este 
 | Cambiar qué cuenta como emergencia | `Triaje::reglas()` | El prompt, no un regex. Ante la duda elige `emergencia` a propósito, §13.2 |
 | Que el triaje ofrezca otra clase de mensaje | `TipoDeMensaje` | El `case` **y** `opciones()`, que es lo que ve el modelo — `Indeterminado` se omite a propósito, §13.2 |
 | Que la sugerencia del triaje mande de verdad | `AiConversationProcessor::pistaDelTriaje()` | Está redactada como sugerencia a propósito: §13.8. Piénsalo antes |
+| Cambiar qué temas de la guía ve el triaje | `IndiceDeGuia::construir()` | Índice GLOBAL (uuid + etiqueta + casitas), determinista para no romper el caché. Lee `getTitulo()`, no `getTituloParaCliente()` (transitorio, llega vacío), §13.8 |
+| Cambiar cómo se valida el tema que propuso el triaje | `Triaje::interpretar()` | Contra los temas de LA CASITA (`porUnidad`), no contra el índice entero, §13.8 |
+| Comprimir el índice de guía cuando el parque crezca | `IndiceDeGuia` | 🚧 uuid → ordinal con mapa reconstruido por petición; el umbral y el porqué, en su docblock y §13.8 |
 | Ajustar qué puede decir el bot en la charla (y cuándo ofrece ayuda) | `Triaje::reglas()` | Las reglas de la «respuesta» viven en el prompt del clasificador. La seguridad viene de que NO hay herramientas, §13.7 |
 | Añadir una llamada sin herramientas a un motor nuevo | `AgentEngineInterface` | `turnoDirecto()` — con esquema, la salida la fuerza el proveedor, §13.6 |
 | Que un esquema JSON funcione también en Gemini | `GoogleAIEngine::esquemaGemini()` | Gemini rechaza `additionalProperties` y los `type` en lista con un 400, §13.6 |

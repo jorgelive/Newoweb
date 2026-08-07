@@ -520,6 +520,19 @@ final readonly class AiConversationProcessor
                 . 'si lo sabes. No le pidas que espere sin más y no prometas plazos.';
         }
 
+        // El tema exacto vale más que la skill: con él, consultar_guia(tema_id) trae el
+        // contenido a la primera, sin la vuelta de pedir el catálogo. Ya viene validado
+        // contra la casita del huésped ({@see \App\Agent\Triage\Triaje}).
+        if ($decision->temaId !== null) {
+            return sprintf(
+                'Una revisión previa del mensaje sugiere que la guía responde a esto: llama a '
+                    . '«consultar_guia» con tema_id «%s»%s. Es una sugerencia, no una orden: '
+                    . 'tienes todas tus herramientas y decides tú cuál usar, o ninguna.',
+                $decision->temaId,
+                $decision->pista !== null ? sprintf(' (el tema parece «%s»)', $decision->pista) : ''
+            );
+        }
+
         if ($decision->skill === null) {
             return '';
         }

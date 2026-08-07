@@ -91,6 +91,7 @@ final readonly class Triaje
     public function __construct(
         private SelectorDePotencia $potencias,
         private SkillRegistry $skills,
+        private IndiceDeGuia $indiceDeGuia,
         private LoggerInterface $logger,
         private bool $habilitado,
         private string $potencia,
@@ -134,11 +135,34 @@ final readonly class Triaje
             return DecisionDeTriaje::indeterminado('el actor no tiene ninguna skill');
         }
 
+        // El índice de la guía sólo tiene sentido si el actor puede consultarla. Se incluye
+        // SIEMPRE que pueda —aunque su reserva no resuelva casita— para que el prefijo cacheado
+        // sea uno solo: un prompt «a veces con índice» son dos cachés compitiendo.
+        $temasPermitidos = [];
+        $indice = '';
+        $nombres = array_map(static fn (SkillInterface $s): string => $s->nombre(), $skills);
+
+        if (in_array('consultar_guia', $nombres, true)) {
+            $guia = $this->indiceDeGuia->construir();
+            $indice = $guia['bloque'];
+
+            $unidades = $this->indiceDeGuia->unidadesDelActor($actor);
+            foreach (array_keys($unidades) as $unidadId) {
+                $temasPermitidos = [...$temasPermitidos, ...($guia['porUnidad'][$unidadId] ?? [])];
+            }
+
+            // La casita va en lo volátil, nunca en el bloque cacheado: es lo único del índice
+            // que cambia por conversación.
+            if ($unidades !== []) {
+                $contexto = trim($contexto . "\n" . 'Su casita: ' . implode(' y ', $unidades) . '.');
+            }
+        }
+
         try {
             $crudo = $elegido->motor->turnoDirecto(
                 new ConversationRequest(
                     actor: $actor,
-                    systemPrompt: $this->reglas($skills),
+                    systemPrompt: $this->reglas($skills, $indice),
                     contexto: $contexto,
                     mensaje: $mensaje,
                     historial: array_slice($historial, -self::HISTORIAL_MAX),
@@ -155,7 +179,7 @@ final readonly class Triaje
             return DecisionDeTriaje::indeterminado('el motor falló: ' . $e->getMessage());
         }
 
-        $decision = $this->interpretar($crudo, $skills);
+        $decision = $this->interpretar($crudo, $skills, $temasPermitidos);
 
         $this->logger->info(sprintf(
             'Agent: triaje con %s · %s',
@@ -168,8 +192,9 @@ final readonly class Triaje
 
     /**
      * @param list<SkillInterface> $skills
+     * @param list<string> $temasPermitidos Uuids de los temas de guía de LA CASITA del huésped.
      */
-    private function interpretar(?string $crudo, array $skills): DecisionDeTriaje
+    private function interpretar(?string $crudo, array $skills, array $temasPermitidos = []): DecisionDeTriaje
     {
         if ($crudo === null) {
             return DecisionDeTriaje::indeterminado('el motor no devolvió nada');
@@ -210,6 +235,20 @@ final readonly class Triaje
             $pista = '';
         }
 
+        // 🔒 El tema se valida contra los de LA CASITA del huésped, no contra el índice entero:
+        // un uuid inventado, de otra casita, o elegido sin saber en cuál está, se descarta y
+        // queda la pista de palabras, que era el comportamiento de antes del índice. La skill
+        // volvería a filtrarlo igual (árbol podado), pero descartarlo aquí ahorra mandarle al
+        // camino largo una sugerencia que no puede cumplir.
+        $temaId = trim((string) ($datos['tema_id'] ?? ''));
+        if ($temaId !== '' && !in_array($temaId, $temasPermitidos, true)) {
+            $this->logger->info(sprintf(
+                'Agent: el triaje propuso un tema de guía fuera de la casita («%s»); se ignora.',
+                $temaId
+            ));
+            $temaId = '';
+        }
+
         // La respuesta de charla sólo vale con su tipo. Con cualquier otro es el modelo
         // saltándose el reparto de trabajo —contestar una petición sin herramientas— y se tira.
         $respuesta = trim((string) ($datos['respuesta'] ?? ''));
@@ -221,6 +260,7 @@ final readonly class Triaje
             tipo: $tipo,
             skill: $skill !== '' ? $skill : null,
             pista: $pista !== '' ? $pista : null,
+            temaId: $temaId !== '' ? $temaId : null,
             motivo: trim((string) ($datos['motivo'] ?? '')),
             respuesta: $respuesta !== '' ? $respuesta : null,
         );
@@ -234,8 +274,10 @@ final readonly class Triaje
      * triaje sola.
      *
      * @param list<SkillInterface> $skills
+     * @param string $indiceGuia Bloque global de temas de la guía ({@see IndiceDeGuia}). Es
+     *        estable entre conversaciones, así que puede vivir dentro del bloque cacheado.
      */
-    private function reglas(array $skills): string
+    private function reglas(array $skills, string $indiceGuia = ''): string
     {
         $lista = [];
         foreach ($skills as $skill) {
@@ -244,6 +286,7 @@ final readonly class Triaje
 
         $catalogo = implode("\n", $lista);
         $tipos = implode('», «', TipoDeMensaje::opciones());
+        $guia = $indiceGuia !== '' ? "\n\n" . $indiceGuia : '';
 
         return <<<PROMPT
         Clasificas el mensaje que un huésped acaba de escribir en el chat de su reserva de un
@@ -275,6 +318,10 @@ final readonly class Triaje
           y sólo cuando el tipo es «peticion». En «conversacion» y en «emergencia» va vacío.
           Si ninguna encaja, déjalo vacío: eso significa que hará falta una persona, y se
           decide después. NO te inventes nombres.
+        - «tema_id»: si lo que pide está en la lista TEMAS DE LA GUÍA del final Y ese tema
+          aplica a la casita del huésped (te digo cuál es la suya), copia aquí su tema_id
+          EXACTO. Si dudas entre varios temas, o el tema no está para su casita, o no sabes en
+          cuál está, déjalo vacío y usa «pista». NUNCA lo inventes ni lo recortes.
         - «pista»: UNA O DOS PALABRAS con el tema, y sólo cuando la herramienta busca por tema
           —la guía de la casita—. Por ejemplo «ducha», «basura», «calefacción». NUNCA el
           mensaje del huésped ni una frase: con una frase larga la búsqueda acierta por
@@ -298,7 +345,7 @@ final readonly class Triaje
         MIRA EL HISTORIAL ANTES DE DECIDIR. Que insista —«sigue sin funcionar», «ya lo probé»—
         después de que ya se le explicara algo NO es la misma pregunta otra vez: es una avería,
         y va como «peticion». Y clasificas igual escriba en el idioma que escriba: no traduzcas
-        nada, sólo entiéndelo.
+        nada, sólo entiéndelo.{$guia}
         PROMPT;
     }
 
@@ -332,6 +379,11 @@ final readonly class Triaje
                     'description' => 'Nombre exacto de la herramienta, o cadena vacía si ninguna '
                         . 'encaja o el tipo no es «peticion».',
                 ],
+                'tema_id' => [
+                    'type' => 'string',
+                    'description' => 'El tema_id EXACTO de la lista de temas de la guía, sólo '
+                        . 'si aplica a la casita del huésped. Si no, cadena vacía.',
+                ],
                 'pista' => [
                     'type' => 'string',
                     'description' => 'Una o dos palabras con el tema, o cadena vacía.',
@@ -346,7 +398,7 @@ final readonly class Triaje
                         . 'en su idioma. Con cualquier otro tipo, cadena vacía.',
                 ],
             ],
-            'required' => ['tipo', 'skill', 'pista', 'motivo', 'respuesta'],
+            'required' => ['tipo', 'skill', 'tema_id', 'pista', 'motivo', 'respuesta'],
             'additionalProperties' => false,
         ];
     }
