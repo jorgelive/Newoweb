@@ -2613,6 +2613,86 @@ tokens de entrada / pensamiento / salida. Sin eso, un turno lento es una caja ne
 Agent (google): vuelta 1 · 2.3 s · entrada 9169 · pensamiento 0 · salida 43 tokens.
 ```
 
+### 💰 El caché de prompt en Anthropic: dónde va la marca y por qué
+
+**El catálogo de skills es la partida gorda del prompt, no el prompt.** Medido sobre el
+fuente (sólo los literales de `definicion()`, así que es un suelo):
+
+| | ~tokens |
+|---|---|
+| Catálogo completo (22 skills) | 7 826 |
+| Catálogo del huésped (6 skills, tras `paraActor()`) | 1 852 |
+| Reglas del huésped (bloque estable) | 859 |
+| Contexto del huésped (nombre + idioma) | 24 |
+
+Las cinco más gordas: `registrar_pago` (889), `buscar_reserva` (648),
+`aplicar_cambio_horario` (510), `crear_reserva` (499), `consultar_guia` (496).
+
+#### 🔥 Dónde va la marca, y el bug que había
+
+En Anthropic el prompt se ordena **herramientas → `system` → mensajes**, y una marca de
+`cache_control` cachea *todo lo que tiene por delante*. Había una sola marca, en el `system`
+— y el `system` del huésped empezaba con su nombre:
+
+```
+ANTES                                    AHORA
+tools    (1 852) ─┐                      tools    (1 852) ─┐ marca ①  ← igual para TODOS
+system   «Hablas con Daniel…»  ─┤ marca   reglas   (  859) ─┘ marca ②  ← igual para TODOS
+                  └ prefijo ÚNICO        contexto (   24)     sin marca ← lo único suelto
+                    por conversación
+```
+
+El prefijo cacheado incluía el nombre, así que **era distinto en cada conversación**: cada
+una escribía su propio caché —que se paga más caro que un token normal— para leerlo un par
+de turnos y tirarlo. En conversaciones de un solo mensaje, cachear **costaba más que no
+cachear**.
+
+Ahora el prefijo es idéntico para todas: lo escribe la primera consulta de la hora y lo leen
+todas las demás, **vengan del huésped que vengan**.
+
+#### ⏱️ Por qué `ttl: 1h` y no el defecto de 5 min
+
+Escribir caché cuesta más que un token normal y leerlo cuesta una décima. Con el prefijo del
+huésped (2 711 tokens compartidos + 74 sueltos por llamada):
+
+| | tokens de entrada facturados por llamada |
+|---|---|
+| Sin caché | 2 785 |
+| Caché 1 h · 1 llamada/hora | 5 496 ⚠️ |
+| Caché 1 h · 2 llamadas/hora | 2 921 ⚠️ |
+| Caché 1 h · 3 llamadas/hora | 2 062 |
+| Caché 1 h · 10 llamadas/hora | 860 |
+| Caché 1 h · 20 llamadas/hora | 603 |
+
+⚠️ **Con muy poco tráfico el caché PIERDE**: por debajo de ~3 llamadas por hora se paga la
+escritura y no la lee nadie. El punto de equilibrio se alcanza igualmente porque **un turno
+del agente son 2-3 llamadas a la API**, no una: el propio bucle de herramientas amortiza la
+escritura dentro del mismo mensaje. Con 5 min de TTL harían falta ~24 llamadas/hora, que este
+chat no tiene.
+
+#### Las dos reglas que hay que respetar al tocar prompts
+
+1. **En el bloque estable no va NADA interpolado.** Ni nombre, ni idioma, ni saldo. Un `{$…}`
+   ahí dentro rompe el caché de todo el mundo, y no da ningún error: sólo sube la factura.
+   Se comprueba en un segundo — `reglas()` no debe tener ni un `{$`.
+2. **Lo volátil va en `contexto`,** que viaja al final del `system` y sin marca. Cada token
+   ahí se paga entero en cada llamada.
+
+`ConversationRequest` lleva los dos campos separados justamente para que esto no dependa de
+que alguien se acuerde: `systemPrompt` es lo estable, `contexto` lo volátil.
+
+#### Cómo se comprueba que está funcionando
+
+`AnthropicEngine` registra por turno:
+
+```
+Agent (anthropic): 2 vuelta(s) · entrada 148 · caché leído 5422 · caché escrito 0 · salida 31 tokens.
+```
+
+**`caché escrito 0` y `leído` alto es el objetivo.** Si `escrito` sale alto en cada consulta,
+el prefijo está cambiando entre conversaciones: busca el `{$` que se ha colado en el bloque
+estable.
+
 ### 🧪 Recalibrar el prompt es obligatorio
 
 Lo que la frontera **no** abstrae son los prompts (§11). El system prompt del panel está
@@ -2695,6 +2775,9 @@ php bin/console app:agent:preguntar --motor=google --modelo=gemini-2.5-pro "¿qu
 | **Que el huésped pueda contestarse algo nuevo por sí mismo** | una skill de `Lectura` + `Roles::HUESPED` | Nunca metiendo el dato en `systemPrompt()`: ahí lo responde sin herramienta y sin rastro que auditar, §9 |
 | Qué recibe el huésped cuando el modelo no usa ninguna skill | `AiConversationProcessor::generar()` | Se entrega el texto tal cual. **Volver a tirarlo exige devolver antes los datos al prompt**, o el bot deja de saber saludar, §9 |
 | Cuándo sale el acuse de recibo genérico | `AiConversationProcessor::generar()` | Sólo si el motor no devuelve texto. Es el suelo, no la política — y **no escala**, §11 |
+| **Añadir algo al prompt del huésped** | `reglas()` si vale para todos, `contexto()` si es suyo | Un `{$…}` en `reglas()` rompe el caché de todos y **no da error**, sólo sube la factura, §12 |
+| Dónde se marca el caché de Anthropic | `AnthropicSkillAdapter::traducir()` (última herramienta) y `AnthropicEngine::bloquesDeSistema()` | Las dos marcas juntas cachean catálogo + reglas; lo volátil va detrás, §12 |
+| Cuánto vive el catálogo cacheado | `AnthropicSkillAdapter::TTL_CACHE` | `1h`. Con `5m` harían falta ~24 llamadas/hora para amortizar la escritura, §12 |
 | Que una skill que escribe llegue al chat del huésped | la propia skill | `nivelRiesgo(): NivelRiesgo::Interna` — sólo si escribe *hacia dentro* y el peor caso es perder un minuto, §11 |
 | Cambiar qué se filtra en el chat del huésped (sólo lectura) | `SkillRegistry::paraActor()` | `NivelRiesgo::exigePermisoDeEscritura()` — **no** comparar con `Lectura`, §11 |
 | Que el huésped consulte su saldo o el desglose de su cuenta | `ConsultarMiReservaSkill` (cifra) / `ConsultarCuentaSkill` (detalle) | La segunda ignora `reserva_id` si hay contexto: `reservaDelContexto()`, §11 |

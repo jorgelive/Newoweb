@@ -294,7 +294,8 @@ final readonly class AiConversationProcessor
 
         $respuesta = $motor->conversar(new ConversationRequest(
             actor: $actor,
-            systemPrompt: $this->systemPrompt($conversacion),
+            systemPrompt: $this->reglas(),
+            contexto: $this->contexto($conversacion),
             mensaje: trim((string) $entrante->getContentExternal()),
             historial: $this->historial($conversacion, $entrante),
             // Sólo lectura hacia fuera: una escritura disparada por un huésped tendría que
@@ -312,7 +313,7 @@ final readonly class AiConversationProcessor
         //
         // Lo que hacía peligroso confiar era el volcado de la reserva en el prompt: con el saldo
         // delante, un `sin_skill` era el modelo recitando cifras de memoria. Fuera el volcado
-        // ({@see self::systemPrompt()}), lo que queda sin herramienta es cortesía: no hay datos
+        // ({@see self::reglas()}), lo que queda sin herramienta es cortesía: no hay datos
         // de la reserva que inventar porque no se le han dado.
         //
         // Queda un riesgo, y conviene tenerlo escrito: ante «¿a qué hora es el check-in?» el
@@ -365,16 +366,11 @@ final readonly class AiConversationProcessor
      * pero cada dato que llega al huésped tiene detrás una llamada que se puede auditar, y
      * `sin_skill` vuelve a significar lo que dice —que no había con qué responder—.
      */
-    private function systemPrompt(MessageConversation $conversacion): string
+    private function reglas(): string
     {
-        $idioma = $conversacion->getIdioma()?->getId() ?? 'es';
-        $huesped = $conversacion->getGuestName() ?? 'el huésped';
-
         return <<<PROMPT
-        Eres el asistente de reservas de un alojamiento en Cusco, Perú. Hablas con {$huesped}
+        Eres el asistente de reservas de un alojamiento en Cusco, Perú. Hablas con un huésped
         por el chat de su reserva.
-
-        Responde SIEMPRE en el idioma con código "{$idioma}".
 
         NO TIENES NINGÚN DATO DE SU RESERVA EN ESTE MENSAJE. Ni fechas, ni importes, ni cuál es
         su casita. Están en las herramientas, y hay que pedirlos:
@@ -415,6 +411,25 @@ final readonly class AiConversationProcessor
         - No prometas plazos («enseguida», «en 5 minutos»): no sabes cuándo van a leerlo.
         - No menciones que eres una IA salvo que te lo pregunten directamente.
         PROMPT;
+    }
+
+    /**
+     * Lo único que cambia de una conversación a otra. Va al final del `system` y SIN caché.
+     *
+     * Son dos líneas a propósito: cada token que se ponga aquí se paga entero en cada consulta,
+     * mientras que lo de {@see self::reglas()} lo pagó ya otra conversación. Si algún día hace
+     * falta más contexto por huésped, piénsalo dos veces — y si es un dato de su reserva, va en
+     * una skill, no aquí.
+     */
+    private function contexto(MessageConversation $conversacion): string
+    {
+        $idioma = $conversacion->getIdioma()?->getId() ?? 'es';
+        $huesped = $conversacion->getGuestName() ?? 'el huésped';
+
+        return <<<CONTEXTO
+        Hablas con {$huesped}.
+        Responde SIEMPRE en el idioma con código "{$idioma}".
+        CONTEXTO;
     }
 
     /**

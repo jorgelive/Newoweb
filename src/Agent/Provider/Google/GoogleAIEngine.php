@@ -108,8 +108,17 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             $generacion['thinkingConfig'] = ['thinkingLevel' => $nivel];
         }
 
+        // Las dos partes del prompt van en `parts` separadas, respetando el orden estable →
+        // volátil. Aquí no cambia el coste —Gemini cachea de forma implícita y no se le marcan
+        // los cortes—, pero mantiene un solo formato de prompt para los dos proveedores: si
+        // algún día se pide caché explícito a Google, el corte ya está donde tiene que estar.
+        $partes = [['text' => $peticion->systemPrompt]];
+        if (trim((string) $peticion->contexto) !== '') {
+            $partes[] = ['text' => trim((string) $peticion->contexto)];
+        }
+
         $base = [
-            'systemInstruction' => ['parts' => [['text' => $peticion->systemPrompt]]],
+            'systemInstruction' => ['parts' => $partes],
             'tools' => [['functionDeclarations' => $this->adaptador->declaraciones($skills)]],
             'generationConfig' => $generacion,
         ];

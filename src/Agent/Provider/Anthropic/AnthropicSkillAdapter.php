@@ -21,6 +21,17 @@ use Throwable;
  */
 final readonly class AnthropicSkillAdapter
 {
+    /**
+     * Cuánto vive el catálogo cacheado.
+     *
+     * `5m` —el defecto— no sirve aquí: este chat recibe unos pocos mensajes por hora, así que
+     * casi todas las conversaciones empezarían con el caché ya caducado y pagando la escritura
+     * otra vez. Con `1h` el catálogo se escribe una vez y lo aprovechan todas las consultas de
+     * esa hora, vengan del huésped que vengan. Escribir a 1h cuesta un pelo más que a 5m; con
+     * un catálogo de 7 826 tokens compartido por todos, sale rentable con muy poco tráfico.
+     */
+    private const string TTL_CACHE = '1h';
+
     public function __construct(
         private LoggerInterface $logger
     ) {}
@@ -35,14 +46,34 @@ final readonly class AnthropicSkillAdapter
     public function traducir(array $skills, ActorInterface $actor, array &$usadas): array
     {
         $tools = [];
+        $ultima = array_key_last($skills);
 
-        foreach ($skills as $skill) {
+        foreach ($skills as $i => $skill) {
+            $definicion = [
+                'name' => $skill->nombre(),
+                'description' => $skill->definicion()->descripcion,
+                'inputSchema' => $this->esquema($skill),
+            ];
+
+            // 🔑 LA MARCA DE CACHÉ VA EN LA ÚLTIMA HERRAMIENTA, y ahí está casi todo el ahorro.
+            //
+            // En el orden del prompt de Anthropic —herramientas, luego `system`, luego los
+            // mensajes— una marca cachea TODO lo que hay por delante. Puesta aquí, el bloque
+            // cacheado es el catálogo entero y nada más: 7 826 tokens para el actor del panel,
+            // 1 852 para el huésped, **idénticos byte a byte en todas las conversaciones del
+            // mismo rol**. Lo escribe el primero que pregunte en la hora y lo leen los demás.
+            //
+            // ⚠️ Antes la única marca estaba en el `system`, y el `system` del huésped llevaba
+            // su nombre dentro: el prefijo cacheado era distinto en cada conversación, así que
+            // cada una **escribía** su propio caché (que se paga a 1,25×) para leerlo como
+            // mucho un par de turnos y tirarlo. En conversaciones cortas eso costaba MÁS que no
+            // cachear. Ver docs/Mensajeria.md §12.
+            if ($i === $ultima) {
+                $definicion['cacheControl'] = ['type' => 'ephemeral', 'ttl' => self::TTL_CACHE];
+            }
+
             $tools[] = new BetaRunnableTool(
-                definition: [
-                    'name' => $skill->nombre(),
-                    'description' => $skill->definicion()->descripcion,
-                    'inputSchema' => $this->esquema($skill),
-                ],
+                definition: $definicion,
                 run: function (array $entrada) use ($skill, $actor, &$usadas): string {
                     $usadas[] = $skill->nombre();
 

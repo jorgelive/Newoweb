@@ -81,19 +81,27 @@ final readonly class AnthropicEngine implements AgentEngineInterface
             // comprobó que pertenece a este proveedor.
             'model' => $peticion->modelo ?? $this->anthropic->modelo(),
             'maxTokens' => $peticion->maxTokens,
-            'system' => [[
-                'type' => 'text',
-                'text' => $peticion->systemPrompt,
-                // Idéntico durante toda la conversación: cachearlo ahorra la mayor parte del
-                // coste de entrada a partir del segundo turno.
-                'cacheControl' => ['type' => 'ephemeral'],
-            ]],
+            'system' => $this->bloquesDeSistema($peticion),
             'messages' => $mensajes,
         ];
 
         $texto = null;
+        $vueltas = 0;
+        $entrada = 0;
+        $cacheLeido = 0;
+        $cacheEscrito = 0;
+        $salida = 0;
 
         foreach ($cliente->beta->messages->toolRunner(...$comunes, tools: $tools) as $mensaje) {
+            $vueltas++;
+            $uso = $mensaje->usage ?? null;
+            if ($uso !== null) {
+                $entrada += $uso->inputTokens;
+                $cacheLeido += $uso->cacheReadInputTokens ?? 0;
+                $cacheEscrito += $uso->cacheCreationInputTokens ?? 0;
+                $salida += $uso->outputTokens;
+            }
+
             // Los clasificadores pueden declinar: llega un 200 con `content` vacío. Leer
             // content[0] sin comprobarlo revienta.
             if ($mensaje->stopReason === 'refusal') {
@@ -112,6 +120,18 @@ final readonly class AnthropicEngine implements AgentEngineInterface
             }
         }
 
+        // 📏 La línea que dice si el caché está funcionando. `caché leído` alto y `escrito` a 0
+        // es lo que se busca; `escrito` alto en cada consulta significa que el prefijo cambia
+        // entre conversaciones y se está pagando 1,25× por un caché que no lee nadie.
+        $this->logger->info(sprintf(
+            'Agent (anthropic): %d vuelta(s) · entrada %d · caché leído %d · caché escrito %d · salida %d tokens.',
+            $vueltas,
+            $entrada,
+            $cacheLeido,
+            $cacheEscrito,
+            $salida
+        ));
+
         if ($texto === null) {
             return ConversationResponse::vacia();
         }
@@ -121,6 +141,36 @@ final readonly class AnthropicEngine implements AgentEngineInterface
         return $usadas === []
             ? ConversationResponse::sinSkill($texto)
             : ConversationResponse::ok($texto, array_values(array_unique($usadas)));
+    }
+
+    /**
+     * El `system` en dos bloques: primero lo estable, después lo de esta conversación.
+     *
+     * 🔑 **El orden es el que decide si el caché sirve.** La marca de la última herramienta ya
+     * cachea el catálogo; esta segunda marca extiende el prefijo cacheado a las reglas, que
+     * también son idénticas para todos. Lo volátil —nombre del huésped, idioma— va DESPUÉS y
+     * sin marca, así que es lo único que se paga entero en cada consulta: unas decenas de
+     * tokens frente a los miles del catálogo.
+     *
+     * Meter el nombre arriba, como estaba, hace que el prefijo sea distinto en cada
+     * conversación y el caché no acierte jamás.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function bloquesDeSistema(ConversationRequest $peticion): array
+    {
+        $bloques = [[
+            'type' => 'text',
+            'text' => $peticion->systemPrompt,
+            'cacheControl' => ['type' => 'ephemeral', 'ttl' => '1h'],
+        ]];
+
+        $contexto = trim((string) $peticion->contexto);
+        if ($contexto !== '') {
+            $bloques[] = ['type' => 'text', 'text' => $contexto];
+        }
+
+        return $bloques;
     }
 
     /**
