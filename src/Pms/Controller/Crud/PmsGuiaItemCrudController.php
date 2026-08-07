@@ -21,6 +21,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -175,6 +176,35 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 . 'Los dos últimos, si no se cumplen, NO desaparecen: el huésped ve el título con un candado '
                 . 'y qué le falta para abrirlo.'
             );
+
+        // Va aquí, junto a «Quién lo ve», y no abajo con el icono: es una decisión sobre el
+        // ítem —cómo se llega a él—, no un detalle de presentación. Enterrado tras el icono
+        // no lo encontraba nadie.
+        yield TextareaField::new('agenteTerminos', '🔎 Cómo lo preguntan (para el asistente)')
+            ->setHelp(
+                'Palabras con las que el huésped pregunta por esto, <strong>separadas por comas</strong> '
+                . 'y en los idiomas en que escriban. Sirven para que el asistente encuentre este '
+                . 'ítem al responder por chat; no se le muestran a nadie.<br>'
+                . 'Ej. para la ducha: <code>ducha, agua caliente, calentador, gas, temperatura, '
+                . 'shower, hot water</code>.<br>'
+                . 'Si lo dejas vacío se sigue buscando por el título y el texto, pero se encuentra peor.'
+            )
+            ->setNumOfRows(2)
+            ->setColumns(6);
+
+        // Estandariza lo que antes dependía del criterio del modelo: sobre este tema informa
+        // pero no concede. La orden viaja con el contenido (ver ConsultarGuiaSkill::detalle()).
+        yield BooleanField::new('agenteRequiereHumano', '🔔 Requiere confirmar con una persona')
+            ->setHelp(
+                'Marca los temas que el asistente puede EXPLICAR pero no CONCEDER: salida tardía, '
+                . 'entrada temprana, servicios extra… Al responderlos avisará al equipo y dejará '
+                . 'la conversación pendiente, en vez de dar por hecho que se puede.<br>'
+                . '<strong>Ojo:</strong> márcalo aunque el texto ya explique las condiciones — es '
+                . 'justo cuando la guía dice «sujeto a disponibilidad» cuando hace falta que '
+                . 'alguien mire si esa noche está libre.'
+            )
+            ->renderAsSwitch(true)
+            ->setColumns(6);
 
         yield FormField::addPanel('Contenido Dinámico')
             ->setIcon('fa fa-align-left');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Provider\Anthropic;
 
 use Anthropic\Client;
+use App\Agent\Provider\CatalogoModelos;
 
 /**
  * Punto ÚNICO donde se construye el cliente de Anthropic.
@@ -14,16 +15,31 @@ use Anthropic\Client;
  * `ANTHROPIC_API_KEY` puede estar vacía, y eso tiene que degradar el sistema (el bot no
  * contesta) en vez de tumbar el webhook que trae el mensaje del huésped.
  *
- * Ver docs/Mensajeria.md §10.
+ * Ver docs/Mensajeria.md §9.
  */
 final class AnthropicClientFactory
 {
+    /** Se usa si `ANTHROPIC_MODEL` viene vacía, para que el motor nunca quede sin modelo. */
+    private const string MODELO_FALLBACK = 'claude-opus-5';
+
     private ?Client $cliente = null;
 
+    private readonly string $modelo;
+
+    /** @var non-empty-list<string> */
+    private readonly array $modelos;
+
+    /**
+     * @param string $modelos Lista separada por comas (`ANTHROPIC_MODELS`).
+     */
     public function __construct(
         private readonly string $apiKey,
-        private readonly string $modelo,
-    ) {}
+        string $modelo,
+        string $modelos = '',
+    ) {
+        $this->modelo = trim($modelo) !== '' ? trim($modelo) : self::MODELO_FALLBACK;
+        $this->modelos = CatalogoModelos::desde($this->modelo, $modelos);
+    }
 
     /**
      * `null` cuando no hay credenciales configuradas. Quien lo consuma debe tratarlo como
@@ -50,5 +66,15 @@ final class AnthropicClientFactory
     public function modelo(): string
     {
         return $this->modelo;
+    }
+
+    /**
+     * Modelos que el panel puede pedir. Lista blanca: ver {@see \App\Agent\Conversation\AgentEngineInterface::modelos()}.
+     *
+     * @return non-empty-list<string>
+     */
+    public function modelos(): array
+    {
+        return $this->modelos;
     }
 }

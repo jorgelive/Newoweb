@@ -13,7 +13,9 @@ use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\EventListener\UserIntegrityListener;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -73,6 +75,49 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\Column(type: 'boolean')]
     protected bool $enabled = true;
+
+    /**
+     * ¿Es quien cobra por defecto? (recepción).
+     *
+     * Sólo tiene sentido junto a `ROLE_COBRADOR`. Cuando se registra un pago sin decir quién
+     * lo recibió, se atribuye a esta persona: en la práctica casi todo el efectivo lo cobra
+     * recepción, y obligar a repetirlo en cada pago era fricción sin información.
+     *
+     * ⚠️ Un defecto, no una regla: el importe atribuido SIEMPRE se enseña antes de confirmar
+     * (`cobrado_por` en la previsualización de `RegistrarPagoSkill`, campo visible en el
+     * panel), porque un cobrador equivocado y silencioso descuadra dos cajas.
+     *
+     * Se espera **uno solo**. Con varios marcados se toma el primero por orden de nombre, que
+     * es determinista pero arbitrario: es un dato mal puesto, no un caso a soportar.
+     */
+    #[ORM\Column(name: 'es_cobrador_principal', type: 'boolean', options: ['default' => false])]
+    protected bool $esCobradorPrincipal = false;
+
+    /**
+     * Móvil desde el que escribe al sistema. **Es su identificador en el chat.**
+     *
+     * Cuando llega un WhatsApp, el remitente es un número: sin esto no hay forma de saber si
+     * lo manda un huésped o alguien del equipo, y todos entraban por la puerta del huésped
+     * ({@see \App\Agent\Access\AgentActor::huesped()}), acotados a una reserva. Con el número
+     * registrado se puede construir el actor del equipo
+     * ({@see \App\Agent\Access\AgentActor::delEquipoPorChat()}), que ya existía sin nadie que
+     * lo usara.
+     *
+     * **Formato: sólo dígitos, con código de país y sin `+`** (`51987654321`), el mismo que
+     * `PmsReserva::$telefono`. Lo garantiza {@see UserIntegrityListener} vía
+     * {@see \App\Service\Phone\PhoneSanitizer}, así que no hay que teclearlo limpio: se
+     * normaliza al guardar, se escriba como se escriba.
+     *
+     * ⚠️ `unique`: dos personas con el mismo número serían indistinguibles justo cuando hay
+     * que decidir quién manda. MySQL admite varios NULL, así que quien no lo tenga no estorba.
+     *
+     * ⚠️ El teléfono IDENTIFICA pero NO AUTENTICA (una SIM se clona, un número se suplanta).
+     * Por eso el control del agente se escala con el daño en `NivelRiesgo` en lugar de confiar
+     * en el canal — ver el docblock de `AgentActor::delEquipoPorChat()`.
+     */
+    #[ORM\Column(type: 'string', length: 30, nullable: true, unique: true)]
+    #[Assert\Length(max: 30)]
+    private ?string $telefono = null;
 
     /**
      * Nombre(s) del usuario.
@@ -202,6 +247,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEnabled(bool $enabled): self
     {
         $this->enabled = $enabled;
+        return $this;
+    }
+
+    public function getTelefono(): ?string
+    {
+        return $this->telefono;
+    }
+
+    /**
+     * Se puede escribir como venga («+51 987 654 321», «987654321»): `UserIntegrityListener`
+     * lo normaliza a dígitos con código de país antes de que llegue a la BD.
+     */
+    public function setTelefono(?string $telefono): self
+    {
+        $this->telefono = $telefono;
+        return $this;
+    }
+
+    public function isEsCobradorPrincipal(): bool
+    {
+        return $this->esCobradorPrincipal;
+    }
+
+    public function setEsCobradorPrincipal(bool $esCobradorPrincipal): self
+    {
+        $this->esCobradorPrincipal = $esCobradorPrincipal;
         return $this;
     }
 

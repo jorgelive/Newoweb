@@ -13,6 +13,7 @@ use ApiPlatform\Metadata\Post;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Entity\User;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Repository\PmsPagoFinancieroRepository;
 use App\Security\Roles;
@@ -138,6 +139,22 @@ class PmsPagoFinanciero
     #[Groups(['pms_pago:read'])]
     private bool $esAutomatico = false;
 
+    /**
+     * Quién RECIBIÓ el dinero de manos del huésped.
+     *
+     * ⚠️ No es quien registró el pago en el sistema: el efectivo lo cobra la persona que está
+     * en la casita —la limpiadora, el de mantenimiento— y lo apunta después otra, o el propio
+     * agente por chat. Confundirlos haría que todo el efectivo figurase a nombre del operador
+     * de recepción, que es justo lo que impide cuadrar la caja.
+     *
+     * NULL a propósito en dos casos legítimos: los pagos anteriores a este campo, y los
+     * depósitos automáticos de las OTA (`esAutomatico`), donde no hay nadie que cobre.
+     */
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'cobrador_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['pms_pago:read', 'pms_pago:write', 'pms_pago:patch'])]
+    private ?User $cobrador = null;
+
     public function __construct()
     {
         $this->id = Uuid::v7();
@@ -200,4 +217,20 @@ class PmsPagoFinanciero
 
     public function isEsAutomatico(): bool { return $this->esAutomatico; }
     public function setEsAutomatico(bool $esAutomatico): self { $this->esAutomatico = $esAutomatico; return $this; }
+
+    public function getCobrador(): ?User { return $this->cobrador; }
+    public function setCobrador(?User $cobrador): self { $this->cobrador = $cobrador; return $this; }
+
+    /**
+     * Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON.
+     *
+     * Se serializa aparte de la relación porque el panel y el agente sólo necesitan el
+     * nombre: exponer el `User` entero metería email y roles en una respuesta que se
+     * consulta desde el chat.
+     */
+    #[Groups(['pms_pago:read'])]
+    public function getCobradorNombre(): ?string
+    {
+        return $this->cobrador?->getFullname() ?: null;
+    }
 }

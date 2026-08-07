@@ -686,6 +686,89 @@ desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PAT
 `fin` **siempre**, también en OTA — antes se omitían y por eso la hora no se podía guardar.
 **Es un espejo del listener: si cambia el criterio, se tocan los dos lados.**
 
+#### La HORA acordada: registrarla no es lo mismo que bloquear
+
+`aplicar_cambio_horario` acepta `hora` (`HH:MM`), y ahí está la distinción que faltaba: **no todo
+cambio de hora es un horario extra**.
+
+```
+Salida a las 09:30  (check-out 10:00) → sólo se REGISTRA la hora. Sin marca, sin bloqueo, sin cargo.
+Salida a las 14:00  (check-out 10:00) → excede: se registra Y se marca Y se bloquea la noche.
+Sin hora                              → comportamiento de siempre: marca y bloquea.
+```
+
+El hito sale del **establecimiento** (`getHoraCheckIn()` / `getHoraCheckOut()`, hoy 14:00 y 10:00),
+no de una constante: es una decisión de negocio que puede cambiar sin tocar código. La comparación
+es asimétrica a propósito —salir DESPUÉS del check-out ocupa la casita más tiempo; entrar ANTES
+del check-in la ocupa antes—, así que salir a las 09:00 o entrar a las 18:00 no bloquean nada. Son
+datos útiles para limpieza, no horarios extra.
+
+⚠️ **Se cambia la hora, NUNCA el día.** `registrarHora()` conserva la fecha y sólo mueve la hora de
+pared (§12.5.5). Es seguro incluso en OTA porque el push manda `Y-m-d`
+(`BookingsPushMappingStrategy`): el portal no ve las horas. Mover el DÍA sigue siendo otra
+operación, prohibida en OTA y reservada al calendario del panel.
+
+⚠️ El mensaje final refleja **lo que pasó**, no lo que suele pasar. Con una hora dentro del
+horario decía «Marcada la salida tardía. Se ha creado la extensión que bloquea esa noche» sin
+haber hecho ninguna de las dos: el operador se quedaba creyendo que había bloqueado una noche que
+seguía vendible.
+
+#### ⛔ Nadie miraba si esa noche estaba vendida
+
+`evaluar_cambio_horario` devolvía `permitido: true` y `aplicar_cambio_horario` aplicaba, **sin
+mirar la ocupación**. Con un caso real: la noche de salida de una estancia ya estaba vendida a otra
+reserva, y aun así las dos skills daban vía libre — se habría creado una extensión solapada con
+otra reserva y un bloqueo saliendo al canal sobre algo ya vendido.
+
+Las **dos** skills consultan ahora `PmsDisponibilidadService::margenesDe()` (§8.b de
+`PmsDisponibilidad.md`) y devuelven `noche_adyacente`. Que las dos digan lo mismo no es
+redundancia: quien evalúa y quien aplica tienen que leer la misma advertencia, o la evaluación
+deja de servir para decidir.
+
+**⚠️ Es una ALERTA, no un veto.** `permitido` no cambia. Puede haber motivo para hacerlo igual
+—la otra reserva entra por la tarde, se habló con los dos huéspedes— y esa decisión es del
+operador. Lo que no puede es tomarla sin saberlo.
+
+Se devuelve **siempre**, y el tono cambia según lo que vaya a pasar:
+
+| Noche adyacente | Va a bloquear | Aviso |
+|---|---|---|
+| Ocupada | Sí | `⛔ CONFLICTO: … el bloqueo se solapará con esa reserva` |
+| Ocupada | No | `⚠️ … no hay conflicto, pero el margen de limpieza es más corto` |
+| Libre | — | `✅ … está LIBRE` |
+
+El tercer caso —ocupada **sin** bloqueo— es el que se habría perdido calculándolo sólo cuando hay
+extensión: no hay solape posible, pero que esa noche entre otra reserva sigue cambiando la
+decisión sobre el horario acordado.
+
+Y mira la noche que toca en cada caso: la **del día de salida** para una salida tardía, la
+**anterior a la entrada** para una entrada temprana.
+
+#### 🕒 Registrar la hora: no todo horario acordado es un horario extra
+
+Ninguna skill registraba la hora —sólo `crear_reserva` al nacer la estancia—, así que «sale a las
+14:00» se marcaba como salida tardía sin guardar el 14:00 en ninguna parte, y «sale a las 9:30» se
+marcaba igual, bloqueando una noche vendible por nada.
+
+`aplicar_cambio_horario` acepta ahora `hora` (`HH:MM`) y la compara con el **horario del
+establecimiento** (`PmsEstablecimiento::getHoraCheckIn()` / `getHoraCheckOut()`, hoy 14:00 y
+10:00), que es el hito contra el que se decide:
+
+```
+salida 09:30  ≤ 10:00  →  sólo se registra la hora. Ni extensión, ni bloqueo, ni cargo.
+salida 14:00  > 10:00  →  se registra Y se marca la salida tardía (las 4 consecuencias)
+sin hora               →  comportamiento de siempre: se marca y se bloquea
+```
+
+Asimétrico a propósito: salir **después** del check-out ocupa la casita más tiempo y entrar
+**antes** del check-in la ocupa antes; salir a las 09:00 o entrar a las 18:00 no molestan a nadie
+—son datos útiles para limpieza, no horarios extra—.
+
+⚠️ **La hora se escribe conservando el DÍA** (`registrarHora()`). Mover el día es otra operación,
+prohibida en OTA, y se hace en el calendario. Cambiar sólo la hora es seguro incluso en OTA porque
+`BookingsPushMappingStrategy` manda `arrival`/`departure` como `Y-m-d`: **el portal no ve las
+horas**. Sí dispara un push redundante con las mismas fechas, que es inocuo.
+
 #### Una estancia cancelada no tiene extensión
 
 Cancelar una estancia **retira su extensión** (y reactivarla la devuelve, si la casilla sigue
@@ -1161,6 +1244,80 @@ transferencia bancaria, paypal), `moneda`, `tipoCambio` (venta del día), `comis
 - **Multi-moneda:** el rollup a la cabecera (`totalCargos`/`totalPagos`/`getSaldo()`) y el candado
   de moneda se explican en la §12 (`PmsInformacionFinancieraCoherenciaListener`) — no son
   responsabilidad de esta entidad ni del persister.
+
+#### 11.5.1 El cobrador: quién RECIBIÓ el dinero
+
+`PmsPagoFinanciero.cobrador` es una FK nullable a `User`. Existe para poder cuadrar la caja: sin
+ella no hay forma de saber a quién reclamarle el efectivo que un huésped entregó en la casita.
+
+⚠️ **No es quien registró el pago en el sistema.** El efectivo lo cobra quien está en la casita
+—la limpiadora, el de mantenimiento— y lo apunta después otra persona, o el propio agente por
+chat. Confundirlos haría que todo el efectivo figurase a nombre del operador de recepción, que es
+exactamente lo que impide cuadrar. Por eso es un campo propio y no se deduce del usuario
+autenticado.
+
+**Quién puede serlo: `ROLE_COBRADOR`** (`Roles::COBRADOR`), y **no se filtra por `enabled`**. Los
+dos criterios que se descartaron, con su porqué:
+
+| Criterio | Por qué no |
+|---|---|
+| `enabled = 1` | Dice si la persona **entra al sistema**, no si maneja caja. Maria Apaza y Milka están en `enabled = 0` —cobran el efectivo y no necesitan login— y quedaban fuera justo las que más cobran. Habilitarlas sólo para nombrarlas en un desplegable les daría acceso al panel |
+| Deducirlo del puesto (`ROLE_LIMPIEZA`…) | Puede haber personal de limpieza que no maneje caja. Cobrar es una **responsabilidad**, no un cargo |
+
+Tampoco cuelga de `ROLE_ADMIN` en `security.yaml`: ser administrador no implica manejar el
+efectivo, y heredarlo metería a todos los admin en la lista.
+
+**🪞 El filtro vive en dos sitios y hay que tocar los dos:**
+
+| Camino | Símbolo |
+|---|---|
+| Panel (desplegable) | `PmsEnumAjaxController::getCobradores()` — `UserRepository::findByRole()` |
+| Agente | `RegistrarPagoSkill::cobradoresPosibles()` — `LIKE` sobre `u.roles` |
+
+Si el agente admitiera a alguien que el panel no ofrece, registraría pagos a nombre de quien el
+operador no puede elegir a mano.
+
+⚠️ **Se filtra por la columna `user.roles` LITERAL, no por la jerarquía de `security.yaml`.** Un
+rol que sólo se tenga por herencia NO aparece en la lista de cobradores. Es lo que se quiere
+—`ROLE_COBRADOR` se asigna a dedo—, pero sorprende si se busca el fallo por el lado de la
+jerarquía.
+
+**Cuándo se pide:** sólo si `PmsMedioPago::seCobraEnMano()`. Una transferencia y un PayPal caen en
+la cuenta de la empresa sin que nadie los coja, así que preguntar ahí quién recibió el dinero es
+una pregunta sin respuesta; en efectivo, Yape, tarjeta y Western Union sí hay una persona detrás.
+
+`NULL` es legítimo en tres casos: pagos anteriores a este campo (la migración no hace backfill —no
+se puede adivinar quién cobró hace un año), depósitos automáticos de las OTA (`esAutomatico`, §12.8)
+y los medios que no se cobran en mano.
+
+**Cómo se decide el cobrador, por orden:**
+
+| El operador dice… | Cobrador | Dónde sale |
+|---|---|---|
+| «se lo pagó a María» | Maria Apaza | Búsqueda parcial entre los `ROLE_COBRADOR` |
+| «me pagó a mí», «lo cobré yo» | El propio operador | `ActorInterface::usuario()` |
+| *(nada)* | Quien tenga `User::$esCobradorPrincipal` (recepción) | Defecto |
+
+`esCobradorPrincipal` existe porque en la práctica casi todo el efectivo lo cobra recepción, y
+obligar a repetirlo en cada pago era fricción sin información. **Es un defecto, no una regla:** el
+cobrador atribuido se enseña SIEMPRE antes de confirmar (`cobrado_por`), porque uno equivocado y
+silencioso descuadra dos cajas. Se espera una sola persona marcada; con varias se toma la primera
+por nombre —determinista pero arbitrario: es un dato mal puesto, no un caso a soportar.
+
+⚠️ **El «yo» tampoco se salta el filtro.** Manejar el chat y estar autorizado a recibir dinero son
+cosas distintas: si quien opera no tiene `ROLE_COBRADOR`, la skill lo rechaza y pide un nombre. Se
+mira la columna literal y **no `tieneRol()`**, que a un `SUPER_ADMIN` le abriría esta puerta como
+le abre las demás.
+
+**El panel (EasyAdmin):** `PmsPagoFinancieroCrudController` filtra el desplegable por
+`ROLE_COBRADOR` con la misma consulta. En el CRUD de usuarios el flag se marca con «Cobra por
+defecto (recepción)», deliberadamente separado de «Cuenta Activa».
+
+> 🐛 De paso se corrigió una etiqueta que costaba dinero: `monto` figuraba como «Monto (cobrado al
+> cliente)» cuando es el **neto**. Quien pagaba 105.50 por el POS al 5.5% tecleaba 105.50, y la
+> reserva quedaba con 5.50 de más abonados. Ahora es «Monto NETO (abona a la deuda)» con el
+> ejemplo en el `help`. También se añadió `esAutomatico` como sólo lectura: sin verlo, un depósito
+> de OTA parece un pago manual y alguien lo «corrige» sin saber que el sistema lo mantiene solo.
 
 ### 11.6 Reservas agrupadas (booking group) — una cabecera, varios bookings
 
@@ -2156,6 +2313,49 @@ Dos decisiones de implementación:
   terminado antes. En una reserva de Airbnb, el depósito automático deja el saldo en cero y por
   tanto sus estancias quedan en `pago-total` solas.
 
+## 12.9.b El móvil del EQUIPO: `User::$telefono`
+
+La contraparte del teléfono del huésped. Cuando entra un WhatsApp lo único que se tiene es el
+número del remitente, y sin este campo no había forma de distinguir a un operador de un huésped:
+**todos entraban por la puerta del huésped** (`AgentActor::huesped()`, acotado a una reserva).
+`AgentActor::delEquipoPorChat()` existía desde el principio sin nadie que lo usara, precisamente
+porque faltaba con qué reconocer a la persona.
+
+**Mismo formato que `PmsReserva::$telefono`: dígitos con código de país, sin `+`** (`51987654321`).
+No es un capricho de estilo — los dos se comparan contra el mismo remitente, y si uno se guardara
+como `+51 987 654 321` y el otro como `51987654321`, la búsqueda fallaría **en silencio** y el
+operador quedaría como desconocido sin que nada lo delate.
+
+| Pieza | Quién | Nota |
+|---|---|---|
+| Normaliza al guardar | `UserIntegrityListener` | Gemelo de `PmsReservaIntegrityListener`; delega en `PhoneSanitizer` |
+| Busca al que escribe | `UserRepository::findByTelefono()` | Sanea el entrante con el MISMO servicio antes de comparar |
+| Muestra en el panel | `UserCrudController` | `PhoneExtension::formatPhone()`, igual que el CRUD de reservas |
+
+Se sanea en el listener y no en el CRUD porque hay más puertas que el formulario (fixtures,
+comandos, importaciones): el único sitio por el que pasan todas es Doctrine. Comprobado de punta
+a punta: `+51 987 654 321`, `987 654 322` y `(51) 987-654-323` se guardan como `51987654321`,
+`51987654322` y `51987654323`; y entrando por cualquiera de esas formas se resuelve la persona.
+
+⚠️ **País por defecto `PE`**: `User` no tiene país y el equipo es de Cusco. Un número local de 9
+dígitos se resuelve como peruano; uno en internacional se respeta, porque `PhoneSanitizer` sólo
+aplica el defecto cuando falta el prefijo.
+
+⚠️ **`unique`**: dos personas con el mismo número serían indistinguibles justo cuando hay que
+decidir quién manda. Nullable, así que quien no lo tenga no estorba (MySQL admite varios NULL).
+
+⚠️ **`findByTelefono()` NO filtra por `enabled`**: identificar no es autorizar. Quien decide qué
+se puede hacer es el actor con sus roles; filtrar aquí dejaría a una limpiadora sin login —que sí
+puede cobrar (§11.5.1)— como desconocida.
+
+> 🔒 El teléfono **identifica pero no autentica**: una SIM se clona y un número se suplanta. Por
+> eso el control del agente se escala con el daño en `NivelRiesgo` en vez de confiar en el canal.
+> Ver el docblock de `AgentActor::delEquipoPorChat()`.
+
+**Falta cerrar el círculo:** nadie llama todavía a `findByTelefono()`. `AiConversationProcessor`
+—la entrada real del chat— sigue construyendo siempre un actor de huésped. Ver §12 de
+`Mensajeria.md`.
+
 ## 12.10 A qué número se llama: `getTelefonoContacto()`
 
 Una reserva guarda **dos** números. Hoy los dos son móviles, así que la pareja
@@ -2471,6 +2671,8 @@ reserva a mano en Beds24**; no hay reintento posible, porque el identificador se
 | Saber a qué estancia pertenece un cargo de un grupo (§11.6) | `PmsCargoFinanciero` + `PmsInformacionFinanciera` | `beds24BookingId` / `getEstancias()` |
 | Cambiar la agrupación de cargos por casita en la UI (§11.6) | `ReservaFinanzasPanel.vue` | `gruposCargos` / `claveEstancia()` |
 | Imputar un cargo manual a una estancia (§11.5) | `PmsCargoFinanciero` | FK `evento` (`NULL` = toda la reserva) |
+| Cambiar el hito que decide si una hora es «horario extra» | `PmsEstablecimiento` | `horaCheckIn` / `horaCheckOut` — se editan en el panel, no en código |
+| Cambiar la alerta de noche ocupada al marcar horario extra | `AplicarCambioHorarioSkill` **y** `EvaluarCambioHorarioSkill` | `alertaDeOcupacion()` en las dos — si cambia una, cambia la otra |
 | Cambiar qué pasa tras crear una reserva directa (§12.5.2) | `ReservasView.vue` | `onGuardado()` → `payload.reservaIdCreada` |
 | Cambiar el país asumido / el parseo de teléfonos (§5.3) | `util/src/utils/telefono.ts` | `PAIS_POR_DEFECTO` / `interpretar()` |
 | Permitir varias casitas al crear (§12.5.2) | `ReservaEditDrawer.vue` | `permiteVariasEstancias` |

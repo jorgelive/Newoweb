@@ -31,12 +31,13 @@ final readonly class ConversationResponse
      * Respondió, pero **sin usar ninguna skill**.
      *
      * Es la señal de «esto cae fuera de lo que sé hacer»: o era pura cortesía, o falta la
-     * capacidad. El texto se entrega igualmente para que el adaptador elija — pero marcado,
-     * porque un `sin_skill` en el chat de un huésped es una respuesta improvisada, y ahí
-     * improvisar es justo lo que no se quiere.
+     * capacidad. **El motivo no distingue las dos cosas**, y por eso ningún adaptador debería
+     * tirar el texto por venir marcado así: el chat del huésped lo hizo un tiempo y acabó
+     * contestando «un compañero te responderá en breve» a un «hola». Ver
+     * `AiConversationProcessor::generar()`.
      *
-     * Los `sin_skill` acumulados en el log son, además, la lista de skills que faltan por
-     * construir, ordenada por frecuencia real.
+     * Sirve para MEDIR, no para censurar: los `sin_skill` acumulados en el log son la lista de
+     * skills que faltan por construir, ordenada por frecuencia real.
      */
     public static function sinSkill(?string $texto): self
     {

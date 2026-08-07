@@ -29,6 +29,23 @@ enum PmsMedioPago: string
     }
 
     /**
+     * ¿Lo recibe una PERSONA de manos del huésped, o entra solo a una cuenta?
+     *
+     * Decide si tiene sentido preguntar por el cobrador (`PmsPagoFinanciero::$cobrador`).
+     * El efectivo lo coge alguien; un Yape se envía al teléfono de alguien concreto; la
+     * tarjeta la pasa quien tiene el POS; el giro lo recoge una persona en la agencia. Una
+     * transferencia y un PayPal, en cambio, caen en la cuenta de la empresa sin que nadie
+     * los «cobre»: preguntar ahí quién recibió el dinero es una pregunta sin respuesta.
+     */
+    public function seCobraEnMano(): bool
+    {
+        return match ($this) {
+            self::TRANSFERENCIA_BANCARIA, self::PAYPAL => false,
+            default                                    => true,
+        };
+    }
+
+    /**
      * Etiqueta legible en español. Es la ÚNICA fuente de verdad: el frontend la
      * consume por `PmsEnumAjaxController` en vez de duplicar el diccionario en TS.
      */

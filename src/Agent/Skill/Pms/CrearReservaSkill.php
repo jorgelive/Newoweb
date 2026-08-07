@@ -12,17 +12,17 @@ use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Pms\Entity\PmsCargoFinanciero;
-use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
-use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Enum\PmsTipoCargo;
 use App\Pms\Service\Finance\PmsCargosAutomaticosService;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
+use App\Pms\Service\Reserva\PmsEstanciaCreator;
 use App\Security\Roles;
 use DateTimeImmutable;
+use InvalidArgumentException;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -72,6 +72,7 @@ final readonly class CrearReservaSkill implements SkillInterface
         private EntityManagerInterface $em,
         private PmsDisponibilidadService $disponibilidad,
         private PmsCargosAutomaticosService $cargos,
+        private PmsEstanciaCreator $estancias,
     ) {}
 
     public function nombre(): string
@@ -441,13 +442,6 @@ final readonly class CrearReservaSkill implements SkillInterface
         array $resumen,
         ActorInterface $actor
     ): SkillResult {
-        $estado = $this->em->getRepository(PmsEventoEstado::class)->find($estadoId);
-        $estadoPago = $this->em->getRepository(PmsEventoEstadoPago::class)->find('no-pagado');
-
-        if ($estado === null || $estadoPago === null) {
-            return SkillResult::error('Faltan los estados maestros en la base de datos.');
-        }
-
         $reserva = new PmsReserva();
         $reserva->setNombreCliente(trim((string) $entrada['nombre']));
         $reserva->setApellidoCliente(trim((string) ($entrada['apellido'] ?? '')));
@@ -464,21 +458,26 @@ final readonly class CrearReservaSkill implements SkillInterface
             $reserva->setEmailCliente($mail);
         }
 
-        $evento = new PmsEventoCalendario();
-        $evento->setReserva($reserva);
-        $evento->setPmsUnidad($unidad);
-        $evento->setEstado($estado);
-        $evento->setEstadoPago($estadoPago);
-        $evento->setInicio($inicio);
-        $evento->setFin($fin);
-        $evento->setCantidadAdultos($adultos);
-        $evento->setCantidadNinos($ninos);
-        $evento->setIsOta(false);
-
-        $reserva->addEventosCalendario($evento);
-
         $this->em->persist($reserva);
-        $this->em->persist($evento);
+
+        // La estancia la monta el creador COMPARTIDO con `crear_estancia`: horas del
+        // establecimiento, estados maestros, disponibilidad y el canal DIRECTO —que es lo que
+        // hace que los cargos automáticos se disparen—. Tenerlo escrito dos veces era
+        // garantizar que las copias se separaran; ver el docblock de PmsEstanciaCreator.
+        try {
+            $evento = $this->estancias->crear(
+                $reserva,
+                $unidad,
+                $inicio,
+                $fin,
+                $adultos,
+                $ninos,
+                $estadoId
+            );
+        } catch (InvalidArgumentException $e) {
+            return SkillResult::error($e->getMessage());
+        }
+
         $this->em->flush();
 
         // Los cargos ya los ha creado PmsCargosAutomaticosService en el flush. Aquí sólo se

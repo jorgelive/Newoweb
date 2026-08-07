@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Access;
 
+use App\Entity\User;
+
 /**
  * Quién pregunta.
  *
@@ -30,6 +32,19 @@ interface ActorInterface
     public function contextoId(): ?string;
 
     public function esDelEquipo(): bool;
+
+    /**
+     * El usuario del equipo que está detrás, o `null` si quien pregunta es un huésped.
+     *
+     * Lo necesitan las skills que registran QUIÉN hizo algo, no sólo qué se hizo:
+     * `registrar_pago` resuelve con esto el «me pagó a mí» del operador. Está en la interfaz
+     * y no sólo en `AgentActor` porque una skill recibe el contrato, no la clase concreta, y
+     * la alternativa era un `instanceof` en cada una.
+     *
+     * ⚠️ Es quien MANEJA el chat, que no siempre es quien hizo la acción del mundo real: el
+     * cobrador de un pago sólo coincide con él si el operador dice explícitamente que cobró él.
+     */
+    public function usuario(): ?User;
 
     /** @param list<string> $roles Vacío ⇒ basta con ser un actor cualquiera. */
     public function tieneAlguno(array $roles): bool;

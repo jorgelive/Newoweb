@@ -13,6 +13,8 @@ use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Service\Inbound\InboundMenuResolver;
 use App\Message\Service\MessageJsonMerger;
 use App\Message\Service\Translation\GuestLanguageDetectorService;
+use App\Pms\Repository\PmsReservaRepository;
+use App\Service\Phone\PhoneSanitizer;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
@@ -33,7 +35,10 @@ readonly class WhatsappMetaReceivePersister
         private LoggerInterface              $logger,
         private MessageJsonMerger            $merger,
         private GuestLanguageDetectorService $languageDetector,
-        private InboundMenuResolver          $menuResolver
+        private InboundMenuResolver          $menuResolver,
+        // Para identificar al huésped por su número al abrir una conversación nueva.
+        private PmsReservaRepository         $reservas,
+        private PhoneSanitizer               $phoneSanitizer,
     ) {}
 
     /**
@@ -523,7 +528,47 @@ readonly class WhatsappMetaReceivePersister
             return $conversation;
         }
 
-        // C. Si no hay reserva abierta, CREAMOS UN WALK-IN (Contexto Manual)
+        // C. Nadie con quien ya estuviéramos hablando: ¿es de alguna reserva viva?
+        //
+        // Sin esto TODO número nuevo nacía como 'manual', y una conversación 'manual' no tiene
+        // reserva de la que tirar: `ConsultarMiReservaSkill` respondía «esta conversación no
+        // está asociada a ninguna reserva» a un huésped que sólo preguntaba cuánto debe.
+        //
+        // Un mismo número puede tener varias reservas vivas —aquí también se opera como
+        // agencia y un titular reserva para terceros—, así que el repositorio las devuelve
+        // ORDENADAS: la que está en curso hoy primero y, si no hay ninguna, la próxima a
+        // llegar. Se toma la primera; el criterio completo está en `findVivasByTelefono()`.
+        $reservas = $this->reservas->findVivasByTelefono($phone, $this->phoneSanitizer);
+        $reserva = $reservas[0] ?? null;
+
+        if ($reserva !== null) {
+            if (count($reservas) > 1) {
+                // Se elige, pero se deja rastro: es el caso en el que un huésped podría acabar
+                // viendo la reserva de otro, y sin esta línea no habría forma de saber que la
+                // decisión se tomó ni con qué alternativas.
+                $this->logger->info('WhatsApp: número con varias reservas vivas, se toma la más actual.', [
+                    'telefono' => $phone,
+                    'elegida' => (string) $reserva->getId(),
+                    'candidatas' => count($reservas),
+                ]);
+            }
+
+            $conversation = new MessageConversation('pms_reserva', (string) $reserva->getId());
+            $conversation->setContextOrigin('whatsapp');
+            $conversation->setGuestPhone($phone);
+            // El nombre de la reserva manda sobre el del perfil de WhatsApp: en el panel se
+            // busca por el nombre con el que está reservado, no por el alias que cada uno se
+            // pone. Si la reserva no lo trae, se cae al del perfil.
+            $conversation->setGuestName($reserva->getNombreApellido() ?: $guestName);
+            $conversation->setStatus(MessageConversation::STATUS_OPEN);
+            $conversation->setIdioma($reserva->getIdioma() ?? $this->idiomaPorDefecto());
+
+            $this->em->persist($conversation);
+
+            return $conversation;
+        }
+
+        // D. Ni conversación previa ni ninguna reserva viva a su nombre: WALK-IN (Contexto Manual)
         // El constructor exige obligatoriamente contextType y contextId
         $conversation = new MessageConversation('manual', $phone);
         $conversation->setContextOrigin('whatsapp');
@@ -531,10 +576,7 @@ readonly class WhatsappMetaReceivePersister
         $conversation->setGuestName($guestName);
         $conversation->setStatus(MessageConversation::STATUS_OPEN);
 
-        // Asignación de MaestroIdioma obligatoria por base de datos (nullable: false).
-        // Intentamos asignar español ('es') por defecto, o el primero que exista en la tabla.
-        $repoIdioma = $this->em->getRepository(MaestroIdioma::class);
-        $idiomaDefault = $repoIdioma->find('es') ?? $repoIdioma->findOneBy([]);
+        $idiomaDefault = $this->idiomaPorDefecto();
 
         if ($idiomaDefault) {
             $conversation->setIdioma($idiomaDefault);
@@ -543,6 +585,19 @@ readonly class WhatsappMetaReceivePersister
         $this->em->persist($conversation);
 
         return $conversation;
+    }
+
+    /**
+     * Idioma obligatorio por BD (`nullable: false`): español, o el primero que exista.
+     *
+     * Se usa cuando no hay de dónde sacarlo. Una conversación identificada como reserva
+     * prefiere el idioma DE LA RESERVA: al huésped se le escribe en el suyo, no en el nuestro.
+     */
+    private function idiomaPorDefecto(): ?MaestroIdioma
+    {
+        $repoIdioma = $this->em->getRepository(MaestroIdioma::class);
+
+        return $repoIdioma->find('es') ?? $repoIdioma->findOneBy([]);
     }
 
     /**

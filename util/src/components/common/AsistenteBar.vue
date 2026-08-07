@@ -10,13 +10,30 @@
  * al backend llega texto, así que no hay coste de audio ni endpoint que mantener. Donde no
  * exista (Firefox, navegadores viejos) el botón simplemente no se muestra.
  */
-import { ref, computed, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { apiClient } from '@/services/apiClient';
 
-/** Espejo de App\Agent\Controller\Api\PanelAssistantController::__invoke(). */
+/** Espejo de App\Agent\Controller\Api\PanelAssistantController::consulta(). */
 interface RespuestaAsistente {
     respuesta: string;
     herramientas: string[];
+    proveedor: string;
+    modelo: string;
+}
+
+/**
+ * Espejo de App\Agent\Conversation\AgentEngineRegistry::catalogo().
+ *
+ * El catálogo lo sirve el backend (`GET /agent/motores`) porque depende de qué credenciales
+ * tiene ESTE entorno: en local suele haber un solo proveedor configurado.
+ */
+interface Motor {
+    proveedor: string;
+    etiqueta: string;
+    disponible: boolean;
+    modelos: string[];
+    modeloPorDefecto: string;
+    porDefecto: boolean;
 }
 
 /**
@@ -40,11 +57,18 @@ interface ReconocimientoVoz {
 
 type ConstructorReconocimiento = new () => ReconocimientoVoz;
 
-/** Un turno del hilo. `rol` viaja al backend, que lo traduce al formato de la API. */
+/**
+ * Un turno del hilo. `rol` viaja al backend, que lo traduce al formato de la API.
+ *
+ * `firma` guarda quién contestó ESE turno, no quién está seleccionado ahora: el sentido del
+ * desplegable es preguntar lo mismo a dos proveedores seguidos, y si el hilo se repintara
+ * con el motor actual la comparación se perdería al cambiar de opción.
+ */
 interface Turno {
     rol: 'usuario' | 'asistente';
     texto: string;
     herramientas?: string[];
+    firma?: string;
 }
 
 const pregunta = ref('');
@@ -53,7 +77,43 @@ const cargando = ref(false);
 const error = ref('');
 const dictando = ref(false);
 
+const motores = ref<Motor[]>([]);
+const proveedor = ref('');
+const modelo = ref('');
+
 let reconocimiento: ReconocimientoVoz | null = null;
+
+const motorActual = computed<Motor | null>(
+    () => motores.value.find((m) => m.proveedor === proveedor.value) ?? null,
+);
+
+/** El selector sólo estorba cuando no hay nada que elegir. */
+const hayQueElegir = computed(
+    () => motores.value.length > 1 || (motorActual.value?.modelos.length ?? 0) > 1,
+);
+
+// Al cambiar de proveedor, el modelo anterior es de otra casa: se vuelve al de por defecto.
+watch(proveedor, () => {
+    modelo.value = motorActual.value?.modeloPorDefecto ?? '';
+});
+
+onMounted(async () => {
+    try {
+        const r = await apiClient.get<{ motores: Motor[] }>('/agent/motores');
+        motores.value = r.data.motores ?? [];
+    } catch {
+        // Sin catálogo no se bloquea nada: se pregunta sin `proveedor` y contesta el de por
+        // defecto del entorno, que es exactamente lo que hacía antes de existir el selector.
+        return;
+    }
+
+    const inicial =
+        motores.value.find((m) => m.porDefecto) ?? motores.value.find((m) => m.disponible);
+    if (inicial) {
+        proveedor.value = inicial.proveedor;
+        modelo.value = inicial.modeloPorDefecto;
+    }
+});
 
 /**
  * El constructor vive en `window` con prefijo en los navegadores basados en WebKit. El cast
@@ -86,11 +146,17 @@ async function preguntar(): Promise<void> {
         const r = await apiClient.post<RespuestaAsistente>('/agent/consulta', {
             pregunta: texto,
             historial,
+            // Vacíos = los de por defecto del entorno. El backend valida ambos contra su
+            // lista blanca, así que mandar algo raro devuelve un 400, no una factura.
+            proveedor: proveedor.value,
+            modelo: modelo.value,
         });
+        const etiqueta = motores.value.find((m) => m.proveedor === r.data.proveedor)?.etiqueta;
         hilo.value.push({
             rol: 'asistente',
             texto: r.data.respuesta,
             herramientas: r.data.herramientas ?? [],
+            firma: [etiqueta ?? r.data.proveedor, r.data.modelo].filter(Boolean).join(' · '),
         });
     } catch (e: unknown) {
         // El backend manda `{error: string}` en 4xx/5xx; cualquier otra cosa es un fallo de red.
@@ -188,6 +254,41 @@ onBeforeUnmount(() => reconocimiento?.stop());
       <i class="fas fa-circle text-[7px] animate-pulse mr-1" aria-hidden="true"></i> Escuchando…
     </div>
 
+    <!-- Proveedor y modelo. Se elige por consulta, no por sesión: la gracia es preguntar lo
+         mismo dos veces seguidas y comparar quién responde mejor. -->
+    <div v-if="hayQueElegir" class="px-4 pb-3 flex items-center gap-2">
+      <i class="fas fa-microchip text-[10px] text-slate-300" aria-hidden="true"></i>
+
+      <select
+        v-if="motores.length > 1"
+        v-model="proveedor"
+        :disabled="cargando"
+        class="text-[11px] font-bold uppercase tracking-widest text-slate-500 bg-slate-50 rounded-lg px-2 py-1 focus:outline-none disabled:opacity-40"
+        title="Proveedor de IA"
+      >
+        <option
+          v-for="m in motores"
+          :key="m.proveedor"
+          :value="m.proveedor"
+          :disabled="!m.disponible"
+        >
+          {{ m.etiqueta }}{{ m.disponible ? '' : ' (sin clave)' }}
+        </option>
+      </select>
+
+      <select
+        v-if="(motorActual?.modelos.length ?? 0) > 1"
+        v-model="modelo"
+        :disabled="cargando"
+        class="text-[11px] font-medium text-slate-500 bg-slate-50 rounded-lg px-2 py-1 focus:outline-none disabled:opacity-40"
+        title="Modelo"
+      >
+        <option v-for="nombre in motorActual?.modelos ?? []" :key="nombre" :value="nombre">
+          {{ nombre }}
+        </option>
+      </select>
+    </div>
+
     <!-- El hilo: sostiene el ir y venir cuando el asistente repregunta ("¿cuál de los dos
          Carlos?"). Se pinta en orden y el más reciente queda abajo. -->
     <div v-if="hilo.length" class="border-t border-slate-100 divide-y divide-slate-50">
@@ -197,8 +298,13 @@ onBeforeUnmount(() => reconocimiento?.stop());
         </p>
         <template v-else>
           <p class="text-sm text-slate-800 whitespace-pre-line leading-relaxed">{{ turno.texto }}</p>
-          <p v-if="turno.herramientas?.length" class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            <i class="fas fa-database text-[9px] mr-1" aria-hidden="true"></i> Consultado en el PMS
+          <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <template v-if="turno.herramientas?.length">
+              <i class="fas fa-database text-[9px] mr-1" aria-hidden="true"></i> Consultado en el PMS
+            </template>
+            <span v-if="turno.firma" :class="turno.herramientas?.length ? 'ml-2 text-slate-300' : 'text-slate-300'">
+              {{ turno.firma }}
+            </span>
           </p>
         </template>
       </div>

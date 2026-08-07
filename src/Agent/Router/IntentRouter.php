@@ -17,7 +17,7 @@ use Throwable;
  * Enruta los mensajes entrantes hacia el motor determinista (AutoResponder)
  * o hacia el procesador de Inteligencia Artificial, basándose en la intención (Intent).
  *
- * Ver docs/Mensajeria.md §10.
+ * Ver docs/Mensajeria.md §9.
  */
 final readonly class IntentRouter
 {

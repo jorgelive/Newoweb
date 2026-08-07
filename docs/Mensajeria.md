@@ -23,7 +23,8 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 9. [El Agent: autorespuestas e IA](#9-el-agent-autorespuestas-e-ia)
 10. [El asistente interno del panel](#10-el-asistente-interno-del-panel)
 11. [El agente: skills, acceso y proveedor](#11-el-agente-skills-acceso-y-proveedor)
-12. [Dónde tocar para cambiar X](#12-dónde-tocar-para-cambiar-x)
+12. [Proveedores de IA: elegir motor y modelo](#12-proveedores-de-ia-elegir-motor-y-modelo)
+13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
 ---
 
@@ -524,13 +525,14 @@ persister puso en el intent:
   Message entrante (con inbound_intent)
         │
    MessageAutoResponderListener   postPersist / postUpdate
-        │  dispatch → async  ← ver §10
+        │  dispatch → async  ← «Por qué el dispatch tiene que ir en async», más abajo
+        │  free_text además con DelayStamp: la espera de ráfaga
         ▼
    IntentRouter::routeIntent()
         ├─ deterministic / system_alert → AutoResponderRule → BotActionHandlerInterface
         └─ free_text                    → AiConversationProcessor
                                               │
-                                              └─ 5 guardias → modelo → Message OUTGOING
+                                              └─ 6 guardias → modelo → 2.ª mirada → Message OUTGOING
 ```
 
 **Todo camino acaba en `marcarResuelto()`**, que escribe `resolved`, **`resolution`** (el
@@ -542,8 +544,8 @@ En producción había 29 `ERR_131049` en ese bucle.
 Motivos que puede tomar `resolution`: `ia`, `ia_desactivada`, `ia_sin_credenciales`,
 `ia_sin_respuesta`, `error_ia`, `regla:<trigger>`, `error_accion`, `sin_handler`, `sin_regla`,
 `humano_atendiendo`, `ya_respondido`, `fuera_de_ventana_24h`, `canal_deshabilitado`,
-`conversacion_no_abierta`. Sirven para medir después cuántos contestó el bot y cuántos se
-dejaron pasar — y por qué.
+`conversacion_no_abierta`, `rafaga_superada`, `rafaga_superada_al_responder`. Sirven para medir
+después cuántos contestó el bot y cuántos se dejaron pasar — y por qué.
 
 ### 🔥 Por qué el dispatch tiene que ir en `async`
 
@@ -558,36 +560,321 @@ Con IA habría sido peor: una llamada al modelo bloquea el webhook de Meta vario
 **dentro de la transacción**, y Meta reintenta los webhooks lentos → el huésped recibe la
 respuesta duplicada. La ruta está ahora en `messenger.yaml`; **no la quites**.
 
-### Los cinco guardias del autoresponder
+### Los seis guardias del autoresponder
 
-`AiConversationProcessor` no genera sin preguntarse antes si toca callarse:
+`AiConversationProcessor::motivoParaCallarse()` no genera sin preguntarse antes si toca callarse:
 
 | # | Guardia | Por qué |
 |---|---|---|
 | 1 | Conversación no abierta | Cerrada o archivada: su ciclo terminó |
 | 2 | **Humano al mando** (30 min) | El más importante: nada deja peor al hotel que un bot pisando al compañero que ya está atendiendo |
-| 3 | **Ya respondido** | El transporte async reintenta 3 veces; sin esto un reintento duplica el mensaje al huésped |
-| 4 | Fuera de la ventana de 24 h | Meta sólo acepta plantillas fuera de sesión: el texto generado acabaría como `FAILED` |
-| 5 | Canal deshabilitado | Rebote duro previo (número inválido) |
+| 3 | **Ráfaga superada** | El huésped siguió escribiendo: este trozo ya no es el final de lo que quiere decir — sección siguiente |
+| 4 | **Ya respondido** | El transporte async reintenta 3 veces; sin esto un reintento duplica el mensaje al huésped |
+| 5 | Fuera de la ventana de 24 h | Meta sólo acepta plantillas fuera de sesión: el texto generado acabaría como `FAILED` |
+| 6 | Canal deshabilitado | Rebote duro previo (número inválido) |
+
+### ⏱️ Agrupación por ráfaga: cuatro trozos, una respuesta
+
+Un huésped no escribe una pregunta: escribe cuatro trozos seguidos. Esta ráfaga es real, de la
+conversación del 24-jul-2026:
+
+```
+13:59:35  Hola! Gracias
+13:59:36  Acabo de llegar
+13:59:50  Estamos revisando que todo funcione correctamente
+14:00:06  Todo bajo control ?
+```
+
+Contestando cada uno al vuelo salen **cuatro respuestas a medias** —un saludo al «Hola», otro
+al «Acabo de llegar»— y **cuatro llamadas al modelo** pagando el prompt entero cada vez. La
+pregunta de verdad sólo existe cuando el huésped termina.
+
+**La solución tiene dos mitades, y las dos hacen falta.**
+
+**1. Esperar (el listener).** `MessageAutoResponderListener::processIntent()` encola el trabajo
+con un `DelayStamp` de `AGENT_IA_ESPERA_RAFAGA` segundos. Sólo para `free_text`: los botones y
+las alertas del sistema salen sin retraso, porque ahí quien pulsa espera respuesta inmediata y
+no hay ráfaga que agrupar.
+
+**2. Descartar (el procesador).** La espera no basta: los cuatro mensajes encolan **cuatro**
+trabajos, cada uno con su propio reloj. `hayMensajePosterior()` decide cuál sobrevive — si
+existe un mensaje del huésped más nuevo que el mío, yo ya no soy el final de la frase y me
+callo con `rafaga_superada`. Sobre la ráfaga de arriba, con espera de 20 s:
+
+| Mensaje | El trabajo corre a las | ¿Hay algo posterior? | Desenlace |
+|---|---|---|---|
+| 13:59:35 | 13:59:55 | sí (:36, :50) | `rafaga_superada` |
+| 13:59:36 | 13:59:56 | sí (:50) | `rafaga_superada` |
+| 13:59:50 | 14:00:10 | sí (14:00:06) | `rafaga_superada` |
+| 14:00:06 | 14:00:26 | no | **contesta**, con los cuatro en el historial |
+
+Una llamada al modelo en vez de cuatro. Medido sobre los 1.938 mensajes de huésped del
+histórico, la espera de 20 s descarta **386 (19,9 %)**.
+
+#### La segunda mirada, después de generar
+
+`process()` vuelve a llamar a `hayMensajePosterior()` **justo antes de encolar la respuesta**.
+Generar tarda segundos, y en ese hueco el huésped puede añadir algo que cambia la pregunta
+(«¿cuánto cuesta?» → «da igual, ya lo vi»). Mandar entonces la respuesta ya escrita es
+contestar a destiempo. Se tira (`rafaga_superada_al_responder`) y el trabajo del mensaje nuevo
+responde a todo junto. Es lo único que la ráfaga sí cuesta en dinero —el modelo ya se pagó—, y
+compensa frente a que el huésped lea una respuesta desfasada.
+
+#### 🔥 Manda `createdAt`, y el UUID sólo desempata
+
+Parece un detalle de implementación y no lo es; las dos mitades se descubrieron con datos.
+
+**Por qué `createdAt` y no el UUID.** Es tentador ordenar sólo por id: son UUIDv7, que llevan
+el tiempo dentro. Pero el UUID dice **cuándo lo insertamos nosotros**, no cuándo escribió el
+huésped, y en los mensajes importados en bloque no guardan relación. Hay filas en la BD con
+UUID mayor y fecha anterior. Lo que interesa es `createdAt`, que en el flujo real **no** es la
+hora de inserción sino la que trae el canal — `WhatsappMetaReceivePersister` y
+`Beds24ReceivePersister` hacen `setCreatedAt($msgDate)`, y `TimestampTrait` sólo lo rellena si
+viene nulo.
+
+**Por qué el UUID hace falta igual.** `createdAt` viene con precisión de segundo, y en una
+ráfaga es normal que dos mensajes caigan en el mismo: entonces ninguno es «posterior» al otro
+y **contestarían los dos**. No es hipotético — en el histórico hay **258 pares** de mensajes
+del mismo huésped con el segundo exacto repetido. Ahí desempata el UUIDv7, que lleva
+milisegundos y da el orden de inserción, que es justo el criterio bueno para elegir cuál de
+los dos trabajos vive.
+
+Comprobado replicando la condición en SQL sobre las 215 conversaciones del histórico:
+
+| Criterio | Conversaciones con 1 superviviente | con 2 | con 3 |
+|---|---|---|---|
+| Sólo `createdAt >` | 207 | 7 | 1 |
+| `createdAt` + desempate por UUID | **215** | 0 | 0 |
+
+Sin el desempate, 8 conversaciones de 215 habrían respondido dos o tres veces al mismo turno.
+
+⚠️ **No lo «arregles» con `COALESCE(scheduledAt, createdAt)`**, que es el criterio correcto
+para los mensajes de sistema y está explicado en §8. Aquí no aplica: el filtro es
+`senderType = guest`, y ningún mensaje de huésped tiene `scheduledAt` (0 de 1.938) porque a un
+entrante no se le programa el envío.
+
+⚠️ **La consulta va a la tabla, no a `$conversacion->getMessages()`.** Entre el primer guardia
+y el final del turno pasan segundos —la llamada al modelo— y puede haber otro worker
+persistiendo mensajes. Lo que Doctrine tenga cargado en memoria ya no describe la realidad.
+
+#### 🔥 El parámetro UUID de un QueryBuilder necesita su tipo, o devuelve cero filas
+
+Esto tumbó la primera versión entera, y **no falla, no avisa y no aparece en los logs**:
+
+```php
+->andWhere('m.conversation = :conversacion')
+->setParameter('conversacion', $conversacion)              // ← 0 filas, siempre
+->setParameter('conversacion', $conversacion->getId())     // ← 0 filas, siempre
+->setParameter('conversacion', $conversacion->getId(), 'uuid')  // ← correcto
+```
+
+Los ids son `UuidV7` y en MySQL viven como **binario**. `findBy(['conversation' => $conv])`
+funciona porque el persister conoce el tipo del identificador; el **QueryBuilder no lo
+infiere**, manda el valor sin convertir y el `WHERE` no casa con nada. El guardia devolvía
+`false` siempre: dicho de otro modo, la agrupación por ráfaga estaba apagada sin que nada lo
+delatara.
+
+Se descubrió con una prueba de extremo a extremo —tres mensajes reales por el flujo del
+webhook— en la que el bot **contestó al «hola»** con el acuse de recibo genérico y marcó
+`ya_respondido` la pregunta de verdad, que llegaba dos mensajes después. Exactamente el
+comportamiento que la funcionalidad venía a evitar.
+
+⚠️ La lección general: **validar la lógica en SQL puro no valida la consulta del ORM.** La
+regla de `createdAt` + desempate por UUID se había comprobado sobre el histórico con SQL, y
+era correcta; lo que estaba roto era el puente de Doctrine, que sólo aparece ejecutando el
+flujo. Si tocas este método, pruébalo con mensajes de verdad, no con un `SELECT`.
+
+#### ⚠️ Depende de `check_delayed_interval`
+
+El retraso real es la espera **más** lo que tarde el worker en mirar los diferidos. Ese
+intervalo estaba en 60 s en `config/packages/messenger.yaml` para no machacar la BD: con él,
+una espera de 20 s tardaba **hasta 80** en dispararse y el huésped se quedaba mirando el chat.
+Está en **2 s**. Si alguien lo sube, la espera de ráfaga se degrada con él.
+
+Poner `AGENT_IA_ESPERA_RAFAGA=0` desactiva el `DelayStamp`, pero **no** los guardias: si dos
+mensajes llegan juntos de todos modos, el descarte sigue evitando la respuesta duplicada.
+
+### 🔥 El prompt del huésped NO lleva los datos de su reserva, y es a propósito
+
+`AiConversationProcessor::systemPrompt()` los llevaba: un volcado de las 23 variables del
+resolver —nombre, fechas, casita, total, pagado, **saldo**—. Parecía un atajo evidente: el
+modelo contesta «sales el 10/03» sin gastar una vuelta. Era una trampa, y de las caras.
+
+**Choca de frente con el guardia de `sin_skill`.** Teniendo el dato delante, el modelo responde
+sin llamar a ninguna herramienta; el motor devuelve `ConversationResponse::sinSkill()` —«esto
+respondió improvisando»—; y la política del chat del huésped tira la respuesta y manda el acuse
+de recibo genérico. Es decir: **cuanto mejor era el volcado, más se callaba el bot.**
+
+Medido en la prueba real de la ráfaga: a «cuato estoy debiendo?» el huésped recibió *«Gracias
+por tu mensaje. Un compañero te responderá en breve»* teniendo el saldo escrito dos líneas más
+arriba en ese mismo prompt. No era el modelo —flash-lite— ni la falta de una skill: era el
+prompt anulando el guardia. Con el prompt corregido y **el mismo modelo**, la misma ráfaga
+contesta la cifra exacta.
+
+```
+  ANTES                                   AHORA
+  prompt: balance: 159.90                 prompt: «no tienes ningún dato de su reserva»
+  «cuato estoy debiendo?»                 «cuato estoy debiendo?»
+     ↓ responde de memoria                   ↓ tiene que preguntar
+  sin_skill  →  🗑️  acuse genérico        consultar_mi_reserva → ok → la cifra
+```
+
+**Las dos ejecuciones, misma ráfaga y mismo modelo** (`gemini-3.5-flash-lite`, ráfaga de tres
+mensajes con sus erratas: `hola` / `soy daniel albert` / `cuato estoy debiendo?`):
+
+| | Antes | Ahora |
+|---|---|---|
+| Llamadas al modelo | 1 | 2 |
+| Tokens de entrada | 2 209 | 2 779 + 3 135 |
+| Latencia total | 1,6 s | 2,4 s (1,5 + 0,9) |
+| Skills usadas | ninguna → `sin_skill` | `consultar_mi_reserva` |
+| Resolución del 3.er mensaje | `ia` (acuse genérico) | `ia` |
+| Lo que leyó el huésped | «Gracias por tu mensaje. Un compañero te responderá en breve.» | «Hola Daniel, tu saldo pendiente actual es de 159.90 USD.» |
+
+Los dos primeros trozos se resolvieron `rafaga_superada` en ambas, **sin gastar una sola llamada**:
+la agrupación por ráfaga es lo que hace que el turno cueste dos peticiones y no seis.
+
+El precio es +1 petición y +3 100 tokens de entrada por turno. Con la capa gratuita de Google
+(20 peticiones al día **y por modelo**) eso baja de ~8 preguntas diarias a ~5 por modelo: sirve
+para probar, no para el autoresponder — lo mismo que ya decía §12.
+
+Ahora el prompt sólo lleva el **nombre del huésped y el idioma**, y dice explícitamente que los
+datos están en las herramientas, nombrando las dos que responden lo que más se pregunta:
+`consultar_mi_reserva` (cuándo entra, **cuándo sale**, casita, localizador, total, pagado y
+**saldo**) y `consultar_cuenta` (el desglose y cuánto sale pagar con tarjeta).
+
+Cuesta una vuelta más de modelo por turno. A cambio, cada dato que llega al huésped tiene
+detrás una llamada auditable en el log, y `sin_skill` vuelve a significar lo que dice: que ahí
+no se consultó nada.
+
+> El guardia que aparece en el diagrama —`sin_skill` → 🗑️— **ya no existe**; se quitó justo
+> después, y por esto: sin volcado en el prompt dejó de ser necesario. Ver la sección
+> siguiente. La medición de arriba se hizo con el guardia todavía puesto y sigue siendo válida
+> para lo que compara: prompt con datos contra prompt sin datos.
+
+⚠️ **La regla general, para no repetirlo:** un dato metido en el prompt es un dato que el
+modelo responderá *sin* herramienta. Si algo se quiere poder contestar al huésped, va en una
+skill, **no** en el prompt. (Antes esto equivalía además a *que no lo responda*, porque el
+guardia de abajo tiraba la respuesta; ya no, pero la regla sigue en pie: sin skill no hay
+llamada que auditar.)
+
+### 🔥 El saludo se entrega: `sin_skill` ya no se tira
+
+Durante un tiempo `AiConversationProcessor::generar()` cambiaba por el acuse de recibo **toda**
+respuesta marcada `sin_skill`. El razonamiento parecía prudente —sin skill, el texto salió del
+modelo y no de los datos— y el precio era absurdo:
+
+```
+huésped: «hola, soy Jorge»
+   ↓ el modelo contesta «¡Hola Jorge! ¿en qué te puedo ayudar?» — sin herramienta, claro:
+     un saludo no necesita ninguna
+   ↓ motivo = sin_skill
+   ↓ 🗑️
+huésped lee: «Gracias por tu mensaje. Un compañero te responderá en breve.»
+```
+
+Y ese acuse **no avisaba a nadie**: prometía una persona y sólo dejaba un `logger->info()`.
+Un bot que no sabe devolver un saludo no parece prudente, parece roto.
+
+**Lo que hacía peligroso confiar era el volcado del prompt, no el `sin_skill`.** Con el saldo
+escrito en el prompt, un `sin_skill` era el modelo recitando cifras de memoria. Fuera el
+volcado (sección anterior), lo que queda sin herramienta es cortesía: no hay datos de la
+reserva que inventar porque no se le han dado. Las dos piezas son una sola decisión y se
+tomaron juntas — **quitar el guardia sin quitar antes el volcado sería reabrir justo el
+agujero que el guardia tapaba**.
+
+Ahora:
+
+| Lo que devuelve el motor | Qué lee el huésped |
+|---|---|
+| Texto, con skill (`ok`) | El texto |
+| Texto, sin skill (`sin_skill`) | **El texto**, y se registra en el log con el texto entero |
+| Sin texto (`sin_respuesta`, `rechazado`, `sin_permisos`) | El acuse de recibo, con un `warning` que dice cuál de los tres |
+
+El acuse de recibo pasa a ser **el suelo, no la política**: se manda cuando no hay respuesta,
+no cuando la respuesta no nos gusta. De paso cubre casos que antes eran silencio total (el
+proveedor declinó, faltaban permisos).
+
+⚠️ **El riesgo que queda, escrito para que nadie lo redescubra:** ante «¿a qué hora es el
+check-in?» el modelo puede contestar de memoria en vez de mirar la guía. El freno para eso son
+las reglas del prompt (*«NUNCA inventes precios, disponibilidad, horarios ni políticas»*), no
+tirar la respuesta: tirarla nunca distinguió una invención de un saludo, y se llevaba por
+delante las dos.
+
+⚠️ **Sigue abierto:** el acuse de recibo continúa sin escalar. Si el modelo promete una persona
+por su cuenta y no llama a `escalar_al_equipo`, no se entera nadie. El prompt se lo exige en
+ese mismo turno (§9, reglas), pero es una exigencia al modelo, no una garantía del código.
+
+### 🌐 En qué idioma trabaja el agente, y quién traduce qué
+
+Tres piezas que se tocan y que conviene no confundir:
+
+```
+ENTRANTE   external = lo que escribió el huésped (su idioma)
+           local    = traducido al español          ← para el OPERADOR, no para el bot
+
+EL AGENTE  lee `contentExternal`  → trabaja en el idioma ORIGINAL
+           el system prompt le ordena responder en ese mismo idioma
+
+SALIENTE   external = lo que escribe el bot (idioma del huésped)
+           local    = traducido al español          ← lo pone MessageTranslator
+```
+
+**El agente NO usa la traducción de entrada.** Lee el original y responde en ese idioma porque el
+prompt se lo dice, no porque nadie traduzca. La versión española del mensaje entrante existe para
+que el operador lea el chat en su idioma.
+
+#### 🔥 El operador leía en inglés lo que respondía su propio asistente
+
+`AiConversationProcessor` y `EnviarMensajeHuespedSkill` rellenaban **los dos** campos con el mismo
+texto:
+
+```php
+$salida->setContentLocal($texto);      // ← inglés
+$salida->setContentExternal($texto);   // ← inglés
+```
+
+Y `MessageTranslator::process()` arranca con `if ($hasLocal && $hasExternal) { return; }`, así que
+se saltaba el mensaje. Como `ChatView.vue` pinta `contentLocal || contentExternal`, el panel
+mostraba la respuesta del bot en el idioma del huésped.
+
+Ahora las dos ponen **sólo `contentExternal`** y el español lo genera el traductor en
+`prePersist`. Comprobado: `"Hi, your code is 2499E"` → `local: "Hola, tu código es 2499E"`; con un
+huésped en español hace bypass y no gasta una llamada.
+
+⚠️ **El caso nuevo se distingue por la DIRECCIÓN**, no por qué campo falta —que es como se deducía
+todo en ese servicio—. Un saliente sin `contentLocal` caería si no en el flujo entrante, que pasa
+por `translateWithDetection` y puede **reescribir el idioma de la conversación**: dejar que la
+respuesta del propio bot redefina el idioma del huésped es un bucle esperando a ocurrir. Por eso
+`traducirParaElOperador()` traduce sin detección, con el idioma que ya se sabe.
+
+⚠️ El aviso de `escalar_al_equipo` **sí** rellena los dos a propósito: va a una conversación
+`staff`, ya está en español y no hay nada que traducir.
 
 ### Configuración
 
 | Variable | Efecto |
 |---|---|
-| `ANTHROPIC_API_KEY` | Vacía ⇒ `AnthropicClientFactory::crear()` devuelve `null` y **todo degrada sin romper**. El webhook que trae el mensaje del huésped nunca debe caerse por esto |
-| `ANTHROPIC_MODEL` | Modelo de ambos productos (`claude-opus-5`) |
+| `AGENT_IA_PROVEEDOR` | Quién contesta: `anthropic` \| `google`. El chat del huésped usa SIEMPRE este; el panel puede pedir otro por consulta — §12 |
+| `ANTHROPIC_API_KEY` / `GOOGLE_AI_API_KEY` | Vacía ⇒ ese motor se declara no disponible y el registro elige otro. Con todas vacías **todo degrada sin romper**: el webhook que trae el mensaje del huésped nunca debe caerse por esto |
+| `ANTHROPIC_MODEL` / `GOOGLE_AI_MODEL` | Modelo por defecto de cada proveedor |
+| `ANTHROPIC_MODELS` / `GOOGLE_AI_MODELS` | Lista blanca de modelos que el panel puede pedir — §12 |
 | `AGENT_IA_AUTORESPONDER` | Interruptor del bot del huésped. **Arranca en `0`** |
+| `AGENT_IA_ESPERA_RAFAGA` | Segundos de silencio antes de contestar a un `free_text`. `20`; `0` lo desactiva. Se suma a `check_delayed_interval` — sección anterior |
 
 El autoresponder nace apagado a propósito: es el único componente que **escribe a un cliente
 real** sin que nadie lo revise. Enciéndelo cuando hayas calibrado el prompt con §11.
 
-**Prompt caching:** el prompt de sistema lleva `cacheControl` y es idéntico durante toda la
-conversación, así que a partir del segundo mensaje la mayor parte de la entrada se cobra a
-precio de lectura de caché. El mínimo cacheable en Opus 5 son 512 tokens.
+**Prompt caching (sólo Anthropic):** el prompt de sistema lleva `cacheControl` y es idéntico
+durante toda la conversación, así que a partir del segundo mensaje la mayor parte de la
+entrada se cobra a precio de lectura de caché. El mínimo cacheable en Opus 5 son 512 tokens.
+El motor de Gemini **no** cachea —ahí es explícito y con mínimo de tokens, y no compensa para
+este tamaño de prompt—, así que su segundo turno es proporcionalmente más caro (§12).
 
 **`stop_reason: "refusal"`:** los clasificadores pueden declinar una petición devolviendo un
 200 con `content` vacío. Leer `content[0]` sin comprobarlo revienta — está comprobado en los
-dos servicios.
+dos servicios. En Gemini el equivalente llega por dos sitios distintos, `promptFeedback` y
+`finishReason`; los tres acaban en `ConversationResponse::rechazada()` (§12).
 
 ## 10. El asistente interno del panel
 
@@ -654,12 +941,18 @@ conoce al proveedor**.
   │   └── NivelRiesgo
   ├── Conversation/   LA FRONTERA
   │   ├── AgentEngineInterface     ← todo lo de arriba habla con esto
+  │   ├── AgentEngineRegistry      ← quién contesta: motor + modelo (§12)
   │   └── ConversationRequest / ConversationResponse
   └── Provider/
-      └── Anthropic/  TODO el SDK, empaquetado
-          ├── AnthropicEngine          (implementa AgentEngineInterface)
-          ├── AnthropicSkillAdapter    (SkillDefinition → tool del SDK)
-          └── AnthropicClientFactory
+      ├── CatalogoModelos          ← lista blanca de modelos, común a todos
+      ├── Anthropic/  TODO el SDK, empaquetado
+      │   ├── AnthropicEngine          (implementa AgentEngineInterface)
+      │   ├── AnthropicSkillAdapter    (SkillDefinition → tool del SDK)
+      │   └── AnthropicClientFactory
+      └── Google/     Gemini por REST, sin SDK
+          ├── GoogleAIEngine           (implementa AgentEngineInterface)
+          ├── GoogleAISkillAdapter     (SkillDefinition → functionDeclaration)
+          └── GoogleAIClient
 ```
 
 ### Por qué esta frontera y no otra
@@ -678,17 +971,16 @@ Qué compra:
 Y lo que **no** compra, conviene saberlo: los **prompts**. Cambiar de motor obliga a
 recalibrarlos, y eso no lo salva ninguna interfaz.
 
-Cambiar de motor es una línea:
-
-```yaml
-App\Agent\Conversation\AgentEngineInterface: '@App\Agent\Provider\Anthropic\AnthropicEngine'
-```
+Cambiar de motor es una variable de entorno, y probar otro es un desplegable en el panel: lo
+resuelve `AgentEngineRegistry`. Ver **§12**.
 
 ### Una skill no sabe de proveedores
 
 Describe sus parámetros con `SkillParameter` —no con JSON Schema— y devuelve un `SkillResult`.
-Traducir eso al formato de turno es trabajo de `AnthropicSkillAdapter`, **el único sitio del
-proyecto que sabe cómo Anthropic espera una herramienta**.
+Traducir eso al formato de turno es trabajo del adaptador de cada proveedor
+(`AnthropicSkillAdapter`, `GoogleAISkillAdapter`): **son los únicos sitios del proyecto que
+saben cómo espera una herramienta cada API**. Las 22 skills existentes no se tocaron al
+añadir Google.
 
 Añadir una capacidad es crear una clase en `Skill/`: el tag `app.agent_skill` la registra
 sola y no se toca ni un motor ni un adaptador.
@@ -850,32 +1142,63 @@ sea de escritura, adivinar significará mover la reserva equivocada.
 
 ### El riesgo escala con el daño
 
-| `NivelRiesgo` | Trato |
-|---|---|
-| `Lectura` | Se ejecuta sin preguntar |
-| `Escritura` | Se propone y se espera un «sí» |
-| `Destructivo` | Se propone **y se pide PIN** |
+| `NivelRiesgo` | Qué toca | Trato | ¿Llega al chat del huésped? |
+|---|---|---|---|
+| `Lectura` | Nada | Se ejecuta sin preguntar | Sí |
+| `Interna` | Sólo hacia dentro: avisos al equipo, marcas de pendiente | Se ejecuta sin preguntar | **Sí** |
+| `Escritura` | Datos de la reserva o de la cuenta | Se propone y se espera un «sí» | No |
+| `Destructivo` | Destruye datos | Se propone **y se pide PIN** | No |
 
 La confirmación no desconfía del usuario: protege de que **el modelo se equivoque de persona**.
 
+#### 🔥 `Interna`: por qué el filtro no es «¿escribe algo?»
+
 Por el chat del huésped se pasa `permitirEscritura: false` — una escritura ahí tendría que
-confirmarse y no hay a quién preguntar.
+confirmarse y no hay a quién preguntar. Con dos niveles, ese filtro era `nivelRiesgo() !==
+Lectura`, y eso dejaba fuera **justo la herramienta que más falta le hace al huésped**:
+`escalar_al_equipo`. La skill declaraba en su propio docblock que el huésped la dispara y que
+no pide confirmación, y aun así nunca se le ofrecía. El resultado medido: un huésped preguntaba
+algo que el bot no sabía, recibía el acuse de recibo genérico… y **no se avisaba a nadie**.
+
+El huésped es quien tiene el problema; es el primero que tiene que poder levantar la mano.
+
+`NivelRiesgo::Interna` separa las dos cosas que estaban fundidas: *escribir* y *poder hacer
+daño*. El filtro pregunta por `NivelRiesgo::exigePermisoDeEscritura()`, no por la igualdad con
+`Lectura` — un método y no una comparación suelta, para que el día que aparezca otro nivel el
+criterio se cambie en un sitio y no en cada punto que filtre.
+
+La asimetría está pensada: **el daño de un aviso de más es que un operador mire un chat que no
+hacía falta; el de una escritura de más es un dato falso en la reserva de alguien.**
+
+⚠️ Al declarar una skill como `Interna` hay que poder responder que sí a las dos: ¿escribe
+*sólo* en estructuras internas (mensajes al equipo, `unreadCount`, marcas del panel)? ¿Y el
+peor caso posible es que alguien pierda un minuto? Si una de las dos falla, es `Escritura`.
 
 ### 🔑 `sin_skill`: la misma respuesta, dos políticas
 
-Cuando el motor responde **sin invocar ninguna skill**, la respuesta salió del modelo y no de
-los datos. `ConversationResponse::sinSkill()` lo marca, y **cada canal decide**:
+Cuando el motor responde **sin invocar ninguna skill**, ahí no se consultó nada: o era pura
+cortesía, o falta la capacidad. `ConversationResponse::sinSkill()` lo marca, pero **el motivo
+no distingue las dos cosas**, y de ahí la regla:
 
-| Canal | Qué hace | Por qué |
-|---|---|---|
-| **Panel** | Lo muestra | Quien pregunta es un compañero que sabe interpretar un «esto no lo sé hacer» |
-| **Chat del huésped** | **Se calla** y lo deja para una persona | Mandarle eso a un huésped es improvisar sobre su reserva |
+> `sin_skill` sirve para **medir, no para censurar**. Ningún canal debe tirar el texto por venir
+> marcado así.
 
-Por eso el motor **informa y no decide**: es la misma conversación con dos políticas de
-entrega, no dos sistemas.
+| Canal | Qué hace |
+|---|---|
+| **Panel** | Lo muestra |
+| **Chat del huésped** | Lo entrega igual, y lo registra en el log con el texto entero |
 
-Además, los `sin_skill` acumulados en el log son la lista de skills que faltan por construir,
-ordenada por frecuencia real de uso.
+El chat del huésped **se lo calló durante un tiempo** y acabó contestando «un compañero te
+responderá en breve» a un «hola»: ver §9, *El saludo se entrega*. Por eso el motor **informa y
+no decide** — pero decidir no es tirar.
+
+Los `sin_skill` acumulados en el log son la lista de skills que faltan por construir, ordenada
+por frecuencia real de uso.
+
+⚠️ Ese valor diagnóstico **se pierde si el prompt del huésped lleva datos**: entonces un
+`sin_skill` puede significar «respondió bien, de memoria» en vez de «faltaba una skill», y el
+log deja de ser una lista de huecos. Es la otra razón por la que el volcado de la reserva salió
+del prompt — ver §9, *El prompt del huésped NO lleva los datos de su reserva*.
 
 ### El bucle de decisiones
 
@@ -1070,6 +1393,551 @@ pago son una de más.
                 Tarjeta de Crédito hay 5.5% de comisión, ¿el importe es lo que
                 se pasó por el POS o lo que debe abonar a la deuda?"
 ```
+
+#### 🧑 «le pagó a María»: el tercer dato que se pregunta
+
+Quién **recibió** el dinero (`PmsPagoFinanciero.cobrador`, §11.5.1 de
+`PmsBeds24ReservasSync.md`). Entra en el mismo bloque `falta_datos` que la moneda y la comisión,
+por la misma razón: las repreguntas van juntas.
+
+Sólo se pide si `PmsMedioPago::seCobraEnMano()` — en una transferencia no hay a quién apuntar.
+La skill resuelve el nombre suelto («María») por coincidencia parcial contra el personal con
+`ROLE_COBRADOR`, y **no adivina en ninguno de los dos extremos**: ni con 0 coincidencias (no
+existe) ni con 2+ (dos Marías). Apuntar el efectivo a la persona equivocada descuadra la caja de
+las dos.
+
+**🔥 Gotcha: el motivo se pasa hecho, no se deduce de la lista de candidatos.** Son tres casos con
+tres redacciones (`sin_indicar`, `no_encontrado`, `ambiguo`), y en `no_encontrado` la lista de
+candidatos viene con **todos** los cobradores —para poder ofrecerlos—, así que mirarla para
+decidir el mensaje producía esto:
+
+```
+❌ "«María» coincide con varias personas (Jorge Gomez, Susan Acuña, Web Admin)"
+```
+
+…tres nombres que no son María, en un caso donde María no existía. Por eso `pregunta()` recibe
+`$porqueFaltaCobrador` explícito en vez de inferirlo de `$candidatos`.
+
+⚠️ **El agente y el panel filtran por su cuenta y hay que mantenerlos a la par** — ver la tabla de
+§11.5.1. Y el filtro es por la columna `roles` literal: `enabled` NO cuenta, porque la limpiadora
+que cobra en la casita no tiene login.
+
+**Tres formas de decirlo, tres caminos** (detalle y tabla en §11.5.1 del doc de sync):
+
+```
+cobrador="María"  → búsqueda parcial entre los ROLE_COBRADOR
+cobrador="yo"     → ActorInterface::usuario(), el operador que maneja el chat
+(omitido)         → User::$esCobradorPrincipal (recepción)
+```
+
+`ALIAS_YO` recoge las formas del «lo cobré yo». El modelo traduce a `"yo"` en vez de teclear el
+nombre del operador —que no siempre sabe— o dejarlo caer en el principal, que sería atribuirle a
+recepción un dinero que recogió otra persona.
+
+**`ActorInterface::usuario()` se añadió para esto.** Estaba sólo en `AgentActor` como propiedad
+pública; ahora está en el contrato porque una skill recibe la interfaz, no la clase concreta, y la
+alternativa era un `instanceof` en cada una. Es quien MANEJA el chat, que no siempre es quien hizo
+la acción del mundo real.
+
+Para probarlo hay `--usuario=<username>` en `app:agent:skill`: ejecuta con la identidad y los roles
+de una persona real, en vez del SUPER_ADMIN sintético de siempre. Sin eso, el camino del «yo» no
+era verificable desde la consola.
+
+#### 🔥 La jerarquía de roles y el agente: `AgentActorFactory`
+
+`User::getRoles()` devuelve la columna literal más `ROLE_USER` — la jerarquía de `security.yaml`
+no está ahí. En el panel da igual, porque Symfony la expande al evaluar `is_granted()`, pero el
+agente comprueba permisos por su cuenta comparando contra la lista del actor. Sin expandir:
+
+```
+Susan tiene ROLE_RESERVAS_DELETE
+  panel   → registra pagos (DELETE ⊃ WRITE ⊃ SHOW)
+  agente  → NO podía: registrar_pago pide ROLE_RESERVAS_WRITE y no lo tenía literalmente
+```
+
+Susan y Jorge son los dos operadores reales y ambos llevan roles `*_DELETE`: **ninguno podía usar
+`registrar_pago` ni `registrar_cargo` por el chat**. El síntoma era desconcertante porque
+`app:agent:permisos` no lo veía — prueba con perfiles sintéticos que llevan el rol exacto que se
+comprueba, nunca uno heredado.
+
+Lo arregla `AgentActorFactory`, que expande con `RoleHierarchyInterface` al construir el actor.
+**Constrúyelos siempre por ahí**: `AgentActor::delPanel()` a secas se queda en los literales, y
+el parámetro `$rolesEfectivos` sólo es opcional para actores sintéticos de prueba.
+
+⚠️ **Escribir el registro y estar autorizado a cobrar son permisos distintos, y la expansión no
+los mezcla.** Un operador con `ROLE_RESERVAS_DELETE` apunta el pago que recibió otra persona; sólo
+figura como cobrador quien tenga `ROLE_COBRADOR`, que se comprueba sobre la **columna literal** —y
+por eso `tieneRol()` no vale aquí: a un `SUPER_ADMIN` le abriría esa puerta como le abre las demás.
+
+```
+Jorge (RESERVAS_DELETE, sin COBRADOR)
+  cobrador="maria" → ✅ "cobrado_por": "Maria Apaza"
+  cobrador="yo"    → ❌ "Jorge Gomez no tiene el rol de cobrador"
+```
+
+#### 🔎 Dos caminos hacia una reserva, y por qué NO comparten reglas
+
+Se confunden fácil, así que conviene tenerlo claro:
+
+| | Huésped | Operador |
+|---|---|---|
+| Cómo llega | Su número → `PmsReservaRepository::findVivasByTelefono()` | Escribe un nombre → `buscar_reserva` |
+| Qué filtra | Estricto: estados vivos, ventana temporal, una sola | Sólo esconde las **canceladas**, y de forma reversible |
+| Por qué | **Identificación automática**: nadie ha pedido esos datos, así que la puerta se abre lo justo | **Búsqueda explícita**: el operador pide lo que pide, y esconderle cosas es fricción |
+
+Aplicarle al operador las reglas del huésped sería un error: pregunta por historial a diario
+(cobros, facturas, un huésped que ya se fue) y una ventana temporal le escondería justo eso.
+
+##### Las canceladas se esconden, pero no se pierden
+
+Los errores de guardado dejan duplicados vacíos: un huésped real tenía **6 reservas canceladas de
+un evento cada una** junto a la buena, y `buscar_reserva` devolvía las 7 con su bloque financiero
+completo — ~11 KB para una respuesta de una línea, y seis bloques que el modelo debe descartar en
+cada consulta.
+
+```
+buscar_reserva "Adrian Tolsba"                          → total 1, canceladas_ocultas 6
+buscar_reserva "Adrian Tolsba" incluir_canceladas=true  → total 7
+```
+
+Tres salidas, y ninguna pierde información:
+
+1. **Hay activas** → se devuelven, con `canceladas_ocultas: N` para que el agente lo mencione.
+2. **Sólo hay canceladas** → `total: 0` **con un aviso** que dice cuántas hay y pide al agente
+   preguntar. Sin eso el modelo diría «no existe esa reserva», que es falso y deja al operador
+   sin saber que sí existe.
+3. **El operador insiste** («entre todas», «en el historial», «aunque esté cancelada») →
+   `incluir_canceladas=true`.
+
+Las **pasadas sí salen siempre**: se consulta historial a menudo. Lo que cambia es el ORDEN
+(`ordenarPorPertinencia()`): alojado ahora → por llegar → ya se fue. El `ORDER BY fechaLlegada
+DESC` de la consulta ponía arriba la reserva más lejana en el futuro, así que quien está alojado
+HOY salía por debajo de alguien que llega en tres meses.
+
+⚠️ Ese orden mira los agregados `fechaLlegada`/`fechaSalida` de la reserva, no los eventos: aquí
+sólo se ordena una lista corta que el operador va a leer entera. Para decidir **quién tiene
+derecho a ver qué** está `findVivasByTelefono()`, que sí baja al detalle de los tramos.
+
+#### 📱 Atar al huésped con su reserva cuando escribe en frío
+
+`ConsultarMiReservaSkill` **no recibe qué reserva consultar**: la saca de
+`ActorInterface::contextoId()`, que es el contexto de la conversación. Ahí está la frontera —un
+huésped no puede pedir la reserva de otro porque no hay parámetro donde escribirlo—, pero también
+la dependencia: **sin contexto de reserva, la skill no tiene nada que responder.**
+
+Y eso era justo lo que pasaba. `WhatsappMetaReceivePersister::resolveConversation()` buscaba una
+conversación ABIERTA por teléfono y, si no la había, creaba una `('manual', $phone)`. Un huésped
+que escribía por primera vez desde su móvil caía siempre en `manual`, y a «¿cuánto debo?» recibía
+*«esta conversación no está asociada a ninguna reserva»*.
+
+Ahora, antes de crear el walk-in, se busca reserva viva por el número
+(`PmsReservaRepository::findVivasByTelefono()`) y la conversación nace ya como `pms_reserva`.
+
+##### Qué reserva cuenta
+
+Se exige al menos un evento en `PmsEventoEstado::IDENTIFICAN_HUESPED` — **pendiente, confirmada o
+requerimiento**—, lo que descarta de un golpe los casos en que no hay a quién contarle nada:
+
+| Fuera | Por qué |
+|---|---|
+| Todos los eventos `cancelada` | La reserva murió; los datos siguen ahí pero ya no es huésped |
+| `bloqueo` | No hay huésped: es la casita cerrada por nosotros o por el canal |
+| `abierto` | Un inquiry de Airbnb es una CONSULTA, no una reserva |
+| `extension` | La noche fantasma de un horario extra (§7.1.b); su reserva ya entra por el tramo que la generó |
+| Terminadas hace más de una semana | `DIAS_GRACIA_TRAS_SALIDA` |
+
+⚠️ `IDENTIFICAN_HUESPED` coincide hoy con `OCUPAN_UNIDAD` y **aun así se declara aparte**, por el
+mismo motivo por el que aquella se separó de `IMPIDEN_VENTA`: responden preguntas distintas. Una
+dice «¿pinto esta noche como ocupada?»; ésta, «¿le enseño datos privados a quien escribe?». Si
+algún día un `bloqueo` pasara a pintar ocupación, derivar una de otra abriría la cuenta de un
+huésped a quien reservó una casita cerrada por mantenimiento.
+
+##### Cuál se elige si hay varias
+
+```
+1. La ACTUAL   — un tramo en curso hoy (inicio <= hoy <= fin).
+                 Si hay varias, la de entrada más reciente: la que está viviendo.
+2. La PRÓXIMA  — sin ninguna en curso, la de entrada más cercana.
+```
+
+Comprobado con un mismo número en cuatro situaciones a la vez (hoy = 06-08):
+
+```
+Joaquin      confirmada 07-24→07-29   ← fuera: acabó hace más de una semana
+Rutaba       confirmada 07-29→08-07   ⇒ ELEGIDA (en curso)
+Catherine    pendiente  08-09→08-18      (queda de segunda)
+Ramos G.     cancelada  09-01→09-07   ← fuera: cancelada
+```
+
+Quitando la actual, cae sola en Catherine. Quitando las dos, `manual`. Y una reserva cuyo único
+evento vivo es `abierto` no identifica ni estando en curso.
+
+**El filtro va sobre los EVENTOS, no sobre `fechaLlegada`/`fechaSalida` de la reserva:** esos dos
+son agregados (mín/máx de sus tramos), así que una reserva con un tramo cancelado y otro vivo
+daría una ventana que no corresponde a ningún tramo real.
+
+⚠️ **Se elige, pero queda rastro.** Cuando hay más de una candidata se escribe un `info` en el log
+con la elegida y cuántas había: es el caso en el que un huésped podría acabar viendo la reserva de
+otro —en producción hay un número con 7 reservas de 2 personas distintas, porque aquí también se
+opera como agencia—, y sin esa línea no habría forma de saber que la decisión se tomó.
+
+Detalles que no se ven en el código:
+
+- Se busca en `telefono` **y** `telefono2`, sin mirar `telefono2EsPrincipal`: ese flag dice a cuál
+  escribimos NOSOTROS (§12.10 del doc de sync), no desde cuál escribe él. Comprobado: escribiendo
+  desde cualquiera de los dos, la reserva se identifica igual.
+
+  ⚠️ **Hoy es teórico**: de 309 reservas en producción, 279 tienen teléfono y **una sola** tiene
+  `telefono2` —idéntico al primero, porque Beds24 mandó `phone` y `mobile` iguales—. Ninguna
+  tiene un segundo número distinto ni el flag activado. Conviene saberlo antes de invertir en
+  este camino: la cobertura está, pero el dato no.
+
+  Y si empezara a usarse, aparece un efecto que **no** resuelve esta búsqueda:
+  `resolveConversation()` empareja por `guestPhone` (exacto o los últimos 8 dígitos), así que dos
+  números distintos de la misma reserva abren **dos conversaciones** con el mismo `contextId`.
+
+  Con un acompañante eso es hasta deseable —son dos personas y se responde a cada una por su
+  hilo—. Pero en el caso del **chip local**, el titular acaba con dos conversaciones suyas: una
+  con el número de origen y otra con el peruano, y el historial de lo que ya se habló se queda en
+  la primera. Ahí sí molesta, y unirlas sería otra decisión (no un arreglo de esto): habría que
+  decidir si se fusionan los hilos o si el segundo hereda el contexto del primero.
+
+  **Qué es `telefono2` en la práctica** (y por qué identificarlo por él es correcto, no un
+  agujero): es siempre alguien del mismo grupo, no un externo —
+
+  - el **acompañante** que está dentro de la casita,
+  - un número que **sí funciona en WhatsApp** cuando el primero no,
+  - el **chip local** que sacaron al llegar a Perú, en vez del de roaming.
+
+  En los tres casos quien escribe está alojado y tiene derecho a su guía, sus códigos y su
+  cuenta. El tercer caso además explica por qué existe `telefono2EsPrincipal` (§12.10 del doc de
+  sync): durante la estancia, el número peruano suele ser el bueno para escribirle, aunque la
+  reserva llegara con el extranjero.
+- La coincidencia es exacta **o por los últimos 8 dígitos**, el mismo criterio que ya usaba
+  `resolveConversation()` para las conversaciones: los números de las OTA llegan sucios, a veces
+  con el código de país duplicado.
+- El ORDEN se resuelve en PHP y no en un `ORDER BY`: hace falta el tramo relevante de cada
+  reserva (el que está en curso, o el próximo), y con el JOIN a eventos una reserva de varias
+  casitas trae varias filas — ordenar en SQL mezclaría los tramos de unas con los de otras.
+  `tramoRelevante()` repite los mismos filtros que la consulta a propósito: sin eso, una reserva
+  con un tramo cancelado antiguo y otro confirmado futuro se ordenaría por el cancelado.
+- Al identificarla, el nombre y el idioma salen de la RESERVA, no del perfil de WhatsApp: en el
+  panel se busca por el nombre con el que está reservado, y al huésped se le escribe en su idioma.
+
+⚠️ **Sólo aplica a conversaciones NUEVAS.** Las `manual` que ya existen no se promueven solas: si
+una conversación abierta coincide por teléfono, `resolveConversation()` la reutiliza y nunca llega
+a esta rama. Un huésped con una `manual` viva seguirá sin poder consultar su cuenta hasta que
+alguien la ate.
+
+#### 🏘️ Crear reserva vs añadir estancia: dos skills, un creador
+
+`crear_reserva` monta huésped + primera estancia. Pero «al grupo de Ana súmale la casita 2» o «se
+cambia a la 5 las dos últimas noches» no es eso: el huésped ya está, con su nombre, idioma y
+teléfono. Para eso está `crear_estancia`.
+
+Son dos skills y no una con un parámetro opcional porque fundirlas obligaría a decidir en
+ejecución si el `reserva_id` que llega significa «añade aquí» o «ignóralo y crea otra» — y
+equivocarse en esa lectura **duplica la reserva del mismo huésped**, que es el error más caro y el
+más difícil de deshacer.
+
+Cubre tres casos reales del parque, que hasta ahora sólo se hacían desde el calendario:
+
+1. Grupo que ocupa **varias casitas** las mismas fechas (una reserva, N estancias).
+2. **Cambio de casita a mitad**: dos tramos consecutivos en unidades distintas.
+3. **Alargar en otra casita** porque la suya está vendida esas noches.
+
+##### Lo difícil está en `PmsEstanciaCreator`, compartido
+
+Horas del establecimiento, disponibilidad, estados maestros y el **canal DIRECTO** los resuelve un
+servicio único. El canal es el que más silenciosamente rompe: sin él,
+`PmsCargosAutomaticosService::aplica()` no genera cargos y la estancia nace gratis sin que nada lo
+diga. `crear_reserva` lo hacía por dentro; ahora las dos pasan por el mismo sitio, que es lo que
+pedía el propio docblock del servicio.
+
+##### Lo que la previsualización enseña y no es evidente
+
+- **Las estancias que la reserva YA tiene.** Evita el error de añadir una casita a quien ya la
+  tenía porque nadie miró la lista.
+- **Que las fechas de la RESERVA se recalculan** — son el mín/máx de sus tramos—, y con ellas los
+  hitos del motor de reglas: **cuándo le llegan al huésped la guía de llegada y el aviso de
+  salida**. Sólo se avisa si el tramo nuevo de verdad las mueve; si cae dentro, decirlo sería ruido.
+
+##### Los rechazos
+
+| Caso | Respuesta |
+|---|---|
+| Sin `adultos` | `falta_datos` — y avisa de **no deducirlo** de la reserva: en un grupo repartido no es el mismo número por casita |
+| Casita ocupada | Error con quién la ocupa y las fechas, antes de pedir ningún dato más |
+| Reserva **cancelada** | Error: conserva nombre, fechas y chat, así que nada la delata; añadirle una estancia la resucitaría a medias |
+
+#### ✏️ Corregir una reserva: `modificar_reserva`
+
+Se podía crear una reserva y añadirle estancias, pero no **arreglarla**. Un teléfono mal
+apuntado, «al final vienen tres» o el caso más frecuente —«paga al llegar»— obligaban a entrar al
+panel. Cubre teléfono, `telefono2`, correo, idioma, adultos, niños y estado de pago.
+
+##### 🔑 `pago-alojamiento` no es un dato suelto: confirma y abre la guía
+
+Es la cadena que motivó la skill, y **no se ve desde ninguno de sus eslabones**:
+
+```
+estadoPago = pago-alojamiento (o parcial, o total)
+  → requiereAutoConfirmacionPorPago()          ⇒ estado = confirmada   (§9.5 doc de sync)
+  → PmsGuiaAcceso::paraEvento() deja de dar SinPago
+  → PmsGuiaAccesoEstado::pagoConfirmado()      ⇒ se abre el nivel ClienteConfirmado
+```
+
+Marcar que paga en el alojamiento **confirma la estancia y le desbloquea contenido de la guía**.
+Es lo que se quiere —quien paga al llegar tiene derecho a sus instrucciones—, pero aprobar
+«cambio el estado de pago» sin saber las otras dos no es aprobar lo que pasa. Por eso van las tres
+en `que_va_a_pasar`, incluida la que más descuadra si se olvida:
+
+> NO se apunta ningún importe: esto marca el estado, no el dinero. Si de verdad recibiste un pago,
+> regístralo con `registrar_pago` o la cuenta quedará descuadrada.
+
+##### Lo que deja fuera, y por qué
+
+| Fuera | Motivo |
+|---|---|
+| **Cancelar** | Dispara el push de cancelación al canal y toda la cadena de avisos (§12.12). Se hace en el calendario, viendo lo que se lleva por delante |
+| **Fechas y casita** | Es reprogramar, no corregir; en OTA está prohibido |
+| **Nombre del huésped** | Cambiarlo suele ser señal de que se está tocando la reserva equivocada |
+
+##### Un ámbito por campo
+
+Teléfono, correo e idioma son del **huésped** → viven en la reserva. Adultos, niños y estado de
+pago son de la **estancia**, y por eso con varias casitas se pregunta cuál: en un grupo repartido
+cada casita tiene su gente y puede tener su propio estado de pago. La casita **sólo** se pregunta
+si se toca alguno de esos tres — pedirla para corregir un email sería absurdo.
+
+⚠️ **El teléfono se guarda tal cual llega.** Lo normaliza `PmsReservaIntegrityListener` antes del
+INSERT (§12.9.b del doc de sync); sanearlo aquí sería una segunda verdad que se desincroniza.
+
+⚠️ **La previsualización llama a los setters** para poder describir el «antes → después», y luego
+hace `refresh()` de las entidades. Sin eso, un flush de cualquier otra cosa en la misma petición
+guardaría cambios que nadie aprobó. Verificado: tras previsualizar, la BD queda intacta.
+
+#### 🔔 «Te responderá una persona»: `escalar_al_equipo`
+
+Esa frase era **sólo texto**. El agente la decía —a veces porque una skill se lo sugería, a veces
+por su cuenta— y no pasaba nada más: ni marca, ni aviso, ni forma de preguntarle al sistema qué
+conversaciones tenían algo prometido. Se cumplía porque alguien miraba el chat, no porque el
+sistema lo recordara.
+
+Existía **un solo** camino automático, `AiConversationProcessor::generar()`: cuando el modelo no
+usaba ninguna skill (`motivo === 'sin_skill'`) se devolvía un acuse de recibo traducido a 7
+idiomas… y un `logger->info()`. El WebPush al equipo
+(`MessageConversationMercureListener`) se dispara con **cualquier** mensaje entrante, así que es
+el mismo aviso para un «hola» que para una promesa pendiente.
+
+⚠️ Y ese camino **nunca fue un escalado**: el acuse prometía una persona sin avisar a ninguna.
+Hoy sale mucho menos —sólo cuando el motor no devuelve texto, ver §9, *El saludo se entrega*—
+pero **sigue sin escalar**. Es lo que queda por cerrar aquí.
+
+Ahora el escalado es un hecho con dos efectos, **en este orden a propósito**:
+
+1. **La conversación queda sin leer** (`incrementUnreadCount`) y se reabre si estaba cerrada. Es
+   lo que sobrevive aunque falle todo lo demás: no depende de ninguna red.
+2. **WhatsApp a la guardia** — quien tenga `ROLE_CUSTOMER_SUPPORT` **y** móvil registrado— con el
+   nombre del huésped, el motivo en una frase y el enlace directo al chat.
+
+```
+🔔 *Desiree Egg* necesita respuesta
+
+Quiere salir a las 14:00 en vez de las 10:00 el sábado
+
+👉 https://util.openperu.pe/chat?id=019f4e12-…
+```
+
+El enlace usa `?id=`, el mismo formato que el push de Mercure, para que la SPA auto-seleccione la
+conversación: el operador toca y está dentro.
+
+##### 🗓️ El aviso trae los márgenes de la estancia
+
+Cuando llega «quiere salir a las 14:00», la primera pregunta del operador es siempre la misma:
+*¿está vendida esa noche?*. Va en el propio aviso, así que puede contestar desde el móvil sin
+abrir el calendario:
+
+```
+🔔 *César Hiroyasu* necesita respuesta
+
+Quiere salir a las 14:00 en vez de las 10:00 el domingo
+
+🏠 *Casita 1* (02/08 → 09/08)
+   Noche anterior a su entrada: ⛔ ocupada (Yerzalif Onsueta Vasquez)
+   Noche del día de su salida: ⛔ ocupada (Catherine Cochet)
+
+👉 https://util.openperu.pe/chat?id=019ec6c6-…
+```
+
+Lo calcula `PmsDisponibilidadService::margenesDe()`, con la **misma regla que el resto del
+servicio** (`IMPIDEN_VENTA` y solape por `DATE()`), así que un bloqueo por mantenimiento cuenta
+como ocupado: no es vendible aunque no haya huésped. La noche que importa para un late check-out
+es la **del día de salida**, que es la que ocuparía la extensión (§7.1.b del doc de sync).
+
+Con varias casitas se listan todas, porque la respuesta puede ser distinta en cada una.
+
+⚠️ **Sólo para el OPERADOR.** No se devuelve al huésped ni entra en `consultar_mi_reserva`
+—verificado—: saber que su casita está libre mañana le hace dar por hecho que puede quedarse, y
+eso no lo decide la disponibilidad sino una persona. La línea **informa, no autoriza**: libre
+significa que la conversación puede seguir; ocupada sí es concluyente.
+
+Lo propio no cuenta como ocupación ajena, y se compara **por reserva** y no por id de evento: las
+extensiones son eventos aparte que cuelgan por `eventoOrigen`, y buscarlas una a una sería una
+consulta extra por noche. Si el cálculo falla, el aviso sale sin esta línea — que llegue el
+escalado importa más que el extra.
+
+**Lo dispara el modelo**, no las skills: es quien sabe si acaba de prometer algo. No hay nada
+determinista detrás — es su criterio, guiado por la descripción.
+
+##### 🔥 …pero durante un tiempo el huésped no la tuvo
+
+Se escribió para el huésped —`rolesRequeridos()` lleva `Roles::HUESPED` desde el primer día— y
+aun así **no se le ofrecía nunca**. Estaba declarada `NivelRiesgo::Escritura`, y el chat del
+huésped se abre con `permitirEscritura: false`, que entonces filtraba *todo* lo que no fuera
+`Lectura`. Comprobado con `app:agent:permisos`: el perfil «Huésped (chat)» tenía 4 skills y
+ninguna era ésta.
+
+O sea: el prompt le ordenaba llamarla y la herramienta no existía en su contexto. El huésped
+—que es quien tiene el problema y el primero que tiene que poder levantar la mano— sólo obtenía
+el acuse de recibo genérico, y no se avisaba a nadie.
+
+Se arregló con `NivelRiesgo::Interna`, no bajándola a `Lectura` ni abriendo la escritura del
+canal: ver *🔥 `Interna`: por qué el filtro no es «¿escribe algo?»* más arriba en §11.
+
+##### 🔥 La regla es PREGUNTAR vs PEDIR, no «lo sé / no lo sé»
+
+La primera versión de la descripción decía «úsala para lo que no puedas resolver tú … **o
+cualquier cosa que no esté en su guía**», y eso se contradice justo donde más duele.
+
+Dos huéspedes preguntan lo mismo —«¿puedo quedarme hasta más tarde?»— y sus guías no son iguales:
+
+| | Casita 1 | Casita 2 |
+|---|---|---|
+| Tema en la guía | ✅ «Horario de ingreso y salida» | ❌ no lo tiene |
+| Qué sabe el agente | sujeto a disponibilidad, con coste, coordinar con 1 día | sólo la hora de salida |
+| Qué hacía la descripción vieja | **le decía que NO escalara** (está en su guía) | escalar, obvio |
+
+Es al revés de lo que parece: **el caso que más necesita a una persona es el que más información
+tiene**. Su propia guía dice «coordínalo con un día de anticipación», o sea que exige a alguien
+que mire si esa noche está libre. Y la paradoja es que cuanta más información tiene el agente,
+más fácil es que se sienta capaz de cerrar el tema solo.
+
+La regla correcta separa dos cosas que no son lo mismo:
+
+```
+PREGUNTAR → quiere SABER algo ya escrito («¿a qué hora es el check out?»)
+            → lo responde el agente con la guía, NO escala
+PEDIR     → quiere que PASE algo que depende de nosotros (salir tarde, cambiar
+            fechas, una avería, un cobro raro)
+            → escala SIEMPRE, aunque su guía explique las condiciones
+```
+
+Que la guía diga «sujeto a disponibilidad y con coste» le deja **contar las condiciones**, no
+**concederlo**: nadie ha mirado si esa noche está vendida. Al revés, que la guía pida coordinar
+es la prueba de que hace falta una persona.
+
+##### El mecanismo estandarizado: la orden viaja en el DATO
+
+Dejarlo en «criterio del modelo» no basta, porque la regla general hay que recordarla justo
+cuando se acaba de leer un texto que parece resolverlo todo. Así que se marca en el ítem —
+`PmsGuiaItem::$agenteRequiereHumano`, casilla «🔔 Requiere confirmar con una persona»— y
+`consultar_guia` devuelve la instrucción **pegada al contenido**:
+
+```
+tema:          Horario de ingreso y salida
+debes_escalar: "Cuéntale lo que dice la guía, pero NO se lo concedas: esto lo confirma
+                una persona. Llama a escalar_al_equipo en este mismo turno…"
+```
+
+Se anuncia además en el **catálogo** (`necesita_confirmacion_humana`), para que el modelo pueda
+decidir desde el índice y no después de haber redactado la respuesta.
+
+Lo decide quien edita la guía, sin tocar código. Y el `help` del CRUD insiste en lo
+contraintuitivo: **márcalo aunque el texto ya explique las condiciones**, que es justo cuando
+hace falta.
+
+Los temas informativos —la ducha, el wifi— no lo llevan y siguen resolviéndose solos.
+
+##### 🪞 El system prompt iba en contra, y también se corrigió
+
+El prompt del autoresponder es anterior a `escalar_al_equipo` y decía tres veces «ofrece que un
+compañero lo confirme» / «dile que un compañero le atiende enseguida» **sin nombrar la skill**:
+autorizaba la promesa y no daba el mecanismo. Ahora lleva la distinción preguntar/pedir y la
+regla dura:
+
+> ⚠️ SIEMPRE que le digas que alguien le va a contestar, llama a «escalar_al_equipo» en ese mismo
+> turno. Si lo prometes y no la llamas, no se entera nadie y se queda esperando.
+
+Y se le prohíbe explícitamente prometer plazos («enseguida», «en 5 minutos»), que es lo que decía
+antes y no puede saber.
+
+##### 🔁 La insistencia: lo que el flag del ítem NO puede cubrir
+
+```
+huésped:  «no sale agua caliente»
+agente:   [manda las instrucciones de la ducha]        ← correcto
+huésped:  «ya lo probé, sigue fría»                    ← ¿y ahora?
+```
+
+Sin regla, el modelo repite la misma explicación. Y repetir lo mismo a quien ya tiene un problema
+es lo que más enfada.
+
+**`agenteRequiereHumano` no sirve aquí**, y conviene entender por qué: ese flag es por TEMA, y el
+ítem de la ducha vale para las dos situaciones —«¿cómo funciona?» (informar) y «no funciona»
+(avería)—. Marcarlo haría escalar también a quien sólo pregunta cómo se abre el grifo. La
+diferencia no está en el tema sino en el TURNO, así que la regla vive en el prompt:
+
+> ⚠️ SI YA SE LO EXPLICASTE Y VUELVE A INSISTIR, no repitas la explicación: mira el historial. Que
+> diga otra vez «sigue sin funcionar» o «ya lo probé» significa que las instrucciones no eran el
+> problema — es una AVERÍA y necesita que alguien vaya.
+
+El modelo tiene con qué cumplirla: `historial()` le pasa los últimos turnos, así que ve lo que ya
+respondió.
+
+Y en este caso concreto la propia guía lo respalda desde la primera respuesta —«las duchas
+funcionan con gas propano… si se termina el agua caliente, es probable que el tanque esté vacío,
+avísanos y lo reemplazaremos»—, así que el agente puede ofrecer el aviso ya de entrada en vez de
+esperar a la segunda queja.
+
+**Regla general que se ve aquí:** lo que depende del TEMA se marca en el dato
+(`agenteRequiereHumano`); lo que depende de CÓMO VA LA CONVERSACIÓN sólo puede vivir en el prompt.
+
+##### 🔥 La ventana de 24 h de Meta lo bloquea, y hay que saberlo
+
+WhatsApp sólo deja mandar texto libre a quien te escribió en las últimas 24 h. Un operador de
+guardia **no escribe al número del negocio todos los días**, así que lo normal es estar fuera de
+ventana. Probado de punta a punta: el mensaje se crea y se encola bien, y muere con
+
+```
+Operación denegada. La ventana de 24 horas de WhatsApp ha caducado.
+Para iniciar o retomar el contacto … DEBES seleccionar una Plantilla Oficial.
+```
+
+Para que el WhatsApp salga siempre hace falta **una plantilla de aviso interno aprobada por
+Meta** con dos variables (huésped y enlace). No la hay: las 11 existentes son todas para
+huéspedes. Es trámite externo, no código.
+
+Por eso el orden importa: la **marca de no leído se pone primero y con su propio flush**, así que
+el caso queda visible en el panel aunque el aviso no salga. Y la respuesta al modelo distingue
+los dos mundos —`marcada_pendiente` siempre, `aviso_encolado` sólo si salió— para que no le
+prometa al huésped un aviso que no existe.
+
+##### Sin guardia configurada no se calla
+
+Si nadie tiene el rol **y** teléfono, se marca igual y se devuelve una `advertencia` que le dice
+al modelo que no prometa plazos, más un `warning` en el log. Es un fallo de configuración, no de
+la skill, y esconderlo lo haría eterno.
+
+##### Las conversaciones `staff`
+
+`WhatsappMetaSendEnqueuer` saca el número destino de `MessageConversation::$guestPhone`, así que
+para escribirle a un operador hace falta una conversación suya. Se crea la primera vez con
+`contextType = 'staff'` y `contextId` = su UUID, y **no** se reutiliza `manual` —el walk-in de un
+desconocido— porque quien filtre la bandeja tiene que poder separarlas: esto no es un huésped.
+
+El teléfono se refresca en cada aviso: si el operador cambia de móvil, los siguientes van al
+nuevo sin tocar nada.
 
 #### 🔤 Encontrar al huésped: el eslabón del que cuelgan todos los demás
 
@@ -1405,6 +2273,76 @@ La descripción de la skill le dice al modelo explícitamente que **no convierta
 tipo de cambio disponible no se inventa uno: se devuelve el error y lo mete una persona — un
 cargo con una cifra inventada es peor que un cargo que falta.
 
+#### 🔥 El TC se sella aunque no haya nada que convertir
+
+Las dos skills consultan `TipoCambioDelDia::venta()` **siempre**, coincidan o no las monedas, y
+lo guardan en el registro. Antes sólo lo hacían cuando había conversión (el `if` colgaba del
+mismo `$tipoAplicado` que se rellenaba dentro del bloque de conversión), y eso producía cargos y
+pagos **cojos**: el día que alguien cambia la moneda base de la cuenta, todos los que se
+guardaron «en la moneda de casa» se quedan sin TC y **pasan a aportar 0** al total (§12.2 de
+`PmsBeds24ReservasSync.md`) — hay que ir uno por uno a repararlos.
+
+Es el mismo criterio que el panel ya aplicaba (`tcSiempre` en
+`util/src/components/reservas/ReservaFinanzasPanel.vue`), y por la misma razón: sellarlo de más
+nunca deforma un total, porque `PmsInformacionFinanciera::aMonedaBase()` lo ignora cuando la
+moneda del registro ya es la de la cabecera; que falte sí lo rompe.
+
+⚠️ **Dos variables distintas a propósito:** `$tipoDelDia` es lo que se persiste; `$tipoAplicado`
+(sólo poblado si hubo conversión) es lo que viaja al modelo. Reportarle un tipo «aplicado»
+cuando las monedas coincidían le hace narrarle al operador una conversión que no ocurrió.
+
+#### 🏠 A qué casita se carga: se pregunta, no se adivina
+
+«Añade la limpieza a Carlitos» no dice a qué casita, y Carlitos puede tener tres. Un cargo
+manual **no tiene `beds24BookingId`** del que colgarse —esa pista sólo la traen los invoiceItems
+del canal (§11.6 de `PmsBeds24ReservasSync.md`)—, así que su estancia la fija la FK `evento`. Sin
+rellenarla el cargo se guarda igual, pero el panel lo pinta en «Cargos de la reserva», repartido
+contra todas las casitas en vez de contra la que lo generó.
+
+`registrar_cargo` acepta `evento_id` opcional y resuelve en tres casos:
+
+| Estancias imputables | Qué hace |
+|---|---|
+| 1 | La elige sola, sin preguntar — igual que `abrirNuevoCargo()` en el panel |
+| Varias, sin `evento_id` | Devuelve `falta_datos: ["evento_id"]` con la lista (casita + fechas) y una `pregunta` que el modelo traslada al operador |
+| `evento_id` indicado | Se valida **contra las estancias de esa reserva**, no con un `find()` suelto: un id de otra reserva imputaría el cargo a un huésped que no lo debe |
+
+⚠️ La lista usa el mismo criterio que `buscar_estancias_de_reserva` (fuera extensiones §7.1.b y
+canceladas), y **no** el de `PmsInformacionFinanciera::getEstancias()`, que no filtra nada porque
+su trabajo es otro: traducir claves para agrupar lo ya guardado. Ofrecerle al operador una lista
+distinta de la que acaba de ver le haría elegir sobre algo que no reconoce.
+
+Comprobado contra una reserva real de 7 eventos → 4 estancias ofrecidas:
+
+```
+falta_datos: ["evento_id"]
+estancias:   Casita 4 (09-19→09-25) · Casita 6 (09-19→09-24) · Casita 7 · Casita 1
+pregunta:    "Esta reserva tiene 4 casitas. Pregúntale al operador a cuál se le carga
+              «Limpieza extra», y vuelve a llamarme con su evento_id."
+```
+
+#### 🚫 Cuenta anulada: `registrar_cargo` avisa de que el cargo no sumará
+
+Sobre una cabecera con `activa = false` (reserva cancelada, §12.7), el recálculo sólo suma los
+cargos de tipo `penalizacion`:
+
+```sql
+AND (i2.activa = 1 OR c.tipo_cargo = 'penalizacion')   -- PmsInformacionFinancieraRecalculoService
+```
+
+Cualquier otro tipo se guarda pero **no mueve el saldo**. La skill lo detecta antes de
+confirmar: resuelve el `tipo` arriba (antes de la previsualización), simula con **delta 0** y
+devuelve `advertencia` sugiriendo `tipo="penalizacion"` si lo que se quiere es cobrar la
+cancelación. Su descripción ordena al modelo leérsela al operador.
+
+Sin esto la previsualización prometía «cargos 30 → 50» y el listener de coherencia lo descartaba
+justo después: la skill respondía «Cargado 20.00 USD» sobre un saldo que no se había movido —
+exactamente el fallo que una previsualización existe para impedir. Por eso la respuesta de
+confirmación devuelve además `saldo_real`, releído tras el flush, como ya hacía `registrar_pago`.
+
+`registrar_pago` **no** necesita este guardia: el subquery de pagos no filtra por `activa`, así
+que un pago siempre resta.
+
 ### Detalle sí, pero sólo cuando se pide
 
 `consultar_cuenta` devuelve los cargos y pagos línea a línea. **No duplica los totales**:
@@ -1427,6 +2365,26 @@ Dos cosas que la skill filtra a propósito:
 
 Es un patrón a repetir en cualquier skill nueva: **un dato que un humano tolera en pantalla
 puede ser ruido o mentira dicho en voz alta por el agente.**
+
+#### 🔒 La cuenta la consulta también el huésped, y ahí el contexto MANDA
+
+`consultar_cuenta` está en `[ROLE_HUESPED, ROLE_RESERVAS_SHOW]`. Cuánto debe es de las dos o
+tres cosas que un huésped pregunta de verdad, y «¿por qué me cobráis esto?» o «¿cómo pago lo
+que queda?» sólo se contestan con el desglose y con la línea de recargo de tarjeta.
+
+Pero el huésped **no tiene `buscar_reserva`**: no puede llegar a un `reserva_id` legítimamente.
+Un id que aparezca en su turno es un id que alguien le sopló o que el modelo se inventó.
+
+Por eso, cuando la conversación tiene contexto `pms_reserva`, **el parámetro `reserva_id` se
+IGNORA** y se usa `ActorInterface::contextoId()` (`ConsultarCuentaSkill::reservaDelContexto()`).
+No se valida el parámetro contra el contexto: **se descarta**. Comparar deja la puerta abierta
+a que un cambio futuro invierta la condición; descartar no tiene forma de fallar hacia el lado
+malo. Desde el panel no hay contexto de chat, así que ahí el parámetro manda como siempre.
+
+Es la variante «con parámetro opcional» del patrón de `ConsultarMiReservaSkill` —que directamente
+no tiene dónde escribir otra reserva—, y se acepta sólo porque la misma skill la usan los dos
+lados. Comprobado con las dos reservas de Susan: pasando el id de la otra desde el chat, la
+skill devuelve la del contexto.
 
 ### Escribirle al huésped: localizar y enviar
 
@@ -1483,7 +2441,193 @@ php bin/console app:agent:skill buscar_reserva '{"busqueda":"x"}' --como-huesped
 El primero es la comprobación obligatoria al añadir una skill: si aparece en la fila de un
 perfil que no debería, ese perfil puede invocarla.
 
-## 12. Dónde tocar para cambiar X
+## 12. Proveedores de IA: elegir motor y modelo
+
+Hasta aquí el módulo hablaba con **un** proveedor, fijado por un alias en
+`services_agent.yaml`. Cambiarlo pedía desplegar, y sobre todo impedía lo único que de verdad
+resuelve la duda de qué motor usar: **hacerle la misma pregunta a los dos, seguidos, con las
+mismas skills**. Eso es lo que añade `AgentEngineRegistry`.
+
+### Cómo se registra un motor
+
+```
+  AgentEngineInterface  ──(tag app.agent_engine, por _instanceof)──►  AgentEngineRegistry
+       ▲         ▲                                                          │
+  AnthropicEngine  GoogleAIEngine                                           │
+                                                              ┌─────────────┴─────────────┐
+                                                        PanelAssistant          AiConversationProcessor
+                                                     (proveedor por petición)   (siempre el por defecto)
+```
+
+El tag lo pone `_instanceof` en `config/services/services_agent.yaml`: **implementar la
+interfaz basta**. Un proveedor nuevo es una carpeta en `src/Agent/Provider/` y sus variables
+de entorno; no se toca el cableado ni ninguna de las 22 skills.
+
+### Quién contesta cada llamada
+
+| Quién pregunta | Motor | Por qué |
+|---|---|---|
+| Chat del huésped (`AiConversationProcessor`) | `AGENT_IA_PROVEEDOR`, siempre | Qué proveedor atiende a un cliente real es decisión de configuración, no algo que se negocie por conversación |
+| Panel (`PanelAssistant`) | El del desplegable, o el de por defecto | Es la caja de pruebas: aquí se compara antes de decidir |
+| `app:agent:preguntar` | `--motor` / `--modelo`, o el de por defecto | Comparar desde la terminal sin abrir el navegador |
+
+Dos reglas de resolución **asimétricas a propósito** (`AgentEngineRegistry::elegir()`):
+
+- **Sin nombre** → el de `AGENT_IA_PROVEEDOR`; si ese no tiene clave, el primero que sí la
+  tenga. Un entorno a medio configurar tiene que seguir contestando.
+- **Con nombre** → ese y sólo ese. Aquí **no** se cae hacia otro: quien está comparando
+  proveedores necesita enterarse de que el que pidió no está configurado, no recibir en
+  silencio la respuesta del otro y sacar la conclusión contraria.
+
+Por eso `PanelAssistant::preguntar()` devuelve también `proveedor` y `modelo`: una respuesta
+sin firmar no sirve para comparar. La barra del panel la pinta bajo cada turno, y la guarda
+**por turno** —no repinta el hilo con el motor seleccionado ahora—.
+
+### La lista blanca de modelos
+
+`<PROVEEDOR>_MODEL` es el de por defecto; `<PROVEEDOR>_MODELS` es la lista que el panel puede
+pedir. Es **lista blanca, no catálogo informativo**: `AgentEngineRegistry::validarModelo()`
+rechaza con un 400 lo que no esté en ella. Sin eso, un POST suelto a `/agent/consulta` podría
+disparar el modelo más caro del proveedor tantas veces como quiera.
+
+`CatalogoModelos::desde()` garantiza la invariante que evita la configuración rota: **el
+modelo por defecto siempre está en la lista**, aunque uno se olvide de añadirlo a `_MODELS`.
+
+| Variable | Para qué |
+|---|---|
+| `AGENT_IA_PROVEEDOR` | `anthropic` \| `google`. Quién contesta por defecto |
+| `ANTHROPIC_API_KEY` / `GOOGLE_AI_API_KEY` | Vacía = ese proveedor no existe para el registro |
+| `ANTHROPIC_MODEL` / `GOOGLE_AI_MODEL` | Modelo por defecto de cada uno |
+| `ANTHROPIC_MODELS` / `GOOGLE_AI_MODELS` | Lista blanca, separada por comas |
+| `GOOGLE_AI_THINKING` | `low` \| `high` \| vacío. Acota el razonamiento de Gemini — ver «Latencia y cuota» |
+
+### El conector de Google, en lo que se aparta de Anthropic
+
+Google **no publica cliente PHP oficial** para la API de Gemini, y los de la comunidad van por
+detrás justo en el *function calling*. `GoogleAIClient` envuelve la API REST con el
+`HttpClientInterface` que ya usa `src/Exchange/`: menos código que vigilar que una dependencia
+más. La clave viaja en la cabecera `x-goog-api-key` y no en `?key=`, donde acabaría en los
+logs de acceso de cualquier proxy por el que pase.
+
+**El bucle de herramientas es manual.** El SDK de Anthropic trae `toolRunner` y ejecuta los
+callbacks solo; en Gemini lo lleva `GoogleAIEngine::conversar()`: pedir → mirar si vinieron
+`functionCall` → ejecutar → devolver `functionResponse` → repetir. De ahí que
+`GoogleAISkillAdapter` exponga dos mitades sueltas (`declaraciones()` y `ejecutar()`) donde el
+de Anthropic expone una sola con callback dentro.
+
+⚠️ **Gotchas de Gemini que costaron encontrar** —los tres fallan con un 400 opaco que no dice
+cuál de las 22 herramientas es la culpable—:
+
+1. **Una declaración con `parameters` de tipo OBJECT y sin propiedades revienta el turno
+   entero**, no sólo esa llamada. Anthropic acepta el `{}` vacío. `GoogleAISkillAdapter::esquema()`
+   devuelve `null` y la clave se omite; hoy afecta a `consultar_mi_reserva`.
+2. **El esquema es OpenAPI, no JSON Schema**: el tipo es un enum en MAYÚSCULAS (`STRING`,
+   `INTEGER`, `BOOLEAN`). En minúsculas cuela según la versión de la API y falla en otras.
+3. **`functionResponse.response` tiene que ser un objeto JSON.** Una skill que devuelva una
+   lista, o un `[]` vacío, se serializa como array y da 400 — por eso el adaptador **no** usa
+   `SkillResult::aJson()` (que sí usa el de Anthropic) y envuelve bajo `resultado` cuando hace
+   falta.
+4. **`functionCall.args` vuelve a `{}` y hay que devolverlo como `{}`.** Cuando el modelo llama
+   a una skill sin argumentos, `json_decode(…, true)` convierte ese `{}` en `[]` y al reenviar
+   el turno sale una lista. `args` es un `Struct`: la API tumba el turno entero con
+   `Proto field is not repeating, cannot start list`. Lo arregla
+   `GoogleAIEngine::devolverParte()`. **Sólo salta en la segunda vuelta**, con la skill ya
+   ejecutada, así que no aparece en ninguna prueba que no use herramientas.
+
+El 1, el 3 y el 4 son la misma raíz —**PHP no distingue objeto vacío de lista vacía** y Gemini
+sí—. Si aparece un 400 raro al tocar este motor, empieza por ahí.
+
+Y dos diferencias de comportamiento que conviene tener presentes al comparar:
+
+- **Sin caché de prompts.** Gemini lo tiene, pero explícito y con mínimo de tokens; para el
+  tamaño de system prompt de este proyecto no compensa. El segundo turno de Gemini es
+  proporcionalmente más caro que el de Anthropic, donde el `cacheControl: ephemeral` del
+  system prompt se lleva la mayor parte del ahorro.
+- **Los rechazos llegan por dos sitios**: `promptFeedback.blockReason` cuando los filtros
+  tumban la pregunta, y `finishReason` (`SAFETY`, `RECITATION`…) cuando cortan la respuesta a
+  medio generar. Los dos acaban en `ConversationResponse::rechazada()`, igual que el
+  `stopReason === 'refusal'` de Anthropic.
+
+`MAX_VUELTAS = 8` es el freno que en Anthropic pone el SDK: sin él, un modelo que insista en
+llamar a la misma skill deja el turno girando y quemando dinero hasta el timeout de PHP.
+
+### ⏱️ Latencia y cuota: lo que mide de verdad
+
+Un turno de Gemini tardaba **35 s** la primera vez que funcionó. El desglose, medido, sirve
+para no volver a buscar donde no está:
+
+| Sospechoso | Medido | Veredicto |
+|---|---|---|
+| Las skills | `consultar_disponibilidad` → **3 ms** | Descartado. `app:agent:skill` las cronometra sin modelo |
+| El tamaño del payload | 34 KB de declaraciones = **9.169 tokens** de entrada | Grande, pero una llamada con él y salida corta va en **2 s** |
+| El razonamiento | «di solo: hola» gastaba **159 tokens de pensamiento** | 🔴 Culpable. Los Gemini 3.x razonan por defecto |
+
+**`GOOGLE_AI_THINKING=low`** lo acota (159 → 0 tokens en el caso trivial). Se aplica en
+`GoogleAIEngine::conversar()` como `generationConfig.thinkingConfig.thinkingLevel`.
+
+⚠️ **`thinkingBudget` NO vale**: es el parámetro de la generación 2.5 y los modelos 3.x lo
+rechazan con `Request contains an invalid argument`. Al revés también: si vuelves a meter un
+2.5 en la lista blanca, `thinkingLevel` le dará 400 — deja la variable vacía y cada modelo usa
+su defecto. Es la razón de que el valor sea configurable y no una constante.
+
+Se paga en **cada vuelta** del bucle de herramientas, no una vez por turno: por eso pesa más
+aquí que en un chat sin tool use.
+
+**🚧 Cuota del plan gratuito de AI Studio: 20 peticiones AL DÍA y POR MODELO.**
+
+No por minuto — es el error más fácil de cometer, porque el 429 miente:
+
+```
+Google AI 429: limit: 20, model: gemini-3.6-flash — Please retry in 49s
+```
+
+Ese `retryDelay` de ~50 s invita a reintentar, y no sirve de nada: la cuota no se repone hasta
+el reinicio diario. El dato bueno está en `error.details[].quotaId`, que el mensaje resumido
+no enseña. Para verlo, un `curl` directo (los 429 **no** consumen cuota, así que preguntar es
+gratis):
+
+```
+quotaId:    GenerateRequestsPerDayPerProjectPerModel-FreeTier
+quotaValue: 20
+```
+
+`PerProjectPerModel`: el saldo es **por modelo**, no del proyecto entero. Con
+`gemini-3.6-flash` agotado, `gemini-3.1-pro` y `gemini-3.5-flash-lite` siguen enteros — el
+desplegable del panel sirve de válvula de escape, y para medir sin gastar del modelo bueno.
+
+Un turno del agente gasta **1 petición por vuelta**: 1 si contesta de memoria, 2 si usa
+skills (aunque pida varias a la vez: van en la misma vuelta), 3 si necesita el resultado de
+una para saber qué pedir después. Medido, `«¿quiénes entran hoy?»` = 2. O sea **~8 preguntas
+al día por modelo**, entre todo el equipo: suficiente para probar, no para operar. **Con el
+plan gratuito, `AGENT_IA_AUTORESPONDER=1` sobre Google no es viable** — hay que activar
+facturación en el proyecto o dejar el autoresponder en Anthropic.
+
+Hoy un 429 sube como `RuntimeException` y el operador ve «El asistente no está disponible
+ahora mismo», sin distinguir cuota agotada de caída: si el panel se usa en serio con Gemini,
+eso hay que separarlo.
+
+Para diagnosticar, `GoogleAIEngine::conversar()` registra una línea por vuelta con tiempo y
+tokens de entrada / pensamiento / salida. Sin eso, un turno lento es una caja negra:
+
+```
+Agent (google): vuelta 1 · 2.3 s · entrada 9169 · pensamiento 0 · salida 43 tokens.
+```
+
+### 🧪 Recalibrar el prompt es obligatorio
+
+Lo que la frontera **no** abstrae son los prompts (§11). El system prompt del panel está
+afinado contra Anthropic; Gemini con el mismo texto invoca skills con otra frecuencia y
+resume más. Antes de mover `AGENT_IA_PROVEEDOR` en producción, pasa por el desplegable del
+panel las preguntas que ya sabes contestar y compara **qué herramientas usó cada uno** —la
+firma bajo cada respuesta lo dice—, no sólo si el texto suena bien.
+
+```bash
+# La misma pregunta, los dos motores, y a comparar herramientas y latencia.
+php bin/console app:agent:preguntar --motor=anthropic "¿qué casitas tengo libres del 12 al 15 de marzo?"
+php bin/console app:agent:preguntar --motor=google --modelo=gemini-2.5-pro "¿qué casitas tengo libres del 12 al 15 de marzo?"
+```
+
+## 13. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
@@ -1503,13 +2647,55 @@ perfil que no debería, ese perfil puede invocarla.
 | Añadir un idioma al footer «responde con el número» | `Beds24SendMappingStrategy` | `getMenuTranslations()` |
 | Que una opción del menú pueda responderse por Airbnb/Booking | EasyAdmin | `beds24Tmpl.is_active` de la plantilla de respuesta — §8 |
 | **Añadir una capacidad al agente** | `src/Agent/Skill/` | Una clase con `SkillInterface` — §11. No se toca motor ni adaptador |
+| Cambiar cómo nace una estancia (horas, estados, canal) | `PmsEstanciaCreator` | `crear()` — lo comparten `crear_reserva` y `crear_estancia`, **no lo dupliques** |
+| Añadir otra casita o tramo a una reserva existente | `CrearEstanciaSkill` | `ejecutar()` — §11. Para un huésped nuevo es `crear_reserva` |
+| Corregir datos de una reserva desde el agente | `ModificarReservaSkill` | `camposDelHuesped()` (reserva) / `camposDeLaEstancia()` (evento) |
+| Cambiar qué estados de pago confirman y abren la guía | `PmsEventoEstadoPago` | `ESTADOS_PAGO_CONFIABLES` — lo leen la auto-confirmación **y** `PmsGuiaAcceso` |
 | Cambiar quién puede usar una skill | la propia skill | `rolesRequeridos()` — comprueba con `app:agent:permisos` |
 | Que el agente sepa que puede dar un dato que ya devuelve | la propia skill | `definicion()->descripcion` — **no el system prompt**, §11 |
 | Permitir que el agente mueva fechas de estancia | `AplicarCambioHorarioSkill` | `in_array()` de `ejecutar()` **y** `aplicable_por_el_agente` en `EvaluarCambioHorarioSkill::evaluarMoverFecha()` — §11, los dos o ninguno |
 | Cambiar el enlace a la guía o al catálogo de tours | `config/services/services_parameters.yaml` | `pax_book_guide_url` = `PAX_HOST_URL` + localizador; se arma en `PmsMessageDataResolver::getMessageVariables()` |
 | Cambiar si algo pide confirmación o PIN | la propia skill | `nivelRiesgo()` — §11 |
 | Acotar una skill a la reserva del que pregunta | la propia skill | Usa `$actor->contextoId()`, no un parámetro — §11 |
-| **Cambiar de proveedor de IA / actualizar el SDK** | `src/Agent/Provider/<Proveedor>/` | Implementa `AgentEngineInterface` y cambia el alias en `services_agent.yaml` — §11 |
-| Cambiar cómo se traduce una skill al formato del proveedor | `AnthropicSkillAdapter` | `esquema()` — único sitio que conoce el formato |
+| **Cambiar el proveedor de IA por defecto** | `.env` | `AGENT_IA_PROVEEDOR` — §12. Recalibra el prompt antes: la frontera no abstrae los prompts |
+| **Añadir un proveedor nuevo** | `src/Agent/Provider/<Proveedor>/` | Implementa `AgentEngineInterface`; `_instanceof` lo etiqueta solo. No se toca ninguna skill — §12 |
+| Añadir o quitar un modelo del desplegable del panel | `.env` | `ANTHROPIC_MODELS` / `GOOGLE_AI_MODELS` — es lista blanca: lo que falte se rechaza con 400, §12 |
+| Cambiar quién contesta cuando el proveedor pedido no tiene clave | `AgentEngineRegistry` | `elegir()` vs `porDefecto()` — asimetría deliberada, §12 |
+| Cambiar cómo se traduce una skill al formato del proveedor | `AnthropicSkillAdapter` / `GoogleAISkillAdapter` | `esquema()` — únicos sitios que conocen el formato de cada API |
+| Tocar el bucle de herramientas de Gemini | `GoogleAIEngine` | `conversar()` — es manual, sin SDK; `MAX_VUELTAS` es el freno de coste, §12 |
+| Que Gemini responda más rápido / piense más | `.env` | `GOOGLE_AI_THINKING` — `low` quita el razonamiento, que se paga en CADA vuelta. `thinkingBudget` no vale en 3.x, §12 |
+| Saber por qué un turno de Gemini tardó tanto | `var/log/dev.log` | Línea `Agent (google): vuelta N` con tiempo y tokens — §12 |
+| Que el panel deje elegir motor y modelo | `AsistenteBar.vue` + `PanelAssistantController::motores()` | El catálogo lo sirve el backend: depende de qué claves tenga ESE entorno, §12 |
 | Cambiar qué se hace cuando el modelo no usa ninguna skill | el adaptador del canal | `PanelAssistant::texto()` / `AiConversationProcessor::generar()` — §11 |
+| Cambiar en qué idioma se guarda un mensaje del agente | `MessageTranslator` | `process()` — el caso saliente se distingue por `DIRECTION_OUTGOING`, §9 |
 | Entender por qué un mensaje no salió | `var/log/` | busca "Omisión preventiva", "Rescate descartado", "Poda de canales", "Caducidad", "Sanidad" |
+| Cambiar cuándo se sella el tipo de cambio de un cargo/pago del agente | `RegistrarCargoSkill` / `RegistrarPagoSkill` | `$tipoDelDia` (se persiste, siempre) vs `$tipoAplicado` (se reporta, sólo si hubo conversión) — §11, espejo del `tcSiempre` del panel |
+| Cambiar qué estancias se ofrecen al imputar un cargo del agente | `RegistrarCargoSkill` | `estanciasImputables()` — mismo filtro que `BuscarEventoEstanciaSkill`, **no** el de `getEstancias()` |
+| Cambiar quién puede figurar como cobrador de un pago | `PmsEnumAjaxController::getCobradores()` **y** `RegistrarPagoSkill::cobradoresPosibles()` | Filtro `ROLE_COBRADOR` sobre `u.roles` — los dos o el agente admite a quien el panel no ofrece |
+| Cambiar en qué medios de pago se pregunta por el cobrador | `PmsMedioPago` | `seCobraEnMano()` — fuente única |
+| Cambiar a quién se atribuye un pago si no se dice quién cobró | `User` | Flag `esCobradorPrincipal`, editable en el CRUD de usuarios |
+| Probar una skill como una persona real (sus roles, su identidad) | — | `app:agent:skill <skill> '{...}' --usuario=<username>` |
+| Construir un actor del agente (siempre por aquí) | `AgentActorFactory` | `delPanel()` / `delEquipoPorChat()` — expanden la jerarquía de roles. `AgentActor::` a secas se queda en los literales |
+| Registrar el móvil de alguien del equipo | `User::$telefono` + CRUD de usuarios | Se normaliza solo (`UserIntegrityListener`); §12.9.b del doc de sync |
+| **Quién recibe los avisos del asistente** | CRUD de usuarios | Rol «🆘 Atención al cliente» (`ROLE_CUSTOMER_SUPPORT`) **+ móvil**. Las dos cosas o no llega nada |
+| Cambiar qué se escribe en el aviso de escalado | `EscalarAlEquipoSkill` | `redactar()` |
+| Que el aviso salga fuera de la ventana de 24 h | Meta, no el código | Dar de alta una plantilla oficial de aviso interno y enchufarla en `avisar()` |
+| Cambiar cuándo un número «es» de una reserva | `PmsReservaRepository` | `findVivasByTelefono()` + `DIAS_GRACIA_TRAS_SALIDA` / `DIAS_ANTICIPACION` |
+| Cambiar qué estados dan derecho a consultar la propia reserva | `PmsEventoEstado` | `IDENTIFICAN_HUESPED` — **no** reutilizar `OCUPAN_UNIDAD`, ver su docblock |
+| Cambiar cuál se elige si un número tiene varias reservas | `PmsReservaRepository` | `findVivasByTelefono()` (orden) + `tramoRelevante()` — actual > próxima |
+| Que el operador vea (o no) las reservas canceladas al buscar | `BuscarReservaSkill` | Filtro por `isCancelada()` + parámetro `incluir_canceladas` |
+| Cambiar el orden en que se le presentan las reservas al operador | `BuscarReservaSkill` | `ordenarPorPertinencia()` — alojado ahora > por llegar > ya se fue |
+| **Reconocer al equipo en el chat entrante** (pendiente) | `AiConversationProcessor::generar()` | Hoy siempre `AgentActor::huesped()`. Falta consultar `UserRepository::findByTelefono()` y, si hay usuario, `delEquipoPorChat()` |
+| Cambiar qué tipos de cargo suman en una cuenta anulada | `PmsInformacionFinancieraRecalculoService` **y** `RegistrarCargoSkill` | el `AND (i2.activa = 1 OR …)` del SQL y la `$advertencia` de la skill — los dos o la previsualización vuelve a mentir |
+| **Cuánto espera el bot a que el huésped termine de escribir** | `.env` | `AGENT_IA_ESPERA_RAFAGA` — §9. Si lo subes, revisa `check_delayed_interval` en `messenger.yaml`: el retraso real es la suma |
+| Que el retraso de la espera de ráfaga se note en el chat | `config/packages/messenger.yaml` | `check_delayed_interval` — cada cuánto mira el worker los diferidos, §9 |
+| Cambiar qué mensajes se agrupan por ráfaga | `MessageAutoResponderListener` | `processIntent()` — hoy sólo `free_text`; botones y alertas salen sin retraso, §9 |
+| Cambiar cómo se decide qué mensaje de la ráfaga contesta | `AiConversationProcessor` | `hayMensajePosterior()` — `createdAt` manda, el UUIDv7 desempata el mismo segundo. **No** lo pases a `COALESCE(scheduledAt, …)`, §9 |
+| Filtrar por una entidad con id UUID en un QueryBuilder | cualquier repositorio | `setParameter(…, $entidad->getId(), 'uuid')` — sin el tipo devuelve **cero filas en silencio**, §9 |
+| **Que el huésped pueda contestarse algo nuevo por sí mismo** | una skill de `Lectura` + `Roles::HUESPED` | Nunca metiendo el dato en `systemPrompt()`: ahí lo responde sin herramienta y sin rastro que auditar, §9 |
+| Qué recibe el huésped cuando el modelo no usa ninguna skill | `AiConversationProcessor::generar()` | Se entrega el texto tal cual. **Volver a tirarlo exige devolver antes los datos al prompt**, o el bot deja de saber saludar, §9 |
+| Cuándo sale el acuse de recibo genérico | `AiConversationProcessor::generar()` | Sólo si el motor no devuelve texto. Es el suelo, no la política — y **no escala**, §11 |
+| Que una skill que escribe llegue al chat del huésped | la propia skill | `nivelRiesgo(): NivelRiesgo::Interna` — sólo si escribe *hacia dentro* y el peor caso es perder un minuto, §11 |
+| Cambiar qué se filtra en el chat del huésped (sólo lectura) | `SkillRegistry::paraActor()` | `NivelRiesgo::exigePermisoDeEscritura()` — **no** comparar con `Lectura`, §11 |
+| Que el huésped consulte su saldo o el desglose de su cuenta | `ConsultarMiReservaSkill` (cifra) / `ConsultarCuentaSkill` (detalle) | La segunda ignora `reserva_id` si hay contexto: `reservaDelContexto()`, §11 |
+| Que el huésped pueda avisar al equipo | `EscalarAlEquipoSkill` | Ya la tiene (`Roles::HUESPED` + `Interna`). El prompt le obliga a llamarla si promete respuesta, §9 |

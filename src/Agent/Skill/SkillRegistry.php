@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Agent\Skill;
 
 use App\Agent\Access\ActorInterface;
-use App\Agent\Access\NivelRiesgo;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
@@ -40,7 +39,11 @@ final readonly class SkillRegistry
                 continue;
             }
 
-            if (!$incluirEscritura && $skill->nivelRiesgo() !== NivelRiesgo::Lectura) {
+            // Ojo: NO es «deja fuera todo lo que escriba». `NivelRiesgo::Interna` escribe
+            // —avisa al equipo, marca la conversación— y sobrevive a este filtro a propósito:
+            // sin ella el chat del huésped se quedaba sin la única herramienta que le sirve
+            // para pedir ayuda. Ver NivelRiesgo::exigePermisoDeEscritura().
+            if (!$incluirEscritura && $skill->nivelRiesgo()->exigePermisoDeEscritura()) {
                 continue;
             }
 

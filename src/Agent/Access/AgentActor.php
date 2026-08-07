@@ -32,10 +32,21 @@ final readonly class AgentActor implements ActorInterface
         private ?string $contextoId = null,
     ) {}
 
-    /** Un miembro del equipo con sesión en el panel. */
-    public static function delPanel(User $usuario): self
+    /**
+     * Un miembro del equipo con sesión en el panel.
+     *
+     * ⚠️ `$rolesEfectivos` NO es opcional por comodidad: `User::getRoles()` devuelve la
+     * columna literal, sin la jerarquía de `security.yaml`. Pasar `null` deja fuera los roles
+     * heredados, y con eso quien tiene `ROLE_RESERVAS_DELETE` no pasa un control que pida
+     * `ROLE_RESERVAS_WRITE` —aunque en el panel pueda hacer justo eso—. Usa
+     * {@see AgentActorFactory}, que los expande; el `null` es sólo para actores sintéticos de
+     * prueba, donde los roles se fijan a mano.
+     *
+     * @param list<string>|null $rolesEfectivos
+     */
+    public static function delPanel(User $usuario, ?array $rolesEfectivos = null): self
     {
-        return new self($usuario, 'panel', $usuario->getRoles());
+        return new self($usuario, 'panel', $rolesEfectivos ?? $usuario->getRoles());
     }
 
     /**
@@ -45,9 +56,14 @@ final readonly class AgentActor implements ActorInterface
      * son fechas de reservas— y por eso el control se escala con el daño en {@see NivelRiesgo}
      * en vez de blindar el canal entero.
      */
-    public static function delEquipoPorChat(User $usuario, string $origen, ?string $tipo = null, ?string $id = null): self
-    {
-        return new self($usuario, $origen, $usuario->getRoles(), $tipo, $id);
+    public static function delEquipoPorChat(
+        User $usuario,
+        string $origen,
+        ?string $tipo = null,
+        ?string $id = null,
+        ?array $rolesEfectivos = null
+    ): self {
+        return new self($usuario, $origen, $rolesEfectivos ?? $usuario->getRoles(), $tipo, $id);
     }
 
     /** Quien escribe por el chat sin ser del equipo. Acotado a su propia reserva. */
@@ -79,6 +95,11 @@ final readonly class AgentActor implements ActorInterface
     public function esDelEquipo(): bool
     {
         return $this->usuario !== null;
+    }
+
+    public function usuario(): ?User
+    {
+        return $this->usuario;
     }
 
     public function tieneRol(string $rol): bool

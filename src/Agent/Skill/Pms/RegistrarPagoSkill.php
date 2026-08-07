@@ -10,6 +10,7 @@ use App\Agent\Skill\SkillDefinition;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Entity\User;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
@@ -63,6 +64,15 @@ final readonly class RegistrarPagoSkill implements SkillInterface
      */
     private const string MONEDA_LOCAL = 'PEN';
 
+    /**
+     * Cómo dice el operador que cobró él mismo.
+     *
+     * El modelo traduce «me pagó a mí» / «lo cobré yo» a uno de estos, en vez de teclear el
+     * nombre del operador —que no siempre sabe— o de dejarlo caer en el cobrador principal,
+     * que sería atribuirle a recepción un dinero que recogió otra persona.
+     */
+    private const array ALIAS_YO = ['yo', 'mi', 'mí', 'me', 'a mi', 'a mí', 'yo mismo', 'yo misma'];
+
     public function __construct(
         private EntityManagerInterface $em,
         private MonedaResolver $monedas,
@@ -97,7 +107,14 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                 . 'cuentas se llevan en dólares, así que «me pagó 20» suele ser 20 SOLES sobre '
                 . 'una cuenta en USD. Nunca lo des por hecho: si no lo dicen, pregunta. Si la '
                 . 'respuesta trae falta_datos, traslada su pregunta al operador y vuelve a '
-                . 'llamarme con lo que conteste, sin inventar nada. Si trae advertencia, '
+                . 'llamarme con lo que conteste, sin inventar nada. APUNTA QUIÉN COBRÓ: en '
+                . 'efectivo, Yape, tarjeta o Western Union el dinero lo recibe una persona, y '
+                . 'sin saber quién no se puede cuadrar la caja. Si dicen «le pagó a María», '
+                . 'pásame cobrador="María"; si dicen «me pagó a mí» o «lo cobré yo», pásame '
+                . 'cobrador="yo"; si no dicen nada, omítelo y se atribuye a recepción. DILE '
+                . 'SIEMPRE AL OPERADOR a quién ha quedado atribuido: viene en cobrado_por, y '
+                . 'si esa vez cobró otra persona tiene que poder corregirlo antes de aprobar. '
+                . 'Si trae advertencia, '
                 . 'LÉESELA antes de pedir la confirmación. ENSEÑA SIEMPRE LA SIMULACIÓN: la respuesta trae un bloque «simulacion» con cargos, pagado y saldo ANTES y DESPUÉS. Muéstraselo al operador como una comparación, no lo resumas en una frase, y termina con la pregunta exacta de pregunta_aprobacion. No apliques nada hasta que responda que sí. Necesita el reserva_id.',
                 $pctTarjeta
             ),
@@ -116,6 +133,12 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                     . 'comisión. "si" = el importe es lo que se pasó por el POS; "no" = es lo '
                     . 'que debe abonar a la deuda. Omítelo para que la skill te dé las dos '
                     . 'cifras y puedas preguntar.', requerido: false),
+                SkillParameter::texto('cobrador', 'Quién RECIBIÓ el dinero. Si dicen un nombre '
+                    . '(«se lo pagó a María»), pásalo tal cual: basta el nombre de pila. Si el '
+                    . 'operador dice que lo cobró ÉL MISMO («me pagó a mí», «lo cobré yo»), '
+                    . 'pon "yo" y se apuntará a su nombre. Si no dicen nada, omítelo: se '
+                    . 'atribuye a quien cobra por defecto en recepción, y verás en la '
+                    . 'previsualización a quién ha ido para poder corregirlo.', requerido: false),
                 SkillParameter::texto('referencia', 'Nº de operación, voucher o referencia, si '
                     . 'la hay.', requerido: false),
                 SkillParameter::booleano('confirmado', 'true SÓLO tras la confirmación explícita '
@@ -197,6 +220,76 @@ final readonly class RegistrarPagoSkill implements SkillInterface
             $faltan[] = 'importe_incluye_comision';
         }
 
+        // 🧑 ¿Quién recibió el dinero? Sólo en los medios que cobra una persona: en una
+        // transferencia no hay a quién apuntar. Se resuelve aquí para que un nombre que no
+        // existe o que baila entre dos personas entre en la MISMA repregunta que el resto.
+        $cobradorIndicado = trim((string) ($entrada['cobrador'] ?? ''));
+        $cobrador = null;
+        $candidatos = [];
+        // Por qué falta, no sólo que falta: «no hay nadie que se llame María» y «hay dos
+        // Marías» piden cosas distintas al operador. Inferirlo de si $candidatos viene lleno
+        // no funciona —en el caso «no encontrado» se rellena con la lista completa para poder
+        // ofrecerla—, y el resultado era decirle «María coincide con varias personas» seguido
+        // de tres nombres que no son María.
+        $porqueFaltaCobrador = null;
+
+        if ($medio->seCobraEnMano()) {
+            if (in_array(mb_strtolower($cobradorIndicado), self::ALIAS_YO, true)) {
+                // «me pagó a mí»: lo cobró quien está manejando el chat. Es el único caso en
+                // que el cobrador sale del actor y no de lo que se teclea.
+                $yo = $actor->usuario();
+
+                if ($yo === null) {
+                    return SkillResult::error(
+                        'No puedo saber quién eres para apuntarte el cobro. Dime el nombre de '
+                        . 'la persona que recibió el dinero.'
+                    );
+                }
+
+                // El operador tampoco se salta el filtro por ser quien escribe: manejar el
+                // chat y estar autorizado a recibir dinero son cosas distintas. Se mira la
+                // columna literal —igual que el resto— y NO `tieneRol()`, que a un
+                // SUPER_ADMIN le abriría esta puerta como le abre las demás.
+                if (!in_array(Roles::COBRADOR, $yo->getRoles(), true)) {
+                    return SkillResult::error(sprintf(
+                        'No puedo apuntarte a ti el cobro: %s no tiene el rol de cobrador. '
+                        . 'Dime quién de los cobradores recibió el dinero, o pide que te '
+                        . 'asignen ese rol.',
+                        $yo->getFullname() ?: ($yo->getUserIdentifier() ?: 'tu usuario')
+                    ));
+                }
+
+                $cobrador = $yo;
+            } elseif ($cobradorIndicado !== '') {
+                $coincidencias = $this->cobradoresPosibles($cobradorIndicado);
+
+                if (count($coincidencias) === 1) {
+                    $cobrador = $coincidencias[0];
+                } else {
+                    // Ni 0 (no existe) ni 2+ (dos Marías) se resuelven adivinando: apuntar el
+                    // efectivo a la persona equivocada descuadra la caja de las dos.
+                    $porqueFaltaCobrador = $coincidencias === [] ? 'no_encontrado' : 'ambiguo';
+                    $candidatos = $coincidencias !== [] ? $coincidencias : $this->cobradoresPosibles();
+                }
+            } else {
+                // Nadie lo ha dicho: cae en recepción, que es quien cobra casi todo. Se
+                // atribuye en silencio pero NO se aplica en silencio: `cobrado_por` va en la
+                // previsualización, así que el operador lo ve antes de aprobar y lo corrige
+                // si esa vez cobró otra persona.
+                $cobrador = $this->cobradorPrincipal();
+
+                // Sin nadie marcado como principal no hay defecto que valga: se pregunta.
+                if ($cobrador === null) {
+                    $porqueFaltaCobrador = 'sin_indicar';
+                    $candidatos = $this->cobradoresPosibles();
+                }
+            }
+
+            if ($porqueFaltaCobrador !== null) {
+                $faltan[] = 'cobrador';
+            }
+        }
+
         if ($faltan !== []) {
             return SkillResult::ok(array_filter([
                 'reserva_id' => $reservaId,
@@ -216,7 +309,20 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                 'si_no_incluye_comision' => in_array('importe_incluye_comision', $faltan, true)
                     ? $this->desglose($importe, $pct, false, $monedaIndicada ?: '(por aclarar)')
                     : null,
-                'pregunta' => $this->pregunta($faltan, $importe, $medio, $monedaCuenta->getId()),
+                'cobradores_posibles' => $candidatos !== []
+                    ? array_map(static fn (User $u): array => [
+                        'cobrador' => $u->getFullname() ?: (string) $u->getUserIdentifier(),
+                    ], $candidatos)
+                    : null,
+                'pregunta' => $this->pregunta(
+                    $faltan,
+                    $importe,
+                    $medio,
+                    $monedaCuenta->getId(),
+                    $cobradorIndicado,
+                    $candidatos,
+                    $porqueFaltaCobrador
+                ),
             ], static fn ($v) => $v !== null));
         }
 
@@ -224,17 +330,18 @@ final readonly class RegistrarPagoSkill implements SkillInterface
         $neto = $pct > 0.0 && $incluye !== 'no' ? $importe / (1 + $pct / 100) : $importe;
 
         // Conversión: el pago se guarda en la moneda de la cuenta, con el tipo aplicado
-        // registrado para poder auditarlo. Mismo criterio que RegistrarCargoSkill.
+        // registrado para poder auditarlo. Mismo criterio que RegistrarCargoSkill, incluido
+        // el consultarlo SIEMPRE: un pago sin TC deja de restar el día que se cambie la moneda
+        // base de la cuenta (aporta 0, §12.2), aunque hoy su moneda sea la de la cabecera.
         $monedaOrigen = $monedaIndicada !== ''
             ? $this->monedas->resolve($monedaIndicada)
             : $monedaCuenta;
 
-        $tipoAplicado = null;
+        $tipoDelDia = $this->tipoCambio->venta();
+        $huboConversion = $monedaOrigen->getId() !== $monedaCuenta->getId();
 
-        if ($monedaOrigen->getId() !== $monedaCuenta->getId()) {
-            $tipoAplicado = $this->tipoCambio->venta();
-
-            if ($tipoAplicado === null) {
+        if ($huboConversion) {
+            if ($tipoDelDia === null) {
                 return SkillResult::error(sprintf(
                     'No hay tipo de cambio disponible para pasar de %s a %s. Registra el pago '
                     . 'desde el panel indicando el tipo a mano.',
@@ -244,12 +351,16 @@ final readonly class RegistrarPagoSkill implements SkillInterface
             }
 
             $factor = $monedaOrigen->getId() === 'PEN'
-                ? 1 / (float) $tipoAplicado
-                : (float) $tipoAplicado;
+                ? 1 / (float) $tipoDelDia
+                : (float) $tipoDelDia;
 
             $cobrado *= $factor;
             $neto *= $factor;
         }
+
+        // Al modelo se le reporta sólo el tipo que se USÓ para convertir; el que se sella en
+        // el registro es $tipoDelDia. Ver el mismo par en RegistrarCargoSkill.
+        $tipoAplicado = $huboConversion ? $tipoDelDia : null;
 
         $cobrado = round($cobrado, 2);
         $neto = round($neto, 2);
@@ -285,6 +396,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface
             'huesped' => $huesped,
             'localizador' => $reserva->getLocalizador(),
             'medio' => $medio->label(),
+            'cobrado_por' => $cobrador?->getFullname(),
             'cobrado_al_huesped' => sprintf('%.2f %s', $cobrado, $monedaCuenta->getId()),
             'comision_porcentaje' => $medio->comisionPorcentaje(),
             'abona_a_la_deuda' => sprintf('%.2f %s', $neto, $monedaCuenta->getId()),
@@ -305,13 +417,14 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                 'simulacion' => $this->simulador->simular($info, deltaPagos: $neto),
                 'pregunta_aprobacion' => '¿Apruebas el cambio?',
                 'previsualizacion' => sprintf(
-                    'Se registrará un pago de %s por %s a nombre de %s (%s). Abona %s y el '
+                    'Se registrará un pago de %s por %s a nombre de %s (%s)%s. Abona %s y el '
                     . 'saldo quedará en %s. CONFIRMA CON EL OPERADOR QUE ES ESE HUÉSPED antes '
                     . 'de aplicarlo.',
                     $resumen['cobrado_al_huesped'],
                     $medio->label(),
                     $huesped !== '' ? $huesped : 'sin nombre',
                     $reserva->getLocalizador() ?? 'sin localizador',
+                    $cobrador !== null ? ', cobrado por ' . $cobrador->getFullname() : '',
                     $resumen['abona_a_la_deuda'],
                     $resumen['saldo_despues']
                 ),
@@ -325,14 +438,19 @@ final readonly class RegistrarPagoSkill implements SkillInterface
         $pago->setComisionPorcentaje($medio->comisionPorcentaje());
         $pago->setFechaPago(new DateTimeImmutable());
         $pago->setEsAutomatico(false);
+        // Null sólo en los medios que no cobra nadie (transferencia, PayPal): en los demás
+        // el bloque de $faltan no deja llegar hasta aquí sin cobrador resuelto.
+        $pago->setCobrador($cobrador);
 
         $referencia = trim((string) ($entrada['referencia'] ?? ''));
         if ($referencia !== '') {
             $pago->setReferencia($referencia);
         }
 
-        if ($tipoAplicado !== null) {
-            $pago->setTipoCambio($tipoAplicado);
+        // El tipo del día, haya o no habido conversión: es lo que mantiene vivo el pago si
+        // mañana se cambia la moneda base de la cuenta (ver el bloque de conversión).
+        if ($tipoDelDia !== null) {
+            $pago->setTipoCambio($tipoDelDia);
         }
 
         $info->addPago($pago);
@@ -377,8 +495,15 @@ final readonly class RegistrarPagoSkill implements SkillInterface
      *
      * @param list<string> $faltan
      */
-    private function pregunta(array $faltan, float $importe, PmsMedioPago $medio, string $monedaCuenta): string
-    {
+    private function pregunta(
+        array $faltan,
+        float $importe,
+        PmsMedioPago $medio,
+        string $monedaCuenta,
+        string $cobradorIndicado = '',
+        array $candidatos = [],
+        ?string $porqueFaltaCobrador = null
+    ): string {
         $partes = [];
 
         if (in_array('moneda', $faltan, true)) {
@@ -399,8 +524,95 @@ final readonly class RegistrarPagoSkill implements SkillInterface
             );
         }
 
+        if (in_array('cobrador', $faltan, true)) {
+            $nombres = implode(', ', array_map(
+                static fn (User $u): string => $u->getFullname() ?: (string) $u->getUserIdentifier(),
+                $candidatos
+            ));
+
+            // Tres redacciones porque el operador tiene que entender qué pasó con LO QUE DIJO:
+            // no es lo mismo no haber dado nombre que haber dado uno que no existe. El caso se
+            // recibe hecho y NO se deduce de $candidatos: en «no encontrado» esa lista viene
+            // con TODOS los cobradores (para poder ofrecerlos), así que mirarla decía
+            // «María coincide con varias personas» seguido de tres nombres que no son María.
+            $partes[] = match ($porqueFaltaCobrador) {
+                'no_encontrado' => sprintf(
+                    'no hay ningún cobrador que se llame «%s». ¿A quién se lo dieron? Puede '
+                    . 'ser %s. Si la persona no está, hay que darla de alta con el rol de '
+                    . 'cobrador antes de registrar el pago',
+                    $cobradorIndicado,
+                    $nombres !== '' ? $nombres : '(no hay nadie con el rol de cobrador)'
+                ),
+                'ambiguo' => sprintf(
+                    '«%s» coincide con varias personas (%s). ¿Cuál de ellas lo cobró?',
+                    $cobradorIndicado,
+                    $nombres
+                ),
+                default => sprintf(
+                    '¿a quién le entregaron el dinero? Es un pago en %s, así que lo cobró '
+                    . 'alguien. Opciones: %s',
+                    $medio->label(),
+                    $nombres !== '' ? $nombres : '(no hay nadie con el rol de cobrador)'
+                ),
+            };
+        }
+
         return 'Pregúntale al operador: ' . implode('; y ', $partes)
             . '. Luego vuelve a llamarme con esos datos.';
+    }
+
+    /**
+     * Personal que puede figurar como cobrador, filtrando por nombre si se da uno.
+     *
+     * El filtro de elegibilidad es `enabled = true` — el mismo que usa el desplegable del
+     * panel (`PmsEnumAjaxController::getCobradores()`), y hay que mantenerlos a la par: si
+     * aquí entrara alguien que allí no sale, el agente registraría pagos a nombre de alguien
+     * que el operador no puede elegir a mano.
+     *
+     * La búsqueda es por coincidencia parcial sobre nombre y apellido porque el operador dice
+     * «María», no «Maria Apaza».
+     *
+     * @return list<User>
+     */
+    /**
+     * Quien cobra por defecto (recepción), o null si nadie está marcado.
+     *
+     * 🪞 Mismo criterio que el panel, que preselecciona a esta persona en el desplegable de
+     * un pago nuevo. Si aquí y allí no coincidieran, el mismo pago quedaría a nombre de una
+     * persona distinta según se registrara por chat o a mano.
+     */
+    private function cobradorPrincipal(): ?User
+    {
+        $principales = $this->em->getRepository(User::class)->createQueryBuilder('u')
+            ->where('u.esCobradorPrincipal = true')
+            ->andWhere('u.roles LIKE :rol')
+            ->setParameter('rol', '%"' . Roles::COBRADOR . '"%')
+            ->orderBy('u.firstname', 'ASC')
+            ->addOrderBy('u.lastname', 'ASC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getResult();
+
+        return $principales[0] ?? null;
+    }
+
+    private function cobradoresPosibles(string $busqueda = ''): array
+    {
+        $qb = $this->em->getRepository(User::class)->createQueryBuilder('u')
+            // Por la columna literal, igual que UserRepository::findByRole(): la jerarquía de
+            // security.yaml no cuenta aquí, y es lo que se quiere (ver Roles::COBRADOR).
+            // SIN filtrar por `enabled`: quien cobra en la casita no necesita entrar al panel.
+            ->where('u.roles LIKE :rol')
+            ->setParameter('rol', '%"' . Roles::COBRADOR . '"%')
+            ->orderBy('u.firstname', 'ASC')
+            ->addOrderBy('u.lastname', 'ASC');
+
+        if ($busqueda !== '') {
+            $qb->andWhere("LOWER(CONCAT(COALESCE(u.firstname, ''), ' ', COALESCE(u.lastname, ''))) LIKE :q")
+                ->setParameter('q', '%' . mb_strtolower($busqueda) . '%');
+        }
+
+        return array_values($qb->getQuery()->getResult());
     }
 
     /**

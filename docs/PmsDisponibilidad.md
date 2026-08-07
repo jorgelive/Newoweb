@@ -153,6 +153,37 @@ igual y el filtro roto daría el mismo resultado. En la ocupación se listan los
 así que una cancelada mal filtrada **aparece con nombre y apellido**. Comprobado en Casita 2, que
 tiene las dos y sólo devuelve la vigente.
 
+## 8.b Los márgenes de una estancia: `margenesDe()`
+
+La tercera pregunta que se le hace a este servicio, y la más operativa: **¿está libre la casita
+justo antes de que entre y justo después de que salga?** Es lo que decide una entrada temprana o
+una salida tardía, y lo que el operador miraba a mano en el calendario.
+
+```php
+$margenes = $disponibilidad->margenesDe($evento);
+// ['antes' => ['fecha' => '2026-08-01', 'libre' => false, 'ocupa' => 'Yerzalif Onsueta'],
+//  'despues' => ['fecha' => '2026-08-09', 'libre' => false, 'ocupa' => 'Catherine Cochet']]
+```
+
+La noche que importa para un late check-out es la **del día de salida**: es la que ocuparía la
+extensión que crea el horario extra (§7.1.b de `PmsBeds24ReservasSync.md`). Si ya está vendida,
+no hay nada que conceder.
+
+Reutiliza `ocupacion()`, así que hereda `IMPIDEN_VENTA` y el solape por `DATE()` sin reescribir la
+regla: un bloqueo por mantenimiento cuenta como ocupado, porque no es vendible aunque no haya
+huésped.
+
+⚠️ **Informa, no decide.** Libre significa que la conversación puede seguir —hay precio, limpieza
+y criterio de por medio—; ocupada sí es concluyente.
+
+⚠️ **Lo de la misma reserva no cuenta como ocupación ajena.** Se compara por `reservaId` y no por
+id de evento: las extensiones son eventos aparte que cuelgan por `eventoOrigen`, y buscarlas una a
+una sería una consulta extra por noche. De paso cubre el caso de una reserva con dos tramos en la
+misma casita.
+
+Lo consume `EscalarAlEquipoSkill`, que lo mete en el WhatsApp que recibe el operador — **nunca en
+lo que ve el huésped** (§11 de `Mensajeria.md`).
+
 ## 9. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
@@ -164,5 +195,7 @@ tiene las dos y sólo devuelve la vigente.
 | Cambiar qué datos ve el agente al consultar ocupación | `PmsOcupacionDto` | `toArray()` — ídem |
 | Cambiar cómo se resuelve «casita 1» a una unidad | `ConsultarOcupacionSkill` | `resolverCasita()` — §7 |
 | Subir el techo de noches | `PmsDisponibilidadService` | `MAX_NOCHES` |
+| Cambiar qué noche se mira para un late check-out / early check-in | `PmsDisponibilidadService` | `margenesDe()` — §8.b |
+| Cambiar cómo se le presentan los márgenes al operador | `EscalarAlEquipoSkill` | `margenes()` — es texto de WhatsApp, no JSON |
 | Comprobar disponibilidad a mano | — | `php bin/console app:pms:disponibilidad <desde> <hasta>` |
 | Comprobar que las dos caras cuadran | — | Los tres comandos de §8 |

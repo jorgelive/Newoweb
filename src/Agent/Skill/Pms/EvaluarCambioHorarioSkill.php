@@ -11,6 +11,7 @@ use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -41,7 +42,8 @@ use Symfony\Component\Uid\Uuid;
 final readonly class EvaluarCambioHorarioSkill implements SkillInterface
 {
     public function __construct(
-        private EntityManagerInterface $em
+        private EntityManagerInterface $em,
+        private PmsDisponibilidadService $disponibilidad,
     ) {}
 
     public function nombre(): string
@@ -141,10 +143,14 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface
             ];
         }
 
-        return [
+        return array_filter([
             'permitido' => true,
             'aplicable_por_el_agente' => true,
             'ya_aplicado' => false,
+            // 🗓️ La noche que el horario extra va a bloquear. Se evaluaba `permitido: true`
+            // sin mirarla, así que el operador decidía a ciegas sobre una noche que podía
+            // estar vendida. ALERTA, no veto: la decisión sigue siendo suya.
+            'noche_adyacente' => $this->alertaDeOcupacion($evento, $extremo === 'salida'),
             'implica' => sprintf(
                 'Se marcará la %s y se creará un evento de extensión que bloquea la noche %s. '
                 . 'La extensión viaja al canal como bloqueo, así que la casita deja de venderse '
@@ -154,6 +160,47 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface
             ),
             'explicacion' => 'Permitido también en reservas de OTA: no cambia las fechas de la '
                 . 'reserva, sólo añade la noche que el horario extra inutiliza.',
+        ], static fn ($v) => $v !== null);
+    }
+
+    /**
+     * Cómo está la noche que el horario extra ocuparía.
+     *
+     * Espejo de `AplicarCambioHorarioSkill::alertaDeOcupacion()` — y por eso los dos textos
+     * dicen lo mismo: el operador que evalúa y el que aplica tienen que leer la misma advertencia,
+     * o la evaluación deja de servir para decidir.
+     *
+     * ⚠️ No cambia `permitido`. Que la noche esté vendida es un motivo de peso para no hacerlo,
+     * pero puede haber otro para hacerlo igual —la otra reserva entra tarde, se habló con los
+     * dos huéspedes—, y eso lo sabe el operador y no esta skill.
+     *
+     * @return array{fecha: string, libre: bool, ocupa: ?string, aviso: string}|null
+     */
+    private function alertaDeOcupacion(PmsEventoCalendario $evento, bool $esSalida): ?array
+    {
+        try {
+            $margenes = $this->disponibilidad->margenesDe($evento);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $margen = $esSalida ? $margenes['despues'] : $margenes['antes'];
+        $cual = $esSalida ? 'del día de salida' : 'anterior a la entrada';
+
+        return [
+            'fecha' => $margen['fecha'],
+            'libre' => $margen['libre'],
+            'ocupa' => $margen['ocupa'],
+            'aviso' => $margen['libre']
+                ? sprintf('✅ La noche %s (%s) está LIBRE: se puede bloquear sin pisar a nadie.', $cual, $margen['fecha'])
+                : sprintf(
+                    '⛔ La noche %s (%s) YA ESTÁ OCUPADA%s. Si se aplica el horario extra, el '
+                    . 'bloqueo se solapará con esa reserva. Está PERMITIDO técnicamente, pero '
+                    . 'díselo al operador: la decisión es suya.',
+                    $cual,
+                    $margen['fecha'],
+                    $margen['ocupa'] !== null ? ' por ' . $margen['ocupa'] : ''
+                ),
         ];
     }
 

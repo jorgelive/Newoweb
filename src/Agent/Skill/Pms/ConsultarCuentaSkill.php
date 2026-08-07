@@ -30,6 +30,18 @@ use Symfony\Component\Uid\Uuid;
  * Devolver siempre el detalle en las otras skills habría hinchado cada respuesta con veinte
  * líneas que el 90% de las veces no se miran, y eso se paga en tokens en cada consulta.
  *
+ * ### 🔒 La usa también el huésped, y ahí el contexto MANDA
+ *
+ * Cuánto debe es de las dos o tres cosas que un huésped pregunta de verdad, y «¿por qué me
+ * cobráis eso?» sólo se contesta con el desglose. Pero el huésped no tiene `buscar_reserva`:
+ * no puede llegar a un `reserva_id` legítimamente, y el que apareciera en su turno sería un
+ * id que alguien le sopló o que el modelo se inventó.
+ *
+ * Por eso, **cuando la conversación tiene contexto de reserva, el parámetro se IGNORA** y se
+ * usa `ActorInterface::contextoId()`. No se valida el parámetro contra el contexto: se
+ * descarta. Comparar deja la puerta abierta a que un cambio futuro invierta la condición;
+ * descartar no tiene forma de fallar hacia el lado malo.
+ *
  * ### Qué NO devuelve, y por qué
  *
  * Las **notas** de los pagos quedan fuera: son apuntes internos («el huésped discutió el
@@ -52,20 +64,24 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
         return new SkillDefinition(
             descripcion: 'Devuelve el DETALLE de la cuenta de una reserva: cada cargo y cada '
                 . 'pago por separado, con su concepto, importe, fecha y medio de pago, más los '
-                . 'totales y el saldo. Úsala cuando pregunten de qué se compone una cuenta, '
-                . 'por qué un importe es el que es, qué se ha cobrado o cómo pagó alguien. '
-                . 'Para saber sólo cuánto debe, buscar_reserva ya trae el saldo: no hace falta '
-                . 'ésta. Necesita el reserva_id.',
+                . 'totales, el saldo pendiente y cuánto sale pagarlo con tarjeta. Úsala cuando '
+                . 'pregunten de qué se compone una cuenta, por qué un importe es el que es, qué '
+                . 'se ha cobrado, cómo pagó alguien o cómo puede pagar lo que queda. Si sólo '
+                . 'quieren la cifra del saldo, consultar_mi_reserva (o buscar_reserva) ya la '
+                . 'trae y es más barata. Hablando con un huésped NO pases reserva_id: se usa '
+                . 'siempre la reserva de esta conversación, la suya.',
             parametros: [
                 SkillParameter::texto('reserva_id', 'Identificador de la reserva, tal cual lo '
-                    . 'devolvió buscar_reserva.'),
+                    . 'devolvió buscar_reserva. Sólo desde el panel: en el chat con un huésped '
+                    . 'se ignora.', requerido: false),
             ],
         );
     }
 
+    /** El huésped la tiene por serlo —acotada a SU reserva—; el equipo, por ver reservas. */
     public function rolesRequeridos(): array
     {
-        return [Roles::RESERVAS_SHOW];
+        return [Roles::HUESPED, Roles::RESERVAS_SHOW];
     }
 
     public function nivelRiesgo(): NivelRiesgo
@@ -75,7 +91,8 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $reservaId = trim((string) ($entrada['reserva_id'] ?? ''));
+        $reservaId = $this->reservaDelContexto($actor)
+            ?? trim((string) ($entrada['reserva_id'] ?? ''));
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error(
@@ -122,6 +139,18 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
             // datos y quien redacta es el modelo, que es lo que mejor hace.
             'idioma_huesped' => $reserva->getIdioma()?->getId(),
         ]);
+    }
+
+    /**
+     * 🔒 La reserva que impone la conversación, si la hay.
+     *
+     * Devolver algo aquí significa «no se admite otra»: el `reserva_id` del modelo ni se mira.
+     * El equipo desde el panel no tiene contexto de chat, así que para ellos devuelve `null` y
+     * el parámetro manda como siempre.
+     */
+    private function reservaDelContexto(ActorInterface $actor): ?string
+    {
+        return $actor->contextoTipo() === 'pms_reserva' ? $actor->contextoId() : null;
     }
 
     /** @return list<array<string, mixed>> */

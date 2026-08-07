@@ -35,9 +35,25 @@ final readonly class AnthropicEngine implements AgentEngineInterface
         return 'anthropic';
     }
 
+    public function etiqueta(): string
+    {
+        return 'Anthropic';
+    }
+
     public function estaDisponible(): bool
     {
         return $this->anthropic->estaConfigurado();
+    }
+
+    /** @return non-empty-list<string> */
+    public function modelos(): array
+    {
+        return $this->anthropic->modelos();
+    }
+
+    public function modeloPorDefecto(): string
+    {
+        return $this->anthropic->modelo();
     }
 
     public function conversar(ConversationRequest $peticion): ConversationResponse
@@ -61,7 +77,9 @@ final readonly class AnthropicEngine implements AgentEngineInterface
         ];
 
         $comunes = [
-            'model' => $this->anthropic->modelo(),
+            // La petición manda cuando trae modelo (el desplegable del panel); el registro ya
+            // comprobó que pertenece a este proveedor.
+            'model' => $peticion->modelo ?? $this->anthropic->modelo(),
             'maxTokens' => $peticion->maxTokens,
             'system' => [[
                 'type' => 'text',

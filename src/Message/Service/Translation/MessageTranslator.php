@@ -56,6 +56,29 @@ class MessageTranslator
             return;
         }
 
+        // 1.b FLUJO SALIENTE YA ESCRITO EN EL IDIOMA DEL HUÉSPED (el agente de IA).
+        //
+        // El bot lee el mensaje ORIGINAL del huésped (`contentExternal`) y responde en ese
+        // mismo idioma, así que lo que falta es el español para el operador — al revés que en
+        // EasyAdmin, donde el humano escribe en español y falta el idioma del huésped.
+        //
+        // Se distingue por la DIRECCIÓN y no por qué campo falta, que es como se deducía todo
+        // aquí: un saliente sin `contentLocal` caería en el flujo entrante de abajo y pasaría
+        // por `translateWithDetection`, que además de traducir puede REESCRIBIR el idioma de la
+        // conversación. Dejar que la respuesta del propio bot redefina el idioma del huésped es
+        // un bucle esperando a ocurrir.
+        if ($hasExternal && !$hasLocal && Message::DIRECTION_OUTGOING === $message->getDirection()) {
+            $message->setLanguageCode($storedGuestLang);
+
+            if ($storedGuestLang === null || $storedGuestLang === $this->baseLanguage) {
+                $message->setContentLocal($message->getContentExternal());
+                return;
+            }
+
+            $this->traducirParaElOperador($message, $storedGuestLang);
+            return;
+        }
+
         // 1. FLUJO ENTRANTE (Webhooks): Viene de afuera (External), falta Local.
         if ($hasExternal && !$hasLocal) {
             $cleanExternal = trim(strip_tags($message->getContentExternal()));
@@ -168,6 +191,39 @@ class MessageTranslator
         } catch (Throwable $e) {
             $this->logger->error('Error en traducción externa: ' . $e->getMessage());
             $message->setContentExternal($message->getContentLocal());
+        }
+    }
+
+    /**
+     * Pasa a español lo que el bot ya escribió en el idioma del huésped.
+     *
+     * Sin esto, el operador abre el chat y lee en inglés lo que su propio asistente respondió:
+     * `ChatView.vue` pinta `contentLocal || contentExternal`, y el bot rellenaba los dos con el
+     * mismo texto, así que el traductor hacía bypass.
+     *
+     * Es traducción SIN detección: el idioma de origen ya se sabe —lo fijó el mensaje entrante—
+     * y volver a detectarlo sobre una respuesta nuestra puede acabar cambiando el idioma de la
+     * conversación por su cuenta.
+     *
+     * Si Google falla, se copia el original. Un chat en inglés en el panel es peor que en
+     * español, pero infinitamente mejor que un mensaje vacío.
+     */
+    private function traducirParaElOperador(Message $message, string $idiomaHuesped): void
+    {
+        try {
+            $traducido = $this->googleTranslator->translate(
+                [$message->getContentExternal()],
+                $this->baseLanguage,
+                $idiomaHuesped
+            );
+
+            $message->setContentLocal($traducido[0] ?? $message->getContentExternal());
+        } catch (Throwable $e) {
+            $this->logger->error('No se pudo traducir al español la respuesta del asistente.', [
+                'error' => $e->getMessage(),
+            ]);
+
+            $message->setContentLocal($message->getContentExternal());
         }
     }
 }

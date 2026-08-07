@@ -77,6 +77,48 @@ class PmsGuiaItem
     #[Assert\Length(max: 50, maxMessage: 'El icono no puede exceder los 50 caracteres')]
     private ?string $icono = null;
 
+    /**
+     * Con qué palabras PREGUNTA la gente por esto. Para que el agente lo encuentre.
+     *
+     * El título está escrito para leerse en una pantalla, no para buscarse: el ítem se llama
+     * «Uso de la ducha» y el huésped escribe «no sale agua caliente», «el calentador no
+     * enciende» o «hot water». Ninguna de las tres casa por texto con el título ni,
+     * necesariamente, con el cuerpo — y el agente respondía que la guía no dice nada del tema
+     * teniéndolo escrito.
+     *
+     * Mismo problema que tenían las plantillas antes de `MessageTemplate::$agenteUso`, con una
+     * diferencia: allí la frase sirve para ELEGIR entre once, y aquí para ENCONTRAR entre
+     * treinta. Por eso son términos sueltos y no una explicación.
+     *
+     * Formato: separados por comas, en los idiomas en que se pregunte, sin miedo a repetir.
+     * `ducha, agua caliente, calentador, gas, temperatura, shower, hot water`
+     *
+     * Vacío no rompe nada: se sigue buscando en título y cuerpo. Sólo se encuentra peor.
+     */
+    #[ORM\Column(name: 'agente_terminos', type: 'text', nullable: true)]
+    private ?string $agenteTerminos = null;
+
+    /**
+     * Sobre este tema el asistente **informa pero no concede**: hay que avisar a una persona.
+     *
+     * Nace de un caso que salía al revés de lo esperado. «Horario de ingreso y salida» explica
+     * que la salida tardía está «sujeta a disponibilidad, con coste y coordinándolo con un día
+     * de antelación». Con eso en la mano, el modelo se siente capaz de cerrar el tema solo — y
+     * cerrarlo solo significa que el huésped cree que puede quedarse sin que nadie haya mirado
+     * si esa noche está vendida. **Cuanta más información tiene el agente, más fácil es que no
+     * escale**, y aquí es justo cuando más falta hace.
+     *
+     * Marcarlo saca la orden del prompt y la mete en el DATO: `consultar_guia` la devuelve junto
+     * al contenido, así que el modelo la recibe pegada al texto que acaba de leer en vez de
+     * tener que acordarse de una regla general. Y lo decide quien edita la guía, sin tocar
+     * código.
+     *
+     * No es lo mismo que «no sé responder»: aquí sí sabe, y precisamente por eso responde y
+     * además avisa. Lo que no puede es decidir.
+     */
+    #[ORM\Column(name: 'agente_requiere_humano', type: 'boolean', options: ['default' => false])]
+    private bool $agenteRequiereHumano = false;
+
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $labelBoton = [];
@@ -249,6 +291,41 @@ class PmsGuiaItem
     {
         $this->icono = $icono;
         return $this;
+    }
+
+    public function isAgenteRequiereHumano(): bool { return $this->agenteRequiereHumano; }
+
+    public function setAgenteRequiereHumano(bool $requiere): self
+    {
+        $this->agenteRequiereHumano = $requiere;
+        return $this;
+    }
+
+    public function getAgenteTerminos(): ?string { return $this->agenteTerminos; }
+
+    public function setAgenteTerminos(?string $terminos): self
+    {
+        $terminos = trim((string) $terminos);
+        $this->agenteTerminos = $terminos !== '' ? $terminos : null;
+
+        return $this;
+    }
+
+    /**
+     * Los términos ya partidos y limpios, listos para comparar.
+     *
+     * @return list<string>
+     */
+    public function getAgenteTerminosLista(): array
+    {
+        if ($this->agenteTerminos === null) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (string $t): string => trim($t),
+            explode(',', $this->agenteTerminos)
+        ), static fn (string $t): bool => $t !== ''));
     }
 
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]

@@ -5,6 +5,13 @@ services:
         autowire: true
         autoconfigure: true
 
+    # Todo motor queda etiquetado por el simple hecho de implementar la interfaz. Añadir un
+    # proveedor es crear su carpeta en src/Agent/Provider/ y sus dos variables de entorno:
+    # no hay que tocar este archivo para registrarlo.
+    _instanceof:
+        App\Agent\Conversation\AgentEngineInterface:
+            tags: ['app.agent_engine']
+
     App\Agent\:
         resource: '../../src/Agent/'
         exclude:
@@ -25,19 +32,32 @@ services:
     # =========================
     # Inteligencia artificial
     # =========================
-    # La clave y el modelo se resuelven UNA vez aquí. Con ANTHROPIC_API_KEY vacía la fábrica
-    # devuelve null y todo lo que dependa de ella degrada sin romper.
+    # Las claves y los modelos se resuelven UNA vez aquí. Con la clave vacía el motor se
+    # declara no disponible y el registro elige otro: un entorno a medio configurar degrada,
+    # no rompe.
     App\Agent\Provider\Anthropic\AnthropicClientFactory:
         arguments:
             $apiKey: '%env(resolve:ANTHROPIC_API_KEY)%'
             $modelo: '%env(resolve:ANTHROPIC_MODEL)%'
+            $modelos: '%env(resolve:ANTHROPIC_MODELS)%'
 
-    # LA FRONTERA con el proveedor. Cambiar de motor —o tener dos en paralelo— es cambiar
-    # este alias: nada por encima de AgentEngineInterface conoce ningún SDK.
-    App\Agent\Conversation\AgentEngineInterface: '@App\Agent\Provider\Anthropic\AnthropicEngine'
+    App\Agent\Provider\Google\GoogleAIClient:
+        arguments:
+            $apiKey: '%env(resolve:GOOGLE_AI_API_KEY)%'
+            $modelo: '%env(resolve:GOOGLE_AI_MODEL)%'
+            $modelos: '%env(resolve:GOOGLE_AI_MODELS)%'
+            $razonamiento: '%env(resolve:GOOGLE_AI_THINKING)%'
+
+    # LA FRONTERA con los proveedores. Quién contesta cada llamada lo decide el registro con
+    # AGENT_IA_PROVEEDOR (y el desplegable del panel, por petición): nada por encima de
+    # AgentEngineInterface conoce ningún SDK ni ninguna API.
+    App\Agent\Conversation\AgentEngineRegistry:
+        arguments:
+            $motores: !tagged_iterator app.agent_engine
+            $proveedorPorDefecto: '%env(resolve:AGENT_IA_PROVEEDOR)%'
 
     # El autoresponder del huésped arranca APAGADO a propósito: es el único componente que
-    # escribe a un cliente real sin que nadie lo revise. Ver docs/Mensajeria.md §10.
+    # escribe a un cliente real sin que nadie lo revise. Ver docs/Mensajeria.md §9.
     App\Agent\Service\AiConversationProcessor:
         arguments:
             $habilitado: '%env(bool:AGENT_IA_AUTORESPONDER)%'

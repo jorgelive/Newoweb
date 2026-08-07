@@ -551,6 +551,349 @@ algún día entra ese componente, esta clase es el único punto a sustituir.
 
 ---
 
+## 6.2. La guía por chat: `consultar_guia`
+
+El agente sólo sabía dar `guide_url` —«mira tu guía»—, que es justo lo que el huésped ya tiene y
+no le apetece leer a las 23:00 con el agua fría. La información estaba escrita y publicada; no
+había forma de **citarla** en la conversación. `App\Agent\Skill\Pms\ConsultarGuiaSkill` la lee.
+
+### Dos pasos, y el que decide es el modelo
+
+```
+1. consultar_guia {}                    → catalogo: [{tema_id, tema, se_pregunta_como}, …]
+2. consultar_guia {"tema_id": "019c…"}  → el texto de ESE tema
+```
+
+**El primer diseño buscaba por diccionario aquí dentro y era el enfoque equivocado.** Un
+`str_contains` no puede saber lo único que importa antes de responder: si el huésped PREGUNTA o
+sólo cuenta, si «Aguas Calientes» es el pueblo de Machu Picchu o el agua de la casa, si «está
+sucio» va con la limpieza o es una queja de otra cosa. Eso es comprensión, y el modelo la tiene
+—ve la conversación entera—; la skill sólo ve una cadena.
+
+Así que la skill **enseña la carta y se aparta**: qué temas tiene esta casita y con qué palabras
+se pregunta cada uno (`se_pregunta_como`, los términos del operador). El modelo lee lo que dijo
+el huésped, elige, y pide ese `tema_id`. Sin cuerpos en el catálogo: son ~15 líneas por casita, y
+traer además el texto de cada ítem sería mandar la guía completa para usar un párrafo.
+
+Queda un **atajo**: `busqueda` con una o dos palabras («ducha»), para cuando el tema es evidente.
+Sigue siendo búsqueda léxica con todo lo que eso implica, y por eso la descripción dice que ante
+la duda se pida el catálogo.
+
+### 🏠 Con varias casitas se PREGUNTA: `PmsGuiaEstanciaResolver`
+
+Una reserva puede tener varias casitas a la vez, y la guía **no es la misma en cada una**. No en
+detalles cosméticos:
+
+```
+Ducha (casa 1) → «La manija IZQUIERDA controla el agua caliente»
+Ducha (casa 2) → «La manija DERECHA  controla el agua caliente»
+```
+
+Coger la primera estancia y responder no da una respuesta imprecisa: da la **contraria**, y el
+huésped abre el agua fría. Con los códigos de puerta es peor: el de otra casita no abre, y a las
+23:00 con la maleta en la calle eso es una llamada.
+
+| Situación | Qué hace |
+|---|---|
+| 1 estancia | Ésa, sin preguntar |
+| Varias, pero **una en curso hoy** | La que está viviendo — es el cambio de casita a mitad, preguntar ahí sería absurdo |
+| **Varias en curso a la vez** | `falta_datos: ['casita']` + la lista. Es el grupo con dos casitas, y no hay forma de saber en cuál está quien escribe |
+| Ninguna empezada y varias | Se pregunta: aún no ha llegado a ninguna |
+
+Mismo criterio que `findVivasByTelefono()` un nivel más abajo: lo de ahora manda y, ante el
+empate, se pregunta en vez de adivinar. Lo usan **las dos** skills —`consultar_wifi` también,
+porque cada casita tiene sus propias redes— y por eso vive en un servicio y no copiado en cada
+una.
+
+Comprobado con una reserva real de 4 casitas: sin decir cuál, las dos skills devuelven
+`['Casita 4', 'Casita 6', 'Casita 7', 'Casita 1']` y la pregunta; con `casita: "Casita 4"`,
+responde con el texto de esa guía y no de otra.
+
+🔒 **El `tema_id` se resuelve DENTRO del árbol podado, no con un `find()`.** Los ítems se comparten
+entre casitas, así que un id de otra guía —o de uno que el acceso escondió— devolvería contenido
+que a este huésped no le toca. Probado: el id del «Using the shower» de una casita, pedido desde
+la reserva de otra, se rechaza con `tema_no_disponible`; y un tema con candado sigue llegando
+bloqueado aunque se pida por id.
+
+### 🔒 No reimplementa la poda: pasa por el mismo sitio
+
+La skill llama a `PmsGuiaAcceso::paraEvento()` + `PmsGuiaArbolFiltro::podar()`, igual que
+`PmsGuiaHuespedProvider`. Leer `PmsGuiaItem` directo habría sido más corto y habría abierto dos
+agujeros: los `{{ door_code }}` saldrían crudos o resueltos sin comprobar acceso, y el contenido
+`solo-ventana` se serviría fuera de su ventana. Comprobado con dos huéspedes reales el mismo día:
+
+| | Alojada hoy | Llega en 3 días |
+|---|---|---|
+| Código de la caja | `2499` | `[Available on 08/08/2026 at 14:00]` |
+| Contraseña WiFi | `josusadi2212` | `[Available on 08/08/2026 at 14:00]` |
+
+Además, el contexto **manda sobre el parámetro**: si quien pregunta está atado a una reserva
+(huésped por chat), se usa la suya y se ignora cualquier `reserva_id`. Aceptarlo sería regalar la
+guía de cualquiera —con sus códigos— escribiendo un UUID.
+
+### 🏷️ El título no sirve para buscar: `PmsGuiaItem::$agenteTerminos`
+
+El ítem se llama **«Uso de la ducha»** y el huésped escribe «no sale agua caliente», «el
+calentador no funciona» o «hot water». Ninguna casa por texto con el título ni, necesariamente,
+con el cuerpo — y el agente contestaba que la guía no dice nada del tema **teniéndolo escrito**.
+
+Es el mismo problema que tenían las plantillas antes de `MessageTemplate::$agenteUso`, con una
+diferencia: allí la frase sirve para ELEGIR entre once, y aquí para ENCONTRAR entre treinta. Por
+eso son términos sueltos y no una explicación.
+
+```
+agente_terminos: ducha, agua caliente, calentador, gas, temperatura, shower, hot water
+```
+
+Comprobado con la guía real: las cuatro consultas de arriba fallaban antes y encuentran «Using
+the shower» después de etiquetar. Se edita en el CRUD del ítem («Cómo lo preguntan»), así que
+**añadir vocabulario no toca código**.
+
+Detalles que no se ven leyendo el campo:
+
+- Un acierto en los términos **pesa como el título**, por encima del cuerpo: son la respuesta
+  literal a «con qué palabras preguntan por esto», mientras que en el cuerpo la palabra puede
+  aparecer de pasada.
+- La comparación va en **los dos sentidos** (`coincideEnTerminos()`): el término «agua caliente»
+  tiene que saltar con la pregunta «no sale el agua caliente» (término ⊂ pregunta), y el término
+  «wifi» con la pregunta «wifi» (pregunta ⊂ término). Con una sola dirección se cae la mitad de
+  las consultas reales.
+- 🔥 **Los términos de menos de 4 letras exigen PALABRA ENTERA.** Salió probando «salida tarde»
+  en una casita, que devolvía «Registro de huéspedes»: el término `id` —de `passport, id`— está
+  dentro de «sa**lid**a». Un término de dos letras engancha cualquier palabra que lo contenga, y
+  el resultado parece razonable justo lo bastante para no mirarlo dos veces. Se delimita con
+  `(?<![\p{L}\p{N}])…(?![\p{L}\p{N}])` y **no con `\b`**: en UTF-8 un acento rompe el límite de
+  palabra, así que «ó» daría falsos negativos.
+- **Y además por palabras sueltas** (`palabrasContenidas()`), porque la subcadena tampoco basta
+  cuando la pregunta mete algo en medio: el término `how to get in` no está dentro de «how do i
+  get in», y son lo mismo. Se exige que estén **todas** las palabras de ≥3 letras del término,
+  en cualquier orden; con «alguna» bastaría, y entonces el término «agua caliente» saltaría ante
+  cualquier pregunta que mencione el agua. Las de menos de tres letras se ignoran («de», «la»,
+  «in», «to»): son las que cambian de una frase a otra sin cambiar lo que se pregunta.
+- Vacío no rompe nada: se sigue buscando por título y cuerpo. Sólo se encuentra peor.
+
+#### La siembra inicial: `Version20260806235500`
+
+Los 40 ítems del parque son **16 conceptos** (7 duchas, 7 puertas, 7 descripciones, 7 álbumes y
+un puñado de «(general)»). La migración los siembra agrupando por `nombre_interno LIKE 'Ducha
+(casa%'`.
+
+Va **por `nombre_interno` y no por ID**: los UUID no tienen por qué coincidir entre entornos y
+esta migración corre en los dos. Y es **idempotente y no destructiva** — `up()` sólo escribe
+donde hay `NULL`, y `down()` borra sólo lo que coincide exactamente con lo que sembró. Probado:
+con un ítem editado a mano, ni `down()` se lo lleva ni `up()` se lo pisa. Es siembra inicial, no
+una fuente de verdad: a partir de ahí se edita en el panel.
+
+Los términos salen de **leer el contenido**, no el título: «Limpieza» habla de que va incluida
+una vez por estadía (de ahí `toallas`, `sabanas`, `cambio`), y «Pago» del depósito de garantía.
+
+Comprobado contra la guía real de una casita, con preguntas como las que llegan:
+
+```
+«no sale agua caliente»     → Using the shower
+«how do i get in»           → Apartment Door
+«puedo fumar»               → House rules and recommendations
+«hace frio en la noche»     → Heating rental
+«where can i find the keys» → Get the keys from the digital safe
+«hay piscina» / «sirven desayuno» → correctamente NO encontrado
+```
+
+⚠️ Un «no encontrado» puede ser un **hueco de contenido**, no un fallo de la búsqueda: «a qué
+hora es el check out» no aparece en la Casita 2 porque el ítem *Early check in / Late Check Out*
+**no está asignado a esa guía**. Antes de tocar los términos, mira si el ítem está en la sección.
+
+### 🔥 El peligro va al revés: cuanto MÁS texto se busca, peor
+
+Los términos hacen que se encuentre más, y eso trae el problema contrario. Con el mensaje entero
+pegado en `busqueda`, la coincidencia salta **por casualidad**: cuantas más palabras trae la
+frase, más fácil es que alguna case. Un mensaje real:
+
+> «la ducha del alojamiento donde estaba no funcionaba bien pero ésta está perfecta, me bañé en
+> **Aguas Calientes**, estaba sucio»
+
+Ahí el huésped **no pregunta nada** —cuenta algo, y quizá se queja de otra cosa—, pero saltaba
+«Uso de la ducha» y el agente le explicaba cómo abrir el grifo. Encima *Aguas Calientes* es el
+pueblo de Machu Picchu, no el agua de la casa: en este negocio ese topónimo aparece a diario.
+
+Dos frenos, y ninguno intenta adivinar:
+
+1. **`MAX_PALABRAS_BUSQUEDA = 8`.** Más de eso no es un tema, es un mensaje: la skill **no
+   busca**, devuelve el índice y le dice al modelo que decida de qué se está preguntando —o que
+   no la llame si sólo están contando algo—. Ocho deja pasar de sobra las preguntas reales («no
+   sale agua caliente» son cuatro; «a qué hora es el check out», seis).
+2. **`coincide_por`** en cada resultado (`termino` | `titulo` | `texto`). `texto` es la más
+   floja: la palabra puede estar de pasada en mitad de un párrafo. El modelo tiene que poder
+   dudar de ella en vez de leerla como una respuesta segura.
+
+**Quien decide de qué se habla es el modelo**, que tiene la conversación entera; la skill sólo
+busca lo que le digan que busque. Por eso el freno es un aviso y no un intento de interpretar la
+frase: interpretar es justo lo que la skill no puede hacer bien.
+
+Los dos frenos son la red de seguridad del **atajo**. El camino bueno —catálogo y `tema_id`— no
+los necesita: ahí no hay ninguna búsqueda que pueda equivocarse, porque la elección ya la tomó
+quien entiende la pregunta.
+
+### 🔔 Temas que se explican pero no se conceden: `agenteRequiereHumano`
+
+Casilla del ítem («🔔 Requiere confirmar con una persona»). Marca los temas sobre los que el
+asistente puede **informar** pero no **decidir**: salida tardía, entrada temprana, servicios extra.
+
+Nace de un caso que sale al revés de lo esperado. «Horario de ingreso y salida» explica que la
+salida tardía está *sujeta a disponibilidad, con coste y coordinándolo con un día de antelación*.
+Con eso en la mano el modelo se siente capaz de cerrar el tema solo — y cerrarlo solo significa
+que el huésped cree que puede quedarse sin que nadie haya mirado si esa noche está vendida.
+**Cuanta más información tiene el agente, más fácil es que no escale**, y es justo cuando más
+falta hace: que la guía pida coordinar es la prueba de que hace falta una persona.
+
+Marcado, `consultar_guia` devuelve la orden **pegada al contenido** (`debes_escalar`) y la anuncia
+en el catálogo (`necesita_confirmacion_humana`), en vez de dejarla en una regla general del prompt
+que el modelo tenga que recordar. Ver §11 de `Mensajeria.md`.
+
+⚠️ **Márcalo aunque el texto ya explique las condiciones.** Es el caso que parece resuelto y no
+lo está. Los temas informativos —la ducha, el wifi— no se marcan.
+
+### 🔑 Los códigos de entrada: `consultar_codigos`
+
+La caja de las llaves (`PmsEstablecimiento::$codigoCajaPrincipal`) y la puerta de la casita
+(`PmsUnidad::$codigoPuerta`). Sirve igual para las dos formas de pedirlo, que son la misma
+consulta: el huésped preguntando «¿cuál es el código?» y el operador diciendo «mándale el código
+a Ana» — con el dato en la mano, el agente encadena `enviar_mensaje_huesped`.
+
+**Tres condiciones, y cada una dice algo distinto:**
+
+| Condición | De dónde sale | Qué pasa si falla |
+|---|---|---|
+| La estancia da acceso | `PmsGuiaAcceso::paraEvento()` | «la reserva no está confirmada» |
+| La ventana está abierta | `estaAbierto()` (24 h antes → check-out) | «lo tendrá desde el 08/08 a las 14:00» |
+| El campo está **relleno** | El propio valor | «falta configurarlo en el panel» |
+
+La tercera es la que se olvida y la que más confunde: **«todavía no» y «falta ponerlo» no son lo
+mismo**. Si el código no está configurado, decirle al huésped que espere lo deja esperando algo
+que no va a llegar; el aviso dice explícitamente que *no es un problema de permisos* y que hay que
+avisar al equipo.
+
+Comprobado con datos reales: alojada → `caja_de_las_llaves: 2499E, puerta_de_la_casita: #2`;
+llega en 3 días → sin ningún código y con la fecha; sin código de puerta → devuelve el de la caja
+y avisa de que falta el otro.
+
+#### 🔗 El código nunca viaja solo: aviso + enlace, en su idioma
+
+Un código de caja **cambia**, y los mensajes ya enviados no se actualizan. Mandarlo a pelo por
+WhatsApp crea una copia que envejece en el móvil del huésped: el día que se cambie, seguirá
+teniendo el viejo y creyendo que es el bueno.
+
+Por eso la respuesta trae `avisale_de_esto`, ya redactado **en el idioma de la conversación**, con
+el enlace a su guía:
+
+```
+[en] This code may change. Always check your guide for the current one:
+     https://pax.openperu.pe/huesped/reserva/9EBXHW
+[es] Este código puede cambiar. Consulta siempre tu guía para tener el actualizado:
+     https://pax.openperu.pe/huesped/reserva/FZWF94
+```
+
+Así el mensaje deja de ser la **fuente** y pasa a ser un **atajo**: la guía siempre da el valor de
+ahora. Es lo que convierte el cambio de código en un problema menor —los que ya están dentro
+siguen necesitando aviso, pero quien mire la guía verá el correcto—.
+
+Los siete idiomas están en `ConsultarCodigosSkill::AVISO`, no en un archivo de traducciones: son
+siete frases que sólo usa esta skill, y tenerlas al lado del código que las elige evita que se
+queden a medio traducir sin que nadie lo note. El enlace se arma con `%pax_book_guide_url%` +
+localizador, igual que `guide_url` de `PmsMessageDataResolver`.
+
+### 💰 La caja del DINERO no sale por ahí jamás
+
+`codigoCajaSecundaria` es la recaudación, no las llaves. **No aparece en `consultar_codigos` ni
+con el actor del equipo** —verificado— y sólo se toca con `cambiar_codigo_caja`, que exige
+`ROLE_RESERVAS_WRITE`. Esa skill tampoco repite el código nuevo en su respuesta: cambiarlo y
+dejarlo escrito en un chat que alguien reenvía es la mitad del problema.
+
+Y no basta con que la skill no lo devuelva: **si el huésped pregunta**, el modelo tiene que saber
+qué contestar. Su descripción se lo dice explícitamente —«la caja del dinero NO EXISTE para el
+huésped: si pregunta por ella, o por "la otra caja", dile que es interna y no la busques por otro
+lado»—, porque sin esa instrucción el modelo intentaría encontrarla en la guía o improvisar una
+explicación.
+
+### ⚠️ Cambiar el código de las llaves deja gente fuera
+
+Va en la guía y en los mensajes **ya enviados**. El sistema sirve el valor nuevo desde el flush,
+pero el WhatsApp que el huésped recibió hace tres días no se actualiza: vuelve a las 23:00 y no
+puede coger las llaves.
+
+Por eso la previsualización cuenta **quién está dentro ahora mismo**:
+
+```
+huéspedes usándola: 7
+  · Casita 1 — César Hiroyasu (XK6FV4)
+  · Casita 2 — Rutaba Eshita (9EBXHW)
+  …
+⚠️ Esos mensajes NO se actualizan solos: si no les avisas, vuelven de noche y no entran.
+```
+
+Ese número es lo que decide si se cambia ahora o mañana. Y tras aplicarlo, la skill sugiere
+mandarles el nuevo con `enviar_mensaje_huesped` — no lo hace sola: son mensajes a personas reales
+y los redacta quien decide.
+
+Se cuenta **por día** y no por instante: a las 09:00 del día de salida el huésped sigue dentro y
+aún necesita abrir la caja para devolver las llaves.
+
+### 📶 El WiFi es otra skill: `consultar_wifi`
+
+Porque **el dato no está en la guía**. Vive en `PmsUnidad::$wifiNetworks`, y el cuerpo del ítem
+sólo trae un `{{ wifi_data }}`. La primera versión lo resolvía dentro de `consultar_guia` y
+funcionaba, pero mezclaba una skill que LEE texto publicado con una que sirve una CREDENCIAL.
+
+Separadas:
+
+- La contraseña sale de un sitio, no de un texto que alguien puede reescribir en el editor.
+- «¿Cuál es la clave del wifi?» es de lo más preguntado: merece respuesta directa, no un párrafo
+  del que extraerla.
+- La ventana se comprueba explícitamente y se ve en la respuesta.
+
+```
+Alojada hoy      → redes: OPENPERU SAPHI 1 (josusadi2212) — Forward · SAPHI 2 — Back · MOVIL — Exteriors
+Llega en 3 días  → disponible: false, disponible_desde: 08/08/2026 14:00
+```
+
+`consultar_guia` ya no resuelve ese placeholder: lo sustituye por una remisión legible («los
+datos del WiFi se piden con consultar_wifi») para que el modelo sepa que ahí va algo y a quién
+pedírselo, en vez de leer `{{ wifi_data }}` en voz alta.
+
+⚠️ Los motivos de bloqueo de `consultar_wifi` se escriben en la skill y **no** reutilizan
+`PmsGuiaMensajes`: aquéllos son textos de interfaz —`[Disponible el 12/08]`, entre corchetes para
+pintarse dentro de un párrafo— y aquí hace falta una instrucción para el modelo, que además le
+prohíbe rellenar el hueco por su cuenta.
+
+### 🔥 Los bloques del front hay que cerrarlos aquí
+
+`PmsGuiaInterpolador` resuelve a propósito **sólo las claves de dato** y deja los bloques de
+maquetación al navegador (§4). En un chat no hay navegador, así que la skill los cierra en
+`resolverBloquesDelFront()`:
+
+- **`{{ wifi_data }}`** → una remisión a `consultar_wifi` (ver arriba). **No es una errata del
+  editor:** `RichContentEngine.ts` lo traduce a `{{ widget: wifi }}` y lo pinta con
+  `guia.redesWifi`; aquí no se resuelve porque la credencial es de la otra skill.
+- **`{{ img: … }}`, `{{ video: … }}`, `{{ map: … }}`, `{{ widget: … }}`** → se borran. Una URL de
+  imagen no explica cómo va la ducha y ensucia la respuesta.
+- **Cualquier clave suelta que nadie resolvió** → se borra. Para el interpolador es una errata
+  que «tiene que verse en la revisión», pero al huésped no se le lee una errata.
+
+🪞 **Si el front aprende un placeholder nuevo, esto se queda corto sin avisar.** Los dos lados
+leen el mismo contenido con reglas propias; al tocar `COMPONENT_REGISTRY` hay que mirar aquí.
+
+### 🔥 Se busca en TODOS los idiomas, se responde en UNO
+
+El primer intento buscaba sólo en el idioma de la reserva, y falló en la primera prueba real: la
+guía de una huésped con idioma `en` dice «Using the shower», así que un operador preguntando
+«ducha» recibía «la guía no dice nada sobre eso» —teniéndolo—. Ahora la coincidencia se busca en
+todas las traducciones y el cuerpo se devuelve en el idioma del huésped: mandarle al modelo cinco
+versiones del mismo párrafo es pagar cinco veces por la misma frase.
+
+Cuando no hay nada, la respuesta trae el índice y un aviso que **prohíbe improvisar**: el riesgo
+de esta skill no es no encontrar, es que el modelo se invente cómo funciona un calefactor a gas.
+
+---
+
 ## 7. Gotchas
 
 - **`store.loading` no cubre el arranque de la vista.** Los stores de pax nacen con
@@ -623,6 +966,14 @@ algún día entra ese componente, esta clase es el único punto a sustituir.
 | Cambiar el marcado que envuelve el dato | `src/Pms/Guia/PmsGuiaInterpolador.php` | `envolver()` — tocar también el CSS |
 | Cambiar el podado del árbol | `src/Pms/Guia/PmsGuiaArbolFiltro.php` | `podar()`, `podarItems()` |
 | Cambiar qué estancia abre el enlace corto | `src/Api/Provider/Pms/PmsGuiaHuespedProvider.php` | `elegirEvento()` |
+| Que el agente responda la guía por chat | `src/Agent/Skill/Pms/ConsultarGuiaSkill.php` | `ejecutar()` — §6.2 |
+| **Que el agente encuentre un tema por otras palabras** | el ítem, en el CRUD | «Cómo lo preguntan» (`agenteTerminos`) — no toca código |
+| Que el agente dé el WiFi | `src/Agent/Skill/Pms/ConsultarWifiSkill.php` | `ejecutar()`; los motivos de bloqueo, en `motivo()` |
+| Que el agente dé los códigos de entrada | `src/Agent/Skill/Pms/ConsultarCodigosSkill.php` | `ejecutar()` — caja de llaves + puerta, nunca la del dinero |
+| Cambiar el código de una caja fuerte | `src/Agent/Skill/Pms/CambiarCodigoCajaSkill.php` | `huespedesUsandola()` decide el aviso; el campo vive en `PmsEstablecimiento` |
+| Cambiar cuándo se pregunta por la casita en vez de deducirla | `src/Pms/Guia/PmsGuiaEstanciaResolver.php` | `resolver()` — lo usan las DOS skills |
+| Cambiar cuánto texto de guía se le da al modelo | misma skill | `MAX_ITEMS`, `MAX_CARACTERES` |
+| Enseñar al agente un placeholder de maquetación nuevo | misma skill | `resolverBloquesDelFront()` — **espejo** de `RichContentEngine.ts` |
 | Cambiar qué exige el catálogo para existir | `src/Api/Provider/Pms/PmsUnidadCatalogoProvider.php` | `provide()`, los guards |
 | Añadir un campo al payload del huésped | `src/Pms/Entity/PmsGuia.php` | propiedad virtual + `pax_guia:read` |
 | Añadir un campo al catálogo | entidad correspondiente | grupo `pax_catalogo:read` |

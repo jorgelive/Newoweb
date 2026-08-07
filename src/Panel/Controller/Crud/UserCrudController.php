@@ -7,6 +7,7 @@ namespace App\Panel\Controller\Crud;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Entity\User;
 use App\Security\Roles;
+use App\Twig\Extension\PhoneExtension;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -38,7 +39,9 @@ class UserCrudController extends BaseCrudController
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack,
-        private UserPasswordHasherInterface $userPasswordHasher
+        private UserPasswordHasherInterface $userPasswordHasher,
+        // El mismo formateador que usa el CRUD de reservas para el teléfono del huésped.
+        private readonly PhoneExtension $phoneExtension,
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -117,11 +120,31 @@ class UserCrudController extends BaseCrudController
         yield BooleanField::new('enabled', 'Cuenta Activa')
             ->renderAsSwitch(true);
 
+        // Independiente de «Cuenta Activa» a propósito: quien cobra en la casita no necesita
+        // entrar al sistema (§11.5.1 de PmsBeds24ReservasSync). Sólo surte efecto junto al
+        // rol «Puede cobrar al huésped»; se espera UNA sola persona marcada.
+        yield BooleanField::new('esCobradorPrincipal', 'Cobra por defecto (recepción)')
+            ->setHelp('Al registrar un pago sin decir quién lo recibió, se le atribuye a esta persona. Requiere el rol «Puede cobrar al huésped».')
+            ->renderAsSwitch(true);
+
         // --- DATOS PERSONALES ---
         yield FormField::addPanel('Información Personal')->setIcon('fa fa-user');
 
         yield TextField::new('firstname', 'Nombre')->setColumns(6);
         yield TextField::new('lastname', 'Apellido')->setColumns(6);
+
+        // Mismo trato que el teléfono del huésped en PmsReservaCrudController: se GUARDA en
+        // crudo (sólo dígitos, lo normaliza UserIntegrityListener) y se MUESTRA formateado
+        // con el filtro de Twig. Así el operador teclea como quiera y lee un número legible,
+        // pero en la columna queda la forma que se compara con el remitente de WhatsApp.
+        yield TextField::new('telefono', 'Móvil (identifica en el chat)')
+            ->setColumns(6)
+            ->formatValue(fn (?string $val) => $val ? $this->phoneExtension->formatPhone($val) : null)
+            ->setHelp(
+                'Desde este número el sistema lo reconoce al escribir por WhatsApp. '
+                . 'Escríbelo como quieras (+51 987 654 321 o 987654321): se guarda normalizado. '
+                . 'Sin código de país se asume Perú.'
+            );
 
         // --- ORGANIZACIÓN ---
         yield FormField::addPanel('Organización')->setIcon('fa fa-building');

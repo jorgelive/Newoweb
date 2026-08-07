@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Service;
 
 use App\Agent\Access\ActorInterface;
-use App\Agent\Conversation\AgentEngineInterface;
+use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
 use DateTimeImmutable;
@@ -16,10 +16,11 @@ use InvalidArgumentException;
  * El asistente del panel: adaptador delgado entre la interfaz del equipo y el motor.
  *
  * Sólo aporta lo que es suyo — el prompt del contexto interno y la política de qué hacer
- * cuando el motor responde sin usar ninguna skill. Ni el modelo, ni las skills, ni los
- * permisos: eso vive en el motor y el registro.
+ * cuando el motor responde sin usar ninguna skill. Ni las skills, ni los permisos, ni cómo
+ * habla cada proveedor: eso vive en el registro de skills y en el motor.
  *
- * Ver docs/Mensajeria.md §11.
+ * De proveedor y modelo sólo conoce lo que le llega en la llamada, y se lo pasa al
+ * {@see AgentEngineRegistry} para que valide y elija. Ver docs/Mensajeria.md §11 y §12.
  */
 final readonly class PanelAssistant
 {
@@ -30,20 +31,29 @@ final readonly class PanelAssistant
     private const int MAX_CARACTERES = 500;
 
     public function __construct(
-        private AgentEngineInterface $motor
+        private AgentEngineRegistry $motores
     ) {}
 
     public function estaDisponible(): bool
     {
-        return $this->motor->estaDisponible();
+        return $this->motores->hayDisponible();
     }
 
     /**
      * @param list<array{rol: string, texto: string}> $historial Turnos previos del hilo.
-     * @return array{respuesta: string, herramientas: list<string>}
+     * @param string|null $proveedor Motor pedido desde el desplegable. `null` = el de por defecto.
+     * @param string|null $modelo Modelo dentro de ese proveedor. `null` = el de por defecto.
+     * @return array{respuesta: string, herramientas: list<string>, proveedor: string, modelo: string}
+     *         Se devuelve **quién contestó**: comparando dos proveedores sobre la misma
+     *         pregunta, una respuesta sin firmar no vale para nada.
      */
-    public function preguntar(string $pregunta, ActorInterface $actor, array $historial = []): array
-    {
+    public function preguntar(
+        string $pregunta,
+        ActorInterface $actor,
+        array $historial = [],
+        ?string $proveedor = null,
+        ?string $modelo = null,
+    ): array {
         $pregunta = trim($pregunta);
 
         if ($pregunta === '') {
@@ -57,17 +67,39 @@ final readonly class PanelAssistant
             ));
         }
 
-        $respuesta = $this->motor->conversar(new ConversationRequest(
+        // Un proveedor o un modelo que no existan son error de quien pregunta (400), no un
+        // fallo del asistente: el registro lanza InvalidArgumentException y sube tal cual.
+        $motor = $this->motores->elegir($proveedor);
+        if ($motor === null) {
+            throw new InvalidArgumentException('El asistente no está configurado en este entorno.');
+        }
+
+        $modelo = $this->motores->validarModelo($motor, $modelo);
+
+        $respuesta = $motor->conversar(new ConversationRequest(
             actor: $actor,
             systemPrompt: $this->systemPrompt(),
             mensaje: $pregunta,
             historial: $historial,
+            modelo: $modelo,
         ));
 
         return [
             'respuesta' => $this->texto($respuesta),
             'herramientas' => $respuesta->skillsUsadas,
+            'proveedor' => $motor->nombre(),
+            'modelo' => $modelo ?? $motor->modeloPorDefecto(),
         ];
+    }
+
+    /**
+     * Catálogo de proveedores y modelos para el desplegable del panel.
+     *
+     * @return list<array{proveedor: string, etiqueta: string, disponible: bool, modelos: list<string>, modeloPorDefecto: string, porDefecto: bool}>
+     */
+    public function catalogoDeMotores(): array
+    {
+        return $this->motores->catalogo();
     }
 
     /**

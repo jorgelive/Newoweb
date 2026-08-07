@@ -27,8 +27,25 @@ interface AgentEngineInterface
     /** Identificador del motor, para logs y para elegirlo por configuración. */
     public function nombre(): string;
 
+    /** Nombre del proveedor tal y como se le enseña al operador en el panel. */
+    public function etiqueta(): string;
+
     /** `false` cuando falta configuración: el sistema debe degradar, no romper. */
     public function estaDisponible(): bool;
+
+    /**
+     * Modelos que este motor acepta, en orden de preferencia.
+     *
+     * Es una **lista blanca**, no un catálogo informativo: lo que no esté aquí se rechaza en
+     * {@see \App\Agent\Conversation\AgentEngineRegistry::validarModelo()}. Sin ella, un POST
+     * al endpoint del panel podría pedir el modelo más caro del proveedor.
+     *
+     * @return non-empty-list<string>
+     */
+    public function modelos(): array;
+
+    /** Modelo que se usa cuando la petición no pide uno. Siempre está dentro de `modelos()`. */
+    public function modeloPorDefecto(): string;
 
     public function conversar(ConversationRequest $peticion): ConversationResponse;
 }

@@ -12,7 +12,13 @@ framework:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
                     use_notify: true
-                    check_delayed_interval: 60000
+                    # Cada cuánto mira el worker si venció un mensaje DIFERIDO. Estaba en
+                    # 60 s para no machacar la BD, pero la espera de ráfaga del autorresponder
+                    # (AGENT_IA_ESPERA_RAFAGA) va con DelayStamp: con 60 s, una espera de 20
+                    # tardaba hasta 80 en dispararse y el huésped se quedaba mirando el chat.
+                    # 2 s es el compromiso: responde como un chat y consulta la mitad de veces
+                    # que el defecto de Symfony, que es 1 s.
+                    check_delayed_interval: 2000
                 retry_strategy:
                     max_retries: 3
                     multiplier: 2
@@ -34,7 +40,7 @@ framework:
             # postPersist y un `em->refresh()` a media transacción. Con IA en esa rama sería
             # peor todavía — bloquearía el webhook de Meta varios segundos dentro de la
             # transacción, y Meta reintenta los webhooks lentos, así que el huésped recibiría
-            # la respuesta duplicada. Ver docs/Mensajeria.md §10.
+            # la respuesta duplicada. Ver docs/Mensajeria.md §9.
             App\Agent\Dispatch\ProcessInboundIntentDispatch: async
 
 

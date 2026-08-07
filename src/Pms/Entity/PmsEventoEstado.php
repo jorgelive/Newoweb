@@ -92,6 +92,34 @@ class PmsEventoEstado
     ];
 
     /**
+     * Estados en los que un evento acredita que ALGUIEN es huésped nuestro.
+     *
+     * La usa la identificación por teléfono del chat entrante
+     * (`PmsReservaRepository::findVivasByTelefono()`): decide si el número que escribe tiene
+     * derecho a que le contemos su reserva y su estado de cuenta.
+     *
+     * ⚠️ Coincide hoy con `OCUPAN_UNIDAD`, y aun así se declara aparte **a propósito**, por el
+     * mismo motivo que aquella se separó de `IMPIDEN_VENTA`: responden preguntas distintas.
+     * Aquella dice «¿pinto esta noche como ocupada?»; ésta, «¿le enseño datos privados a quien
+     * escribe?». Si algún día un `bloqueo` pasara a pintar ocupación, derivar una de otra
+     * abriría la cuenta de un huésped a quien reservó una casita cerrada por mantenimiento.
+     *
+     * Quedan fuera, y cada uno por su razón:
+     *
+     * - `cancelada`: la reserva murió. Los datos siguen ahí intactos, pero ya no es huésped.
+     * - `bloqueo`: no hay huésped, es la casita cerrada por nosotros o por el canal.
+     * - `abierto`: un inquiry de Airbnb es una CONSULTA, no una reserva. Todavía no hay
+     *   relación que dé acceso a nada.
+     * - `extension`: la noche fantasma de una entrada temprana o salida tardía (§7.1.b), no
+     *   una estancia. Su reserva ya entra por el tramo que la generó.
+     */
+    public const array IDENTIFICAN_HUESPED = [
+        PmsEventoEstado::CODIGO_PENDIENTE,
+        PmsEventoEstado::CODIGO_CONFIRMADA,
+        PmsEventoEstado::CODIGO_REQUERIMIENTO,
+    ];
+
+    /**
      * Estados en los que la casita NO se puede vender esa noche.
      *
      * ⚠️ NO es lo mismo que OCUPAN_UNIDAD, y por eso se declara aparte en vez de

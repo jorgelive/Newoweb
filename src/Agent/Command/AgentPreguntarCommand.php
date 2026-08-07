@@ -49,6 +49,18 @@ final class AgentPreguntarCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Email del usuario cuyos permisos usar. Sin él, se pregunta como SUPER_ADMIN.'
+            )
+            ->addOption(
+                'motor',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Proveedor de IA: anthropic | google. Sin él, el de AGENT_IA_PROVEEDOR.'
+            )
+            ->addOption(
+                'modelo',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Modelo dentro del proveedor. Sin él, el de por defecto del motor.'
             );
     }
 
@@ -57,7 +69,10 @@ final class AgentPreguntarCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         if (!$this->asistente->estaDisponible()) {
-            $io->error('Falta ANTHROPIC_API_KEY: el asistente está desactivado en este entorno.');
+            $io->error(
+                'Ningún proveedor tiene credenciales (ANTHROPIC_API_KEY / GOOGLE_AI_API_KEY): '
+                . 'el asistente está desactivado en este entorno.'
+            );
             return Command::FAILURE;
         }
 
@@ -73,7 +88,13 @@ final class AgentPreguntarCommand extends Command
         $inicio = microtime(true);
 
         try {
-            $resultado = $this->asistente->preguntar((string) $input->getArgument('pregunta'), $actor);
+            $resultado = $this->asistente->preguntar(
+                (string) $input->getArgument('pregunta'),
+                $actor,
+                [],
+                $this->comoTexto($input->getOption('motor')),
+                $this->comoTexto($input->getOption('modelo')),
+            );
         } catch (Throwable $e) {
             $io->error($e->getMessage());
             return Command::FAILURE;
@@ -81,13 +102,25 @@ final class AgentPreguntarCommand extends Command
 
         $io->writeln($resultado['respuesta']);
         $io->newline();
+        // El motor y el modelo se imprimen siempre: la gracia de `--motor` es lanzar la misma
+        // pregunta dos veces y comparar, y para eso hay que ver quién contestó cada vez.
         $io->comment(sprintf(
-            '%.1f s · herramientas: %s',
+            '%s · %s · %.1f s · herramientas: %s',
+            $resultado['proveedor'],
+            $resultado['modelo'],
             microtime(true) - $inicio,
             $resultado['herramientas'] === [] ? 'ninguna' : implode(', ', $resultado['herramientas'])
         ));
 
         return Command::SUCCESS;
+    }
+
+    /** Las opciones sin valor llegan como `null`; las vacías, como cadena vacía. */
+    private function comoTexto(mixed $valor): ?string
+    {
+        $texto = trim((string) $valor);
+
+        return $texto === '' ? null : $texto;
     }
 
     /**

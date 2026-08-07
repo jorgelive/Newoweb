@@ -17,6 +17,9 @@ final readonly class ConversationRequest
      *        un «¿cuál de los dos Carlos?» llegaría sin contexto.
      * @param bool $permitirEscritura Falso en los canales donde no hay a quién pedir
      *        confirmación, como el chat del huésped.
+     * @param string|null $modelo Modelo concreto dentro del proveedor. `null` = el de por
+     *        defecto del motor. Viaja en la petición —y no en la configuración del servicio—
+     *        porque el panel deja comparar dos modelos en caliente sobre la misma pregunta.
      */
     public function __construct(
         public ActorInterface $actor,
@@ -25,5 +28,6 @@ final readonly class ConversationRequest
         public array $historial = [],
         public bool $permitirEscritura = true,
         public int $maxTokens = 4096,
+        public ?string $modelo = null,
     ) {}
 }

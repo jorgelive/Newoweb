@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Controller\Api;
 
 use App\Agent\Service\PanelAssistant;
-use App\Agent\Access\AgentActor;
+use App\Agent\Access\AgentActorFactory;
 use App\Entity\User;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
@@ -31,11 +31,24 @@ final class PanelAssistantController extends AbstractController
 {
     public function __construct(
         private readonly PanelAssistant $asistente,
+        private readonly AgentActorFactory $actores,
         private readonly LoggerInterface $logger,
     ) {}
 
+    /**
+     * Proveedores y modelos que el operador puede elegir.
+     *
+     * Se sirve desde el backend en vez de fijarlo en el front porque la lista depende de qué
+     * credenciales tiene ESTE entorno: en local suele haber sólo uno.
+     */
+    #[Route('/motores', name: 'app_agent_motores', methods: ['GET'])]
+    public function motores(): JsonResponse
+    {
+        return $this->json(['motores' => $this->asistente->catalogoDeMotores()]);
+    }
+
     #[Route('/consulta', name: 'app_agent_consulta', methods: ['POST'])]
-    public function __invoke(Request $request): JsonResponse
+    public function consulta(Request $request): JsonResponse
     {
         if (!$this->asistente->estaDisponible()) {
             return $this->json(
@@ -58,13 +71,29 @@ final class PanelAssistantController extends AbstractController
             ? $payload['historial']
             : [];
 
+        // Proveedor y modelo llegan por petición para poder comparar dos motores sobre la
+        // misma pregunta sin desplegar. Vacío = los de por defecto del entorno. Ambos se
+        // validan contra la lista blanca del registro: esto gasta dinero de verdad.
+        $proveedor = is_array($payload) && is_string($payload['proveedor'] ?? null)
+            ? $payload['proveedor']
+            : null;
+        $modelo = is_array($payload) && is_string($payload['modelo'] ?? null)
+            ? $payload['modelo']
+            : null;
+
         try {
-            // El actor lleva los roles del usuario: el registro decide con ellos qué
-            // herramientas se le ofrecen al modelo. Limpieza y administración no ven lo mismo.
+            // El actor lleva los roles EFECTIVOS del usuario —literales más los heredados por
+            // la jerarquía de security.yaml—: el registro decide con ellos qué herramientas se
+            // le ofrecen al modelo. Limpieza y administración no ven lo mismo. Va por la
+            // factoría y no por `AgentActor::delPanel()` a secas porque ese atajo se queda en
+            // los roles literales, y entonces quien tiene ROLE_RESERVAS_DELETE no puede usar
+            // una skill que pida ROLE_RESERVAS_WRITE, aunque en el panel sí pueda hacerlo.
             $resultado = $this->asistente->preguntar(
                 $pregunta,
-                AgentActor::delPanel($usuario),
-                $historial
+                $this->actores->delPanel($usuario),
+                $historial,
+                $proveedor,
+                $modelo
             );
         } catch (InvalidArgumentException $e) {
             return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_BAD_REQUEST);

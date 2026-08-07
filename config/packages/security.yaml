@@ -21,6 +21,13 @@ security:
         ROLE_CONDUCTOR:          [ROLE_USER]
         ROLE_TRASLADISTA:        [ROLE_USER]
         ROLE_GUIA:               [ROLE_USER]
+        # Responsabilidad, no acceso: quien puede recibir dinero del huésped. NO se cuelga de
+        # ROLE_ADMIN a propósito (ver el docblock de Roles::COBRADOR) — ser admin no implica
+        # manejar caja, y heredarlo metería a todos los admin en la lista de cobradores.
+        ROLE_COBRADOR:           [ROLE_USER]
+        # Guardia de atención: a quién avisa el asistente cuando deja a un huésped esperando.
+        # Necesita ver el chat para poder responder, de ahí ROLE_MENSAJES_SHOW.
+        ROLE_CUSTOMER_SUPPORT:   [ROLE_MENSAJES_SHOW]
 
         # Admin: Control total de los módulos de negocio
         ROLE_ADMIN:

@@ -190,7 +190,10 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface
         $mensaje->setSenderType(Message::SENDER_HOST);
         $mensaje->setStatus(Message::STATUS_PENDING);
         $mensaje->setTransientChannels($pedidos);
-        $mensaje->setContentLocal($texto);
+        // Sólo el EXTERNAL, como el autoresponder: el texto se redacta en el idioma del huésped
+        // (lo exige la descripción de esta skill) y el español para el panel lo pone
+        // `MessageTranslator` en prePersist. Rellenando los dos, el traductor se lo saltaba y el
+        // operador acababa releyendo en inglés el mensaje que él mismo mandó.
         $mensaje->setContentExternal($texto);
         $mensaje->setLanguageCode($conversacion->getIdioma()?->getId() ?? 'es');
         $mensaje->addMetadata('enviado_por_agente', $actor->etiqueta());

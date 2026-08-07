@@ -13,6 +13,7 @@ use App\Agent\Skill\SkillResult;
 use App\Message\Service\MessageDataResolverRegistry;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
+use DateTimeImmutable;
 use Symfony\Component\String\UnicodeString;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -78,9 +79,20 @@ final readonly class BuscarReservaSkill implements SkillInterface
                 . 'diferenciarse sólo en eso. Una reserva puede ocupar VARIAS casitas a la vez, '
                 . 'cambiar de casita a mitad, o repetir casita en dos tramos con un hueco: di '
                 . 'los tramos, no sólo la primera entrada y la última salida. Si el estado es '
-                . '«cancelada», DILO LO PRIMERO y no envíes ni apuntes nada sin preguntar.',
+                . '«cancelada», DILO LO PRIMERO y no envíes ni apuntes nada sin preguntar. '
+                . 'POR DEFECTO NO SALEN LAS CANCELADAS, porque los errores de guardado dejan '
+                . 'duplicados vacíos que tapan la reserva buena. Si la respuesta trae '
+                . 'canceladas_ocultas, MENCIÓNALO («también tiene N canceladas») por si era esa '
+                . 'la que buscaban. Y si no encuentro ninguna activa pero sí canceladas, te lo '
+                . 'diré en el aviso: pregunta al operador si quiere verlas y vuelve a llamarme '
+                . 'con incluir_canceladas=true. Usa ese parámetro también cuando te pidan '
+                . 'buscar «entre todas», «en el historial» o «aunque esté cancelada».',
             parametros: [
                 SkillParameter::texto('busqueda', 'Nombre, apellido o localizador del huésped.'),
+                SkillParameter::booleano('incluir_canceladas', 'true para buscar TAMBIÉN entre '
+                    . 'las canceladas. Úsalo si el operador lo pide explícitamente o si te lo '
+                    . 'sugiere el aviso de una búsqueda anterior. Por defecto false.',
+                    requerido: false),
             ],
         );
     }
@@ -117,6 +129,50 @@ final readonly class BuscarReservaSkill implements SkillInterface
             return SkillResult::ok(['total' => 0, 'reservas' => []]);
         }
 
+        // 🧹 Por defecto se esconden las CANCELADAS. Nacen de errores de guardado que dejan
+        // duplicados vacíos —un huésped real tenía 6 reservas canceladas de un evento cada una
+        // junto a la buena—, y devolverlas es enterrar la única que importa en siete bloques
+        // idénticos que el modelo tiene que descartar en cada consulta.
+        //
+        // No se PIERDEN: si tras el filtro no queda nada, se avisa de cuántas hay para que el
+        // agente pregunte; y si el operador dice «búscala entre todas», se repite con
+        // incluir_canceladas=true. Las PASADAS sí salen siempre —se consulta historial a
+        // menudo (cobros, facturas)—, pero ordenadas al final.
+        $incluirCanceladas = filter_var($entrada['incluir_canceladas'] ?? false, FILTER_VALIDATE_BOOL);
+        $ocultas = 0;
+
+        if (!$incluirCanceladas) {
+            $vivas = array_values(array_filter(
+                $reservas,
+                static fn (PmsReserva $r): bool => !$r->isCancelada()
+            ));
+
+            $ocultas = count($reservas) - count($vivas);
+
+            // Todas canceladas: no se devuelve una lista vacía a secas —el modelo diría «no
+            // existe» y el operador se quedaría sin saber que sí existe, pero cancelada—.
+            if ($vivas === []) {
+                return SkillResult::ok([
+                    'total' => 0,
+                    'reservas' => [],
+                    'canceladas_ocultas' => $ocultas,
+                    'aviso' => sprintf(
+                        'No hay ninguna reserva ACTIVA con ese nombre, pero sí %d CANCELADA(S). '
+                        . 'Díselo al operador y pregúntale si quiere verlas; si dice que sí, '
+                        . 'vuelve a llamarme con incluir_canceladas=true.',
+                        $ocultas
+                    ),
+                ]);
+            }
+
+            $reservas = $vivas;
+        }
+
+        // Lo de ahora primero: se pregunta por quien está o por quien llega, y el historial
+        // interesa después. El orden base es por llegada DESC, que hunde lo actual bajo lo
+        // futuro cuando hay reservas lejanas.
+        $reservas = $this->ordenarPorPertinencia($reservas);
+
         $hayMas = count($reservas) > self::MAX_RESULTADOS;
         $reservas = array_slice($reservas, 0, self::MAX_RESULTADOS);
 
@@ -145,6 +201,9 @@ final readonly class BuscarReservaSkill implements SkillInterface
         return SkillResult::ok(array_filter([
             'total' => count($salida),
             'hay_mas' => $hayMas,
+            // Que se han escondido resultados no puede quedarse callado: si el operador
+            // buscaba justo la cancelada, tiene que poder pedirla.
+            'canceladas_ocultas' => $ocultas ?: null,
             // Que la coincidencia sea aproximada NO puede quedarse implícito: detrás de esta
             // skill vienen las de escritura, y cobrarle a quien se parece al que dijeron es
             // peor que no encontrar a nadie.
@@ -294,6 +353,59 @@ final readonly class BuscarReservaSkill implements SkillInterface
         $ascii = (new UnicodeString($texto))->ascii()->lower()->toString();
 
         return trim((string) preg_replace('/\s+/', ' ', $ascii));
+    }
+
+    /**
+     * Ordena por lo que el operador suele estar buscando: lo de ahora, luego lo que viene,
+     * y el historial al final.
+     *
+     * El `ORDER BY fechaLlegada DESC` de la consulta no vale para esto: pone arriba la reserva
+     * más lejana en el futuro, así que quien está alojado HOY aparece por debajo de alguien que
+     * llega en tres meses.
+     *
+     * Se mira `fechaSalida`/`fechaLlegada` de la reserva —los agregados— y no los eventos: aquí
+     * sólo se trata de ordenar una lista corta que el operador va a leer entera, no de decidir
+     * quién tiene derecho a ver qué (para eso está `PmsReservaRepository::findVivasByTelefono()`,
+     * que sí baja al detalle de los tramos).
+     *
+     * @param list<PmsReserva> $reservas
+     * @return list<PmsReserva>
+     */
+    private function ordenarPorPertinencia(array $reservas): array
+    {
+        $hoy = new DateTimeImmutable('today');
+
+        $rango = static function (PmsReserva $r) use ($hoy): int {
+            $entra = $r->getFechaLlegada();
+            $sale = $r->getFechaSalida();
+
+            if ($entra === null || $sale === null) {
+                return 3;
+            }
+
+            return match (true) {
+                $entra <= $hoy && $sale >= $hoy => 0,  // alojado ahora
+                $entra > $hoy                   => 1,  // por llegar
+                default                         => 2,  // ya se fue
+            };
+        };
+
+        usort($reservas, static function (PmsReserva $a, PmsReserva $b) use ($rango): int {
+            $ra = $rango($a);
+            $rb = $rango($b);
+
+            if ($ra !== $rb) {
+                return $ra <=> $rb;
+            }
+
+            // Dentro del mismo grupo: las futuras por la que llega antes, el resto por la más
+            // reciente. Así «por llegar» empieza por la inminente y el historial por lo último.
+            return $ra === 1
+                ? $a->getFechaLlegada() <=> $b->getFechaLlegada()
+                : $b->getFechaLlegada() <=> $a->getFechaLlegada();
+        });
+
+        return array_values($reservas);
     }
 
     /**

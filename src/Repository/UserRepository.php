@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\User;
+use App\Service\Phone\PhoneSanitizer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
@@ -88,5 +89,41 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->setParameter('role', '%"' . $role . '"%')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Quién del equipo escribe desde este número, o null si es un desconocido (un huésped).
+     *
+     * Es la contraparte de `PmsReserva`→teléfono: cuando entra un WhatsApp sólo se tiene el
+     * número del remitente, y de aquí sale si hay que tratarlo como equipo
+     * (`AgentActor::delEquipoPorChat()`) o como huésped.
+     *
+     * El número entrante se normaliza con el MISMO `PhoneSanitizer` que usó el listener al
+     * guardarlo. Sin eso la comparación es una lotería: WhatsApp entrega «+51987654321» y en
+     * la columna está «51987654321», así que un `findOneBy` a pelo no encuentra nada y falla
+     * en silencio —el operador quedaría como huésped sin que nada lo delate—.
+     *
+     * ⚠️ Devuelve al usuario aunque esté deshabilitado: identificar no es autorizar, y quien
+     * decide qué puede hacer es el actor con sus roles. Filtrar aquí por `enabled` haría que
+     * una limpiadora sin login (que sí puede cobrar, §11.5.1) apareciera como desconocida.
+     */
+    public function findByTelefono(?string $telefono, PhoneSanitizer $sanitizer): ?User
+    {
+        $telefono = trim((string) $telefono);
+        if ($telefono === '') {
+            return null;
+        }
+
+        $limpio = $sanitizer->cleanPhoneNumber($telefono, 'PE');
+        if ($limpio === '') {
+            return null;
+        }
+
+        return $this->createQueryBuilder('u')
+            ->andWhere('u.telefono = :tel')
+            ->setParameter('tel', $limpio)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

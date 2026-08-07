@@ -41,6 +41,39 @@ final class Roles
     public const GUIA               = 'ROLE_GUIA';
 
     /**
+     * Puede RECIBIR dinero del huésped: es quien se puede poner en
+     * `PmsPagoFinanciero::$cobrador`.
+     *
+     * Es una RESPONSABILIDAD, no un puesto ni un nivel de acceso, y por eso tiene rol propio
+     * en vez de deducirse de otra cosa:
+     *
+     * - **No es el puesto.** Puede haber personal de limpieza que no maneje caja.
+     * - **No es `enabled`.** Ese campo dice si la persona entra al sistema, que es
+     *   independiente: la limpiadora que cobra el efectivo en la casita no necesita login, y
+     *   habilitarla sólo para poder nombrarla en un desplegable le daría acceso al panel.
+     * - **No cuelga de ROLE_ADMIN.** Ser administrador no implica manejar el efectivo de la
+     *   empresa; que lo heredara metería a cualquier admin en la lista de cobradores.
+     *
+     * ⚠️ Quien lo consume filtra por la columna `user.roles` LITERAL
+     * (`UserRepository::findByRole()`), no por la jerarquía de `security.yaml`: un rol que
+     * sólo se tenga por herencia NO aparecerá en la lista de cobradores.
+     */
+    public const COBRADOR           = 'ROLE_COBRADOR';
+
+    /**
+     * Recibe los avisos cuando el agente promete que responderá una persona.
+     *
+     * Es una **guardia**, no un permiso: dice a quién se le escribe al móvil cuando un huésped
+     * se queda esperando, no qué puede hacer en el panel. Por eso no se deriva de
+     * `ROLE_MENSAJES_*` —los tiene mucha gente que no está de turno— ni de `enabled`.
+     *
+     * Sin este rol no llega nada: el aviso se manda a los usuarios que lo tengan **y** tengan
+     * móvil registrado ({@see \App\Entity\User::$telefono}). Que la lista esté vacía es un
+     * fallo de configuración y la skill lo dice en su respuesta en vez de callárselo.
+     */
+    public const CUSTOMER_SUPPORT   = 'ROLE_CUSTOMER_SUPPORT';
+
+    /**
      * Rol SINTÉTICO del huésped. Ningún `User` lo tiene ni debe tenerlo: se lo asigna
      * `AgentActor::huesped()` a quien escribe por el chat sin ser del equipo.
      *
@@ -86,6 +119,10 @@ final class Roles
             '🚗 Conductor / Chófer'     => self::CONDUCTOR,
             '🤝 Trasladista / Host'     => self::TRASLADISTA,
             '🚩 Guía Turístico'        => self::GUIA,
+            // Se marca aparte del puesto: se le da a quien maneja caja, limpie o no.
+            '💵 Puede cobrar al huésped' => self::COBRADOR,
+            // Guardia de atención: recibe en su móvil los avisos del asistente.
+            '🆘 Atención al cliente (recibe avisos)' => self::CUSTOMER_SUPPORT,
         ];
 
         $group = $group ? strtoupper($group) : null;

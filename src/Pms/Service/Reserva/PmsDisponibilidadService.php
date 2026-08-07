@@ -6,6 +6,7 @@ namespace App\Pms\Service\Reserva;
 
 use App\Pms\Dto\PmsOcupacionDto;
 use App\Pms\Dto\PmsUnidadDisponibleDto;
+use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsUnidad;
 use DateTimeImmutable;
@@ -247,4 +248,81 @@ final readonly class PmsDisponibilidadService
 
         return array_map('strval', $filas);
     }
+    /**
+     * ¿Está libre la casita justo ANTES de entrar y justo DESPUÉS de salir?
+     *
+     * Es lo que hay que mirar para decidir una entrada temprana o una salida tardía, y es la
+     * pregunta que el operador se hacía a mano abriendo el calendario. Un late check-out crea
+     * una extensión que **bloquea la noche del día de salida** (§7.1.b de
+     * `PmsBeds24ReservasSync.md`): si esa noche ya está vendida, no hay nada que conceder.
+     *
+     * ⚠️ **No decide, informa.** Que la noche esté libre no significa que se autorice —hay
+     * precio, limpieza y criterio de por medio—; significa que la conversación con el huésped
+     * puede seguir. Al revés sí es concluyente: ocupada es que no.
+     *
+     * Se excluye el PROPIO evento y todo lo que cuelgue de él (sus extensiones), o una estancia
+     * se detectaría a sí misma como el motivo de su propia ocupación.
+     *
+     * Misma regla que el resto del servicio —`IMPIDEN_VENTA` y solape por `DATE()`—, así que un
+     * bloqueo por mantenimiento cuenta como ocupado: no es vendible aunque no haya huésped.
+     *
+     * @return array{
+     *     antes: array{fecha: string, libre: bool, ocupa: ?string},
+     *     despues: array{fecha: string, libre: bool, ocupa: ?string}
+     * }
+     */
+    public function margenesDe(PmsEventoCalendario $evento): array
+    {
+        $inicio = $evento->getInicio();
+        $fin = $evento->getFin();
+        $unidadId = $evento->getPmsUnidad()?->getId();
+
+        if ($inicio === null || $fin === null || $unidadId === null) {
+            throw new InvalidArgumentException('La estancia no tiene fechas o casita asignada.');
+        }
+
+        $vispera = DateTimeImmutable::createFromInterface($inicio)->setTime(0, 0)->modify('-1 day');
+        $salida = DateTimeImmutable::createFromInterface($fin)->setTime(0, 0);
+
+        return [
+            'antes' => $this->nocheDe($vispera, (string) $unidadId, $evento),
+            // La noche del día de salida: la que ocuparía la extensión del late check-out.
+            'despues' => $this->nocheDe($salida, (string) $unidadId, $evento),
+        ];
+    }
+
+    /**
+     * Estado de UNA noche concreta en una casita.
+     *
+     * @return array{fecha: string, libre: bool, ocupa: ?string}
+     */
+    private function nocheDe(DateTimeImmutable $noche, string $unidadId, PmsEventoCalendario $propio): array
+    {
+        $reservaPropia = $propio->getReserva()?->getId() !== null
+            ? (string) $propio->getReserva()->getId()
+            : null;
+        $ocupada = null;
+
+        foreach ($this->ocupacion($noche, $noche->modify('+1 day'), $unidadId) as $dto) {
+            // Lo de la MISMA reserva no cuenta como ocupación ajena: es el propio evento, su
+            // extensión, o su otro tramo en la misma casita. Se compara por reserva y no por
+            // id de evento porque las extensiones son eventos aparte —cuelgan por
+            // `eventoOrigen`— y buscarlas una a una sería una consulta extra por noche.
+            if ($dto->reservaId !== null && $dto->reservaId === $reservaPropia) {
+                continue;
+            }
+
+            // Se queda con el primero: al operador le basta saber que hay algo y de quién,
+            // no la lista completa de lo que solapa.
+            $ocupada = $dto->huesped ?: $dto->estado;
+            break;
+        }
+
+        return [
+            'fecha' => $noche->format('Y-m-d'),
+            'libre' => $ocupada === null,
+            'ocupa' => $ocupada,
+        ];
+    }
+
 }
