@@ -66,4 +66,21 @@ enum NivelRiesgo: string
     {
         return $this === self::Destructivo;
     }
+
+    /**
+     * ¿Dejó algo distinto en la base, de modo que lo que hay en pantalla ya no vale?
+     *
+     * La usa el asistente del panel para avisar a la vista que lo embebe de que sus datos
+     * quedaron viejos: el operador pide «registra la salida a las 8», la skill lo guarda, y
+     * la lista de salidas de arriba seguía mostrando las 10:00 hasta recargar a mano.
+     *
+     * ⚠️ NO es `exigePermisoDeEscritura()`. `Interna` no pide permiso ni confirmación, pero sí
+     * escribe —marca la conversación como no leída, por ejemplo— y esa marca también es algo
+     * que la pantalla está mostrando desactualizado. Aquí la pregunta es «¿cambió algo?», no
+     * «¿hacía falta permiso?».
+     */
+    public function modificaDatos(): bool
+    {
+        return $this !== self::Lectura;
+    }
 }

@@ -295,7 +295,10 @@ const handleLogout = async () => {
              operador aquí ("¿tengo sitio del 12 al 15?"), y el panel es para mirar, no para
              preguntar. Sólo con sesión: sin ella el endpoint responde 401. -->
         <section v-if="isSessionActive" class="mb-6">
-          <AsistenteBar />
+          <!-- El asistente escribe en el PMS («registra la salida a las 8»), así que el panel de
+             llegadas y salidas que hay justo debajo se queda viejo. Se recarga cuando avisa.
+             Sólo emite si de verdad hubo escritura: preguntar «quién sale mañana» no recarga. -->
+        <AsistenteBar @datos-cambiados="cargarPanelHoy" />
         </section>
 
         <!-- PANEL DE HOY: lo primero que se mira al entrar. Llegadas y salidas

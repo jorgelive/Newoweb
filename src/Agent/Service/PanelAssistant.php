@@ -8,6 +8,7 @@ use App\Agent\Access\ActorInterface;
 use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
+use App\Agent\Skill\SkillRegistry;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -31,7 +32,8 @@ final readonly class PanelAssistant
     private const int MAX_CARACTERES = 500;
 
     public function __construct(
-        private AgentEngineRegistry $motores
+        private AgentEngineRegistry $motores,
+        private SkillRegistry $skills,
     ) {}
 
     public function estaDisponible(): bool
@@ -43,7 +45,7 @@ final readonly class PanelAssistant
      * @param list<array{rol: string, texto: string}> $historial Turnos previos del hilo.
      * @param string|null $proveedor Motor pedido desde el desplegable. `null` = el de por defecto.
      * @param string|null $modelo Modelo dentro de ese proveedor. `null` = el de por defecto.
-     * @return array{respuesta: string, herramientas: list<string>, proveedor: string, modelo: string}
+     * @return array{respuesta: string, herramientas: list<string>, hubo_escritura: bool, proveedor: string, modelo: string}
      *         Se devuelve **quién contestó**: comparando dos proveedores sobre la misma
      *         pregunta, una respuesta sin firmar no vale para nada.
      */
@@ -87,9 +89,37 @@ final readonly class PanelAssistant
         return [
             'respuesta' => $this->texto($respuesta),
             'herramientas' => $respuesta->skillsUsadas,
+            'hubo_escritura' => $this->huboEscritura($respuesta->skillsUsadas),
             'proveedor' => $motor->nombre(),
             'modelo' => $modelo ?? $motor->modeloPorDefecto(),
         ];
+    }
+
+    /**
+     * ¿Alguna de las skills usadas dejó la pantalla desactualizada?
+     *
+     * Lo resuelve el backend y no el front a propósito: aquí se conoce el nivel de riesgo real
+     * de cada skill ({@see \App\Agent\Access\NivelRiesgo::modificaDatos()}), mientras que en el
+     * front habría que mantener a mano una lista de nombres que se desincroniza en cuanto
+     * alguien añade una skill de escritura y se olvida de apuntarla.
+     *
+     * Una skill desconocida —renombrada, retirada— cuenta como que SÍ escribió: refrescar de
+     * más cuesta una petición; refrescar de menos deja al operador mirando un dato viejo y
+     * creyendo que su cambio no se aplicó.
+     *
+     * @param list<string> $usadas
+     */
+    private function huboEscritura(array $usadas): bool
+    {
+        foreach ($usadas as $nombre) {
+            $skill = $this->skills->buscar($nombre);
+
+            if ($skill === null || $skill->nivelRiesgo()->modificaDatos()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

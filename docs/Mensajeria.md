@@ -3176,6 +3176,34 @@ en `util/src/views/HomeView.vue` al pinchar una fila de «salen hoy»:
 `ListarSalidasSkill::fichaDe()` hay que tocarlo también, o el enlace llevará al calendario sin
 abrir nada. La skill ya tenía los dos ids; lo único que le faltaba era saber la URL base.
 
+#### 🔄 El asistente escribe, pero la pantalla no se enteraba
+
+«El pasajero de la casa 5 se va a las 8» → la skill guarda `fin = 08:00` y responde «listo».
+Y el panel de salidas, tres centímetros más arriba, seguía mostrando las 10:00. `HomeView`
+carga sus datos una vez en `onMounted()`, y el asistente que lleva embebido no avisaba de nada.
+Parecía que el cambio no se había aplicado; en la base estaba perfectamente guardado.
+
+Ahora la respuesta del asistente trae **`hubo_escritura`**, y `AsistenteBar` emite
+`datosCambiados` cuando es `true`. `HomeView` lo engancha a su `cargarPanelHoy()`.
+
+⚠️ **Lo decide el backend, no el front.** `PanelAssistant::huboEscritura()` resuelve el nivel
+de riesgo real de cada skill usada con
+{@see \App\Agent\Access\NivelRiesgo::modificaDatos()}. Mantener en el front una lista de
+nombres de skills que escriben sería garantizar que se desincronice: se añade una skill nueva,
+nadie se acuerda de apuntarla, y el operador vuelve a mirar datos viejos.
+
+Dos decisiones dentro de ese método:
+
+- **`Interna` cuenta como escritura.** No pide permiso ni confirmación, pero `escalar_al_equipo`
+  marca la conversación como no leída — y eso también deja la pantalla desactualizada. La
+  pregunta aquí es «¿cambió algo?», no «¿hacía falta permiso?»; por eso es un método distinto
+  de `exigePermisoDeEscritura()`.
+- **Una skill desconocida cuenta como que SÍ escribió.** Refrescar de más cuesta una petición;
+  refrescar de menos deja al operador creyendo que su cambio no se aplicó.
+
+El componente sólo avisa de que *algo* cambió: no sabe qué pinta cada vista. Cada una engancha
+el evento a su propia recarga (`@datos-cambiados="cargarPanelHoy"`).
+
 ### ⚠️ Las plantillas NO se degradan
 
 Cada plantilla tiene su cuerpo POR CANAL, ya escrito con el formato que le toca. Las
@@ -3280,6 +3308,8 @@ url.») se devuelve al texto, para que las marcas se vean en pareja. Verificado 
 | Que una plantilla sólo salga a su OTA (Booking vs Airbnb) | CRUD de plantillas | `allowedSources` — lo validan por código las dos skills de plantillas, §11 |
 | **Añadir o cambiar una marca de formato** (*negrita*, __subrayado__…) | `FormatoDeTexto` **y** `util/src/utils/formatoDeTexto.ts` | Son espejo: los dos o el panel pinta distinto de lo que llega, §14 |
 | Que el asistente del panel enlace a una ficha | `ListarSalidasSkill` | `fichaDe()` — espejo de `verEnReservas()` en `HomeView.vue` |
+| Que una vista se recargue tras una acción del asistente | la propia vista | engancha `@datos-cambiados` de `AsistenteBar` a su función de carga |
+| Cambiar qué cuenta como «escritura» para ese refresco | `NivelRiesgo` | `modificaDatos()` — un solo sitio, no una lista en el front |
 | Cambiar cómo degrada un canal el texto libre | `Beds24SendMappingStrategy` / `WhatsappMetaSendMappingStrategy` | `paraTextoPlano()` / `paraWhatsapp()`, sólo con `getTemplate() === null`, §14 |
 | Cambiar la barra B/I/U/S del compositor del chat | `ChatView.vue` | `aplicarFormato()` + `envolverSeleccion()` de `formatoDeTexto.ts`, §14 |
 | Probar el formateador sin gastar API | — | `php var/probar-formato.php` — §14 |

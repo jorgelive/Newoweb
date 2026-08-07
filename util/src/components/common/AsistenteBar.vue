@@ -18,9 +18,22 @@ import { formatoAHtml } from '@/utils/formatoDeTexto';
 interface RespuestaAsistente {
     respuesta: string;
     herramientas: string[];
+    /**
+     * Alguna skill de las usadas escribió en la base, así que lo que la vista tiene en
+     * pantalla ya no vale. Lo decide el backend (`NivelRiesgo::modificaDatos()`), no una
+     * lista de nombres aquí: esa lista se desincroniza en cuanto se añade una skill nueva.
+     */
+    hubo_escritura: boolean;
     proveedor: string;
     modelo: string;
 }
+
+/**
+ * Se emite tras una respuesta que modificó datos, para que la vista que embebe la barra
+ * recargue lo suyo. El asistente no sabe QUÉ pinta cada vista —salidas, calendario, cuenta—
+ * así que sólo avisa de que algo cambió y deja el refresco a quien sí lo sabe.
+ */
+const emit = defineEmits<{ (e: 'datosCambiados'): void }>();
 
 /**
  * Espejo de App\Agent\Conversation\AgentEngineRegistry::catalogo().
@@ -159,6 +172,12 @@ async function preguntar(): Promise<void> {
             herramientas: r.data.herramientas ?? [],
             firma: [etiqueta ?? r.data.proveedor, r.data.modelo].filter(Boolean).join(' · '),
         });
+
+        // Se avisa DESPUÉS de pintar la respuesta: el operador ve primero el «listo» y la
+        // recarga ocurre detrás. Al revés, la vista se recargaría con el hilo aún sin el turno.
+        if (r.data.hubo_escritura) {
+            emit('datosCambiados');
+        }
     } catch (e: unknown) {
         // El backend manda `{error: string}` en 4xx/5xx; cualquier otra cosa es un fallo de red.
         const detalle =
