@@ -3507,6 +3507,12 @@ Un intento intermedio la dejaba al final como referencia, y el modelo recitaba l
 —«Total: 135.00 USD · Tarifa base ref: 70.00 USD»—: dos números para lo mismo, con el que NO se
 cobra al lado del que sí. Quien cotiza no necesita el suelo.
 
+⚠️ **Quitarla de la respuesta no basta: el modelo la arrastra del historial.** En una repregunta
+(«y para 8?») seguía escribiendo «Tarifa base: 75.00» con los valores de una consulta anterior,
+aunque la skill ya no los devolviera. La descripción se lo prohíbe ahora de forma explícita
+—«ni aunque la tengas de una consulta anterior de esta misma conversación»—, porque una
+instrucción que sólo cubre el turno actual no cubre un hilo.
+
 `noches_sin_tarifa` sí se queda: cuenta las noches que salen a la base por no tener rango — en
 marzo de 2027, sin tarifas cargadas, sale `3` de 3.
 
