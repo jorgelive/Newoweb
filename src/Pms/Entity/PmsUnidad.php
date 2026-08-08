@@ -155,6 +155,40 @@ class PmsUnidad
     private bool $tarifaBaseActiva = true;
 
     // ============================================================
+    // 👥 SUPLEMENTO POR PERSONA ADICIONAL
+    // ============================================================
+
+    /**
+     * Hasta cuántas personas entran en la tarifa sin recargo.
+     *
+     * La tarifa de una noche cubre a un grupo de este tamaño; a partir de ahí cada persona
+     * suma {@see $precioPaxAdicional}. No es la capacidad: la Casita 1 admite 8 pero su tarifa
+     * cubre 5, así que las tres últimas pagan aparte.
+     *
+     * En `0` significa **sin regla configurada**, y entonces no se cobra suplemento ninguno.
+     * Es el valor seguro por defecto: una unidad recién creada no debe empezar a cobrar
+     * recargos que nadie ha decidido.
+     */
+    #[ORM\Column(name: 'pax_incluidos', type: 'smallint', options: ['default' => 0])]
+    #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
+    private int $paxIncluidos = 0;
+
+    /**
+     * Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+     *
+     * Por noche y no por estancia: tres noches con dos personas de más cobran seis veces el
+     * suplemento, igual que el alojamiento. En la moneda de la tarifa base de la unidad — no
+     * se guarda otra, porque un suplemento en distinta moneda que la noche que acompaña sería
+     * imposible de sumar sin un tipo de cambio que nadie ha pedido.
+     *
+     * En `0.00` no hay suplemento: es el caso de la Casita 5, cuya tarifa cubre a sus dos
+     * plazas y no admite a nadie más.
+     */
+    #[ORM\Column(name: 'precio_pax_adicional', type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
+    private string $precioPaxAdicional = '0.00';
+
+    // ============================================================
     // 🔗 RELACIONES
     // ============================================================
 
@@ -314,6 +348,48 @@ class PmsUnidad
     #[Groups(['pms_unidad:read'])]
     public function getTarifaBaseMinStay(): int { return $this->tarifaBaseMinStay; }
     public function setTarifaBaseMinStay(int $val): self { $this->tarifaBaseMinStay = $val; return $this; }
+
+    public function getPaxIncluidos(): int { return $this->paxIncluidos; }
+    public function setPaxIncluidos(int $val): self { $this->paxIncluidos = max(0, $val); return $this; }
+
+    public function getPrecioPaxAdicional(): string { return $this->precioPaxAdicional; }
+    public function setPrecioPaxAdicional(string $val): self { $this->precioPaxAdicional = $val; return $this; }
+
+    /**
+     * ¿Esta casita cobra por persona adicional?
+     *
+     * Hacen falta las DOS cosas: un tope de personas incluidas y un precio. Con cualquiera de
+     * las dos a cero no hay regla que aplicar, y se dice con un método para no repetir esa
+     * condición en cada sitio que la mire.
+     */
+    public function cobraPaxAdicional(): bool
+    {
+        return $this->paxIncluidos > 0 && (float) $this->precioPaxAdicional > 0.0;
+    }
+
+    /**
+     * Lo que suman las personas por encima de las incluidas, en toda la estancia.
+     *
+     * **Fuente única de la regla.** La usan el cálculo de tarifas, la previsualización del
+     * agente y el cargo de alojamiento; escrita en cada sitio sería garantizar que un día
+     * dejen de coincidir.
+     *
+     * Los niños cuentan igual que los adultos: `$pax` es el total de la estancia. Y se
+     * multiplica por las noches porque el suplemento es por noche, como el alojamiento.
+     *
+     * Devuelve `0.0` —y no un error— cuando no hay regla configurada o el grupo cabe en la
+     * tarifa: no cobrar de más es el fallo seguro.
+     */
+    public function suplementoPorPax(int $pax, int $noches): float
+    {
+        if (!$this->cobraPaxAdicional() || $noches < 1) {
+            return 0.0;
+        }
+
+        $adicionales = max(0, $pax - $this->paxIncluidos);
+
+        return $adicionales * (float) $this->precioPaxAdicional * $noches;
+    }
 
     public function getTarifaBaseMoneda(): ?MaestroMoneda { return $this->tarifaBaseMoneda; }
 

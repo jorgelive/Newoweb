@@ -3526,6 +3526,53 @@ Casita 6 → "Tarifa base DESACTIVADA: esta casita no se puede vender en fechas 
             tarifa cargada. No es que sea gratis, es que no hay precio."
 ```
 
+#### 👥 El suplemento por persona adicional
+
+La tarifa de una noche cubre a un grupo de cierto tamaño; a partir de ahí cada persona suma.
+Vivía en la cabeza del equipo y se aplicaba a mano al cotizar, así que ni el agente ni el cargo
+automático la conocían. Ahora son dos columnas en `PmsUnidad`:
+
+| Casita | Capacidad | `paxIncluidos` | `precioPaxAdicional` |
+|---|---|---|---|
+| 1 | 8 | 5 | 6.00 |
+| 2 | 7 | 4 | 6.00 |
+| 3 | 8 | 4 | 6.00 |
+| 4 | 4 | 3 | 6.00 |
+| 5 | 2 | 2 | **0.00** — su tarifa cubre las dos plazas |
+| 6 · 7 | 10 | 7 | 6.00 |
+
+**Dos columnas y no un JSON**: con esta regla no hay tramos escalonados, así que un JSON sólo
+añadiría parsing y validación a mano. Si algún día el 6º paga 6 y del 8º en adelante 10, se
+migra entonces — con el caso real delante, no adivinando.
+
+La cuenta vive en `PmsUnidad::suplementoPorPax()`, fuente única:
+
+```
+adicionales × precio × NOCHES        ← por noche, como el alojamiento
+```
+
+⚠️ **`paxIncluidos = 0` significa «sin regla», no «todos pagan extra».** Es el valor por defecto
+de la columna, y una unidad recién creada no debe empezar a cobrar recargos que nadie decidió.
+`cobraPaxAdicional()` exige las dos cosas —tope y precio— para que esa condición no se repita
+en cada sitio que la mire.
+
+⚠️ **Los niños cuentan igual que los adultos.** `$pax` es el total de la estancia.
+
+⚠️ **Sin saber cuántos van, el precio NO incluye suplemento** y `consultar_disponibilidad` lo
+avisa con `aviso_pax`. Dar un total que se quedará corto al concretar el grupo es peor que
+decir que falta el dato:
+
+```
+7 pax · Casita 1 · 3 noches
+  precio              171.00 USD
+  precio_por_noche     45.00 USD
+  suplemento_por_pax   36.00 USD  (2 personas por encima de las 5 que cubre la tarifa,
+                                   6.00 por persona y noche)
+```
+
+El suplemento va **desglosado y no escondido en el total**: el operador tiene que poder explicar
+de dónde sale la diferencia, no soltar una cifra mayor sin motivo aparente.
+
 #### 🔁 `PmsTarifaCalculadora`: una sola respuesta a «cuánto cuesta esta noche»
 
 Tres sitios hacen la misma pregunta —`consultar_tarifas`, `consultar_disponibilidad` y el cargo

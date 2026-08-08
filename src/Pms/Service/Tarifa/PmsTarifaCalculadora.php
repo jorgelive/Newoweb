@@ -80,22 +80,33 @@ final readonly class PmsTarifaCalculadora
      * `null` en `total` cuando no hay ni rangos ni tarifa base activa — que NO es lo mismo que
      * costar cero.
      *
-     * @return array{total: ?float, moneda: ?string, min_stay: int, noches: int, noches_sin_tarifa: int}
+     * ### 👥 El suplemento por persona
+     *
+     * Con `$pax` se suma lo que cobra la unidad por las personas que pasan de las incluidas en
+     * la tarifa ({@see PmsUnidad::suplementoPorPax()}). Va desglosado y no metido dentro del
+     * total a secas: el operador tiene que poder decirle al huésped «son 135 de alojamiento
+     * más 36 por dos personas de más», no soltarle 171 sin explicación.
+     *
+     * Sin `$pax` no se aplica nada — consultar el precio de una casita sin saber cuántos van
+     * es una pregunta legítima, y ahí el suplemento todavía no se puede calcular.
+     *
+     * @return array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, moneda: ?string, min_stay: int, noches: int, noches_sin_tarifa: int}
      */
     public function resumen(
         PmsUnidad $unidad,
         DateTimeInterface $desde,
-        DateTimeInterface $hasta
+        DateTimeInterface $hasta,
+        ?int $pax = null
     ): array {
         $diarios = $this->preciosPorNoche($unidad, $desde, $hasta);
 
-        $total = 0.0;
+        $alojamiento = 0.0;
         $moneda = null;
         $minStay = 0;
         $sinTarifa = 0;
 
         foreach ($diarios as $datos) {
-            $total += (float) $datos['price'];
+            $alojamiento += (float) $datos['price'];
             $moneda ??= $datos['currency'];
             $minStay = max($minStay, (int) $datos['minStay']);
 
@@ -104,11 +115,20 @@ final readonly class PmsTarifaCalculadora
             }
         }
 
+        $noches = count($diarios);
+        $suplemento = $pax !== null ? $unidad->suplementoPorPax($pax, $noches) : 0.0;
+        $adicionales = $pax !== null && $unidad->cobraPaxAdicional()
+            ? max(0, $pax - $unidad->getPaxIncluidos())
+            : 0;
+
         return [
-            'total' => $diarios !== [] ? $total : null,
+            'total' => $noches > 0 ? $alojamiento + $suplemento : null,
+            'alojamiento' => $noches > 0 ? $alojamiento : null,
+            'suplemento_pax' => $suplemento,
+            'pax_adicionales' => $adicionales,
             'moneda' => $moneda,
             'min_stay' => $minStay,
-            'noches' => count($diarios),
+            'noches' => $noches,
             'noches_sin_tarifa' => $sinTarifa,
         ];
     }

@@ -91,25 +91,31 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
             $desde = new DateTimeImmutable((string) ($entrada['desde'] ?? ''));
             $hasta = new DateTimeImmutable((string) ($entrada['hasta'] ?? ''));
 
-            $libres = $this->disponibilidad->buscar(
-                $desde,
-                $hasta,
-                isset($entrada['pax']) ? (int) $entrada['pax'] : null,
-            );
+            $pax = isset($entrada['pax']) ? (int) $entrada['pax'] : null;
+
+            $libres = $this->disponibilidad->buscar($desde, $hasta, $pax);
         } catch (Throwable $e) {
             return SkillResult::error($e->getMessage());
         }
 
         $noches = (int) $desde->diff($hasta)->days;
 
-        return SkillResult::ok([
+        return SkillResult::ok(array_filter([
             'total' => count($libres),
             'noches' => $noches,
+            'pax' => $pax,
+            // Sin saber cuántos van, el precio no puede incluir el suplemento por persona: se
+            // avisa en vez de dar un total que se quedará corto al concretar el grupo.
+            'aviso_pax' => $pax === null
+                ? 'No te han dicho cuántas personas van, así que estos precios NO incluyen el '
+                    . 'suplemento por persona adicional. Si el grupo pasa de lo que cubre la '
+                    . 'tarifa, el precio sube: pregunta cuántos son antes de cerrar nada.'
+                : null,
             'casitas' => array_map(
-                fn ($u) => $this->conPrecio($u, $desde, $hasta, $noches),
+                fn ($u) => $this->conPrecio($u, $desde, $hasta, $noches, $pax),
                 $libres
             ),
-        ]);
+        ], static fn ($v) => $v !== null));
     }
 
     /**
@@ -126,7 +132,8 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         object $dto,
         DateTimeImmutable $desde,
         DateTimeImmutable $hasta,
-        int $noches
+        int $noches,
+        ?int $pax
     ): array {
         // 🚫 La tarifa base NO viaja en la respuesta. La llevaba, y el modelo la repetía junto
         // al precio real como «tarifa base ref: 70.00» — dos números para lo mismo, y el que
@@ -140,7 +147,7 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
             return $fila;
         }
 
-        $resumen = $this->tarifas->resumen($unidad, $desde, $hasta);
+        $resumen = $this->tarifas->resumen($unidad, $desde, $hasta, $pax);
 
         if ($resumen['total'] === null) {
             return $fila + [
@@ -150,17 +157,31 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
             ];
         }
 
-        // El orden importa: `precio` primero porque es lo que hay que decir, y `tarifa_base`
-        // se queda al final del array —donde ya venía— como la referencia que es.
-        return [
-            'precio' => sprintf('%.2f %s', $resumen['total'], $resumen['moneda'] ?? ''),
+        $moneda = $resumen['moneda'] ?? '';
+
+        // El orden importa: `precio` primero porque es lo que hay que decir. El suplemento va
+        // desglosado —no escondido dentro del total— para que el operador pueda explicar de
+        // dónde sale la diferencia en vez de soltar una cifra mayor sin motivo aparente.
+        return array_filter([
+            'precio' => sprintf('%.2f %s', $resumen['total'], $moneda),
             'precio_por_noche' => $noches > 0
-                ? sprintf('%.2f %s', $resumen['total'] / $noches, $resumen['moneda'] ?? '')
+                ? sprintf('%.2f %s', $resumen['alojamiento'] / $noches, $moneda)
+                : null,
+            'suplemento_por_pax' => $resumen['suplemento_pax'] > 0.0
+                ? sprintf(
+                    '%.2f %s (%d persona(s) por encima de las %d que cubre la tarifa, %s por '
+                    . 'persona y noche)',
+                    $resumen['suplemento_pax'],
+                    $moneda,
+                    $resumen['pax_adicionales'],
+                    $unidad->getPaxIncluidos(),
+                    $unidad->getPrecioPaxAdicional()
+                )
                 : null,
             'estancia_minima' => $resumen['min_stay'] > 0 ? $resumen['min_stay'] : null,
             'noches_sin_tarifa' => $resumen['noches_sin_tarifa'] > 0
                 ? $resumen['noches_sin_tarifa']
                 : null,
-        ] + $fila;
+        ], static fn ($v) => $v !== null) + $fila;
     }
 }
