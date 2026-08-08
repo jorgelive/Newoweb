@@ -2218,6 +2218,33 @@ que luego cobra, expuesto para poder previsualizarlo. Una fórmula, no dos.
 `PmsEstablecimiento::getHoraCheckIn()` / `getHoraCheckOut()`. Codificar 14:00 y 10:00 en la skill
 habría creado una segunda verdad que se rompe el día que un establecimiento cambie su horario.
 
+##### 🔑 Bloquear la noche es OPCIONAL, y con la noche vendida es imposible
+
+Marcar la casilla retira de la venta la noche **anterior** a la entrada —o la **posterior** a la
+salida— para tener margen de limpieza. Es una decisión del operador, no una consecuencia
+automática de apuntar una hora:
+
+| Estado de esa noche | Qué hace la skill |
+|---|---|
+| **Libre** | Pregunta si bloquearla: *«¿Bloqueo también la noche anterior a la entrada (08/08)? Se retira de la venta en todos los portales»* |
+| **Ya vendida** | **No pregunta nada**: no se puede bloquear. Registra la hora y avisa de que la limpieza tendrá menos margen esa mañana |
+
+Antes preguntaba lo contrario y en todo-o-nada: *«¿Aplico igual (marca y bloquea, con el solape)
+o prefieres que NO haga nada?»*. Un solape no llega a ocurrir nunca —con la noche vendida ya no
+se bloquea— y «no hacer nada» tampoco es la alternativa: la hora se registra igual.
+
+⚠️ **Con la noche vendida tampoco se abre la línea de cargo**, porque cuelga de la misma casilla
+(`PmsCargosAutomaticosService::sincronizarExtras()` mira `isSalidaTardia()`). Lo que se le quiera
+cobrar por ese horario se añade a mano en el panel. Decisión consciente, no un olvido.
+
+⚠️ **`$bloquea` y `$vaABloquear` son variables distintas y no se pueden fusionar.** `$bloquea`
+significa «esta hora es horario extra»; `$vaABloquear` añade «y además se puede bloquear». Al
+pisar la primera con la segunda, registrar una entrada a las 08:00 sobre una noche vendida se
+anunciaba como *«cabe dentro del horario (14:00)»* — y las 08:00 son entrada temprana de manual.
+
+Nada de «adyacente» en los textos: se dice **anterior** o **posterior**, que es lo que el
+operador tiene en la cabeza.
+
 ##### 🐛 Tres formas de mentirle al operador con una hora
 
 Los tres salieron del mismo caso real: registrar una salida a las **00:00** con check-out a las

@@ -41,15 +41,20 @@ use Symfony\Component\Uid\Uuid;
  *
  * Por eso esto SÍ funciona en reservas de OTA, mientras que mover fechas está prohibido.
  *
- * ### ⚠️ Cuando la noche ya está ocupada, la pregunta cambia
+ * ### 🔑 Bloquear la noche es OPCIONAL, y a veces imposible
  *
- * Si la noche que el horario extra ocuparía ya la tiene otra reserva —el caso típico de
- * Airbnb, uno sale y otro entra el mismo día—, marcar la casilla igual crea un evento de
- * extensión superpuesto a una estancia real. La skill no lo decide por su cuenta: cuando
- * {@see self::alertaDeOcupacion()} detecta ese conflicto, la `pregunta_aprobacion` deja de
- * ser genérica y ofrece explícitamente la opción de NO aplicar nada. Si el operador dice que
- * no, el modelo simplemente no vuelve a llamar con `confirmado: true` — no hace falta ningún
- * dato ni parámetro nuevo, es la misma casilla de siempre.
+ * Marcar la casilla retira de la venta la noche anterior a la entrada —o la posterior a la
+ * salida— para tener margen de limpieza. Eso lo decide el operador, no se deduce de la hora:
+ *
+ * - **Noche libre** → se PREGUNTA si bloquearla. Retirar de la venta una noche vendible no
+ *   puede ser el efecto secundario de apuntar una hora.
+ * - **Noche ya vendida** → NO se pregunta nada, porque no se puede bloquear: la extensión
+ *   quedaría superpuesta a una estancia real. Se registra la hora y se avisa de que la
+ *   limpieza tendrá menos margen esa mañana. Si hace falta refuerzo, eso lo ve el operador.
+ *
+ * Con la noche vendida tampoco se abre la línea de cargo, porque cuelga de la misma casilla
+ * ({@see \App\Pms\Service\Finance\PmsCargosAutomaticosService::sincronizarExtras()}). Lo que
+ * se le quiera cobrar por ese horario se añade a mano en el panel.
  *
  * ### ⚠️ La confirmación depende del modelo, no del código
  *
@@ -93,11 +98,14 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
                 . 'termina con la pregunta de pregunta_aprobacion. PÁSAME LA HORA si te la '
                 . 'dicen («sale a las 14:00»): si cabe dentro del horario del alojamiento sólo '
                 . 'la registro y no bloqueo nada; si lo excede, además marco el horario extra. '
-                . 'Y si la respuesta trae «⛔ conflicto», esa noche YA ESTÁ VENDIDA a otra '
-                . 'reserva: en ese caso la pregunta_aprobacion te va a ofrecer explícitamente '
-                . 'la opción de NO aplicar nada. Léesela tal cual al operador —incluida esa '
-                . 'opción— antes de pedirle una respuesta, y si dice que no, simplemente no '
-                . 'vuelvas a llamarme con confirmado=true: no hace falta nada más.',
+                . 'BLOQUEAR LA NOCHE ES OPCIONAL: si está libre, la pregunta_aprobacion te '
+                . 'preguntará si además quieres retirarla de la venta para tener margen de '
+                . 'limpieza; léesela tal cual y si el operador dice que sólo apuntes la hora, '
+                . 'no vuelvas a llamarme con confirmado=true. Y si la respuesta trae '
+                . '«no_se_puede_bloquear», esa noche YA ESTÁ VENDIDA: NO ofrezcas bloquear nada '
+                . 'ni hables de solapes ni de conflictos, porque no va a ocurrir ninguno. '
+                . 'Limítate a decir que se registra la hora y que la limpieza tendrá menos '
+                . 'margen esa mañana.',
             parametros: [
                 SkillParameter::texto('evento_id', 'Identificador de la estancia.'),
                 SkillParameter::texto('cambio', '"salida_tardia" o "entrada_temprana".'),
@@ -189,14 +197,36 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
             ];
         }
 
-        // 🗓️ La noche adyacente SIEMPRE, se vaya a bloquear o no. Nadie la miraba, y es el
-        // dato con el que el operador decide: con bloqueo dice si habrá solape, y sin bloqueo
-        // sigue importando —si esa noche entra alguien, la limpieza tiene menos margen—.
-        // Informa, NO veta: puede haber motivo para seguir igual y esa decisión es suya.
+        // 🗓️ Cómo está la noche que el bloqueo ocuparía. Se mira SIEMPRE, se vaya a bloquear
+        // o no: si está ocupada cambia lo que se puede hacer, y si está libre es la que se
+        // ofrece bloquear.
         $alerta = $this->alertaDeOcupacion($evento, $esSalida, $bloquea, $horaPedida, $limite);
 
         if ($alerta !== null) {
-            $resumen['noche_adyacente'] = $alerta;
+            $resumen['noche'] = $alerta;
+        }
+
+        // 🔑 Ocupada = NO se puede bloquear, y no hay nada que preguntar. La noche ya está
+        // vendida a otra reserva; crear encima una extensión sería un evento superpuesto a una
+        // estancia real. Se registra la hora, se avisa de que la limpieza tendrá menos margen
+        // y se acabó — si hay que contratar refuerzo esa mañana, lo decide el operador.
+        // ⚠️ NO se pisa `$bloquea`: son dos cosas distintas y confundirlas hace mentir al
+        // mensaje final. `$bloquea` sigue significando «esta hora es horario extra»; lo que
+        // cambia es que no se pueda bloquear. Al fusionarlas, registrar una entrada a las 08:00
+        // sobre una noche vendida se anunciaba como «cabe dentro del horario (14:00)» — y las
+        // 08:00 son entrada temprana de manual.
+        $nocheOcupada = $bloquea && $alerta !== null && !$alerta['libre'];
+        $vaABloquear = $bloquea && !$nocheOcupada;
+
+        if ($nocheOcupada) {
+            $resumen['no_se_puede_bloquear'] = sprintf(
+                'La noche %s (%s) ya está vendida%s, así que NO se bloquea: sólo se registra la '
+                . 'hora. Dile al operador que el equipo de limpieza tendrá menos margen esa '
+                . 'mañana, y no le ofrezcas bloquear nada.',
+                $esSalida ? 'posterior a la salida' : 'anterior a la entrada',
+                $alerta['fecha'],
+                $alerta['ocupa'] !== null ? ' a ' . $alerta['ocupa'] : ''
+            );
         }
 
         if ($yaMarcado) {
@@ -208,25 +238,24 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
         }
 
         if (!$confirmado) {
-            // 🔑 Con la noche adyacente YA ocupada por otra reserva, marcar la casilla igual
-            // crearía un evento de extensión superpuesto a una estancia real. La skill no lo
-            // decide sola: la pregunta deja de ser genérica y ofrece explícitamente NO aplicar
-            // nada. Si el operador dice que no, el modelo no vuelve a llamar con confirmado=true
-            // — es la misma casilla de siempre, no hace falta ningún dato adicional.
-            $conflicto = $bloquea && $alerta !== null && !$alerta['libre'];
-
             return SkillResult::ok($resumen + [
                 'aplicado' => false,
                 'motivo' => 'falta_confirmacion',
                 // Las consecuencias, enumeradas. El bloqueo que sale al canal y la línea de
                 // cargo a cero las provocan servicios de más abajo al hacer flush, no esta
                 // skill: si no se nombran aquí, el operador aprueba una cosa y ocurren varias.
-                'que_va_a_pasar' => $this->consecuencias($evento, $esSalida, $bloquea, $horaPedida),
-                'pregunta_aprobacion' => $conflicto
+                'que_va_a_pasar' => $this->consecuencias($evento, $esSalida, $vaABloquear, $horaPedida),
+                // 🔑 Con la noche LIBRE, bloquearla es opcional y la decide el operador, así que
+                // la pregunta lo dice: retirar de la venta una noche vendible no es el efecto
+                // secundario de apuntar una hora. Con la noche ocupada no se pregunta nada —no
+                // se puede bloquear— y basta con aprobar el registro de la hora.
+                'pregunta_aprobacion' => $vaABloquear
                     ? sprintf(
-                        'Esa noche ya está ocupada, así que marcar esto crearía un evento '
-                        . 'superpuesto a esa reserva. ¿Aplico igual (marca y bloquea, con el '
-                        . 'solape) o prefieres que NO haga nada?'
+                        '¿Bloqueo también la noche %s (%s) para tener margen de limpieza? Se '
+                        . 'retira de la venta en todos los portales. Si prefieres dejarla '
+                        . 'vendible, dímelo y sólo apunto la hora.',
+                        $esSalida ? 'posterior a la salida' : 'anterior a la entrada',
+                        $alerta['fecha'] ?? ''
                     )
                     : '¿Apruebas el cambio?',
                 // ⚠️ Tiene que describir lo que DE VERDAD va a pasar. Decía siempre «quedará
@@ -234,16 +263,26 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
                 // salida a las 00:00 —diez horas ANTES del check-out— se anunciaba al operador
                 // como «voy a registrar la salida tardía». Ninguna casilla se marca cuando la
                 // hora cabe dentro del horario.
-                'previsualizacion' => $bloquea
-                    ? sprintf(
+                'previsualizacion' => match (true) {
+                    $vaABloquear => sprintf(
                         'La estancia de %s en %s (%s) quedará marcada con %s. Enséñale al '
                         . 'operador la lista de «que_va_a_pasar» entera antes de pedirle el sí.',
                         $resumen['huesped'] !== '' ? $resumen['huesped'] : 'el huésped',
                         $resumen['casita'],
                         $resumen['localizador'] ?? 'sin localizador',
                         $esSalida ? 'salida tardía' : 'entrada temprana'
-                    )
-                    : sprintf(
+                    ),
+                    $nocheOcupada => sprintf(
+                        'Se apuntará que %s en %s (%s) %s a las %s. Esa noche ya está vendida, '
+                        . 'así que no se bloquea nada: sólo queda registrada la hora. Menciona '
+                        . 'que la limpieza tendrá menos margen esa mañana.',
+                        $resumen['huesped'] !== '' ? $resumen['huesped'] : 'el huésped',
+                        $resumen['casita'],
+                        $resumen['localizador'] ?? 'sin localizador',
+                        $esSalida ? 'sale' : 'entra',
+                        $horaPedida
+                    ),
+                    default => sprintf(
                         'Se apuntará que %s en %s (%s) %s a las %s. Cabe dentro del horario '
                         . 'normal (%s), así que NO es %s: no se marca ninguna casilla, no se '
                         . 'bloquea ninguna noche y no se abre ningún cargo. No se lo cuentes al '
@@ -256,6 +295,7 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
                         $limite,
                         $esSalida ? 'una salida tardía' : 'una entrada temprana'
                     ),
+                },
             ]);
         }
 
@@ -272,7 +312,7 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
 
         // El flag SÓLO si de verdad se sale del horario. Marcarlo cuando la hora cabe dentro
         // bloquearía una noche vendible por nada.
-        if ($bloquea) {
+        if ($vaABloquear) {
             if ($esSalida) {
                 $evento->setSalidaTardia(true);
             } else {
@@ -284,28 +324,39 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
 
         return SkillResult::ok($resumen + array_filter([
             'aplicado' => true,
-            'que_ha_pasado' => $this->consecuencias($evento, $esSalida, $bloquea, $horaPedida),
+            'que_ha_pasado' => $this->consecuencias($evento, $esSalida, $vaABloquear, $horaPedida),
             // El mensaje tiene que decir lo que PASÓ, no lo que suele pasar: con una hora
             // dentro del horario no se marca nada ni se crea extensión, y anunciarlo sería
             // hacerle creer al operador que bloqueó una noche que sigue vendible.
-            'mensaje' => $bloquea
-                ? sprintf(
+            'mensaje' => match (true) {
+                $vaABloquear => sprintf(
                     '%sMarcada la %s. Se ha creado la extensión que bloquea esa noche.',
                     $horaPedida !== '' ? sprintf('Registrada la hora %s. ', $horaPedida) : '',
                     $esSalida ? 'salida tardía' : 'entrada temprana'
-                )
-                : sprintf(
+                ),
+                // Sí era horario extra, pero la noche estaba vendida: se apuntó la hora y nada
+                // más. Decir aquí «cabe dentro del horario» —como hacía al fusionar las dos
+                // variables— era falso: las 08:00 con check-in a las 14:00 son entrada temprana.
+                $nocheOcupada => sprintf(
+                    'Registrada la hora de %s a las %s. Esa noche ya está vendida, así que no se '
+                    . 'ha bloqueado nada: sólo queda apuntado. El equipo de limpieza tendrá menos '
+                    . 'margen esa mañana.',
+                    $esSalida ? 'salida' : 'entrada',
+                    $horaPedida
+                ),
+                default => sprintf(
                     'Registrada la hora de %s a las %s. Cabe dentro del horario del alojamiento '
                     . '(%s), así que NO se ha marcado horario extra ni bloqueado ninguna noche.',
                     $esSalida ? 'salida' : 'entrada',
                     $horaPedida,
                     $limite
                 ),
+            },
             // NO se sugiere registrar_cargo: PmsCargosAutomaticosService ya ha creado la línea
             // «Salida tardía (noche bloqueada) · Casita N» a 0.00. Añadir otra con
             // registrar_cargo dejaría dos conceptos iguales en la cuenta, y el operador no
             // sabría cuál es el bueno. Valorar la que existe se hace en el panel.
-            'siguiente_paso_sugerido' => !$bloquea ? null : 'Ya se ha creado la línea del cargo con importe 0.00 '
+            'siguiente_paso_sugerido' => !$vaABloquear ? null : 'Ya se ha creado la línea del cargo con importe 0.00 '
                 . 'para que la valore el operador. NO uses registrar_cargo para esto: '
                 . 'duplicaría el concepto. El importe se le pone a esa línea desde el panel '
                 . 'financiero de la reserva.',
@@ -438,17 +489,15 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
     }
 
     /**
-     * Estado de la noche pegada a la estancia, y qué significa según lo que se vaya a hacer.
+     * Cómo está la noche anterior a la entrada —o la posterior a la salida— y qué implica.
      *
-     * Se devuelve SIEMPRE, no sólo cuando hay bloqueo. Sin bloqueo no hay solape posible, pero
-     * saber que esa noche entra otra reserva sigue cambiando la decisión: la limpieza tiene
-     * menos margen y puede que el horario acordado no sea buena idea aunque quepa.
+     * Se devuelve SIEMPRE, porque decide dos cosas distintas: si está LIBRE es la que se
+     * ofrece bloquear, y si está VENDIDA es lo que impide bloquear nada y deja al equipo de
+     * limpieza con menos margen esa mañana.
      *
-     * ⚠️ **Alerta, no veto.** Puede haber un motivo para hacerlo igual —la otra reserva entra
-     * por la tarde, se habló con los dos huéspedes— y esa decisión es del operador. Lo que no
-     * puede es tomarla sin saberlo, que es lo que pasaba: `evaluar_cambio_horario` decía
-     * `permitido: true` y esta skill aplicaba, creando una extensión sobre una noche de otra
-     * reserva.
+     * ⚠️ **Informa, no veta.** Nunca dice «no puedes hacer esto»: el horario se registra igual
+     * y lo que cambia es cuánto margen queda. Contratar refuerzo de limpieza esa mañana es una
+     * decisión del operador, y para tomarla necesita el dato — que es justo lo que faltaba.
      *
      * @return array{fecha: string, libre: bool, ocupa: ?string, aviso: string}|null
      */
@@ -476,41 +525,37 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
         $daMasMargen = $hora !== '' && $limite !== '' && $hora !== $limite
             && ($esSalida ? $hora < $limite : $hora > $limite);
 
+        // Nada de «⛔ CONFLICTO»: un solape no llega a ocurrir nunca, porque con la noche
+        // ocupada ya no se bloquea. Lo único que le queda por saber al operador es cuánto
+        // margen de limpieza tendrá esa mañana.
         $aviso = match (true) {
             $margen['libre'] => sprintf(
-                '✅ La noche %s (%s) está LIBRE en %s.',
+                '✅ La noche %s (%s) está LIBRE en %s: se puede bloquear si se quiere margen de '
+                . 'limpieza, pero es opcional.',
                 $cual,
                 $margen['fecha'],
                 $casita
             ),
-            $bloquea => sprintf(
-                '⛔ CONFLICTO: la noche %s (%s) YA ESTÁ OCUPADA%s. El bloqueo que se va a crear '
-                . 'se solapará con esa reserva. DÍSELO AL OPERADOR ANTES DE PEDIRLE EL SÍ y '
-                . 'pregúntale si aun así quiere seguir: la decisión es suya, no tuya.',
-                $cual,
-                $margen['fecha'],
-                $margen['ocupa'] !== null ? ' por ' . $margen['ocupa'] : ''
-            ),
-            // Sin bloqueo la noche sigue vendida, así que lo único que cambia es el margen de
-            // limpieza — y hacia QUÉ lado depende de si la hora adelanta o retrasa. Decir
+            // Hacia QUÉ lado cambia el margen depende de si la hora adelanta o retrasa. Decir
             // siempre «es más corto» era mentir en la mitad de los casos: quien sale a las
             // 00:00 con check-out a las 10:00 deja DIEZ HORAS MÁS, no menos.
             $daMasMargen => sprintf(
-                '✅ La noche %s (%s) está ocupada%s, pero %s a las %s deja MÁS margen de limpieza '
-                . 'que el horario normal (%s), no menos. No se bloquea nada.',
+                '✅ La noche %s (%s) está vendida%s, pero %s a las %s deja MÁS margen de limpieza '
+                . 'que el horario normal (%s), no menos.',
                 $cual,
                 $margen['fecha'],
-                $margen['ocupa'] !== null ? ' por ' . $margen['ocupa'] : '',
+                $margen['ocupa'] !== null ? ' a ' . $margen['ocupa'] : '',
                 $esSalida ? 'salir' : 'entrar',
                 $hora,
                 $limite
             ),
             default => sprintf(
-                '⚠️ La noche %s (%s) está OCUPADA%s. No hay conflicto —no se bloquea nada—, pero '
-                . 'menciónalo: la casita se ocupa seguido y el margen de limpieza es más corto.',
+                '⚠️ La noche %s (%s) ya está vendida%s, así que esa noche no se puede bloquear. '
+                . 'El equipo de limpieza tendrá menos margen esa mañana: dilo, y que el operador '
+                . 'decida si necesita refuerzo.',
                 $cual,
                 $margen['fecha'],
-                $margen['ocupa'] !== null ? ' por ' . $margen['ocupa'] : ''
+                $margen['ocupa'] !== null ? ' a ' . $margen['ocupa'] : ''
             ),
         };
 
