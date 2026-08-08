@@ -207,6 +207,55 @@ final class PmsUnidadCrudController extends BaseCrudController
             ->setFormTypeOption('constraints', [new NotBlank()]);
 
         // ---------------------------------------------------------------------
+        // PANEL: PERSONA ADICIONAL
+        //
+        // Panel propio y no dentro del tarifario base a propósito: esto se aplica
+        // SIEMPRE, salga el precio de un rango o de la tarifa base. Meterlo bajo
+        // «Tarifario Base (Fallback)» daría a entender que sólo cuenta cuando no
+        // hay tarifa cargada, que es justo lo contrario.
+        // ---------------------------------------------------------------------
+        yield FormField::addPanel('Persona adicional')
+            ->setIcon('fa fa-user-plus')
+            ->setHelp(
+                'La tarifa de una noche cubre a un grupo de cierto tamaño; a partir de ahí '
+                . 'cada persona suma. Se aplica sobre CUALQUIER tarifa, sea de un rango o la '
+                . 'base. Los niños cuentan igual que los adultos.'
+            );
+
+        yield IntegerField::new('paxIncluidos', 'Personas incluidas')
+            ->hideOnIndex()
+            ->setHelp(
+                'Hasta cuántas personas cubre la tarifa sin recargo. NO es la capacidad: la '
+                . 'Casita 1 admite 8 pero su tarifa cubre 5. <strong>En 0 no se cobra ningún '
+                . 'suplemento</strong>, aunque haya precio puesto abajo.'
+            );
+
+        yield NumberField::new('precioPaxAdicional', 'Precio por persona extra')
+            ->setNumDecimals(2)
+            ->hideOnIndex()
+            ->setHelp(
+                'Lo que suma cada persona por encima de las incluidas, <strong>por noche</strong> '
+                . 'y en la moneda de la tarifa base. En 0.00 no hay suplemento.'
+            );
+
+        // Una sola columna en el listado, para poder revisar de un vistazo que ninguna casita
+        // se quedó sin la regla: dos campos sueltos ahí serían ruido.
+        yield TextField::new('paxIncluidos', 'Pax extra')
+            ->onlyOnIndex()
+            ->setSortable(false)
+            ->formatValue(static function ($value, $entity) {
+                if (!$entity instanceof PmsUnidad || !$entity->cobraPaxAdicional()) {
+                    return '—';
+                }
+
+                return sprintf(
+                    'desde %d → %s',
+                    $entity->getPaxIncluidos() + 1,
+                    $entity->getPrecioPaxAdicional()
+                );
+            });
+
+        // ---------------------------------------------------------------------
         // PANEL: INTEGRACIONES
         // ---------------------------------------------------------------------
         yield FormField::addPanel('Integración Beds24')->setIcon('fa fa-link');
