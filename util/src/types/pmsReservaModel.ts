@@ -222,6 +222,14 @@ export interface PmsEventoExtendedProps {
     salidaTardia?: boolean;
 
     /**
+     * Para contactar sin abrir la ficha. En dígitos, listo para `wa.me`.
+     * `null` en un bloqueo o si la reserva no tiene ningún número.
+     */
+    telefono?: string | null;
+    /** Conversación de esta reserva, para `/chat/:id`. `null` si no hay ninguna abierta. */
+    conversacionId?: string | null;
+
+    /**
      * Cifras de la cabecera financiera, ya en su moneda. Son de la RESERVA: si
      * ocupa dos casitas, sus dos barras muestran el mismo total y el mismo saldo.
      * `null` cuando no hay cabecera o el total es 0 (bloqueos, reservas nuevas).

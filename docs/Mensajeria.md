@@ -3204,6 +3204,38 @@ en `util/src/views/HomeView.vue` al pinchar una fila de «salen hoy»:
 `ListarSalidasSkill::fichaDe()` hay que tocarlo también, o el enlace llevará al calendario sin
 abrir nada. La skill ya tenía los dos ids; lo único que le faltaba era saber la URL base.
 
+##### Tres accesos por fila, no uno
+
+La lista servía para saber quién sale, pero desde ahí no se podía hacer nada: para escribirle
+al huésped había que buscarlo otra vez. Cada fila trae ahora hasta tres enlaces, y el modelo
+los pinta como iconos al final de la línea —el nombre se queda en negrita, sin enlazar:
+
+| Campo | Icono | A dónde va | `null` cuando |
+|---|---|---|---|
+| `url` | 📋 | La ficha en el panel | nunca (siempre hay evento) |
+| `url_whatsapp` | 🟢 | `wa.me` con ese huésped | la reserva no tiene ningún número |
+| `url_chat` | 💬 | `/chat/:id` en el panel | no hay conversación abierta |
+
+Un campo vacío **omite el icono**, sin sustituirlo por texto ni explicar que falta.
+
+El teléfono sale ya en dígitos —`PmsReservaIntegrityListener` lo normaliza al guardar—, así que
+vale tal cual para `wa.me` sin limpiarlo en la skill. Y se respeta `telefono2_es_principal`:
+escribir al número que el huésped no usa es no escribir.
+
+##### Los mismos accesos en el panel de hoy y mañana
+
+`HomeView` pinta la misma información y tenía el mismo problema. El feed
+(`PmsEventosSpaCalendarProvider::buildContext()`) manda ahora `telefono` y `conversacionId`.
+
+⚠️ La conversación se resuelve **en lote** con `fetchConversaciones()`, mismo patrón que
+`fetchFinanzas()` y por el mismo motivo: este proveedor sirve el calendario entero, y preguntar
+evento a evento serían decenas de consultas por carga. `context_id` es un varchar con el UUID en
+texto, no una FK, así que se compara contra la forma de cadena del id.
+
+⚠️ En el template los accesos son **hermanos** del `<button>` de la fila, no hijos: un `<a>`
+dentro de un `<button>` es HTML inválido. Por eso el `hover` se movió al `<li>`, para que la
+fila entera siga resaltándose como una sola pieza.
+
 #### 🔄 El asistente escribe, pero la pantalla no se enteraba
 
 «El pasajero de la casa 5 se va a las 8» → la skill guarda `fin = 08:00` y responde «listo».

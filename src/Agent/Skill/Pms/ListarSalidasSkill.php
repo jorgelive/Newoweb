@@ -69,10 +69,14 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 . 'localizar_conversacion, evaluar_cambio_horario o aplicar_cambio_horario. '
                 . 'Para un día concreto usa «desde» con esa fecha y dias=1, y responde SÓLO con '
                 . 'lo que devuelva: no des por salido de un día a quien figure en otro. '
-                . 'CADA FILA TRAE «url»: es la ficha de esa reserva en el panel. Pon SIEMPRE el '
-                . 'nombre del huésped como enlace a su url, con el formato [Nombre](url), para '
-                . 'que el operador pueda abrirla de un clic igual que en el panel de salidas. '
-                . 'No escribas la URL suelta ni repitas el enlace en otra parte de la línea.',
+                . 'CADA FILA TRAE HASTA TRES ENLACES, y se ponen como iconos al final de la '
+                . 'línea, nunca como URL suelta ni envolviendo el nombre: «url» es su ficha y '
+                . 'va como [📋](url); «url_whatsapp» abre WhatsApp con ese huésped y va como '
+                . '[🟢](url_whatsapp); «url_chat» abre su conversación en el panel y va como '
+                . '[💬](url_chat). Deja el nombre en negrita, sin enlazar. Si un campo viene '
+                . 'vacío OMITE ese icono —sin teléfono no hay WhatsApp, sin conversación no hay '
+                . 'chat— y no lo sustituyas por texto ni expliques que falta. Ejemplo de línea: '
+                . '«• *Casita 3* — Desiree Egg · 10:00 · FZWF94 [📋](…) [🟢](…) [💬](…)».',
             parametros: [
                 SkillParameter::texto(
                     'tipo',
@@ -151,6 +155,9 @@ final readonly class ListarSalidasSkill implements SkillInterface
      */
     private function consultar(string $columna, string $desde, string $hasta, string $movimiento): array
     {
+        // El teléfono sale ya en dígitos (`PmsReservaIntegrityListener` lo normaliza al
+        // guardar), así que vale tal cual para wa.me sin limpiarlo aquí. Y se respeta
+        // `telefono2_es_principal`: escribir al número que el huésped NO usa es no escribir.
         $sql = <<<SQL
             SELECT
                 BIN_TO_UUID(e.id)         AS evento_id,
@@ -160,10 +167,15 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 u.nombre                  AS casita,
                 TRIM(CONCAT(COALESCE(r.nombre_cliente, ''), ' ', COALESCE(r.apellido_cliente, ''))) AS huesped,
                 r.localizador             AS localizador,
-                e.is_ota                  AS es_ota
+                e.is_ota                  AS es_ota,
+                NULLIF(IF(r.telefono2_es_principal, r.telefono2, r.telefono), '') AS telefono,
+                BIN_TO_UUID(c.id)         AS conversacion_id
             FROM pms_evento_calendario e
             LEFT JOIN pms_unidad u  ON u.id = e.pms_unidad_id
             LEFT JOIN pms_reserva r ON r.id = e.reserva_id
+            LEFT JOIN msg_conversation c
+                   ON c.context_type = 'pms_reserva'
+                  AND c.context_id = BIN_TO_UUID(e.reserva_id)
             WHERE e.estado_id IN (:estados)
               AND e.evento_origen_id IS NULL
               AND DATE(e.$columna) BETWEEN :desde AND :hasta
@@ -194,6 +206,13 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 'evento_id' => $f['evento_id'],
                 'reserva_id' => $f['reserva_id'],
                 'url' => $this->fichaDe($f['evento_id'], $f['reserva_id']),
+                // Los dos caminos para hablar con esta persona. `null` cuando no se puede:
+                // sin teléfono no hay WhatsApp, y sin conversación abierta no hay chat que
+                // enlazar. El modelo omite el icono en vez de pintar un enlace muerto.
+                'url_whatsapp' => $f['telefono'] !== null ? 'https://wa.me/' . $f['telefono'] : null,
+                'url_chat' => $f['conversacion_id'] !== null
+                    ? rtrim($this->urlPanel, '/') . '/chat/' . $f['conversacion_id']
+                    : null,
             ],
             $filas
         );

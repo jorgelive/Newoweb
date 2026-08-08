@@ -13,6 +13,7 @@ use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidad;
+use Doctrine\DBAL\ArrayParameterType;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -46,6 +47,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
     {
         $eventos = $this->fetchEventos($from, $to, $config);
         $finanzas = $this->fetchFinanzas($eventos);
+        $conversaciones = $this->fetchConversaciones($eventos);
         $out = [];
 
         foreach ($eventos as $evento) {
@@ -73,6 +75,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
                     $evento,
                     $reserva,
                     $finanzas[(string) $reserva?->getId()] ?? null,
+                    $conversaciones[(string) $reserva?->getId()] ?? null,
                 ),
             );
         }
@@ -214,6 +217,61 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
      *
      * @return array<string, PmsInformacionFinanciera> indexado por id de reserva
      */
+    /**
+     * La conversación de cada reserva, en UNA consulta.
+     *
+     * Mismo patrón que `fetchFinanzas()` y por el mismo motivo: este proveedor sirve el
+     * calendario entero, y preguntar por la conversación evento a evento serían decenas de
+     * consultas por carga. Aquí es una sola con un `IN`.
+     *
+     * `context_id` es un varchar con el UUID en texto —no una FK—, así que se compara contra
+     * la forma de cadena del id, no contra el binario.
+     *
+     * @param array<int, mixed> $eventos
+     * @return array<string, string> reservaId (texto) → conversacionId (texto)
+     */
+    private function fetchConversaciones(array $eventos): array
+    {
+        $ids = [];
+        foreach ($eventos as $evento) {
+            if ($evento instanceof PmsEventoCalendario && $evento->getReserva()?->getId() !== null) {
+                $ids[] = (string) $evento->getReserva()->getId();
+            }
+        }
+
+        $ids = array_values(array_unique($ids));
+
+        if ([] === $ids) {
+            return [];
+        }
+
+        $em = $this->managerRegistry->getManagerForClass(PmsEventoCalendario::class);
+        if (!$em instanceof EntityManagerInterface) {
+            return [];
+        }
+
+        try {
+            $filas = $em->getConnection()->executeQuery(
+                'SELECT context_id AS reserva, BIN_TO_UUID(id) AS conversacion
+                   FROM msg_conversation
+                  WHERE context_type = :tipo AND context_id IN (:ids)',
+                ['tipo' => 'pms_reserva', 'ids' => $ids],
+                ['ids' => ArrayParameterType::STRING]
+            )->fetchAllAssociative();
+        } catch (\Throwable) {
+            // El calendario tiene que pintarse aunque la mensajería falle: sin conversación
+            // el front simplemente no ofrece el botón de chat.
+            return [];
+        }
+
+        $porReserva = [];
+        foreach ($filas as $fila) {
+            $porReserva[(string) $fila['reserva']] = (string) $fila['conversacion'];
+        }
+
+        return $porReserva;
+    }
+
     private function fetchFinanzas(array $eventos): array
     {
         $reservas = [];
@@ -264,6 +322,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         PmsEventoCalendario $evento,
         ?PmsReserva $reserva,
         ?PmsInformacionFinanciera $finanzas,
+        ?string $conversacionId = null,
     ): array {
         // Sin cargos no hay cifras que pintar: un bloqueo o una reserva recién
         // creada mandan null y la barra simplemente no muestra la línea de dinero.
@@ -279,6 +338,13 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             'cliente' => $reserva?->getNombreApellido(),
             'unidad' => $evento->getPmsUnidad()?->getNombre(),
             'pax' => $evento->getCantidadAdultos() + $evento->getCantidadNinos(),
+
+            // Para contactar desde el panel de hoy sin abrir la ficha. El teléfono va en
+            // dígitos —así lo guarda `PmsReservaIntegrityListener`— y sirve tal cual para
+            // wa.me. `null` en un bloqueo, o cuando no hay número ni conversación abierta:
+            // el front omite el botón en vez de pintar un enlace muerto.
+            'telefono' => $reserva?->getTelefonoContacto(),
+            'conversacionId' => $conversacionId,
             'estado' => $evento->getEstado()?->getNombre(),
             'estadoPago' => $evento->getEstadoPago()?->getNombre(),
             'referenciaCanal' => $evento->getReferenciaCanal(),

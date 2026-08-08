@@ -58,6 +58,9 @@ interface FilaHoy {
     cliente: string;
     unidad: string;
     pax: number;
+    /** `null` cuando no hay a dónde ir: la fila omite ese botón en vez de pintarlo muerto. */
+    telefono: string | null;
+    conversacionId: string | null;
 }
 
 const hoyIso = fromDateLocal(new Date());
@@ -105,7 +108,14 @@ function aFila(ev: EventoHoy, instante: string): FilaHoy {
         cliente: p?.cliente || 'Sin nombre',
         unidad: p?.unidad || '—',
         pax: p?.pax ?? 0,
+        telefono: p?.telefono ?? null,
+        conversacionId: p?.conversacionId ?? null,
     };
+}
+
+/** WhatsApp con ese huésped. El teléfono viene en dígitos desde el backend. */
+function whatsappDe(fila: FilaHoy): string {
+    return `https://wa.me/${fila.telefono}`;
 }
 
 /**
@@ -344,9 +354,12 @@ const handleLogout = async () => {
                 {{ diaPanel === 'hoy' ? 'Sin llegadas hoy.' : 'Sin llegadas mañana.' }}
               </p>
               <ul v-else class="divide-y divide-slate-50">
-                <li v-for="fila in llegadasHoy" :key="fila.id">
+                <!-- El hover vive en el <li> y no en el <button>: los accesos de contacto son
+                     enlaces y NO pueden ir dentro de un botón (HTML inválido), así que son
+                     hermanos suyos y la fila entera tiene que resaltarse igual. -->
+                <li v-for="fila in llegadasHoy" :key="fila.id" class="flex items-center hover:bg-slate-50 transition-colors">
                   <button type="button" @click="verEnReservas(fila)"
-                    class="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition-colors">
+                    class="min-w-0 flex-1 flex items-center gap-3 px-5 py-3 text-left">
                   <span class="text-xs font-black text-emerald-600 tabular-nums w-11 shrink-0">{{ fila.hora }}</span>
                   <span class="min-w-0 flex-1">
                     <span class="block text-sm font-bold text-slate-800 truncate">{{ fila.cliente }}</span>
@@ -357,6 +370,19 @@ const handleLogout = async () => {
                   </span>
                   <i class="fas fa-chevron-right text-[10px] text-slate-300 shrink-0" aria-hidden="true"></i>
                   </button>
+
+                  <span class="flex items-center gap-1 pr-4 shrink-0">
+                    <a v-if="fila.telefono" :href="whatsappDe(fila)" target="_blank" rel="noopener noreferrer"
+                       :title="`WhatsApp a ${fila.cliente}`" :aria-label="`WhatsApp a ${fila.cliente}`"
+                       class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors">
+                      <i class="fab fa-whatsapp text-sm" aria-hidden="true"></i>
+                    </a>
+                    <RouterLink v-if="fila.conversacionId" :to="`/chat/${fila.conversacionId}`"
+                       :title="`Abrir el chat de ${fila.cliente}`" :aria-label="`Abrir el chat de ${fila.cliente}`"
+                       class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#376875] transition-colors">
+                      <i class="fas fa-comment-dots text-xs" aria-hidden="true"></i>
+                    </RouterLink>
+                  </span>
                 </li>
               </ul>
             </div>
@@ -381,9 +407,9 @@ const handleLogout = async () => {
                 {{ diaPanel === 'hoy' ? 'Sin salidas hoy.' : 'Sin salidas mañana.' }}
               </p>
               <ul v-else class="divide-y divide-slate-50">
-                <li v-for="fila in salidasHoy" :key="fila.id">
+                <li v-for="fila in salidasHoy" :key="fila.id" class="flex items-center hover:bg-slate-50 transition-colors">
                   <button type="button" @click="verEnReservas(fila)"
-                    class="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition-colors">
+                    class="min-w-0 flex-1 flex items-center gap-3 px-5 py-3 text-left">
                   <span class="text-xs font-black text-[#E07845] tabular-nums w-11 shrink-0">{{ fila.hora }}</span>
                   <span class="min-w-0 flex-1">
                     <span class="block text-sm font-bold text-slate-800 truncate">{{ fila.cliente }}</span>
@@ -394,6 +420,19 @@ const handleLogout = async () => {
                   </span>
                   <i class="fas fa-chevron-right text-[10px] text-slate-300 shrink-0" aria-hidden="true"></i>
                   </button>
+
+                  <span class="flex items-center gap-1 pr-4 shrink-0">
+                    <a v-if="fila.telefono" :href="whatsappDe(fila)" target="_blank" rel="noopener noreferrer"
+                       :title="`WhatsApp a ${fila.cliente}`" :aria-label="`WhatsApp a ${fila.cliente}`"
+                       class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors">
+                      <i class="fab fa-whatsapp text-sm" aria-hidden="true"></i>
+                    </a>
+                    <RouterLink v-if="fila.conversacionId" :to="`/chat/${fila.conversacionId}`"
+                       :title="`Abrir el chat de ${fila.cliente}`" :aria-label="`Abrir el chat de ${fila.cliente}`"
+                       class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#376875] transition-colors">
+                      <i class="fas fa-comment-dots text-xs" aria-hidden="true"></i>
+                    </RouterLink>
+                  </span>
                 </li>
               </ul>
             </div>
