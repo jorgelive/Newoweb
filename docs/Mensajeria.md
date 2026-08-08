@@ -1731,6 +1731,40 @@ pedía el propio docblock del servicio.
 | Casita ocupada | Error con quién la ocupa y las fechas, antes de pedir ningún dato más |
 | Reserva **cancelada** | Error: conserva nombre, fechas y chat, así que nada la delata; añadirle una estancia la resucitaría a medias |
 
+#### ✅ `confirmar_estancia`: confirmar sin decir que pagó
+
+«Ponle confirmado a Théa» no tenía skill, así que el modelo llegaba por el desvío: marcaba
+`estadoPago = pago-alojamiento`, que confirma **de rebote** por la auto-confirmación.
+Funcionaba, pero dejaba escrito que había un pago donde nadie había pagado.
+
+| | Cambia | ¿Abre la guía? |
+|---|---|---|
+| `confirmar_estancia` | `estado` → confirmada | ❌ **NO** |
+| `modificar_reserva` con `estado_pago` | `estadoPago`, y el estado de rebote | ✅ sí |
+
+**Lo que abre el contenido reservado es el estado de PAGO, no el estado de la estancia** —
+`PmsGuiaAcceso::paraEvento()` mira `ESTADOS_PAGO_CONFIABLES`. Confirmar sin más deja al huésped
+confirmado y sin guía, que suele ser justo lo que se quiere hasta que pague.
+
+Por eso la skill **ofrece** el otro camino en vez de tomarlo:
+
+```
+sugerencia_pago: «quedará confirmada pero SIN acceso a la guía… Si el huésped paga al
+                  llegar, pregúntale al operador —DESPUÉS de confirmar y como cosa
+                  aparte— si quiere marcarla como pago-alojamiento. No lo hagas tú.»
+```
+
+Con un pago ya confiable esa sugerencia no aparece, y la consecuencia se dice al revés («ya
+tenía acceso y lo mantiene»): decirle «no se abre la guía» sobre una reserva que ya la tenía
+abierta sería falso y le haría dudar de si algo se rompió.
+
+⚠️ **No des-confirma.** Con un pago confiable es imposible —el listener de integridad la
+devuelve a confirmada en el mismo flush— y sin pago es una operación con más consecuencias que
+su contraria, que no se hace de pasada por chat.
+
+⚠️ **En OTA lo dice.** El canal manda sobre el estado, así que un pull posterior puede
+revertirlo si el cambio no se hizo también en el portal.
+
 #### ✏️ Corregir una reserva: `modificar_reserva`
 
 Se podía crear una reserva y añadirle estancias, pero no **arreglarla**. Un teléfono mal
