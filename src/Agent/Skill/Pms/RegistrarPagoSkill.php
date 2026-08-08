@@ -171,14 +171,12 @@ final readonly class RegistrarPagoSkill implements SkillInterface
             return SkillResult::error('El importe debe ser mayor que cero.');
         }
 
+        // ⚠️ Un medio que falta NO corta aquí con un error. Lo hacía, y era lo que rompía la
+        // repregunta única: el operador contestaba «yape», entonces la skill llegaba por fin a
+        // mirar la moneda y le preguntaba OTRA vez. Tres vueltas para un pago. Ahora entra en
+        // la misma bolsa que el resto, y sólo se saltan las comprobaciones que de verdad
+        // dependen de él —la comisión y el cobrador, que salen del medio—.
         $medio = PmsMedioPago::tryFrom(strtolower(trim((string) ($entrada['medio_pago'] ?? ''))));
-        if ($medio === null) {
-            return SkillResult::error(sprintf(
-                'Falta el medio de pago o no se reconoce. Pregunta al operador cómo pagó. '
-                . 'Opciones: %s.',
-                implode(', ', array_map(static fn (PmsMedioPago $m) => $m->value, PmsMedioPago::cases()))
-            ));
-        }
 
         $reserva = $this->em->getRepository(PmsReserva::class)->find($reservaId);
         if ($reserva === null) {
@@ -201,21 +199,28 @@ final readonly class RegistrarPagoSkill implements SkillInterface
         }
 
         $huesped = trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente());
-        $pct = (float) $medio->comisionPorcentaje();
+        $pct = $medio !== null ? (float) $medio->comisionPorcentaje() : 0.0;
 
         $monedaIndicada = strtoupper(trim((string) ($entrada['moneda'] ?? '')));
         $incluye = strtolower(trim((string) ($entrada['importe_incluye_comision'] ?? '')));
 
-        // Los dos datos que un importe suelto no trae y que valen dinero. Se piden JUNTOS: dos
-        // repreguntas seguidas al operador por el mismo pago son una de más.
+        // Todo lo que un importe suelto no trae y que vale dinero. Se pide JUNTO: cada
+        // repregunta de más es una vuelta más al operador por el mismo pago.
         $faltan = [];
 
+        // 💳 Cómo pagó. Va el primero porque de él dependen los dos siguientes.
+        if ($medio === null) {
+            $faltan[] = 'medio_pago';
+        }
+
         // 💱 «20» no dice de qué. Sólo es inequívoco si la cuenta ya está en la moneda local.
+        // No depende del medio, así que se pregunta en la misma tanda.
         if ($monedaIndicada === '' && $monedaCuenta->getId() !== self::MONEDA_LOCAL) {
             $faltan[] = 'moneda';
         }
 
-        // 💳 Con comisión, «20» tampoco dice si es lo del POS o lo que abona.
+        // 💳 Con comisión, «20» tampoco dice si es lo del POS o lo que abona. Sólo se puede
+        // saber si hay comisión cuando ya se sabe el medio: sin él no se pregunta todavía.
         if ($pct > 0.0 && !in_array($incluye, ['si', 'sí', 'no'], true)) {
             $faltan[] = 'importe_incluye_comision';
         }
@@ -233,7 +238,9 @@ final readonly class RegistrarPagoSkill implements SkillInterface
         // de tres nombres que no son María.
         $porqueFaltaCobrador = null;
 
-        if ($medio->seCobraEnMano()) {
+        // Sin medio no se sabe si lo cobró alguien en mano: una transferencia no tiene
+        // cobrador. Se resuelve en la vuelta siguiente, cuando el medio ya venga.
+        if ($medio !== null && $medio->seCobraEnMano()) {
             if (in_array(mb_strtolower($cobradorIndicado), self::ALIAS_YO, true)) {
                 // «me pagó a mí»: lo cobró quien está manejando el chat. Es el único caso en
                 // que el cobrador sale del actor y no de lo que se teclea.
@@ -297,7 +304,9 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                 'reserva_id' => $reservaId,
                 'huesped' => $huesped,
                 'moneda_de_la_cuenta' => $monedaCuenta->getId(),
-                'medio' => $medio->label(),
+                // `null` cuando el medio es justo lo que falta: `array_filter` lo quita y el
+                // modelo no ve un campo vacío que pueda confundir con un valor.
+                'medio' => $medio?->label(),
                 'falta_datos' => $faltan,
                 'si_son_' . strtolower(self::MONEDA_LOCAL) => in_array('moneda', $faltan, true)
                     ? $this->equivalencia($importe, self::MONEDA_LOCAL, $monedaCuenta->getId())
@@ -326,6 +335,13 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                     $porqueFaltaCobrador
                 ),
             ], static fn ($v) => $v !== null));
+        }
+
+        // Con `$faltan` vacío el medio existe por construcción —si no, estaría en la lista—,
+        // pero eso es un razonamiento que hay que rehacer cada vez que se lee. Explícito aquí:
+        // de aquí en adelante `$medio` se usa sin `?->` y así se ve por qué se puede.
+        if ($medio === null) {
+            return SkillResult::error('Falta el medio de pago. Pregunta al operador cómo pagó.');
         }
 
         $cobrado = $pct > 0.0 && $incluye !== 'no' ? $importe : $importe * (1 + $pct / 100);
@@ -500,13 +516,23 @@ final readonly class RegistrarPagoSkill implements SkillInterface
     private function pregunta(
         array $faltan,
         float $importe,
-        PmsMedioPago $medio,
+        ?PmsMedioPago $medio,
         string $monedaCuenta,
         string $cobradorIndicado = '',
         array $candidatos = [],
         ?string $porqueFaltaCobrador = null
     ): string {
         $partes = [];
+
+        if (in_array('medio_pago', $faltan, true)) {
+            $partes[] = sprintf(
+                '¿cómo pagó? (%s)',
+                implode(', ', array_map(
+                    static fn (PmsMedioPago $m) => $m->label(),
+                    PmsMedioPago::cases()
+                ))
+            );
+        }
 
         if (in_array('moneda', $faltan, true)) {
             $partes[] = sprintf(
@@ -517,7 +543,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface
             );
         }
 
-        if (in_array('importe_incluye_comision', $faltan, true)) {
+        if ($medio !== null && in_array('importe_incluye_comision', $faltan, true)) {
             $partes[] = sprintf(
                 'con %s hay %s%% de comisión, ¿el importe es lo que se pasó por el POS o lo que '
                 . 'debe abonar a la deuda?',
@@ -563,7 +589,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                 default => sprintf(
                     '¿a quién le entregaron el dinero? Es un pago en %s, así que lo cobró '
                     . 'alguien. Opciones: %s',
-                    $medio->label(),
+                    $medio?->label() ?? 'mano',
                     $nombres !== '' ? $nombres : '(no hay nadie con el rol de cobrador)'
                 ),
             };

@@ -137,46 +137,39 @@ final readonly class CrearReservaSkill implements SkillInterface
     {
         $desde = $this->fecha($entrada['desde'] ?? null);
         $hasta = $this->fecha($entrada['hasta'] ?? null);
+        $unidad = $this->resolverCasita(trim((string) ($entrada['casita'] ?? '')));
 
-        if ($desde === null || $hasta === null) {
-            return SkillResult::error('Indica las fechas de entrada y salida en formato YYYY-MM-DD.');
-        }
-
-        if ($hasta <= $desde) {
+        // Una salida anterior a la entrada NO es un dato que falte: es uno que está mal, y
+        // preguntarlo junto a otros tres sería enterrar el aviso.
+        if ($desde !== null && $hasta !== null && $hasta <= $desde) {
             return SkillResult::error('La fecha de salida tiene que ser posterior a la de entrada.');
         }
 
-        $unidad = $this->resolverCasita(trim((string) ($entrada['casita'] ?? '')));
+        // ⚠️ Faltar las fechas o la casita ya no corta con un error suelto: se juntan con el
+        // nombre, el idioma y los adultos en UNA pregunta. «Créame una reserva para Ana» hacía
+        // tres viajes al operador —primero las fechas, luego la casita, luego lo demás—.
+        //
+        // Lo que NO se toca es el orden: sin fechas y sin casita no se puede mirar la
+        // disponibilidad, así que en ese caso se pregunta todo de golpe y se comprueba en la
+        // vuelta siguiente. Cuando SÍ hay fechas y casita, la disponibilidad se sigue mirando
+        // antes de pedir datos del huésped — si está ocupada, esos datos no hacen falta.
+        $faltan = [];
+        $preguntas = [];
 
-        if (is_string($unidad)) {
-            return SkillResult::error($unidad);
+        if ($desde === null || $hasta === null) {
+            $faltan[] = 'fechas';
+            $preguntas[] = '¿qué días? (entrada y salida)';
         }
 
-        // La disponibilidad se comprueba ANTES de pedir datos: si está ocupada, preguntarle al
-        // operador el nombre y el idioma para nada sería hacerle perder el tiempo.
-        $ocupacion = $this->disponibilidad->ocupacion($desde, $hasta, (string) $unidad->getId());
-
-        if ($ocupacion !== []) {
-            return SkillResult::error(sprintf(
-                '%s NO está libre del %s al %s: %s. Busca otra casita con '
-                . 'consultar_disponibilidad o cambia las fechas.',
-                $unidad->getNombre(),
-                $desde->format('Y-m-d'),
-                $hasta->format('Y-m-d'),
-                implode('; ', array_map(
-                    static fn ($o) => sprintf('%s del %s al %s', $o->huesped ?? 'bloqueo', $o->entra, $o->sale),
-                    $ocupacion
-                ))
-            ));
+        if (is_string($unidad)) {
+            $faltan[] = 'casita';
+            $preguntas[] = $unidad;
         }
 
         $nombre = trim((string) ($entrada['nombre'] ?? ''));
         $idioma = strtolower(trim((string) ($entrada['idioma'] ?? '')));
         $adultos = (int) ($entrada['adultos'] ?? 0);
         $telefono = trim((string) ($entrada['telefono'] ?? ''));
-
-        $faltan = [];
-        $preguntas = [];
 
         if ($nombre === '') {
             $faltan[] = 'nombre';
@@ -203,21 +196,54 @@ final readonly class CrearReservaSkill implements SkillInterface
                 . 'la guía ni los recordatorios';
         }
 
+        // 🗓️ La disponibilidad, en cuanto se puede: con fechas y casita ya se sabe si tiene
+        // sentido seguir. Si está ocupada se corta AQUÍ aunque falten datos del huésped —
+        // pedirle el nombre y el idioma para una casita que no se puede vender es hacerle
+        // perder el tiempo—.
+        $sePuedeMirar = $desde !== null && $hasta !== null && !is_string($unidad);
+
+        if ($sePuedeMirar) {
+            $ocupacion = $this->disponibilidad->ocupacion($desde, $hasta, (string) $unidad->getId());
+
+            if ($ocupacion !== []) {
+                return SkillResult::error(sprintf(
+                    '%s NO está libre del %s al %s: %s. Busca otra casita con '
+                    . 'consultar_disponibilidad o cambia las fechas.',
+                    $unidad->getNombre(),
+                    $desde->format('Y-m-d'),
+                    $hasta->format('Y-m-d'),
+                    implode('; ', array_map(
+                        static fn ($o) => sprintf('%s del %s al %s', $o->huesped ?? 'bloqueo', $o->entra, $o->sale),
+                        $ocupacion
+                    ))
+                ));
+            }
+        }
+
         if ($faltan !== [] || $recomendados !== []) {
             return SkillResult::ok(array_filter([
-                'casita' => $unidad->getNombre(),
-                'desde' => $desde->format('Y-m-d'),
-                'hasta' => $hasta->format('Y-m-d'),
-                'noches' => $desde->diff($hasta)->days,
-                'disponible' => true,
+                // Los datos de la estancia sólo si se saben: con las fechas entre lo que falta,
+                // inventar aquí un `desde` sería justo lo que la pregunta trata de evitar.
+                'casita' => $sePuedeMirar ? $unidad->getNombre() : null,
+                'desde' => $desde?->format('Y-m-d'),
+                'hasta' => $hasta?->format('Y-m-d'),
+                'noches' => $desde !== null && $hasta !== null ? $desde->diff($hasta)->days : null,
+                'disponible' => $sePuedeMirar ? true : null,
                 'falta_datos' => $faltan !== [] ? $faltan : null,
                 'conviene_preguntar' => $recomendados !== [] ? $recomendados : null,
-                'pregunta' => 'Pregúntale al operador: ' . implode('; ', $preguntas)
+                'pregunta' => 'Pregúntale al operador, todo de una vez: ' . implode('; y ', $preguntas)
                     . '. Luego vuelve a llamarme con lo que conteste.',
                 // Sin los obligatorios no se puede crear; sin el teléfono sí, y el operador
                 // tiene que poder decir «no lo tengo, créala igual».
                 'se_puede_crear_sin_esto' => $faltan === [] ? true : null,
             ], static fn ($v) => $v !== null));
+        }
+
+        // Con `$faltan` vacío, las fechas y la casita están resueltas por construcción: si no,
+        // estarían en la lista. Explícito para que `conDatosCompletos()` reciba sus tipos sin
+        // que haya que rehacer ese razonamiento al leer.
+        if (is_string($unidad) || $desde === null || $hasta === null) {
+            return SkillResult::error('Faltan las fechas o la casita. Pregúntaselas al operador.');
         }
 
         return $this->conDatosCompletos($entrada, $unidad, $desde, $hasta, $actor);

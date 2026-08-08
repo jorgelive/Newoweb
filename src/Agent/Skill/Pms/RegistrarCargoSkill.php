@@ -128,12 +128,18 @@ final readonly class RegistrarCargoSkill implements SkillInterface
             return SkillResult::error('El reserva_id no es válido.');
         }
 
+        // ⚠️ Concepto e importe NO cortan aquí con un error, aunque falten. Cortaban, y era lo
+        // que partía la repregunta en dos vueltas: el operador daba el concepto y sólo entonces
+        // la skill llegaba a ver que la reserva tiene tres casitas y le preguntaba a cuál. Se
+        // acumulan con el resto y se pregunta todo junto más abajo.
+        $faltanBasicos = [];
+
         if ($concepto === '') {
-            return SkillResult::error('Indica el concepto del cargo.');
+            $faltanBasicos[] = 'concepto';
         }
 
         if ($importe <= 0) {
-            return SkillResult::error('El importe debe ser mayor que cero.');
+            $faltanBasicos[] = 'importe';
         }
 
         $reserva = $this->em->getRepository(PmsReserva::class)->find($reservaId);
@@ -228,26 +234,59 @@ final readonly class RegistrarCargoSkill implements SkillInterface
             // Con una sola casita no hay nada que preguntar. Mismo criterio que el panel
             // (`abrirNuevoCargo()` en ReservaFinanzasPanel.vue preselecciona igual).
             $evento = $estancias[0];
-        } elseif (count($estancias) > 1) {
-            return SkillResult::ok([
+        }
+
+        // Todo lo que falta, JUNTO: el concepto y el importe que no dijeron, más la casita
+        // cuando la reserva tiene varias. Preguntarlos en vueltas distintas es hacerle al
+        // operador tres viajes por un cargo de veinte dólares.
+        $faltan = $faltanBasicos;
+        $variasCasitas = $evento === null && count($estancias) > 1;
+
+        if ($variasCasitas) {
+            $faltan[] = 'evento_id';
+        }
+
+        if ($faltan !== []) {
+            $preguntas = [];
+
+            if (in_array('concepto', $faltan, true)) {
+                $preguntas[] = '¿por qué concepto es el cargo? (limpieza extra, lavandería, '
+                    . 'tour, consumo…)';
+            }
+
+            if (in_array('importe', $faltan, true)) {
+                $preguntas[] = '¿de cuánto es?';
+            }
+
+            if ($variasCasitas) {
+                $preguntas[] = sprintf(
+                    'esta reserva tiene %d casitas, ¿a cuál se le carga?',
+                    count($estancias)
+                );
+            }
+
+            return SkillResult::ok(array_filter([
                 'reserva_id' => $reservaId,
                 'huesped' => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
-                'concepto' => $concepto,
-                'importe_en_cuenta' => sprintf('%.2f %s', $importeFinal, $monedaCuenta->getId()),
-                'falta_datos' => ['evento_id'],
-                'estancias' => array_map(static fn (PmsEventoCalendario $e): array => [
-                    'evento_id' => (string) $e->getId(),
-                    'casita' => $e->getPmsUnidad()?->getNombre() ?? '—',
-                    'entrada' => $e->getInicio()?->format('Y-m-d'),
-                    'salida' => $e->getFin()?->format('Y-m-d'),
-                ], $estancias),
+                'concepto' => $concepto !== '' ? $concepto : null,
+                'importe_en_cuenta' => $importe > 0
+                    ? sprintf('%.2f %s', $importeFinal, $monedaCuenta->getId())
+                    : null,
+                'falta_datos' => $faltan,
+                'estancias' => $variasCasitas
+                    ? array_map(static fn (PmsEventoCalendario $e): array => [
+                        'evento_id' => (string) $e->getId(),
+                        'casita' => $e->getPmsUnidad()?->getNombre() ?? '—',
+                        'entrada' => $e->getInicio()?->format('Y-m-d'),
+                        'salida' => $e->getFin()?->format('Y-m-d'),
+                    ], $estancias)
+                    : null,
                 'pregunta' => sprintf(
-                    'Esta reserva tiene %d casitas. Pregúntale al operador a cuál se le carga '
-                    . '«%s», y vuelve a llamarme con su evento_id.',
-                    count($estancias),
-                    $concepto
+                    'Pregúntale al operador, todo de una vez: %s. Luego vuelve a llamarme con '
+                    . 'esos datos.',
+                    implode('; y ', $preguntas)
                 ),
-            ]);
+            ], static fn ($v) => $v !== null));
         }
 
         // 🚫 Cuenta ANULADA: el recálculo sólo suma la penalización (§12.7, el

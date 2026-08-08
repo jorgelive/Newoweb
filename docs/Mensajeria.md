@@ -2225,6 +2225,51 @@ Comprobado tras crear una de prueba: `recordatorio_llegada` quedó en cola para 
 enumera las cuatro **antes**, porque aprobar «se creará una reserva» sin saber que retira
 inventario de Booking y que se programan mensajes no es aprobar lo que pasa.
 
+##### 🔁 Todo lo que falta se pregunta DE UNA VEZ
+
+La regla, y aplica a **todas** las skills que repreguntan: si faltan tres datos, se piden los
+tres juntos. Cada repregunta es un viaje más al operador por la misma tarea.
+
+El patrón que lo rompía era siempre el mismo — **un `SkillResult::error()` para un dato que
+falta**, colocado antes del bloque que acumula:
+
+```php
+if ($medio === null) {
+    return SkillResult::error('Falta el medio de pago…');   // ❌ corta aquí
+}
+…
+$faltan[] = 'moneda';                                        // nunca llega
+```
+
+El operador contestaba «yape», y sólo entonces la skill llegaba a mirar la moneda y le
+preguntaba otra vez. Tres vueltas para un pago. Corregido en cuatro skills:
+
+| Skill | Antes | Ahora |
+|---|---|---|
+| `registrar_pago` | medio → moneda → cobrador | `['medio_pago', 'moneda']` juntos |
+| `registrar_cargo` | concepto → importe → casita | `['concepto', 'importe', 'evento_id']` |
+| `crear_reserva` | fechas → casita → datos | `['fechas', 'casita', 'idioma', 'adultos']` + teléfono |
+| `crear_estancia` | fechas → casita → adultos | `['fechas', 'casita', 'adultos']` |
+
+⚠️ **Un error de validación NO es un dato que falta.** «La salida es anterior a la entrada» o
+«ese evento_id no es de esta reserva» siguen cortando solos: enterrarlos entre otras tres
+preguntas es esconderlos.
+
+⚠️ **Las dependencias reales se respetan, y son las únicas que justifican una segunda vuelta.**
+La comisión sólo se puede preguntar sabiendo el medio (`tarjeta` la tiene, `efectivo` no), y el
+cobrador sólo si ese medio se cobra en mano. Sin el medio, esas dos se dejan para la vuelta
+siguiente en vez de inventarlas.
+
+⚠️ **La disponibilidad se sigue comprobando ANTES de pedir datos del huésped.** En
+`crear_reserva` y `crear_estancia` es deliberado: si la casita está ocupada, preguntar el
+nombre y el idioma es hacerle perder el tiempo al operador. Lo que cambió es que ahora sólo se
+mira **cuando se puede** —con fechas y casita ya resueltas—; si esas faltan, se preguntan con
+todo lo demás y la disponibilidad se comprueba en la vuelta siguiente.
+
+⚠️ **Con `$faltan` vacío, los datos existen «por construcción»** — pero eso es un razonamiento
+que hay que rehacer en cada lectura. Las cuatro skills lo dejan explícito con una guarda antes
+de usarlos sin `?->`, en vez de confiar en que el flujo lo garantiza.
+
 ###### Obligatorios y recomendados no son lo mismo
 
 «Crea una reserva en la casita 1 del 12 al 15» no trae ni la mitad de lo necesario. Se reúne
