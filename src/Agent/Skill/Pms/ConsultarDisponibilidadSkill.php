@@ -56,12 +56,12 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 . 'unas fechas, o cuánto costaría alojarse. Nunca respondas de memoria sobre '
                 . 'disponibilidad: llama siempre a esta skill. AL DAR PRECIOS usa «precio», que '
                 . 'es el total de esas noches con las tarifas que de verdad están cargadas, y '
-                . '«precio_por_noche» si te piden el desglose. La «tarifa_base» va SÓLO al '
-                . 'final y como referencia —«la base es X»—: es el suelo de la casita cuando no '
-                . 'hay tarifa puesta, NO lo que se cobra. Si una casita trae '
-                . '«noches_sin_tarifa», parte de esas noches se están vendiendo a la base por '
-                . 'no tener tarifa cargada: dilo, suele ser un olvido. Para el detalle noche a '
-                . 'noche de UNA casita concreta, usa consultar_tarifas.',
+                . '«precio_por_noche» si te piden el desglose. NO menciones ninguna tarifa base '
+                . 'ni hables de «precio orientativo»: lo que devuelvo ya es el precio de venta. '
+                . 'Si una casita trae «noches_sin_tarifa», esas noches se están vendiendo a la '
+                . 'tarifa base por no tener uno cargado: dilo en una frase, porque suele ser un '
+                . 'olvido. Para el detalle noche a noche de UNA casita usa consultar_tarifas, y '
+                . 'para revisar las tarifas base configuradas, consultar_tarifas_base.',
             parametros: [
                 SkillParameter::texto('desde', 'Fecha de entrada en formato YYYY-MM-DD.'),
                 SkillParameter::texto('hasta', 'Fecha de salida en formato YYYY-MM-DD. '
@@ -128,7 +128,12 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         DateTimeImmutable $hasta,
         int $noches
     ): array {
+        // 🚫 La tarifa base NO viaja en la respuesta. La llevaba, y el modelo la repetía junto
+        // al precio real como «tarifa base ref: 70.00» — dos números para lo mismo, y el que
+        // no se cobra el más llamativo. Quien necesite revisarlas tiene `consultar_tarifas_base`.
         $fila = $dto->toArray();
+        unset($fila['tarifa_base'], $fila['moneda']);
+
         $unidad = $this->em->getRepository(PmsUnidad::class)->find($dto->id);
 
         if ($unidad === null) {

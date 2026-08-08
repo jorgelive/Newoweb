@@ -3496,15 +3496,35 @@ una decisión, y el operador querría saberlo sin leer línea a línea.
 «Tarifa base orientativa: 70.00 USD/noche» aunque para esas fechas hubiera una tarifa cargada
 de 45.00. El operador cotizaba con un número que no era el que se iba a cobrar.
 
-Ahora cada casita trae el total del tramo, y la base queda al final como lo que es:
+Ahora cada casita trae el total del tramo y **la base no viaja**:
 
 ```
-Casita 1: Capacidad 8 pax · Total: 135.00 USD (45.00 USD/noche) · Tarifa base ref: 70.00 USD
-Casita 4: Capacidad 4 pax · Total:  90.00 USD (30.00 USD/noche) · Tarifa base ref: 37.00 USD
+Casita 5 (capacidad 2 pax):  75.00 USD total (25.00 USD/noche)
+Casita 1 (capacidad 8 pax): 135.00 USD total (45.00 USD/noche)
 ```
 
-`noches_sin_tarifa` cuenta las que salen a la base por no tener rango — en marzo de 2027, sin
-tarifas cargadas, sale `3` de 3 noches.
+Un intento intermedio la dejaba al final como referencia, y el modelo recitaba los dos seguidos
+—«Total: 135.00 USD · Tarifa base ref: 70.00 USD»—: dos números para lo mismo, con el que NO se
+cobra al lado del que sí. Quien cotiza no necesita el suelo.
+
+`noches_sin_tarifa` sí se queda: cuenta las noches que salen a la base por no tener rango — en
+marzo de 2027, sin tarifas cargadas, sale `3` de 3.
+
+##### `consultar_tarifas_base`, aparte y para poco
+
+Skill propia porque responde a otra pregunta: no «cuánto cobro» sino «cuánto es el suelo». Sirve
+el día que alguien olvida cargar las tarifas de un mes y esas noches se venden al mínimo sin que
+nadie lo decida. **Se usa poco y está bien que así sea**: si hiciera falta a menudo, el problema
+sería que faltan tarifas, no que falte consultarlas.
+
+⚠️ **Una tarifa base desactivada no significa gratis.** Significa que esa casita no se puede
+vender en fechas sin rango: el motor no encuentra precio. Se dice con esas palabras porque
+`activa: false` leído por un modelo invita a decir «sin tarifa base», que suena a cero:
+
+```
+Casita 6 → "Tarifa base DESACTIVADA: esta casita no se puede vender en fechas sin
+            tarifa cargada. No es que sea gratis, es que no hay precio."
+```
 
 #### 🔁 `PmsTarifaCalculadora`: una sola respuesta a «cuánto cuesta esta noche»
 
