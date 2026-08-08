@@ -537,6 +537,7 @@ class PmsReserva
         return $tramos > 0;
     }
 
+    #[Groups(['pax_reserva:read'])]
     public function getEventosActivosGuia(): array
     {
         $estadosPermitidos = PmsEventoEstado::MOSTRAR_EVENTO_GUIA;
