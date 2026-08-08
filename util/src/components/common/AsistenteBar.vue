@@ -91,8 +91,22 @@ const cargando = ref(false);
 const error = ref('');
 const dictando = ref(false);
 
-/** Contenedor del hilo: se necesita la referencia para bajarlo al último turno. */
+/** Contenedor del hilo: se necesita la referencia para llevarlo al turno más reciente. */
 const contenedorHilo = ref<HTMLElement | null>(null);
+
+/**
+ * La caja de escribir. Se le devuelve el foco al terminar cada respuesta.
+ *
+ * Casi siempre hay una pregunta detrás —una repregunta que contestar, el dato siguiente— y sin
+ * esto hay que volver a pinchar el campo cada vez. El `disabled` mientras carga es justo lo que
+ * hace que el navegador suelte el foco, así que hay que reponerlo a mano.
+ */
+const campoPregunta = ref<HTMLInputElement | null>(null);
+
+async function enfocarPregunta(): Promise<void> {
+    await nextTick();
+    campoPregunta.value?.focus();
+}
 
 const HILO_STORAGE_KEY = 'asistente_hilo';
 
@@ -300,6 +314,10 @@ async function preguntar(): Promise<void> {
         pregunta.value = texto;
     } finally {
         cargando.value = false;
+        // Tanto si respondió como si falló: en los dos casos lo siguiente es escribir —la
+        // respuesta a una repregunta, o el reintento—. Va DESPUÉS de soltar `cargando`, porque
+        // hasta ese momento el campo sigue deshabilitado y no acepta el foco.
+        void enfocarPregunta();
     }
 }
 
@@ -343,15 +361,21 @@ onBeforeUnmount(() => reconocimiento?.stop());
 <template>
   <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
     <div class="flex items-center gap-2 px-4 py-3">
-      <span class="w-8 h-8 rounded-xl bg-[#376875]/10 text-[#376875] flex items-center justify-center shrink-0">
+      <!-- El icono también avisa: mientras consulta late, para que se vea desde el rabillo
+           del ojo sin tener que leer nada. -->
+      <span
+        class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+        :class="cargando ? 'bg-[#376875] text-white animate-pulse' : 'bg-[#376875]/10 text-[#376875]'"
+      >
         <i class="fas fa-wand-magic-sparkles text-sm" aria-hidden="true"></i>
       </span>
 
       <input
+        ref="campoPregunta"
         v-model="pregunta"
         type="text"
         :disabled="cargando"
-        placeholder="¿Qué casitas tengo libres del 12 al 15 de marzo?"
+        :placeholder="cargando ? 'Consultando el PMS…' : '¿Qué casitas tengo libres del 12 al 15 de marzo?'"
         class="flex-1 min-w-0 bg-transparent text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none disabled:opacity-50"
         @keydown.enter="preguntar"
       />
@@ -427,13 +451,17 @@ onBeforeUnmount(() => reconocimiento?.stop());
          orden de siempre —pregunta y debajo su respuesta—; ver el computed `intercambios`.
 
          Crece hasta `max-h-96` y a partir de ahí hace scroll, en vez de seguir empujando el
-         panel de llegadas y salidas fuera de la pantalla. -->
+         panel de llegadas y salidas fuera de la pantalla.
+
+         `divide-slate-200` y no `slate-50`: con los intercambios apilándose hacia arriba, una
+         línea casi invisible dejaba la duda de dónde acaba una consulta y empieza la anterior.
+         Es la única señal de que son cosas distintas. -->
     <div
       v-if="intercambios.length"
       ref="contenedorHilo"
-      class="border-t border-slate-100 divide-y divide-slate-50 max-h-96 overflow-y-auto"
+      class="border-t border-slate-100 divide-y divide-slate-200 max-h-96 overflow-y-auto"
     >
-      <div v-for="(cambio, i) in intercambios" :key="i" class="px-4 py-3">
+      <div v-for="(cambio, i) in intercambios" :key="i" class="px-4 py-3.5">
         <p class="text-sm font-bold text-slate-500">
           <i class="fas fa-angle-right text-slate-300 mr-1" aria-hidden="true"></i>{{ cambio.pregunta.texto }}
         </p>
@@ -458,6 +486,15 @@ onBeforeUnmount(() => reconocimiento?.stop());
             </span>
           </p>
         </template>
+
+        <!-- Sin respuesta todavía. Antes sólo giraba el icono del botón de enviar, en la otra
+             punta de la barra: el operador se quedaba mirando su propia pregunta sin señal de
+             que algo estuviera pasando. El aviso va DONDE va a aparecer la respuesta. -->
+        <p v-else-if="cargando" class="mt-2 flex items-center gap-2 text-sm font-medium text-[#376875]">
+          <i class="fas fa-circle-notch fa-spin text-xs" aria-hidden="true"></i>
+          <span>Consultando el PMS</span>
+          <span class="asistente-puntos" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>
+        </p>
       </div>
     </div>
 
@@ -474,3 +511,27 @@ onBeforeUnmount(() => reconocimiento?.stop());
     </div>
   </div>
 </template>
+
+<style scoped>
+/*
+ * Los puntos suspensivos del «Consultando el PMS…», cada uno con su retraso.
+ *
+ * Es la señal de que sigue vivo: una consulta con varias skills encadenadas puede tardar
+ * bastante, y un texto quieto se confunde con algo colgado.
+ */
+.asistente-puntos span {
+    animation: asistente-latido 1.4s infinite;
+}
+.asistente-puntos span:nth-child(2) { animation-delay: 0.2s; }
+.asistente-puntos span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes asistente-latido {
+    0%, 60%, 100% { opacity: 0.25; }
+    30%           { opacity: 1; }
+}
+
+/* Quien prefiera no ver movimiento se queda con el texto, que ya dice lo que pasa. */
+@media (prefers-reduced-motion: reduce) {
+    .asistente-puntos span { animation: none; opacity: 1; }
+}
+</style>

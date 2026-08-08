@@ -3321,6 +3321,22 @@ vacía, y aparece arriba en cuanto se envía.
   quedarse sin el hilo justo después de una acción. Se guarda en `localStorage`
   (`asistente_hilo`) con **una hora** de vida.
 
+##### Que se vea dónde acaba cada consulta, y que siga trabajando
+
+Con los intercambios apilándose hacia arriba, tres detalles pasaron de cosméticos a necesarios:
+
+- **La línea separadora** subió de `divide-slate-50` a `divide-slate-200`. Casi invisible, era
+  imposible saber dónde acaba una consulta y empieza la anterior — y es la única señal de que
+  son cosas distintas. Cada pregunta-respuesta es **su propio bloque**: una consulta con dos
+  repreguntas ocupa tres bloques, decidido así a propósito.
+- **El aviso de que está trabajando va DONDE va a aparecer la respuesta** («Consultando el PMS…»
+  con los puntos animados), no sólo girando el icono del botón de enviar en la otra punta de la
+  barra. El icono de la varita también late mientras consulta, para verlo de reojo.
+- **El foco vuelve al campo al terminar**, con respuesta o con error: casi siempre lo siguiente
+  es escribir —contestar una repregunta, reintentar—. Va después de soltar `cargando`, porque
+  hasta ese momento el `disabled` impide que el campo acepte el foco; ese mismo `disabled` es lo
+  que se lo quita al empezar.
+
 El reloj se reinicia **en cada cambio**, no en el primer turno: lo que caduca es el hilo que
 lleva una hora sin tocarse, no una conversación viva que empezó hace 59 minutos.
 
