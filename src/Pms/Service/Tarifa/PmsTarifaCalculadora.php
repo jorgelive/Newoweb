@@ -90,7 +90,7 @@ final readonly class PmsTarifaCalculadora
      * Sin `$pax` no se aplica nada — consultar el precio de una casita sin saber cuántos van
      * es una pregunta legítima, y ahí el suplemento todavía no se puede calcular.
      *
-     * @return array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, moneda: ?string, min_stay: int, noches: int, noches_sin_tarifa: int}
+     * @return array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, moneda: ?string, min_stay: int, noches: int, noches_sin_tarifa: int, precios_por_noche: list<float>}
      */
     public function resumen(
         PmsUnidad $unidad,
@@ -121,6 +121,17 @@ final readonly class PmsTarifaCalculadora
             ? max(0, $pax - $unidad->getPaxIncluidos())
             : 0;
 
+        // 💵 Los precios distintos que hay dentro del tramo. Un tramo puede cruzar dos
+        // temporadas —65 las tres primeras noches y 45 las dos últimas— y ahí un «precio por
+        // noche» promedio daría 57.00: un número que no se cobra ninguna noche y que el
+        // operador repetiría al huésped. Se devuelven los precios REALES y quien pinta decide
+        // si dice uno («45.00/noche») o un rango («de 45.00 a 65.00»).
+        $precios = array_values(array_unique(array_map(
+            static fn (array $d): float => (float) $d['price'],
+            $diarios
+        )));
+        sort($precios);
+
         return [
             'total' => $noches > 0 ? $alojamiento + $suplemento : null,
             'alojamiento' => $noches > 0 ? $alojamiento : null,
@@ -130,6 +141,7 @@ final readonly class PmsTarifaCalculadora
             'min_stay' => $minStay,
             'noches' => $noches,
             'noches_sin_tarifa' => $sinTarifa,
+            'precios_por_noche' => $precios,
         ];
     }
 

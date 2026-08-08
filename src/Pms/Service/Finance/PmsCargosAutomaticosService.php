@@ -11,7 +11,7 @@ use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Enum\PmsTipoCargo;
-use App\Pms\Service\Tarifa\Engine\TarifaPricingEngine;
+use App\Pms\Service\Tarifa\PmsTarifaCalculadora;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
@@ -48,7 +48,7 @@ final class PmsCargosAutomaticosService
 
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly TarifaPricingEngine $pricingEngine,
+        private readonly PmsTarifaCalculadora $tarifas,
         private readonly MonedaResolver $monedaResolver,
         private readonly LoggerInterface $logger,
     ) {}
@@ -102,6 +102,28 @@ final class PmsCargosAutomaticosService
                 tipo: PmsTipoCargo::ALOJAMIENTO,
                 descripcion: 'Alojamiento',
                 importe: number_format($noches, 2, '.', ''),
+                moneda: $moneda,
+            );
+        }
+
+        // 👥 Las personas que no caben en la tarifa. Cargo APARTE y no sumado al alojamiento:
+        // el huésped tiene derecho a ver por qué paga más que la tarifa anunciada, y metido
+        // dentro del alojamiento falsearía además el precio por noche de cualquier informe.
+        $suplemento = $this->calcularSuplementoPax($evento);
+
+        if ($suplemento !== null && $suplemento > 0) {
+            $unidad = $evento->getPmsUnidad();
+
+            $this->crearCargo(
+                info: $info,
+                evento: $evento,
+                tipo: PmsTipoCargo::ALOJAMIENTO,
+                descripcion: sprintf(
+                    'Persona adicional (%d × %s por noche)',
+                    max(0, $this->paxDe($evento) - (int) $unidad?->getPaxIncluidos()),
+                    $unidad?->getPrecioPaxAdicional() ?? '0.00'
+                ),
+                importe: number_format($suplemento, 2, '.', ''),
                 moneda: $moneda,
             );
         }
@@ -264,41 +286,16 @@ final class PmsCargosAutomaticosService
         }
 
         try {
-            $rangos = $this->em->getRepository(PmsTarifaRango::class)
-                ->createQueryBuilder('t')
-                ->andWhere('t.unidad = :unidad')
-                ->andWhere('t.activo = true')
-                // Solapan con la estancia: empiezan antes de la salida y acaban tras la llegada.
-                ->andWhere('t.fechaInicio < :fin AND t.fechaFin >= :inicio')
-                ->setParameter('unidad', $unidad)
-                ->setParameter('inicio', $inicio)
-                ->setParameter('fin', $fin)
-                ->getQuery()
-                ->getResult();
-
-            // Mismo fallback que el push de tarifas a Beds24 (Beds24RatesPushQueueCreator): los
-            // días sin rango se cubren con la tarifa base de la unidad, si está activa.
-            $preciosDiarios = $this->pricingEngine->buildDailyPricesForIntervalWithFallback(
-                rangos: $rangos,
-                from: $inicio,
-                to: $fin,
-                rangeAccessor: static fn (PmsTarifaRango $t): array => [
-                    'start' => $t->getFechaInicio(),
-                    'end' => $t->getFechaFin(),
-                    'price' => (float) $t->getPrecio(),
-                    'minStay' => $t->getMinStay(),
-                    'currency' => $t->getMoneda()?->getId(),
-                    'important' => $t->isImportante(),
-                    'weight' => $t->getPrioridad(),
-                    'id' => (string) $t->getId(),
-                ],
-                fallbackProvider: static fn (): ?array => $unidad->isTarifaBaseActiva() ? [
-                    'price' => (float) $unidad->getTarifaBasePrecio(),
-                    'minStay' => $unidad->getTarifaBaseMinStay(),
-                    'currency' => $unidad->getTarifaBaseMoneda()?->getId(),
-                    'sourceId' => 'base:unidad:' . (string) $unidad->getId(),
-                ] : null,
-            );
+            // 🐛 Esto ERA una consulta propia con `createQueryBuilder()->setParameter('unidad',
+            // $unidad)`, y el id es un UUID BINARY(16): en DQL ese parámetro se serializa mal y
+            // la consulta devolvía CERO rangos **sin fallar**. Consecuencia: todas las
+            // estancias se cobraban a la tarifa base, ignorando el tarifario. Medido en la
+            // Casita 1 del 10 al 19 de agosto — 630.00 cobrados contra 565.00 reales.
+            //
+            // Ahora lo resuelve `PmsTarifaCalculadora`, que ya tiene el `findBy()` correcto y
+            // es la misma pieza que usan `consultar_tarifas` y `consultar_disponibilidad`. Una
+            // fórmula, no tres.
+            $preciosDiarios = $this->tarifas->preciosPorNoche($unidad, $inicio, $fin);
 
             // El flattener OMITE los días que no logra precisar; si falta alguno, el total sería
             // una estancia más corta de la real. Se prefiere no cobrar nada a cobrar de menos.
@@ -327,6 +324,42 @@ final class PmsCargosAutomaticosService
             $this->logger->error('Fallo calculando el alojamiento desde el tarifario.', ['exception' => $e]);
             return null;
         }
+    }
+
+    /**
+     * Cuántas personas duermen en la estancia.
+     *
+     * Adultos + niños: para el suplemento cuentan igual, porque lo que se cobra es ocupar una
+     * plaza. Si algún día los niños dejan de contar, se cambia AQUÍ y en
+     * {@see \App\Pms\Entity\PmsUnidad::suplementoPorPax()} — no en cada sitio que sume pax.
+     */
+    private function paxDe(PmsEventoCalendario $evento): int
+    {
+        return (int) $evento->getCantidadAdultos() + (int) $evento->getCantidadNinos();
+    }
+
+    /**
+     * Lo que suman las personas por encima de las que cubre la tarifa.
+     *
+     * La regla vive en la unidad ({@see \App\Pms\Entity\PmsUnidad::suplementoPorPax()}); aquí
+     * sólo se le da el pax y las noches. `null` cuando no hay estancia calculable, y `0.0`
+     * cuando la casita no cobra suplemento o el grupo cabe: no cobrar de más es el fallo seguro.
+     */
+    private function calcularSuplementoPax(PmsEventoCalendario $evento): ?float
+    {
+        $unidad = $evento->getPmsUnidad();
+        $inicio = $evento->getInicio();
+        $fin = $evento->getFin();
+
+        if ($unidad === null || $inicio === null || $fin === null || $fin <= $inicio) {
+            return null;
+        }
+
+        // A DÍA, igual que el alojamiento: la estancia va de las 14:00 a las 10:00 y un diff()
+        // crudo de dos noches devolvería «1 día y 20 horas» → 1 (§12.5.5).
+        $noches = (int) $this->aDia($inicio)->diff($this->aDia($fin))->days;
+
+        return $unidad->suplementoPorPax($this->paxDe($evento), $noches);
     }
 
     /** Trunca a medianoche conservando la fecha de pared (mismo criterio que el flattener). */

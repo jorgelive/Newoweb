@@ -164,9 +164,19 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         // dónde sale la diferencia en vez de soltar una cifra mayor sin motivo aparente.
         return array_filter([
             'precio' => sprintf('%.2f %s', $resumen['total'], $moneda),
-            'precio_por_noche' => $noches > 0
-                ? sprintf('%.2f %s', $resumen['alojamiento'] / $noches, $moneda)
-                : null,
+            // Un promedio aquí sería un precio inventado: con 65 tres noches y 45 dos, la
+            // media da 57.00, que no se cobra ninguna noche. Se dice el precio si es uno solo,
+            // y el recorrido si varía —el desglose completo lo da consultar_tarifas—.
+            'precio_por_noche' => match (count($resumen['precios_por_noche'])) {
+                0 => null,
+                1 => sprintf('%.2f %s', $resumen['precios_por_noche'][0], $moneda),
+                default => sprintf(
+                    'de %.2f a %.2f %s (varía por noche)',
+                    $resumen['precios_por_noche'][0],
+                    end($resumen['precios_por_noche']),
+                    $moneda
+                ),
+            },
             'suplemento_por_pax' => $resumen['suplemento_pax'] > 0.0
                 ? sprintf(
                     '%.2f %s (%d persona(s) por encima de las %d que cubre la tarifa, %s por '

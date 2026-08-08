@@ -3588,6 +3588,59 @@ día el precio que se enseña deje de ser el que se cobra. El servicio expone:
 Comprobado que las dos skills dan lo mismo: Casita 1 del 20 al 23 de agosto → **135.00 USD** por
 los dos caminos.
 
+#### 🐛 ARREGLADO: el cobro ignoraba el tarifario entero
+
+`PmsCargosAutomaticosService::estimarAlojamiento()` tenía **su propia** consulta de rangos con
+`createQueryBuilder()->setParameter('unidad', $unidad)` — la trampa del UUID binario— así que
+devolvía cero rangos sin fallar y **todas las estancias se cobraban a la tarifa base**. No era
+sólo del agente: `generarParaEvento()` lo llama desde
+`PmsInformacionFinancieraCoherenciaListener`, o sea que afectaba a los cargos de toda reserva
+directa, creada desde el panel o desde el chat.
+
+```
+Casita 1 · 10→19 agosto (9 noches)
+  ANTES   630.00   ← tarifa base 70 × 9, ignorando los rangos
+  AHORA   565.00   ← 8×65.00 + 1×45.00, los rangos reales
+```
+
+Ahora delega en `PmsTarifaCalculadora`, que ya tenía el `findBy()` correcto. **Una fórmula para
+los tres caminos** —consultar tarifas, ofrecer disponibilidad y cobrar— en vez de tres copias
+que podían divergir. No toca reservas ya creadas: sus cargos siguen como estaban.
+
+#### 💵 Un tramo puede tener DOS precios, y el promedio miente
+
+`precio_por_noche` era `total / noches`. Con 65 tres noches y 45 dos, eso da **57.00**: un
+número que no se cobra ninguna noche y que el operador repetiría al huésped.
+
+`resumen()` devuelve ahora `precios_por_noche` con los valores distintos que hay dentro del
+tramo, y quien pinta decide:
+
+```
+un solo precio   →  "55.00 USD"
+varios           →  "de 55.00 a 90.00 USD (varía por noche)"
+```
+
+El desglose día a día sigue siendo cosa de `consultar_tarifas`.
+
+#### 👥 El suplemento también al COBRAR, como cargo aparte
+
+`crear_reserva`, `crear_estancia` y el panel pasan todos por `generarParaEvento()`, así que el
+suplemento se aplica en los tres sin tocar el Vue —que no calcula precios, sólo crea la reserva
+y deja que el backend genere los cargos—.
+
+Va como **cargo separado** y no sumado al alojamiento: el huésped tiene derecho a ver por qué
+paga más que la tarifa anunciada, y metido dentro falsearía el precio por noche de cualquier
+informe. Comprobado creando una reserva real —Casita 3, 7 personas, 5 noches:
+
+```
+Alojamiento                              225.00
+Persona adicional (3 × 6.00 por noche)    90.00
+Suplemento de limpieza                    15.00
+```
+
+⚠️ Va con `PmsTipoCargo::ALOJAMIENTO` y no como SERVICIO: es dinero por dormir ahí, y como
+servicio se mezclaría con los horarios extra en los informes.
+
 #### 🔥 La trampa del UUID en DQL, otra vez
 
 ```php
