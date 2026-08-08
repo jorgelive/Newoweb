@@ -3532,6 +3532,61 @@ Casita 6 → "Tarifa base DESACTIVADA: esta casita no se puede vender en fechas 
             tarifa cargada. No es que sea gratis, es que no hay precio."
 ```
 
+#### 🏷️ `ajustar_tarifas`: subir o bajar precios sobre el vigente
+
+«Baja 10 % la Casita 1 en las noches libres de agosto» era media hora de calendario. La skill
+crea **rangos nuevos por encima** de los que ya hay, sin tocar ninguno.
+
+**Se ajusta sobre el precio VIGENTE de cada noche** —el rango que hoy gana— y no sobre la
+tarifa base: calcularlo sobre la base daría un precio sin relación con lo que se vende, y una
+bajada del 10 % podría acabar siendo una subida.
+
+##### 🥇 Prioridad = la mayor que pisa, +1
+
+Del máximo de los rangos que HOY ganan esas noches, no del máximo global de la unidad: lo único
+que hay que superar es lo que se está pisando, y coger el global inflaría las prioridades hasta
+que dejaran de significar nada. Un tramo sin tarifa cargada (venía de la base) estrena en 1.
+
+##### 🧮 Varias tarifas en el tramo → promedio, y se avisa
+
+Un `PmsTarifaRango` tiene **un solo precio**, así que un tramo que cruza dos temporadas se
+aplana:
+
+```
+15,16,17 → 65.00     promedio 57.00 · −10% → 51.30
+18,19    → 45.00
+
+aviso_promedio: «esas noches tienen 2 precios distintos (45.00, 65.00). Un rango nuevo
+                 sólo admite UNO, así que parto del promedio y las dejo todas a 51.30»
+```
+
+Se dice aparte porque es lo que el operador **no** espera: dos temporadas distintas quedan
+igualadas.
+
+##### ✂️ Las noches vendidas parten el ajuste en varios rangos
+
+Con `solo_libres`, las ocupadas se saltan — y como un rango es continuo, los huecos obligan a
+crear uno por tramo seguido. Comprobado en la Casita 1 de agosto, con tres reservas dentro:
+
+```
+11 noches libres · 18 vendidas respetadas · 2 rangos creados
+   2026-08-18 → 2026-08-22     (la reserva de Lita, 23-24, queda fuera)
+   2026-08-25 → 2026-08-30
+
+Resultado: 18-22 a 40.00 (prioridad 5) · 23-24 siguen a 45.00 · 25-26 a 40.00
+```
+
+⚠️ **`fechaFin` es EXCLUSIVA.** El tramo acaba la noche `$fin`, así que el rango se crea con
+`fin + 1 día`. Con `fin = inicio` el flattener descarta el rango entero y se guarda **sin error
+y sin hacer nada** — el fallo más caro, porque es mudo.
+
+⚠️ **Deshacer es borrar el rango nuevo**: los anteriores siguen debajo intactos y el precio
+vuelve solo. Verificado.
+
+⚠️ **Sale a los portales.** Crear el rango encola el push a Beds24 (`Beds24RatesPushQueueListener`
+escucha las inserciones de `PmsTarifaRango`) — cuatro colas en la prueba. Por eso la
+previsualización lo dice con esas palabras en vez de hablar de «guardar una tarifa».
+
 #### 👥 El suplemento por persona adicional
 
 La tarifa de una noche cubre a un grupo de cierto tamaño; a partir de ahí cada persona suma.
