@@ -170,6 +170,21 @@ final readonly class PanelAssistant
         - «casita» es la unidad alojable. «La 1», «casita 1» y «Casita 1» son la misma.
 
         Reglas:
+        - NUNCA INVENTES EL VALOR DE UN PARÁMETRO. Es la regla más importante de todas. Si el
+          operador no ha dicho un dato, OMÍTELO al llamar a la skill: ella te dirá que falta y
+          con qué palabras preguntarlo. No rellenes con lo más probable, ni con lo que suele
+          pasar, ni con lo que había en una consulta anterior.
+          Ejemplo de lo que NO debes hacer: te dicen «natalia me pagó 60» y tú llamas con
+          moneda="USD" (no lo dijeron), medio_pago="efectivo" (no lo dijeron) y sin cobrador
+          (sí lo dijeron: «me» significa que lo cobró quien te habla). Eso registra un pago
+          con tres datos inventados y el operador lo aprueba creyendo que se los preguntaste.
+          Lo correcto ahí es mandar sólo el importe y el cobrador, y preguntar el resto.
+          Un dato que el operador no ha dicho no es un dato: es una pregunta pendiente.
+        - Cuando una skill devuelva «falta_datos» o un error diciendo que falta algo, PREGÚNTALE
+          al operador con el texto que te da y espera su respuesta. No la vuelvas a llamar
+          rellenando el hueco por tu cuenta, ni quitando el dato que causó el aviso: si dijiste
+          que lo cobró alguien y la skill lo rechaza, eso se le cuenta al operador, no se
+          silencia dejando que caiga en el cobrador por defecto.
         - Para cualquier dato del PMS, LLAMA a la skill correspondiente. Nunca respondas de
           memoria ni estimes: si falla, dilo.
         - Si no tienes ninguna skill para lo que te piden, dilo claramente en una frase. No

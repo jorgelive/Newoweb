@@ -1099,6 +1099,44 @@ agencia, así que los dos términos se mezclan a diario — pero las 12 skills d
 ninguna dice «pasajero». No es un sinónimo del diccionario que el modelo deba adivinar: es
 vocabulario de esta casa, y lo mismo vale para «la 1» como nombre de la Casita 1.
 
+#### 🔥 «No inventes el valor de un parámetro» va en el prompt, no en cada skill
+
+El caso que lo destapó: **«natalia me pagó 60»** se registró como *60.00 **USD** en **efectivo**,
+cobrado por **Susan***. Tres datos que nadie dijo — la moneda, el medio y el cobrador (el «me»
+significaba justo lo contrario). El operador aprobó la previsualización creyendo que se los
+habían preguntado.
+
+Y las tres barreras **estaban puestas y funcionaban**:
+
+```
+sin medio_pago  → error: "Falta el medio de pago. Pregunta al operador cómo pagó…"
+sin moneda      → falta_datos: ['moneda'] → "¿los 60.00 son soles o USD?"
+cobrador="yo"   → falta_datos: ['cobrador'] → "tu usuario no tiene el rol de cobrador…"
+```
+
+No se dispararon porque el modelo **rellenó los huecos en vez de omitirlos**. Una barrera sólo
+salta si el parámetro llega vacío, y un modelo que adivina no deja ninguno vacío.
+
+Por eso la regla va en `PanelAssistant::systemPrompt()` y no en la descripción de
+`registrar_pago`: no es una particularidad de los pagos, es cómo hay que llamar a **cualquier**
+skill. Va la primera de la lista, con el ejemplo concreto de lo que no debe hacer, y acompañada
+de su pareja: **cuando una skill devuelve `falta_datos`, se pregunta — no se vuelve a llamar
+quitando el dato que causó el aviso**, que era exactamente cómo el «me pagó» acababa en el
+cobrador por defecto sin que nadie se enterara.
+
+Comprobado con el mismo modelo que fallaba (`gemini-3.6-flash`):
+
+| Frase | Antes | Después |
+|---|---|---|
+| «natalia me pagom 60» | registraba USD/efectivo/Susan | pregunta medio y moneda, y dice «cobrado por ti» |
+| «…60 dólares en efectivo, lo cobró susan» | — | no pregunta nada, va directo a la previsualización |
+| «quien sale mañana?» | — | responde directo, sin preguntas de más |
+
+⚠️ **Una regla de prompt no es una garantía.** Reduce mucho el problema pero no lo elimina: lo
+que de verdad protege son las barreras de las skills, que siguen ahí para cuando el modelo se
+salte la instrucción. Si aparece un caso nuevo de dato inventado, el arreglo se busca **primero**
+en hacer que la skill exija el dato, y sólo después en el prompt.
+
 Va en el prompt del panel y **no** en el del chat del huésped
 (`AiConversationProcessor::systemPrompt()`): un huésped habla de «mi reserva», no se llama a sí
 mismo pasajero. Es jerga de operación interna.
