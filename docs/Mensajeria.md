@@ -3238,8 +3238,16 @@ Dos problemas del hilo de `AsistenteBar`, los dos por vivir sólo en memoria y s
 
 - **Crecía sin límite hacia abajo.** La barra está ARRIBA de `HomeView`, así que una
   conversación de seis turnos empujaba el panel de llegadas y salidas fuera de la pantalla.
-  Ahora para en `max-h-96` y hace scroll, con `bajarAlFinal()` llevándolo al último turno tras
-  cada mensaje.
+  Ahora para en `max-h-96` y hace scroll.
+- **Y crecía en el sentido equivocado.** Se escribe en la caja de arriba y la respuesta salía
+  al final: cada pregunta alejaba un poco más el resultado. El hilo se pinta del intercambio
+  **más nuevo al más viejo** (`intercambios`), así que la respuesta aparece justo debajo de lo
+  que acabas de teclear, y `subirAlUltimo()` lleva el scroll al principio.
+
+⚠️ Se agrupa en **pares** y se invierte el orden de los pares, no la lista de turnos pelada:
+invertir los turnos pondría cada respuesta ENCIMA de su propia pregunta. Dentro de cada
+intercambio se lee como siempre. Una pregunta aún sin contestar es un par con `respuesta`
+vacía, y aparece arriba en cuanto se envía.
 - **Se perdía al recargar.** Y como el asistente ahora provoca recargas de datos, era fácil
   quedarse sin el hilo justo después de una acción. Se guarda en `localStorage`
   (`asistente_hilo`) con **una hora** de vida.

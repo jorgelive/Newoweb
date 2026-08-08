@@ -157,12 +157,41 @@ watch(hilo, (turnos) => {
     }
 }, { deep: true });
 
-/** Baja el hilo al último turno; sin esto la respuesta nueva queda fuera de la vista. */
-async function bajarAlFinal(): Promise<void> {
+/**
+ * Lleva la vista al intercambio más reciente, que se pinta ARRIBA del todo.
+ *
+ * Al final del hilo está lo más viejo: quien pregunta escribe en la caja de arriba y espera la
+ * respuesta ahí mismo, no seis turnos más abajo.
+ */
+async function subirAlUltimo(): Promise<void> {
     await nextTick();
     const caja = contenedorHilo.value;
-    if (caja) caja.scrollTop = caja.scrollHeight;
+    if (caja) caja.scrollTop = 0;
 }
+
+/**
+ * El hilo agrupado en intercambios y del más NUEVO al más viejo.
+ *
+ * Se agrupa en pares en vez de invertir la lista pelada porque invertirla pondría cada
+ * respuesta ENCIMA de su propia pregunta. Lo que se invierte es el orden de los intercambios;
+ * dentro de cada uno se lee como siempre: primero lo que preguntó, debajo lo que contestó.
+ *
+ * Una pregunta sin respuesta —la que está en vuelo— es un intercambio con `respuesta` vacía,
+ * y aparece arriba en cuanto se envía.
+ */
+const intercambios = computed<{ pregunta: Turno; respuesta?: Turno }[]>(() => {
+    const pares: { pregunta: Turno; respuesta?: Turno }[] = [];
+
+    for (const turno of hilo.value) {
+        if (turno.rol === 'usuario') {
+            pares.push({ pregunta: turno });
+        } else if (pares.length > 0) {
+            pares[pares.length - 1].respuesta = turno;
+        }
+    }
+
+    return pares.reverse();
+});
 
 const motores = ref<Motor[]>([]);
 const proveedor = ref('');
@@ -188,7 +217,7 @@ onMounted(async () => {
     // El hilo se recupera antes de pedir el catálogo: no depende de la red y así el operador
     // ve lo que estaba haciendo sin esperar a que responda `/agent/motores`.
     hilo.value = restaurarHilo();
-    if (hilo.value.length) void bajarAlFinal();
+    if (hilo.value.length) void subirAlUltimo();
 
     try {
         const r = await apiClient.get<{ motores: Motor[] }>('/agent/motores');
@@ -233,7 +262,7 @@ async function preguntar(): Promise<void> {
     const historial = hilo.value.map(({ rol, texto: t }) => ({ rol, texto: t }));
     hilo.value.push({ rol: 'usuario', texto });
     pregunta.value = '';
-    void bajarAlFinal();
+    void subirAlUltimo();
 
     try {
         const r = await apiClient.post<RespuestaAsistente>('/agent/consulta', {
@@ -251,7 +280,7 @@ async function preguntar(): Promise<void> {
             herramientas: r.data.herramientas ?? [],
             firma: [etiqueta ?? r.data.proveedor, r.data.modelo].filter(Boolean).join(' · '),
         });
-        void bajarAlFinal();
+        void subirAlUltimo();
 
         // Se avisa DESPUÉS de pintar la respuesta: el operador ve primero el «listo» y la
         // recarga ocurre detrás. Al revés, la vista se recargaría con el hilo aún sin el turno.
@@ -390,35 +419,42 @@ onBeforeUnmount(() => reconocimiento?.stop());
     </div>
 
     <!-- El hilo: sostiene el ir y venir cuando el asistente repregunta ("¿cuál de los dos
-         Carlos?"). Se pinta en orden y el más reciente queda abajo.
+         Carlos?").
 
-         Crece hasta `max-h-96` y a partir de ahí hace scroll en vez de seguir empujando el
-         panel de llegadas y salidas fuera de la pantalla: la barra vive ARRIBA de HomeView, y
-         sin tope una conversación de seis turnos dejaba el panel de hoy fuera de vista. El
-         desplazamiento al último turno lo hace `bajarAlFinal()`. -->
+         Va del intercambio MÁS NUEVO al más viejo, porque la caja de escribir está arriba: la
+         respuesta aparece justo debajo de lo que acabas de teclear, no al final de una lista
+         que se aleja un poco más en cada pregunta. Dentro de cada intercambio se lee en el
+         orden de siempre —pregunta y debajo su respuesta—; ver el computed `intercambios`.
+
+         Crece hasta `max-h-96` y a partir de ahí hace scroll, en vez de seguir empujando el
+         panel de llegadas y salidas fuera de la pantalla. -->
     <div
-      v-if="hilo.length"
+      v-if="intercambios.length"
       ref="contenedorHilo"
       class="border-t border-slate-100 divide-y divide-slate-50 max-h-96 overflow-y-auto"
     >
-      <div v-for="(turno, i) in hilo" :key="i" class="px-4 py-3">
-        <p v-if="turno.rol === 'usuario'" class="text-sm font-bold text-slate-500">
-          <i class="fas fa-angle-right text-slate-300 mr-1" aria-hidden="true"></i>{{ turno.texto }}
+      <div v-for="(cambio, i) in intercambios" :key="i" class="px-4 py-3">
+        <p class="text-sm font-bold text-slate-500">
+          <i class="fas fa-angle-right text-slate-300 mr-1" aria-hidden="true"></i>{{ cambio.pregunta.texto }}
         </p>
-        <template v-else>
+
+        <template v-if="cambio.respuesta">
           <!-- El modelo responde con el marcado canónico (*negrita*, listas, [texto](url)) y
                `formatoAHtml` lo pinta —escapando antes— igual que el chat de mensajería. Sin
                esto los asteriscos y los enlaces llegaban crudos al operador. -->
           <p
-            class="asistente-respuesta text-sm text-slate-800 whitespace-pre-line leading-relaxed"
-            v-html="formatoAHtml(turno.texto)"
+            class="asistente-respuesta mt-2 text-sm text-slate-800 whitespace-pre-line leading-relaxed"
+            v-html="formatoAHtml(cambio.respuesta.texto)"
           ></p>
           <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            <template v-if="turno.herramientas?.length">
+            <template v-if="cambio.respuesta.herramientas?.length">
               <i class="fas fa-database text-[9px] mr-1" aria-hidden="true"></i> Consultado en el PMS
             </template>
-            <span v-if="turno.firma" :class="turno.herramientas?.length ? 'ml-2 text-slate-300' : 'text-slate-300'">
-              {{ turno.firma }}
+            <span
+              v-if="cambio.respuesta.firma"
+              :class="cambio.respuesta.herramientas?.length ? 'ml-2 text-slate-300' : 'text-slate-300'"
+            >
+              {{ cambio.respuesta.firma }}
             </span>
           </p>
         </template>
