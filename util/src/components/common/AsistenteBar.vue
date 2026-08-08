@@ -207,6 +207,19 @@ const intercambios = computed<{ pregunta: Turno; respuesta?: Turno }[]>(() => {
     return pares.reverse();
 });
 
+/**
+ * ¿Es el intercambio que se está contestando ahora?
+ *
+ * El primero, porque el hilo va del más nuevo al más viejo. Con uno solo devuelve `false`: si
+ * todo lo que hay es el turno actual, destacarlo no distingue nada de nada.
+ *
+ * Función y no tres condiciones repetidas en el template — que es como estaba y es como se
+ * desincronizan: bastaría con tocar una y dejar las otras.
+ */
+function esElVivo(indice: number): boolean {
+    return indice === 0 && intercambios.value.length > 1;
+}
+
 const motores = ref<Motor[]>([]);
 const proveedor = ref('');
 const modelo = ref('');
@@ -461,9 +474,17 @@ onBeforeUnmount(() => reconocimiento?.stop());
       ref="contenedorHilo"
       class="border-t border-slate-100 divide-y divide-slate-200 max-h-96 overflow-y-auto"
     >
-      <div v-for="(cambio, i) in intercambios" :key="i" class="px-4 py-3.5">
-        <p class="text-sm font-bold text-slate-500">
-          <i class="fas fa-angle-right text-slate-300 mr-1" aria-hidden="true"></i>{{ cambio.pregunta.texto }}
+      <!-- El intercambio de arriba es el vivo: el que se está contestando. Se marca con una
+           barra lateral y un fondo apenas visible, no con color de aviso — es orientación, no
+           una alerta. Sólo cuando hay más de uno: con uno solo no hay nada que distinguir. -->
+      <div
+        v-for="(cambio, i) in intercambios"
+        :key="i"
+        class="px-4 py-3.5 border-l-2 transition-colors"
+        :class="esElVivo(i) ? 'border-[#376875]/40 bg-slate-50/60' : 'border-transparent'"
+      >
+        <p class="text-sm font-bold" :class="esElVivo(i) ? 'text-slate-700' : 'text-slate-500'">
+          <i class="fas fa-angle-right mr-1" :class="esElVivo(i) ? 'text-[#376875]' : 'text-slate-300'" aria-hidden="true"></i>{{ cambio.pregunta.texto }}
         </p>
 
         <template v-if="cambio.respuesta">
