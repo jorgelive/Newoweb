@@ -499,7 +499,15 @@ final readonly class AjustarTarifasSkill implements SkillInterface
 
             // La noche de salida no se ocupa: quien se va el 15 deja esa noche libre.
             while ($cursor < $fin) {
-                $ocupadas[$cursor->format('Y-m-d')] = true;
+                // ⚠️ Acotado al tramo consultado. `ocupacion()` devuelve las reservas que
+                // SOLAPAN, así que una que entró el 9 y sale el 18 traía también sus noches
+                // del 9 al 14: el filtro seguía siendo correcto —se cruza por fecha— pero el
+                // recuento decía «11 noches vendidas respetadas» en un tramo que sólo tiene 5.
+                // Un número que no cuadra con lo que el operador ve en el calendario.
+                if ($cursor >= $desde && $cursor < $hasta) {
+                    $ocupadas[$cursor->format('Y-m-d')] = true;
+                }
+
                 $cursor = $cursor->modify('+1 day');
             }
         }
