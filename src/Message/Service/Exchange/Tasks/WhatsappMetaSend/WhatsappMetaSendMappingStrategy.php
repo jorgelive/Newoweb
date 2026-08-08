@@ -121,6 +121,16 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
             $isSessionActive = $conversation->isWhatsappSessionActive();
 
+            // Variables de la plantilla, resueltas UNA vez para las tres ramas que las usan
+            // (header, body, botones) en lugar de tres veces como antes.
+            //
+            // Las del propio mensaje pisan a las del resolver: hay avisos cuyo contenido no está
+            // en el contexto de la conversación sino en el hecho que los provocó —el escalado, que
+            // llega a la conversación interna de un operador y habla de OTRO huésped—. Ver
+            // Message::getVariablesPlantilla().
+            $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
+            $variables = $msg->getVariablesPlantilla() + $variables;
+
             // Obtenemos el nuevo JSON Greenfield completo
             $metaJson = $template !== null ? $template->getWhatsappMetaTmpl() : [];
             $isOfficialMeta = $metaJson['is_official_meta'] ?? true;
@@ -151,8 +161,6 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     'language' => ['code' => $metaLang],
                     'components' => []
                 ];
-
-                $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
                 // 1. HEADER
                 $headerData = $template->getWhatsappMetaHeader($templateLang);
@@ -299,7 +307,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 }
 
                 // Hidratamos todas las variables del bloque de texto principal
-                $finalContent = $this->hydrateVariables($finalContent, $resolver, $conversation->getContextId());
+                $finalContent = $this->hydrateVariables($finalContent, $variables);
 
                 // 🎯 EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE (UX MEJORADO)
                 if (!empty($metaJson['buttons_map'])) {
@@ -320,7 +328,6 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     $headerTitle = $hasQuickReplies ? $menuTexts['header_options'] : $menuTexts['header_links'];
                     $finalContent .= "\n\n" . $headerTitle . "\n\n";
 
-                    $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
                     $quickReplyIndex = 1;
 
                     foreach ($metaJson['buttons_map'] as $btn) {
@@ -429,10 +436,9 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     /**
      * Interpola variables dinámicas en el texto libre usando Regex.
      */
-    private function hydrateVariables(string $content, ?object $resolver, string $contextId): string
+    private function hydrateVariables(string $content, array $variables): string
     {
-        if ($resolver && str_contains($content, '{{')) {
-            $variables = $resolver->getMessageVariables($contextId);
+        if ($variables !== [] && str_contains($content, '{{')) {
             return preg_replace_callback('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', fn($m) => (string)($variables[$m[1]] ?? $m[0]), $content);
         }
         return $content;

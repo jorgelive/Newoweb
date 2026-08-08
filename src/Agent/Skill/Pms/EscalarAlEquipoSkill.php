@@ -14,6 +14,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\User;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
+use App\Message\Entity\MessageTemplate;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Repository\UserRepository;
@@ -49,11 +50,22 @@ use Throwable;
  * WhatsApp sólo deja mandar texto libre a quien te escribió en las últimas 24 h; fuera de eso
  * exige una plantilla aprobada por Meta ({@see \App\Message\Service\Queue\WhatsappMetaSendEnqueuer}).
  * Un operador de guardia **no escribe al número del negocio todos los días**, así que lo normal
- * es estar fuera de ventana. El aviso se encola igual y el fallo queda en la cola y en el log;
- * la marca de no leído es la que garantiza que el caso no se pierde.
+ * es estar fuera de ventana.
  *
- * Para que el WhatsApp salga siempre hace falta una plantilla oficial de aviso interno dada de
- * alta en Meta. No la hay: las 11 existentes son todas para huéspedes.
+ * Por eso el aviso sale de dos formas según dónde caiga, y son distintas a propósito:
+ *
+ * | | Cómo sale | Qué lleva |
+ * |---|---|---|
+ * | **Dentro de ventana** | Texto libre | Todo: motivo y los márgenes de ocupación, multilínea |
+ * | **Fuera de ventana** | Plantilla `aviso_escalado_interno` | Huésped, motivo y el botón al chat |
+ *
+ * La plantilla lleva menos porque **Meta no admite saltos de línea en los parámetros**, y el
+ * bloque de márgenes es multilínea. No se pierde nada importante: el operador toca el botón y
+ * lo ve en el chat.
+ *
+ * Si la plantilla todavía no está aprobada por Meta, el encolado falla y la marca de no leído es
+ * la que garantiza que el caso no se pierde. Eso NO se da por bueno: el fallo se detecta después
+ * del flush leyendo el estado del mensaje y el operador aparece en `no_avisados`.
  */
 final readonly class EscalarAlEquipoSkill implements SkillInterface
 {
@@ -67,6 +79,14 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
      * quien filtre la bandeja tiene que poder separarlas: esto no es un huésped.
      */
     private const string CONTEXTO_STAFF = 'staff';
+
+    /**
+     * La plantilla oficial del aviso interno, para cuando la ventana de 24 h está cerrada.
+     *
+     * Se busca por código y no se inyecta: si falta —entorno recién montado, plantilla borrada—
+     * el escalado tiene que seguir funcionando en modo degradado, no reventar.
+     */
+    private const string PLANTILLA_AVISO = 'aviso_escalado_interno';
 
     public function __construct(
         private EntityManagerInterface $em,
@@ -180,16 +200,22 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
         }
 
         $texto = $this->redactar($conversacion, $motivo);
-        $avisados = [];
+        $variables = $this->variablesDelAviso($conversacion, $motivo);
+        $plantilla = $this->em->getRepository(MessageTemplate::class)
+            ->findOneBy(['code' => self::PLANTILLA_AVISO]);
+
+        /** @var array<string, Message> $enviados nombre del operador => mensaje encolado */
+        $enviados = [];
         $fallos = [];
 
         foreach ($guardia as $operador) {
+            $nombre = $operador->getFullname() ?: $operador->getUserIdentifier();
+
             try {
-                $this->avisar($operador, $texto);
-                $avisados[] = $operador->getFullname() ?: $operador->getUserIdentifier();
+                $enviados[$nombre] = $this->avisar($operador, $texto, $variables, $plantilla);
             } catch (Throwable $e) {
                 // Un operador que falla no puede impedir que se avise al resto.
-                $fallos[] = $operador->getFullname() ?: $operador->getUserIdentifier();
+                $fallos[] = $nombre;
                 $this->logger->error('Escalado: no se pudo avisar a un operador.', [
                     'operador' => $operador->getUserIdentifier(),
                     'error' => $e->getMessage(),
@@ -198,6 +224,26 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
         }
 
         $this->em->flush();
+
+        // ⚠️ El encolado NO lanza excepción cuando falla: `MessageDispatcher::dispatch()` las
+        // atrapa por canal, deja el mensaje en FAILED y anota el motivo en la metadata. Sin
+        // mirar aquí el estado diríamos «ya está avisado» de un aviso que se quedó en el sitio
+        // —que es justo lo que pasa mientras la plantilla no esté aprobada por Meta—.
+        $avisados = [];
+
+        foreach ($enviados as $nombre => $mensaje) {
+            if ($mensaje->getStatus() !== Message::STATUS_FAILED) {
+                $avisados[] = $nombre;
+
+                continue;
+            }
+
+            $fallos[] = $nombre;
+            $this->logger->error('Escalado: el aviso no se pudo encolar.', [
+                'operador' => $nombre,
+                'errores' => $mensaje->getMetadata()['dispatch_errors'] ?? [],
+            ]);
+        }
 
         return SkillResult::ok(array_filter([
             'marcada_pendiente' => true,
@@ -286,8 +332,12 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
      * falta porque `WhatsappMetaSendEnqueuer` saca el número destino de
      * `MessageConversation::$guestPhone`: sin conversación no hay a quién enviar.
      */
-    private function avisar(User $operador, string $texto): void
-    {
+    private function avisar(
+        User $operador,
+        string $texto,
+        array $variables,
+        ?MessageTemplate $plantilla
+    ): Message {
         $conversacion = $this->conversacionStaff($operador);
 
         $mensaje = new Message();
@@ -303,8 +353,61 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
         $mensaje->setLanguageCode($conversacion->getIdioma()?->getId() ?? 'es');
         $mensaje->addMetadata('aviso_escalado', true);
 
+        // La plantilla SÓLO fuera de ventana. Dentro, el texto libre gana: lleva los márgenes de
+        // ocupación en varias líneas, y la plantilla no puede —Meta prohíbe los saltos de línea
+        // en los parámetros—. Adjuntarla siempre cambiaría el mensaje bueno por el pobre en el
+        // único caso en el que no hacía falta.
+        if ($plantilla !== null && !$conversacion->isWhatsappSessionActive()) {
+            $mensaje->setTemplate($plantilla);
+            $mensaje->setVariablesPlantilla($variables);
+        }
+
         $conversacion->addMessage($mensaje);
         $this->em->persist($mensaje);
+
+        return $mensaje;
+    }
+
+    /**
+     * Lo que la plantilla necesita para hidratarse, y en el formato que Meta acepta.
+     *
+     * No las puede dar un resolver de contexto: la conversación es la del OPERADOR, y estos datos
+     * hablan del huésped que está esperando. Por eso viajan en el mensaje
+     * ({@see Message::setVariablesPlantilla()}).
+     *
+     * `chat_path` es relativo —lo mismo que `guide_path` en `PmsMessageDataResolver`— porque el
+     * botón de Meta ya lleva el dominio y sólo admite el sufijo. `chat_url` es el absoluto que
+     * usa el respaldo en texto libre.
+     *
+     * @return array<string, string>
+     */
+    private function variablesDelAviso(MessageConversation $conversacion, string $motivo): array
+    {
+        return [
+            'huesped' => $this->unaLinea($conversacion->getGuestName() ?: 'Un huésped'),
+            'motivo' => $this->unaLinea($motivo),
+            'chat_path' => 'chat?id=' . $conversacion->getId(),
+            'chat_url' => rtrim((string) $this->params->get('util_host_url'), '/')
+                . '/chat?id=' . $conversacion->getId(),
+        ];
+    }
+
+    /**
+     * Aplana un valor para que Meta lo acepte como parámetro de plantilla.
+     *
+     * Meta rechaza el envío entero si un parámetro trae saltos de línea, tabuladores o más de
+     * cuatro espacios seguidos. El motivo lo escribe un modelo, así que puede venir con lo que
+     * sea; y el fallo aparecería lejos, en la respuesta de la API, sobre un aviso que ya se dio
+     * por mandado.
+     *
+     * El valor por defecto NO es cosmético: `WhatsappMetaSendMappingStrategy` lanza excepción si
+     * una variable llega vacía.
+     */
+    private function unaLinea(string $valor): string
+    {
+        $limpio = trim((string) preg_replace('/\s+/u', ' ', $valor));
+
+        return $limpio !== '' ? $limpio : '—';
     }
 
     /** La conversación interna con un operador, creándola la primera vez. */

@@ -399,6 +399,36 @@ class Message
         return $this;
     }
 
+    /**
+     * Variables para hidratar la plantilla de ESTE mensaje concreto.
+     *
+     * Normalmente las variables las pone el resolver del contexto
+     * ({@see \App\Message\Contract\MessageDataResolverInterface}), que las saca de la entidad
+     * dueña de la conversación: la reserva da `guest_name`, `checkin_date`, etc.
+     *
+     * Eso funciona mientras el dato dependa del CONTEXTO. No sirve cuando depende del HECHO que
+     * provoca el mensaje: el aviso de escalado va a la conversación interna de un operador, y lo
+     * que hay que contarle —qué huésped, qué pidió, qué chat abrir— no se puede deducir del
+     * operador. Un resolver de `staff` devolvería datos del operador, que no es lo que se manda.
+     *
+     * Estas ganan al resolver cuando la clave coincide, y viajan en la metadata del mensaje para
+     * no añadir una columna a una tabla que ya guarda todo lo suyo ahí. Ver docs/Mensajeria.md §5.
+     *
+     * @return array<string, scalar|null>
+     */
+    public function getVariablesPlantilla(): array
+    {
+        $vars = $this->metadata['variables_plantilla'] ?? [];
+
+        return is_array($vars) ? $vars : [];
+    }
+
+    /** @param array<string, scalar|null> $variables */
+    public function setVariablesPlantilla(array $variables): self
+    {
+        return $this->addMetadata('variables_plantilla', $variables);
+    }
+
     public function getBeds24Metadata(): array { return $this->metadata['beds24'] ?? []; }
 
     public function setBeds24Metadata(array $data): self

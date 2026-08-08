@@ -1885,6 +1885,79 @@ escalado importa más que el extra.
 **Lo dispara el modelo**, no las skills: es quien sabe si acaba de prometer algo. No hay nada
 determinista detrás — es su criterio, guiado por la descripción.
 
+##### 📵 El aviso caía casi siempre fuera de la ventana de 24 h
+
+El aviso va por WhatsApp al móvil del operador, y ahí manda la regla de Meta: texto libre sólo a
+quien te ha escrito en las últimas 24 h. **Un operador de guardia no le escribe al número del
+negocio casi nunca**, así que su ventana está cerrada prácticamente siempre — el caso raro no era
+el escalado fuera de ventana, era el de dentro.
+
+Fuera de ventana hace falta una plantilla aprobada por Meta, y las 11 que había eran todas para
+huéspedes. Resultado: el aviso se encolaba y moría ahí. Ahora existe `aviso_escalado_interno`
+(migración `Version20260808161207`), con **sólo la parte de WhatsApp** rellena: `email_tmpl`,
+`beds24_tmpl` y `whatsapp_link_tmpl` quedan `{}` a propósito — Beds24 es el canal del huésped en
+las OTAs y aquí no pinta nada, y así `resolveChannels()` resuelve un único canal.
+
+El aviso sale de dos formas según dónde caiga, y **son distintas a propósito**:
+
+| | Cómo sale | Qué lleva |
+|---|---|---|
+| Dentro de ventana | Texto libre | Todo: motivo **y los márgenes de ocupación**, multilínea |
+| Fuera de ventana | Plantilla `aviso_escalado_interno` | Huésped, motivo y el botón al chat |
+
+La plantilla lleva menos porque **Meta rechaza el envío si un parámetro tiene saltos de línea**,
+tabuladores o más de cuatro espacios seguidos — y el bloque de márgenes es multilínea por
+definición. Por eso `EscalarAlEquipoSkill::unaLinea()` aplana huésped y motivo antes de mandarlos,
+y por eso la skill adjunta la plantilla **sólo si la ventana está cerrada**: dentro, el texto
+libre gana, y cambiarlo por la plantilla sería empeorar el único caso que ya estaba bien.
+
+###### 🔑 Las variables viajan en el MENSAJE, no en el resolver
+
+Lo normal es que las variables de una plantilla las ponga el resolver del contexto
+(`MessageDataResolverInterface`), que las saca de la entidad dueña de la conversación: la reserva
+da `guest_name`, `checkin_date`…
+
+Aquí eso **no puede funcionar**, y no por falta de un resolver de `staff`: la conversación es la
+del *operador*, y lo que hay que contarle —qué huésped, qué pidió, qué chat abrir— no se deduce
+del operador. Un resolver keyed por operador devolvería datos del operador. El dato depende del
+**hecho**, no del contexto.
+
+Así que el mensaje puede traer las suyas: `Message::setVariablesPlantilla()`, guardadas en su
+metadata (`variables_plantilla`), y `WhatsappMetaSendMappingStrategy` las **fusiona pisando** a
+las del resolver. Sirve para cualquier plantilla cuyo contenido dependa del suceso y no del
+contexto, no sólo para ésta.
+
+De paso, esa fusión se resuelve **una vez** por mensaje en lugar de tres (header, cuerpo,
+botones), que es como estaba.
+
+###### ⚠️ La plantilla existe en el PMS pero todavía NO en Meta
+
+La migración la inserta con `status: PENDING`, que es la verdad. Hasta que Meta la apruebe,
+`WhatsappMetaSendEnqueuer` **se niega a encolarla** fuera de ventana — y hace bien. Lo que falta,
+a mano:
+
+1. Crear en el WhatsApp Manager una plantilla **UTILITY** llamada `aviso_escalado_interno` con el
+   mismo cuerpo, los mismos parámetros con nombre (`huesped`, `motivo`) y el botón de URL
+   dinámica `https://util.openperu.pe/{{1}}`.
+2. Ya aprobada: `php bin/console app:whatsapp:sync-templates`. El sync casa por
+   `meta_template_name`, pisa el `status` con el real y **conserva el `resolver_key`** de los
+   botones, que es lo único que Meta no sabe.
+
+`chat_path` es relativo (`chat?id=<uuid>`) igual que `guide_path` en `PmsMessageDataResolver`,
+porque el botón de Meta ya lleva el dominio y sólo admite el sufijo; `chat_url` es el absoluto
+que usa el respaldo en texto libre.
+
+###### 🔥 El encolado falla en silencio, así que se comprueba después del flush
+
+`MessageDispatcher::dispatch()` **no propaga** las excepciones de los encoladores: las atrapa por
+canal, deja el mensaje en `FAILED` y anota el motivo en `dispatch_errors`. La skill contaba como
+avisado a todo operador cuyo `avisar()` no lanzara — o sea, a todos.
+
+Ahora `ejecutar()` guarda el `Message` de cada operador, y **después del flush** mira su estado:
+los que quedaron en `FAILED` se van a `no_avisados` y su motivo al log. Importa porque la
+respuesta de la skill decide qué le dice el agente al huésped: «ya avisé a una persona» sobre un
+aviso que no salió es exactamente la promesa vacía que esta skill vino a eliminar.
+
 ##### 🔥 …pero durante un tiempo el huésped no la tuvo
 
 Se escribió para el huésped —`rolesRequeridos()` lleva `Roles::HUESPED` desde el primer día— y
@@ -3807,7 +3880,9 @@ arreglar** — ver el aviso al final de esta sección.
 | Registrar el móvil de alguien del equipo | `User::$telefono` + CRUD de usuarios | Se normaliza solo (`UserIntegrityListener`); §12.9.b del doc de sync |
 | **Quién recibe los avisos del asistente** | CRUD de usuarios | Rol «🆘 Atención al cliente» (`ROLE_CUSTOMER_SUPPORT`) **+ móvil**. Las dos cosas o no llega nada |
 | Cambiar qué se escribe en el aviso de escalado | `EscalarAlEquipoSkill` | `redactar()` |
-| Que el aviso salga fuera de la ventana de 24 h | Meta, no el código | Dar de alta una plantilla oficial de aviso interno y enchufarla en `avisar()` |
+| Cambiar el aviso de escalado **fuera** de la ventana de 24 h | plantilla `aviso_escalado_interno` | El cuerpo se edita en el panel; los parámetros los pone `EscalarAlEquipoSkill::variablesDelAviso()`. Si añades uno, tiene que llegar SIEMPRE con valor o el envío revienta |
+| Que la plantilla del escalado empiece a salir de verdad | Meta + `app:whatsapp:sync-templates` | Está insertada como `PENDING`: hasta que Meta la apruebe, el encolador la rechaza |
+| Mandar una plantilla con datos que NO están en el contexto | `Message::setVariablesPlantilla()` | Se fusionan pisando a las del resolver en `WhatsappMetaSendMappingStrategy` |
 | Cambiar cuándo un número «es» de una reserva | `PmsReservaRepository` | `findVivasByTelefono()` + `DIAS_GRACIA_TRAS_SALIDA` / `DIAS_ANTICIPACION` |
 | Cambiar qué estados dan derecho a consultar la propia reserva | `PmsEventoEstado` | `IDENTIFICAN_HUESPED` — **no** reutilizar `OCUPAN_UNIDAD`, ver su docblock |
 | Cambiar cuál se elige si un número tiene varias reservas | `PmsReservaRepository` | `findVivasByTelefono()` (orden) + `tramoRelevante()` — actual > próxima |
