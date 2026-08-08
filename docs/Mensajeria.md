@@ -3490,6 +3490,37 @@ TOTAL               565.00 USD     (la base sola habría dado 630.00)
 `aviso_sin_tarifa` cuenta aparte las noches que salen a la base: suele ser un olvido de carga, no
 una decisión, y el operador querría saberlo sin leer línea a línea.
 
+#### La disponibilidad cotiza con el precio REAL, no con la base
+
+`consultar_disponibilidad` devolvía sólo `tarifa_base`, y el modelo la presentaba como
+«Tarifa base orientativa: 70.00 USD/noche» aunque para esas fechas hubiera una tarifa cargada
+de 45.00. El operador cotizaba con un número que no era el que se iba a cobrar.
+
+Ahora cada casita trae el total del tramo, y la base queda al final como lo que es:
+
+```
+Casita 1: Capacidad 8 pax · Total: 135.00 USD (45.00 USD/noche) · Tarifa base ref: 70.00 USD
+Casita 4: Capacidad 4 pax · Total:  90.00 USD (30.00 USD/noche) · Tarifa base ref: 37.00 USD
+```
+
+`noches_sin_tarifa` cuenta las que salen a la base por no tener rango — en marzo de 2027, sin
+tarifas cargadas, sale `3` de 3 noches.
+
+#### 🔁 `PmsTarifaCalculadora`: una sola respuesta a «cuánto cuesta esta noche»
+
+Tres sitios hacen la misma pregunta —`consultar_tarifas`, `consultar_disponibilidad` y el cargo
+de alojamiento al crear una reserva— y resolverla por separado en cada uno es garantizar que un
+día el precio que se enseña deje de ser el que se cobra. El servicio expone:
+
+| Método | Para qué |
+|---|---|
+| `preciosPorNoche()` | El detalle día a día, con el `sourceId` del rango que ganó |
+| `resumen()` | Total, moneda, `min_stay` y cuántas noches caen en la base |
+| `vieneDeLaBase()` / `rangoDe()` | Leer el `sourceId` sin conocer su formato |
+
+Comprobado que las dos skills dan lo mismo: Casita 1 del 20 al 23 de agosto → **135.00 USD** por
+los dos caminos.
+
 #### 🔥 La trampa del UUID en DQL, otra vez
 
 ```php

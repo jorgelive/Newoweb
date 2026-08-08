@@ -13,7 +13,7 @@ use App\Agent\Skill\SkillResult;
 use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
-use App\Pms\Service\Tarifa\Engine\TarifaPricingEngine;
+use App\Pms\Service\Tarifa\PmsTarifaCalculadora;
 use App\Security\Roles;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -58,7 +58,7 @@ final readonly class ConsultarTarifasSkill implements SkillInterface
 
     public function __construct(
         private EntityManagerInterface $em,
-        private TarifaPricingEngine $motor,
+        private PmsTarifaCalculadora $tarifas,
         private PmsDisponibilidadService $disponibilidad,
     ) {}
 
@@ -173,55 +173,18 @@ final readonly class ConsultarTarifasSkill implements SkillInterface
         DateTimeImmutable $hasta,
         bool $soloLibres
     ): array {
-        // ⚠️ `findBy()` y NO `createQueryBuilder()->setParameter('unidad', $unidad)`: el id es un
-        // UUID BINARY(16) y en DQL ese parámetro se serializa mal — la consulta NO falla,
-        // devuelve CERO filas. Es la misma trampa de §12.6 del doc de sync y de
-        // `PmsExtensionEstanciaService::buscar()`; aquí el síntoma era que TODAS las noches
-        // salían a la tarifa base aunque tuvieran su rango cargado.
-        //
-        // El solape se filtra en PHP por el mismo motivo: meterlo en el DQL obligaría a volver
-        // al query builder. Son pocas filas por unidad, así que no compensa el riesgo.
-        $rangos = array_values(array_filter(
-            $this->em->getRepository(PmsTarifaRango::class)->findBy([
-                'unidad' => $unidad,
-                'activo' => true,
-            ]),
-            static fn (PmsTarifaRango $t): bool => $t->getFechaInicio() !== null
-                && $t->getFechaFin() !== null
-                && $t->getFechaInicio() < $hasta
-                && $t->getFechaFin() >= $desde
-        ));
-
-        // 🔁 El accessor es el MISMO que usa PmsCargosAutomaticosService: si aquí se mapeara
-        // distinto, la consulta y el cobro dejarían de coincidir.
-        $diarios = $this->motor->buildDailyPricesForIntervalWithFallback(
-            rangos: $rangos,
-            from: $desde,
-            to: $hasta,
-            rangeAccessor: static fn (PmsTarifaRango $t): array => [
-                'start' => $t->getFechaInicio(),
-                'end' => $t->getFechaFin(),
-                'price' => (float) $t->getPrecio(),
-                'minStay' => $t->getMinStay(),
-                'currency' => $t->getMoneda()?->getId(),
-                'important' => $t->isImportante(),
-                'weight' => $t->getPrioridad(),
-                'id' => (string) $t->getId(),
-            ],
-            fallbackProvider: static fn (): ?array => $unidad->isTarifaBaseActiva() ? [
-                'price' => (float) $unidad->getTarifaBasePrecio(),
-                'minStay' => $unidad->getTarifaBaseMinStay(),
-                'currency' => $unidad->getTarifaBaseMoneda()?->getId(),
-                'sourceId' => 'base:unidad:' . (string) $unidad->getId(),
-            ] : null,
-        );
+        // 🔁 El cálculo vive en `PmsTarifaCalculadora`, no aquí: lo comparten esta skill,
+        // `consultar_disponibilidad` y el cargo de alojamiento. Si cada una lo resolviera por
+        // su cuenta, un día el precio que se enseña y el que se cobra dejarían de coincidir.
+        $diarios = $this->tarifas->preciosPorNoche($unidad, $desde, $hasta);
 
         // Qué noches están vendidas. Se pregunta una sola vez por casita y se cruza por fecha:
         // preguntar noche a noche serían treinta consultas para un mes.
         $ocupadas = $soloLibres ? $this->nochesOcupadas($unidad, $desde, $hasta) : [];
 
+        // Para poder nombrar el rango que ganó cada noche hace falta la entidad, no sólo su id.
         $nombresDeRango = [];
-        foreach ($rangos as $r) {
+        foreach ($this->em->getRepository(PmsTarifaRango::class)->findBy(['unidad' => $unidad]) as $r) {
             $nombresDeRango[(string) $r->getId()] = $r;
         }
 
@@ -281,20 +244,22 @@ final readonly class ConsultarTarifasSkill implements SkillInterface
     /**
      * De qué rango salió el precio de una noche, en palabras.
      *
-     * ⚠️ El `sourceId` viene PREFIJADO por `TarifaDailyPriceFlattener::computeSourceId()`:
-     * `id:<uuid>` cuando el rango tiene id, `h:<sha1>` cuando no, y `base:unidad:<uuid>` en el
-     * fallback. Buscarlo por el UUID pelado no encuentra nada y todas las noches acababan
-     * diciendo «tarifa base» — incluidas las que sí tenían su rango.
+     * El formato del `sourceId` lo conoce `PmsTarifaCalculadora`, no esta skill: viene
+     * prefijado (`id:<uuid>`, `base:unidad:<uuid>`) y buscarlo por el uuid pelado no encuentra
+     * nada — todas las noches acababan diciendo «tarifa base», incluidas las que sí tenían su
+     * rango.
      *
      * @param array<string, PmsTarifaRango> $rangos
      */
     private function origenDe(string $sourceId, array $rangos): string
     {
-        if (!str_starts_with($sourceId, 'id:')) {
+        $uuid = PmsTarifaCalculadora::rangoDe($sourceId);
+
+        if ($uuid === null) {
             return 'tarifa base';
         }
 
-        $rango = $rangos[substr($sourceId, 3)] ?? null;
+        $rango = $rangos[$uuid] ?? null;
 
         if ($rango === null) {
             return 'tarifa base';
