@@ -1485,8 +1485,18 @@ por eso `tieneRol()` no vale aquí: a un `SUPER_ADMIN` le abriría esa puerta co
 ```
 Jorge (RESERVAS_DELETE, sin COBRADOR)
   cobrador="maria" → ✅ "cobrado_por": "Maria Apaza"
-  cobrador="yo"    → ❌ "Jorge Gomez no tiene el rol de cobrador"
+  cobrador="yo"    → ❓ falta_datos: ["cobrador"] → «tu usuario no tiene el rol de
+                        cobrador, así que el pago NO se te puede apuntar a ti.
+                        ¿Quién recibió el dinero? Puede ser Maria Apaza, Milka,
+                        Susan Acuña»
 ```
+
+⚠️ **Ese caso es `falta_datos`, no `error`.** Era un `SkillResult::error()` y el modelo lo trataba
+como un fallo a reintentar: volvía a llamar **sin cobrador**, el pago caía en el cobrador por
+defecto y el operador veía «Cobrado por: Susan Acuña» sin enterarse de que su «me pagó» se había
+descartado por el camino. Un error invita a reintentar; `falta_datos` dice qué preguntar. Entra
+por la misma puerta que un nombre desconocido o ambiguo, que es lo que de verdad es: **falta
+saber quién cobró**.
 
 #### 🔎 Dos caminos hacia una reserva, y por qué NO comparten reglas
 

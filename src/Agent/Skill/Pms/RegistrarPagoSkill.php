@@ -250,16 +250,18 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                 // chat y estar autorizado a recibir dinero son cosas distintas. Se mira la
                 // columna literal —igual que el resto— y NO `tieneRol()`, que a un
                 // SUPER_ADMIN le abriría esta puerta como le abre las demás.
+                //
+                // ⚠️ NO es `SkillResult::error()`. Lo era, y el modelo lo trataba como un fallo
+                // a reintentar: volvía a llamar SIN cobrador y el pago acababa en el cobrador
+                // por defecto, sin que el operador se enterara de que su «me pagó» se había
+                // descartado. Entra en la misma repregunta que un nombre desconocido o
+                // ambiguo, que es lo que de verdad es: falta saber quién cobró.
                 if (!in_array(Roles::COBRADOR, $yo->getRoles(), true)) {
-                    return SkillResult::error(sprintf(
-                        'No puedo apuntarte a ti el cobro: %s no tiene el rol de cobrador. '
-                        . 'Dime quién de los cobradores recibió el dinero, o pide que te '
-                        . 'asignen ese rol.',
-                        $yo->getFullname() ?: ($yo->getUserIdentifier() ?: 'tu usuario')
-                    ));
+                    $porqueFaltaCobrador = 'yo_sin_rol';
+                    $candidatos = $this->cobradoresPosibles();
+                } else {
+                    $cobrador = $yo;
                 }
-
-                $cobrador = $yo;
             } elseif ($cobradorIndicado !== '') {
                 $coincidencias = $this->cobradoresPosibles($cobradorIndicado);
 
@@ -547,6 +549,16 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                     '«%s» coincide con varias personas (%s). ¿Cuál de ellas lo cobró?',
                     $cobradorIndicado,
                     $nombres
+                ),
+                // Dijo «me pagó» pero su usuario no cobra. Se le dice POR QUÉ no se le puede
+                // apuntar y se le pregunta quién fue: dejarlo caer callando en el cobrador
+                // por defecto le haría creer que el dinero quedó a su nombre.
+                'yo_sin_rol' => sprintf(
+                    'tu usuario no tiene el rol de cobrador, así que el pago NO se te puede '
+                    . 'apuntar a ti. ¿Quién recibió el dinero? Puede ser %s. Si de verdad lo '
+                    . 'cobraste tú, hay que pedir que te asignen el rol de cobrador antes de '
+                    . 'registrarlo',
+                    $nombres !== '' ? $nombres : '(no hay nadie con el rol de cobrador)'
                 ),
                 default => sprintf(
                     '¿a quién le entregaron el dinero? Es un pago en %s, así que lo cobró '
