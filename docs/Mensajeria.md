@@ -2218,6 +2218,34 @@ que luego cobra, expuesto para poder previsualizarlo. Una fórmula, no dos.
 `PmsEstablecimiento::getHoraCheckIn()` / `getHoraCheckOut()`. Codificar 14:00 y 10:00 en la skill
 habría creado una segunda verdad que se rompe el día que un establecimiento cambie su horario.
 
+##### 🐛 Tres formas de mentirle al operador con una hora
+
+Los tres salieron del mismo caso real: registrar una salida a las **00:00** con check-out a las
+10:00.
+
+**1. La previsualización anunciaba un horario extra que no ocurría.** Decía siempre «quedará
+marcada con salida tardía», también cuando la hora cabe dentro del horario y no se marca nada.
+El modelo lo repetía al pie de la letra: *«Voy a registrar la salida tardía a las 00:00»* — diez
+horas **antes** del check-out. Ahora el texto depende de `$bloquea` y en ese caso dice
+explícitamente que NO es una salida tardía y que no se lo cuente así al operador.
+
+**2. El aviso de ocupación daba el margen al revés.** Cuando la noche adyacente está ocupada
+pero no se bloquea nada, el texto era fijo: *«el margen de limpieza es más corto»*. Falso en la
+mitad de los casos — quien sale a las 00:00 deja **diez horas más**, no menos. Ahora
+`alertaDeOcupacion()` recibe la hora y el límite, y decide con `$daMasMargen`:
+
+```
+sale 00:00 / check-out 10:00  →  ✅ «deja MÁS margen de limpieza que el horario normal»
+entra 18:00 / check-in 14:00  →  ✅ ídem
+entra 14:00 / check-in 14:00  →  ⚠️ «el margen es más corto» (sin cambio de hora efectivo)
+entra 09:00 / check-in 14:00  →  ⛔ conflicto: sí es horario extra y sí bloquea
+```
+
+**3. «A las 6» se registraba como las 18:00.** El modelo elegía la tarde por su cuenta. La
+descripción del parámetro fija ahora la regla —un número suelto es la hora del reloj de 24 h,
+«6» son las 06:00— y, sobre todo, le prohíbe adivinar: ante la duda pregunta, porque
+equivocarse son doce horas de diferencia en una salida.
+
 ##### 🔥 `aplicar_cambio_horario` NO fija una hora
 
 Marca la bandera; **no toca `inicio` ni `fin`**. «Que salga a las 18h» no se puede pedir por

@@ -101,10 +101,16 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
             parametros: [
                 SkillParameter::texto('evento_id', 'Identificador de la estancia.'),
                 SkillParameter::texto('cambio', '"salida_tardia" o "entrada_temprana".'),
-                SkillParameter::texto('hora', 'La hora acordada, en formato HH:MM ("14:00"). Si '
-                    . 'cabe dentro del horario normal del alojamiento sólo se registra; si lo '
-                    . 'excede, además se marca y se bloquea la noche. Sin hora, se marca sin '
-                    . 'registrar ninguna.', requerido: false),
+                SkillParameter::texto('hora', 'La hora acordada, en formato HH:MM de 24 horas '
+                    . '("06:00", "18:00"). Si cabe dentro del horario normal del alojamiento '
+                    . 'sólo se registra; si lo excede, además se marca y se bloquea la noche. '
+                    . 'Sin hora, se marca sin registrar ninguna. CÓMO LEER LA HORA QUE TE DIGAN: '
+                    . 'un número suelto es la hora del reloj de 24 h tal cual — «a las 6» es '
+                    . '06:00 y «a las 18» es 18:00. Sólo pasa a la tarde si te lo dicen con '
+                    . 'palabras: «6 de la tarde», «6 pm» o «18» son 18:00. Ante la duda NO '
+                    . 'adivines: pregúntale al operador si son las 6 de la mañana o las 6 de la '
+                    . 'tarde, porque equivocarse son doce horas de diferencia en una salida.',
+                    requerido: false),
                 SkillParameter::booleano('confirmado', 'true SÓLO después de que el usuario '
                     . 'haya confirmado explícitamente. false para previsualizar.'),
             ],
@@ -187,7 +193,7 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
         // dato con el que el operador decide: con bloqueo dice si habrá solape, y sin bloqueo
         // sigue importando —si esa noche entra alguien, la limpieza tiene menos margen—.
         // Informa, NO veta: puede haber motivo para seguir igual y esa decisión es suya.
-        $alerta = $this->alertaDeOcupacion($evento, $esSalida, $bloquea);
+        $alerta = $this->alertaDeOcupacion($evento, $esSalida, $bloquea, $horaPedida, $limite);
 
         if ($alerta !== null) {
             $resumen['noche_adyacente'] = $alerta;
@@ -223,14 +229,33 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
                         . 'solape) o prefieres que NO haga nada?'
                     )
                     : '¿Apruebas el cambio?',
-                'previsualizacion' => sprintf(
-                    'La estancia de %s en %s (%s) quedará marcada con %s. Enséñale al operador '
-                    . 'la lista de «que_va_a_pasar» entera antes de pedirle el sí.',
-                    $resumen['huesped'] !== '' ? $resumen['huesped'] : 'el huésped',
-                    $resumen['casita'],
-                    $resumen['localizador'] ?? 'sin localizador',
-                    $esSalida ? 'salida tardía' : 'entrada temprana'
-                ),
+                // ⚠️ Tiene que describir lo que DE VERDAD va a pasar. Decía siempre «quedará
+                // marcada con salida tardía», y el modelo lo repetía tal cual: registrar una
+                // salida a las 00:00 —diez horas ANTES del check-out— se anunciaba al operador
+                // como «voy a registrar la salida tardía». Ninguna casilla se marca cuando la
+                // hora cabe dentro del horario.
+                'previsualizacion' => $bloquea
+                    ? sprintf(
+                        'La estancia de %s en %s (%s) quedará marcada con %s. Enséñale al '
+                        . 'operador la lista de «que_va_a_pasar» entera antes de pedirle el sí.',
+                        $resumen['huesped'] !== '' ? $resumen['huesped'] : 'el huésped',
+                        $resumen['casita'],
+                        $resumen['localizador'] ?? 'sin localizador',
+                        $esSalida ? 'salida tardía' : 'entrada temprana'
+                    )
+                    : sprintf(
+                        'Se apuntará que %s en %s (%s) %s a las %s. Cabe dentro del horario '
+                        . 'normal (%s), así que NO es %s: no se marca ninguna casilla, no se '
+                        . 'bloquea ninguna noche y no se abre ningún cargo. No se lo cuentes al '
+                        . 'operador como un horario extra.',
+                        $resumen['huesped'] !== '' ? $resumen['huesped'] : 'el huésped',
+                        $resumen['casita'],
+                        $resumen['localizador'] ?? 'sin localizador',
+                        $esSalida ? 'sale' : 'entra',
+                        $horaPedida,
+                        $limite,
+                        $esSalida ? 'una salida tardía' : 'una entrada temprana'
+                    ),
             ]);
         }
 
@@ -430,7 +455,9 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
     private function alertaDeOcupacion(
         PmsEventoCalendario $evento,
         bool $esSalida,
-        bool $bloquea
+        bool $bloquea,
+        string $hora = '',
+        string $limite = ''
     ): ?array {
         try {
             $margenes = $this->disponibilidad->margenesDe($evento);
@@ -442,6 +469,12 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
         $margen = $esSalida ? $margenes['despues'] : $margenes['antes'];
         $casita = $evento->getPmsUnidad()?->getNombre() ?? 'la casita';
         $cual = $esSalida ? 'del día de salida' : 'anterior a la entrada';
+
+        // ¿La hora acordada deja MÁS tiempo de limpieza que el horario normal? Salir antes del
+        // check-out lo alarga; entrar después del check-in, también. Es lo contrario de lo que
+        // asumía el aviso genérico.
+        $daMasMargen = $hora !== '' && $limite !== '' && $hora !== $limite
+            && ($esSalida ? $hora < $limite : $hora > $limite);
 
         $aviso = match (true) {
             $margen['libre'] => sprintf(
@@ -457,6 +490,20 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface
                 $cual,
                 $margen['fecha'],
                 $margen['ocupa'] !== null ? ' por ' . $margen['ocupa'] : ''
+            ),
+            // Sin bloqueo la noche sigue vendida, así que lo único que cambia es el margen de
+            // limpieza — y hacia QUÉ lado depende de si la hora adelanta o retrasa. Decir
+            // siempre «es más corto» era mentir en la mitad de los casos: quien sale a las
+            // 00:00 con check-out a las 10:00 deja DIEZ HORAS MÁS, no menos.
+            $daMasMargen => sprintf(
+                '✅ La noche %s (%s) está ocupada%s, pero %s a las %s deja MÁS margen de limpieza '
+                . 'que el horario normal (%s), no menos. No se bloquea nada.',
+                $cual,
+                $margen['fecha'],
+                $margen['ocupa'] !== null ? ' por ' . $margen['ocupa'] : '',
+                $esSalida ? 'salir' : 'entrar',
+                $hora,
+                $limite
             ),
             default => sprintf(
                 '⚠️ La noche %s (%s) está OCUPADA%s. No hay conflicto —no se bloquea nada—, pero '
