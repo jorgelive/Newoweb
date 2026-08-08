@@ -8,7 +8,7 @@ import { createRouter, createWebHistory } from 'vue-router'
  * la URL que se reparte a los clientes y que va en correos ya enviados: ningún
  * slug nuevo puede llegar a secuestrarla.
  */
-const PREFIJOS_RESERVADOS: readonly string[] = ['huesped', 'file', 'catalogo'];
+const PREFIJOS_RESERVADOS: readonly string[] = ['huesped', 'file', 'catalogo', 'pago'];
 
 const router = createRouter({
     history: createWebHistory('/'),
@@ -53,6 +53,23 @@ const router = createRouter({
             component: () => import('@/views/cotizacion/PaxCotizacionGuiaView.vue'),
             props: true,
             meta: { esCatalogo: true }
+        },
+
+        // -----------------------------------------------------------------
+        // COBRO — Página de pago por pasarela: /pago/{token}
+        //
+        // El parámetro es el TOKEN del enlace (32 bytes aleatorios), no el UUID
+        // de la fila: el v7 lleva marca de tiempo y sería enumerable. Ver
+        // `App\Finanzas\Entity\FinEnlacePago::$token`.
+        //
+        // `pago` está en PREFIJOS_RESERVADOS para que ningún slug de
+        // establecimiento pueda secuestrar una URL de cobro ya enviada.
+        // -----------------------------------------------------------------
+        {
+            path: '/pago/:token',
+            name: 'pago_enlace',
+            component: () => import('@/views/pago/PaxPagoView.vue'),
+            props: true
         },
 
         // -----------------------------------------------------------------

@@ -19,6 +19,7 @@ import { apiClient } from '@/services/apiClient';
 import { useFinanzasStore } from '@/stores/reservas/finanzasStore';
 import { extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { enfocarEnScroller } from '@/utils/scrollEnfoque';
+import ReservaEnlacesPagoSection from '@/components/reservas/ReservaEnlacesPagoSection.vue';
 import {
     clasesTipoCargo,
     importeConMoneda,
@@ -1462,6 +1463,24 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         class="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-t border-slate-100 text-xs font-black text-slate-400 hover:text-[#376875] hover:bg-slate-50 transition-colors">
                         <i class="fas fa-plus"></i> Registrar un pago
                     </button>
+
+                    <!-- Cobro por pasarela. Va DENTRO de "Pagos" porque para el operador es
+                         otra forma de que entre dinero, pero el módulo es Finanzas, no el PMS:
+                         se comunica por origenTipo/origenId (ver el componente).
+
+                         El saldo que se le pasa es el de la CABECERA, no el de `totalesVista`:
+                         la vista puede estar mostrando la moneda alterna y el enlace se emite
+                         siempre en la moneda contable de la reserva.
+
+                         Al confirmarse un cobro, el webhook crea el PmsPagoFinanciero en el
+                         backend; `recargar()` es lo que lo trae a esta lista. -->
+                    <ReservaEnlacesPagoSection
+                        origen-tipo="pms_reserva"
+                        :origen-id="props.reservaId"
+                        :saldo="Number(finanzas.info.saldo ?? 0)"
+                        :moneda-simbolo="monedaCabecera?.simbolo"
+                        :read-only="readOnly"
+                        @actualizado="finanzas.recargar()" />
                 </div>
             </div>
         </template>

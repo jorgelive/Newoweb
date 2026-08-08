@@ -62,6 +62,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Exchange/Entity'
                 prefix: 'App\Exchange\Entity'
                 alias: exchange
+            Finanzas:
+                is_bundle: false
+                type: attribute
+                dir: '%kernel.project_dir%/src/Finanzas/Entity'
+                prefix: 'App\Finanzas\Entity'
+                alias: finanzas
             Message:
                 is_bundle: false
                 type: attribute

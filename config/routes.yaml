@@ -68,6 +68,27 @@ agent_api_controllers:
     type: attribute
     host: '%app.host.api%'
 
+# FINANZAS — cobros por pasarela. Los tres bloques van al host de API porque los consumen
+# la SPA `util` (API interna), la SPA `pax` (página pública de pago) e Izipay (IPN).
+#
+# Ojo: el host de api NO está en `access_control`, así que todo aquí cae en PUBLIC_ACCESS.
+# Es LO QUE SE QUIERE en `Publico/` y `Webhook/` —Izipay y el huésped no tienen sesión—,
+# pero significa que `Api/` se protege sólo con sus #[IsGranted]. No los quites.
+finanzas_api_controllers:
+    resource: ../src/Finanzas/Controller/Api/
+    type: attribute
+    host: '%app.host.api%'
+
+finanzas_publico_controllers:
+    resource: ../src/Finanzas/Controller/Publico/
+    type: attribute
+    host: '%app.host.api%'
+
+finanzas_webhook_controllers:
+    resource: ../src/Finanzas/Controller/Webhook/
+    type: attribute
+    host: '%app.host.api%'
+
 # Panel (Easyadmin)
 panel_controllers:
     resource: ../src/Panel/Controller/

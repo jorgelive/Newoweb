@@ -1,0 +1,52 @@
+# config/services/services_finanzas.yaml
+#
+# Módulo Finanzas — cobros por pasarela (transversal a PMS, tours y lo que venga).
+#
+# Los resolvers de origen NO se declaran aquí: llevan el tag `finanzas.origen_cobro_resolver`
+# vía el #[AutoconfigureTag] de FinOrigenCobroResolverInterface, así que basta con
+# implementar la interfaz en el módulo dueño para que FinOrigenCobroRegistry los recoja.
+# El del PMS vive en src/Pms/Finanzas/ y lo registra services_pms.yaml.
+
+parameters:
+
+    # -------------------------------------------------------------------------
+    # Credenciales Izipay (plataforma Lyra). Los valores reales van en .env.local,
+    # NUNCA en .env: `password` y `hmac_key` firman el dinero.
+    # -------------------------------------------------------------------------
+    finanzas.izipay.endpoint:   '%env(resolve:IZIPAY_ENDPOINT)%'
+    finanzas.izipay.static_url: '%env(resolve:IZIPAY_STATIC_URL)%'
+    finanzas.izipay.username:   '%env(resolve:IZIPAY_USERNAME)%'
+    finanzas.izipay.password:   '%env(resolve:IZIPAY_PASSWORD)%'
+    finanzas.izipay.hmac_key:   '%env(resolve:IZIPAY_HMAC_SHA256_KEY)%'
+    finanzas.izipay.public_key: '%env(resolve:IZIPAY_PUBLIC_KEY)%'
+
+    # Recargo que se traslada al cliente al cobrar con tarjeta.
+    #
+    # ESPEJO de PmsMedioPago::TARJETA_CREDITO->comisionPorcentaje(). Está duplicado a
+    # propósito y no importado: Finanzas no puede depender del PMS, es al revés. Si cambia
+    # el porcentaje hay que tocar LOS DOS sitios — ver docs/FinanzasEnlacesPago.md §7.
+    finanzas.recargo_tarjeta_porcentaje: '5.5'
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Finanzas\:
+        resource: '../../src/Finanzas/'
+        exclude:
+            - '../../src/Finanzas/Dto/'
+            - '../../src/Finanzas/Entity/'
+            - '../../src/Finanzas/Enum/'
+            - '../../src/Finanzas/Contract/'
+
+    # =========================
+    # controllers del módulo Finanzas (API interna, página pública de pago y webhook)
+    # =========================
+    App\Finanzas\Controller\:
+        resource: '../../src/Finanzas/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+            - 'controller.service_arguments'
