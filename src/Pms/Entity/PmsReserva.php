@@ -500,6 +500,31 @@ class PmsReserva
      * * @return array<int, PmsEventoCalendario> Arreglo indexado secuencialmente de eventos activos.
      */
     #[Groups(['pax_reserva:read'])]
+    public function getEventosActivosGuia(): array
+    {
+        $estadosPermitidos = PmsEventoEstado::MOSTRAR_EVENTO_GUIA;
+
+        $filtrados = $this->eventosCalendario->filter(function(PmsEventoCalendario $evento) use ($estadosPermitidos) {
+            // Validamos estado
+            $estadoOk = in_array($evento->getEstado()?->getId(), $estadosPermitidos, true);
+
+            // Validamos que no esté deshabilitado (ajusta el nombre del campo según tu BD)
+            $guiaHabilitada = !($evento->isGuiaDisabled());
+
+            return $estadoOk && $guiaHabilitada;
+        });
+
+        // IMPORTANTE: .getValues() resetea los índices para que en JSON sea [{}, {}] y no {"1": {}, "2": {}}
+        $eventosArray = $filtrados->getValues();
+
+        // Ordenamos los eventos cronológicamente por la fecha de ingreso
+        usort($eventosArray, function (PmsEventoCalendario $a, PmsEventoCalendario $b) {
+            return $a->getInicio() <=> $b->getInicio();
+        });
+
+        return $eventosArray;
+    }
+
     /**
      * ¿Está cancelada esta reserva por completo?
      *
@@ -535,32 +560,6 @@ class PmsReserva
 
         // Sin tramos no está cancelada: está incompleta, que es otra cosa y no toca decidirla aquí.
         return $tramos > 0;
-    }
-
-    #[Groups(['pax_reserva:read'])]
-    public function getEventosActivosGuia(): array
-    {
-        $estadosPermitidos = PmsEventoEstado::MOSTRAR_EVENTO_GUIA;
-
-        $filtrados = $this->eventosCalendario->filter(function(PmsEventoCalendario $evento) use ($estadosPermitidos) {
-            // Validamos estado
-            $estadoOk = in_array($evento->getEstado()?->getId(), $estadosPermitidos, true);
-
-            // Validamos que no esté deshabilitado (ajusta el nombre del campo según tu BD)
-            $guiaHabilitada = !($evento->isGuiaDisabled());
-
-            return $estadoOk && $guiaHabilitada;
-        });
-
-        // IMPORTANTE: .getValues() resetea los índices para que en JSON sea [{}, {}] y no {"1": {}, "2": {}}
-        $eventosArray = $filtrados->getValues();
-
-        // Ordenamos los eventos cronológicamente por la fecha de ingreso
-        usort($eventosArray, function (PmsEventoCalendario $a, PmsEventoCalendario $b) {
-            return $a->getInicio() <=> $b->getInicio();
-        });
-
-        return $eventosArray;
     }
 
     public function removeEventosCalendario(PmsEventoCalendario $evento): self {
