@@ -3458,6 +3458,57 @@ las devuelven intactas al final — y lo pegado al final de una URL («mira *url
 url.») se devuelve al texto, para que las marcas se vean en pareja. Verificado en
 `var/probar-formato.php` (19 comprobaciones, sin API).
 
+### 💰 `consultar_tarifas`: a cuánto sale una casita, noche a noche
+
+El precio real sólo se podía ver **creando la reserva** — `estimarAlojamiento()` vivía dentro de
+`crear_reserva`. Preguntar «¿a cuánto está la 3 del 12 al 15?» obligaba a abrir el calendario de
+tarifas y resolver de cabeza qué rango gana cada día.
+
+#### 🏆 El precio de una noche NO es la tarifa base
+
+Sobre un mismo día pueden solaparse varios `PmsTarifaRango`, y gana **uno**. El criterio está en
+`TarifaDailyPriceFlattener`, en este orden:
+
+```
+1. important = true       ← una promo marcada gana a todo
+2. prioridad (weight) mayor
+3. duración más corta     ← un rango de 3 días gana al de todo el mes
+4. id más reciente
+```
+
+Sólo si ningún rango cubre el día se cae a la tarifa base de la unidad. Por eso cada noche viene
+con **`de_donde_sale`**: sin eso, «65.00» no distingue una promo de un hueco sin tarifa cargada.
+Comprobado con datos reales — Casita 1, del 10 al 19 de agosto:
+
+```
+2026-08-10 … 08-17   65.00   rango 01/08→01/09 prioridad 1
+2026-08-18           45.00   rango 18/08→01/09 prioridad 4   ← el corto y prioritario gana
+                    ─────
+TOTAL               565.00 USD     (la base sola habría dado 630.00)
+```
+
+`aviso_sin_tarifa` cuenta aparte las noches que salen a la base: suele ser un olvido de carga, no
+una decisión, y el operador querría saberlo sin leer línea a línea.
+
+#### 🔥 La trampa del UUID en DQL, otra vez
+
+```php
+// ❌ devuelve CERO filas, sin fallar
+->createQueryBuilder('t')->andWhere('t.unidad = :unidad')->setParameter('unidad', $unidad)
+
+// ✅
+->findBy(['unidad' => $unidad, 'activo' => true])
+```
+
+El id es un `BINARY(16)` y en DQL ese parámetro se serializa mal: la consulta **no da error**,
+devuelve una lista vacía. Es la misma trampa de §12.6 y de `PmsExtensionEstanciaService::buscar()`.
+Aquí el síntoma era que todas las noches decían «tarifa base» aunque tuvieran su rango. El
+solape se filtra en PHP por el mismo motivo: son pocas filas por unidad y no compensa volver al
+query builder.
+
+⚠️ **`PmsCargosAutomaticosService::estimarAlojamiento()` tiene ESA MISMA consulta y sigue sin
+arreglar** — ver el aviso al final de esta sección.
+
 ## 15. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
