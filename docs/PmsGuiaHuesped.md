@@ -801,6 +801,29 @@ siete frases que sólo usa esta skill, y tenerlas al lado del código que las el
 queden a medio traducir sin que nadie lo note. El enlace se arma con `%pax_book_guide_url%` +
 localizador, igual que `guide_url` de `PmsMessageDataResolver`.
 
+#### 🔑 «¿Cuál es el código de la caja?» sin hablar de ningún huésped
+
+La caja de las llaves es del **establecimiento**, no de la reserva. Un operador en la puerta
+preguntando el código no tiene por qué nombrar a un huésped para que el sistema le diga un dato
+que es de la casa — y hasta ahora se le exigía: `No sé de qué reserva son los códigos`.
+
+Con `reserva_id` omitido y actor **del equipo**, la skill devuelve sólo el código general:
+
+```
+establecimiento: Centro Cusco Inti
+codigos:         { caja_de_las_llaves: "2499E" }
+nota:            "Es el código general… Para el de la puerta de una casita concreta,
+                  o para dárselo a un huésped, dime de quién es la reserva."
+```
+
+⚠️ **Lo que protege este camino es el ROL, no la ventana horaria.** No hay estancia contra la que
+medir fechas, así que las tres condiciones de arriba no aplican: al huésped lo para el guardia
+del contexto (`contextoId() === null && !esDelEquipo()`), que sigue devolviéndole
+«esta conversación no está asociada a ninguna reserva». Verificado que sigue cerrado.
+
+Por eso este camino da **sólo la caja general** y no el código de puerta: ése es de una casita
+concreta, y para saber si toca darlo hay que mirar a quién se le da.
+
 ### 💰 La caja del DINERO no sale por ahí jamás
 
 `codigoCajaSecundaria` es la recaudación, no las llaves. **No aparece en `consultar_codigos` ni

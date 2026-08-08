@@ -10,6 +10,7 @@ use App\Agent\Skill\SkillDefinition;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Guia\PmsGuiaAcceso;
@@ -103,8 +104,12 @@ final readonly class ConsultarCodigosSkill implements SkillInterface
                 . 'del alojamiento y no la compartas ni la busques por otro lado. Esta skill no '
                 . 'la devuelve nunca.',
             parametros: [
-                SkillParameter::texto('reserva_id', 'Sólo para el equipo, cuando consulta los '
-                    . 'códigos de OTRO huésped. Hablando con el propio huésped no hace falta.',
+                SkillParameter::texto('reserva_id', 'La reserva de la que se quieren los '
+                    . 'códigos. Hablando con el propio huésped no hace falta: sale de su chat. '
+                    . 'Y si un OPERADOR pregunta por la caja en general —«¿cuál es el código de '
+                    . 'la caja?», sin hablar de ningún huésped— OMÍTELO: la caja de las llaves '
+                    . 'es de la casa y te la doy sin más. Sólo pásalo cuando el operador '
+                    . 'pregunte por alguien en concreto o quiera el código de una puerta.',
                     requerido: false),
                 SkillParameter::texto('casita', 'Nombre o slug de la casita, si la reserva tiene '
                     . 'varias.', requerido: false),
@@ -130,6 +135,17 @@ final readonly class ConsultarCodigosSkill implements SkillInterface
 
         if ($actor->contextoId() === null && !$actor->esDelEquipo()) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');
+        }
+
+        // 🔑 Sin reserva, pero siendo del equipo: la caja de las llaves es del ESTABLECIMIENTO,
+        // no del huésped. «¿Cuál es el código de la caja?» es una pregunta legítima de un
+        // operador que está en la puerta, y obligarle a nombrar a un huésped para que el
+        // sistema le diga un código que es de la casa era un rodeo sin sentido.
+        //
+        // La ventana horaria no aplica aquí porque no hay estancia contra la que medirla: lo
+        // que protege este camino es el rol, no la fecha. Al huésped lo para el `if` de arriba.
+        if ($reservaId === '' && $actor->esDelEquipo()) {
+            return $this->codigosDeLaCasa();
         }
 
         if (!Uuid::isValid($reservaId)) {
@@ -257,6 +273,51 @@ final readonly class ConsultarCodigosSkill implements SkillInterface
                 )
                 : null,
         ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * Los códigos que son de la casa y no de nadie en particular.
+     *
+     * Sólo la caja de las LLAVES. La secundaria es la de la recaudación y no se devuelve por
+     * aquí ni al equipo —igual que en el camino con reserva—: se cambia con
+     * `cambiar_codigo_caja` y se consulta en el panel, donde queda claro quién la está mirando.
+     */
+    private function codigosDeLaCasa(): SkillResult
+    {
+        $establecimientos = $this->em->getRepository(PmsEstablecimiento::class)->findAll();
+
+        if ($establecimientos === []) {
+            return SkillResult::error('No hay ningún establecimiento configurado.');
+        }
+
+        // Hoy hay uno solo. Con varios habría que preguntar de cuál, no elegir por el operador.
+        if (count($establecimientos) > 1) {
+            return SkillResult::error(
+                'Hay más de un establecimiento y esta skill no sabe cuál quieres. Dime la '
+                . 'casita o el huésped y te doy los suyos.'
+            );
+        }
+
+        $codigo = trim((string) $establecimientos[0]->getCodigoCajaPrincipal());
+
+        if ($codigo === '') {
+            return SkillResult::ok([
+                'establecimiento' => $establecimientos[0]->getNombreComercial(),
+                'disponible' => false,
+                'motivo' => 'La caja de las llaves no tiene código configurado en el sistema. '
+                    . 'No es un problema de permisos: falta ponerlo en el panel.',
+            ]);
+        }
+
+        return SkillResult::ok([
+            'establecimiento' => $establecimientos[0]->getNombreComercial(),
+            'disponible' => true,
+            'codigos' => ['caja_de_las_llaves' => $codigo],
+            'nota' => 'Es el código general de la caja de las llaves, el mismo para todas las '
+                . 'casitas. Para el de la puerta de una casita concreta, o para dárselo a un '
+                . 'huésped, dime de quién es la reserva: ahí se comprueba además que le toque '
+                . 'saberlo.',
+        ]);
     }
 
     /**
