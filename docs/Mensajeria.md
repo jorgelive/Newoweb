@@ -391,6 +391,26 @@ mensajes resucita 156 avisos que el operador dio por vistos hace meses. Por eso:
 - El comando de recálculo **solo baja contadores** por defecto. Subir uno requiere
   `--permitir-subir` y hay que saber por qué se hace.
 
+#### Delegación en el triaje
+
+Cuando el autoresponder está encendido, el resumen **no cuesta una llamada aparte**: el
+clasificador ya ha leído esos mensajes para decidir de qué van, así que devuelve también el
+resumen en su mismo JSON (`Triaje::esquema()`, campo `resumen`).
+
+`AiConversationProcessor` lo persiste junto con `resumenIaHasta`, y el trabajo de
+`GenerarResumenDispatch` —que se encola **detrás** del triaje cuando el agente está activo—
+se encuentra la marca puesta y se va sin llamar al modelo.
+
+```
+agente ENCENDIDO   triaje (20 s) escribe resumen → job (25 s) ve la marca y se va   → 1 llamada
+agente APAGADO     no hay triaje                 → job (8 s) genera el resumen      → 1 llamada
+```
+
+> **La capacidad no depende del agente**, solo se delega en él cuando está disponible.
+> Apagar `AGENT_IA_AUTORESPONDER` no deja al equipo sin resúmenes: el listener vuelve a la
+> espera corta y `ResumenConversacionService` los genera por su cuenta. Si el modelo no
+> rellena el campo `resumen`, pasa lo mismo — el servicio lo cubre.
+
 **Red de seguridad** — el contador no se recalcula solo en ningún flujo, así que hay
 un comando idempotente para reconciliarlo:
 

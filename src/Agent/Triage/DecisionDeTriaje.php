@@ -45,6 +45,15 @@ final readonly class DecisionDeTriaje
         public ?string $temaId = null,
         public string $motivo = '',
         public ?string $respuesta = null,
+        /**
+         * Resumen en una frase de lo que pide el huésped, para el equipo.
+         *
+         * Lo devuelve el clasificador en la MISMA llamada porque ya ha leído los mensajes:
+         * sacarlo aquí evita que `ResumenConversacionService` haga una segunda pasada sobre
+         * el mismo texto. Si viene `null` —el modelo no lo rellenó, o el triaje ni siquiera
+         * corrió porque el autoresponder está apagado— ese servicio lo genera por su cuenta.
+         */
+        public ?string $resumen = null,
     ) {}
 
     /** El triaje no pudo decidir. Lleva al camino largo, que es el de siempre. */

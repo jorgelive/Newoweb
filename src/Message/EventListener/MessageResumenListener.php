@@ -29,10 +29,17 @@ use Symfony\Component\Messenger\Stamp\DelayStamp;
 #[AsEntityListener(event: Events::postPersist, method: 'postPersist', entity: Message::class)]
 readonly class MessageResumenListener
 {
+    /** Segundos de margen para que el triaje termine de escribir su resumen. */
+    private const int MARGEN_TRAS_TRIAJE = 5;
+
     public function __construct(
         private MessageBusInterface $bus,
         #[Autowire('%env(int:AGENT_IA_RESUMEN_ESPERA)%')]
         private int $espera,
+        #[Autowire('%env(bool:AGENT_IA_AUTORESPONDER)%')]
+        private bool $agenteActivo,
+        #[Autowire('%env(int:AGENT_IA_ESPERA_RAFAGA)%')]
+        private int $esperaRafaga,
     ) {}
 
     public function postPersist(Message $message, PostPersistEventArgs $event): void
@@ -49,9 +56,27 @@ readonly class MessageResumenListener
             return;
         }
 
+        // DELEGACIÓN EN EL TRIAJE
+        //
+        // Con el agente encendido, el clasificador ya lee estos mensajes y devuelve el
+        // resumen en su MISMA llamada (ver Triaje::esquema()). Encolando esto detrás de él,
+        // el trabajo se encuentra la marca `resumenIaHasta` puesta y se va sin llamar al
+        // modelo: una pasada en vez de dos.
+        //
+        // Con el agente apagado el triaje no corre, así que se mantiene la espera corta y
+        // este servicio genera el resumen por su cuenta. La capacidad NO depende del
+        // agente; solo se delega en él cuando está disponible.
+        //
+        // El margen cubre lo que tarde el worker del triaje en escribir. Si aun así llega
+        // antes, no se rompe nada: se paga una llamada de más, que es el comportamiento
+        // anterior.
+        $espera = $this->agenteActivo
+            ? max($this->espera, $this->esperaRafaga) + self::MARGEN_TRAS_TRIAJE
+            : $this->espera;
+
         $this->bus->dispatch(
             new GenerarResumenDispatch((string) $conversacion->getId()),
-            $this->espera > 0 ? [new DelayStamp($this->espera * 1000)] : []
+            $espera > 0 ? [new DelayStamp($espera * 1000)] : []
         );
     }
 }

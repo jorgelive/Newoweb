@@ -73,37 +73,10 @@ export interface PmsFinanzasMonedaRef {
 export type PmsCargoFinanciero =
     components['schemas']['PmsCargoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read'];
 
-/** Pago propio (grupo pms_pago:read). */
-export interface PmsPagoFinanciero {
-    id?: string;
-    /** NETO imputado a la reserva, sin el recargo del medio de pago. Es lo que suma al saldo. */
-    monto?: string;
-    moneda?: PmsFinanzasMonedaRef | null;
-    tipoCambio?: string | null;
-    medioPago?: string;
-    /** Recargo en PORCENTAJE ('5.50' = 5.5%), no en importe. */
-    comisionPorcentaje?: string | null;
-    /** Derivados del backend (no se envían): importe del recargo y total cobrado al huésped. */
-    montoComision?: string;
-    montoTotalCobrado?: string;
-    /** ISO de una columna `date`. */
-    fechaPago?: string | null;
-    referencia?: string | null;
-    notas?: string | null;
-    /**
-     * ¿Se puede eliminar? Falso en el depósito automático del canal, que se regenera solo.
-     *
-     * Espejo de `PmsPagoFinanciero::isBorrable()`. La UI no debe pintar el basurero cuando
-     * es `false`: el backend rechazaría el borrado y el operador se llevaría un error por
-     * una acción que el propio sistema le ofreció.
-     *
-     * Opcional porque los pagos guardados antes de este campo llegan sin él; se trata
-     * `undefined` como borrable, que es el caso mayoritario.
-     */
-    borrable?: boolean;
-    /** Motivo legible cuando `borrable` es false, para el tooltip del candado. */
-    motivoNoBorrableTexto?: string | null;
-}
+/** Pago tal como lo devuelve la API. Derivado del esquema generado (ver PmsCargoFinanciero). */
+export type PmsPagoFinanciero =
+    components['schemas']['PmsPagoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read'];
+
 
 /**
  * Estancia de la reserva, para poder etiquetar cada cargo con su casita.
@@ -121,32 +94,21 @@ export interface PmsFinanzasEstancia {
     fin?: string | null;
 }
 
-/** Cabecera financiera de la reserva (grupo pms_finanzas:read). */
-export interface PmsInformacionFinanciera {
-    id?: string;
-    /**
-     * ¿Los cargos de la estancia cuentan para el saldo?
-     * `false` (cancelada) → solo suma la PENALIZACIÓN; los demás cargos se conservan
-     * y se muestran, pero no computan. El operador puede reactivarla cuando la reserva
-     * cancelada en la OTA sigue adelante como directa (§12.7).
-     */
-    activa?: boolean;
-    /** Moneda BASE (contable): en ella se expresan totalCargos/totalPagos/saldo. */
-    moneda?: PmsFinanzasMonedaRef | null;
-    /**
-     * ¿Se puede cambiar la moneda base? Sólo en reservas directas puras: si algún cargo
-     * vino del canal, la moneda la manda el canal (§12.4.4). Lo decide el backend.
-     */
-    monedaBaseEditable?: boolean;
-    /** Totales YA convertidos a la moneda de la cabecera por el listener de coherencia. */
-    totalCargos?: string;
-    totalPagos?: string;
-    saldo?: string;
-    lastSyncedAt?: string | null;
-    cargos?: PmsCargoFinanciero[];
-    pagos?: PmsPagoFinanciero[];
-    estancias?: PmsFinanzasEstancia[];
-}
+/**
+ * Cabecera financiera de la reserva. Derivada del esquema generado, con UNA corrección.
+ *
+ * ⚠️ El esquema declara `estancias` como `string[]` —API Platform infiere IRIs para una
+ * asociación— pero en runtime llegan OBJETOS con `eventoId`, `unidad`, `inicio` y `fin`.
+ * La inferencia se equivoca ahí, así que el campo se reemplaza por su forma real.
+ *
+ * Se hace con `Omit` y no redeclarando encima: sin quitarlo antes, TS produce la
+ * intersección `string[] & PmsFinanzasEstancia[]`, que no es usable y falla lejos del
+ * origen (ver CLAUDE.md, §TypeScript).
+ */
+export type PmsInformacionFinanciera =
+    Omit<components['schemas']['PmsInformacionFinanciera-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read'], 'estancias'>
+    & { estancias?: PmsFinanzasEstancia[] };
+
 
 // ============================================================================
 // ESCRITURA
@@ -162,21 +124,10 @@ export type PmsCargoFinancieroCreate =
     components['schemas']['PmsCargoFinanciero-pms_cargo.write'];
 
 
-/** POST de un pago (grupo pms_pago:write). `informacionFinanciera` y `moneda` viajan como IRI. */
-export interface PmsPagoFinancieroCreate {
-    informacionFinanciera: string;
-    moneda: string;
-    /** NETO. El total cobrado se deriva con el porcentaje; no se envía. */
-    monto: string;
-    medioPago: string;
-    /** Formato 'YYYY-MM-DD' (columna `date`). */
-    fechaPago: string;
-    tipoCambio?: string | null;
-    /** Porcentaje ('5.5'), no importe. */
-    comisionPorcentaje?: string | null;
-    referencia?: string | null;
-    notas?: string | null;
-}
+/** Cuerpo del POST de un pago (grupo `pms_pago:write`). Derivado del esquema generado. */
+export type PmsPagoFinancieroCreate =
+    components['schemas']['PmsPagoFinanciero-pms_pago.write'];
+
 
 // ============================================================================
 // CÁLCULO DEL RECARGO

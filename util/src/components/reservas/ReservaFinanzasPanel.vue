@@ -782,7 +782,10 @@ async function guardarPagoOrThrow(): Promise<void> {
         // `moneda` no viaja: es inmutable una vez registrado el pago.
         await finanzas.patchPago(pagoEditandoId.value, {
             monto: pagoForm.value.monto,
-            medioPago: pagoForm.value.medioPago,
+            // Mismo caso que `tipoCargo`: el formulario guarda el id del enum como cadena
+            // —viene del <select> que alimenta el AJAX de PmsMedioPago— y el tipo derivado
+            // del esquema exige la unión exacta. El contrato lo fija el backend.
+            medioPago: pagoForm.value.medioPago as PmsPagoFinancieroCreate['medioPago'],
             fechaPago: pagoForm.value.fechaPago,
             tipoCambio: pagoForm.value.tipoCambio || null,
             comisionPorcentaje: pagoForm.value.comisionPorcentaje || null,
@@ -794,7 +797,10 @@ async function guardarPagoOrThrow(): Promise<void> {
             informacionFinanciera: pmsInformacionFinancieraIri(infoId),
             moneda: `/platform/maestro/monedas/${pagoForm.value.moneda}`,
             monto: pagoForm.value.monto,
-            medioPago: pagoForm.value.medioPago,
+            // Mismo caso que `tipoCargo`: el formulario guarda el id del enum como cadena
+            // —viene del <select> que alimenta el AJAX de PmsMedioPago— y el tipo derivado
+            // del esquema exige la unión exacta. El contrato lo fija el backend.
+            medioPago: pagoForm.value.medioPago as PmsPagoFinancieroCreate['medioPago'],
             fechaPago: pagoForm.value.fechaPago,
             tipoCambio: pagoForm.value.tipoCambio || null,
             comisionPorcentaje: pagoForm.value.comisionPorcentaje || null,

@@ -120,6 +120,36 @@ final readonly class AiConversationProcessor
     }
 
     /**
+     * Escribe en la conversación el resumen que trajo el triaje, si trajo alguno.
+     *
+     * Es la delegación del §11: una sola llamada al modelo hace las dos cosas. La marca
+     * `resumenIaHasta` es la que corta la segunda pasada —la guarda de idempotencia de
+     * {@see \App\Message\Service\Resumen\ResumenConversacionService::actualizar()} la
+     * compara con el mensaje más reciente—, así que sin ponerla la delegación no sirve de
+     * nada aunque el texto se guarde.
+     */
+    private function guardarResumenDelTriaje(
+        MessageConversation $conversacion,
+        Message $entrante,
+        DecisionDeTriaje $decision
+    ): void {
+        if ($decision->resumen === null) {
+            return;
+        }
+
+        $conversacion->setResumenIa($decision->resumen);
+        $conversacion->setResumenIaHasta($entrante->getEffectiveDateTime() ?? $entrante->getCreatedAt());
+
+        $this->em->flush();
+
+        $this->logger->info(sprintf(
+            'IA: resumen entregado por el triaje (sin llamada extra) en %s: «%s».',
+            $conversacion->getId(),
+            $decision->resumen
+        ));
+    }
+
+    /**
      * Los guardias. Devuelve el motivo por el que NO hay que contestar, o null para seguir.
      */
     private function motivoParaCallarse(MessageConversation $conversacion, Message $entrante): ?string
@@ -332,6 +362,16 @@ final readonly class AiConversationProcessor
         // deja todo exactamente como estaba antes de que existiera. Se le pasa el contexto
         // (idioma, nombre) porque la charla la contesta él mismo. Ver App\Agent\Triage\Triaje.
         $decision = $this->triaje->clasificar($actor, $mensaje, $historial, $this->contexto($conversacion));
+
+        // El triaje ya leyó estos mensajes para clasificarlos, así que su resumen sale sin
+        // pagar una llamada extra. Se persiste AQUÍ para que el trabajo de
+        // GenerarResumenDispatch —que corre después cuando el autoresponder está encendido—
+        // encuentre la marca puesta y se vaya sin llamar al modelo.
+        //
+        // Con el autoresponder APAGADO nada de esto corre y ResumenConversacionService lo
+        // genera por su cuenta: la capacidad no depende del agente, solo se delega en él
+        // cuando está disponible. Ver docs/Mensajeria.md §7.
+        $this->guardarResumenDelTriaje($conversacion, $entrante, $decision);
 
         // PASO 2a — CHARLA. La respuesta vino EN la llamada del triaje: «hola» cuesta una sola
         // llamada, y quien vigila que no se cuele una petición es el propio clasificador. Si

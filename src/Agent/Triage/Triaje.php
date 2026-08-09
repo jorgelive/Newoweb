@@ -263,6 +263,7 @@ final readonly class Triaje
             temaId: $temaId !== '' ? $temaId : null,
             motivo: trim((string) ($datos['motivo'] ?? '')),
             respuesta: $respuesta !== '' ? $respuesta : null,
+            resumen: trim((string) ($datos['resumen'] ?? '')) ?: null,
         );
     }
 
@@ -397,8 +398,19 @@ final readonly class Triaje
                     'description' => 'Sólo con tipo «conversacion»: la contestación al huésped, '
                         . 'en su idioma. Con cualquier otro tipo, cadena vacía.',
                 ],
+                // Sale GRATIS: el clasificador ya ha leído estos mensajes para decidir de
+                // qué van. Pedirle además una frase de resumen no añade una llamada; sin
+                // esto, ResumenConversacionService hace una segunda pasada sobre el MISMO
+                // texto. Ver docs/Mensajeria.md §7.
+                'resumen' => [
+                    'type' => 'string',
+                    'description' => 'UNA frase en español, 12 palabras máximo, diciendo QUÉ '
+                        . 'quiere o necesita el huésped. Sin saludos, comillas ni punto final. '
+                        . 'Si no pide nada, dilo igual («Agradece la ayuda»). Es para que el '
+                        . 'equipo sepa de un vistazo qué hay pendiente.',
+                ],
             ],
-            'required' => ['tipo', 'skill', 'tema_id', 'pista', 'motivo', 'respuesta'],
+            'required' => ['tipo', 'skill', 'tema_id', 'pista', 'motivo', 'respuesta', 'resumen'],
             'additionalProperties' => false,
         ];
     }
