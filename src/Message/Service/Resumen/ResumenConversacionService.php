@@ -226,7 +226,12 @@ final readonly class ResumenConversacionService
             ->select('MAX(COALESCE(m.scheduledAt, m.createdAt))')
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :saliente')
-            ->andWhere('m.scheduledAt IS NULL OR m.scheduledAt <= :ahora')
+            // Los paréntesis son OBLIGATORIOS: `andWhere()` concatena la cadena tal cual y
+            // el AND liga más fuerte que el OR. Sin ellos la condición se leía como
+            // «(conversación AND saliente AND sin programar) OR (programado <= ahora)», que
+            // hace MAX sobre CASI TODA la tabla de mensajes: el corte salía siendo el
+            // mensaje más reciente del sistema y la ventana quedaba vacía siempre.
+            ->andWhere('(m.scheduledAt IS NULL OR m.scheduledAt <= :ahora)')
             ->setParameter('c', $conversacion)
             ->setParameter('saliente', Message::DIRECTION_OUTGOING)
             ->setParameter('ahora', new \DateTimeImmutable())
