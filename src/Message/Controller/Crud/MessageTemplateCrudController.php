@@ -121,6 +121,16 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setPermission('syncMetaTemplates', Roles::MENSAJES_SHOW);
     }
 
+    /**
+     * Estilo de los badges de las columnas virtuales.
+     *
+     * EasyAdmin le pone a `.badge` un `margin-inline-start: 4px` —y 8px a `.badge-danger`—,
+     * o sea margen a la IZQUIERDA. En una columna estrecha eso descuadra el arranque de cada
+     * fila y, sumado a un `gap` de flex, empuja los badges a la línea siguiente sin
+     * necesidad. Se anula y se usa margen derecho, que es el que separa sin desalinear.
+     */
+    private const string ESTILO_BADGE = 'margin-inline-start:0;margin-inline-end:4px;';
+
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')
@@ -158,16 +168,13 @@ class MessageTemplateCrudController extends BaseCrudController
                     }
 
                     $badges[] = $estado['habilitado']
-                        ? sprintf('<span class="badge badge-success" title="Redactado y activo">%s</span>', htmlspecialchars($etiqueta, ENT_QUOTES))
-                        : sprintf('<span class="badge badge-secondary" title="Redactado pero APAGADO: no se envía por este canal"><s>%s</s></span>', htmlspecialchars($etiqueta, ENT_QUOTES));
+                        ? sprintf('<span class="badge badge-success" style="%s" title="Redactado y activo">%s</span>', self::ESTILO_BADGE, htmlspecialchars($etiqueta, ENT_QUOTES))
+                        : sprintf('<span class="badge badge-secondary" style="%s" title="Redactado pero APAGADO: no se envía por este canal"><s>%s</s></span>', self::ESTILO_BADGE, htmlspecialchars($etiqueta, ENT_QUOTES));
                 }
 
-                // Contenedor flex: sin él los badges se apoyan en la línea base del texto y
-                // quedan a distinta altura entre filas según cuántos haya. Con `gap` el
-                // espaciado no depende del espacio en blanco del HTML.
                 return $badges === []
                     ? '<span class="text-muted small">sin redactar</span>'
-                    : '<span class="d-inline-flex flex-wrap align-items-center gap-1">' . implode('', $badges) . '</span>';
+                    : implode('', $badges);
             })
             ->renderAsHtml();
 
@@ -201,15 +208,16 @@ class MessageTemplateCrudController extends BaseCrudController
                 $badges = [];
                 foreach ($estados as $estado => $cuantos) {
                     $badges[] = sprintf(
-                        '<span class="badge %s" title="%d idioma(s)">%s %d</span>',
+                        '<span class="badge %s" style="%s" title="%d idioma(s)">%s %d</span>',
                         $color[$estado] ?? 'badge-secondary',
+                        self::ESTILO_BADGE,
                         $cuantos,
                         htmlspecialchars(ucfirst(strtolower($estado)), ENT_QUOTES),
                         $cuantos
                     );
                 }
 
-                return '<span class="d-inline-flex flex-wrap align-items-center gap-1">' . implode('', $badges) . '</span>';
+                return implode('', $badges);
             })
             ->renderAsHtml();
 
