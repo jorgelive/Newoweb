@@ -18,6 +18,8 @@
 // era justo la desincronización que este patrón viene a eliminar.
 // ============================================================================
 
+import type { components } from '@/types/api';
+
 // ============================================================================
 // ENUMS SERVIDOS POR EL BACKEND
 // ============================================================================
@@ -52,41 +54,24 @@ export interface PmsFinanzasMonedaRef {
 }
 
 /** Cargo de la reserva: importado de Beds24 o creado a mano (grupo pms_cargo:read). */
-export interface PmsCargoFinanciero {
-    id?: string;
-    /**
-     * true = lo creó un operador (reserva directa); false = llegó de Beds24.
-     * Sólo los manuales se pueden borrar (lo veta el backend).
-     */
-    manual?: boolean;
-    /** IRI de la estancia a la que se imputa (sólo cargos manuales; los de Beds24 usan beds24BookingId). */
-    evento?: string | null;
-    tipoCargo?: string | null;
-    descripcion?: string | null;
-    /**
-     * Descripción redactada PARA EL HUÉSPED, en español.
-     *
-     * Espejo del accesor `PmsCargoFinanciero::getDescripcionClienteEs()`: el backend guarda
-     * un `I18nContent[]` y traduce solo a los demás idiomas, pero por la API viaja el texto
-     * plano. `descripcion` es la INTERNA — en los cargos de Beds24 trae lo que mande el
-     * canal y no es presentable.
-     */
-    descripcionClienteEs?: string | null;
-    /** 'charge' | 'payment' — el `type` crudo de Beds24. */
-    tipo?: string | null;
-    subTipo?: number | null;
-    monto?: string | null;
-    totalLinea?: string | null;
-    cantidad?: string | null;
-    tasaIva?: string | null;
-    estado?: string | null;
-    moneda?: PmsFinanzasMonedaRef | null;
-    tipoCambio?: string | null;
-    fechaCreacionBeds24?: string | null;
-    beds24ItemId?: string | null;
-    beds24BookingId?: string | null;
-    beds24InvoiceId?: string | null;
-}
+/**
+ * Cargo tal como lo devuelve la API (grupo `pms_cargo:read`).
+ *
+ * **Derivado del esquema generado, no escrito a mano.** Antes era una interfaz manual y
+ * pasó lo que tenía que pasar: al añadir `descripcionClienteEs` en el backend, el
+ * `openapi.json` y `api.d.ts` se regeneraron con el campo y el typecheck seguía fallando
+ * porque estos tres tipos vivían aparte. Ahora un campo nuevo en la entidad PHP aparece
+ * aquí solo con regenerar los tipos, y uno eliminado rompe el build en vez de fallar en
+ * runtime.
+ *
+ * Regenerar tras tocar la entidad o sus grupos de serialización:
+ * ```
+ * php bin/console api:openapi:export -o openapi.json
+ * cd util && npx openapi-typescript ../openapi.json -o src/types/api.d.ts
+ * ```
+ */
+export type PmsCargoFinanciero =
+    components['schemas']['PmsCargoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read'];
 
 /** Pago propio (grupo pms_pago:read). */
 export interface PmsPagoFinanciero {
@@ -167,56 +152,15 @@ export interface PmsInformacionFinanciera {
 // ESCRITURA
 // ============================================================================
 
-/** PATCH de un cargo: sólo lo que el operador puede corregir (grupo pms_cargo:patch). */
-export interface PmsCargoFinancieroPatch {
-    tipoCargo?: string | null;
-    descripcion?: string | null;
-    /**
-     * Descripción redactada PARA EL HUÉSPED, en español.
-     *
-     * Espejo del accesor `PmsCargoFinanciero::getDescripcionClienteEs()`: el backend guarda
-     * un `I18nContent[]` y traduce solo a los demás idiomas, pero por la API viaja el texto
-     * plano. `descripcion` es la INTERNA — en los cargos de Beds24 trae lo que mande el
-     * canal y no es presentable.
-     */
-    descripcionClienteEs?: string | null;
+/** Cuerpo del PATCH de un cargo (grupo `pms_cargo:patch`). Derivado del esquema generado. */
+export type PmsCargoFinancieroPatch =
+    components['schemas']['PmsCargoFinanciero-pms_cargo.patch.jsonMergePatch'];
 
-    monto?: string | null;
-    totalLinea?: string | null;
-    /** IRI de la estancia, o null para dejarlo como cargo general de la reserva. */
-    evento?: string | null;
-    /**
-     * SÓLO para rellenar el que faltaba: un cargo en otra moneda sin tipo de cambio aporta
-     * 0 al saldo y hay que poder arreglarlo. Si el cargo ya tenía TC, el backend rechaza el
-     * cambio con DomainException (§12.4). `moneda` sigue sin poder parchearse nunca.
-     */
-    tipoCambio?: string | null;
-}
 
-/**
- * POST de un cargo MANUAL (grupo pms_cargo:write). El backend lo marca como manual
- * por omisión de `beds24ItemId`, y le pone `tipo='charge'` para que sume al saldo.
- * `informacionFinanciera` y `moneda` viajan como IRI.
- */
-export interface PmsCargoFinancieroCreate {
-    informacionFinanciera: string;
-    moneda: string;
-    tipoCargo?: string | null;
-    descripcion?: string | null;
-    /**
-     * Descripción redactada PARA EL HUÉSPED, en español.
-     *
-     * Espejo del accesor `PmsCargoFinanciero::getDescripcionClienteEs()`: el backend guarda
-     * un `I18nContent[]` y traduce solo a los demás idiomas, pero por la API viaja el texto
-     * plano. `descripcion` es la INTERNA — en los cargos de Beds24 trae lo que mande el
-     * canal y no es presentable.
-     */
-    descripcionClienteEs?: string | null;
-    totalLinea: string;
-    tipoCambio?: string | null;
-    /** IRI de la estancia a la que se imputa; null = cargo de la reserva en conjunto. */
-    evento?: string | null;
-}
+/** Cuerpo del POST de un cargo manual (grupo `pms_cargo:write`). Derivado del esquema generado. */
+export type PmsCargoFinancieroCreate =
+    components['schemas']['PmsCargoFinanciero-pms_cargo.write'];
+
 
 /** POST de un pago (grupo pms_pago:write). `informacionFinanciera` y `moneda` viajan como IRI. */
 export interface PmsPagoFinancieroCreate {

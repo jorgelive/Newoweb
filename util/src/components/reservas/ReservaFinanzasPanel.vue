@@ -554,7 +554,11 @@ async function guardarCargoOrThrow(): Promise<void> {
         const payload: PmsCargoFinancieroCreate = {
             informacionFinanciera: pmsInformacionFinancieraIri(infoId),
             moneda: `/platform/maestro/monedas/${cargoForm.value.moneda}`,
-            tipoCargo: cargoForm.value.tipoCargo || null,
+            // Cast puntual y acotado: el formulario guarda el id del enum como cadena
+            // suelta —viene del <select> que alimenta el AJAX de PmsTipoCargo— y el tipo
+            // derivado del esquema exige la unión exacta. El contrato lo fija el backend,
+            // que es quien sirve esas opciones.
+            tipoCargo: (cargoForm.value.tipoCargo || null) as PmsCargoFinancieroCreate['tipoCargo'],
             descripcion: cargoForm.value.descripcion || null,
             // Lo que ve el huésped. Se manda el texto en español; el backend arma el
             // I18nContent[] y el traductor automático rellena los demás idiomas.
@@ -570,7 +574,11 @@ async function guardarCargoOrThrow(): Promise<void> {
         // ya existe lo rechaza el backend (§12.4).
         const original = cargosVista.value.find(c => c.id === cargoEditandoId.value);
         await finanzas.patchCargo(cargoEditandoId.value, {
-            tipoCargo: cargoForm.value.tipoCargo || null,
+            // Cast puntual y acotado: el formulario guarda el id del enum como cadena
+            // suelta —viene del <select> que alimenta el AJAX de PmsTipoCargo— y el tipo
+            // derivado del esquema exige la unión exacta. El contrato lo fija el backend,
+            // que es quien sirve esas opciones.
+            tipoCargo: (cargoForm.value.tipoCargo || null) as PmsCargoFinancieroCreate['tipoCargo'],
             descripcion: cargoForm.value.descripcion || null,
             // Lo que ve el huésped. Se manda el texto en español; el backend arma el
             // I18nContent[] y el traductor automático rellena los demás idiomas.
