@@ -76,11 +76,17 @@ final readonly class ResumenConversacionService
      * Idempotente a propósito: comprueba `resumenIaHasta` contra el mensaje más reciente
      * de la ventana y se va sin llamar al modelo si ya está cubierto. Es lo que permite
      * encolar un trabajo por mensaje entrante sin pagar una llamada por mensaje.
+     *
+     * @return string Motivo de lo ocurrido, para que el comando de mantenimiento pueda
+     *         enseñarlo. NO basta con el logger: en prod monolog va en `fingers_crossed`
+     *         con `action_level: error`, así que los warning y los info de un comando que
+     *         termina bien **no se escriben nunca**. Diagnosticar por log aquí es
+     *         imposible, y por eso el motivo se devuelve.
      */
-    public function actualizar(MessageConversation $conversacion): void
+    public function actualizar(MessageConversation $conversacion): string
     {
         if (!$this->habilitado) {
-            return;
+            return 'deshabilitado (AGENT_IA_RESUMEN_CONVERSACION=0)';
         }
 
         $mensajes = $this->ventanaSinResponder($conversacion);
@@ -90,25 +96,25 @@ final readonly class ResumenConversacionService
             $conversacion->setResumenIa(null);
             $conversacion->setResumenIaHasta(null);
             $this->em->flush();
-            return;
+            return 'sin ventana: el equipo ya contestó al último mensaje del huésped';
         }
 
         $masReciente = $this->fechaDe($mensajes[array_key_last($mensajes)]);
         $cubierto = $conversacion->getResumenIaHasta();
 
         if ($cubierto !== null && $masReciente !== null && $masReciente <= $cubierto) {
-            return; // Ya resumido: otro trabajo de la misma ráfaga llegó primero.
+            return 'ya cubierto por un resumen anterior';
         }
 
         $elegido = $this->potencias->elegir(PotenciaRequerida::desde($this->potencia));
         if ($elegido === null) {
             $this->logger->warning('[ResumenIA] Ningún motor disponible; se conserva el resumen anterior.');
-            return;
+            return 'ningún motor de IA disponible';
         }
 
         $texto = $this->componerEntrada($mensajes);
         if ($texto === '') {
-            return;
+            return sprintf('los %d mensajes de la ventana no tienen texto', count($mensajes));
         }
 
         try {
@@ -138,13 +144,19 @@ final readonly class ResumenConversacionService
             // Nunca se propaga: un resumen es un adorno. Si falla, el operador ve el
             // texto del último mensaje, que es lo que veía antes de que esto existiera.
             $this->logger->error('[ResumenIA] Falló la generación: ' . $e->getMessage(), ['exception' => $e]);
-            return;
+            return 'excepción: ' . $e->getMessage();
         }
 
         $resumen = trim((string) $resumen);
         if ($resumen === '') {
-            $this->logger->info('[ResumenIA] El motor no devolvió texto; se conserva el anterior.');
-            return;
+            $this->logger->warning('[ResumenIA] El motor no devolvió texto; se conserva el anterior.');
+
+            return sprintf(
+                'el motor %s devolvió vacío (entrada: %d caracteres, %d mensajes)',
+                $elegido->etiqueta(),
+                mb_strlen($texto),
+                count($mensajes)
+            );
         }
 
         $conversacion->setResumenIa($resumen);
@@ -157,6 +169,8 @@ final readonly class ResumenConversacionService
             $elegido->etiqueta(),
             $resumen
         ));
+
+        return sprintf('resumido con %s', $elegido->etiqueta());
     }
 
     /**

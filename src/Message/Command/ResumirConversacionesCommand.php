@@ -87,12 +87,16 @@ final class ResumirConversacionesCommand extends Command
                 $conversacion->setResumenIaHasta(null);
             }
 
-            $this->resumen->actualizar($conversacion);
+            $motivo = $this->resumen->actualizar($conversacion);
+            $resultado = $conversacion->getResumenIa();
 
+            // Cuando no hay resumen se enseña el MOTIVO, no un «revisa el log»: en prod
+            // monolog usa fingers_crossed con action_level error, así que los warning de
+            // un comando que termina bien no llegan a escribirse nunca.
             $io->writeln(sprintf(
                 '  · %-32s %s',
                 mb_strimwidth($nombre, 0, 32),
-                $conversacion->getResumenIa() ?? '(sin resumen — revisa el log)'
+                $resultado ?? "⚠️  {$motivo}"
             ));
         }
 
