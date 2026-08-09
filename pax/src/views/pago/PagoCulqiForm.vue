@@ -21,7 +21,7 @@
  * instancia**, así que nace y muere con él: al reentrar en la página no queda nada que
  * pueda dispararse contra un enlace que ya no toca. Ver §11 del doc.
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { markRaw, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import type { PaxConfigCulqi, PaxConfigPago, PaxCulqiCobroRespuesta } from '@/types/paxPagoModel';
 import type { CulqiCheckoutInstance } from '@/types/culqiCheckout';
@@ -37,8 +37,20 @@ const emit = defineEmits<{
 const listo = ref(false);
 const cobrando = ref(false);
 
-/** La instancia del checkout. Local al componente: esa es la mejora sobre v4. */
-const checkout = ref<CulqiCheckoutInstance | null>(null);
+/**
+ * La instancia del checkout. Local al componente: esa es la mejora sobre v4.
+ *
+ * ⚠️ **`shallowRef` + `markRaw`, NUNCA `ref`.** Un `ref` envuelve el objeto en `reactive()`,
+ * que es un `Proxy`, y un Proxy **rompe los campos privados de clase** (`#campo`):
+ * `CulqiCheckout` los usa por dentro y al pulsar Pagar reventaba con
+ * `TypeError: Cannot read private member #e from an object whose class did not declare it`,
+ * con la traza apuntando a `Proxy.validateConfig` / `Proxy.open`.
+ *
+ * El error engaña porque parece de la librería y es nuestro. La regla: cualquier instancia
+ * de clase de terceros que se guarde en el estado de Vue va con `shallowRef` o `markRaw` —
+ * aquí ambos, porque el objeto ni se lee reactivamente ni debe proxiarse nunca.
+ */
+const checkout = shallowRef<CulqiCheckoutInstance | null>(null);
 
 const cargarLibreria = (src: string): Promise<void> => {
     if (window.CulqiCheckout) return Promise.resolve();
@@ -126,7 +138,9 @@ const montar = async (): Promise<void> => {
         }
     };
 
-    checkout.value = instancia;
+    // `markRaw` además del `shallowRef`: deja marcado el objeto para que nunca lo proxie
+    // nadie, ni aunque mañana se guarde en otro sitio reactivo. Ver la nota de `checkout`.
+    checkout.value = markRaw(instancia);
     listo.value = true;
 };
 

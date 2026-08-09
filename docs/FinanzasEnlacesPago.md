@@ -540,6 +540,25 @@ local, el objeto nace y muere con el componente y ese fallo deja de ser posible.
 
 De paso, Checkout Custom permite personalizar estilos y ordenar los medios de pago.
 
+#### ⚠️ El peaje: `shallowRef` + `markRaw`, nunca `ref`
+
+Pasar a una instancia trae un fallo que el singleton no tenía, y **el mensaje engaña porque
+parece de la librería**:
+
+```
+TypeError: Cannot read private member #e from an object whose class did not declare it
+    at Proxy.validateConfig (checkout-js)
+    at Proxy.open (checkout-js)
+```
+
+`ref()` envuelve el objeto en `reactive()`, que es un **`Proxy`**, y un Proxy **rompe los
+campos privados de clase** (`#campo`). `CulqiCheckout` los usa por dentro, así que al pulsar
+Pagar reventaba. La pista está en la traza: `Proxy.open`, no `CulqiCheckout.open`.
+
+La regla, y vale para cualquier librería, no solo esta: **una instancia de clase de terceros
+nunca va en un `ref`**. `shallowRef` para no proxiar el contenido, y `markRaw` encima para
+que no pueda proxiarla nadie más aunque acabe en otro sitio reactivo.
+
 Existe además un paquete oficial `culqi/vue-culqi-checkout`. Se descartó: envuelve lo mismo
 en una dependencia más, y aquí la integración son treinta líneas.
 
