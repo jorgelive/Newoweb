@@ -125,9 +125,13 @@ final readonly class ResumenConversacionService
                 systemPrompt: self::SYSTEM_PROMPT,
                 mensaje: $texto,
                 permitirEscritura: false,
-                // Una frase corta. El tope existe para que un modelo que se despiste no
-                // devuelva tres párrafos que luego hay que recortar igual.
-                maxTokens: 120,
+                // ⚠️ NO bajar este tope «porque la salida es una frase». Los modelos que
+                // razonan antes de contestar —Gemini 3.6 Flash, que es el que atiende
+                // este tramo en producción— gastan parte del presupuesto pensando: con
+                // 120 se lo comían entero razonando y devolvían texto VACÍO, así que el
+                // resumen salía siempre null y sin más rastro que un log de nivel info.
+                // La longitud la marca el prompt; esto es solo una red de seguridad.
+                maxTokens: 1024,
                 modelo: $elegido->modelo,
             ));
         } catch (Throwable $e) {
