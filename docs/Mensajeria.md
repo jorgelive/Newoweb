@@ -409,6 +409,40 @@ php bin/console app:message:recalcular-no-leidos --marcar-leidas-antes-de=2026-0
 Quién lee este contador: el badge del icono de la PWA y los contadores del portal,
 vía `UnreadSummaryController`. Ver [`PwaNotificaciones.md`](PwaNotificaciones.md).
 
+### 🔥 Con `read: false`, API Platform NO aplica `security`
+
+Una operación custom que no lee de Doctrine se declara así:
+
+```php
+new GetCollection(
+    uriTemplate: '/conversations/unread-summary',
+    controller: UnreadSummaryController::class,
+    read: false, deserialize: false, output: false,
+)
+```
+
+**El `security` del `ApiResource` no la protege, y el `security:` de la propia
+operación tampoco.** La etapa que evalúa esos atributos va colgada del *read*, y con
+`read: false` no se ejecuta. El endpoint estuvo en producción devolviendo nombres de
+huéspedes y contadores **sin sesión**, mientras la colección normal de al lado sí
+redirigía a login. No hubo ningún aviso: responde 200 y ya.
+
+La comprobación tiene que ir **dentro del controlador**:
+
+```php
+public function __invoke(): JsonResponse
+{
+    $this->denyAccessUnlessGranted(Roles::MENSAJES_SHOW);
+    // …
+}
+```
+
+> **Al añadir una operación con `read: false`, pruébala con `curl` sin cookies antes
+> de darla por buena.** Debe redirigir o dar 403, nunca 200 con datos:
+> ```bash
+> curl -s -o /dev/null -w '%{http_code}\n' https://api.openperu.pe/platform/…
+> ```
+
 ### 🔥 `transientChannels` no es una columna
 
 `Message::$transientChannels` no tiene `#[ORM\Column]`. Cambiarlo **no ensucia la entidad**:
