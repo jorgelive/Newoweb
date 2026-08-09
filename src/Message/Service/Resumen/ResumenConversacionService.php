@@ -215,12 +215,21 @@ final readonly class ResumenConversacionService
         $repo = $this->em->getRepository(Message::class);
 
         // Última respuesta del equipo. Si nunca hubo, la ventana es toda la conversación.
+        //
+        // ⚠️ Se EXCLUYEN los salientes programados a futuro, y no es un detalle: el motor
+        // de reglas deja encolados avisos con `scheduledAt` de dentro de varios días
+        // (recordatorio de check-in, etc.). Contándolos, el corte se iba a esa fecha
+        // futura, ningún mensaje del huésped quedaba «después» y la ventana salía SIEMPRE
+        // vacía — el resumen no se generaba nunca y parecía que fallaba la IA.
+        // Un mensaje que todavía no ha salido no es una respuesta.
         $ultimaSalida = $repo->createQueryBuilder('m')
             ->select('MAX(COALESCE(m.scheduledAt, m.createdAt))')
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :saliente')
+            ->andWhere('m.scheduledAt IS NULL OR m.scheduledAt <= :ahora')
             ->setParameter('c', $conversacion)
             ->setParameter('saliente', Message::DIRECTION_OUTGOING)
+            ->setParameter('ahora', new \DateTimeImmutable())
             ->getQuery()
             ->getSingleScalarResult();
 
