@@ -71,8 +71,20 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
      * - Se imputa el **neto** (`montoNeto`), no lo que se pasó por la tarjeta. El recargo
      *   cubre a la pasarela, no abona la estancia — es la misma regla que ya documenta
      *   `PmsPagoFinanciero::$monto`.
-     * - Se marca `esAutomatico`: lo generó el sistema, igual que los depósitos de las OTA,
-     *   y así se distingue de lo que teclea un operador.
+     * - **NO se marca `esAutomatico`**, aunque lo genere el sistema. Esa bandera no
+     *   significa "lo creó el sistema" sino "el sistema lo REGENERA solo": es el depósito
+     *   espejo de las OTA de pago total, y de ella cuelgan dos guardas —no borrable
+     *   (`PmsInformacionFinancieraCoherenciaListener`) y no editable
+     *   (`assertPagoAutomaticoNoEditable`)— que existen para que el operador no pelee
+     *   contra un registro que va a reaparecer.
+     *
+     *   Un cobro por pasarela no reaparece: es un hecho consumado, y al revés, tiene que
+     *   poder borrarse (es el paso 2 de revertir un cobro, después de devolver el dinero
+     *   en el Backoffice). Marcarlo bloqueaba el borrado con un 500 y un mensaje sobre
+     *   "depósitos del canal" que no venía a cuento.
+     *
+     *   La trazabilidad no se pierde: el enlace apunta al pago con `movimientoGeneradoId`,
+     *   y el pago lleva la referencia de la transacción y la nota con la pasarela.
      * - **Sin cobrador**: nadie recibió este dinero en mano, entra directo a la cuenta.
      *   Ver la nota de `PmsPagoFinanciero::$cobrador`.
      * - No se toca `total_pagos` ni el estado de pago de la reserva: de eso ya se encarga
@@ -101,7 +113,6 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
             ->setComisionPorcentaje($enlace->getRecargoPorcentaje())
             ->setFechaPago($enlace->getPagadoEn() ?? new DateTimeImmutable())
             ->setReferencia($enlace->getTransaccionUuid() ?? $enlace->getOrdenId())
-            ->setEsAutomatico(true)
             ->setNotas(sprintf(
                 'Cobro por %s. Enlace de pago %s.',
                 $enlace->getPasarela()->etiqueta(),

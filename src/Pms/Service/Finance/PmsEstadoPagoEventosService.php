@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Finance;
 
+use App\Exchange\Service\Context\SyncContext;
+use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -35,6 +39,10 @@ use Symfony\Component\Uid\Uuid;
  */
 final class PmsEstadoPagoEventosService
 {
+    public function __construct(
+        private readonly SyncContext $syncContext,
+    ) {}
+
     /*
      * QUÉ EVENTOS QUEDAN FUERA, y por qué los dos `UPDATE` lo repiten:
      *
@@ -122,8 +130,86 @@ final class PmsEstadoPagoEventosService
                 $binaryIds,
                 $types,
             );
+            $tocadas += $this->confirmarPorPago($conn, $in, $binaryIds, $types);
         }
 
         return $tocadas > 0;
+    }
+
+    /**
+     * Confirma las estancias que acaban de quedar con un estado de pago confiable.
+     *
+     * ## Por qué está aquí y no en el listener de integridad
+     *
+     * La regla "registrar un pago confirma la reserva" vive en
+     * `PmsEventoCalendarioIntegrityListener::asegurarEstadoConfirmadoPorPago()`, que
+     * escucha el `preUpdate` de `PmsEventoCalendario`. **Y nunca se disparaba por esta
+     * vía**: los `UPDATE` de arriba van en SQL crudo, así que el estado de pago cambia sin
+     * pasar por el UnitOfWork y Doctrine no emite ningún evento.
+     *
+     * El síntoma era exactamente ese: la estancia pasaba a `pago-total` —correcto— pero
+     * seguía en `pendiente`. Afectaba a **todo** registro de pago, no sólo a los cobros por
+     * pasarela; con estos se nota siempre porque nadie toca la estancia después a mano.
+     *
+     * Se arregla aquí, en SQL, y no convirtiendo los UPDATE en ORM: cargar las entidades
+     * obligaría a un flush anidado dentro del propio flush (ver la nota de la clase).
+     *
+     * La condición es el espejo literal de `PmsEventoCalendario::requiereAutoConfirmacionPorPago()`
+     * — si cambia una, hay que cambiar la otra. Se construye desde las mismas constantes
+     * para que al menos los valores no se desincronicen.
+     *
+     * @param string[] $binaryIds
+     * @param int[]    $types
+     */
+    private function confirmarPorPago(Connection $conn, string $in, array $binaryIds, array $types): int
+    {
+        // Durante un pull de Beds24 manda el canal: auto-confirmar aquí sobrescribiría lo
+        // que acaba de decir la OTA y devolvería el cambio como un push. Mismo guardarraíl
+        // que ya tiene el listener de integridad.
+        if ($this->syncContext->isPull()) {
+            return 0;
+        }
+
+        $confiables = $this->comoLista(PmsEventoEstadoPago::ESTADOS_PAGO_CONFIABLES);
+        $sinAutoConfirmacion = $this->comoLista(PmsEventoCalendario::ESTADOS_SIN_AUTO_CONFIRMACION);
+
+        return (int) $conn->executeStatement(
+            sprintf(
+                <<<'SQL'
+                    UPDATE pms_evento_calendario e
+                    INNER JOIN pms_informacion_financiera i ON i.reserva_id = e.reserva_id
+                    SET e.estado_id = '%s'
+                    WHERE i.id IN (%s)
+                      AND e.estado_pago_id IN (%s)
+                      AND e.estado_id NOT IN (%s)
+                      AND e.estado_id <> '%s'
+                      AND e.evento_origen_id IS NULL
+                    SQL,
+                PmsEventoEstado::CODIGO_CONFIRMADA,
+                $in,
+                $confiables,
+                $sinAutoConfirmacion,
+                PmsEventoEstado::CODIGO_CONFIRMADA,
+            ),
+            $binaryIds,
+            $types,
+        );
+    }
+
+    /**
+     * Constantes PHP → lista SQL entrecomillada.
+     *
+     * Los valores son códigos del maestro (`confirmada`, `bloqueo`…), no entrada de usuario,
+     * pero se escapan igual: el día que alguien añada un código con apóstrofo, esto no debe
+     * ser el sitio donde se rompa.
+     *
+     * @param string[] $valores
+     */
+    private function comoLista(array $valores): string
+    {
+        return implode(',', array_map(
+            static fn (string $v): string => "'" . str_replace("'", "''", $v) . "'",
+            $valores,
+        ));
     }
 }

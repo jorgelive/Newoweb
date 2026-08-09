@@ -17,6 +17,7 @@
 import { ref, computed, watch, nextTick, type ComponentPublicInstance } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { useFinanzasStore } from '@/stores/reservas/finanzasStore';
+import { useEnlacesPagoStore } from '@/stores/finanzas/enlacesPagoStore';
 import { extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { enfocarEnScroller } from '@/utils/scrollEnfoque';
 import ReservaEnlacesPagoSection from '@/components/reservas/ReservaEnlacesPagoSection.vue';
@@ -45,6 +46,12 @@ const props = defineProps<{
 }>();
 
 const finanzas = useFinanzasStore();
+
+/**
+ * Mismo store que usa `ReservaEnlacesPagoSection`, no una segunda carga: el componente hijo
+ * ya lo llena al montarse y aquí sólo se lee para marcar los pagos que vinieron de un enlace.
+ */
+const enlacesPago = useEnlacesPagoStore();
 
 /** El panel entero arranca COLAPSADO: la cabecera ya adelanta el saldo, que es lo que se busca. */
 const panelAbierto = ref(false);
@@ -152,6 +159,22 @@ const monedaVistaRef = computed(() => {
 
 const cargosVista = computed(() => finanzas.info?.cargos ?? []);
 const pagosVista = computed(() => finanzas.info?.pagos ?? []);
+
+/**
+ * Enlace de pago que generó un pago dado, si lo hay.
+ *
+ * La relación ya existe en la base (`fin_enlace_pago.movimiento_generado_id`) y se resuelve
+ * aquí en vez de añadir una columna a `PmsPagoFinanciero`: el PMS no tiene por qué guardar
+ * una referencia a Finanzas para que la UI pinte una etiqueta, y las dos listas ya están
+ * cargadas en este mismo panel.
+ *
+ * Ojo: si algún día hace falta esta marca FUERA del panel —en la vista de caja, en el
+ * agente— habrá que persistirla, porque ahí no se dispone de los enlaces.
+ */
+function enlaceDePago(pagoId?: string | null) {
+    if (!pagoId) return null;
+    return enlacesPago.enlaces.find(e => e.movimientoGeneradoId === pagoId) ?? null;
+}
 
 /**
  * Totales de la vista activa.
@@ -1308,9 +1331,18 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     <div v-for="p in finanzas.info.pagos" :key="p.id ?? ''"
                         class="px-4 py-3 border-b border-slate-50 last:border-0 flex items-start justify-between gap-3">
                         <div class="min-w-0 flex-1">
-                            <p class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <p class="text-xs font-bold text-slate-700 flex items-center gap-1.5 flex-wrap">
                                 <i class="fas text-slate-400" :class="medioPagoOpt(p.medioPago)?.icono ?? 'fa-money-bill'"></i>
                                 {{ medioPagoOpt(p.medioPago)?.label ?? p.medioPago }}
+                                <!-- Marca de origen: este pago no lo tecleó nadie, lo generó
+                                     un enlace al cobrarse. Sin ella, un pago de US$ 311 junto
+                                     a un enlace de US$ 328.11 parece un descuadre, cuando la
+                                     diferencia es el recargo de la pasarela. -->
+                                <span v-if="enlaceDePago(p.id)"
+                                    class="px-1.5 py-0.5 rounded bg-[#376875]/10 text-[#376875] text-[9px] font-black uppercase tracking-wide">
+                                    <i class="fas fa-link mr-0.5"></i>
+                                    Enlace · {{ enlaceDePago(p.id)?.pasarelaEtiqueta }}
+                                </span>
                             </p>
                             <p class="text-[10px] font-bold text-slate-400 mt-1 flex flex-wrap gap-x-2">
                                 <span>{{ fechaLegible(p.fechaPago) }}</span>

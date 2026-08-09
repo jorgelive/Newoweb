@@ -57,6 +57,11 @@ final class FinEnlacePagoSerializer
             'origenId' => (string) $enlace->getOrigenId(),
             'origenReferencia' => $enlace->getOrigenReferencia(),
             'clienteNombre' => $enlace->getClienteNombre(),
+            // Id del registro que el módulo de origen creó al cobrarse (el PmsPagoFinanciero).
+            // Es lo que permite a la UI marcar ESE pago como "vino de un enlace" y explicar
+            // por qué su importe no coincide con el del enlace: el pago es el NETO y el
+            // enlace cobra el total con recargo.
+            'movimientoGeneradoId' => (string) $enlace->getMovimientoGeneradoId() ?: null,
         ];
     }
 }

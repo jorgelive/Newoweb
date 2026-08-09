@@ -90,6 +90,14 @@ export interface FinEnlacePago {
     origenId: string;
     origenReferencia: string | null;
     clienteNombre: string | null;
+    /**
+     * Id del `PmsPagoFinanciero` que generó este enlace al cobrarse.
+     *
+     * Es el hilo que ata enlace y pago. Lo usa el panel para marcar ese pago como "vino de
+     * un enlace" y para explicar por qué los importes no coinciden: el pago registra el
+     * NETO y el enlace cobra el total con recargo.
+     */
+    movimientoGeneradoId: string | null;
 }
 
 /** Respuesta de `GET /finanzas/caja/cobros`. */

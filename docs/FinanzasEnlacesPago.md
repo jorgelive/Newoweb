@@ -562,6 +562,38 @@ que no pueda proxiarla nadie más aunque acabe en otro sitio reactivo.
 Existe además un paquete oficial `culqi/vue-culqi-checkout`. Se descartó: envuelve lo mismo
 en una dependencia más, y aquí la integración son treinta líneas.
 
+### Qué NO es un cobro por pasarela: `esAutomatico`
+
+El `PmsPagoFinanciero` que genera un cobro **no lleva `esAutomatico`**, aunque lo cree el
+sistema. Esa bandera no significa "lo creó el sistema" sino **"el sistema lo REGENERA
+solo"**: identifica el depósito espejo de las OTA de pago total, y de ella cuelgan dos
+guardas —no borrable y no editable— pensadas para que el operador no pelee contra un
+registro que va a reaparecer.
+
+Un cobro por pasarela es un hecho consumado: no reaparece, y **tiene que poder borrarse**,
+porque ése es el paso 2 de revertir un cobro (primero se devuelve el dinero en el Backoffice
+de la pasarela). Marcarlo hacía que el borrado respondiera 500 con un mensaje sobre
+"depósitos del canal" que no venía a cuento.
+
+La trazabilidad no depende de esa bandera: el enlace apunta al pago con
+`movimientoGeneradoId`, el pago guarda la referencia de la transacción y la nota dice por qué
+pasarela entró.
+
+### La relación pago ↔ enlace, y por qué los importes no coinciden
+
+Un enlace de US$ 328.11 genera un pago de US$ 311.00. **No es un descuadre**: el enlace cobra
+el total con recargo y el pago registra el **neto**, que es lo único que abona la reserva
+(§6). El recargo se lo queda la pasarela.
+
+Como eso confunde al verlo suelto, el panel marca esos pagos con una etiqueta
+`Enlace · <pasarela>`. La relación se resuelve **en el frontend**, cruzando
+`enlace.movimientoGeneradoId` con el id del pago: las dos listas ya están cargadas en el
+mismo panel y así el PMS no necesita guardar una referencia a Finanzas sólo para pintar una
+etiqueta.
+
+> Si algún día hace falta esa marca **fuera del panel** —en la vista de caja, en el agente—
+> habrá que persistirla, porque ahí no se dispone de los enlaces.
+
 ### La respuesta de la pasarela NO se modela, y es una decisión
 
 `fin_enlace_pago.respuesta_pasarela` es un `json` que guarda **lo que llegó, tal cual**. No

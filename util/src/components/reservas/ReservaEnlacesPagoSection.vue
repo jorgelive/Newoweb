@@ -90,7 +90,20 @@ const eligePasarela = computed(() => store.pasarelas.length > 1);
 
 const hayPendiente = computed(() => store.enlaces.some((e) => e.vigente));
 
-const puedeCobrar = computed(() => !props.readOnly && props.saldo > 0.005);
+/**
+ * El botón está SIEMPRE disponible (salvo en solo-lectura), aunque el saldo sea cero.
+ *
+ * Antes se ocultaba sin saldo, y era un error: el saldo de ahora no es el de dentro de un
+ * rato. Se añade un cargo por consumos, una noche extra o una penalización, y en ese momento
+ * hay que poder cobrar. Ocultar el botón obligaba a registrar primero el cargo sólo para que
+ * reapareciera — el sistema decidiendo por el operador.
+ *
+ * Si no hay saldo, el importe simplemente nace vacío y lo teclea él.
+ */
+const puedeCobrar = computed(() => !props.readOnly);
+
+/** Sin saldo pendiente el importe no se prellena: no hay nada que proponer. */
+const haySaldo = computed(() => props.saldo > 0.005);
 
 /**
  * Recarga al cambiar de documento. `immediate` porque la sección se monta con el
@@ -110,7 +123,7 @@ function abrirForm(): void {
     // Se prellena con el saldo COMPLETO: cobrar todo lo pendiente es el caso normal;
     // los adelantos se teclean.
     form.value = {
-        monto: props.saldo > 0 ? props.saldo.toFixed(2) : '',
+        monto: haySaldo.value ? props.saldo.toFixed(2) : '',
         conRecargo: true,
         vigenciaDias: 7,
         pasarela: '',
@@ -189,9 +202,9 @@ function fechaCorta(iso: string | null): string {
                 </button>
             </div>
 
-            <p v-if="!props.readOnly && props.saldo <= 0.005 && !store.enlaces.length"
+            <p v-if="!props.readOnly && !haySaldo && !store.enlaces.length"
                 class="mt-2 text-[11px] text-slate-400">
-                No hay saldo pendiente que cobrar.
+                Sin saldo pendiente. Puedes emitir un enlace igualmente y teclear el importe.
             </p>
 
             <p v-if="error" class="mt-2 text-[11px] font-bold text-rose-600">{{ error }}</p>
