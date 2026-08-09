@@ -96,7 +96,11 @@ final readonly class ResumenConversacionService
             $conversacion->setResumenIa(null);
             $conversacion->setResumenIaHasta(null);
             $this->em->flush();
-            return 'sin ventana: el equipo ya contestó al último mensaje del huésped';
+
+            return sprintf(
+                'sin ventana: el equipo ya contestó (corte: %s)',
+                $this->corteUltimaSalida($conversacion) ?? 'ninguno'
+            );
         }
 
         $masReciente = $this->fechaDe($mensajes[array_key_last($mensajes)]);
@@ -214,29 +218,7 @@ final readonly class ResumenConversacionService
     {
         $repo = $this->em->getRepository(Message::class);
 
-        // Última respuesta del equipo. Si nunca hubo, la ventana es toda la conversación.
-        //
-        // ⚠️ Se EXCLUYEN los salientes programados a futuro, y no es un detalle: el motor
-        // de reglas deja encolados avisos con `scheduledAt` de dentro de varios días
-        // (recordatorio de check-in, etc.). Contándolos, el corte se iba a esa fecha
-        // futura, ningún mensaje del huésped quedaba «después» y la ventana salía SIEMPRE
-        // vacía — el resumen no se generaba nunca y parecía que fallaba la IA.
-        // Un mensaje que todavía no ha salido no es una respuesta.
-        $ultimaSalida = $repo->createQueryBuilder('m')
-            ->select('MAX(COALESCE(m.scheduledAt, m.createdAt))')
-            ->where('m.conversation = :c')
-            ->andWhere('m.direction = :saliente')
-            // Los paréntesis son OBLIGATORIOS: `andWhere()` concatena la cadena tal cual y
-            // el AND liga más fuerte que el OR. Sin ellos la condición se leía como
-            // «(conversación AND saliente AND sin programar) OR (programado <= ahora)», que
-            // hace MAX sobre CASI TODA la tabla de mensajes: el corte salía siendo el
-            // mensaje más reciente del sistema y la ventana quedaba vacía siempre.
-            ->andWhere('(m.scheduledAt IS NULL OR m.scheduledAt <= :ahora)')
-            ->setParameter('c', $conversacion)
-            ->setParameter('saliente', Message::DIRECTION_OUTGOING)
-            ->setParameter('ahora', new \DateTimeImmutable())
-            ->getQuery()
-            ->getSingleScalarResult();
+        $ultimaSalida = $this->corteUltimaSalida($conversacion);
 
         // Se ordena por `createdAt` y no por la fecha efectiva por dos motivos: DQL no
         // admite COALESCE en ORDER BY (sí en SELECT y WHERE), y para un mensaje ENTRANTE
@@ -257,6 +239,36 @@ final readonly class ResumenConversacionService
 
         // Se piden los más recientes (DESC + límite) y se devuelven en orden de lectura.
         return array_reverse($qb->getQuery()->getResult());
+    }
+
+
+    /**
+     * Fecha de la última respuesta REAL del equipo, o `null` si nunca contestó.
+     *
+     * ⚠️ Excluye los salientes programados a futuro. El motor de reglas deja encolados
+     * avisos con `scheduledAt` de dentro de varios días (recordatorio de check-in, etc.):
+     * contándolos, el corte se iba a esa fecha futura, ningún mensaje del huésped quedaba
+     * «después» y la ventana salía SIEMPRE vacía. Un mensaje que aún no ha salido no es
+     * una respuesta.
+     *
+     * ⚠️ Los paréntesis del OR son obligatorios: `andWhere()` concatena la cadena tal cual
+     * y el AND liga más fuerte, así que sin ellos el MAX se calculaba sobre casi toda la
+     * tabla de mensajes en vez de sobre esta conversación.
+     */
+    private function corteUltimaSalida(MessageConversation $conversacion): ?string
+    {
+        $corte = $this->em->getRepository(Message::class)->createQueryBuilder('m')
+            ->select('MAX(COALESCE(m.scheduledAt, m.createdAt))')
+            ->where('m.conversation = :c')
+            ->andWhere('m.direction = :saliente')
+            ->andWhere('(m.scheduledAt IS NULL OR m.scheduledAt <= :ahora)')
+            ->setParameter('c', $conversacion)
+            ->setParameter('saliente', Message::DIRECTION_OUTGOING)
+            ->setParameter('ahora', new \DateTimeImmutable())
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $corte === null ? null : (string) $corte;
     }
 
     /** @param list<Message> $mensajes */
