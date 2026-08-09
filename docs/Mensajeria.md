@@ -455,6 +455,35 @@ llamada falla, el resumen se queda como estaba y los tres consumidores caen al t
 > notificación siguiente de esa conversación —que reemplaza a la anterior por el `tag`— ya
 > lo lleva. Es un compromiso deliberado entre inmediatez y calidad del texto.
 
+### 🔥 En DQL, pasar la ENTIDAD como parámetro no casa con un id `binary(16)`
+
+Los ids del proyecto son UUID guardados en `binary(16)` (ver `IdTrait`). En una consulta
+del QueryBuilder, esto **devuelve cero filas siempre**:
+
+```php
+->where('m.conversation = :c')
+->setParameter('c', $conversacion)          // ❌ la entidad
+```
+
+Doctrine extrae el identificador y lo enlaza como la **cadena canónica con guiones**
+(`019d13e3-f010-…`), que no es lo que hay en la columna. No lanza ninguna excepción, y el
+SQL generado se ve impecable:
+
+```sql
+SELECT COUNT(m0_.id) FROM msg_message m0_ WHERE m0_.conversation_id = ? AND m0_.direction = ?
+```
+
+Lo correcto es pasar el id **con su tipo**:
+
+```php
+->setParameter('c', $conversacion->getId(), 'uuid')   // ✅
+```
+
+> Cómo se cazó: la misma conversación daba **190 mensajes en SQL crudo y 0 en DQL**.
+> Si una consulta por asociación devuelve vacío contra toda lógica, mira el binding antes
+> que el SQL. `findBy(['conversation' => $entidad])` **sí** funciona —ahí Doctrine conoce el
+> tipo de la asociación—, así que el fallo solo aparece en el QueryBuilder.
+
 ### 🔥 Con `read: false`, API Platform NO aplica `security`
 
 Una operación custom que no lee de Doctrine se declara así:
