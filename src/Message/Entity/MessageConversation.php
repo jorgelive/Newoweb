@@ -19,6 +19,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Controller\Api\MarkConversationReadController;
+use App\Message\Controller\Api\UnreadSummaryController;
 use App\Security\Roles;
 use DateTime;
 use DateTimeInterface;
@@ -34,6 +35,28 @@ use Symfony\Component\Uid\Uuid;
 #[ApiResource(
     shortName: 'Conversation',
     operations: [
+        // Resumen global de no leídos: GET /message/conversations/unread-summary
+        //
+        // Va ANTES que el Get de item a propósito: las rutas se registran en este
+        // orden y `/conversations/{id}` capturaría «unread-summary» como si fuera
+        // un identificador.
+        //
+        // `read: false` porque no hay colección que proveer —el controlador hace
+        // su propia consulta agregada— y `output: false` porque ya devuelve una
+        // JsonResponse montada. Ver UnreadSummaryController.
+        new GetCollection(
+            uriTemplate: '/conversations/unread-summary',
+            controller: UnreadSummaryController::class,
+            openapi: new Operation(
+                summary: 'Resumen de mensajes sin leer',
+                description: 'Total de mensajes sin leer, desglose por estado y las conversaciones pendientes. Fuente única del badge y de los contadores del portal.'
+            ),
+            paginationEnabled: false,
+            read: false,
+            deserialize: false,
+            output: false
+        ),
+
         // API Platform infiere automáticamente: GET /message/conversations
         new GetCollection(),
 

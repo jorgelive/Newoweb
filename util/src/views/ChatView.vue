@@ -6,12 +6,14 @@ import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import EditConversationModal from '@/components/chat/EditConversationModal.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
 import { useRoute, useRouter } from 'vue-router';
 import { formatoAHtml, envolverSeleccion } from '@/utils/formatoDeTexto';
 
 const store = useChatStore();
 const attachmentStore = useAttachmentStore();
 const notificationStore = useNotificationStore();
+const noLeidos = useNoLeidosStore();
 
 const messagesContainer = ref<HTMLElement | null>(null);
 const conversationsContainer = ref<HTMLElement | null>(null);
@@ -30,14 +32,10 @@ const handleLogout = async () => {
   window.location.href = '/logout';
 };
 
-// ============================================================================
-// LÓGICA DE ACTUALIZACIÓN DE PWA EN CALIENTE
-// ============================================================================
-const updateAvailable = ref(false);
-
-const refreshApp = () => {
-  window.location.reload();
-};
+// El aviso de "nueva versión disponible" se movió a App.vue: aplica a todas las
+// vistas, no solo al chat, y allí lleva la guarda que evita que salte en la
+// primera instalación (clientsClaim dispara controllerchange sin haber versión
+// nueva). No reintroducirlo aquí.
 
 // ============================================================================
 // LÓGICA DE MENÚ CONTEXTUAL (MENSAJES)
@@ -478,12 +476,6 @@ onMounted(async () => {
 
   checkSharedFile();
   document.addEventListener('visibilitychange', handleVisibilityChange);
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      updateAvailable.value = true;
-    });
-  }
 
   window.addEventListener('resize', handleResize);
   updateChatVisibility();
@@ -1050,13 +1042,6 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 <template>
   <div class="fixed inset-0 flex bg-[#F8FAFC] font-sans overflow-hidden text-slate-900 antialiased" @contextmenu="isContextMenuOpen ? closeContextMenu() : (isStalkMenuOpen ? closeStalkMenu() : null)">
 
-    <Transition name="toast-slide">
-      <div v-if="updateAvailable" class="fixed top-4 left-1/2 -translate-x-1/2 z-9999 bg-[#376875] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-fade-in font-bold cursor-pointer hover:bg-[#2c535d] transition-colors" @click="refreshApp">
-        <i class="fas fa-sync-alt fa-spin"></i>
-        <span class="text-sm">Nueva versión disponible. Clic para actualizar.</span>
-      </div>
-    </Transition>
-
     <div v-if="isContextMenuOpen" class="fixed inset-0 z-400" @click="closeContextMenu"></div>
     <Transition name="fade-scale">
       <div v-if="isContextMenuOpen"
@@ -1150,9 +1135,20 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
             </button>
           </div>
         </div>
+        <!--
+          El contador por pestaña sale del resumen del servidor, NO de
+          `filteredConversations`: esa lista está paginada y los no leídos de
+          Archivados y Cerrados suelen ser conversaciones viejas que ni siquiera
+          están cargadas. Justo por eso se pintan: es la única señal de que hay
+          algo pendiente en una pestaña donde nadie mira.
+        -->
         <div class="flex bg-slate-100 p-1 rounded-xl mb-4 shadow-inner">
-          <button v-for="status in ['open', 'archived', 'closed']" :key="status" @click="store.filterStatus = status" class="flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all" :class="store.filterStatus === status ? 'bg-white text-[#376875] shadow-sm' : 'text-slate-400 hover:text-slate-600'">
-            {{ status === 'open' ? 'Activos' : status === 'archived' ? 'Archivados' : 'Cerrados' }}
+          <button v-for="status in (['open', 'archived', 'closed'] as const)" :key="status" @click="store.filterStatus = status" class="flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5" :class="store.filterStatus === status ? 'bg-white text-[#376875] shadow-sm' : 'text-slate-400 hover:text-slate-600'">
+            <span>{{ status === 'open' ? 'Activos' : status === 'archived' ? 'Archivados' : 'Cerrados' }}</span>
+            <span
+              v-if="noLeidos.mensajesDe(status) > 0"
+              class="min-w-[1.125rem] px-1 py-px rounded-full bg-[#E07845] text-white text-[9px] font-black tabular-nums"
+            >{{ noLeidos.mensajesDe(status) }}</span>
           </button>
         </div>
       </div>

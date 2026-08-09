@@ -4,6 +4,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, shallowRef, watch } from 'vue';
 import { useAttachmentStore } from '../attachmentStore.ts';
 import { useNotificationStore } from '../notificationStore.ts';
+import { useNoLeidosStore } from './noLeidosStore.ts';
 import type { components } from '@/types/api';
 import { apiClient, getUrls, processQueue, type CustomAxiosRequestConfig } from '@/services/apiClient.ts';
 import { esErrorSilencioso } from '@/services/apiError';
@@ -358,6 +359,11 @@ export const useChatStore = defineStore('chatStore', () => {
                 }
 
                 conversations.value.sort((a, b) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
+
+                // El resumen global no se deriva de esta lista (está paginada): se
+                // le pide al servidor que lo recalcule. Agrupado, porque un huésped
+                // que escribe tres líneas seguidas dispara tres eventos.
+                useNoLeidosStore().refrescarPronto();
             };
 
             es.onerror = () => {
@@ -418,7 +424,9 @@ export const useChatStore = defineStore('chatStore', () => {
                     if (incomingData.direction === 'incoming') {
                         // Si el chat está abierto en pantalla, disparamos POST para marcar como leído en BD
                         if (isChatVisible.value) {
-                            apiClient.post(`/platform/message/conversations/${conversationId}/read`).catch(() => {});
+                            apiClient.post(`/platform/message/conversations/${conversationId}/read`)
+                                .then(() => useNoLeidosStore().refrescarPronto())
+                                .catch(() => {});
                             if (currentConversation.value) currentConversation.value.unreadCount = 0;
                         } else if (currentConversation.value) {
                             currentConversation.value.unreadCount = (currentConversation.value.unreadCount || 0) + 1;
@@ -498,7 +506,12 @@ export const useChatStore = defineStore('chatStore', () => {
 
         try {
             if (found && (found.unreadCount ?? 0) > 0) {
-                apiClient.post(`/platform/message/conversations/${id}/read`).then(() => { if (found) found.unreadCount = 0; });
+                apiClient.post(`/platform/message/conversations/${id}/read`).then(() => {
+                    if (found) found.unreadCount = 0;
+                    // Abrir un chat baja el total global: el badge y los contadores
+                    // del portal tienen que enterarse, no solo esta lista.
+                    useNoLeidosStore().refrescarPronto();
+                });
                 found.unreadCount = 0;
             }
 
@@ -659,23 +672,15 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     // ============================================================================
-    // BADGE NATIVO
+    // BADGE NATIVO — se movió a `noLeidosStore`
     // ----------------------------------------------------------------------------
-    // Suma los mensajes sin leer, NO cuenta las conversaciones que los tienen.
-    // Antes era `.filter(c => c.unreadCount > 0).length`, y como casi siempre hay
-    // un solo huésped escribiendo, el badge se quedaba clavado en 1 por muchos
-    // mensajes que llegaran: parecía un tope del sistema operativo y no lo era.
+    // Aquí se calculaba sobre `conversations`, que está PAGINADO: el icono decía 4
+    // mientras el chat mostraba 24 no leídos, porque las conversaciones antiguas
+    // con pendientes ni siquiera estaban cargadas. Ahora el total lo da el
+    // servidor y lo pinta `noLeidosStore.pintarBadge()`, que es la misma fuente
+    // que alimenta los contadores de Home, del selector y de las pestañas.
+    // No reintroducir un contador local aquí: volvería a divergir.
     // ============================================================================
-    watch(() => conversations.value.reduce((total, c) => total + (c.unreadCount ?? 0), 0), (unreadMessages) => {
-        if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {
-            if (unreadMessages > 0) navigator.setAppBadge(unreadMessages).catch(() => {});
-            else navigator.clearAppBadge().catch(() => {});
-        }
-        // Limpiamos las notificaciones persistentes del OS si ya se leyeron todos los chats
-        if (unreadMessages === 0 && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
-        }
-    });
 
     return {
         conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, updateConversation, deleteConversation

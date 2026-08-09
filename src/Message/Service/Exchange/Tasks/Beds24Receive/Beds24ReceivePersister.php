@@ -274,7 +274,11 @@ readonly class Beds24ReceivePersister
                     $conversation->setLastInboundAt($msgDate);
                 }
 
-                $conversation->incrementUnreadCount();
+                // OJO: aquí NO se incrementa el contador de no leídos.
+                // `Message::onPrePersist()` ya lo hace para todo mensaje entrante,
+                // y hacerlo también aquí lo subía de dos en dos: en producción se
+                // llegó a ver una conversación con `unread_count` 24 cuando solo
+                // había 12 mensajes sin leer de verdad. Ver docs/Mensajeria.md.
 
                 // Si la conversación estaba cerrada, la reabrimos
                 if ($conversation->getStatus() !== MessageConversation::STATUS_OPEN) {

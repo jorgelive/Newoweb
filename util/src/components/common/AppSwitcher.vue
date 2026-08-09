@@ -16,6 +16,15 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { MODULOS_APP, moduloDeRuta, type ModuloApp } from '@/types/modulosApp';
+import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
+
+/**
+ * Ruta del módulo que lleva contador. Es la del Chat Inbox en `modulosApp`; se
+ * compara por ruta y no por título para que renombrarlo no apague el contador.
+ */
+const RUTA_CHAT = '/chat';
+
+const noLeidos = useNoLeidosStore();
 
 const props = withDefaults(defineProps<{
     /**
@@ -138,6 +147,20 @@ onBeforeUnmount(() => {
         </button>
 
         <!--
+          Punto de aviso sobre el propio botón: desde Reservas o Tarifas el
+          selector está cerrado y no hay ninguna otra señal de que haya mensajes
+          esperando. Es un punto y no un número porque el botón mide 40 px; el
+          número exacto está dentro, en la fila del chat.
+          No se pinta estando ya en el chat: allí la bandeja se ve sola.
+        -->
+        <span
+            v-if="noLeidos.hayNoLeidos && !abierto && actual?.to !== RUTA_CHAT"
+            class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#E07845] ring-2 ring-white pointer-events-none"
+            :title="`${noLeidos.totalMensajes} mensajes sin leer`"
+            aria-hidden="true"
+        ></span>
+
+        <!--
           El panel se teletransporta a <body>. NO es un adorno: la cabecera que
           monta este selector suele ser un *flex item* con `z-20`, y un flex item
           con z-index —aunque sea `static`— CREA CONTEXTO DE APILAMIENTO. Dentro
@@ -193,6 +216,11 @@ onBeforeUnmount(() => {
                             <span class="min-w-0 flex-1">
                                 <span class="block text-sm font-bold text-slate-800 truncate">{{ mod.title }}</span>
                             </span>
+                            <!-- Cuántos mensajes esperan, en la fila del chat. -->
+                            <span
+                                v-if="mod.to === RUTA_CHAT && noLeidos.hayNoLeidos"
+                                class="shrink-0 min-w-[1.25rem] px-1.5 py-0.5 rounded-full bg-[#E07845] text-white text-[10px] font-black text-center tabular-nums"
+                            >{{ noLeidos.totalMensajes }}</span>
                             <!-- Punto en vez de texto: en 288 px una etiqueta
                                  «Estás aquí» empujaba el nombre del módulo. -->
                             <span v-if="actual?.to === mod.to" class="w-1.5 h-1.5 rounded-full shrink-0" :class="mod.bar"

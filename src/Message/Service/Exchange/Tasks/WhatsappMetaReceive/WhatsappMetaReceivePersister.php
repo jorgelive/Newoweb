@@ -254,7 +254,8 @@ readonly class WhatsappMetaReceivePersister
         $conversation->setLastInboundAt($msgDate);
 
         // 2. Notificaciones y Estado
-        $conversation->incrementUnreadCount();
+        // El contador de no leídos lo sube `Message::onPrePersist()`. Subirlo
+        // también aquí lo duplicaba (ver docs/Mensajeria.md).
         if ($conversation->getStatus() !== MessageConversation::STATUS_OPEN) {
             $conversation->setStatus(MessageConversation::STATUS_OPEN);
         }
@@ -473,7 +474,8 @@ readonly class WhatsappMetaReceivePersister
         $conversation->addMessage($message);
         $conversation->setLastMessageAt($msgDate);
         $conversation->setLastInboundAt($msgDate);
-        $conversation->incrementUnreadCount();
+        // Sin incrementUnreadCount(): lo hace `Message::onPrePersist()`. Ver
+        // docs/Mensajeria.md — este duplicado inflaba el contador al doble.
 
         if ($conversation->getStatus() !== MessageConversation::STATUS_OPEN) {
             $conversation->setStatus(MessageConversation::STATUS_OPEN);

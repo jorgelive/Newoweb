@@ -347,6 +347,52 @@ momento falla, nada las repesca. Entrada recomendada:
 
 ## 7. Gotchas
 
+### 🔥 `unreadCount` es un contador desnormalizado, y derivó
+
+`MessageConversation::$unreadCount` **no se calcula**: es una columna que se
+incrementa al insertar cada mensaje entrante. Como todo dato desnormalizado, puede
+separarse de la realidad — y se separó.
+
+`Message::onPrePersist()` ya incrementa el contador para **todo** mensaje entrante.
+Pero los persisters de recepción llamaban además a `incrementUnreadCount()` por su
+cuenta:
+
+- `Beds24ReceivePersister` (rama `SENDER_GUEST`)
+- `WhatsappMetaReceivePersister`, en sus **dos** caminos de alta
+
+Resultado: el contador subía **de dos en dos**. En producción se vio una
+conversación marcando 24 no leídos cuando solo había 12 mensajes `incoming` en
+estado `received`. El síntoma es engañoso porque el número *parece* plausible: nadie
+sospecha de un contador, se sospecha del chat.
+
+Los tres duplicados están quitados. Lo que hay que recordar:
+
+> **La conversación se actualiza sola al persistir el mensaje.** `lastMessageAt`,
+> `lastInboundAt` y `unreadCount` los pone `Message::onPrePersist()`. Un persister
+> nuevo **no** debe tocarlos. Poner la fecha otra vez es inofensivo (es idempotente);
+> incrementar el contador, no.
+
+La verdad, cuando haya que comprobarla, es `direction = incoming AND status =
+received`: exactamente lo que `MarkConversationReadController` pasa a `read`.
+
+**Red de seguridad** — el contador no se recalcula solo en ningún flujo, así que hay
+un comando idempotente para reconciliarlo:
+
+```bash
+# Ver qué cambiaría, sin escribir
+php bin/console app:message:recalcular-no-leidos --dry-run
+
+# Aplicar
+php bin/console app:message:recalcular-no-leidos
+
+# Además, dar por leídos los pendientes viejos de conversaciones
+# cerradas/archivadas que nadie va a contestar
+php bin/console app:message:recalcular-no-leidos --marcar-leidas-antes-de=2026-07-01
+```
+
+Quién lee este contador: el badge del icono de la PWA y los contadores del portal,
+vía `UnreadSummaryController`. Ver [`PwaNotificaciones.md`](PwaNotificaciones.md).
+
 ### 🔥 `transientChannels` no es una columna
 
 `Message::$transientChannels` no tiene `#[ORM\Column]`. Cambiarlo **no ensucia la entidad**:

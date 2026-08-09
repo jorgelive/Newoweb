@@ -130,22 +130,68 @@ Todo lo que pase después ocurre en el dispositivo y no vuelve por ningún log.
 
 ## 5. Gotcha: el badge del icono
 
-Dos cosas distintas pintan el globito del icono, y se confundían entre sí:
+Dos cosas distintas pintan el globito del icono:
 
-1. **Con la app abierta** — `chatStore.ts` observa las conversaciones que llegan por Mercure
-   y llama a `navigator.setAppBadge()`.
+1. **Con la app abierta** — `noLeidosStore.pintarBadge()` llama a `navigator.setAppBadge()`.
 2. **Con la app cerrada** — lo pone el sistema operativo al mostrarse la notificación. Sin
    `showNotification()` no hay globito.
 
-Dos bugs que hacían que el número se quedara clavado en 1:
+Tres bugs distintos hacían que el número no significara nada:
 
-- `chatStore.ts` contaba **conversaciones con no leídos** (`.filter(...).length`) en vez de
-  **sumar los mensajes sin leer**. Con un solo huésped escribiendo, siempre 1. Ahora usa
-  `reduce((total, c) => total + c.unreadCount, 0)`.
-- `push-sw.js` usaba `tag: 'chat-message'` **fijo**: cada aviso reemplazaba al anterior, así
-  escribieran cinco huéspedes distintos. Ahora el tag es por conversación
-  (`chat-<uuid>`), de modo que un mensaje nuevo del mismo huésped sigue reemplazando al
-  suyo — no queremos veinte avisos del mismo chat — pero cada conversación suma el suyo.
+- **El tag fijo.** `push-sw.js` usaba `tag: 'chat-message'`: cada aviso reemplazaba al
+  anterior, así escribieran cinco huéspedes distintos, y el globito no pasaba de 1. Ahora el
+  tag es por conversación (`chat-<uuid>`): un mensaje nuevo del mismo huésped sigue
+  reemplazando al suyo —no queremos veinte avisos del mismo chat— pero cada conversación
+  suma el suyo.
+- **La fuente paginada.** El total se calculaba recorriendo `chatStore.conversations`, que
+  es la primera página de la bandeja. Una conversación con pendientes que no estuviera
+  cargada no se contaba: el icono decía 4 mientras el chat mostraba 24. El número dependía
+  de cuánto scroll hubiera hecho el operador.
+- **El contador inflado.** Y encima el dato de origen estaba mal: `unreadCount` se
+  incrementaba dos veces por mensaje. Ver el gotcha de
+  [`Mensajeria.md §7`](Mensajeria.md#7-gotchas) y el comando de reconciliación.
+
+**La regla ahora:** el total sale del servidor, de una consulta agregada, y hay **una sola
+fuente** para todos los contadores.
+
+```
+UnreadSummaryController  (una consulta agregada sobre msg_conversation)
+        │
+        ▼
+noLeidosStore  ──┬──► badge del icono           (pintarBadge)
+                 ├──► pieza «Chat Inbox» y panel de Home
+                 ├──► punto y fila del AppSwitcher
+                 └──► número por pestaña en el chat (Activos/Archivados/Cerrados)
+```
+
+Se refresca al arrancar la app y al volver a primer plano (`App.vue`), y en caliente cuando
+llega un evento de Mercure o se marca un chat como leído (`chatStore` → `refrescarPronto()`,
+agrupado 400 ms para que tres líneas seguidas de un huésped no disparen tres peticiones).
+
+> **No reintroducir un contador local en `chatStore`.** Volvería a divergir del resto: es
+> exactamente el bug del icono que decía 4 con 24 mensajes esperando.
+
+Los contadores por pestaña existen por un motivo concreto: los no leídos de **Archivados** y
+**Cerrados** suelen ser conversaciones viejas que ni siquiera están cargadas en la bandeja,
+así que sin el número nadie se entera de que hay algo pendiente ahí.
+
+## 5.1 Gotcha: el aviso de «nueva versión disponible»
+
+Vive en `App.vue` (de util **y** de pax), no en una vista concreta: si estás en Reservas con
+la pestaña abierta desde ayer, el código viejo te afecta igual.
+
+La guarda de `teniaControlador` **no es opcional**. El SW se genera con `skipWaiting` +
+`clientsClaim`, y `clientsClaim` hace que `controllerchange` dispare **también** la primera
+vez que el service worker toma control de una pestaña que cargó sin controlador — o sea,
+recién instalada la PWA. Sin la guarda, el cartel de «nueva versión» sale justo cuando no la
+hay:
+
+```js
+const teniaControlador = !!navigator.serviceWorker.controller;
+navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (teniaControlador) updateAvailable.value = true;
+});
+```
 
 ## 6. Un push fallido no debe callar al resto
 
@@ -189,7 +235,11 @@ En orden, porque cada paso descarta el anterior:
 | Cambiar quién recibe los avisos | `MessageConversationMercureListener` | el filtro `ROLE_MENSAJES_SHOW`; la herencia sale de `security.yaml` |
 | Cambiar cómo se pinta la notificación del SO | `util/public/push-sw.js` | `showNotification()` — sube la versión del encabezado para forzar reinstalación |
 | Cambiar el agrupado de notificaciones | `util/public/push-sw.js` | `conversationTag` — el tag fijo era el bug del "siempre 1", §5 |
-| Cambiar el número del icono con la app abierta | `util/src/stores/chat/chatStore.ts` | el `watch` del badge — suma `unreadCount`, no cuenta conversaciones, §5 |
+| Cambiar el número del icono con la app abierta | `util/src/stores/chat/noLeidosStore.ts` | `pintarBadge()` — fuente única, §5 |
+| Añadir un contador de no leídos en otra vista | `util/src/stores/chat/noLeidosStore.ts` | consúmelo del store; no cuentes sobre `chatStore.conversations`, §5 |
+| Cambiar qué devuelve el resumen | `UnreadSummaryController` **y** `noLeidosStore.ts` | Son espejo: las claves de la respuesta están tipadas en `RespuestaResumen` |
+| Reconciliar contadores que se ven raros | — | `php bin/console app:message:recalcular-no-leidos --dry-run`, [Mensajeria.md §7](Mensajeria.md#7-gotchas) |
+| Tocar el aviso de nueva versión | `util/src/App.vue` y `pax/src/App.vue` | No quitar la guarda `teniaControlador`, §5.1 |
 | Qué pasa si la app está enfocada al llegar un push | `util/public/push-sw.js` | rama `isAppFocused` → `postMessage`, lo recoge `App.vue` |
 | Rotar las llaves VAPID | `.env.local` **y** `util/.env.production` | `VAPID_PUBLIC_KEY` ↔ `VITE_VAPID_PUBLIC_KEY` son **espejo**: si difieren, el servidor push rechaza con 403. Cambiarlas invalida todas las suscripciones existentes |
 | Que un dispositivo caído no calle a los demás | `WebPushNotificationService::sendToUser()` | No lanza excepciones a propósito, §6 |

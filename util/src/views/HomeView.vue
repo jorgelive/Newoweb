@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useChatStore } from '@/stores/chat/chatStore.ts';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
 import { isSessionExpired } from '@/services/sessionAuth';
 import { MODULOS_APP } from '@/types/modulosApp';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
@@ -19,6 +20,39 @@ import { PMS_OCUPACION_CALENDARIO_KEY, fromDateLocal, sumarDias } from '@/types/
 const router = useRouter();
 const store = useChatStore();
 const notificationStore = useNotificationStore();
+const noLeidos = useNoLeidosStore();
+
+/** Ruta del módulo que lleva contador de no leídos en el mosaico. */
+const RUTA_CHAT = '/chat';
+
+/**
+ * «hace 5 min», «hace 3 días»… para la lista de chats sin leer.
+ *
+ * Con `Intl.RelativeTimeFormat` y no con una plantilla propia: el idioma decide
+ * plurales y formas irregulares («hace 1 día» vs «ayer») mejor que cualquier
+ * cadena escrita a mano aquí.
+ */
+const FORMATO_RELATIVO = new Intl.RelativeTimeFormat('es-PE', { numeric: 'auto' });
+
+const TRAMOS: readonly [Intl.RelativeTimeFormatUnit, number][] = [
+    ['year', 365 * 24 * 60 * 60],
+    ['month', 30 * 24 * 60 * 60],
+    ['day', 24 * 60 * 60],
+    ['hour', 60 * 60],
+    ['minute', 60],
+];
+
+const haceCuanto = (iso: string | null): string => {
+    if (!iso) return 'Sin fecha';
+
+    const segundos = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (segundos < 60) return 'hace un momento';
+
+    for (const [unidad, tamano] of TRAMOS) {
+        if (segundos >= tamano) return FORMATO_RELATIVO.format(-Math.floor(segundos / tamano), unidad);
+    }
+    return 'hace un momento';
+};
 
 // Los módulos y su agrupación viven en `@/types/modulosApp`: los comparte el
 // selector de la cabecera de cada vista (AppSwitcher), para que saltar de un
@@ -185,8 +219,19 @@ onMounted(async () => {
 
   // Solo con sesión: sin ella el feed responde 401 y el interceptor abriría el
   // modal de login nada más entrar al portal.
-  if (isSessionActive.value) await cargarPanelHoy();
-  else cargandoHoy.value = false;
+  if (isSessionActive.value) {
+    await cargarPanelHoy();
+
+    // El resumen de no leídos alimenta el panel de chats y el contador de la
+    // pieza de Mensajes. El túnel global de Mercure se abre también aquí —no
+    // solo en el chat— para que el portal se entere de un mensaje nuevo sin
+    // recargar; es el mismo `initGlobalMercure`, y su contador de generación
+    // garantiza que no queden dos EventSource vivos al entrar luego al chat.
+    void noLeidos.refrescar();
+    void store.initGlobalMercure();
+  } else {
+    cargandoHoy.value = false;
+  }
 });
 
 /**
@@ -439,6 +484,75 @@ const handleLogout = async () => {
           </div>
         </section>
 
+        <!-- ================================================================
+             CHATS SIN LEER
+             Va debajo del panel del día porque es la otra cosa que se mira al
+             abrir el portal: qué llega hoy y a quién hay que contestar. La
+             lista sale del resumen del servidor, no de la bandeja del chat, así
+             que incluye conversaciones antiguas con pendientes que en el chat
+             quedarían enterradas bajo la paginación.
+             ================================================================ -->
+        <section class="mb-8 md:mb-10">
+          <div class="flex items-baseline gap-3 mb-4 md:mb-5">
+            <h2 class="text-sm font-black uppercase tracking-[0.18em] text-[#376875]">Chats sin leer</h2>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Mensajes de huéspedes</span>
+            <span class="flex-1 h-px bg-slate-200"></span>
+          </div>
+
+          <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+              <span class="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                {{ noLeidos.totalConversaciones }}
+                {{ noLeidos.totalConversaciones === 1 ? 'conversación' : 'conversaciones' }}
+              </span>
+              <span class="flex items-center gap-2">
+                <span v-if="noLeidos.hayNoLeidos" class="px-2 py-0.5 rounded-full bg-[#E07845] text-white text-[10px] font-black tabular-nums">
+                  {{ noLeidos.totalMensajes }}
+                </span>
+                <RouterLink to="/chat" class="text-[10px] font-black uppercase tracking-widest text-[#376875] hover:underline">
+                  Ver bandeja
+                </RouterLink>
+              </span>
+            </div>
+
+            <p v-if="!noLeidos.hayNoLeidos" class="px-5 py-6 text-sm font-bold text-slate-400">
+              No hay mensajes sin leer.
+            </p>
+
+            <ul v-else class="divide-y divide-slate-50">
+              <li v-for="conv in noLeidos.conversaciones" :key="conv.id">
+                <RouterLink
+                  :to="`/chat/${conv.id}`"
+                  class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors"
+                  :title="`Abrir el chat de ${conv.guestName}`"
+                >
+                  <span class="w-9 h-9 rounded-xl bg-[#376875] text-white flex items-center justify-center shrink-0 font-black text-sm">
+                    {{ conv.guestName?.charAt(0).toUpperCase() || '?' }}
+                  </span>
+
+                  <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-bold text-slate-900 truncate">{{ conv.guestName }}</span>
+                    <span class="block text-[11px] font-medium text-slate-400">
+                      {{ haceCuanto(conv.lastMessageAt) }}
+                      <!-- El estado solo se dice cuando NO es «Activos»: si está
+                           archivado o cerrado y tiene pendientes, es justo lo que
+                           se pasa por alto en el chat. -->
+                      <span v-if="conv.status !== 'open'" class="ml-1 uppercase tracking-widest font-black text-slate-300">
+                        · {{ conv.status === 'archived' ? 'Archivado' : 'Cerrado' }}
+                      </span>
+                    </span>
+                  </span>
+
+                  <span class="shrink-0 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-[#E07845] text-white text-[11px] font-black text-center tabular-nums">
+                    {{ conv.unreadCount }}
+                  </span>
+                  <i class="fas fa-chevron-right text-[10px] text-slate-300 shrink-0" aria-hidden="true"></i>
+                </RouterLink>
+              </li>
+            </ul>
+          </div>
+        </section>
+
         <!-- Mosaico de piezas desiguales, estilo Windows: el módulo de uso diario
              es una pieza 2x2 en color pleno y los otros dos, piezas planas a su
              derecha. En la rejilla de 4 columnas encaja exacto: 2+2 de ancho, 2
@@ -475,6 +589,14 @@ const handleLogout = async () => {
                 </div>
                 <span v-if="mod.destacado" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-[9px] font-black uppercase tracking-widest text-white/90">
                   <i class="fas fa-star text-[8px]" aria-hidden="true"></i> Uso diario
+                </span>
+                <!-- Cuántos mensajes esperan, en la propia pieza del chat. -->
+                <span
+                  v-else-if="mod.to === RUTA_CHAT && noLeidos.hayNoLeidos"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#E07845] text-[10px] font-black text-white shadow-sm tabular-nums"
+                  :title="`${noLeidos.totalMensajes} mensajes sin leer`"
+                >
+                  <i class="fas fa-envelope text-[8px]" aria-hidden="true"></i> {{ noLeidos.totalMensajes }}
                 </span>
               </div>
 
