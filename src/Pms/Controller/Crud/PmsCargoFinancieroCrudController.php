@@ -17,6 +17,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
 /**
@@ -74,7 +75,20 @@ class PmsCargoFinancieroCrudController extends BaseCrudController
                 PmsTipoCargo::OTRO->value        => 'secondary',
             ]);
 
-        yield TextField::new('descripcion', 'Descripción');
+        yield TextField::new('descripcion', 'Descripción')
+            ->setHelp('Interna. La rellena Beds24 con lo que venga del canal; el huésped NO la ve.');
+
+        // Lo que sí ve el huésped. Se escribe en español y el traductor automático rellena
+        // los demás idiomas (AutoTranslate sobre `descripcionCliente`).
+        yield TextareaField::new('descripcionClienteEs', 'Descripción para el huésped')
+            ->setNumOfRows(2)
+            ->setRequired(false)
+            ->setHelp(
+                'Opcional, y así debe quedarse: la mayoría de cargos se explican con su tipo. '
+                . 'Rellénala solo cuando el importe necesite una explicación —un ajuste de cuadre, '
+                . 'un extra pactado—. Aparece en el estado de cuenta del huésped y en el que le '
+                . 'manda el asistente por WhatsApp. Se traduce sola a los demás idiomas.'
+            );
         yield TextField::new('tipo', 'Tipo Beds24')->onlyOnDetail();
         yield IntegerField::new('subTipo', 'subType Beds24')->onlyOnDetail();
 

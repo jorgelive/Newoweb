@@ -10,6 +10,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Finance\TipoCambioDelDia;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -34,6 +35,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
         #[Autowire(service: 'api_platform.doctrine.orm.state.item_provider')]
         private readonly ItemProvider $itemProvider,
         private readonly EntityManagerInterface $em,
+        private readonly TipoCambioDelDia $tipoCambioDelDia,
     ) {
     }
 
@@ -58,7 +60,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
         $base = [
             'moneda'  => $finanzas->getMoneda()?->getId() ?? 'USD',
             'simbolo' => $finanzas->getMoneda()?->getSimbolo(),
-        ];
+        ] + $this->referenciaSoles($finanzas);
 
         $reserva->setResumenFinancieroCliente($base + $this->cifras($finanzas));
 
@@ -115,7 +117,46 @@ final class PmsReservaPaxProvider implements ProviderInterface
             'pagado' => $espejo ? number_format($pagado, 2, '.', '') : $finanzas->getTotalPagos(),
             'saldo'  => $espejo ? number_format($total - $pagado, 2, '.', '') : $finanzas->getSaldo(),
             'cargos' => $cargos,
+            // Detalle línea a línea, con la descripción redactada para el huésped. Es lo que
+            // pinta la tarjeta; `cargos` (agrupado por tipo) se mantiene porque sigue siendo
+            // el resumen barato para cualquier otro consumidor.
+            'lineas' => $finanzas->getLineasCliente(excluirEspejoCanal: $espejo),
             'pagos'  => $pagos,
+        ];
+    }
+
+    /**
+     * Equivalencia REFERENCIAL en soles, para el conmutador de la tarjeta.
+     *
+     * Se manda un único tipo de cambio —el del día— para toda la tarjeta, y no el que cada
+     * cargo tiene congelado. Con los TC históricos las líneas no sumarían el total
+     * convertido, y esa descuadre es justo la conversación que la tarjeta quiere evitar.
+     *
+     * Por eso es **referencial y hay que decirlo en pantalla**: no es lo que se cobró ni lo
+     * que se va a cobrar, es «cuánto viene siendo hoy». El cobro real sigue siendo en la
+     * moneda de la cabecera.
+     *
+     * Si no hay TC del día o la cabecera ya está en soles, no se manda nada y el front
+     * sencillamente no pinta el conmutador.
+     *
+     * @return array{tipoCambioReferencial?: string, monedaReferencial?: string, simboloReferencial?: string}
+     */
+    private function referenciaSoles(PmsInformacionFinanciera $finanzas): array
+    {
+        if (($finanzas->getMoneda()?->getId() ?? 'USD') === 'PEN') {
+            return [];
+        }
+
+        $tc = $this->tipoCambioDelDia->venta();
+
+        if ($tc === null || (float) $tc <= 0) {
+            return [];
+        }
+
+        return [
+            'tipoCambioReferencial' => $tc,
+            'monedaReferencial' => 'PEN',
+            'simboloReferencial' => 'S/.',
         ];
     }
 

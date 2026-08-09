@@ -276,6 +276,62 @@ class PmsInformacionFinanciera
     }
 
     /**
+     * Las MISMAS líneas que `getDesglosePorTipo()`, pero sin agrupar.
+     *
+     * Existe porque el estado de cuenta del huésped pasó a enseñar el detalle: agrupado por
+     * tipo, un ajuste de cuadre de −0.20 aparecía sumado dentro de «Otros» y era imposible
+     * de interpretar. Aquí cada cargo va con su descripción redactada para él.
+     *
+     * ⚠️ Aplica las CUATRO reglas del desglose y no puede separarse de él: anulación (§12.7),
+     * `esCargo()`, `totalLinea ?? monto` y la conversión a la moneda de la cabecera. Si se
+     * toca una allí, hay que tocarla aquí — por eso viven las dos en esta entidad y no en
+     * quien las pinta.
+     *
+     * La descripción se devuelve CRUDA (`I18nContent[]`), sin resolver idioma: quien pinta
+     * ya sabe en cuál está —el front tiene `maestroStore.traducir()`— y resolverlo aquí
+     * obligaría a arrastrar el idioma del huésped hasta la entidad.
+     *
+     * El orden es el de llegada de los cargos, no el de presentación por tipo: en el detalle
+     * lo que se lee es la secuencia de lo que se fue cobrando.
+     *
+     * @param bool $excluirEspejoCanal Igual que en getDesglosePorTipo().
+     * @return list<array{tipo: string, descripcion: list<array{content: string, language: string}>, monto: string}>
+     */
+    public function getLineasCliente(bool $excluirEspejoCanal = false): array
+    {
+        $lineas = [];
+
+        foreach ($this->cargos as $cargo) {
+            if (!$cargo->esCargo()) {
+                continue;
+            }
+            if ($excluirEspejoCanal && $cargo->isEsAutomatico()) {
+                continue;
+            }
+
+            $tipo = $cargo->getTipoCargo() ?? PmsTipoCargo::OTRO;
+
+            if (!$this->activa && $tipo !== PmsTipoCargo::PENALIZACION) {
+                continue;
+            }
+
+            $monto = $this->aMonedaBase(
+                (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0'),
+                $cargo->getMoneda()?->getId(),
+                $cargo->getTipoCambio(),
+            );
+
+            $lineas[] = [
+                'tipo' => $tipo->value,
+                'descripcion' => $cargo->getDescripcionCliente(),
+                'monto' => number_format($monto, 2, '.', ''),
+            ];
+        }
+
+        return $lineas;
+    }
+
+    /**
      * Versión pública y ya formateada de aMonedaBase(), para las líneas que no
      * pasan por getDesglosePorTipo() — los pagos del estado de cuenta del huésped.
      */

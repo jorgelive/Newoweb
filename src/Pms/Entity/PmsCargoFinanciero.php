@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use App\Attribute\AutoTranslate;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
@@ -172,9 +173,37 @@ class PmsCargoFinanciero
     #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
     private ?string $tipoCambio = null;
 
+    /**
+     * Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+     * venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+     * al huésped por eso mismo — para eso está `$descripcionCliente`.
+     */
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
     private ?string $descripcion = null;
+
+    /**
+     * Descripción que SÍ ve el huésped, traducible (`I18nContent[]`).
+     *
+     * Existe porque `$descripcion` viene de Beds24 y no es presentable. Sin esto, un cargo
+     * de tipo «Otros» llegaba al huésped como una cifra suelta sin explicación —un −0.20 de
+     * ajuste de cuadre que nadie sabe interpretar—.
+     *
+     * Es un campo OPCIONAL y así debe quedarse: la inmensa mayoría de los cargos se explican
+     * solos con su tipo (Alojamiento, Extras) y obligar a redactar cada uno sería trabajo
+     * inútil. Solo se rellena cuando el importe necesita una explicación.
+     *
+     * Se traduce sola vía {@see \App\Attribute\AutoTranslate}: se escribe en español y el
+     * resto de idiomas los rellena el traductor automático, igual que
+     * `CotizacionCottarifa::$proveedorTituloSnapshot`.
+     *
+     * Nullable en base de datos —no `NOT NULL DEFAULT '[]'`— para que añadir la columna a una
+     * tabla con miles de cargos no exija reescribirlos todos.
+     */
+    #[ORM\Column(name: 'descripcion_cliente', type: 'json', nullable: true)]
+    #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    private ?array $descripcionCliente = null;
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     #[Groups(['pms_cargo:read'])]
@@ -288,6 +317,82 @@ class PmsCargoFinanciero
 
     public function getDescripcion(): ?string { return $this->descripcion; }
     public function setDescripcion(?string $descripcion): self { $this->descripcion = $descripcion; return $this; }
+
+    /** @return list<array{content: string, language: string}> Vacío si nadie la redactó. */
+    public function getDescripcionCliente(): array { return $this->descripcionCliente ?? []; }
+
+    /** @param array<int, array{content: string, language: string}>|null $descripcionCliente */
+    public function setDescripcionCliente(?array $descripcionCliente): self { $this->descripcionCliente = $descripcionCliente; return $this; }
+
+    /**
+     * La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal.
+     *
+     * El panel no tiene editor multiidioma —los campos `I18nContent[]` del proyecto se
+     * escriben desde las apps Vue—, y montar uno para un campo opcional sería
+     * desproporcionado. Se escribe el español, que es el `sourceLanguage` del
+     * {@see \App\Attribute\AutoTranslate}, y el resto de idiomas los rellena el traductor.
+     *
+     * Vaciar el campo borra la descripción entera, traducciones incluidas: si el operador
+     * quita el texto en español, las traducciones de ese texto ya no significan nada.
+     */
+    #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
+    public function getDescripcionClienteEs(): ?string
+    {
+        foreach ($this->getDescripcionCliente() as $contenido) {
+            if (($contenido['language'] ?? null) === 'es') {
+                return $contenido['content'] ?? null;
+            }
+        }
+
+        return null;
+    }
+
+    #[Groups(['pms_cargo:write', 'pms_cargo:patch'])]
+    public function setDescripcionClienteEs(?string $texto): self
+    {
+        $texto = trim((string) $texto);
+
+        if ($texto === '') {
+            $this->descripcionCliente = null;
+
+            return $this;
+        }
+
+        // Se conservan las traducciones de los demás idiomas y solo se reemplaza el español.
+        // Si el texto origen cambió, el traductor automático las regenerará al guardar.
+        $otros = array_values(array_filter(
+            $this->getDescripcionCliente(),
+            static fn (array $c): bool => ($c['language'] ?? null) !== 'es'
+        ));
+
+        $this->descripcionCliente = array_merge([['content' => $texto, 'language' => 'es']], $otros);
+
+        return $this;
+    }
+
+    /**
+     * El texto para el huésped en el idioma pedido, o `null` si no hay descripción.
+     *
+     * El fallback es el mismo que usa el front (`maestroStore.traducir()`): idioma pedido →
+     * inglés → español → lo primero que haya. Vive aquí para que el estado de cuenta del
+     * agente y el resumen del panel no reimplementen cada uno su versión.
+     */
+    public function descripcionClienteEn(string $idioma): ?string
+    {
+        $contenidos = $this->getDescripcionCliente();
+
+        foreach ([$idioma, 'en', 'es'] as $preferido) {
+            foreach ($contenidos as $contenido) {
+                if (($contenido['language'] ?? null) === $preferido && trim((string) ($contenido['content'] ?? '')) !== '') {
+                    return trim($contenido['content']);
+                }
+            }
+        }
+
+        $primero = trim((string) ($contenidos[0]['content'] ?? ''));
+
+        return $primero === '' ? null : $primero;
+    }
 
     public function getEstado(): ?string { return $this->estado; }
     public function setEstado(?string $estado): self { $this->estado = $estado; return $this; }

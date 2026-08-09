@@ -804,3 +804,47 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Que los pagos de un módulo salgan en la caja | §10, paso 3 | `FinMovimientoProviderInterface` |
 | Añadir un módulo que cobre | §10 | `FinOrigenCobroResolverInterface` |
 | Depurar "no se confirmó un cobro" | tabla `fin_pasarela_webhook_audit` | `payload_raw`, `estado`, `error_mensaje` |
+
+---
+
+## 8. La descripción del cargo que ve el huésped
+
+`pms_cargo_financiero` tiene **dos** descripciones y no son intercambiables:
+
+| Campo | Quién la escribe | Quién la ve |
+|---|---|---|
+| `descripcion` | `Beds24InvoiceReceivePersister`, con lo que venga del canal | Solo el equipo |
+| `descripcion_cliente` | El operador, en español | El huésped |
+
+La primera trae códigos y nombres de tarifa sin normalizar: no es presentable. Sin la
+segunda, un cargo de tipo «Otros» le llegaba al huésped como una cifra suelta —un −0.20 de
+ajuste de cuadre que nadie sabe interpretar—.
+
+`descripcion_cliente` es `I18nContent[]` con `#[AutoTranslate]`: se escribe en español y el
+traductor rellena los demás idiomas. **Es opcional a propósito**; la mayoría de los cargos se
+explican con su tipo y obligar a redactar cada uno sería trabajo inútil.
+
+Se edita desde `util` (`ReservaFinanzasPanel.vue`) vía el `PATCH` de API Platform, mandando
+el accesor plano `descripcionClienteEs`. El CRUD del panel es de **solo lectura** para esta
+entidad (`disable(Action::NEW, Action::EDIT)`), así que allí solo se consulta.
+
+### El estado de cuenta del huésped pasó a ser línea a línea
+
+`PmsReservaPaxProvider` manda ahora `lineas` además de `cargos`. `cargos` sigue siendo el
+desglose agrupado por tipo; `lineas` es el detalle, con la descripción de cada cargo.
+
+⚠️ **`PmsInformacionFinanciera::getLineasCliente()` y `getDesglosePorTipo()` aplican las
+MISMAS cuatro reglas** (anulación §12.7, `esCargo()`, `totalLinea ?? monto`, conversión a la
+moneda de la cabecera). Tocar una en uno obliga a tocarla en el otro; por eso viven las dos
+en la entidad y no en quien las pinta.
+
+### El importe en soles es REFERENCIAL
+
+`referenciaSoles()` manda **un solo** tipo de cambio —el del día, vía `TipoCambioDelDia`—
+para toda la tarjeta, no el que cada cargo tiene congelado. Con los TC históricos las líneas
+no sumarían el total convertido, y ese descuadre es justo la conversación que la tarjeta
+quiere evitar.
+
+Por eso **la pantalla tiene que decir que es referencial**: no es lo que se cobró ni lo que se
+va a cobrar. El cobro real sigue siendo en la moneda de la cabecera. Si no hay TC del día, o
+la cabecera ya está en soles, no se manda nada y el conmutador no se pinta.
