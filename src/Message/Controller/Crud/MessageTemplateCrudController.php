@@ -415,9 +415,37 @@ class MessageTemplateCrudController extends BaseCrudController
             return $this->redirect($context->getReferrer() ?? $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
         }
 
+        // PASO 1 — elegir idiomas. Sin selección, se enseña el cuadro en vez de subir.
+        //
+        // Subir un idioma REABRE su revisión en Meta: reenviar los siete porque uno fue
+        // rechazado devuelve a PENDING seis que ya estaban aprobadas y no se pueden usar
+        // fuera de la ventana de 24 h hasta que Meta las mire otra vez.
+        $peticion = $context->getRequest();
+        $idiomas = (array) $peticion->request->all('idiomas');
+
+        if (!$peticion->isMethod('POST')) {
+            $cuerpos = $template->getWhatsappMetaTmpl()['body'] ?? [];
+
+            return $this->render('panel/message/message_template/push_meta_idiomas.html.twig', [
+                'plantilla' => $template,
+                'idiomas' => array_map(static fn (array $b): array => [
+                    'codigo' => (string) ($b['language'] ?? '?'),
+                    'estado' => (string) ($b['status'] ?? 'SIN ENVIAR'),
+                ], is_array($cuerpos) ? $cuerpos : []),
+                'urlVolver' => $peticion->headers->get('referer')
+                    ?? $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl(),
+            ]);
+        }
+
+        if ($idiomas === []) {
+            $this->addFlash('warning', 'No marcaste ningún idioma: no se subió nada.');
+
+            return $this->redirect($adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
+        }
+
         try {
-            // Ejecutamos el servicio que armamos, que procesa todos los idiomas
-            $results = $pushService->pushTemplateToMeta($template);
+            // Solo los idiomas marcados; el resto conserva su estado en Meta.
+            $results = $pushService->pushTemplateToMeta($template, $idiomas);
 
             if (empty($results)) {
                 $this->addFlash('warning', 'La plantilla local no tiene un JSON de WhatsApp Meta válido o no contiene idiomas configurados.');

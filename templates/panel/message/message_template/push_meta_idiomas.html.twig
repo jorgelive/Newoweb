@@ -1,0 +1,82 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{#
+    Selección de idiomas antes de subir una plantilla a Meta.
+
+    Existe porque subir un idioma REABRE su revisión: reenviar los siete porque uno fue
+    rechazado devuelve a PENDING seis que ya estaban aprobadas y funcionando, y hasta que
+    Meta las vuelva a mirar no se pueden usar fuera de la ventana de 24 h.
+
+    Por eso los aprobados llegan DESMARCADOS y los que no lo están, marcados: lo que se
+    quiere subir casi siempre es justo lo que falta.
+#}
+
+{% block content_title %}
+    <i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i> Subir a Meta — {{ plantilla.name }}
+{% endblock %}
+
+{% block main %}
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4">
+
+                        <div class="alert alert-warning d-flex gap-2 align-items-start">
+                            <i class="fa-solid fa-triangle-exclamation mt-1"></i>
+                            <div>
+                                <strong>Subir un idioma reabre su revisión en Meta.</strong>
+                                Un idioma <em>aprobado</em> que vuelvas a enviar pasa a
+                                <em>pendiente</em> y deja de poder usarse fuera de la ventana
+                                de 24 h hasta que Meta lo revise otra vez. Marca solo los que
+                                necesites.
+                            </div>
+                        </div>
+
+                        <form method="post">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width:3rem"></th>
+                                        <th>Idioma</th>
+                                        <th>Estado en Meta</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for idioma in idiomas %}
+                                    <tr>
+                                        <td>
+                                            <input class="form-check-input" type="checkbox"
+                                                   name="idiomas[]" value="{{ idioma.codigo }}"
+                                                   id="idioma_{{ idioma.codigo }}"
+                                                   {{ idioma.estado != 'APPROVED' ? 'checked' : '' }}>
+                                        </td>
+                                        <td>
+                                            <label class="form-check-label fw-semibold"
+                                                   for="idioma_{{ idioma.codigo }}">{{ idioma.codigo }}</label>
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ idioma.estado == 'APPROVED' ? 'badge-success'
+                                                : (idioma.estado == 'REJECTED' ? 'badge-danger' : 'badge-warning') }}">
+                                                {{ idioma.estado }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{{ urlVolver }}" class="btn btn-secondary">Cancelar</a>
+                                <button type="submit" class="btn btn-warning text-dark">
+                                    <i class="fa-solid fa-cloud-arrow-up me-1"></i> Subir los marcados
+                                </button>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

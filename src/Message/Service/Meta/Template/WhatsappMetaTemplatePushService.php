@@ -34,7 +34,16 @@ final readonly class WhatsappMetaTemplatePushService
      * * @param MessageTemplate $template Entidad con el JSON de Meta.
      * @return array Resumen de operaciones por idioma.
      */
-    public function pushTemplateToMeta(MessageTemplate $template): array
+    /**
+     * @param list<string> $soloIdiomas Códigos a subir. VACÍO = todos los que tenga la
+     *        plantilla.
+     *
+     *        Existe porque subir un idioma **reabre su revisión en Meta**: reenviar los
+     *        siete porque uno fue rechazado devuelve a PENDING seis que ya estaban
+     *        aprobadas y funcionando, y hasta que Meta los vuelva a mirar no se pueden
+     *        usar fuera de la ventana de 24 h. Es un daño real, no una molestia.
+     */
+    public function pushTemplateToMeta(MessageTemplate $template, array $soloIdiomas = []): array
     {
         // 🔥 PROTECCIÓN CONTRA TIMEOUT: Damos 2 minutos de vida al script
         // Meta tarda mucho en procesar múltiples idiomas consecutivamente.
@@ -71,6 +80,16 @@ final readonly class WhatsappMetaTemplatePushService
         }
 
         $localLanguages = array_unique(array_map(fn($b) => $b['language'], $metaTmpl['body'] ?? []));
+
+        // Filtro de idiomas. Se aplica aquí, sobre los que la plantilla tiene de verdad,
+        // para que pedir uno inexistente no invente una subida vacía.
+        if ($soloIdiomas !== []) {
+            $localLanguages = array_values(array_intersect($localLanguages, $soloIdiomas));
+
+            if ($localLanguages === []) {
+                throw new RuntimeException('Ninguno de los idiomas seleccionados existe en esta plantilla.');
+            }
+        }
         $results = [];
 
         foreach ($localLanguages as $localLang) {
