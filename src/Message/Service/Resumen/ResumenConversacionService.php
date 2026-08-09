@@ -97,20 +97,9 @@ final readonly class ResumenConversacionService
             $conversacion->setResumenIaHasta(null);
             $this->em->flush();
 
-            $q = $this->em->getRepository(Message::class)->createQueryBuilder('m')
-                ->select('COUNT(m.id)')
-                ->where('m.conversation = :c')
-                ->andWhere('m.direction = :entrante')
-                ->setParameter('c', $conversacion)
-                ->setParameter('entrante', Message::DIRECTION_INCOMING)
-                ->getQuery();
-
             return sprintf(
-                'sin ventana (corte: %s | entrantes: %d | direccion=%s | SQL: %s)',
-                $this->corteUltimaSalida($conversacion) ?? 'ninguno',
-                (int) $q->getSingleScalarResult(),
-                Message::DIRECTION_INCOMING,
-                $q->getSQL(),
+                'sin ventana: el equipo ya contestó (corte: %s)',
+                $this->corteUltimaSalida($conversacion) ?? 'ninguno'
             );
         }
 
@@ -201,7 +190,7 @@ final readonly class ResumenConversacionService
         $ultimo = $this->em->getRepository(Message::class)->createQueryBuilder('m')
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :entrante')
-            ->setParameter('c', $conversacion)
+            ->setParameter('c', $conversacion->getId(), 'uuid')
             ->setParameter('entrante', Message::DIRECTION_INCOMING)
             ->orderBy('m.createdAt', 'DESC')
             ->setMaxResults(1)
@@ -223,6 +212,12 @@ final readonly class ResumenConversacionService
      * El corte es la última salida, no una ventana de tiempo: es exactamente lo que el
      * operador todavía no ha atendido.
      *
+     * ⚠️ El parámetro va como `$conversacion->getId()` **con el tipo `uuid` explícito**, no
+     * como la entidad. Pasando la entidad, Doctrine extrae el identificador y lo enlaza
+     * como la cadena canónica con guiones, mientras que `conversation_id` es un
+     * `binary(16)`: la consulta se ejecuta sin error y devuelve CERO filas siempre. El SQL
+     * generado se ve perfecto, que es lo que lo hace tan difícil de ver.
+     *
      * @return list<Message>
      */
     private function ventanaSinResponder(MessageConversation $conversacion): array
@@ -238,7 +233,7 @@ final readonly class ResumenConversacionService
         $qb = $repo->createQueryBuilder('m')
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :entrante')
-            ->setParameter('c', $conversacion)
+            ->setParameter('c', $conversacion->getId(), 'uuid')
             ->setParameter('entrante', Message::DIRECTION_INCOMING)
             ->orderBy('m.createdAt', 'DESC')
             ->setMaxResults(self::MAX_MENSAJES);
@@ -273,7 +268,7 @@ final readonly class ResumenConversacionService
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :saliente')
             ->andWhere('(m.scheduledAt IS NULL OR m.scheduledAt <= :ahora)')
-            ->setParameter('c', $conversacion)
+            ->setParameter('c', $conversacion->getId(), 'uuid')
             ->setParameter('saliente', Message::DIRECTION_OUTGOING)
             ->setParameter('ahora', new \DateTimeImmutable())
             ->getQuery()
