@@ -6,6 +6,7 @@ namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsEstablecimientoVirtual;
+use App\Pms\Enum\PmsPoliticaPrepago;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -15,6 +16,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -98,6 +100,18 @@ final class PmsEstablecimientoVirtualCrudController extends BaseCrudController
 
         yield TextField::new('nombre', 'Nombre Comercial')
             ->setHelp('Ej: Saphy, Inti, Booking Lujo.');
+
+        // Política COMERCIAL, no técnica: cambia por temporada y por listing, así que se
+        // configura aquí en vez de estar incrustada en el código. Alimenta el bloque de
+        // prepago del estado de cuenta del huésped y el importe de los enlaces de cobro.
+        yield ChoiceField::new('politicaPrepago', 'Política de prepago')
+            ->setChoices(PmsPoliticaPrepago::opciones())
+            ->renderExpanded(false)
+            ->setHelp(
+                '«Del total» incluye limpieza y extras; «solo alojamiento», únicamente las noches. '
+                . 'La diferencia es dinero real: 3 noches a 40 con 15 de limpieza dan 45.00 o 40.00 '
+                . 'según cuál elijas. Sin prepago = se cobra todo a la llegada.'
+            );
 
         yield TextField::new('codigo', 'Código de Agrupación')
             ->setHelp('CRÍTICO: Identificador único del listing (Ej: "SAPHY").')

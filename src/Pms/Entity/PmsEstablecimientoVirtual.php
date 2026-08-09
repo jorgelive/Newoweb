@@ -8,6 +8,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use App\Pms\Enum\PmsPoliticaPrepago;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
@@ -23,6 +24,26 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\HasLifecycleCallbacks]
 class PmsEstablecimientoVirtual
 {
+
+    /**
+     * Cuánto se le pide por adelantado al huésped al reservar en ESTE establecimiento.
+     *
+     * Es política comercial y cambia por temporada —en baja se afloja para no perder
+     * reservas—, así que se configura aquí en vez de estar incrustada en el código.
+     *
+     * Alimenta el bloque de prepago del estado de cuenta del huésped y el importe de los
+     * enlaces de cobro. `SIN_PREPAGO` es el valor seguro por defecto: sin política definida
+     * no se le pide nada por adelantado a nadie.
+     *
+     * Ver {@see \App\Pms\Enum\PmsPoliticaPrepago} para la diferencia entre «del total» y
+     * «solo alojamiento», que es dinero real.
+     */
+    #[ORM\Column(name: 'politica_prepago', type: 'string', length: 30, enumType: PmsPoliticaPrepago::class, options: ['default' => 'sin_prepago'])]
+    private PmsPoliticaPrepago $politicaPrepago = PmsPoliticaPrepago::SIN_PREPAGO;
+
+    public function getPoliticaPrepago(): PmsPoliticaPrepago { return $this->politicaPrepago; }
+    public function setPoliticaPrepago(PmsPoliticaPrepago $politicaPrepago): self { $this->politicaPrepago = $politicaPrepago; return $this; }
+
     use IdTrait;
     use TimestampTrait;
 
