@@ -537,17 +537,29 @@ Consecuencia a tener presente: **Yape y PagoEfectivo no están disponibles** mie
 implementemos `/v2/orders`. El texto bajo el botón dice "Tarjeta de crédito o débito" y no
 debe prometer más.
 
-### Pendiente de confirmar con el primer cobro real de test
+### Comprobado contra la API real (cobro de test)
 
-Dos cosas que la documentación pública no aclara y que se resuelven mirando un cobro de
-verdad:
+- **Éxito del cargo.** Un cobro autorizado devuelve `object: "charge"` **y**
+  `outcome.type: "venta_exitosa"`. `cargoPagaElEnlace()` sigue decidiendo por
+  `object === 'charge'` **a propósito**: es la condición necesaria y suficiente —Culqi sólo
+  materializa el objeto cargo cuando autoriza, un rechazo devuelve un objeto de error—, y
+  exigir además un `outcome.type` exacto arriesga rechazar un cobro legítimo si mañana
+  aparece otra variante (3DS, por ejemplo). El valor se registra en el log para poder verlo.
+- **Moneda.** La cuenta **acepta USD**, no sólo soles. Verificado con un cargo real de test
+  de `72387 USD` → `venta_exitosa`. No hay que convertir importes.
+- **Tarjetas de prueba que tokenizan** en esta cuenta: `4111 1111 1111 1111` (Visa) y
+  `5111 1111 1111 1118` (Mastercard). Otras muy citadas —`4557 8818 8367 7553`,
+  `4000 0000 0000 0101`, la Amex `3712 8882 2626 8310`— fallan con *"No se encuentra el Bin
+  de la tarjeta"*: el BIN depende de la cuenta, así que si el modal dice "no pudimos validar
+  tu tarjeta", **sospecha del número antes que del código**. Se reproduce en un segundo con
+  un POST a `/v2/tokens` usando la clave pública.
 
-1. **Qué campo marca el éxito del cargo.** Hoy se usa `object === 'charge'` (Culqi sólo
-   materializa el objeto cargo cuando autoriza; un rechazo devuelve un objeto de error).
-   `outcome.type` se registra en el log a propósito: si aparece algún valor de rechazo con
-   el objeto ya creado, hay que añadirlo a `cargoPagaElEnlace()`.
-2. **Si Culqi manda alguna firma.** Merece preguntarlo a soporte. El diseño no depende de
-   ello, pero si la hay se añade.
+### Sigue pendiente
+
+**Si Culqi firma sus webhooks.** El panel ofrece un toggle "Activar autenticación" que su
+documentación pública no explica. Merece preguntarlo a soporte: el diseño no depende de ello
+—la verdad la da la consulta autenticada a la API— pero si la hay, se suma como segunda
+barrera.
 
 ---
 
