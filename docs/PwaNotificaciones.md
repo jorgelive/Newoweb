@@ -137,6 +137,8 @@ Dos caminos distintos pintan el globito, y **son código distinto**:
 2. **Con la app cerrada** — no corre nada del front. Lo pinta `push-sw.js` en el evento
    `push`, con el número que **viaja dentro del propio push** (`payload.unreadTotal`, que
    pone `MessageConversationMercureListener` vía `ResumenNoLeidosService::total()`).
+   Esto surte efecto **solo en escritorio**; en Android manda el sistema operativo (ver más
+   abajo).
 
 El punto 2 es fácil de pasar por alto y su síntoma engaña: los contadores *dentro* de la app
 salen perfectos y el icono de fuera se queda clavado en **1**. Es lo que pasaba, porque sin
@@ -146,9 +148,30 @@ agrupan por conversación (§5, el `tag`), casi siempre hay una sola.
 > El service worker **no puede consultar el total por su cuenta**: no tiene sesión ni acceso
 > a la API. Si añades un campo que el SW necesite, tiene que ir en el payload del push.
 
-**Límite que no depende de nosotros:** que Android pinte la CIFRA o solo un punto lo decide
-el lanzador. Samsung One UI muestra el número; el lanzador de Pixel, solo el punto. La
-llamada a `setAppBadge()` es la misma en los dos casos.
+### El límite real: en Android el badge NO es nuestro
+
+**La Badging API no está implementada en Chrome para Android.** `setAppBadge()` existe en
+Chrome de escritorio (Windows y macOS) y allí sí pinta el total real; en el móvil la llamada
+no hace nada.
+
+Lo que se ve en el icono de Android es el **número de notificaciones visibles** que pone el
+propio sistema operativo. Y como se agrupan por conversación (el `tag`), ese número acaba
+siendo **cuántos chats tienen algo pendiente** — no cuántos mensajes hay.
+
+|  | de dónde sale el número | qué significa |
+|---|---|---|
+| Escritorio (app abierta o cerrada) | `setAppBadge()` con `unreadTotal` | mensajes sin leer |
+| **Android** | contador de notificaciones del SO | **conversaciones** con aviso pendiente |
+
+Es una diferencia **aceptada, no un pendiente**: «2 chats esperan respuesta» se decidió que
+es una señal tan útil como «16 mensajes». No hay forma de que una PWA fuerce una cifra
+distinta en Android, así que no la busques.
+
+> ⚠️ Comprobado en producción el 2026-08-09 con un dispositivo Android real: con 12 mensajes
+> sin leer en una conversación y una notificación de prueba en otra, el icono marcaba **2**.
+> Si alguna vez alguien «arregla» esto haciendo que cada mensaje genere su propia
+> notificación, el icono dará el número de mensajes a cambio de inundar la barra con veinte
+> avisos del mismo huésped. Se descartó a propósito.
 
 Tres bugs distintos hacían que el número no significara nada:
 

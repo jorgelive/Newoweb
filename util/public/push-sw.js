@@ -125,9 +125,11 @@ self.addEventListener('push', (event) => {
     // visibles y, como se agrupan por conversación, el icono se quedaba
     // clavado en 1 con dieciséis mensajes esperando.
     //
-    // Ojo: que se vea el NÚMERO y no un simple punto depende del lanzador de
-    // Android. Samsung One UI pinta la cifra; el lanzador de Pixel, solo el
-    // punto. Eso ya no está en nuestras manos.
+    // OJO: esto surte efecto en Chrome de ESCRITORIO. En Chrome para Android
+    // la Badging API no está implementada y la llamada no hace nada: allí el
+    // número del icono lo pone el sistema operativo contando notificaciones
+    // visibles, o sea, cuántas CONVERSACIONES tienen aviso pendiente. Es un
+    // límite aceptado, no un pendiente. Ver docs/PwaNotificaciones.md §5.
     // ====================================================================
     const total = notificationData.unreadTotal;
     if (typeof total === 'number' && self.navigator && 'setAppBadge' in self.navigator) {
