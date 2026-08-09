@@ -52,6 +52,14 @@ use Symfony\Component\Uid\Uuid;
                 description: 'Total de mensajes sin leer, desglose por estado y las conversaciones pendientes. Fuente única del badge y de los contadores del portal.'
             ),
             paginationEnabled: false,
+            // El escudo se declara AQUÍ y no se deja al `security` global del
+            // ApiResource: con `read: false` no se aplicó, y el endpoint estuvo
+            // sirviendo nombres de huéspedes y contadores SIN sesión mientras la
+            // colección normal sí redirigía a login. Si añades otra operación con
+            // `read: false`, ponle su propio `security` y compruébalo con curl sin
+            // cookies antes de darla por buena.
+            security: "is_granted('" . Roles::MENSAJES_SHOW . "')",
+            securityMessage: 'Acceso denegado a las conversaciones.',
             read: false,
             deserialize: false,
             output: false
