@@ -28,6 +28,22 @@ namespace App\Pms\Enum;
  * las «del total», todo lo facturado. Cobrar limpieza por adelantado y luego no prestarla
  * —cancelación— es justo la discusión que las segundas evitan.
  *
+ * ### Para qué sirve de verdad el prepago
+ *
+ * **No es flujo de caja: es un compromiso.** El importe es deliberadamente pequeño, y su
+ * función es que al huésped le cueste algo cancelar. Las devoluciones son excepcionales —del
+ * orden de una al año—, así que optimizar la política pensando en el reembolso es optimizar
+ * para el caso que casi nunca ocurre.
+ *
+ * De ahí se siguen dos cosas al tocar esto:
+ *
+ * 1. **La diferencia entre «del total» y «solo alojamiento» importa poco en la práctica.**
+ *    Son unos pocos dólares. Existe porque a veces conviene explicarla al huésped, no porque
+ *    mueva la caja. No merece maquinaria complicada.
+ * 2. **Lo que sí importa es que el importe se VEA y se entienda.** Un prepago que el huésped
+ *    no sabe explicar no le disuade de cancelar; uno que reconoce —«la primera noche»—, sí.
+ *    Por eso el estado de cuenta lo enseña con su frase, y no solo como una cifra suelta.
+ *
  * ⚠️ El importe NO se calcula aquí: depende de los cargos y de las noches de la reserva, que
  * este enum no conoce. Aquí solo se declara QUÉ política es; el cálculo va en el servicio que
  * lea la información financiera.
