@@ -79,6 +79,36 @@ export interface PmsResumenFinanciero {
     pagado?: string;
     saldo?: string;
     /**
+     * Detalle línea a línea, con la descripción redactada PARA EL HUÉSPED.
+     *
+     * Espejo de `PmsInformacionFinanciera::getLineasCliente()`. Agrupado por tipo, un ajuste
+     * de cuadre de −0.20 quedaba sumado dentro de «Otros» y era imposible de interpretar;
+     * aquí cada cargo puede explicarse.
+     *
+     * `descripcion` es `I18nContent[]` sin resolver: se traduce en el front con
+     * `maestroStore.traducir()`. Llega vacía en los cargos que no necesitan explicación,
+     * que son la mayoría.
+     */
+    lineas?: Array<{
+        tipo: string;
+        descripcion: Array<{ content: string; language: string }>;
+        monto: string;
+    }>;
+    /**
+     * Equivalencia REFERENCIAL en soles, para el conmutador de la tarjeta.
+     *
+     * Es UN solo tipo de cambio —el del día— para toda la tarjeta, no el congelado de cada
+     * cargo: con los históricos las líneas no sumarían el total convertido. No es lo que se
+     * cobró ni lo que se va a cobrar, así que **la pantalla tiene que decir que es
+     * referencial**. Ver `PmsReservaPaxProvider::referenciaSoles()`.
+     *
+     * No llega si la cabecera ya está en soles o no hay tipo de cambio del día: entonces el
+     * conmutador no se pinta.
+     */
+    tipoCambioReferencial?: string;
+    monedaReferencial?: string;
+    simboloReferencial?: string;
+    /**
      * Cargos agrupados por tipo: `{ alojamiento: '350.00', limpieza: '15.00' }`.
      *
      * La clave es el valor de `PmsTipoCargo` (PHP), **no una descripción**: las

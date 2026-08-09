@@ -195,10 +195,31 @@ const nombreMedio = (medio: string): string =>
 
 const iconoMedio = (medio: string): string => MEDIO_ICONO[medio] || 'fa-receipt';
 
-/** Lista de cargos lista para pintar; el orden lo fija el backend. */
-const cargosDetalle = computed<Array<{ tipo: string; monto: number }>>(() =>
-    Object.entries(finanzas.value?.cargos ?? {}).map(([tipo, monto]) => ({ tipo, monto: Number(monto) })),
-);
+/**
+ * Detalle línea a línea; el orden lo fija el backend (secuencia de lo cobrado).
+ *
+ * Antes se pintaba `cargos`, agrupado por tipo, y un ajuste de cuadre de −0.20 quedaba
+ * sumado dentro de «Otros» sin forma de saber qué era. `lineas` trae cada cargo con su
+ * descripción redactada para el huésped, cuando la tiene.
+ */
+const cargosDetalle = computed(() => finanzas.value?.lineas ?? []);
+
+// ============================================================================
+// CONMUTADOR A SOLES — REFERENCIAL
+// ----------------------------------------------------------------------------
+// El backend manda UN tipo de cambio (el del día) para toda la tarjeta, no el
+// congelado de cada cargo: con los históricos las líneas no sumarían el total
+// convertido. Por eso es referencial y hay que decirlo en pantalla — no es lo
+// que se cobró ni lo que se va a cobrar.
+//
+// Si el backend no manda tipo de cambio (cabecera ya en soles, o no hay TC del
+// día) el conmutador sencillamente no existe.
+// ============================================================================
+const verEnSoles = ref(false);
+
+const tcReferencial = computed(() => Number(finanzas.value?.tipoCambioReferencial ?? 0));
+const hayReferencia = computed(() => tcReferencial.value > 0);
+const enSoles = computed(() => verEnSoles.value && hayReferencia.value);
 
 const pagosDetalle = computed(() => finanzas.value?.pagos ?? []);
 
@@ -215,8 +236,14 @@ const fechaPago = (iso: string | null): string => {
 };
 
 const formatMonto = (v: number): string => {
-  const simbolo = finanzas.value?.simbolo || finanzas.value?.moneda || '';
-  return `${simbolo} ${v.toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // Único sitio que formatea importes, así que el conmutador se aplica aquí y la
+  // tarjeta entera cambia de moneda a la vez: total, pagado, saldo y cada línea.
+  const importe = enSoles.value ? v * tcReferencial.value : v;
+  const simbolo = enSoles.value
+      ? (finanzas.value?.simboloReferencial || finanzas.value?.monedaReferencial || '')
+      : (finanzas.value?.simbolo || finanzas.value?.moneda || '');
+
+  return `${simbolo} ${importe.toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 /**
@@ -370,13 +397,41 @@ const detalleCuentaAbierto = ref(false);
                :class="detalleCuentaAbierto ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
             <div class="overflow-hidden">
 
-              <!-- Desglose de cargos por tipo -->
+              <!-- Detalle de cargos, línea a línea -->
               <div class="pt-6">
+
+                <!-- Conmutador a soles. Solo existe si el backend mandó tipo de cambio;
+                     la etiqueta «referencial» no es opcional: el cobro real va en la
+                     moneda de la cabecera. -->
+                <div v-if="hayReferencia" class="flex items-center justify-end gap-2 mb-3">
+                  <button type="button" @click="verEnSoles = !verEnSoles"
+                          class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700">
+                    <i class="fas fa-right-left text-[9px]" aria-hidden="true"></i>
+                    {{ enSoles
+                        ? (finanzas?.simbolo || finanzas?.moneda)
+                        : (finanzas?.simboloReferencial || finanzas?.monedaReferencial) }}
+                  </button>
+                </div>
+
+                <p v-if="enSoles" class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-medium leading-snug text-amber-700">
+                  {{ maestroStore.t('res_soles_referencial')
+                     || 'Importes referenciales al tipo de cambio de hoy. El cobro se realiza en' }}
+                  {{ finanzas?.moneda }}.
+                </p>
+
                 <div v-if="cargosDetalle.length" class="space-y-2 mb-3">
-                  <div v-for="linea in cargosDetalle" :key="linea.tipo"
-                       class="flex items-center justify-between gap-4">
-                    <span class="text-[13px] font-medium text-slate-500">{{ nombreCargo(linea.tipo) }}</span>
-                    <span class="text-[13px] font-bold text-slate-600 tabular-nums">{{ formatMonto(linea.monto) }}</span>
+                  <div v-for="(linea, i) in cargosDetalle" :key="`${linea.tipo}-${i}`"
+                       class="flex items-start justify-between gap-4">
+                    <span class="min-w-0">
+                      <span class="block text-[13px] font-medium text-slate-500">{{ nombreCargo(linea.tipo) }}</span>
+                      <!-- La explicación del cargo, cuando la tiene. La mayoría no la
+                           necesita: se entienden por su tipo. -->
+                      <span v-if="maestroStore.traducir(linea.descripcion)"
+                            class="block text-[11px] leading-snug text-slate-400">
+                        {{ maestroStore.traducir(linea.descripcion) }}
+                      </span>
+                    </span>
+                    <span class="text-[13px] font-bold text-slate-600 tabular-nums whitespace-nowrap">{{ formatMonto(Number(linea.monto)) }}</span>
                   </div>
                 </div>
 
