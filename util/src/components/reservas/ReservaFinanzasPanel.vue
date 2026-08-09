@@ -433,7 +433,7 @@ async function enfocarFormPago(): Promise<void> {
 const cargoEditandoId = ref<string | null>(null);
 /** 'nuevo' mientras se está dando de alta un cargo manual. */
 const cargoNuevoAbierto = ref(false);
-const cargoForm = ref({ tipoCargo: '', descripcion: '', totalLinea: '', tipoCambio: '', moneda: '', evento: '' });
+const cargoForm = ref({ tipoCargo: '', descripcion: '', descripcionClienteEs: '', totalLinea: '', tipoCambio: '', moneda: '', evento: '' });
 
 function puedeEditarCargo(c: PmsCargoFinanciero): boolean {
     if (props.readOnly) return false;
@@ -450,6 +450,7 @@ function empezarEdicionCargo(c: PmsCargoFinanciero): void {
     cargoForm.value = {
         tipoCargo: c.tipoCargo ?? '',
         descripcion: c.descripcion ?? '',
+        descripcionClienteEs: c.descripcionClienteEs ?? '',
         totalLinea: c.totalLinea ?? c.monto ?? '',
         tipoCambio: c.tipoCambio ?? '',
         moneda: c.moneda?.id ?? monedaCabecera.value?.id ?? 'USD',
@@ -470,6 +471,7 @@ function abrirNuevoCargo(): void {
     cargoForm.value = {
         tipoCargo: '',
         descripcion: '',
+        descripcionClienteEs: '',
         totalLinea: '',
         tipoCambio: '',
         moneda: monedaCabecera.value?.id ?? 'USD',
@@ -554,6 +556,9 @@ async function guardarCargoOrThrow(): Promise<void> {
             moneda: `/platform/maestro/monedas/${cargoForm.value.moneda}`,
             tipoCargo: cargoForm.value.tipoCargo || null,
             descripcion: cargoForm.value.descripcion || null,
+            // Lo que ve el huésped. Se manda el texto en español; el backend arma el
+            // I18nContent[] y el traductor automático rellena los demás idiomas.
+            descripcionClienteEs: cargoForm.value.descripcionClienteEs || null,
             totalLinea: cargoForm.value.totalLinea,
             tipoCambio: cargoForm.value.tipoCambio || null,
             evento: cargoForm.value.evento ? pmsEventoIri(cargoForm.value.evento) : null,
@@ -567,6 +572,9 @@ async function guardarCargoOrThrow(): Promise<void> {
         await finanzas.patchCargo(cargoEditandoId.value, {
             tipoCargo: cargoForm.value.tipoCargo || null,
             descripcion: cargoForm.value.descripcion || null,
+            // Lo que ve el huésped. Se manda el texto en español; el backend arma el
+            // I18nContent[] y el traductor automático rellena los demás idiomas.
+            descripcionClienteEs: cargoForm.value.descripcionClienteEs || null,
             totalLinea: cargoForm.value.totalLinea || null,
             evento: cargoForm.value.evento ? pmsEventoIri(cargoForm.value.evento) : null,
             ...(original && !original.tipoCambio && cargoForm.value.tipoCambio
@@ -1157,6 +1165,18 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <input type="text" v-model="cargoForm.descripcion"
                                     class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                             </label>
+                            <!-- Lo que SÍ ve el huésped. `descripcion` es la interna: en los
+                                 cargos de Beds24 viene con lo que mande el canal y no es
+                                 presentable. Opcional a propósito: la mayoría de cargos se
+                                 explican con su tipo. -->
+                            <label class="col-span-2">
+                                <span class="text-[11px] font-bold text-slate-500">Descripción para el huésped</span>
+                                <input type="text" v-model="cargoForm.descripcionClienteEs"
+                                    placeholder="Ej. Ajuste de redondeo para el cuadre"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                                <span class="text-[10px] text-slate-400">Aparece en su estado de cuenta. Se traduce sola.</span>
+                            </label>
+
                             <label>
                                 <span class="text-[11px] font-bold text-slate-500">Importe</span>
                                 <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"
@@ -1246,6 +1266,18 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             <input type="text" v-model="cargoForm.descripcion" placeholder="Ej. Alojamiento 3 noches"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
+                        <!-- Lo que SÍ ve el huésped. `descripcion` es la interna: en los
+                             cargos de Beds24 viene con lo que mande el canal y no es
+                             presentable. Opcional a propósito: la mayoría de cargos se
+                             explican con su tipo. -->
+                        <label class="col-span-2">
+                            <span class="text-[11px] font-bold text-slate-500">Descripción para el huésped</span>
+                            <input type="text" v-model="cargoForm.descripcionClienteEs"
+                                placeholder="Ej. Ajuste de redondeo para el cuadre"
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                            <span class="text-[10px] text-slate-400">Aparece en su estado de cuenta. Se traduce sola.</span>
+                        </label>
+
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Importe</span>
                             <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"

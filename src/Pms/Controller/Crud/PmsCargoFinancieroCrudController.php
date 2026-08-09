@@ -33,15 +33,29 @@ class PmsCargoFinancieroCrudController extends BaseCrudController
 
     public function configureActions(Actions $actions): Actions
     {
+        // NEW sigue deshabilitado: un cargo nace de la sincronización con Beds24 o del alta
+        // manual en `util`, que además elige estancia y moneda con sus validaciones.
+        //
+        // EDIT sí se abre, pero SOLO para la descripción que ve el huésped: el formulario de
+        // esta pantalla no ofrece importes ni moneda (ver configureFields). Los cargos son
+        // verdad histórica del canal y editarlos a mano aquí descuadraría el saldo.
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->disable(Action::NEW, Action::EDIT);
+            ->add(Crud::PAGE_DETAIL, Action::EDIT)
+            ->disable(Action::NEW);
 
         $actions = parent::configureActions($actions);
+
+        $actions->update(
+            Crud::PAGE_INDEX,
+            Action::EDIT,
+            fn (Action $action) => $action->setIcon('fa fa-comment-dots')->setLabel('Descripción')
+        );
 
         return $actions
             ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
             ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
             ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
     }
 
@@ -57,6 +71,25 @@ class PmsCargoFinancieroCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
+        // El formulario de edición ofrece SOLO la descripción para el huésped.
+        //
+        // Es deliberado: los importes, la moneda y el tipo de cambio son verdad histórica
+        // del canal y tocarlos aquí descuadraría el saldo cacheado de la cabecera. Si el
+        // campo estuviera disponible «porque sí», tarde o temprano alguien corrige un monto
+        // desde el panel y el desfase aparece semanas después, sin rastro de quién.
+        if ($pageName === Crud::PAGE_EDIT) {
+            yield TextareaField::new('descripcionClienteEs', 'Descripción para el huésped')
+                ->setNumOfRows(3)
+                ->setRequired(false)
+                ->setHelp(
+                    'Lo único editable de un cargo desde el panel. Se escribe en español y se '
+                    . 'traduce sola a los demás idiomas. Aparece en el estado de cuenta del '
+                    . 'huésped y en el que le manda el asistente por WhatsApp.'
+                );
+
+            return;
+        }
+
         yield IdField::new('id')->setMaxLength(40)->onlyOnDetail();
 
         yield AssociationField::new('informacionFinanciera', 'Reserva (Info)')->onlyOnDetail();

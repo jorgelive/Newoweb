@@ -63,6 +63,15 @@ export interface PmsCargoFinanciero {
     evento?: string | null;
     tipoCargo?: string | null;
     descripcion?: string | null;
+    /**
+     * Descripción redactada PARA EL HUÉSPED, en español.
+     *
+     * Espejo del accesor `PmsCargoFinanciero::getDescripcionClienteEs()`: el backend guarda
+     * un `I18nContent[]` y traduce solo a los demás idiomas, pero por la API viaja el texto
+     * plano. `descripcion` es la INTERNA — en los cargos de Beds24 trae lo que mande el
+     * canal y no es presentable.
+     */
+    descripcionClienteEs?: string | null;
     /** 'charge' | 'payment' — el `type` crudo de Beds24. */
     tipo?: string | null;
     subTipo?: number | null;
@@ -162,6 +171,16 @@ export interface PmsInformacionFinanciera {
 export interface PmsCargoFinancieroPatch {
     tipoCargo?: string | null;
     descripcion?: string | null;
+    /**
+     * Descripción redactada PARA EL HUÉSPED, en español.
+     *
+     * Espejo del accesor `PmsCargoFinanciero::getDescripcionClienteEs()`: el backend guarda
+     * un `I18nContent[]` y traduce solo a los demás idiomas, pero por la API viaja el texto
+     * plano. `descripcion` es la INTERNA — en los cargos de Beds24 trae lo que mande el
+     * canal y no es presentable.
+     */
+    descripcionClienteEs?: string | null;
+
     monto?: string | null;
     totalLinea?: string | null;
     /** IRI de la estancia, o null para dejarlo como cargo general de la reserva. */
@@ -184,6 +203,15 @@ export interface PmsCargoFinancieroCreate {
     moneda: string;
     tipoCargo?: string | null;
     descripcion?: string | null;
+    /**
+     * Descripción redactada PARA EL HUÉSPED, en español.
+     *
+     * Espejo del accesor `PmsCargoFinanciero::getDescripcionClienteEs()`: el backend guarda
+     * un `I18nContent[]` y traduce solo a los demás idiomas, pero por la API viaja el texto
+     * plano. `descripcion` es la INTERNA — en los cargos de Beds24 trae lo que mande el
+     * canal y no es presentable.
+     */
+    descripcionClienteEs?: string | null;
     totalLinea: string;
     tipoCambio?: string | null;
     /** IRI de la estancia a la que se imputa; null = cargo de la reserva en conjunto. */

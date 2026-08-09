@@ -47016,10 +47016,21 @@
                         ]
                     },
                     "descripcion": {
+                        "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "descripcionCliente": {
+                        "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
                     },
                     "monto": {
                         "type": [
@@ -47028,6 +47039,13 @@
                         ]
                     },
                     "totalLinea": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "descripcionClienteEs": {
+                        "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
                         "type": [
                             "string",
                             "null"
@@ -47121,10 +47139,21 @@
                         ]
                     },
                     "descripcion": {
+                        "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "descripcionCliente": {
+                        "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
                     },
                     "estado": {
                         "type": [
@@ -47176,6 +47205,13 @@
                         "readOnly": true,
                         "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
                         "type": "boolean"
+                    },
+                    "descripcionClienteEs": {
+                        "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -47229,10 +47265,21 @@
                         ]
                     },
                     "descripcion": {
+                        "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "descripcionCliente": {
+                        "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
                     },
                     "monto": {
                         "type": [
@@ -47241,6 +47288,13 @@
                         ]
                     },
                     "totalLinea": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "descripcionClienteEs": {
+                        "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
                         "type": [
                             "string",
                             "null"
@@ -47333,10 +47387,21 @@
                         ]
                     },
                     "descripcion": {
+                        "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "descripcionCliente": {
+                        "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
                     },
                     "estado": {
                         "type": [
@@ -47388,6 +47453,13 @@
                         "readOnly": true,
                         "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
                         "type": "boolean"
+                    },
+                    "descripcionClienteEs": {
+                        "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -47477,10 +47549,21 @@
                         ]
                     },
                     "descripcion": {
+                        "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "descripcionCliente": {
+                        "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
                     },
                     "estado": {
                         "type": [
@@ -47532,6 +47615,13 @@
                         "readOnly": true,
                         "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
                         "type": "boolean"
+                    },
+                    "descripcionClienteEs": {
+                        "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -47620,10 +47710,21 @@
                         ]
                     },
                     "descripcion": {
+                        "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "descripcionCliente": {
+                        "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
                     },
                     "estado": {
                         "type": [
@@ -47675,6 +47776,13 @@
                         "readOnly": true,
                         "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
                         "type": "boolean"
+                    },
+                    "descripcionClienteEs": {
+                        "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -47768,10 +47876,21 @@
                                 ]
                             },
                             "descripcion": {
+                                "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                                 "type": [
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "descripcionCliente": {
+                                "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                                "type": "array",
+                                "items": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
                             },
                             "estado": {
                                 "type": [
@@ -47823,6 +47942,13 @@
                                 "readOnly": true,
                                 "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
                                 "type": "boolean"
+                            },
+                            "descripcionClienteEs": {
+                                "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             }
                         }
                     }
@@ -47919,10 +48045,21 @@
                                 ]
                             },
                             "descripcion": {
+                                "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                                 "type": [
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "descripcionCliente": {
+                                "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                                "type": "array",
+                                "items": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
                             },
                             "estado": {
                                 "type": [
@@ -47974,6 +48111,13 @@
                                 "readOnly": true,
                                 "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
                                 "type": "boolean"
+                            },
+                            "descripcionClienteEs": {
+                                "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             }
                         }
                     }
@@ -48066,10 +48210,21 @@
                         ]
                     },
                     "descripcion": {
+                        "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "descripcionCliente": {
+                        "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
                     },
                     "estado": {
                         "type": [
@@ -48121,6 +48276,13 @@
                         "readOnly": true,
                         "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
                         "type": "boolean"
+                    },
+                    "descripcionClienteEs": {
+                        "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -48209,10 +48371,21 @@
                         ]
                     },
                     "descripcion": {
+                        "description": "Descripci\u00f3n INTERNA. La rellena Beds24 al importar la factura, as\u00ed que trae lo que\nvenga del canal: c\u00f3digos, nombres de tarifa, texto sin normalizar. No se le ense\u00f1a\nal hu\u00e9sped por eso mismo \u2014 para eso est\u00e1 `$descripcionCliente`.",
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "descripcionCliente": {
+                        "description": "Descripci\u00f3n que S\u00cd ve el hu\u00e9sped, traducible (`I18nContent[]`).",
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
                     },
                     "estado": {
                         "type": [
@@ -48264,6 +48437,13 @@
                         "readOnly": true,
                         "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
                         "type": "boolean"
+                    },
+                    "descripcionClienteEs": {
+                        "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },

@@ -12768,9 +12768,18 @@ export interface components {
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             monto?: string | null;
             totalLinea?: string | null;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
         "PmsCargoFinanciero-pms_cargo.read_maestro.moneda.read": {
@@ -12806,7 +12815,14 @@ export interface components {
             moneda?: components["schemas"]["Moneda-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             estado?: string | null;
             cantidad?: string | null;
             monto?: string | null;
@@ -12821,6 +12837,8 @@ export interface components {
             readonly id?: string | null;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
         "PmsCargoFinanciero-pms_cargo.write": {
@@ -12848,9 +12866,18 @@ export interface components {
             moneda?: string | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             monto?: string | null;
             totalLinea?: string | null;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         "PmsCargoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
             /**
@@ -12885,7 +12912,14 @@ export interface components {
             moneda?: components["schemas"]["Moneda-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             estado?: string | null;
             cantidad?: string | null;
             monto?: string | null;
@@ -12900,6 +12934,8 @@ export interface components {
             readonly id?: string | null;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
         "PmsCargoFinanciero.html-pms_cargo.read_maestro.moneda.read": {
@@ -12935,7 +12971,14 @@ export interface components {
             moneda?: components["schemas"]["Moneda.html-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             estado?: string | null;
             cantidad?: string | null;
             monto?: string | null;
@@ -12950,6 +12993,8 @@ export interface components {
             readonly id?: string | null;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         "PmsCargoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
             /**
@@ -12984,7 +13029,14 @@ export interface components {
             moneda?: components["schemas"]["Moneda.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             estado?: string | null;
             cantidad?: string | null;
             monto?: string | null;
@@ -12999,6 +13051,8 @@ export interface components {
             readonly id?: string | null;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
         "PmsCargoFinanciero.jsonld-pms_cargo.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -13034,7 +13088,14 @@ export interface components {
             moneda?: components["schemas"]["Moneda.jsonld-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             estado?: string | null;
             cantidad?: string | null;
             monto?: string | null;
@@ -13049,6 +13110,8 @@ export interface components {
             readonly id?: string | null;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
         "PmsCargoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -13084,7 +13147,14 @@ export interface components {
             moneda?: components["schemas"]["Moneda.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             estado?: string | null;
             cantidad?: string | null;
             monto?: string | null;
@@ -13099,6 +13169,8 @@ export interface components {
             readonly id?: string | null;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
         "PmsCargoFinanciero.multipart-pms_cargo.read_maestro.moneda.read": {
@@ -13134,7 +13206,14 @@ export interface components {
             moneda?: components["schemas"]["Moneda.multipart-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             estado?: string | null;
             cantidad?: string | null;
             monto?: string | null;
@@ -13149,6 +13228,8 @@ export interface components {
             readonly id?: string | null;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         "PmsCargoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
             /**
@@ -13183,7 +13264,14 @@ export interface components {
             moneda?: components["schemas"]["Moneda.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
             descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
             estado?: string | null;
             cantidad?: string | null;
             monto?: string | null;
@@ -13198,6 +13286,8 @@ export interface components {
             readonly id?: string | null;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
         };
         /** @description Escaparate público de una unidad: `.pe/{establecimiento}/{unidad}`. */
         "PmsCatalogo-pax_catalogo.read": {
