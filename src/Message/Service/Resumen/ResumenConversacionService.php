@@ -98,8 +98,16 @@ final readonly class ResumenConversacionService
             $this->em->flush();
 
             return sprintf(
-                'sin ventana: el equipo ya contestó (corte: %s)',
-                $this->corteUltimaSalida($conversacion) ?? 'ninguno'
+                'sin ventana (corte: %s | entrantes en la conversación: %d | id: %s)',
+                $this->corteUltimaSalida($conversacion) ?? 'ninguno',
+                (int) $this->em->getRepository(Message::class)->createQueryBuilder('m')
+                    ->select('COUNT(m.id)')
+                    ->where('m.conversation = :c')
+                    ->andWhere('m.direction = :entrante')
+                    ->setParameter('c', $conversacion)
+                    ->setParameter('entrante', Message::DIRECTION_INCOMING)
+                    ->getQuery()->getSingleScalarResult(),
+                (string) $conversacion->getId(),
             );
         }
 
