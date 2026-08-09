@@ -25,7 +25,8 @@ declarado en el enum pero **sin resolver**: emitir un cobro con ese origen falla
 9. [El módulo en `util`: Cobros y Caja](#9-el-módulo-en-util-cobros-y-caja)
 10. [Añadir un módulo nuevo que cobre](#10-añadir-un-módulo-nuevo-que-cobre)
 11. [Dos pasarelas en paralelo: Izipay y Culqi](#11-dos-pasarelas-en-paralelo-izipay-y-culqi)
-12. [Dónde tocar para cambiar X](#12-dónde-tocar-para-cambiar-x)
+12. [Despliegue: por qué no basta con `git pull`](#12-despliegue-por-qué-no-basta-con-git-pull)
+13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
 ---
 
@@ -516,6 +517,26 @@ La pasarela se pinta en cada fila —tanto en el panel de la reserva como en el 
 de Cobros— porque al conciliar, lo primero que hace falta es saber contra qué extracto se
 cuadra ese cobro.
 
+### ⚠️ La trampa de `order`: la misma palabra, dos significados
+
+Costó una tarde. En **Izipay**, `orderId` es una referencia **libre**: le mandamos
+`QW9ANY-94ce142e` y aparece tal cual en su Backoffice. En **Culqi**, `order` es el **id de
+una orden creada antes vía `/v2/orders`** (formato `ord_...`), y es además lo que habilita
+Yape y el pago en efectivo.
+
+Pasarle nuestra cadena al Checkout de Culqi provoca el peor síntoma posible: **el botón de
+pagar no hace nada**. `Culqi.settings()` la acepta sin protestar —sólo guarda— y es
+`Culqi.open()` quien valida y aborta **en silencio**, sin excepción ni mensaje. Desde fuera
+parece que el JS no cargó, cuando en realidad cargó perfectamente.
+
+Por eso `CulqiClient::configuracionPago()` **no manda `order`**. Sin él, el Checkout ofrece
+sólo tarjeta, que es exactamente lo que soportamos hoy. Nuestro `ordenId` sigue viajando en
+el `metadata` del cargo, que es donde de verdad sirve para conciliar.
+
+Consecuencia a tener presente: **Yape y PagoEfectivo no están disponibles** mientras no
+implementemos `/v2/orders`. El texto bajo el botón dice "Tarjeta de crédito o débito" y no
+debe prometer más.
+
 ### Pendiente de confirmar con el primer cobro real de test
 
 Dos cosas que la documentación pública no aclara y que se resuelven mirando un cobro de
@@ -530,7 +551,49 @@ verdad:
 
 ---
 
-## 12. Dónde tocar para cambiar X
+## 12. Despliegue: por qué no basta con `git pull`
+
+Dos pasos que **no se hacen solos** y cuyos fallos no se parecen a su causa. Los dos
+mordieron en el primer despliegue de este módulo.
+
+### 1. Volcar el entorno
+
+En producción manda `.env.local.php`, el archivo compilado por `composer dump-env prod`.
+**No se regenera con `git pull`**: una variable nueva del `.env` del repo sencillamente no
+existe para la aplicación.
+
+```bash
+composer dump-env prod && php bin/console cache:clear
+```
+
+Lo peligroso es el alcance del fallo. La excepción es
+`EnvNotFoundException: Environment variable not found: "CULQI_ENDPOINT"`, y no revienta sólo
+donde se usa esa variable: revienta en **cualquier punto que resuelva parámetros**. En el
+primer despliegue tumbó `CalendarConfigResolver` y con él el **calendario entero**, que no
+tiene nada que ver con cobros. Si tras desplegar falla algo aparentemente inconexo, mira
+esto antes que nada.
+
+### 2. Reconstruir las DOS apps
+
+`public/app_pax/` y `public/app_util/` están en `.gitignore`: se construyen en el servidor.
+
+```bash
+cd pax  && npm run build
+cd util && npm run build
+```
+
+Tocar un endpoint público **obliga a reconstruir la SPA que lo consume**. Al cambiar
+`/form-token` por `/configuracion` se desplegó el backend nuevo contra un `pax` compilado
+que seguía pidiendo el endpoint viejo; el cliente veía "No pudimos preparar el pago" y el
+log de la aplicación estaba **limpio**, porque el error ocurría en el navegador.
+
+La pista buena estuvo en el log de nginx: se veían los `GET` del navegador y **ningún POST**.
+Cuando algo "no hace nada" en la página de pago, mirar qué peticiones llegan de verdad
+distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un backend caído.
+
+---
+
+## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|

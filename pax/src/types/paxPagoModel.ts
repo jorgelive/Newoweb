@@ -55,9 +55,10 @@ export interface PaxConfigCulqi {
     /** Céntimos, entero. Culqi cobra en la unidad mínima igual que Lyra. */
     amount: number;
     currency: string;
-    order: string | null;
     descripcion: string;
     email: string | null;
+    // Sin `order` a propósito: en Culqi es el id de una orden de su API (`ord_...`) y
+    // mandarle una cadena nuestra impide que el Checkout abra. Ver CulqiClient.
 }
 
 /** Respuesta de `POST /finanzas/pago/{token}/configuracion`. */

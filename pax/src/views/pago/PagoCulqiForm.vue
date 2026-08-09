@@ -76,12 +76,14 @@ const montar = async (): Promise<void> => {
     if (!Culqi) throw new Error('El formulario de pago no está disponible.');
 
     Culqi.publicKey = config.publicKey;
+    // Sin `order`: en Culqi ese campo es el id de una orden de su API (`ord_...`), no una
+    // referencia libre. Mandarle la nuestra hacía que `open()` no abriera nada, en silencio.
+    // Ver la nota de `CulqiClient::configuracionPago()`.
     Culqi.settings({
         title: config.descripcion.slice(0, 50),
         currency: config.currency,
         // Céntimos, entero: lo calcula el backend, aquí no se hace aritmética de importes.
         amount: config.amount,
-        ...(config.order ? { order: config.order } : {}),
     });
     Culqi.options({ lang: 'es', installments: false });
 
@@ -123,8 +125,11 @@ onBeforeUnmount(() => {
             <span v-else>Pagar {{ props.monedaSimbolo }} {{ props.montoTotal }}</span>
         </button>
 
+        <!-- Sólo tarjeta: Yape y efectivo exigen una orden de la API de Culqi, que aún no
+             creamos. Prometerlos aquí haría que el cliente abriera el modal buscando un
+             botón que no existe. -->
         <p class="mt-3 text-[11px] text-slate-400">
-            Tarjeta, Yape, banca móvil o pago en efectivo.
+            Tarjeta de crédito o débito.
         </p>
     </div>
 </template>

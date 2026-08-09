@@ -82,10 +82,20 @@ final class CulqiClient implements FinPasarelaClientInterface
             // `150.00` en vez de `15000` cobra un sol y medio en lugar de ciento cincuenta.
             'amount' => $enlace->montoTotalCentimos(),
             'currency' => $enlace->getMonedaCodigo() ?? 'PEN',
-            'order' => $enlace->getOrdenId(),
             'descripcion' => $enlace->getConcepto(),
             'email' => $enlace->getClienteEmail(),
         ];
+
+        // ⚠️ NO se manda `order`, y es a propósito. En Culqi `order` NO es una referencia
+        // libre: es el id de una orden creada antes vía `/v2/orders` (formato `ord_...`), y
+        // es lo que habilita Yape y pago en efectivo. Nuestro `ordenId` es una cadena
+        // nuestra —heredada del `orderId` de Izipay, donde sí es libre—, así que pasarla
+        // aquí hace que el Checkout **no abra**: `settings()` la acepta sin rechistar y
+        // `open()` falla en silencio. Colisión de nombres entre pasarelas.
+        //
+        // Sin `order`, el Checkout muestra sólo tarjeta, que es justo lo que soportamos hoy.
+        // Nuestro `ordenId` sigue viajando en `metadata` de `cobrarConToken()`, que es donde
+        // sirve para conciliar.
     }
 
     /**
