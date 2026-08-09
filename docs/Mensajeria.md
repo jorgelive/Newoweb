@@ -515,6 +515,38 @@ Efectos secundarios buenos de haberlo sacado del listener: el envío HTTP a FCM/
 ocurre dentro de un flush de Doctrine, y el handler descarta el aviso si para entonces
 alguien ya abrió el chat (`unreadCount === 0`).
 
+### 🔥 La espera de ráfaga ya no es un número fijo
+
+Era `AGENT_IA_ESPERA_RAFAGA` para todos. Medido sobre 873 mensajes reales (mayo-agosto 2026),
+un número fijo fallaba por los dos lados: los 20 s solo capturaban el **37 %** de las
+continuaciones —al que escribe despacio se le contestaba a medias igual— y el **81 %** de los
+mensajes no se continúa nunca, así que esperaban para nada.
+
+`PreRouterRafaga` decide por mensaje. Tres reglas deterministas resuelven el 46 % del tráfico
+sin llamar al modelo, con su tasa de continuación medida:
+
+| Rasgo | Tráfico | Continúa ≤40 s | Decisión |
+|---|---|---|---|
+| Saludo suelto | 2 % | **60 %** | espera |
+| Termina en `?` | 20 % | 12 % | ejecuta |
+| 12+ palabras | 24 % | 8 % | ejecuta |
+| Resto (2-11 palabras, sin `?`) | 54 % | 24 % | **al modelo** |
+
+> ⚠️ **No inventes un umbral de longitud dentro de la banda 2-11.** La curva es plana y
+> ruidosa ahí (13-27 % sin tendencia). «Pásame la reserva del 4» son cinco palabras y está
+> terminada; «hola, mira» son dos y no. Solo el significado las distingue.
+
+**Dónde se llama, y por qué ahí.** En el HANDLER, no en el listener: hace una petición de red
+y el listener corre dentro de un flush de Doctrine. El listener encola con
+`AGENT_IA_ESPERA_CORTA` (3 s) y, si el pre-router dice «espera», el handler reencola con la
+ventana larga. El flag `yaEsperado` corta el bucle — sin él, un modelo que respondiera
+siempre «espera» reencolaría el mensaje indefinidamente.
+
+**La asimetría es el diseño.** Un «espera» equivocado retrasa unos segundos; un «ejecuta»
+equivocado hace que el bot conteste a medias a un cliente real. Por eso el prompt está sesgado
+a esperar y **todo fallo devuelve «espera»**: sin motor, JSON roto, excepción o pre-router
+apagado. Nunca se arriesga a contestar antes de tiempo por un problema técnico.
+
 ### 🔥 Quién escribe por WhatsApp: equipo o huésped, lo decide el NÚMERO
 
 `AiConversationProcessor::generar()` construía **siempre** un actor huésped, hardcodeado. Un

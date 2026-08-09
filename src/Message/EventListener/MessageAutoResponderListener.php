@@ -23,8 +23,8 @@ final readonly class MessageAutoResponderListener
 {
     public function __construct(
         private MessageBusInterface $bus,
-        #[Autowire('%env(int:AGENT_IA_ESPERA_RAFAGA)%')]
-        private int $esperaRafaga,
+        #[Autowire('%env(int:AGENT_IA_ESPERA_CORTA)%')]
+        private int $esperaCorta,
     ) {}
 
     public function postPersist(Message $message, PostPersistEventArgs $event): void
@@ -61,7 +61,15 @@ final readonly class MessageAutoResponderListener
         // El descarte de los trozos intermedios lo hace AiConversationProcessor, no esto:
         // aquí se encolan los cuatro trabajos y allí sobrevive el último. Ver
         // docs/Mensajeria.md §9.
-        $espera = ($intent['category'] ?? null) === 'free_text' ? $this->esperaRafaga : 0;
+        // Antes se esperaba SIEMPRE la ventana completa. Ahora se despacha con una espera
+        // corta y es el pre-router —ya en el worker— quien decide si el mensaje está
+        // terminado o hay que darle la ventana entera. Medido sobre mensajes reales, el
+        // 81 % no se continúa nunca: esperaban 20 s para nada.
+        //
+        // El modelo NO puede consultarse aquí: esto corre dentro de un flush de Doctrine y
+        // sería una petición de red a mitad de transacción. Por eso solo se fija el retraso
+        // mínimo y la decisión viaja al handler. Ver PreRouterRafaga.
+        $espera = ($intent['category'] ?? null) === 'free_text' ? $this->esperaCorta : 0;
 
         $this->bus->dispatch(
             new ProcessInboundIntentDispatch((string) $message->getId()),
