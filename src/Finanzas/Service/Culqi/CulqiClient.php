@@ -43,8 +43,19 @@ final class CulqiClient implements FinPasarelaClientInterface
 {
     private const RUTA_CHARGES = '/v2/charges';
 
-    /** Librería JS del Checkout multipago (tarjeta, Yape, PagoEfectivo, Cuotéalo). */
-    private const CHECKOUT_JS = 'https://checkout.culqi.com/js/v4';
+    /**
+     * Librería JS del **Checkout Custom**.
+     *
+     * No es la de Checkout v4 (`checkout.culqi.com/js/v4`), que también funciona. Se eligió
+     * ésta porque v4 se apoya en globales —`window.Culqi` como singleton y `window.culqi`
+     * como callback buscado por nombre— y en una SPA eso obliga a asignar y borrar globales
+     * en cada montaje; si se escapa uno, al reentrar en la página se dispara el callback del
+     * componente anterior contra un enlace que ya no toca.
+     *
+     * Checkout Custom es instanciable (`new CulqiCheckout(pk, config)`) y el callback va en
+     * la instancia. No es un salto de versión: es quitar estado global compartido.
+     */
+    private const CHECKOUT_JS = 'https://js.culqi.com/checkout-js';
 
     public function __construct(
         private readonly HttpClientInterface $httpClient,

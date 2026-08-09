@@ -1,21 +1,30 @@
 <script setup lang="ts">
 /**
- * Checkout v4 de Culqi (multipago: tarjeta, Yape, PagoEfectivo, Cuotéalo BCP).
+ * Culqi Checkout Custom (`js.culqi.com/checkout-js`).
  *
  * ## El flujo es al revés que el de Izipay
  *
- * Culqi **no cobra**: abre un modal, captura la tarjeta y deja un TOKEN en
- * `window.Culqi.token.id`. El cargo lo crea NUESTRO servidor con ese token y la clave
- * secreta (`POST /finanzas/pago/{token}/culqi/cobrar`), y esa respuesta ya dice si el
- * dinero entró. Por eso este componente emite `pagado` —confirmación real, de nuestro
- * backend— y no `procesando` como el de Izipay.
+ * Culqi **no cobra**: abre un modal, captura la tarjeta y deja un TOKEN en `Culqi.token.id`.
+ * El cargo lo crea NUESTRO servidor con ese token y la clave secreta
+ * (`POST /finanzas/pago/{token}/culqi/cobrar`), y esa respuesta ya dice si el dinero entró.
+ * Por eso este componente emite `pagado` —confirmación real, de nuestro backend— y no
+ * `procesando` como el de Izipay.
  *
  * El importe que se cobra sale del ENLACE en el servidor, no de lo que diga este JS:
- * manipular el navegador no abarata el cobro. Ver docs/FinanzasEnlacesPago.md §11.
+ * manipular el navegador no abarata el cobro.
+ *
+ * ## Sin estado global
+ *
+ * La versión anterior (Checkout v4) usaba `window.Culqi` como singleton y `window.culqi`
+ * como callback buscado por nombre, lo que obligaba a asignar y borrar globales en cada
+ * montaje. Aquí la instancia vive en un `ref` del componente y el callback va **en la
+ * instancia**, así que nace y muere con él: al reentrar en la página no queda nada que
+ * pueda dispararse contra un enlace que ya no toca. Ver §11 del doc.
  */
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import type { PaxConfigCulqi, PaxConfigPago, PaxCulqiCobroRespuesta } from '@/types/paxPagoModel';
+import type { CulqiCheckoutInstance } from '@/types/culqiCheckout';
 
 const props = defineProps<{ token: string; monedaSimbolo?: string | null; montoTotal: string }>();
 
@@ -28,8 +37,11 @@ const emit = defineEmits<{
 const listo = ref(false);
 const cobrando = ref(false);
 
+/** La instancia del checkout. Local al componente: esa es la mejora sobre v4. */
+const checkout = ref<CulqiCheckoutInstance | null>(null);
+
 const cargarLibreria = (src: string): Promise<void> => {
-    if (window.Culqi) return Promise.resolve();
+    if (window.CulqiCheckout) return Promise.resolve();
 
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -60,7 +72,7 @@ const cobrar = async (tokenTarjeta: string): Promise<void> => {
     }
 };
 
-const abrir = (): void => window.Culqi?.open();
+const abrir = (): void => checkout.value?.open();
 
 const montar = async (): Promise<void> => {
     const { data } = await apiClient.post<PaxConfigPago>(`/finanzas/pago/${props.token}/configuracion`, {});
@@ -72,31 +84,49 @@ const montar = async (): Promise<void> => {
     const config: PaxConfigCulqi = data.config;
     await cargarLibreria(config.checkoutJs);
 
-    const Culqi = window.Culqi;
-    if (!Culqi) throw new Error('El formulario de pago no está disponible.');
+    const Constructor = window.CulqiCheckout;
+    if (!Constructor) throw new Error('El formulario de pago no está disponible.');
 
-    Culqi.publicKey = config.publicKey;
-    // Sin `order`: en Culqi ese campo es el id de una orden de su API (`ord_...`), no una
-    // referencia libre. Mandarle la nuestra hacía que `open()` no abriera nada, en silencio.
-    // Ver la nota de `CulqiClient::configuracionPago()`.
-    Culqi.settings({
-        title: config.descripcion.slice(0, 50),
-        currency: config.currency,
-        // Céntimos, entero: lo calcula el backend, aquí no se hace aritmética de importes.
-        amount: config.amount,
+    const instancia = new Constructor(config.publicKey, {
+        settings: {
+            title: config.descripcion.slice(0, 50),
+            currency: config.currency,
+            // Céntimos, entero: lo calcula el backend, aquí no se hace aritmética de importes.
+            amount: config.amount,
+            // Sin `order`: en Culqi es el id de una orden de su API (`ord_...`), no una
+            // referencia libre. Mandarle la nuestra impedía que el modal abriera, en
+            // silencio. Ver la nota de `CulqiClient::configuracionPago()`.
+        },
+        client: { email: config.email ?? undefined },
+        options: {
+            lang: 'es',
+            installments: false,
+            modal: true,
+            // Sólo tarjeta: el resto de medios exige una orden de la API de Culqi, que aún
+            // no creamos. Ofrecerlos sin ella sería enseñar botones que no funcionan.
+            paymentMethods: {
+                tarjeta: true,
+                yape: false,
+                billetera: false,
+                bancaMovil: false,
+                agente: false,
+                cuotealo: false,
+            },
+        },
+        appearance: { theme: 'default', hiddenCulqiLogo: false, menuType: 'sidebar' },
     });
-    Culqi.options({ lang: 'es', installments: false });
 
-    // La librería busca el callback por nombre en `window`; no admite pasarlo por parámetro.
-    window.culqi = () => {
-        const actual = window.Culqi;
-        if (actual?.token?.id) {
-            void cobrar(actual.token.id);
-        } else if (actual?.error) {
-            emit('error', actual.error.user_message || 'No se pudo procesar la tarjeta.');
+    // En la INSTANCIA, no en `window`. Es la diferencia de fondo con v4.
+    instancia.culqi = () => {
+        if (instancia.token?.id) {
+            instancia.close();
+            void cobrar(instancia.token.id);
+        } else if (instancia.error) {
+            emit('error', instancia.error.user_message || 'No se pudo procesar la tarjeta.');
         }
     };
 
+    checkout.value = instancia;
     listo.value = true;
 };
 
@@ -109,10 +139,14 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-    // Sin limpiarlo, al volver a entrar se ejecuta el callback del componente anterior,
-    // ya desmontado, y el cobro se dispara contra un `props.token` viejo.
-    delete window.culqi;
-    window.Culqi?.close();
+    // Cerrar y soltar el callback: sin esto, un modal abierto al navegar deja el nodo
+    // colgado y la instancia viva por la referencia del callback.
+    const instancia = checkout.value;
+    if (instancia) {
+        instancia.culqi = null;
+        instancia.close();
+    }
+    checkout.value = null;
 });
 </script>
 

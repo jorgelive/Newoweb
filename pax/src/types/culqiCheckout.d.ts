@@ -1,28 +1,33 @@
 /**
  * src/types/culqiCheckout.d.ts
  *
- * Tipos del Checkout v4 de Culqi, que se carga por `<script>` desde `checkout.culqi.com`
- * y se cuelga de `window.Culqi`.
+ * Tipos del **Culqi Checkout Custom**, que se carga por `<script>` desde
+ * `js.culqi.com/checkout-js` y expone el constructor global `CulqiCheckout`.
  *
- * A mano porque Culqi no publica un paquete npm con tipos. La alternativa era
- * `(window as any).Culqi`, y eso apaga el compilador justo donde el contrato lo fija un
- * tercero. Sólo se declara lo que usa `PagoCulqiForm.vue`.
+ * A mano porque Culqi no publica tipos en npm. La alternativa era `(window as any)`, y eso
+ * apaga el compilador justo donde el contrato lo fija un tercero. Sólo se declara lo que usa
+ * `PagoCulqiForm.vue`.
  *
- * ## El detalle que hay que entender del flujo
+ * ## Por qué esta versión y no Checkout v4
  *
- * Culqi **no cobra**: captura la tarjeta y deja un TOKEN en `window.Culqi.token.id`. El
- * cargo lo crea nuestro servidor con ese token y la clave secreta. Por eso el callback no
- * significa "pagado", significa "tengo un token que canjear" — y por eso el importe real
- * sale del enlace en el backend y no de lo que diga este JS.
+ * v4 vive en globales: `window.Culqi` como singleton y `window.culqi` como callback buscado
+ * por nombre. En una SPA eso obliga a asignar y borrar globales en cada montaje, y si se
+ * escapa uno, al reentrar en la página se dispara el callback del componente anterior contra
+ * un enlace que ya no toca.
  *
- * Referencia: https://docs.culqi.com/es/documentacion/checkout/v4/culqi-checkout/
+ * Checkout Custom es **instanciable** y el callback va en la instancia (`Culqi.culqi = fn`),
+ * así que nace y muere con el componente. No es un cambio de versión: es quitar estado
+ * global compartido. Ver §11 de docs/FinanzasEnlacesPago.md.
+ *
+ * Referencia: https://docs.culqi.com/es/documentacion/checkout/checkout-custom
  */
 
 export interface CulqiToken {
     id: string;
     email?: string;
-    /** Últimos 4 y marca, para pintar el resumen. Nunca el PAN completo. */
+    /** Marca y últimos 4, para el resumen. Nunca el PAN completo. */
     last_four?: string;
+    iin?: { card_brand?: string };
     [clave: string]: unknown;
 }
 
@@ -39,47 +44,77 @@ export interface CulqiError {
     [clave: string]: unknown;
 }
 
-export interface CulqiSettings {
+/**
+ * `order` sólo se manda si es un id de orden de la API de Culqi (`ord_...`), y es lo que
+ * habilita Yape y efectivo. Mandar una referencia nuestra impide que el modal abra —ver la
+ * nota de `CulqiClient::configuracionPago()`—, así que aquí va deliberadamente opcional.
+ */
+export interface CulqiCheckoutSettings {
     title: string;
     currency: string;
     /** Céntimos, entero. */
     amount: number;
     order?: string;
+    /** Cifrado de payload: opcional y por endpoint. Hoy no se usa. */
+    xculqirsaid?: string;
+    rsapublickey?: string;
 }
 
-export interface CulqiOptions {
+export interface CulqiPaymentMethods {
+    tarjeta: boolean;
+    yape: boolean;
+    billetera: boolean;
+    bancaMovil: boolean;
+    agente: boolean;
+    cuotealo: boolean;
+}
+
+export interface CulqiCheckoutOptions {
     lang?: string;
     installments?: boolean;
-    paymentMethods?: Record<string, boolean>;
-    style?: Record<string, string>;
+    modal?: boolean;
+    /** Sólo con `modal: false`. */
+    container?: string;
+    paymentMethods?: CulqiPaymentMethods;
+    paymentMethodsSort?: string[];
 }
 
-export interface CulqiApi {
-    /** Llave PÚBLICA (`pk_...`). La secreta no toca el navegador jamás. */
-    publicKey: string;
-    settings(config: CulqiSettings): void;
-    options(config: CulqiOptions): void;
-    /** Abre el modal de pago. */
+export interface CulqiCheckoutConfig {
+    settings: CulqiCheckoutSettings;
+    client?: { email?: string };
+    options?: CulqiCheckoutOptions;
+    appearance?: {
+        theme?: string;
+        hiddenCulqiLogo?: boolean;
+        menuType?: string;
+    };
+}
+
+export interface CulqiCheckoutInstance {
     open(): void;
     close(): void;
-    /** Presente cuando el usuario completó la captura de tarjeta. */
+    /**
+     * Callback que la librería invoca al terminar. Se asigna **en la instancia**, no en
+     * `window`: es la diferencia de fondo con v4.
+     */
+    culqi: (() => void) | null;
+    /** Presente si el usuario completó la captura de tarjeta. */
     token?: CulqiToken;
+    /** Presente en los medios que van por orden (Yape, efectivo). Hoy no los usamos. */
     order?: CulqiOrder;
     error?: CulqiError;
 }
 
 declare global {
+    /** Constructor global que expone el script de `js.culqi.com/checkout-js`. */
+    const CulqiCheckout: {
+        new (publicKey: string, config: CulqiCheckoutConfig): CulqiCheckoutInstance;
+    };
+
     interface Window {
-        Culqi?: CulqiApi;
-        /**
-         * Callback GLOBAL que invoca la librería al terminar.
-         *
-         * Culqi lo busca por nombre en `window` — no admite pasar una función por
-         * parámetro—, así que el componente lo asigna al montar y lo limpia al desmontar.
-         * Sin limpiarlo, al volver a entrar en la página se ejecutaba el callback del
-         * componente anterior, ya desmontado.
-         */
-        culqi?: () => void;
+        CulqiCheckout?: {
+            new (publicKey: string, config: CulqiCheckoutConfig): CulqiCheckoutInstance;
+        };
     }
 }
 

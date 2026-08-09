@@ -273,7 +273,7 @@ Ninguno se genera solo. **Si tocas un lado, toca el otro.**
 | `FinMovimientoDto::aArray()` y `FinCajaApiController::movimientos()` | `util/src/types/finMovimientoModel.ts` |
 | `FinPagoPublicoController::ver()` / `configuracion()` | `pax/src/types/paxPagoModel.ts` |
 | Librería KR de Izipay (sin paquete npm) | `pax/src/types/izipayKrypton.d.ts` |
-| Checkout v4 de Culqi (sin paquete npm) | `pax/src/types/culqiCheckout.d.ts` |
+| Checkout Custom de Culqi (sin paquete npm) | `pax/src/types/culqiCheckout.d.ts` |
 
 Y un espejo que **no es TypeScript**: el porcentaje de recargo vive en
 `finanzas.recargo_tarjeta_porcentaje` (`config/services/services_finanzas.yaml`) **y** en
@@ -516,6 +516,32 @@ devuelve únicamente las que tienen credenciales); con una sola, estorba. Por de
 La pasarela se pinta en cada fila —tanto en el panel de la reserva como en el listado global
 de Cobros— porque al conciliar, lo primero que hace falta es saber contra qué extracto se
 cuadra ese cobro.
+
+### Checkout Custom, y no Checkout v4
+
+Culqi ofrece **dos librerías de navegador, ambas vigentes**. Usamos **Checkout Custom**
+(`js.culqi.com/checkout-js`), no Checkout v4 (`checkout.culqi.com/js/v4`).
+
+> Corrección a una creencia previa: **v4 NO está deprecado**. Se llegó a afirmar aquí a
+> partir de un resumen de búsqueda; la documentación no dice tal cosa y las presenta como
+> alternativas. Lo único cierto es que la URL de la doc del "custom" dejó de colgar de v4.
+
+El motivo del cambio **no es la versión, es el estado global**:
+
+| | Checkout v4 | Checkout Custom |
+|---|---|---|
+| Instancia | `window.Culqi`, singleton | `new CulqiCheckout(pk, config)` |
+| Callback | `window.culqi`, buscado por nombre | `instancia.culqi = fn` |
+
+En una SPA, el singleton obliga a asignar y borrar globales en cada montaje. Si se escapa
+uno —y se escapa— al reentrar en la página se dispara el callback del componente anterior
+**contra un enlace que ya no toca**: cobrarías el importe de otra reserva. Con la instancia
+local, el objeto nace y muere con el componente y ese fallo deja de ser posible.
+
+De paso, Checkout Custom permite personalizar estilos y ordenar los medios de pago.
+
+Existe además un paquete oficial `culqi/vue-culqi-checkout`. Se descartó: envuelve lo mismo
+en una dependencia más, y aquí la integración son treinta líneas.
 
 ### La respuesta de la pasarela NO se modela, y es una decisión
 
