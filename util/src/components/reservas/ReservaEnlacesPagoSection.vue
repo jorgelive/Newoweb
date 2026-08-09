@@ -41,6 +41,42 @@ const error = ref<string | null>(null);
 /** Id del enlace recién copiado, para el "¡copiado!" efímero. */
 const copiadoId = ref<string | null>(null);
 
+/** Enlace cuya respuesta cruda está abierta, y su contenido ya formateado. */
+const auditandoId = ref<string | null>(null);
+const auditoria = ref<string | null>(null);
+const cargandoAuditoria = ref(false);
+
+/**
+ * Abre (o cierra) la respuesta cruda de la pasarela.
+ *
+ * Se pide al abrir y no con el listado: son varios KB por enlace y se consultan una vez al
+ * año. Se pinta con `JSON.stringify(..., 2)` **sin interpretar ningún campo**: cada pasarela
+ * responde lo que quiere, y quien audita quiere ver lo que dijo la pasarela, no nuestra
+ * lectura de lo que dijo.
+ */
+async function alternarAuditoria(enlace: FinEnlacePago): Promise<void> {
+    if (auditandoId.value === enlace.id) {
+        auditandoId.value = null;
+        auditoria.value = null;
+        return;
+    }
+
+    auditandoId.value = enlace.id;
+    auditoria.value = null;
+    cargandoAuditoria.value = true;
+
+    try {
+        const data = await store.fetchRespuesta(enlace.id);
+        auditoria.value = data.respuesta === null || data.respuesta === undefined
+            ? 'La pasarela no dejó respuesta para este enlace.'
+            : JSON.stringify(data.respuesta, null, 2);
+    } catch {
+        auditoria.value = 'No se pudo cargar la respuesta de la pasarela.';
+    } finally {
+        cargandoAuditoria.value = false;
+    }
+}
+
 const form = ref({
     monto: '',
     conRecargo: true,
@@ -239,11 +275,26 @@ function fechaCorta(iso: string | null): string {
                         </template>
                     </p>
 
-                    <p v-if="enlace.estado === 'pagado'" class="mt-0.5 text-[10px] opacity-80">
-                        Cobrado el {{ fechaCorta(enlace.pagadoEn) }}
-                        <template v-if="enlace.medioDetalle"> · {{ enlace.medioDetalle }}</template>
-                        <template v-if="enlace.autorizacionCodigo"> · aut. {{ enlace.autorizacionCodigo }}</template>
-                    </p>
+                    <!-- COBRADO: los datos que se piden cuando el cliente reclama —fecha,
+                         tarjeta, código de autorización y referencia en la pasarela— a la
+                         vista, sin tener que abrir la respuesta cruda. -->
+                    <div v-if="enlace.estado === 'pagado'" class="mt-1">
+                        <p class="text-[10px] font-black">
+                            <i class="fas fa-circle-check mr-1"></i>
+                            Cobrado el {{ fechaCorta(enlace.pagadoEn) }}
+                        </p>
+                        <dl class="mt-1 grid grid-cols-[auto,1fr] gap-x-2 text-[10px] opacity-80">
+                            <template v-if="enlace.medioDetalle">
+                                <dt class="font-bold">Tarjeta</dt><dd>{{ enlace.medioDetalle }}</dd>
+                            </template>
+                            <template v-if="enlace.autorizacionCodigo">
+                                <dt class="font-bold">Autorización</dt><dd>{{ enlace.autorizacionCodigo }}</dd>
+                            </template>
+                            <template v-if="enlace.ordenId">
+                                <dt class="font-bold">Orden</dt><dd class="font-mono">{{ enlace.ordenId }}</dd>
+                            </template>
+                        </dl>
+                    </div>
                     <p v-else-if="enlace.expiraEn" class="mt-0.5 text-[10px] opacity-80">
                         Caduca el {{ fechaCorta(enlace.expiraEn) }}
                     </p>
@@ -263,6 +314,24 @@ function fechaCorta(iso: string | null): string {
                             class="shrink-0 px-2 py-1 hover:bg-white/60 rounded text-[10px] font-black opacity-70 hover:opacity-100">
                             <i class="fas fa-ban"></i>
                         </button>
+                    </div>
+
+                    <!-- ===== AUDITORÍA: la respuesta tal cual la mandó la pasarela =====
+                         Sin interpretar ni mapear. Cuando una transacción se discute meses
+                         después, los campos que mapeamos nunca son los que hacen falta. -->
+                    <button v-if="enlace.estado === 'pagado' || enlace.estado === 'fallido'"
+                        type="button" @click="alternarAuditoria(enlace)"
+                        class="mt-2 text-[10px] font-black underline decoration-dotted opacity-70 hover:opacity-100">
+                        <i class="fas" :class="auditandoId === enlace.id ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                        Respuesta de {{ enlace.pasarelaEtiqueta }}
+                    </button>
+
+                    <div v-if="auditandoId === enlace.id" class="mt-1.5">
+                        <p v-if="cargandoAuditoria" class="text-[10px] opacity-70">Cargando…</p>
+                        <pre v-else
+                            class="max-h-64 overflow-auto p-2 rounded bg-white/70 border border-current/20
+                                   text-[9px] leading-relaxed font-mono whitespace-pre-wrap break-all"
+                        >{{ auditoria }}</pre>
                     </div>
                 </li>
             </ul>

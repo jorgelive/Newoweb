@@ -18,6 +18,7 @@ import type {
     FinEnlacePagoCreate,
     FinOrigenCobro,
     FinPasarelaOpcion,
+    FinRespuestaPasarela,
 } from '@/types/finEnlacePagoModel';
 
 export const useEnlacesPagoStore = defineStore('enlacesPagoStore', () => {
@@ -70,6 +71,18 @@ export const useEnlacesPagoStore = defineStore('enlacesPagoStore', () => {
         }
     };
 
+    /**
+     * Respuesta cruda de la pasarela, bajo demanda.
+     *
+     * No se cachea ni se guarda en el store: es un dato de auditoría que se abre, se mira y
+     * se cierra. Mantenerlo en memoria solo serviría para que un panel abierto media tarde
+     * acumulase respuestas de enlaces que ya nadie mira.
+     */
+    const fetchRespuesta = async (id: string): Promise<FinRespuestaPasarela> => {
+        const { data } = await apiClient.get<FinRespuestaPasarela>(`/finanzas/enlaces-pago/${id}/respuesta`);
+        return data;
+    };
+
     const anular = async (id: string): Promise<void> => {
         isSaving.value = true;
         try {
@@ -84,5 +97,8 @@ export const useEnlacesPagoStore = defineStore('enlacesPagoStore', () => {
         enlaces.value = [];
     };
 
-    return { isLoading, isSaving, enlaces, pasarelas, fetchPasarelas, fetchPorOrigen, crear, anular, clear };
+    return {
+        isLoading, isSaving, enlaces, pasarelas,
+        fetchPasarelas, fetchPorOrigen, fetchRespuesta, crear, anular, clear,
+    };
 });

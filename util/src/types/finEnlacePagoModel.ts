@@ -26,6 +26,23 @@ export type FinOrigenCobro = 'pms_reserva' | 'tour_reserva';
  */
 export type FinPasarela = 'izipay' | 'culqi';
 
+/**
+ * Respuesta cruda de la pasarela (`GET /finanzas/enlaces-pago/{id}/respuesta`).
+ *
+ * `respuesta` es **deliberadamente `unknown`**, no una interfaz. Cada pasarela devuelve lo
+ * que quiere —un `charge` de Culqi y un `kr-answer` de Lyra no comparten un campo— y tiparlo
+ * ataría el módulo a la forma de una de ellas: el día que entre la tercera habría que
+ * reescribir el tipo o meter un `any`, que es justo lo que no queremos.
+ *
+ * Se pinta como JSON formateado, sin interpretar. Quien audita quiere ver lo que dijo la
+ * pasarela, no nuestra lectura de lo que dijo.
+ */
+export interface FinRespuestaPasarela {
+    pasarela: FinPasarela;
+    pasarelaEtiqueta: string;
+    respuesta: unknown;
+}
+
 /** Opción del selector, servida por `GET /finanzas/enlaces-pago/pasarelas`. */
 export interface FinPasarelaOpcion {
     value: FinPasarela;

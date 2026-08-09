@@ -517,6 +517,30 @@ La pasarela se pinta en cada fila —tanto en el panel de la reserva como en el 
 de Cobros— porque al conciliar, lo primero que hace falta es saber contra qué extracto se
 cuadra ese cobro.
 
+### La respuesta de la pasarela NO se modela, y es una decisión
+
+`fin_enlace_pago.respuesta_pasarela` es un `json` que guarda **lo que llegó, tal cual**. No
+hay columnas para "código de autorización de Culqi", "outcome", "reference_code" ni nada
+parecido, y no las va a haber.
+
+El motivo es el propio diseño del módulo: **la interfaz es agnóstica de pasarela**. Un
+`charge` de Culqi y un `kr-answer` de Lyra no comparten un solo campo. Modelar esa
+estructura en columnas o en una entidad ataría Finanzas a la forma de una de las dos, y el
+día que entre la tercera habría que elegir entre reescribir el modelo o meter un campo
+suelto por proveedor — la misma deuda por canal que ya duele en mensajería.
+
+Lo que sí se extrae a columnas propias es el puñado de datos que el **negocio** necesita y
+que existen en cualquier pasarela: `transaccion_uuid`, `autorizacion_codigo`,
+`medio_detalle`. Eso lo normaliza cada cliente en su
+`comoRespuestaNormalizada()` — la traducción vive en el conector, no en el modelo.
+
+Para auditar, `GET /finanzas/enlaces-pago/{id}/respuesta` devuelve el JSON crudo y la UI lo
+pinta formateado **sin interpretar ningún campo**. Endpoint aparte del listado a propósito:
+son varios KB por fila y se consultan una vez al año, cuando alguien reclama.
+
+En TypeScript el tipo es `unknown`, no una interfaz: tiparlo sería el mismo error en el otro
+lado. Ver `FinRespuestaPasarela` en `util/src/types/finEnlacePagoModel.ts`.
+
 ### ⚠️ La trampa de `order`: la misma palabra, dos significados
 
 Costó una tarde. En **Izipay**, `orderId` es una referencia **libre**: le mandamos
@@ -619,6 +643,9 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar qué cargo se da por bueno (Culqi) | `src/Finanzas/Service/Culqi/CulqiClient.php` | `cargoPagaElEnlace()` |
 | Cambiar la pasarela por defecto | `.env` / `.env.local` | `FINANZAS_PASARELA_POR_DEFECTO` |
 | Tocar el selector de pasarela del operador | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `eligePasarela` |
+| Cambiar qué datos del cobro se ven sin desplegar | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | bloque `estado === 'pagado'` |
+| Tocar la vista de auditoría de la respuesta | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `alternarAuditoria()` |
+| Extraer un campo nuevo de la respuesta a columna | el cliente de esa pasarela | `comoRespuestaNormalizada()` |
 | Cambiar el formulario de una pasarela en `pax` | `pax/src/views/pago/Pago{Izipay,Culqi}Form.vue` | — |
 | Añadir una TERCERA pasarela | §11 | `FinPasarelaClientInterface` + `FinPasarelaRegistry` |
 | Guardar otro campo de la transacción | `src/Finanzas/Service/FinEnlacePagoService.php` | `confirmarPago()` |

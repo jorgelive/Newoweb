@@ -130,6 +130,36 @@ final class FinEnlacePagoApiController extends AbstractController
         return $this->json(['enlace' => $this->serializar($enlace)]);
     }
 
+    /**
+     * Respuesta CRUDA de la pasarela, para auditoría.
+     *
+     * Endpoint aparte y no un campo del listado a propósito: son varios KB por fila y se
+     * consultan una vez al año, cuando alguien reclama. Meterlos en la lista inflaría cada
+     * consulta de 500 filas para un dato que casi nunca se mira.
+     *
+     * Se devuelve **tal cual llegó**, sin mapear a ninguna estructura nuestra. Es
+     * deliberado: cada pasarela responde lo que quiere —un `charge` de Culqi y un
+     * `kr-answer` de Lyra no comparten un solo campo— y modelarlo ataría Finanzas a la
+     * forma de una de ellas. El que audita quiere ver lo que dijo la pasarela, no nuestra
+     * interpretación de lo que dijo.
+     */
+    #[Route('/{id}/respuesta', name: 'respuesta', methods: ['GET'])]
+    #[IsGranted(Roles::RESERVAS_SHOW, message: 'No tienes permiso para ver los cobros.')]
+    public function respuesta(string $id): JsonResponse
+    {
+        $enlace = $this->repository->find($id);
+
+        if (!$enlace instanceof FinEnlacePago) {
+            return $this->json(['error' => 'Enlace no encontrado.'], 404);
+        }
+
+        return $this->json([
+            'pasarela' => $enlace->getPasarela()->value,
+            'pasarelaEtiqueta' => $enlace->getPasarela()->etiqueta(),
+            'respuesta' => $enlace->getRespuestaPasarela(),
+        ]);
+    }
+
     /** Orígenes que hoy tienen resolver. La SPA pinta esto, no el enum entero. */
     #[Route('/origenes', name: 'origenes', methods: ['GET'])]
     #[IsGranted(Roles::RESERVAS_SHOW)]
