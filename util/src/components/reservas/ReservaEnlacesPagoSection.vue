@@ -83,6 +83,15 @@ const form = ref({
     vigenciaDias: 7,
     /** Vacío = la que decida el backend. Solo se elige si hay más de una configurada. */
     pasarela: '' as FinPasarela | '',
+    /**
+     * Vacío = el backend describe la reserva («Casita 1, 09/08 al 18/08»).
+     *
+     * Se puede pisar porque no todo lo que se cobra es la estancia: un tour, un traslado,
+     * una lavandería, una garantía. Es el texto que ve el cliente en la página de pago y en
+     * el correo de su banco, así que si dice "estancia" cuando pagó un tour, el cobro parece
+     * un error y acaba en una reclamación.
+     */
+    concepto: '',
 });
 
 /** Con una sola pasarela no hay nada que elegir: el selector estorbaría. */
@@ -127,6 +136,7 @@ function abrirForm(): void {
         conRecargo: true,
         vigenciaDias: 7,
         pasarela: '',
+        concepto: '',
     };
     formAbierto.value = true;
     // Al abrir y no al montar: la mayoría de veces el panel se despliega para mirar, no
@@ -145,6 +155,7 @@ async function crear(): Promise<void> {
             conRecargo: form.value.conRecargo,
             vigenciaDias: form.value.vigenciaDias,
             pasarela: form.value.pasarela || undefined,
+            concepto: form.value.concepto.trim() || undefined,
         });
         formAbierto.value = false;
         emit('actualizado');
@@ -230,6 +241,18 @@ function fechaCorta(iso: string | null): string {
                         <span class="text-[10px] text-slate-400">0 = sin caducidad</span>
                     </label>
                 </div>
+
+                <!-- Concepto libre: no todo lo que se cobra es la estancia. Es lo que ve el
+                     cliente en la página de pago y en el cargo de su banco. -->
+                <label class="block">
+                    <span class="text-[10px] font-black text-slate-500 uppercase">Concepto</span>
+                    <input v-model="form.concepto" type="text" maxlength="200"
+                        placeholder="Por defecto: la estancia (casita y fechas)"
+                        class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                    <span class="text-[10px] text-slate-400">
+                        Cámbialo si cobras otra cosa: un tour, un traslado, una garantía.
+                    </span>
+                </label>
 
                 <!-- Solo con más de una pasarela configurada. Ver §11 del doc: conviven, no
                      se sustituyen, así que el operador puede necesitar forzar una. -->

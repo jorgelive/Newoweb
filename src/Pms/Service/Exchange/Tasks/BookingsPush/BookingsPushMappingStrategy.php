@@ -21,6 +21,16 @@ use RuntimeException;
 final readonly class BookingsPushMappingStrategy implements MappingStrategyInterface
 {
     /**
+     * Status de Beds24 para una reserva cancelada.
+     *
+     * Es el ÚNICO estado que el PMS puede imponerle a una reserva de OTA (ver el bloque
+     * "4. ESTADO"), así que se nombra en vez de repetir la cadena: el día que Beds24 cambie
+     * el literal, esto tiene que fallar en un solo sitio. Espejo de
+     * `pms_evento_estado.codigo_beds24` para el estado `cancelada`.
+     */
+    private const string BEDS24_CANCELLED = 'cancelled';
+
+    /**
      * Transforma el lote de la cola al formato de transporte HTTP.
      * * Interviene en el empaquetado de datos diferenciando entre eliminaciones físicas
      * (DELETE) y creaciones/actualizaciones (POST/PUT emulado), asegurando que los
@@ -184,10 +194,22 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         }
 
         // 4. ESTADO
-        // Solo enviamos status si no es OTA o es espejo, para no reescribir cancelaciones
-        // externas con datos desactualizados del PMS.
-        if (!$isOta || $isMirror) {
-            $payload['status'] = $this->resolveBeds24Status($queue);
+        //
+        // Regla general: en una OTA no espejo NO se manda `status`. El peligro concreto es
+        // pisar una cancelación hecha en el canal con un `confirmed` viejo del PMS: la
+        // reserva reviviría en Airbnb y volveríamos a vender una noche ya liberada.
+        //
+        // EXCEPCIÓN, y es asimétrica a propósito: la CANCELACIÓN sí viaja. Ese fallo no
+        // puede darse en ese sentido —cancelar algo ya cancelado es un no-op— y sin ella el
+        // PMS y el canal divergen en silencio: una consulta de Airbnb en «abierto» que se
+        // cancela aquí vuelve a aparecer abierta en el siguiente pull programado, porque
+        // Beds24 nunca se enteró. El operador la cancela una y otra vez sin efecto.
+        //
+        // Dicho de otro modo: el PMS puede CERRAR en el canal, nunca abrir ni confirmar.
+        $estadoBeds24 = $this->resolveBeds24Status($queue);
+
+        if (!$isOta || $isMirror || $estadoBeds24 === self::BEDS24_CANCELLED) {
+            $payload['status'] = $estadoBeds24;
         }
 
         // 5. DATOS DEL HUÉSPED Y FINANZAS
@@ -264,7 +286,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     {
         // Si el endpoint es explícitamente DELETE, forzamos status cancelled
         if ($queue->getEndpoint()?->getMetodo() === 'DELETE') {
-            return 'cancelled';
+            return self::BEDS24_CANCELLED;
         }
 
         // Las validaciones de integridad superiores garantizan que estos objetos existen.

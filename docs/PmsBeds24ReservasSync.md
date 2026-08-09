@@ -2626,6 +2626,38 @@ Es un fallo silencioso con consecuencia externa, así que el listener lo registr
 con el `link_id` y el `evento_id`. **Si ese mensaje aparece en el log, hay que retirar la
 reserva a mano en Beds24**; no hay reintento posible, porque el identificador se perdió.
 
+## 12.13 Push de estado a una OTA: cerrar sí, abrir no
+
+`BookingsPushMappingStrategy` **no manda `status`** cuando la reserva es de OTA y no es
+espejo. El peligro concreto: pisar una cancelación hecha en el canal con un `confirmed`
+viejo del PMS — la reserva reviviría en Airbnb y volveríamos a vender una noche liberada.
+
+**Excepción, deliberadamente asimétrica: la cancelación sí viaja.**
+
+```
+PMS → canal:   cancelada   ✔ siempre
+               confirmada  ✘
+               pendiente   ✘   sólo si NO es OTA, o es espejo
+               abierto     ✘
+```
+
+El fallo que motiva el bloqueo no puede darse en ese sentido: cancelar algo ya cancelado es
+un no-op. Y sin la excepción, PMS y canal divergen **en silencio**: una consulta de Airbnb en
+`abierto` que se cancela aquí vuelve a aparecer abierta en el siguiente pull programado,
+porque Beds24 nunca se enteró. El operador la cancela una y otra vez sin efecto y acaba
+creyendo que el PMS está roto.
+
+Regla mental: **el PMS puede CERRAR en el canal, nunca abrir ni confirmar.**
+
+> ⚠️ Alcance real: aplica a **cualquier** cancelación local de una reserva de OTA, no sólo a
+> las consultas — el estado anterior no se conserva en la cola, así que no hay forma de
+> distinguirlas al empujar. Si alguien cancela aquí una reserva confirmada de Airbnb, ahora
+> sí se cancela en el canal. Es lo coherente (antes divergían sin avisar), pero es una acción
+> con consecuencias para el huésped.
+
+El literal vive en `BookingsPushMappingStrategy::BEDS24_CANCELLED`, espejo de
+`pms_evento_estado.codigo_beds24` para `cancelada` (`abierto` → `inquiry`).
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
