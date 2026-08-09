@@ -170,7 +170,7 @@ final readonly class ResumenConversacionService
             ->andWhere('m.direction = :entrante')
             ->setParameter('c', $conversacion)
             ->setParameter('entrante', Message::DIRECTION_INCOMING)
-            ->orderBy('COALESCE(m.effectiveDateTime, m.createdAt)', 'DESC')
+            ->orderBy('COALESCE(m.scheduledAt, m.createdAt)', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
@@ -198,7 +198,7 @@ final readonly class ResumenConversacionService
 
         // Última respuesta del equipo. Si nunca hubo, la ventana es toda la conversación.
         $ultimaSalida = $repo->createQueryBuilder('m')
-            ->select('MAX(COALESCE(m.effectiveDateTime, m.createdAt))')
+            ->select('MAX(COALESCE(m.scheduledAt, m.createdAt))')
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :saliente')
             ->setParameter('c', $conversacion)
@@ -211,11 +211,11 @@ final readonly class ResumenConversacionService
             ->andWhere('m.direction = :entrante')
             ->setParameter('c', $conversacion)
             ->setParameter('entrante', Message::DIRECTION_INCOMING)
-            ->orderBy('COALESCE(m.effectiveDateTime, m.createdAt)', 'DESC')
+            ->orderBy('COALESCE(m.scheduledAt, m.createdAt)', 'DESC')
             ->setMaxResults(self::MAX_MENSAJES);
 
         if ($ultimaSalida !== null) {
-            $qb->andWhere('COALESCE(m.effectiveDateTime, m.createdAt) > :corte')
+            $qb->andWhere('COALESCE(m.scheduledAt, m.createdAt) > :corte')
                 ->setParameter('corte', $ultimaSalida);
         }
 
