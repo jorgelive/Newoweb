@@ -1,5 +1,5 @@
-// public/push-sw.js — v2 (el cambio de versión fuerza la reinstalación del SW)
-console.log('[push-sw.js] ✅ v2 cargado — sanitizador whitelist por UUID activo');
+// public/push-sw.js — v3 (el cambio de versión fuerza la reinstalación del SW)
+console.log('[push-sw.js] ✅ v3 cargado — whitelist por UUID + tag por conversación');
 
 // ====================================================================
 // FIX A: WHITELIST POR UUID (reemplaza los escudos blacklist)
@@ -126,12 +126,23 @@ self.addEventListener('push', (event) => {
                     });
                 });
             } else {
+                // El tag agrupa POR CONVERSACIÓN, no por "todo el chat".
+                // Con el tag fijo 'chat-message' cada aviso reemplazaba al anterior:
+                // aunque escribieran cinco huéspedes distintos quedaba una sola
+                // notificación, y el contador del icono no pasaba nunca de 1.
+                // Con un tag por conversación, un mensaje nuevo del MISMO huésped
+                // sigue reemplazando al suyo (que es lo que se quiere: no acumular
+                // veinte avisos del mismo chat) pero cada conversación suma la suya.
+                const conversationTag = safeUrl.startsWith('/chat?id=')
+                    ? `chat-${safeUrl.slice('/chat?id='.length)}`
+                    : 'chat-inbox';
+
                 return self.registration.showNotification(notificationData.title, {
                     body: notificationData.body,
                     icon: '/app_util/pwa-192x192.png',
                     badge: '/app_util/favicon.svg',
                     data: { url: safeUrl },
-                    tag: 'chat-message',
+                    tag: conversationTag,
                     renotify: true
                 });
             }

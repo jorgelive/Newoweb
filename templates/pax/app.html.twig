@@ -45,11 +45,11 @@
 
     <script>
         if ('serviceWorker' in navigator) {
-            // El Service Worker se registra en la raíz para cubrir el subdominio util.openperu.pe completo
-            // updateViaCache 'none': fuerza re-descarga de push-sw.js (importScripts) en cada
-            // chequeo de actualización; sin esto el navegador puede servirlo del caché HTTP.
+            // El Service Worker se registra en la raíz para cubrir el subdominio pax.openperu.pe completo.
+            // Nombre con prefijo de app: util y pax comparten docroot y el nombre genérico
+            // 'service-worker.js' hacía que el último build sobrescribiera al del otro.
             navigator.serviceWorker
-                .register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
+                .register('/pax-service-worker.js', { scope: '/', updateViaCache: 'none' })
                 .then((reg) => reg.update());
         }
     </script>

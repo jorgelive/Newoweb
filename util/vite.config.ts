@@ -28,8 +28,12 @@ export default defineConfig(({ command }) => {
                 // ✅ Un solo modo: generateSW
                 strategies: 'generateSW',
 
-                // ✅ SW en la raíz pública (/public/service-worker.js)
-                filename: '../service-worker.js',
+                // SW en la raíz pública, con nombre PROPIO de esta app.
+                // No usar '../service-worker.js': util y pax comparten docroot
+                // (mismo vhost nginx), así que ese nombre genérico hacía que el
+                // último build sobrescribiera al del otro y la PWA de util
+                // terminara corriendo el SW de pax — sin listener de `push`.
+                filename: '../util-service-worker.js',
 
                 // ✅ Manifest PWA dentro de /public/app_util/
                 manifestFilename: 'util-manifest.webmanifest',

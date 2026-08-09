@@ -28,7 +28,9 @@ export default defineConfig(({ command }) => {
                 strategies: 'generateSW',
 
                 // ✅ SW en la raíz pública (/public/service-worker.js)
-                filename: '../service-worker.js',
+                // Nombre propio: util y pax comparten docroot y el nombre
+                // genérico '../service-worker.js' hacía que se pisaran entre sí.
+                filename: '../pax-service-worker.js',
 
                 // ✅ Manifest PWA dentro de /public/app_pax/ (Vite lo deja ahí)
                 manifestFilename: 'pax-manifest.webmanifest',

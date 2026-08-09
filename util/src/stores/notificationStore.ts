@@ -89,20 +89,58 @@ export const useNotificationStore = defineStore('notificationStore', () => {
         notifications.value = notifications.value.filter(n => n.id !== id);
     };
 
+    // Cada `return false` de aquí deja al usuario sin notificaciones de forma
+    // permanente y SILENCIOSA: el backend solo ve "este usuario no tiene
+    // dispositivos suscritos" y no hay manera de saber en qué paso se rompió.
+    // Por eso cada salida deja rastro en consola con su motivo concreto.
     const subscribeToPushNotifications = async (): Promise<boolean> => {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            console.warn('[push] El navegador no soporta serviceWorker/PushManager.');
+            return false;
+        }
         try {
             const permission = await Notification.requestPermission();
-            if (permission !== 'granted') return false;
+            if (permission !== 'granted') {
+                console.warn(`[push] Permiso de notificaciones no concedido (estado: ${permission}).`);
+                return false;
+            }
+
             const registration = await navigator.serviceWorker.ready;
+
+            // Sin listener de `push` en el SW activo, la suscripción se registra
+            // igual y el servidor recibe 201 del servicio push, pero el
+            // dispositivo no muestra nada. Es exactamente el fallo que dejó las
+            // notificaciones mudas (ver docs/PwaNotificaciones.md), así que
+            // avisamos en vez de dejarlo pasar en silencio.
+            if (!registration.active?.scriptURL.includes('util-service-worker')) {
+                console.error(
+                    '[push] El SW activo NO es el de util:', registration.active?.scriptURL,
+                    '— las notificaciones no se mostrarán. Revisa el deploy del service worker.'
+                );
+            }
+
             const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-            if (!vapidPublicKey) return false;
+            if (!vapidPublicKey) {
+                console.error('[push] Falta VITE_VAPID_PUBLIC_KEY en el build. Sin ella no se puede suscribir.');
+                return false;
+            }
+
             const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
             const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: convertedVapidKey as BufferSource });
             const subscriptionData = subscription.toJSON();
-            await apiClient.post('/user/push-subscription', { endpoint: subscriptionData.endpoint, p256dh: subscriptionData.keys?.p256dh, auth: subscriptionData.keys?.auth });
+
+            await apiClient.post('/user/push-subscription', {
+                endpoint: subscriptionData.endpoint,
+                p256dh: subscriptionData.keys?.p256dh,
+                auth: subscriptionData.keys?.auth,
+            });
+
+            console.info('[push] Suscripción registrada en el backend.');
             return true;
-        } catch (error) { return false; }
+        } catch (error) {
+            console.error('[push] Falló la suscripción a notificaciones:', error);
+            return false;
+        }
     };
 
     const unsubscribeFromPushNotifications = async (): Promise<void> => {
@@ -116,7 +154,9 @@ export const useNotificationStore = defineStore('notificationStore', () => {
                 await subscription.unsubscribe();
                 await apiClient.post('/user/push-unsubscribe', { endpoint });
             }
-        } catch (error) {}
+        } catch (error) {
+            console.error('[push] Falló la desuscripción:', error);
+        }
     };
 
     return { getNotifications, setNotifications, addNotification, removeNotification, subscribeToPushNotifications, unsubscribeFromPushNotifications };

@@ -61,7 +61,10 @@ class WebPushNotificationService
      * * @param User $user El usuario destinatario.
      * @param array $payload Datos de la notificación (title, body, actionUrl).
      * @return void
-     * @throws \RuntimeException Si ocurre un error crítico de configuración o red.
+     *
+     * NO lanza excepciones por fallos de entrega: quien llama suele estar
+     * recorriendo una lista de destinatarios y un dispositivo caído no debe
+     * dejar sin aviso al resto. Los fallos quedan en el log.
      */
     public function sendToUser(User $user, array $payload): void
     {
@@ -124,15 +127,22 @@ class WebPushNotificationService
                         continue;
                     }
 
-                    $errorMsg = "🔥 [WebPush] ERROR CRÍTICO a {$endpoint} | HTTP {$statusCode} | Motivo: {$reason}";
-                    $this->logger->critical($errorMsg);
-                    throw new \RuntimeException($errorMsg);
+                    // Se registra y se SIGUE. Lanzar aquí abortaba el foreach de
+                    // reportes y, peor, propagaba hasta el listener, que itera
+                    // sobre todos los destinatarios: un endpoint muerto de un
+                    // usuario dejaba sin notificación a todos los que venían
+                    // detrás en la lista. El fallo de un dispositivo es un caso
+                    // normal, no una condición de error del envío completo.
+                    $this->logger->critical("🔥 [WebPush] FALLO de entrega a {$endpoint} | HTTP {$statusCode} | Motivo: {$reason}");
                 }
             }
 
         } catch (Throwable $e) {
-            $this->logger->emergency("🚨 [WebPush] EMERGENCIA: Fallo interno catastrófico. Detalle: " . $e->getMessage());
-            throw new \RuntimeException("Fallo interno en WebPush: " . $e->getMessage(), 0, $e);
+            // Igual que arriba: se traga la excepción a propósito para no cortar
+            // el reparto al resto de usuarios. Queda en el log como emergencia.
+            $this->logger->emergency("🚨 [WebPush] EMERGENCIA: Fallo interno enviando a " . $user->getUserIdentifier() . ". Detalle: " . $e->getMessage(), [
+                'exception' => $e,
+            ]);
         }
     }
 

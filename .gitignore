@@ -44,6 +44,12 @@ mercure.Caddyfile
 ###< varios ###
 
 ###> Vite ###
+# Un SW por app: comparten docroot, así que el nombre genérico hacía que el
+# último build pisara al otro (ver docs/PwaNotificaciones.md).
+/public/util-service-worker.js
+/public/pax-service-worker.js
+# Obsoleto: nombre genérico anterior. Se mantiene ignorado para que los
+# artefactos que queden en checkouts viejos no entren al repo.
 /public/service-worker.js
 /public/manifest.webmanifest
 /public/workbox-*.js

@@ -62,3 +62,47 @@ const shellHtml = `<!doctype html>
 const shellPath = path.resolve(appPaxDir, 'shell.html')
 fs.writeFileSync(shellPath, shellHtml, 'utf8')
 console.log('✅ Shell generado:', shellPath)
+
+// ============================================================================
+// 4) GUARDA ANTI-COLISIÓN CON LA PWA DE UTIL
+// ----------------------------------------------------------------------------
+// util y pax se sirven desde el MISMO docroot (un solo vhost nginx con varios
+// server_name). Cuando ambos vite.config emitían '../service-worker.js', el
+// último build en correr sobrescribía el SW del otro. En producción ganó pax, y
+// la PWA de util quedó ejecutando este SW —que no importa push-sw.js ni tiene
+// listener de `push`—: el backend enviaba, FCM devolvía 201 y el teléfono no
+// mostraba nada. Sin síntoma en el build y sin error en los logs del servidor.
+// Ver docs/PwaNotificaciones.md.
+// ============================================================================
+const errors = []
+
+// 4.1) Este build debe emitir su SW con nombre propio.
+const paxSwPath = path.resolve(publicDir, 'pax-service-worker.js')
+if (!fs.existsSync(paxSwPath)) {
+    errors.push(`No existe pax-service-worker.js en ${paxSwPath}. ¿Corrió 'vite build' antes del postbuild?`)
+}
+
+// 4.2) Y NO debe haber tocado el de util.
+const utilSwPath = path.resolve(publicDir, 'util-service-worker.js')
+if (fs.existsSync(utilSwPath)) {
+    const utilSw = fs.readFileSync(utilSwPath, 'utf8')
+    if (utilSw.includes('/app_pax/')) {
+        errors.push('util-service-worker.js contiene assets de /app_pax/: el build de pax pisó el SW de util. Revisa `filename` en pax/vite.config.ts.')
+    }
+}
+
+// 4.3) El nombre genérico no debe volver a aparecer: si existe, es un artefacto
+//      viejo que los clientes todavía podrían registrar.
+const legacySwPath = path.resolve(publicDir, 'service-worker.js')
+if (fs.existsSync(legacySwPath)) {
+    console.warn('⚠️  Existe public/service-worker.js (nombre genérico obsoleto).')
+    console.warn('   Bórralo del repo y del servidor: ya nadie debería registrarlo.')
+}
+
+if (errors.length > 0) {
+    console.error('\n❌ BUILD PWA PAX INCONSISTENTE:')
+    for (const e of errors) console.error('   •', e)
+    process.exit(1)
+}
+
+console.log('✅ SW de pax emitido sin colisionar con el de util.')

@@ -45,6 +45,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Operacion/`, La Biblia y Órdenes de Servicio en `util/` | `docs/Operacion.md` |
 | `src/Pms/Guia/`, entidades `PmsGuia*`, guía del huésped y catálogo en `pax/` | `docs/PmsGuiaHuesped.md` |
 | `src/Message/` (chat, reglas de envío, colas Beds24/WhatsApp), `src/Pms/Service/Message/`, `src/Agent/` (autorespuestas e IA) | `docs/Mensajeria.md` |
+| `util/public/push-sw.js`, `*/vite.config.ts` (bloque `VitePWA`), `*/scripts/pwa-*.mjs`, `src/Service/WebPushNotificationService.php`, `PushSubscription*` | `docs/PwaNotificaciones.md` |
 | `src/Pms/Service/Reserva/PmsDisponibilidadService.php`, `PmsEventoEstado::IMPIDEN_VENTA` | `docs/PmsDisponibilidad.md` |
 | `src/Finanzas/`, resolvers `*/Finanzas/*OrigenCobroResolver.php`, cobros en `util/` y `pax/` | `docs/FinanzasEnlacesPago.md` |
 | `src/Service/Phone/`, listeners de integridad de teléfonos, `util/src/utils/telefono.ts` | `docs/Telefonos.md` |

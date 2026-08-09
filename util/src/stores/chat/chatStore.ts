@@ -659,15 +659,20 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     // ============================================================================
-    // BADGE NATIVO (sin cambios)
+    // BADGE NATIVO
+    // ----------------------------------------------------------------------------
+    // Suma los mensajes sin leer, NO cuenta las conversaciones que los tienen.
+    // Antes era `.filter(c => c.unreadCount > 0).length`, y como casi siempre hay
+    // un solo huésped escribiendo, el badge se quedaba clavado en 1 por muchos
+    // mensajes que llegaran: parecía un tope del sistema operativo y no lo era.
     // ============================================================================
-    watch(() => conversations.value.filter(c => (c.unreadCount ?? 0) > 0).length, (unreadCount) => {
+    watch(() => conversations.value.reduce((total, c) => total + (c.unreadCount ?? 0), 0), (unreadMessages) => {
         if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {
-            if (unreadCount > 0) navigator.setAppBadge(unreadCount).catch(() => {});
+            if (unreadMessages > 0) navigator.setAppBadge(unreadMessages).catch(() => {});
             else navigator.clearAppBadge().catch(() => {});
         }
         // Limpiamos las notificaciones persistentes del OS si ya se leyeron todos los chats
-        if (unreadCount === 0 && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        if (unreadMessages === 0 && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
         }
     });

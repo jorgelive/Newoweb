@@ -19,7 +19,7 @@ const base = (process.argv[2] || process.env.VERIFY_BASE_URL || 'https://util.op
 
 // Rutas de las que depende la instalación del SW.
 const required = [
-    '/service-worker.js',
+    '/util-service-worker.js',
     '/app_util/shell.html',
     '/app_util/push-sw.js',
     '/util-manifest.webmanifest',
@@ -50,6 +50,31 @@ for (const r of results) {
     const mark = r.ok ? '✅' : '❌'
     console.log(`${mark} ${String(r.status).padEnd(4)} ${r.path}${r.err ? `  (${r.err})` : ''}`)
     if (!r.ok) failed = true
+}
+
+// ----------------------------------------------------------------------------
+// Un 200 no basta. El bug de agosto 2026 fue exactamente eso: /service-worker.js
+// respondía 200 con el SW de PAX (mismo docroot, nombre de archivo compartido),
+// sin importScripts de push-sw.js ni listener de `push`. Todo "verde" y las
+// notificaciones mudas. Así que además del código HTTP validamos el CONTENIDO:
+// que el SW desplegado sea el de util y traiga el handler de push.
+// ----------------------------------------------------------------------------
+if (!failed) {
+    const swRes = await fetch(`${base}/util-service-worker.js`, { cache: 'no-store' })
+    const swSrc = await swRes.text()
+
+    if (swSrc.includes('/app_pax/')) {
+        console.error('\n❌ /util-service-worker.js contiene assets de /app_pax/: se desplegó el SW equivocado.')
+        failed = true
+    }
+    if (!swSrc.includes('/app_util/push-sw.js')) {
+        console.error('\n❌ /util-service-worker.js NO importa /app_util/push-sw.js.')
+        console.error('   La PWA se instalaría sin listener de `push`: el backend enviaría, el servidor')
+        console.error('   push respondería 201 y el dispositivo no mostraría NADA. Rehaz el build de util.')
+        failed = true
+    } else {
+        console.log('✅      contenido del SW: importa push-sw.js y no mezcla assets de pax')
+    }
 }
 
 if (failed) {

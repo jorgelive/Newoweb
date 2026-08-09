@@ -63,10 +63,10 @@ const shellHtml = `<!doctype html>
   ${jsModule}
   <script>
     if ('serviceWorker' in navigator) {
-      // updateViaCache 'none' fuerza la re-descarga de service-worker.js y de
+      // updateViaCache 'none' fuerza la re-descarga de util-service-worker.js y de
       // push-sw.js (importScripts) en cada chequeo; sin esto un SW viejo con la
       // navegación corrupta (host + undefined) puede sobrevivir en el caché HTTP.
-      navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
+      navigator.serviceWorker.register('/util-service-worker.js', { scope: '/', updateViaCache: 'none' })
         .then(reg => reg.update());
     }
   <\/script>
@@ -91,13 +91,22 @@ console.log('✅ Shell generado:', shellPath)
 const errors = []
 
 // 4.1) El SW debe existir y referenciar el shell que acabamos de generar.
-const swPath = path.resolve(publicDir, 'service-worker.js')
+const swPath = path.resolve(publicDir, 'util-service-worker.js')
 if (!fs.existsSync(swPath)) {
-    errors.push(`No existe service-worker.js en ${swPath}. ¿Corrió 'vite build' antes del postbuild?`)
+    errors.push(`No existe util-service-worker.js en ${swPath}. ¿Corrió 'vite build' antes del postbuild?`)
 } else {
     const swSrc = fs.readFileSync(swPath, 'utf8')
     if (!swSrc.includes('/app_util/shell.html')) {
-        errors.push('service-worker.js NO referencia /app_util/shell.html: el SW y el postbuild se desincronizaron (revisa vite.config: navigateFallback / additionalManifestEntries).')
+        errors.push('util-service-worker.js NO referencia /app_util/shell.html: el SW y el postbuild se desincronizaron (revisa vite.config: navigateFallback / additionalManifestEntries).')
+    }
+
+    // El handler de `push` NO vive en el SW generado por VitePWA, sino en
+    // push-sw.js, que entra vía workbox.importScripts. Si esa línea se cae del
+    // vite.config, el SW instala perfecto y las notificaciones quedan MUDAS:
+    // el servidor envía, FCM responde 201 y nadie llama a showNotification().
+    // Es un fallo sin síntoma en el build, así que se comprueba aquí.
+    if (!swSrc.includes('/app_util/push-sw.js')) {
+        errors.push('util-service-worker.js NO importa /app_util/push-sw.js: la PWA quedaría sin listener de `push` y NINGUNA notificación se mostraría (revisa workbox.importScripts en vite.config).')
     }
 
     // 4.2) Todo bundle que el SW precachea debe existir físicamente en disco,
@@ -124,7 +133,7 @@ if (errors.length > 0) {
     console.error('\n❌ BUILD PWA INCONSISTENTE — el Service Worker quedaría ininstalable:')
     for (const e of errors) console.error('   •', e)
     console.error('\n   Corre el build COMPLETO (`npm run build`, no solo `vite build`) y asegúrate de desplegar')
-    console.error('   public/service-worker.js, public/app_util/** y public/util-manifest.webmanifest juntos.\n')
+    console.error('   public/util-service-worker.js, public/app_util/** y public/util-manifest.webmanifest juntos.\n')
     process.exit(1)
 }
 
