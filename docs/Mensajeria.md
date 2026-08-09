@@ -409,6 +409,52 @@ php bin/console app:message:recalcular-no-leidos --marcar-leidas-antes-de=2026-0
 Quién lee este contador: el badge del icono de la PWA y los contadores del portal,
 vía `UnreadSummaryController`. Ver [`PwaNotificaciones.md`](PwaNotificaciones.md).
 
+### El resumen IA de lo pendiente
+
+`msg_conversation.resumen_ia` guarda, en una frase, **qué está pidiendo el huésped y
+todavía no se le ha contestado**. Lo leen tres sitios: el cuerpo de la notificación push,
+el panel de chats sin leer del portal y la bandeja del chat. Una llamada al modelo, tres
+consumidores — por eso es un campo y no un cálculo al vuelo.
+
+**La ventana es el motivo de que sea barato.** No se resume la conversación entera: solo
+los mensajes del huésped **posteriores a la última respuesta del equipo**. Normalmente son
+dos o tres líneas de entrada y sale una frase, con el tramo `baja` de potencia (Haiku).
+
+```
+… huésped … huésped … EQUIPO RESPONDE … huésped … huésped … huésped
+                          ▲             └──────── ventana ────────┘
+                       el corte
+```
+
+Si el equipo contesta, la ventana queda vacía y el resumen se borra: ya no hay nada
+pendiente que resumir.
+
+| Pieza | Archivo |
+|---|---|
+| Cálculo y prompt | `ResumenConversacionService::actualizar()` |
+| Encolado (con espera de ráfaga) | `MessageResumenListener` |
+| Ejecución en el worker | `GenerarResumenDispatchHandler` |
+| Texto de respaldo sin IA | `ResumenConversacionService::textoDeRespaldo()` |
+
+**Dos guardas que no hay que quitar:**
+
+- **`resumen_ia_hasta`** — la fecha del mensaje más reciente ya reflejado en el resumen. Es
+  lo que hace idempotente al handler: una ráfaga de cuatro mensajes encola cuatro trabajos,
+  el primero resume y los otros tres se van sin llamar al modelo. Sin este campo se pagan
+  cuatro llamadas por lo mismo.
+- **`AGENT_IA_RESUMEN_ESPERA`** (8 s) — el retraso del encolado. Es lo que da tiempo a que
+  la ráfaga esté completa cuando el primer trabajo se ejecuta. Ponerlo a 0 no rompe nada,
+  pero multiplica el gasto.
+
+**Degrada, no rompe.** Sin motor disponible, con `AGENT_IA_RESUMEN_CONVERSACION=0` o si la
+llamada falla, el resumen se queda como estaba y los tres consumidores caen al texto del
+último mensaje. Una notificación nunca se queda sin cuerpo.
+
+> ⚠️ El push **no espera** al resumen: sale inmediato para no retrasar el aviso. En el
+> primer mensaje de una ráfaga el cuerpo será el texto crudo; cuando el resumen llega, la
+> notificación siguiente de esa conversación —que reemplaza a la anterior por el `tag`— ya
+> lo lleva. Es un compromiso deliberado entre inmediatez y calidad del texto.
+
 ### 🔥 Con `read: false`, API Platform NO aplica `security`
 
 Una operación custom que no lee de Doctrine se declara así:
@@ -4012,6 +4058,10 @@ arreglar** — ver el aviso al final de esta sección.
 | Cambiar cómo degrada un canal el texto libre | `Beds24SendMappingStrategy` / `WhatsappMetaSendMappingStrategy` | `paraTextoPlano()` / `paraWhatsapp()`, sólo con `getTemplate() === null`, §14 |
 | Cambiar la barra B/I/U/S del compositor del chat | `ChatView.vue` | `aplicarFormato()` + `envolverSeleccion()` de `formatoDeTexto.ts`, §14 |
 | Probar el formateador sin gastar API | — | `php var/probar-formato.php` — §14 |
+| **Cambiar qué dice el resumen de lo pendiente** | `ResumenConversacionService` | `SYSTEM_PROMPT` — una frase, 12 palabras, §7 |
+| Cambiar la ventana que se resume | `ResumenConversacionService` | `ventanaSinResponder()` — el corte es la última salida, §7 |
+| Apagar el resumen IA | `.env` | `AGENT_IA_RESUMEN_CONVERSACION=0` — todo cae al texto del último mensaje, §7 |
+| Abaratar o encarecer el resumen | `.env` | `AGENT_IA_RESUMEN_POTENCIA` y `AGENT_IA_RESUMEN_ESPERA`, §7 |
 | **Apagar el triaje y volver al agente de antes** | `.env` | `AGENT_IA_TRIAJE=0` — todo pasa por el camino largo con el catálogo entero, §13 |
 | **Cambiar qué modelo atiende cada paso** | `.env` | `AGENT_IA_POTENCIA_ALTA` / `_MEDIA` / `_BAJA`, en la forma `proveedor:modelo`. Vacías = como antes, §13.5 |
 | Subir o bajar la potencia del clasificador | `.env` | `AGENT_IA_TRIAJE_POTENCIA` — `alta` \| `media`. Nunca `baja`: corre en TODOS los mensajes, §13.5 |

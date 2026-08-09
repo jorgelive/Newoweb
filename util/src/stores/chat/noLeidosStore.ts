@@ -28,6 +28,14 @@ export interface ConversacionNoLeida {
     status: EstadoConversacion;
     /** ISO-8601, o `null` si la conversación nunca registró un último mensaje. */
     lastMessageAt: string | null;
+    /**
+     * Qué está pidiendo el huésped, en una línea, resumido por IA sobre los mensajes
+     * posteriores a la última respuesta del equipo.
+     *
+     * `null` mientras la IA no haya pasado (mensaje recién llegado, resumen apagado o
+     * motor caído). Quien lo pinta debe tolerarlo, no asumir que siempre hay texto.
+     */
+    resumenIa: string | null;
 }
 
 interface ResumenEstado {

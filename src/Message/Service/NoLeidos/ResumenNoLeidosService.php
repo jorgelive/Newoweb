@@ -98,7 +98,7 @@ final readonly class ResumenNoLeidosService
         // Campos sueltos, no entidades: esto se consulta en cada carga del portal
         // y no necesita el grafo entero de la conversación.
         $detalle = $this->em->createQueryBuilder()
-            ->select('c.id AS id', 'c.guestName AS guestName', 'c.unreadCount AS unreadCount', 'c.status AS status', 'c.lastMessageAt AS lastMessageAt')
+            ->select('c.id AS id', 'c.guestName AS guestName', 'c.unreadCount AS unreadCount', 'c.status AS status', 'c.lastMessageAt AS lastMessageAt', 'c.resumenIa AS resumenIa')
             ->from(MessageConversation::class, 'c')
             ->where('c.unreadCount > 0')
             ->orderBy('c.lastMessageAt', 'DESC')
@@ -116,6 +116,9 @@ final readonly class ResumenNoLeidosService
                 'unreadCount'   => (int) $c['unreadCount'],
                 'status'        => $c['status'],
                 'lastMessageAt' => $c['lastMessageAt']?->format(\DATE_ATOM),
+                // Qué está pidiendo el huésped, en una línea. `null` mientras la IA no
+                // haya pasado: el portal cae a mostrar solo la antigüedad.
+                'resumenIa'     => $c['resumenIa'] ?? null,
             ], $detalle),
         ];
     }

@@ -532,6 +532,14 @@ const handleLogout = async () => {
 
                   <span class="min-w-0 flex-1">
                     <span class="block text-sm font-bold text-slate-900 truncate">{{ conv.guestName }}</span>
+
+                    <!-- Qué están pidiendo, resumido por IA. Es la línea que decide si
+                         hace falta entrar o no; mientras la IA no haya pasado, se omite
+                         en vez de dejar un hueco. -->
+                    <span v-if="conv.resumenIa" class="block text-xs font-medium text-slate-600 truncate">
+                      {{ conv.resumenIa }}
+                    </span>
+
                     <span class="block text-[11px] font-medium text-slate-400">
                       {{ haceCuanto(conv.lastMessageAt) }}
                       <!-- El estado solo se dice cuando NO es «Activos»: si está

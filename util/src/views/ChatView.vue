@@ -1190,6 +1190,14 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                   <i class="far fa-calendar-alt opacity-70 text-[8px]"></i>
                   {{ formatDate(chat.contextMilestones.start) }} - {{ formatDate(chat.contextMilestones.end) }}
                 </span>
+
+                <!-- Lo que el huésped pide y sigue sin contestarse, resumido por IA.
+                     Solo con no leídos: en una conversación ya atendida el resumen está
+                     vacío y ocuparía sitio sin decir nada. -->
+                <span v-if="chat.resumenIa && (chat.unreadCount ?? 0) > 0"
+                      class="text-[11px] font-medium text-slate-500 truncate leading-tight">
+                  {{ chat.resumenIa }}
+                </span>
               </span>
             </span>
 

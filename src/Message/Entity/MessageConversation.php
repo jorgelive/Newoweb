@@ -156,6 +156,32 @@ class MessageConversation
     #[Groups(['conversation:read', 'conversation:write'])]
     private bool $idiomaFijado = false;
 
+    /**
+     * Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+     * del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+     *
+     * Se guarda en la conversación —en vez de calcularse al vuelo— porque lo leen tres
+     * sitios distintos: el cuerpo de la notificación push, el panel de chats sin leer
+     * del portal y la bandeja del chat. Una llamada al modelo, tres consumidores.
+     *
+     * `null` significa «todavía no hay resumen» (recién llegado, IA apagada o el motor
+     * falló): quien lo pinta debe caer al texto del último mensaje, nunca dejar el
+     * hueco vacío.
+     */
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['conversation:read'])]
+    private ?string $resumenIa = null;
+
+    /**
+     * Fecha del mensaje más reciente que YA está reflejado en `resumenIa`.
+     *
+     * Es lo que hace idempotente al handler: una ráfaga de cuatro mensajes encola
+     * cuatro trabajos, el primero resume y los otros tres ven que no hay nada nuevo y
+     * se van sin llamar al modelo. Sin esto se pagarían cuatro llamadas por lo mismo.
+     */
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeInterface $resumenIaHasta = null;
+
     #[ORM\Column(type: 'datetime', nullable: true)]
     #[Groups(['conversation:read'])]
     private ?DateTimeInterface $lastMessageAt = null;
@@ -263,6 +289,12 @@ class MessageConversation
         }
         return $this->whatsappSessionValidUntil > new DateTime();
     }
+
+    public function getResumenIa(): ?string { return $this->resumenIa; }
+    public function setResumenIa(?string $resumenIa): self { $this->resumenIa = $resumenIa; return $this; }
+
+    public function getResumenIaHasta(): ?DateTimeInterface { return $this->resumenIaHasta; }
+    public function setResumenIaHasta(?DateTimeInterface $resumenIaHasta): self { $this->resumenIaHasta = $resumenIaHasta; return $this; }
 
     public function getUnreadCount(): int { return $this->unreadCount; }
     public function setUnreadCount(int $unreadCount): self { $this->unreadCount = $unreadCount; return $this; }

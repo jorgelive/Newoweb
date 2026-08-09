@@ -96,6 +96,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/message/conversations/unread-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen de mensajes sin leer
+         * @description Total de mensajes sin leer, desglose por estado y las conversaciones pendientes. Fuente única del badge y de los contadores del portal.
+         */
+        get: operations["api_messageconversationsunread-summary_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/message/conversations/{id}": {
         parameters: {
             query?: never;
@@ -2187,6 +2207,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "Beds24SendQueue-message.read": {
             /** @default pending */
@@ -2225,6 +2247,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "Beds24SendQueue.html-message.read": {
             /** @default pending */
@@ -2263,6 +2287,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "Beds24SendQueue.jsonld-message.read": {
             /** @default pending */
@@ -2301,6 +2327,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "Beds24SendQueue.multipart-message.read": {
             /** @default pending */
@@ -3202,6 +3230,16 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
+            /**
+             * Format: date-time
+             * @description Fecha del mensaje más reciente que YA está reflejado en `resumenIa`.
+             */
+            resumenIaHasta?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -3223,6 +3261,11 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
@@ -3245,6 +3288,11 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -3263,6 +3311,11 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
@@ -3298,6 +3351,11 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -3316,6 +3374,11 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
@@ -3337,6 +3400,11 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -3355,6 +3423,11 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
@@ -3376,6 +3449,11 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -3394,6 +3472,11 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
@@ -10615,6 +10698,8 @@ export interface components {
              * @example https://example.com/
              */
             template?: string | null;
+            /** @description Regla que programó este mensaje. Sólo se rellena en mensajes del sistema. */
+            rule?: components["schemas"]["MessageRule-message.read"] | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue-message.read"][];
             attachments?: components["schemas"]["MessageAttachment-message.read"][];
@@ -10683,6 +10768,8 @@ export interface components {
              * @example https://example.com/
              */
             template?: string | null;
+            /** @description Regla que programó este mensaje. Sólo se rellena en mensajes del sistema. */
+            rule?: components["schemas"]["MessageRule.html-message.read"] | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.html-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.html-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.html-message.read"][];
@@ -10725,6 +10812,8 @@ export interface components {
              * @example https://example.com/
              */
             template?: string | null;
+            /** @description Regla que programó este mensaje. Sólo se rellena en mensajes del sistema. */
+            rule?: components["schemas"]["MessageRule.jsonld-message.read"] | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.jsonld-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.jsonld-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.jsonld-message.read"][];
@@ -10767,6 +10856,8 @@ export interface components {
              * @example https://example.com/
              */
             template?: string | null;
+            /** @description Regla que programó este mensaje. Sólo se rellena en mensajes del sistema. */
+            rule?: components["schemas"]["MessageRule.multipart-message.read"] | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.multipart-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.multipart-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.multipart-message.read"][];
@@ -10841,6 +10932,10 @@ export interface components {
             id: string;
             name: string;
         };
+        "MessageRule-message.read": Record<string, never>;
+        "MessageRule.html-message.read": Record<string, never>;
+        "MessageRule.jsonld-message.read": Record<string, never>;
+        "MessageRule.multipart-message.read": Record<string, never>;
         MetaConfig: {
             nombre?: string | null;
             /** @default true */
@@ -13959,6 +14054,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
             /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
@@ -14193,6 +14290,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
             /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
@@ -14312,6 +14411,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
             /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
@@ -14482,6 +14583,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
             /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
@@ -15266,6 +15369,8 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15278,6 +15383,12 @@ export interface components {
              *     la tarjeta; `monto` (el neto) es la que abona su estancia.
              */
             readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero-pms_pago.patch.jsonMergePatch": {
@@ -15300,6 +15411,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User-pms_pago.patch"] | null;
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero-pms_pago.read_maestro.moneda.read": {
@@ -15326,6 +15439,8 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User-pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15338,6 +15453,12 @@ export interface components {
              *     la tarjeta; `monto` (el neto) es la que abona su estancia.
              */
             readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero-pms_pago.write": {
@@ -15371,6 +15492,8 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User-pms_pago.write"] | null;
         };
         "PmsPagoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
             /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
@@ -15396,6 +15519,8 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15408,6 +15533,12 @@ export interface components {
              *     la tarjeta; `monto` (el neto) es la que abona su estancia.
              */
             readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero.html-pms_pago.read_maestro.moneda.read": {
@@ -15434,6 +15565,8 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User.html-pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15446,6 +15579,12 @@ export interface components {
              *     la tarjeta; `monto` (el neto) es la que abona su estancia.
              */
             readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -15472,6 +15611,8 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15484,6 +15625,12 @@ export interface components {
              *     la tarjeta; `monto` (el neto) es la que abona su estancia.
              */
             readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero.jsonld-pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -15510,6 +15657,8 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User.jsonld-pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15522,6 +15671,12 @@ export interface components {
              *     la tarjeta; `monto` (el neto) es la que abona su estancia.
              */
             readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
         };
         "PmsPagoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
             /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
@@ -15547,6 +15702,8 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15559,6 +15716,12 @@ export interface components {
              *     la tarjeta; `monto` (el neto) es la que abona su estancia.
              */
             readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero.multipart-pms_pago.read_maestro.moneda.read": {
@@ -15585,6 +15748,8 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
+            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
+            cobrador?: components["schemas"]["User.multipart-pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15597,6 +15762,12 @@ export interface components {
              *     la tarjeta; `monto` (el neto) es la que abona su estancia.
              */
             readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
         };
         PmsRatesPushQueue: {
             /**
@@ -15860,6 +16031,12 @@ export interface components {
              */
             eventosCalendario?: string[];
             huespedes?: components["schemas"]["PmsReservaHuesped"][];
+            /**
+             * Format: iri-reference
+             * @description Cabecera financiera (1:1). Existe SOLO para que el borrado cascadee.
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string | null;
             canalesAggregate?: string | null;
             unidadesAggregate?: string | null;
             referenciaCanalAggregate?: string | null;
@@ -15871,7 +16048,8 @@ export interface components {
             /**
              * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
              *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
-             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
              */
             resumenFinanciero?: string[] | null;
             /** Format: uuid */
@@ -15896,11 +16074,19 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
             readonly syncStatusAggregate?: string;
             /** @description EL número al que hay que escribir. Fuente única de verdad. */
             readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
+            /** @description ¿Está cancelada esta reserva por completo? */
+            readonly cancelada?: boolean;
             /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
             readonly establecimientoVirtualPrincipal?: components["schemas"]["PmsEstablecimientoVirtual"] | null;
             /** @description REGLA DE NEGOCIO: Determina si la reserva está COMPLETAMENTE cancelada. */
@@ -15938,7 +16124,8 @@ export interface components {
             /**
              * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
              *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
-             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
              */
             resumenFinanciero?: string[] | null;
             /** Format: uuid */
@@ -16003,6 +16190,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
             /** @description EL número al que hay que escribir. Fuente única de verdad. */
             readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
@@ -16117,6 +16311,12 @@ export interface components {
              */
             eventosCalendario?: string[];
             huespedes?: components["schemas"]["PmsReservaHuesped.html"][];
+            /**
+             * Format: iri-reference
+             * @description Cabecera financiera (1:1). Existe SOLO para que el borrado cascadee.
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string | null;
             canalesAggregate?: string | null;
             unidadesAggregate?: string | null;
             referenciaCanalAggregate?: string | null;
@@ -16128,7 +16328,8 @@ export interface components {
             /**
              * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
              *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
-             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
              */
             resumenFinanciero?: string[] | null;
             /** Format: uuid */
@@ -16153,11 +16354,19 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
             readonly syncStatusAggregate?: string;
             /** @description EL número al que hay que escribir. Fuente única de verdad. */
             readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
+            /** @description ¿Está cancelada esta reserva por completo? */
+            readonly cancelada?: boolean;
             /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
             readonly establecimientoVirtualPrincipal?: components["schemas"]["PmsEstablecimientoVirtual.html"] | null;
             /** @description REGLA DE NEGOCIO: Determina si la reserva está COMPLETAMENTE cancelada. */
@@ -16195,7 +16404,8 @@ export interface components {
             /**
              * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
              *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
-             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
              */
             resumenFinanciero?: string[] | null;
             /** Format: uuid */
@@ -16260,6 +16470,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
             /** @description EL número al que hay que escribir. Fuente única de verdad. */
             readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
@@ -16315,6 +16532,12 @@ export interface components {
              */
             eventosCalendario?: string[];
             huespedes?: components["schemas"]["PmsReservaHuesped.jsonld"][];
+            /**
+             * Format: iri-reference
+             * @description Cabecera financiera (1:1). Existe SOLO para que el borrado cascadee.
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string | null;
             canalesAggregate?: string | null;
             unidadesAggregate?: string | null;
             referenciaCanalAggregate?: string | null;
@@ -16326,7 +16549,8 @@ export interface components {
             /**
              * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
              *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
-             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
              */
             resumenFinanciero?: string[] | null;
             /** Format: uuid */
@@ -16351,11 +16575,19 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
             readonly syncStatusAggregate?: string;
             /** @description EL número al que hay que escribir. Fuente única de verdad. */
             readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
+            /** @description ¿Está cancelada esta reserva por completo? */
+            readonly cancelada?: boolean;
             /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
             readonly establecimientoVirtualPrincipal?: components["schemas"]["PmsEstablecimientoVirtual.jsonld"] | null;
             /** @description REGLA DE NEGOCIO: Determina si la reserva está COMPLETAMENTE cancelada. */
@@ -16393,7 +16625,8 @@ export interface components {
             /**
              * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
              *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
-             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
              */
             resumenFinanciero?: string[] | null;
             /** Format: uuid */
@@ -16458,6 +16691,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
             /** @description EL número al que hay que escribir. Fuente única de verdad. */
             readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
@@ -16513,6 +16753,12 @@ export interface components {
              */
             eventosCalendario?: string[];
             huespedes?: components["schemas"]["PmsReservaHuesped.multipart"][];
+            /**
+             * Format: iri-reference
+             * @description Cabecera financiera (1:1). Existe SOLO para que el borrado cascadee.
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string | null;
             canalesAggregate?: string | null;
             unidadesAggregate?: string | null;
             referenciaCanalAggregate?: string | null;
@@ -16524,7 +16770,8 @@ export interface components {
             /**
              * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
              *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
-             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
              */
             resumenFinanciero?: string[] | null;
             /** Format: uuid */
@@ -16549,11 +16796,19 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
             readonly syncStatusAggregate?: string;
             /** @description EL número al que hay que escribir. Fuente única de verdad. */
             readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
+            /** @description ¿Está cancelada esta reserva por completo? */
+            readonly cancelada?: boolean;
             /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
             readonly establecimientoVirtualPrincipal?: components["schemas"]["PmsEstablecimientoVirtual.multipart"] | null;
             /** @description REGLA DE NEGOCIO: Determina si la reserva está COMPLETAMENTE cancelada. */
@@ -16591,7 +16846,8 @@ export interface components {
             /**
              * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
              *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
-             *     PmsInformacionFinanciera (la relación va en ese sentido, la reserva no la conoce).
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
              */
             resumenFinanciero?: string[] | null;
             /** Format: uuid */
@@ -16656,6 +16912,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
             /** @description EL número al que hay que escribir. Fuente única de verdad. */
             readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
@@ -17186,6 +17449,13 @@ export interface components {
             tarifaBaseMoneda?: string;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue"][];
@@ -17276,6 +17546,13 @@ export interface components {
             tarifaBaseMinStay: number;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -17305,6 +17582,13 @@ export interface components {
             tarifaBaseMinStay: number;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -17343,6 +17627,13 @@ export interface components {
             tarifaBaseMoneda?: string;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.html"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue.html"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.html"][];
@@ -17433,6 +17724,13 @@ export interface components {
             tarifaBaseMinStay: number;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -17462,6 +17760,13 @@ export interface components {
             tarifaBaseMinStay: number;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -17504,6 +17809,13 @@ export interface components {
             tarifaBaseMoneda?: string;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.jsonld"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue.jsonld"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.jsonld"][];
@@ -17610,6 +17922,13 @@ export interface components {
             tarifaBaseMinStay: number;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -17639,6 +17958,13 @@ export interface components {
             tarifaBaseMinStay: number;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -17677,6 +18003,13 @@ export interface components {
             tarifaBaseMoneda?: string;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.multipart"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue.multipart"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.multipart"][];
@@ -17767,6 +18100,13 @@ export interface components {
             tarifaBaseMinStay: number;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -17796,6 +18136,13 @@ export interface components {
             tarifaBaseMinStay: number;
             /** @default true */
             tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -19317,6 +19664,10 @@ export interface components {
             code: string;
             name: string;
             contextType?: string | null;
+            /** @description Cuándo usar esta plantilla, escrito **para el agente de IA**. */
+            agenteUso?: string | null;
+            /** @description ¿Puede el huésped pedírsela a sí mismo por el chat (autoenvío)? */
+            autoenvioHabilitada?: boolean;
             allowedSources?: string[] | null;
             allowedAgencies?: string[] | null;
             /** Format: uuid */
@@ -19344,6 +19695,10 @@ export interface components {
             code: string;
             name: string;
             contextType?: string | null;
+            /** @description Cuándo usar esta plantilla, escrito **para el agente de IA**. */
+            agenteUso?: string | null;
+            /** @description ¿Puede el huésped pedírsela a sí mismo por el chat (autoenvío)? */
+            autoenvioHabilitada?: boolean;
             allowedSources?: string[] | null;
             allowedAgencies?: string[] | null;
             /** Format: uuid */
@@ -19371,6 +19726,10 @@ export interface components {
             code: string;
             name: string;
             contextType?: string | null;
+            /** @description Cuándo usar esta plantilla, escrito **para el agente de IA**. */
+            agenteUso?: string | null;
+            /** @description ¿Puede el huésped pedírsela a sí mismo por el chat (autoenvío)? */
+            autoenvioHabilitada?: boolean;
             allowedSources?: string[] | null;
             allowedAgencies?: string[] | null;
             /** Format: uuid */
@@ -19398,6 +19757,10 @@ export interface components {
             code: string;
             name: string;
             contextType?: string | null;
+            /** @description Cuándo usar esta plantilla, escrito **para el agente de IA**. */
+            agenteUso?: string | null;
+            /** @description ¿Puede el huésped pedírsela a sí mismo por el chat (autoenvío)? */
+            autoenvioHabilitada?: boolean;
             allowedSources?: string[] | null;
             allowedAgencies?: string[] | null;
             /** Format: uuid */
@@ -21728,6 +22091,10 @@ export interface components {
              * @default true
              */
             enabled: boolean;
+            /** @description ¿Es quien cobra por defecto? (recepción). */
+            esCobradorPrincipal?: boolean;
+            /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
+            telefono?: string | null;
             /** @description Nombre(s) del usuario. */
             firstname?: string | null;
             /** @description Apellido(s) del usuario. */
@@ -21754,6 +22121,10 @@ export interface components {
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
         };
+        "User-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": Record<string, never>;
+        "User-pms_pago.patch": Record<string, never>;
+        "User-pms_pago.read_maestro.moneda.read": Record<string, never>;
+        "User-pms_pago.write": Record<string, never>;
         "User.html": {
             /** @description Identificador de usuario único para el login. */
             username?: string;
@@ -21768,6 +22139,10 @@ export interface components {
              * @default true
              */
             enabled: boolean;
+            /** @description ¿Es quien cobra por defecto? (recepción). */
+            esCobradorPrincipal?: boolean;
+            /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
+            telefono?: string | null;
             /** @description Nombre(s) del usuario. */
             firstname?: string | null;
             /** @description Apellido(s) del usuario. */
@@ -21794,6 +22169,8 @@ export interface components {
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
         };
+        "User.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": Record<string, never>;
+        "User.html-pms_pago.read_maestro.moneda.read": Record<string, never>;
         "User.jsonld": {
             /** @description Identificador de usuario único para el login. */
             username?: string;
@@ -21808,6 +22185,10 @@ export interface components {
              * @default true
              */
             enabled: boolean;
+            /** @description ¿Es quien cobra por defecto? (recepción). */
+            esCobradorPrincipal?: boolean;
+            /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
+            telefono?: string | null;
             /** @description Nombre(s) del usuario. */
             firstname?: string | null;
             /** @description Apellido(s) del usuario. */
@@ -21834,6 +22215,8 @@ export interface components {
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
         };
+        "User.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": Record<string, never>;
+        "User.jsonld-pms_pago.read_maestro.moneda.read": Record<string, never>;
         "User.multipart": {
             /** @description Identificador de usuario único para el login. */
             username?: string;
@@ -21848,6 +22231,10 @@ export interface components {
              * @default true
              */
             enabled: boolean;
+            /** @description ¿Es quien cobra por defecto? (recepción). */
+            esCobradorPrincipal?: boolean;
+            /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
+            telefono?: string | null;
             /** @description Nombre(s) del usuario. */
             firstname?: string | null;
             /** @description Apellido(s) del usuario. */
@@ -21874,6 +22261,8 @@ export interface components {
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
         };
+        "User.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": Record<string, never>;
+        "User.multipart-pms_pago.read_maestro.moneda.read": Record<string, never>;
         UserArea: {
             readonly id?: number;
             nombre: string;
@@ -22124,6 +22513,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "WhatsappMetaSendQueue-message.read": {
             /** @default unknown */
@@ -22171,6 +22562,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "WhatsappMetaSendQueue.html-message.read": {
             /** @default unknown */
@@ -22218,6 +22611,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "WhatsappMetaSendQueue.jsonld-message.read": {
             /** @default unknown */
@@ -22265,6 +22660,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "WhatsappMetaSendQueue.multipart-message.read": {
             /** @default unknown */
@@ -22614,6 +23011,42 @@ export interface operations {
                     "text/html": components["schemas"]["Conversation.html-conversation.read"][];
                     "multipart/form-data": components["schemas"]["Conversation.multipart-conversation.read"][];
                 };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "api_messageconversationsunread-summary_get_collection": {
+        parameters: {
+            query?: {
+                "order[lastMessageAt]"?: "asc" | "desc";
+                "order[createdAt]"?: "asc" | "desc";
+                contextType?: string;
+                "contextType[]"?: string[];
+                contextId?: string;
+                "contextId[]"?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversation collection */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {

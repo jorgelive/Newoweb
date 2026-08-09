@@ -7,6 +7,7 @@ namespace App\Message\EventListener\Mercure;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Mercure\MercureBroadcaster;
 use App\Message\Service\NoLeidos\ResumenNoLeidosService;
+use App\Message\Service\Resumen\ResumenConversacionService;
 use App\Service\WebPushNotificationService;
 use App\Repository\UserRepository;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
@@ -34,7 +35,8 @@ readonly class MessageConversationMercureListener
         private UserRepository $userRepository,
         private LoggerInterface $logger,
         private RoleHierarchyInterface $roleHierarchy,
-        private ResumenNoLeidosService $resumenNoLeidos
+        private ResumenNoLeidosService $resumenNoLeidos,
+        private ResumenConversacionService $resumenConversacion
     ) {}
 
     /**
@@ -112,9 +114,23 @@ readonly class MessageConversationMercureListener
 
             $guestName = $conversation->getGuestName() ?? 'Huésped';
 
+            // El cuerpo dice QUÉ quieren, no que «hay un mensaje nuevo»: con el resumen
+            // IA el operador decide desde la barra de notificaciones si hace falta abrir
+            // el chat. Si aún no hay resumen —recién llegado, IA apagada o el motor
+            // falló— cae al texto del último mensaje, que sigue siendo más útil que la
+            // frase genérica de antes.
+            $noLeidos = $conversation->getUnreadCount();
+            $cuerpo = $conversation->getResumenIa() ?: $this->resumenConversacion->textoDeRespaldo($conversation);
+
+            if ($cuerpo === null || $cuerpo === '') {
+                $cuerpo = 'Nuevo mensaje en la conversación de ' . ($conversation->getContextOrigin() ?? 'Chat');
+            } elseif ($noLeidos > 1) {
+                $cuerpo = "{$noLeidos} sin leer — {$cuerpo}";
+            }
+
             $payload = [
                 'title' => "Mensaje de {$guestName}",
-                'body'  => "Nuevo mensaje en la conversación de " . ($conversation->getContextOrigin() ?? 'Chat'),
+                'body'  => $cuerpo,
                 'type'  => 'info',
                 // ✅ CAMBIO CLAVE: Usamos un query param para que Vue lo auto-seleccione
                 'actionUrl' => "/chat?id={$conversation->getId()}",

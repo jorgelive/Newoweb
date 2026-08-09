@@ -43,6 +43,10 @@ framework:
             # la respuesta duplicada. Ver docs/Mensajeria.md §9.
             App\Agent\Dispatch\ProcessInboundIntentDispatch: async
 
+            # Mismo motivo que el de arriba: lo lanza un postPersist de Doctrine y hace
+            # una llamada de red a la IA. Síncrono bloquearía el webhook dentro del flush.
+            App\Message\Dispatch\GenerarResumenDispatch: async
+
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async
