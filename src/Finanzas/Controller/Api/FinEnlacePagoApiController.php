@@ -111,6 +111,61 @@ final class FinEnlacePagoApiController extends AbstractController
         return $this->json(['enlace' => $this->serializar($enlace)], 201);
     }
 
+    /**
+     * Cobro MANUAL: sin documento de origen.
+     *
+     * Ruta propia y no un parámetro de `crear` porque el contrato es distinto: aquí no hay
+     * saldo que leer, así que importe, moneda, concepto y cliente son **obligatorios** y no
+     * hay valores por defecto que heredar. Mezclarlos habría dado un endpoint con la mitad
+     * de los campos condicionalmente requeridos.
+     *
+     * Body: `{monto, moneda, concepto, modulo?, conRecargo?, vigenciaDias?, pasarela?,
+     *         clienteNombre?, clienteEmail?, clienteTelefono?, referencia?}`
+     */
+    #[Route('/manual', name: 'crear_manual', methods: ['POST'])]
+    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para emitir cobros.')]
+    public function crearManual(Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $datos */
+        $datos = json_decode((string) $request->getContent(), true) ?: [];
+
+        try {
+            $enlace = $this->servicio->crearManual(
+                montoNeto: (string) ($datos['monto'] ?? ''),
+                moneda: (string) ($datos['moneda'] ?? ''),
+                concepto: (string) ($datos['concepto'] ?? ''),
+                conRecargo: (bool) ($datos['conRecargo'] ?? true),
+                vigenciaDias: isset($datos['vigenciaDias']) ? (int) $datos['vigenciaDias'] : null,
+                // Sólo una ETIQUETA de módulo: no vincula con ningún documento, así que se
+                // admite aunque ese módulo todavía no tenga resolver.
+                modulo: isset($datos['modulo']) && $datos['modulo'] !== ''
+                    ? FinOrigenCobro::tryFrom((string) $datos['modulo'])
+                    : null,
+                clienteNombre: $this->textoONull($datos['clienteNombre'] ?? null),
+                clienteEmail: $this->textoONull($datos['clienteEmail'] ?? null),
+                clienteTelefono: $this->textoONull($datos['clienteTelefono'] ?? null),
+                referencia: $this->textoONull($datos['referencia'] ?? null),
+                creadoPor: $this->getUser() instanceof \App\Entity\User ? $this->getUser() : null,
+                pasarela: isset($datos['pasarela']) ? FinPasarela::tryFrom((string) $datos['pasarela']) : null,
+            );
+        } catch (DomainException $e) {
+            return $this->json(['error' => $e->getMessage()], 422);
+        }
+
+        return $this->json(['enlace' => $this->serializar($enlace)], 201);
+    }
+
+    /** Módulos que se pueden ETIQUETAR en un cobro manual (no requieren resolver). */
+    #[Route('/modulos', name: 'modulos', methods: ['GET'])]
+    #[IsGranted(Roles::RESERVAS_SHOW)]
+    public function modulos(): JsonResponse
+    {
+        return $this->json(array_map(
+            static fn (FinOrigenCobro $o): array => ['value' => $o->value, 'label' => $o->modulo()],
+            FinOrigenCobro::cases(),
+        ));
+    }
+
     #[Route('/{id}/anular', name: 'anular', methods: ['POST'])]
     #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para anular cobros.')]
     public function anular(string $id): JsonResponse
@@ -185,6 +240,16 @@ final class FinEnlacePagoApiController extends AbstractController
     private function serializar(FinEnlacePago $enlace): array
     {
         return $this->serializador->aArray($enlace);
+    }
+
+    /** Cadena vacía → null: un campo opcional que el formulario deja en blanco no es "". */
+    private function textoONull(mixed $valor): ?string
+    {
+        if (!is_string($valor)) {
+            return null;
+        }
+
+        return trim($valor) === '' ? null : trim($valor);
     }
 
     private function tipoDesde(mixed $valor): ?FinOrigenCobro

@@ -33,11 +33,30 @@ enum FinOrigenCobro: string
      */
     case TOUR_RESERVA = 'tour_reserva';
 
+    /**
+     * Expediente de cotización. Sin resolver todavía.
+     *
+     * Se puede usar como **etiqueta de módulo** en un cobro manual aunque no exista el
+     * resolver: en ese caso `origenId` va vacío y sólo sirve para saber a qué negocio
+     * imputar el dinero al mirar el listado.
+     */
+    case COTIZACION = 'cotizacion';
+
     public function etiqueta(): string
     {
         return match ($this) {
             self::PMS_RESERVA  => 'Reserva de alojamiento',
             self::TOUR_RESERVA => 'Reserva de tour',
+            self::COTIZACION   => 'Cotización',
+        };
+    }
+
+    /** Nombre corto del módulo, para la columna del listado. */
+    public function modulo(): string
+    {
+        return match ($this) {
+            self::PMS_RESERVA, self::TOUR_RESERVA => 'PMS',
+            self::COTIZACION                      => 'Cotizaciones',
         };
     }
 

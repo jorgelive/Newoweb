@@ -12,7 +12,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
-import type { FinEnlacePago, FinCobrosRespuesta, FinTotalCobro } from '@/types/finEnlacePagoModel';
+import type {
+    FinEnlacePago,
+    FinEnlacePagoManualCreate,
+    FinCobrosRespuesta,
+    FinTotalCobro,
+} from '@/types/finEnlacePagoModel';
 import type {
     FinCajaFiltros,
     FinMovimiento,
@@ -50,6 +55,18 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
             if (valor) salida[clave === 'q' ? 'q' : clave] = valor;
         }
         return salida;
+    };
+
+    /**
+     * Emite un cobro manual y lo coloca el primero de la lista.
+     *
+     * Se inserta en local en vez de recargar: el operador acaba de crearlo y lo que quiere
+     * es copiar la URL ya, no esperar a que vuelva la consulta con sus filtros.
+     */
+    const crearManual = async (payload: FinEnlacePagoManualCreate): Promise<FinEnlacePago> => {
+        const { data } = await apiClient.post<{ enlace: FinEnlacePago }>('/finanzas/enlaces-pago/manual', payload);
+        cobros.value = [data.enlace, ...cobros.value];
+        return data.enlace;
     };
 
     const fetchCobros = async (filtros: FinCajaFiltros): Promise<void> => {
@@ -105,5 +122,6 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
         medios,
         fetchCobros,
         fetchMovimientos,
+        crearManual,
     };
 });

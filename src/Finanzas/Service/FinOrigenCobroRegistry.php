@@ -69,7 +69,16 @@ final class FinOrigenCobroRegistry
     /** Imputa el cobro en el módulo dueño. Sólo lo llama `FinEnlacePagoService`. */
     public function registrarCobro(FinEnlacePago $enlace): ?Uuid
     {
-        return $this->para($enlace->getOrigenTipo())->registrarCobro($enlace);
+        $tipo = $enlace->getOrigenTipo();
+
+        // Cobro manual sin módulo: no hay a quién imputarlo. El servicio ya no debería
+        // llamar aquí en ese caso, pero se cubre para que un enlace suelto no reviente el
+        // webhook — el dinero ya entró y perderlo por un 500 sería mucho peor.
+        if ($tipo === null || $enlace->getOrigenId() === null) {
+            return null;
+        }
+
+        return $this->para($tipo)->registrarCobro($enlace);
     }
 
     /**

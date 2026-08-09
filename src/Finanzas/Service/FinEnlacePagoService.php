@@ -69,7 +69,47 @@ final class FinEnlacePagoService
             throw new DomainException('El documento que se quiere cobrar ya no existe.');
         }
 
-        $neto = $this->normalizarImporte($montoNeto ?? $origen->saldoPendiente);
+        return $this->construir(
+            origenTipo: $origenTipo,
+            origenId: $origenId,
+            montoNeto: $montoNeto ?? $origen->saldoPendiente,
+            monedaId: $origen->moneda,
+            concepto: $concepto ?: $origen->descripcion,
+            referencia: $origen->referencia,
+            clienteNombre: $origen->clienteNombre,
+            clienteEmail: $origen->clienteEmail,
+            clienteTelefono: $origen->clienteTelefono,
+            conRecargo: $conRecargo,
+            vigenciaDias: $vigenciaDias,
+            creadoPor: $creadoPor,
+            pasarela: $pasarela,
+        );
+    }
+
+    /**
+     * Construcción común a los dos caminos.
+     *
+     * Lo único que cambia entre un cobro contra documento y uno manual es **de dónde salen
+     * los datos**: del resolver o del formulario. Todo lo demás —token, recargo congelado,
+     * `orderId`, vigencia, validación de pasarela— es idéntico, y tenerlo en un solo sitio
+     * evita que el camino manual se quede sin alguna de esas garantías al evolucionar.
+     */
+    private function construir(
+        ?FinOrigenCobro $origenTipo,
+        ?Uuid $origenId,
+        string $montoNeto,
+        string $monedaId,
+        string $concepto,
+        ?string $referencia,
+        ?string $clienteNombre,
+        ?string $clienteEmail,
+        ?string $clienteTelefono,
+        bool $conRecargo,
+        ?int $vigenciaDias,
+        ?User $creadoPor,
+        ?FinPasarela $pasarela,
+    ): FinEnlacePago {
+        $neto = $this->normalizarImporte($montoNeto);
 
         if ((float) $neto <= 0) {
             throw new DomainException('No hay nada que cobrar: el importe debe ser mayor que cero.');
@@ -77,10 +117,10 @@ final class FinEnlacePagoService
 
         // `find` y no `getReference`: con una referencia, una moneda inexistente no falla
         // aquí sino en el flush, como un error de foreign key que no dice nada del problema.
-        $moneda = $this->em->find(MaestroMoneda::class, $origen->moneda);
+        $moneda = $this->em->find(MaestroMoneda::class, $monedaId);
 
         if ($moneda === null) {
-            throw new DomainException(sprintf('La moneda "%s" no está en el maestro.', $origen->moneda));
+            throw new DomainException(sprintf('La moneda "%s" no está en el maestro.', $monedaId));
         }
 
         // El porcentaje se congela en la fila: si mañana la pasarela sube su comisión, los
@@ -103,11 +143,11 @@ final class FinEnlacePagoService
             ->setMontoNeto($neto)
             ->setRecargoPorcentaje($this->normalizarImporte($porcentaje))
             ->setMontoTotal($total)
-            ->setConcepto($concepto ?: $origen->descripcion)
-            ->setOrigenReferencia($origen->referencia)
-            ->setClienteNombre($origen->clienteNombre)
-            ->setClienteEmail($origen->clienteEmail)
-            ->setClienteTelefono($origen->clienteTelefono)
+            ->setConcepto(substr($concepto, 0, 255))
+            ->setOrigenReferencia($referencia)
+            ->setClienteNombre($clienteNombre)
+            ->setClienteEmail($clienteEmail)
+            ->setClienteTelefono($clienteTelefono)
             ->setCreadoPor($creadoPor)
             ->setExpiraEn($this->calcularExpiracion($vigenciaDias));
 
@@ -117,6 +157,54 @@ final class FinEnlacePagoService
         $this->em->flush();
 
         return $enlace;
+    }
+
+    /**
+     * Cobro MANUAL: sin documento de origen.
+     *
+     * El operador teclea importe, concepto y cliente. No hay saldo que leer ni módulo al
+     * que imputar el dinero — al cobrarse, el registro se queda sólo en Finanzas.
+     *
+     * `$modulo` es opcional y es **sólo una etiqueta**: dice a qué negocio pertenece el
+     * cobro para poder filtrarlo, no crea vínculo con ningún documento. Por eso se admite
+     * incluso un módulo sin resolver (Cotizaciones hoy): etiquetar no requiere saber leer
+     * saldos.
+     *
+     * @throws DomainException si el importe o la moneda no valen.
+     */
+    public function crearManual(
+        string $montoNeto,
+        string $moneda,
+        string $concepto,
+        bool $conRecargo = true,
+        ?int $vigenciaDias = null,
+        ?FinOrigenCobro $modulo = null,
+        ?string $clienteNombre = null,
+        ?string $clienteEmail = null,
+        ?string $clienteTelefono = null,
+        ?string $referencia = null,
+        ?User $creadoPor = null,
+        ?FinPasarela $pasarela = null,
+    ): FinEnlacePago {
+        if (trim($concepto) === '') {
+            throw new DomainException('Un cobro manual necesita un concepto: es lo que verá el cliente.');
+        }
+
+        return $this->construir(
+            origenTipo: $modulo,
+            origenId: null,
+            montoNeto: $montoNeto,
+            monedaId: $moneda,
+            concepto: $concepto,
+            referencia: $referencia,
+            clienteNombre: $clienteNombre,
+            clienteEmail: $clienteEmail,
+            clienteTelefono: $clienteTelefono,
+            conRecargo: $conRecargo,
+            vigenciaDias: $vigenciaDias,
+            creadoPor: $creadoPor,
+            pasarela: $pasarela,
+        );
     }
 
     /** URL que se le manda al cliente. Vive en `pax`, no en `util`: la abre el huésped. */
@@ -162,7 +250,13 @@ final class FinEnlacePagoService
 
         // El módulo dueño crea su propio asiento (el PmsPagoFinanciero, aquí). Va DESPUÉS
         // de marcar el estado para que el resolver pueda leer el enlace ya cerrado.
-        $enlace->setMovimientoGeneradoId($this->registry->registrarCobro($enlace));
+        //
+        // Un cobro MANUAL no tiene documento al que imputar: el dinero entró y queda
+        // registrado sólo en Finanzas. No es un caso degradado, es el caso normal de una
+        // venta suelta — por eso no se avisa ni se registra como incidencia.
+        $enlace->setMovimientoGeneradoId(
+            $enlace->esManual() ? null : $this->registry->registrarCobro($enlace)
+        );
 
         $this->em->flush();
     }

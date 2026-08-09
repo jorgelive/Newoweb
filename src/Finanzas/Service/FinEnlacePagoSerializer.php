@@ -53,7 +53,10 @@ final class FinEnlacePagoSerializer
             'createdAt' => $enlace->getCreatedAt()?->format(DATE_ATOM),
             // Sólo en la vista global: allí la fila no está dentro de una reserva, así que
             // sin esto no se sabe de quién es el cobro ni se puede enlazar a su ficha.
-            'origenTipo' => $enlace->getOrigenTipo()->value,
+            'origenTipo' => $enlace->getOrigenTipo()?->value,
+            // Columna «Módulo» del listado: «Manual» cuando el cobro no pertenece a ninguno.
+            'moduloEtiqueta' => $enlace->getModuloEtiqueta(),
+            'esManual' => $enlace->esManual(),
             'origenId' => (string) $enlace->getOrigenId(),
             'origenReferencia' => $enlace->getOrigenReferencia(),
             'clienteNombre' => $enlace->getClienteNombre(),

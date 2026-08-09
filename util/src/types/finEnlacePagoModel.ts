@@ -15,7 +15,30 @@
 export type FinEnlacePagoEstado = 'pendiente' | 'pagado' | 'fallido' | 'expirado' | 'anulado';
 
 /** Orígenes de `App\Finanzas\Enum\FinOrigenCobro`. */
-export type FinOrigenCobro = 'pms_reserva' | 'tour_reserva';
+export type FinOrigenCobro = 'pms_reserva' | 'tour_reserva' | 'cotizacion';
+
+/** Cuerpo de `POST /finanzas/enlaces-pago/manual`. */
+export interface FinEnlacePagoManualCreate {
+    /** NETO, obligatorio: en un manual no hay saldo del que deducirlo. */
+    monto: string;
+    /** ISO 4217. Obligatoria por lo mismo. */
+    moneda: string;
+    /** Obligatorio: es lo único que le dice al cliente qué está pagando. */
+    concepto: string;
+    /**
+     * Etiqueta de módulo, opcional. NO vincula con ningún documento: sólo sirve para
+     * filtrar después. Vacío = cobro suelto.
+     */
+    modulo?: FinOrigenCobro;
+    conRecargo?: boolean;
+    vigenciaDias?: number;
+    pasarela?: FinPasarela;
+    clienteNombre?: string;
+    clienteEmail?: string;
+    clienteTelefono?: string;
+    /** Referencia libre del operador (nº de factura, pedido…). */
+    referencia?: string;
+}
 
 /**
  * Pasarelas de `App\Finanzas\Enum\FinPasarela`.
@@ -86,8 +109,13 @@ export interface FinEnlacePago {
      * reserva ya se sabe, pero en la lista transversal sin esto no se puede ni etiquetar
      * la fila ni enlazar a su ficha.
      */
-    origenTipo: FinOrigenCobro;
-    origenId: string;
+    /** Null en un cobro manual sin módulo asignado. */
+    origenTipo: FinOrigenCobro | null;
+    /** Null en TODO cobro manual: es lo que lo define, no el módulo. */
+    origenId: string | null;
+    /** Ya resuelta por el backend: «PMS», «Cotizaciones» o «Manual». */
+    moduloEtiqueta: string;
+    esManual: boolean;
     origenReferencia: string | null;
     clienteNombre: string | null;
     /**

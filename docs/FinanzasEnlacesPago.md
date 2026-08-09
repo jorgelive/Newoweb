@@ -377,6 +377,30 @@ revés. **Sumar las dos cifras no significa nada**, y por eso nunca se pintan ju
 El filtro de cobros va por fecha de **creación** a propósito: filtrando por fecha de pago
 desaparecerían justo los que nadie pagó, que son el motivo de mirar esta pantalla.
 
+### Cobro manual: el origen es OPCIONAL
+
+`origenTipo` y `origenId` son ambos **nullable**, y son dos cosas separables:
+
+| `origenTipo` | `origenId` | Qué es | ¿Imputa dinero en un módulo? |
+|---|---|---|---|
+| `pms_reserva` | uuid | Cobro contra un documento: el resolver lee su saldo | **Sí** |
+| `pms_reserva` | `null` | Manual **etiquetado** en ese módulo | No |
+| `null` | `null` | Manual suelto | No |
+
+**Lo que define un cobro manual es la ausencia de `origenId`, no la de módulo.** Un manual
+etiquetado como PMS sigue siendo manual: no hay reserva a la que imputarle el dinero.
+
+Consecuencia: al cobrarse, un manual **no llama a ningún resolver** — el dinero queda
+registrado sólo en Finanzas. No es un caso degradado, es el caso normal de una venta suelta.
+
+El `modulo` del formulario es **sólo una etiqueta para filtrar**. Por eso se admite
+`cotizacion` aunque ese módulo todavía no tenga resolver: etiquetar no requiere saber leer
+saldos.
+
+Se emite desde `/finanzas` → pestaña Cobros → botón **Cobro manual**, con endpoint propio
+(`POST /finanzas/enlaces-pago/manual`) porque el contrato es distinto: sin saldo del que
+deducir, importe, moneda y concepto pasan a ser obligatorios.
+
 ### El segundo contrato: `FinMovimientoProviderInterface`
 
 La pestaña de caja necesita leer los pagos de cada módulo, y eso es otra pregunta que

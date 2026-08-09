@@ -22,7 +22,11 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { useCajaStore } from '@/stores/finanzas/cajaStore';
-import { clasesEstadoEnlace, type FinEnlacePago } from '@/types/finEnlacePagoModel';
+import {
+    clasesEstadoEnlace,
+    type FinEnlacePago,
+    type FinOrigenCobro,
+} from '@/types/finEnlacePagoModel';
 import type { FinCajaFiltros, FinMovimiento } from '@/types/finMovimientoModel';
 
 const router = useRouter();
@@ -54,6 +58,65 @@ const filtros = ref<FinCajaFiltros>({
 
 const truncado = computed(() => (activeTab.value === 'cobros' ? store.cobrosTruncado : store.cajaTruncado));
 
+// ============================================================================
+// COBRO MANUAL
+//
+// Un cobro que no cuelga de ningún documento: una venta suelta, una garantía, algo que
+// todavía no tiene su módulo. El `modulo` es SOLO una etiqueta para poder filtrarlo
+// después — no vincula con ninguna reserva ni cotización, y por eso se admite Cotizaciones
+// aunque ese módulo aún no sepa cobrar.
+// ============================================================================
+const formAbierto = ref(false);
+const guardando = ref(false);
+const errorForm = ref<string | null>(null);
+/** Enlace recién emitido: se muestra su URL para copiarla sin buscarla en la tabla. */
+const recienCreado = ref<FinEnlacePago | null>(null);
+
+const formManual = ref({
+    monto: '',
+    moneda: 'USD',
+    concepto: '',
+    modulo: '' as FinOrigenCobro | '',
+    conRecargo: true,
+    vigenciaDias: 7,
+    clienteNombre: '',
+    clienteEmail: '',
+    referencia: '',
+});
+
+function abrirFormManual(): void {
+    errorForm.value = null;
+    recienCreado.value = null;
+    formManual.value = {
+        monto: '', moneda: 'USD', concepto: '', modulo: '',
+        conRecargo: true, vigenciaDias: 7, clienteNombre: '', clienteEmail: '', referencia: '',
+    };
+    formAbierto.value = true;
+}
+
+async function guardarManual(): Promise<void> {
+    errorForm.value = null;
+    guardando.value = true;
+    try {
+        recienCreado.value = await store.crearManual({
+            monto: formManual.value.monto,
+            moneda: formManual.value.moneda,
+            concepto: formManual.value.concepto,
+            modulo: formManual.value.modulo || undefined,
+            conRecargo: formManual.value.conRecargo,
+            vigenciaDias: formManual.value.vigenciaDias,
+            clienteNombre: formManual.value.clienteNombre || undefined,
+            clienteEmail: formManual.value.clienteEmail || undefined,
+            referencia: formManual.value.referencia || undefined,
+        });
+    } catch (err) {
+        const data = (err as { response?: { data?: { error?: string } } })?.response?.data;
+        errorForm.value = data?.error || 'No se pudo emitir el cobro.';
+    } finally {
+        guardando.value = false;
+    }
+}
+
 const cargar = async (): Promise<void> => {
     if (activeTab.value === 'cobros') {
         await store.fetchCobros(filtros.value);
@@ -79,7 +142,8 @@ const limpiarFiltros = async (): Promise<void> => {
  * será un `match`. Se deja explícito en vez de construir la URL a ciegas para que un
  * origen nuevo no mande al operador a una pantalla en blanco.
  */
-const irAlOrigen = (origenTipo: string, origenId: string): void => {
+const irAlOrigen = (origenTipo: string | null, origenId: string | null): void => {
+    // Un cobro manual no tiene documento al que ir, aunque lleve etiqueta de módulo.
     if (origenTipo !== 'pms_reserva' || !origenId) return;
     void router.push({ path: '/reservas', query: { reserva: origenId } });
 };
@@ -196,6 +260,12 @@ onMounted(cargar);
                     </button>
                     <button type="button" @click="limpiarFiltros"
                         class="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700">Limpiar</button>
+
+                    <!-- Sólo en Cobros: en Caja no se emite nada, se mira lo que entró. -->
+                    <button v-if="activeTab === 'cobros'" type="button" @click="abrirFormManual"
+                        class="ml-auto px-3 py-1.5 bg-[#2E7D5B] hover:bg-[#26654a] text-white rounded-lg text-xs font-black">
+                        <i class="fas fa-plus mr-1"></i> Cobro manual
+                    </button>
                 </div>
 
                 <!-- ===== TOTALES ===== -->
@@ -227,6 +297,121 @@ onMounted(cargar);
                 <p v-if="store.error" class="mt-2 text-[11px] font-bold text-rose-600">{{ store.error }}</p>
             </div>
 
+            <!-- ================= FORMULARIO DE COBRO MANUAL ================= -->
+            <div v-if="formAbierto" class="px-4 md:px-6 pt-4">
+                <div class="bg-white rounded-xl border border-[#2E7D5B]/30 p-4 max-w-3xl">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-sm font-black text-slate-800">Cobro manual</h2>
+                        <button type="button" @click="formAbierto = false"
+                            class="text-slate-400 hover:text-slate-700"><i class="fas fa-xmark"></i></button>
+                    </div>
+                    <p class="mt-1 text-[11px] text-slate-500">
+                        Para cobrar algo que no cuelga de una reserva: una venta suelta, una garantía,
+                        un servicio aparte.
+                    </p>
+
+                    <!-- Emitido: lo primero que quiere el operador es la URL, no volver a la tabla. -->
+                    <div v-if="recienCreado" class="mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                        <p class="text-[11px] font-black text-emerald-800">
+                            <i class="fas fa-circle-check mr-1"></i>
+                            Enlace emitido · {{ recienCreado.monedaSimbolo }} {{ recienCreado.montoTotal }}
+                        </p>
+                        <div class="mt-2 flex items-center gap-1.5">
+                            <input :value="recienCreado.url" readonly
+                                class="flex-1 min-w-0 px-2 py-1 bg-white border border-emerald-200 rounded text-[10px] font-mono truncate" />
+                            <button type="button" @click="copiar(recienCreado)"
+                                class="shrink-0 px-2 py-1 bg-white border border-emerald-200 rounded text-[10px] font-black">
+                                <i class="fas fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        <button type="button" @click="abrirFormManual"
+                            class="mt-2 text-[11px] font-black text-emerald-700 underline decoration-dotted">
+                            Emitir otro
+                        </button>
+                    </div>
+
+                    <div v-else class="mt-3 space-y-3">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <label class="block">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Importe</span>
+                                <input v-model="formManual.monto" type="number" step="0.01" min="0.01"
+                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                            </label>
+                            <label class="block">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Moneda</span>
+                                <select v-model="formManual.moneda"
+                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white">
+                                    <option value="USD">USD</option>
+                                    <option value="PEN">PEN</option>
+                                </select>
+                            </label>
+                            <!-- Sólo etiqueta: no vincula con ningún documento. -->
+                            <label class="block">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Módulo</span>
+                                <select v-model="formManual.modulo"
+                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white">
+                                    <option value="">Ninguno</option>
+                                    <option value="pms_reserva">PMS</option>
+                                    <option value="cotizacion">Cotizaciones</option>
+                                </select>
+                            </label>
+                            <label class="block">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Vigencia (días)</span>
+                                <input v-model.number="formManual.vigenciaDias" type="number" min="0" step="1"
+                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                            </label>
+                        </div>
+
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Concepto</span>
+                            <input v-model="formManual.concepto" type="text" maxlength="200"
+                                placeholder="Lo que verá el cliente en su tarjeta"
+                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                        </label>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label class="block">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Cliente</span>
+                                <input v-model="formManual.clienteNombre" type="text"
+                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                            </label>
+                            <label class="block">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Email</span>
+                                <input v-model="formManual.clienteEmail" type="email"
+                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                            </label>
+                            <label class="block">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Referencia</span>
+                                <input v-model="formManual.referencia" type="text" maxlength="60"
+                                    placeholder="Nº de factura, pedido…"
+                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                            </label>
+                        </div>
+
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input v-model="formManual.conRecargo" type="checkbox" class="mt-0.5" />
+                            <span class="text-[11px] text-slate-600">
+                                <b>Trasladar la comisión al cliente.</b>
+                                Se cobra el importe más el recargo de tarjeta.
+                            </span>
+                        </label>
+
+                        <p v-if="errorForm" class="text-[11px] font-bold text-rose-600">{{ errorForm }}</p>
+
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="button" @click="formAbierto = false"
+                                class="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
+                            <button type="button" @click="guardarManual"
+                                :disabled="guardando || !formManual.monto || !formManual.concepto"
+                                class="px-4 py-1.5 bg-[#2E7D5B] hover:bg-[#26654a] disabled:opacity-50 text-white rounded-lg text-xs font-black">
+                                <i class="fas" :class="guardando ? 'fa-circle-notch fa-spin' : 'fa-link'"></i>
+                                Emitir enlace
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ================= PESTAÑA COBROS ================= -->
             <section v-if="activeTab === 'cobros'" class="px-4 md:px-6 py-4">
                 <p v-if="!store.isLoading && !store.cobros.length" class="text-center py-12 text-sm text-slate-400">
@@ -243,6 +428,8 @@ onMounted(cargar);
                                      cuál entró cada cobro es lo primero que se necesita
                                      para cuadrarlo contra el extracto correcto. -->
                                 <th class="text-left px-3 py-2">Pasarela</th>
+                                <!-- A qué negocio pertenece el cobro. «Manual» = suelto. -->
+                                <th class="text-left px-3 py-2">Módulo</th>
                                 <th class="text-left px-3 py-2">Concepto</th>
                                 <th class="text-left px-3 py-2">Documento</th>
                                 <th class="text-right px-3 py-2">Importe</th>
@@ -257,6 +444,12 @@ onMounted(cargar);
                                         :class="clasesEstadoEnlace(c.estado)">{{ c.estadoEtiqueta }}</span>
                                 </td>
                                 <td class="px-3 py-2 whitespace-nowrap text-slate-500">{{ c.pasarelaEtiqueta }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-black uppercase"
+                                        :class="c.esManual ? 'bg-slate-100 text-slate-500' : 'bg-[#376875]/10 text-[#376875]'">
+                                        {{ c.moduloEtiqueta }}
+                                    </span>
+                                </td>
                                 <td class="px-3 py-2 max-w-[18rem] truncate" :title="c.concepto">{{ c.concepto }}</td>
                                 <td class="px-3 py-2 whitespace-nowrap">
                                     <button type="button" @click="irAlOrigen(c.origenTipo, c.origenId)"

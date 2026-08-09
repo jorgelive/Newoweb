@@ -75,12 +75,32 @@ class FinEnlacePago
     #[Groups(['fin_enlace:read'])]
     private FinPasarela $pasarela = FinPasarela::IZIPAY;
 
-    #[ORM\Column(name: 'origen_tipo', type: 'string', length: 30, enumType: FinOrigenCobro::class)]
+    /**
+     * Módulo al que se imputa el cobro. **Nullable**: un cobro manual puede no pertenecer
+     * a ninguno (una venta suelta, un depósito de garantía) y entonces esto queda vacío.
+     *
+     * Ojo a la distinción con `origenId`, que ahora son dos cosas separables:
+     *
+     * | `origenTipo` | `origenId` | Qué es |
+     * |---|---|---|
+     * | pms_reserva  | uuid  | Cobro contra un documento concreto: el resolver lee su saldo |
+     * | pms_reserva  | null  | Cobro manual **etiquetado** en ese módulo, sin documento |
+     * | null         | null  | Cobro manual suelto |
+     *
+     * El caso "tipo con id" es el único que imputa dinero en el módulo al cobrarse. Los
+     * otros dos sólo dejan el registro en Finanzas.
+     */
+    #[ORM\Column(name: 'origen_tipo', type: 'string', length: 30, nullable: true, enumType: FinOrigenCobro::class)]
     #[Groups(['fin_enlace:read'])]
-    private FinOrigenCobro $origenTipo = FinOrigenCobro::PMS_RESERVA;
+    private ?FinOrigenCobro $origenTipo = null;
 
-    /** UUID del documento en su módulo. Sin FK: ver el bloque de la clase. */
-    #[ORM\Column(name: 'origen_id', type: 'uuid')]
+    /**
+     * UUID del documento en su módulo. Sin FK: ver el bloque de la clase.
+     *
+     * **Nullable**: sin él, el enlace es un cobro manual y no hay nada que imputar en
+     * ningún módulo — el dinero se queda registrado sólo en Finanzas.
+     */
+    #[ORM\Column(name: 'origen_id', type: 'uuid', nullable: true)]
     #[Groups(['fin_enlace:read'])]
     private ?Uuid $origenId = null;
 
@@ -259,8 +279,27 @@ class FinEnlacePago
     public function getPasarela(): FinPasarela { return $this->pasarela; }
     public function setPasarela(FinPasarela $pasarela): self { $this->pasarela = $pasarela; return $this; }
 
-    public function getOrigenTipo(): FinOrigenCobro { return $this->origenTipo; }
-    public function setOrigenTipo(FinOrigenCobro $origenTipo): self { $this->origenTipo = $origenTipo; return $this; }
+    public function getOrigenTipo(): ?FinOrigenCobro { return $this->origenTipo; }
+    public function setOrigenTipo(?FinOrigenCobro $origenTipo): self { $this->origenTipo = $origenTipo; return $this; }
+
+    /**
+     * ¿Es un cobro manual? Lo define la AUSENCIA de documento, no el módulo.
+     *
+     * Un manual etiquetado como PMS sigue siendo manual: nadie le va a imputar el dinero
+     * a ninguna reserva, porque no hay reserva a la que imputarlo.
+     */
+    #[Groups(['fin_enlace:read'])]
+    public function esManual(): bool
+    {
+        return $this->origenId === null;
+    }
+
+    /** Etiqueta de módulo para el listado. «Manual» cuando no hay ninguno. */
+    #[Groups(['fin_enlace:read'])]
+    public function getModuloEtiqueta(): string
+    {
+        return $this->origenTipo?->modulo() ?? 'Manual';
+    }
 
     public function getOrigenId(): ?Uuid { return $this->origenId; }
     public function setOrigenId(?Uuid $origenId): self { $this->origenId = $origenId; return $this; }
