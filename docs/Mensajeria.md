@@ -542,6 +542,16 @@ sin un solo error en ningún log.
 > día se abre la escritura aquí, hay que replantear la identificación** — un teléfono se
 > pierde, se clona y se hereda.
 
+**Una consulta interna resuelta se da por leída.** Cuando quien escribe es del equipo y el
+agente le contesta, `marcarLeidaSiEsDelEquipo()` pone a cero el contador **y** el estado de
+los mensajes. Si no, esa consulta se quedaría para siempre en la bandeja de pendientes, en el
+badge del icono y en el panel de Home, compitiendo con huéspedes que sí esperan respuesta —
+y nadie del equipo va a contestarle a un compañero.
+
+Solo se marca cuando la respuesta **salió**. Si el bot se calló por cualquiera de los seis
+guardias, la conversación sigue sin leer a propósito: ahí sí hay algo pendiente. Y con un
+huésped no se hace nunca, conteste el bot o no: el operador quiere revisar qué se le dijo.
+
 **Los privilegios se ACUMULAN, como en cualquier ACL.** Alguien del equipo con una reserva a
 su nombre es las dos cosas a la vez, así que el actor lleva sus roles **más** `ROLE_HUESPED`
 (`AgentActorFactory::delEquipoPorChat(..., tambienHuesped: true)`). Sin eso, registrar el

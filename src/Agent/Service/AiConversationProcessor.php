@@ -116,7 +116,56 @@ final readonly class AiConversationProcessor
 
         $this->encolarRespuesta($conversacion, $message, $respuesta);
 
+        // PEDIDO DE UN COLABORADOR YA RESUELTO → la conversación se da por leída.
+        //
+        // Cuando quien escribe es del equipo (identificado por su número) y el agente le ha
+        // contestado, no queda nada que atender: nadie del equipo tiene que responderle a
+        // otro compañero. Si se dejara sin leer, esa consulta interna se quedaría para
+        // siempre en la bandeja de pendientes, en el badge del icono y en el panel de Home,
+        // compitiendo con huéspedes que sí esperan respuesta.
+        //
+        // Solo se marca cuando la respuesta SALIÓ. Si el bot se calló por cualquiera de los
+        // guardias, la conversación sigue sin leer a propósito: ahí sí hay algo pendiente.
+        $this->marcarLeidaSiEsDelEquipo($conversacion, $message);
+
         return 'ia';
+    }
+
+    /**
+     * Da por leída la conversación cuando el que preguntaba era del equipo.
+     *
+     * Se reconoce por el mismo camino que el actor: el número en `user.telefono`. Con un
+     * huésped no se hace nunca —su mensaje sigue pendiente de que alguien lo mire, conteste
+     * el bot o no—, porque el operador quiere revisar qué se le respondió.
+     *
+     * Se ponen a cero las DOS fuentes, el contador y el estado de los mensajes. Bajar solo
+     * el contador es lo que dejó 54 conversaciones con 0 no leídos y 156 mensajes en
+     * `received` (ver docs/Mensajeria.md §7); no se repite aquí.
+     */
+    private function marcarLeidaSiEsDelEquipo(MessageConversation $conversacion, Message $entrante): void
+    {
+        if ($this->usuarios->findByTelefono($conversacion->getGuestPhone(), $this->telefonos) === null) {
+            return;
+        }
+
+        $pendientes = $this->em->getRepository(Message::class)->findBy([
+            'conversation' => $conversacion,
+            'direction'    => Message::DIRECTION_INCOMING,
+            'status'       => Message::STATUS_RECEIVED,
+        ]);
+
+        foreach ($pendientes as $pendiente) {
+            $pendiente->setStatus(Message::STATUS_READ);
+        }
+
+        $conversacion->resetUnreadCount();
+        $this->em->flush();
+
+        $this->logger->info(sprintf(
+            'IA: consulta interna resuelta en %s; se marca leída (%d mensajes).',
+            $conversacion->getId(),
+            count($pendientes)
+        ));
     }
 
     /**
