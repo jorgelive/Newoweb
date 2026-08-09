@@ -130,11 +130,25 @@ Todo lo que pase después ocurre en el dispositivo y no vuelve por ningún log.
 
 ## 5. Gotcha: el badge del icono
 
-Dos cosas distintas pintan el globito del icono:
+Dos caminos distintos pintan el globito, y **son código distinto**:
 
-1. **Con la app abierta** — `noLeidosStore.pintarBadge()` llama a `navigator.setAppBadge()`.
-2. **Con la app cerrada** — lo pone el sistema operativo al mostrarse la notificación. Sin
-   `showNotification()` no hay globito.
+1. **Con la app abierta** — `noLeidosStore.pintarBadge()` llama a `navigator.setAppBadge()`
+   con el total del servidor.
+2. **Con la app cerrada** — no corre nada del front. Lo pinta `push-sw.js` en el evento
+   `push`, con el número que **viaja dentro del propio push** (`payload.unreadTotal`, que
+   pone `MessageConversationMercureListener` vía `ResumenNoLeidosService::total()`).
+
+El punto 2 es fácil de pasar por alto y su síntoma engaña: los contadores *dentro* de la app
+salen perfectos y el icono de fuera se queda clavado en **1**. Es lo que pasaba, porque sin
+`unreadTotal` el sistema operativo se limita a contar **notificaciones visibles**, y como se
+agrupan por conversación (§5, el `tag`), casi siempre hay una sola.
+
+> El service worker **no puede consultar el total por su cuenta**: no tiene sesión ni acceso
+> a la API. Si añades un campo que el SW necesite, tiene que ir en el payload del push.
+
+**Límite que no depende de nosotros:** que Android pinte la CIFRA o solo un punto lo decide
+el lanzador. Samsung One UI muestra el número; el lanzador de Pixel, solo el punto. La
+llamada a `setAppBadge()` es la misma en los dos casos.
 
 Tres bugs distintos hacían que el número no significara nada:
 
@@ -236,6 +250,8 @@ En orden, porque cada paso descarta el anterior:
 | Cambiar cómo se pinta la notificación del SO | `util/public/push-sw.js` | `showNotification()` — sube la versión del encabezado para forzar reinstalación |
 | Cambiar el agrupado de notificaciones | `util/public/push-sw.js` | `conversationTag` — el tag fijo era el bug del "siempre 1", §5 |
 | Cambiar el número del icono con la app abierta | `util/src/stores/chat/noLeidosStore.ts` | `pintarBadge()` — fuente única, §5 |
+| Cambiar el número del icono con la app **cerrada** | `util/public/push-sw.js` + `MessageConversationMercureListener` | `payload.unreadTotal` — es otro camino distinto, §5 |
+| Añadir un dato que el service worker necesite | `MessageConversationMercureListener` | Va en el `$payload` del push: el SW no puede consultar nada, §5 |
 | Añadir un contador de no leídos en otra vista | `util/src/stores/chat/noLeidosStore.ts` | consúmelo del store; no cuentes sobre `chatStore.conversations`, §5 |
 | Cambiar qué devuelve el resumen | `UnreadSummaryController` **y** `noLeidosStore.ts` | Son espejo: las claves de la respuesta están tipadas en `RespuestaResumen` |
 | Reconciliar contadores que se ven raros | — | `php bin/console app:message:recalcular-no-leidos --dry-run`, [Mensajeria.md §7](Mensajeria.md#7-gotchas) |

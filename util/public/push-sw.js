@@ -1,5 +1,5 @@
-// public/push-sw.js — v3 (el cambio de versión fuerza la reinstalación del SW)
-console.log('[push-sw.js] ✅ v3 cargado — whitelist por UUID + tag por conversación');
+// public/push-sw.js — v4 (el cambio de versión fuerza la reinstalación del SW)
+console.log('[push-sw.js] ✅ v4 cargado — whitelist por UUID + tag por conversación + badge con la app cerrada');
 
 // ====================================================================
 // FIX A: WHITELIST POR UUID (reemplaza los escudos blacklist)
@@ -113,6 +113,27 @@ self.addEventListener('push', (event) => {
         ? `/chat?id=${notificationData.conversationId}`
         : buildChatUrl(notificationData.actionUrl);
     notificationData.actionUrl = safeUrl;
+
+    // ====================================================================
+    // BADGE DEL ICONO CON LA APP CERRADA
+    // --------------------------------------------------------------------
+    // Con la app abierta lo pinta noLeidosStore; con la app cerrada no corre
+    // nada del front y el único que puede hacerlo es este service worker.
+    //
+    // El número TIENE que venir en el push: aquí no hay sesión ni acceso a la
+    // API para consultarlo. Sin él, Android se limita a contar notificaciones
+    // visibles y, como se agrupan por conversación, el icono se quedaba
+    // clavado en 1 con dieciséis mensajes esperando.
+    //
+    // Ojo: que se vea el NÚMERO y no un simple punto depende del lanzador de
+    // Android. Samsung One UI pinta la cifra; el lanzador de Pixel, solo el
+    // punto. Eso ya no está en nuestras manos.
+    // ====================================================================
+    const total = notificationData.unreadTotal;
+    if (typeof total === 'number' && self.navigator && 'setAppBadge' in self.navigator) {
+        if (total > 0) self.navigator.setAppBadge(total).catch(() => {});
+        else self.navigator.clearAppBadge?.().catch(() => {});
+    }
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

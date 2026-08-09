@@ -6,6 +6,7 @@ namespace App\Message\EventListener\Mercure;
 
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Mercure\MercureBroadcaster;
+use App\Message\Service\NoLeidos\ResumenNoLeidosService;
 use App\Service\WebPushNotificationService;
 use App\Repository\UserRepository;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
@@ -32,7 +33,8 @@ readonly class MessageConversationMercureListener
         private WebPushNotificationService $pushService,
         private UserRepository $userRepository,
         private LoggerInterface $logger,
-        private RoleHierarchyInterface $roleHierarchy
+        private RoleHierarchyInterface $roleHierarchy,
+        private ResumenNoLeidosService $resumenNoLeidos
     ) {}
 
     /**
@@ -115,7 +117,17 @@ readonly class MessageConversationMercureListener
                 'body'  => "Nuevo mensaje en la conversación de " . ($conversation->getContextOrigin() ?? 'Chat'),
                 'type'  => 'info',
                 // ✅ CAMBIO CLAVE: Usamos un query param para que Vue lo auto-seleccione
-                'actionUrl' => "/chat?id={$conversation->getId()}"
+                'actionUrl' => "/chat?id={$conversation->getId()}",
+
+                // Total de mensajes sin leer del sistema, para que el service
+                // worker pinte el badge del icono con la app CERRADA.
+                //
+                // Sin esto, Android solo sabe contar notificaciones visibles, y
+                // como se agrupan por conversación, el icono se quedaba clavado en
+                // 1 aunque hubiera dieciséis mensajes esperando. El número no lo
+                // puede calcular el service worker: no tiene sesión ni acceso a la
+                // API, así que viaja en el propio push.
+                'unreadTotal' => $this->resumenNoLeidos->total(),
             ];
 
             foreach ($eligibleUsers as $user) {
