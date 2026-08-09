@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Controller\Api;
 
 use App\Message\Entity\MessageConversation;
+use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -42,6 +43,13 @@ final class UnreadSummaryController extends AbstractController
 
     public function __invoke(): JsonResponse
     {
+        // El permiso se comprueba AQUÍ, no solo en el atributo `security` de la
+        // operación. Con `read: false` API Platform no ejecuta la etapa que evalúa
+        // ese atributo, y el endpoint estuvo devolviendo nombres de huéspedes y
+        // contadores sin sesión mientras la colección normal sí redirigía a login.
+        // Esta línea no depende del cableado de etapas del framework.
+        $this->denyAccessUnlessGranted(Roles::MENSAJES_SHOW, null, 'Acceso denegado a las conversaciones.');
+
         // Agregado por estado: una sola pasada, sin hidratar entidades.
         $porEstado = $this->em->createQueryBuilder()
             ->select('c.status AS status', 'SUM(c.unreadCount) AS mensajes', 'COUNT(c.id) AS conversaciones')
