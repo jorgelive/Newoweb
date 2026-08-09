@@ -137,9 +137,27 @@ class RebuildConversationContextCommand extends Command
             if (isset($lastMessageMap[$key]) && $lastMessageMap[$key]['lastReal'] !== null) {
                 $conversation->setLastMessageAt(new DateTime($lastMessageMap[$key]['lastReal']));
 
-                // Si el último mensaje real fue saliente, reseteamos no leídos
+                // Si el último mensaje real fue saliente, el anfitrión ya contestó:
+                // damos la conversación por leída.
                 if ($lastMessageMap[$key]['lastOutgoing'] === $lastMessageMap[$key]['lastReal']) {
                     $conversation->setUnreadCount(0);
+
+                    // Y los mensajes TAMBIÉN pasan a leídos. Bajar solo el contador
+                    // dejaba los entrantes en `received` para siempre: dos fuentes
+                    // contando lo mismo y diciendo cosas distintas. Llegó a haber 54
+                    // conversaciones con contador 0 y 156 mensajes «sin leer», de
+                    // modo que cualquier recálculo honesto resucitaba avisos que el
+                    // operador había dado por vistos hacía meses.
+                    // Ver docs/Mensajeria.md §7.
+                    $pendientes = $this->entityManager->getRepository(Message::class)->findBy([
+                        'conversation' => $conversation,
+                        'direction'    => Message::DIRECTION_INCOMING,
+                        'status'       => Message::STATUS_RECEIVED,
+                    ]);
+
+                    foreach ($pendientes as $pendiente) {
+                        $pendiente->setStatus(Message::STATUS_READ);
+                    }
                 }
             } else {
                 // Sin mensajes reales: preservamos createdAt como ancla cronológica

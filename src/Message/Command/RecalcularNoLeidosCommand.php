@@ -57,6 +57,12 @@ final class RecalcularNoLeidosCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Marca como leídos los mensajes entrantes de conversaciones CERRADAS o ARCHIVADAS cuyo último mensaje sea anterior a esta fecha (YYYY-MM-DD). Sirve para limpiar pendientes viejos que nadie va a contestar.'
+            )
+            ->addOption(
+                'permitir-subir',
+                null,
+                InputOption::VALUE_NONE,
+                'Permite también SUBIR contadores que estén por debajo de los mensajes pendientes. Apagado por defecto: ver el docblock.'
             );
     }
 
@@ -64,6 +70,7 @@ final class RecalcularNoLeidosCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $dryRun = (bool) $input->getOption('dry-run');
+        $permitirSubir = (bool) $input->getOption('permitir-subir');
         $limpiarAntesDe = $input->getOption('marcar-leidas-antes-de');
 
         if ($dryRun) {
@@ -171,11 +178,26 @@ final class RecalcularNoLeidosCommand extends Command
         $corregidas = 0;
         $filas = [];
 
+        $omitidasPorSubir = 0;
+
         foreach ($conversaciones as $conversacion) {
             $actual = $conversacion->getUnreadCount();
             $real = $reales[(string) $conversacion->getId()] ?? 0;
 
             if ($actual === $real) {
+                continue;
+            }
+
+            // Por defecto solo se BAJA. Un contador por debajo de los mensajes en
+            // `received` casi siempre significa que la conversación se dio por
+            // leída sin pasar los mensajes a `read` —lo hacía
+            // `RebuildConversationContextCommand` cuando el último mensaje era
+            // saliente—, no que haya avisos pendientes de verdad. Subirlo
+            // resucitaría notificaciones que el operador cerró hace meses: en
+            // producción eran 54 conversaciones y 156 mensajes. Para el recálculo
+            // completo y auditable está `--permitir-subir`.
+            if ($real > $actual && !$permitirSubir) {
+                $omitidasPorSubir++;
                 continue;
             }
 
@@ -199,6 +221,14 @@ final class RecalcularNoLeidosCommand extends Command
 
         if (!$dryRun && $corregidas > 0) {
             $this->em->flush();
+        }
+
+        if ($omitidasPorSubir > 0) {
+            $io->note(sprintf(
+                '%d conversaciones tienen el contador POR DEBAJO de sus mensajes en «received» y se dejaron como estaban. '
+                . 'Casi siempre es una conversación que se dio por leída sin marcar los mensajes. Usa --permitir-subir si de verdad quieres subirlas.',
+                $omitidasPorSubir
+            ));
         }
 
         $io->success(sprintf(

@@ -375,6 +375,22 @@ Los tres duplicados están quitados. Lo que hay que recordar:
 La verdad, cuando haya que comprobarla, es `direction = incoming AND status =
 received`: exactamente lo que `MarkConversationReadController` pasa a `read`.
 
+#### La deriva contraria: contador 0 con mensajes en `received`
+
+`RebuildConversationContextCommand` pone `unreadCount = 0` cuando el último mensaje
+real de la conversación es **saliente** (el anfitrión ya contestó, luego lo anterior
+está leído). La heurística es buena, pero bajaba **solo el contador** y dejaba los
+mensajes entrantes en `received` para siempre. En producción llegó a haber **54
+conversaciones con contador 0 y 156 mensajes «sin leer»**.
+
+Eso convierte el recálculo en una trampa: recalcular «honestamente» desde los
+mensajes resucita 156 avisos que el operador dio por vistos hace meses. Por eso:
+
+- El comando de reconstrucción ahora marca **también** los mensajes como `read` al
+  resetear el contador. Las dos fuentes dejan de separarse.
+- El comando de recálculo **solo baja contadores** por defecto. Subir uno requiere
+  `--permitir-subir` y hay que saber por qué se hace.
+
 **Red de seguridad** — el contador no se recalcula solo en ningún flujo, así que hay
 un comando idempotente para reconciliarlo:
 
