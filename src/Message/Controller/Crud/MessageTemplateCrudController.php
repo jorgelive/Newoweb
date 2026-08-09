@@ -67,8 +67,13 @@ class MessageTemplateCrudController extends BaseCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        // 1. Botón global para sincronizar (PULL)
-        $syncMetaAction = Action::new('syncMetaTemplates', 'Sincronizar Meta', 'fa fa-cloud-download-alt')
+        // 1. Botón global para REVISAR EL ESTADO (PULL desde Meta).
+        //
+        // Es el mismo servicio que corre el cron de las 03:15 (`app:whatsapp:sync-templates`):
+        // baja de Meta el estado de aprobación de cada idioma y lo escribe en local. Se
+        // llama «Revisar estado» y no «Sincronizar» porque eso es lo que se viene a hacer
+        // aquí —ver si Meta ya aprobó— y «sincronizar» se confundía con el Push.
+        $syncMetaAction = Action::new('syncMetaTemplates', 'Revisar estado en Meta', 'fa fa-rotate')
             ->linkToCrudAction('executeMetaSync')
             ->createAsGlobalAction()
             ->setCssClass('btn btn-info');
@@ -86,6 +91,9 @@ class MessageTemplateCrudController extends BaseCrudController
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $syncMetaAction)
+            // También en el detalle: se entra a mirar una plantilla concreta para ver si
+            // Meta ya la aprobó, y tener que volver al listado para refrescar es absurdo.
+            ->add(Crud::PAGE_DETAIL, $syncMetaAction)
             // Añadimos el nuevo botón de Push en lista, vista detalle y edición
             ->add(Crud::PAGE_INDEX, $pushMetaAction)
             ->add(Crud::PAGE_DETAIL, $pushMetaAction)
@@ -107,7 +115,10 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setPermission(Action::NEW, Roles::MENSAJES_WRITE)
             ->setPermission(Action::EDIT, Roles::MENSAJES_WRITE)
             ->setPermission(Action::DELETE, Roles::MENSAJES_DELETE)
-            ->setPermission('pushMetaTemplate', Roles::MENSAJES_WRITE); // Requiere permisos de escritura
+            ->setPermission('pushMetaTemplate', Roles::MENSAJES_WRITE) // Requiere permisos de escritura
+            // Revisar estado solo LEE de Meta y actualiza el estado local: basta con poder
+            // ver plantillas. Se declara explícitamente para que no dependa del defecto.
+            ->setPermission('syncMetaTemplates', Roles::MENSAJES_SHOW);
     }
 
     public function configureFields(string $pageName): iterable
@@ -151,9 +162,12 @@ class MessageTemplateCrudController extends BaseCrudController
                         : sprintf('<span class="badge badge-secondary" title="Redactado pero APAGADO: no se envía por este canal"><s>%s</s></span>', htmlspecialchars($etiqueta, ENT_QUOTES));
                 }
 
+                // Contenedor flex: sin él los badges se apoyan en la línea base del texto y
+                // quedan a distinta altura entre filas según cuántos haya. Con `gap` el
+                // espaciado no depende del espacio en blanco del HTML.
                 return $badges === []
                     ? '<span class="text-muted small">sin redactar</span>'
-                    : implode(' ', $badges);
+                    : '<span class="d-inline-flex flex-wrap align-items-center gap-1">' . implode('', $badges) . '</span>';
             })
             ->renderAsHtml();
 
@@ -195,7 +209,7 @@ class MessageTemplateCrudController extends BaseCrudController
                     );
                 }
 
-                return implode(' ', $badges);
+                return '<span class="d-inline-flex flex-wrap align-items-center gap-1">' . implode('', $badges) . '</span>';
             })
             ->renderAsHtml();
 

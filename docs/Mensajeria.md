@@ -522,9 +522,18 @@ sin un solo error en ningún log.
 > día se abre la escritura aquí, hay que replantear la identificación** — un teléfono se
 > pierde, se clona y se hereda.
 
-Efecto lateral a tener presente: si alguien del equipo tiene una **reserva de prueba con su
-propio número**, deja de comportarse como huésped en cuanto se registra ese número. Para
-probar el flujo de huésped hay que vaciar `user.telefono` o usar otro número en la reserva.
+**Los privilegios se ACUMULAN, como en cualquier ACL.** Alguien del equipo con una reserva a
+su nombre es las dos cosas a la vez, así que el actor lleva sus roles **más** `ROLE_HUESPED`
+(`AgentActorFactory::delEquipoPorChat(..., tambienHuesped: true)`). Sin eso, registrar el
+móvil de una persona del equipo le quitaba en silencio las skills de huésped en su propia
+conversación de reserva —`enviarme_plantilla` y `escalar_al_equipo`, que ningún perfil de
+operación tiene—.
+
+Sumar el rol **no abre nada de nadie más**: las skills de huésped están acotadas por el
+CONTEXTO de la conversación, y `ConsultarMiReservaSkill` ni siquiera acepta un parámetro con
+el que apuntar a otra reserva.
+
+El flag va apagado por defecto porque en el panel y en la CLI el actor no es huésped de nada.
 
 ### 🔥 En DQL, pasar la ENTIDAD como parámetro no casa con un id `binary(16)`
 

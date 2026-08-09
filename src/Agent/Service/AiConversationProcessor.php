@@ -310,8 +310,12 @@ final readonly class AiConversationProcessor
         // identificación — un número se puede perder con el teléfono.
         $delEquipo = $this->usuarios->findByTelefono($conversacion->getGuestPhone(), $this->telefonos);
 
+        // `tambienHuesped: true` — los privilegios se ACUMULAN. Alguien del equipo con una
+        // reserva a su nombre es las dos cosas a la vez: debe poder consultar su propia
+        // estancia sin dejar de ser operador. Las skills de huésped siguen acotadas por el
+        // contexto de ESTA conversación, así que sumar el rol no le abre la reserva de nadie.
         $actor = $delEquipo !== null
-            ? $this->actores->delEquipoPorChat($delEquipo, $origen, $conversacion->getContextType(), $conversacion->getContextId())
+            ? $this->actores->delEquipoPorChat($delEquipo, $origen, $conversacion->getContextType(), $conversacion->getContextId(), tambienHuesped: true)
             : $this->actores->huesped($origen, $conversacion->getContextType(), $conversacion->getContextId());
 
         if ($delEquipo !== null) {

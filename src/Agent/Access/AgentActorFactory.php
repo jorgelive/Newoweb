@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Access;
 
 use App\Entity\User;
+use App\Security\Roles;
 use Symfony\Component\Security\Core\Authorization\Voter\RoleHierarchyVoter;
 use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
 
@@ -47,14 +48,39 @@ final readonly class AgentActorFactory
         return AgentActor::delPanel($usuario, $this->rolesEfectivos($usuario));
     }
 
-    /** Un miembro del equipo escribiendo desde su móvil. */
+    /**
+     * Un miembro del equipo escribiendo desde su móvil.
+     *
+     * @param bool $tambienHuesped Suma `ROLE_HUESPED` a sus roles de equipo.
+     *
+     *        Los privilegios son ACUMULATIVOS, como en cualquier ACL: alguien del equipo
+     *        con una reserva a su nombre es las dos cosas a la vez, y debe poder consultar
+     *        su propia estancia sin dejar de ser operador. Sin esto, registrar el móvil de
+     *        una persona del equipo le quitaba en silencio las skills de huésped en su
+     *        propia conversación de reserva.
+     *
+     *        Las skills de huésped siguen acotadas por el CONTEXTO de la conversación
+     *        —`ConsultarMiReservaSkill` ni siquiera acepta un parámetro con el que apuntar
+     *        a otra—, así que sumar el rol no abre nada de nadie más.
+     *
+     *        Va apagado por defecto: en el panel y en la CLI el actor no es huésped de
+     *        nada, y encenderlo allí sería ruido.
+     */
     public function delEquipoPorChat(
         User $usuario,
         string $origen,
         ?string $tipo = null,
-        ?string $id = null
+        ?string $id = null,
+        bool $tambienHuesped = false
     ): AgentActor {
-        return AgentActor::delEquipoPorChat($usuario, $origen, $tipo, $id, $this->rolesEfectivos($usuario));
+        $roles = $this->rolesEfectivos($usuario);
+
+        if ($tambienHuesped) {
+            $roles[] = Roles::HUESPED;
+            $roles = array_values(array_unique($roles));
+        }
+
+        return AgentActor::delEquipoPorChat($usuario, $origen, $tipo, $id, $roles);
     }
 
     /**
