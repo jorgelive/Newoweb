@@ -20,19 +20,21 @@ use Symfony\Component\Messenger\Stamp\DelayStamp;
 readonly class MessageConversationMercureListener
 {
     /**
-     * Segundos que se esperan TRAS la ventana de ráfaga del resumen.
+     * Segundos de margen sobre la más larga de las dos esperas de IA.
      *
-     * El trabajo del resumen se encola con `AGENT_IA_RESUMEN_ESPERA`; este margen cubre
-     * lo que tarde el worker en cogerlo y escribir. Sin él habría una carrera y el push
-     * podría volver a leer el resumen viejo.
+     * Cubre lo que tarda el worker en coger el trabajo MÁS la llamada al modelo (1-4 s
+     * medidos con Gemini Flash). Sin margen habría una carrera y el push podría salir
+     * mientras el agente todavía está redactando.
      */
-    private const int MARGEN_TRAS_RESUMEN = 4;
+    private const int MARGEN_IA = 10;
 
     public function __construct(
         private MercureBroadcaster $mercureBroadcaster,
         private MessageBusInterface $bus,
         #[Autowire('%env(int:AGENT_IA_RESUMEN_ESPERA)%')]
         private int $esperaResumen,
+        #[Autowire('%env(int:AGENT_IA_ESPERA_RAFAGA)%')]
+        private int $esperaRafaga,
     ) {}
 
     /**
@@ -85,19 +87,28 @@ readonly class MessageConversationMercureListener
     {
         // Aquí solo se decide CUÁNDO hay que avisar. El envío se encola.
         //
-        // Dos motivos, y el segundo es el que se veía:
+        // Mandar push es I/O de red y esto corre dentro de un flush de Doctrine, así que
+        // no se envía aquí ni aunque no hubiera que esperar a nada.
         //
-        // 1. Mandar push es I/O de red, y esto corre dentro de un flush de Doctrine.
-        // 2. El resumen IA se calcula unos segundos después (espera de ráfaga). Enviando
-        //    al instante, el cuerpo llevaba el resumen del turno ANTERIOR — el operador
-        //    veía en la notificación lo que le pidieron la vez pasada.
+        // **El aviso sale el ÚLTIMO, a propósito.** Sobre el mismo mensaje entrante
+        // corren dos procesos que cambian lo que el operador debería leer:
         //
-        // El retraso es el de la ráfaga MÁS un margen, para que el trabajo del resumen
-        // haya terminado de escribir antes de que este lea. Si el resumen falla o está
-        // apagado, el push sale igual con el texto del último mensaje.
+        //   resumen IA   → AGENT_IA_RESUMEN_ESPERA  (qué pide el huésped)
+        //   agente       → AGENT_IA_ESPERA_RAFAGA   (puede contestar solo)
+        //
+        // Avisando antes de que terminen, la notificación miente por omisión: llevaba el
+        // resumen del turno anterior, y avisaba de algo que la IA iba a resolver sola
+        // ocho segundos después. Se espera a la MÁS LARGA de las dos, más un margen.
+        // Decisión explícita del usuario: información fiable por delante de rápida.
+        //
+        // Si la IA está apagada, `AGENT_IA_ESPERA_RAFAGA` sigue configurada y el aviso
+        // llega igual, solo que unos segundos más tarde. No hay acoplamiento: ninguno de
+        // los dos procesos tiene que existir para que el push salga.
+        $espera = max($this->esperaResumen, $this->esperaRafaga) + self::MARGEN_IA;
+
         $this->bus->dispatch(
             new EnviarPushConversacionDispatch((string) $conversation->getId()),
-            [new DelayStamp(($this->esperaResumen + self::MARGEN_TRAS_RESUMEN) * 1000)]
+            [new DelayStamp($espera * 1000)]
         );
     }
 }

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Push;
 
+use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\NoLeidos\ResumenNoLeidosService;
 use App\Message\Service\Resumen\ResumenConversacionService;
 use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use App\Security\Roles;
 use App\Service\WebPushNotificationService;
 use Psr\Log\LoggerInterface;
@@ -31,6 +33,7 @@ use Throwable;
 final readonly class NotificadorPushConversacion
 {
     public function __construct(
+        private EntityManagerInterface $em,
         private WebPushNotificationService $push,
         private UserRepository $usuarios,
         private RoleHierarchyInterface $jerarquia,
@@ -79,6 +82,32 @@ final readonly class NotificadorPushConversacion
         return $elegibles;
     }
 
+    /**
+     * ¿El último mensaje de la conversación lo escribió el agente?
+     *
+     * Se mira el ÚLTIMO mensaje y no «si existe alguna respuesta del sistema»: lo que
+     * interesa es el estado actual. Si el huésped volvió a escribir después de que la IA
+     * contestara, vuelve a haber algo pendiente y el aviso no debe decir que está
+     * atendido.
+     *
+     * `SENDER_SYSTEM` es lo que pone `AiConversationProcessor::encolarRespuesta()`; un
+     * operador escribiendo desde el panel deja `SENDER_HOST`, así que no se confunden.
+     */
+    private function laIaYaRespondio(MessageConversation $conversacion): bool
+    {
+        $ultimo = $this->em->getRepository(Message::class)->createQueryBuilder('m')
+            ->where('m.conversation = :c')
+            ->setParameter('c', $conversacion->getId(), 'uuid')
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $ultimo instanceof Message
+            && $ultimo->getDirection() === Message::DIRECTION_OUTGOING
+            && $ultimo->getSenderType() === Message::SENDER_SYSTEM;
+    }
+
     /** @return array<string, mixed> */
     private function payload(MessageConversation $conversacion): array
     {
@@ -94,6 +123,13 @@ final readonly class NotificadorPushConversacion
             $cuerpo = 'Nuevo mensaje en la conversación de ' . ($conversacion->getContextOrigin() ?? 'Chat');
         } elseif ($noLeidos > 1) {
             $cuerpo = "{$noLeidos} sin leer — {$cuerpo}";
+        }
+
+        // Si el agente ya contestó, decirlo cambia la decisión del operador: no es lo
+        // mismo «alguien espera respuesta» que «esto ya está atendido, échale un ojo».
+        // El aviso se espera a propósito a que el agente termine para poder afirmarlo.
+        if ($this->laIaYaRespondio($conversacion)) {
+            $cuerpo = "🤖 Respondido por IA — {$cuerpo}";
         }
 
         return [

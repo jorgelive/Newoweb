@@ -56,8 +56,12 @@ use Throwable;
  *
  * | | Cómo sale | Qué lleva |
  * |---|---|---|
- * | **Dentro de ventana** | Texto libre | Todo: motivo y los márgenes de ocupación, multilínea |
- * | **Fuera de ventana** | Plantilla `aviso_escalado_interno` | Huésped, motivo y el botón al chat |
+ * | **Dentro de ventana** | Texto libre | Motivo, **resumen IA de lo sin contestar**, márgenes de ocupación y enlace, multilínea |
+ * | **Fuera de ventana** | Plantilla `aviso_escalado_interno` | Huésped, motivo **+ resumen** en `{{motivo}}`, y el botón al chat |
+ *
+ * El resumen IA (`MessageConversation::$resumenIa`) entra DENTRO de `{{motivo}}` en el camino
+ * de la plantilla y no como variable nueva: añadir un `{{resumen}}` obligaría a re-aprobar la
+ * plantilla en Meta, con días de espera. Ver {@see self::motivoConResumen()}.
  *
  * La plantilla lleva menos porque **Meta no admite saltos de línea en los parámetros**, y el
  * bloque de márgenes es multilínea. No se pierde nada importante: el operador toca el botón y
@@ -312,10 +316,21 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
         $enlace = rtrim((string) $this->params->get('util_host_url'), '/')
             . '/chat?id=' . $conversacion->getId();
 
+        // El resumen IA va como CONTEXTO, en su propia línea y etiquetado.
+        //
+        // No sustituye al motivo: el motivo es por qué el agente escala —lo escribe el
+        // modelo mirando la conversación entera— y el resumen es lo que el huésped pidió
+        // y sigue sin contestarse, sacado de sus mensajes reales. Cuando difieren, el que
+        // manda es el resumen, porque está pegado a lo que el huésped escribió.
+        // Ver docs/Mensajeria.md §7.
+        $resumen = trim((string) $conversacion->getResumenIa());
+        $contexto = $resumen === '' ? '' : sprintf("\n\n🗒️ Sin contestar: %s", $resumen);
+
         return sprintf(
-            "🔔 *%s* necesita respuesta\n\n%s%s\n\n👉 %s",
+            "🔔 *%s* necesita respuesta\n\n%s%s%s\n\n👉 %s",
             $huesped,
             $motivo,
+            $contexto,
             $this->margenes($conversacion),
             $enlace
         );
@@ -385,11 +400,35 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
     {
         return [
             'huesped' => $this->unaLinea($conversacion->getGuestName() ?: 'Un huésped'),
-            'motivo' => $this->unaLinea($motivo),
+            'motivo' => $this->unaLinea($this->motivoConResumen($conversacion, $motivo)),
             'chat_path' => 'chat?id=' . $conversacion->getId(),
             'chat_url' => rtrim((string) $this->params->get('util_host_url'), '/')
                 . '/chat?id=' . $conversacion->getId(),
         ];
+    }
+
+    /**
+     * Une el motivo del agente con el resumen IA de lo que el huésped dejó sin contestar.
+     *
+     * En la plantilla de Meta **no hay sitio para una variable nueva**: añadir un
+     * `{{resumen}}` obligaría a volver a pasar por aprobación de Meta, con días de espera.
+     * Así que el contexto viaja dentro de `{{motivo}}`, que ya existe y es libre.
+     *
+     * Se recorta a `MAX_MOTIVO` al final y no antes: el corte tiene que aplicarse al texto
+     * ya unido, o el resultado podría pasarse del tope que la plantilla espera.
+     *
+     * Si no hay resumen —IA apagada, escalado sin mensaje entrante previo— devuelve el
+     * motivo tal cual, que es como funcionaba antes.
+     */
+    private function motivoConResumen(MessageConversation $conversacion, string $motivo): string
+    {
+        $resumen = trim((string) $conversacion->getResumenIa());
+
+        if ($resumen === '') {
+            return $motivo;
+        }
+
+        return mb_substr(sprintf('%s · Sin contestar: %s', $motivo, $resumen), 0, self::MAX_MOTIVO);
     }
 
     /**

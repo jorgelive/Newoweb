@@ -409,6 +409,23 @@ php bin/console app:message:recalcular-no-leidos --marcar-leidas-antes-de=2026-0
 Quién lee este contador: el badge del icono de la PWA y los contadores del portal,
 vía `UnreadSummaryController`. Ver [`PwaNotificaciones.md`](PwaNotificaciones.md).
 
+#### Quién consume el resumen
+
+Cuatro sitios, todos leyendo el mismo campo:
+
+| Dónde | Qué pinta |
+|---|---|
+| Notificación push | El cuerpo del aviso |
+| Panel de chats sin leer (Home) | La línea bajo el nombre del huésped |
+| Bandeja del chat | La línea de vista previa |
+| Ventana flotante del *stalker* | La banda naranja de arriba |
+| Aviso de escalado (`EscalarAlEquipoSkill`) | Contexto junto al motivo |
+
+En el escalado entra **dentro de `{{motivo}}`**, no como variable nueva: la plantilla
+`aviso_escalado_interno` está aprobada por Meta y añadirle un `{{resumen}}` obligaría a
+re-aprobarla, con días de espera. En el camino de texto libre —dentro de la ventana de
+24 h— sí va en su propia línea, que ahí no hay límite de formato.
+
 ### El resumen IA de lo pendiente
 
 `msg_conversation.resumen_ia` guarda, en una frase, **qué está pidiendo el huésped y
@@ -450,17 +467,29 @@ pendiente que resumir.
 llamada falla, el resumen se queda como estaba y los tres consumidores caen al texto del
 último mensaje. Una notificación nunca se queda sin cuerpo.
 
-**El push va DETRÁS del resumen, a propósito.** Antes salía en el mismo instante en que
-entraba el mensaje, así que el cuerpo llevaba el resumen del turno **anterior**: el operador
-leía en la notificación lo que le habían pedido la vez pasada. Ahora
-`MessageConversationMercureListener` no envía nada: encola
-`EnviarPushConversacionDispatch` con `AGENT_IA_RESUMEN_ESPERA + 4 s`, de modo que el trabajo
-del resumen ya haya escrito cuando el del push lee.
+**El push sale el ÚLTIMO, a propósito: fiable antes que rápido.**
+
+Sobre el mismo mensaje entrante corren dos procesos que cambian lo que el operador debería
+leer en el aviso. Enviando al instante, la notificación mentía por omisión de dos formas: el
+cuerpo llevaba el resumen del turno **anterior**, y avisaba de algo que el agente iba a
+resolver solo unos segundos después.
 
 ```
-mensaje entra ──┬─► GenerarResumenDispatch      (+8 s)  → escribe resumen_ia
-                └─► EnviarPushConversacionDispatch (+12 s) → lee y envía
+mensaje entra ──┬─► GenerarResumenDispatch          (+8 s)   → escribe resumen_ia
+                ├─► ProcessInboundIntentDispatch    (+20 s)  → el agente puede contestar
+                └─► EnviarPushConversacionDispatch  (+30 s)  → lee todo y avisa
 ```
+
+El retraso del push es `max(AGENT_IA_RESUMEN_ESPERA, AGENT_IA_ESPERA_RAFAGA) + 10 s`. Ese
+margen cubre lo que tarda el worker en coger el trabajo más la llamada al modelo.
+
+Gracias a esperar, el aviso puede afirmar algo que antes no sabía: si el último mensaje es
+del agente (`SENDER_SYSTEM`), el cuerpo empieza por **«🤖 Respondido por IA»**. No es lo
+mismo «alguien espera respuesta» que «esto ya está atendido, échale un ojo».
+
+> **No hay acoplamiento entre los dos procesos.** Con el agente apagado el aviso llega
+> igual, solo unos segundos más tarde: `AGENT_IA_ESPERA_RAFAGA` sigue configurada aunque
+> nadie la use. Ninguno de los dos tiene que existir para que el push salga.
 
 Efectos secundarios buenos de haberlo sacado del listener: el envío HTTP a FCM/APNs ya no
 ocurre dentro de un flush de Doctrine, y el handler descarta el aviso si para entonces
