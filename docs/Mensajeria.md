@@ -450,10 +450,21 @@ pendiente que resumir.
 llamada falla, el resumen se queda como estaba y los tres consumidores caen al texto del
 último mensaje. Una notificación nunca se queda sin cuerpo.
 
-> ⚠️ El push **no espera** al resumen: sale inmediato para no retrasar el aviso. En el
-> primer mensaje de una ráfaga el cuerpo será el texto crudo; cuando el resumen llega, la
-> notificación siguiente de esa conversación —que reemplaza a la anterior por el `tag`— ya
-> lo lleva. Es un compromiso deliberado entre inmediatez y calidad del texto.
+**El push va DETRÁS del resumen, a propósito.** Antes salía en el mismo instante en que
+entraba el mensaje, así que el cuerpo llevaba el resumen del turno **anterior**: el operador
+leía en la notificación lo que le habían pedido la vez pasada. Ahora
+`MessageConversationMercureListener` no envía nada: encola
+`EnviarPushConversacionDispatch` con `AGENT_IA_RESUMEN_ESPERA + 4 s`, de modo que el trabajo
+del resumen ya haya escrito cuando el del push lee.
+
+```
+mensaje entra ──┬─► GenerarResumenDispatch      (+8 s)  → escribe resumen_ia
+                └─► EnviarPushConversacionDispatch (+12 s) → lee y envía
+```
+
+Efectos secundarios buenos de haberlo sacado del listener: el envío HTTP a FCM/APNs ya no
+ocurre dentro de un flush de Doctrine, y el handler descarta el aviso si para entonces
+alguien ya abrió el chat (`unreadCount === 0`).
 
 ### 🔥 En DQL, pasar la ENTIDAD como parámetro no casa con un id `binary(16)`
 

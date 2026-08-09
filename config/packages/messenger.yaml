@@ -47,6 +47,10 @@ framework:
             # una llamada de red a la IA. Síncrono bloquearía el webhook dentro del flush.
             App\Message\Dispatch\GenerarResumenDispatch: async
 
+            # El push sale DESPUÉS del resumen (ver el listener): si se enviara desde el
+            # flush, el cuerpo llevaría el resumen del turno anterior.
+            App\Message\Dispatch\EnviarPushConversacionDispatch: async
+
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async
