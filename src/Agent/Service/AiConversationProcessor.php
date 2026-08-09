@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Service;
 
 use App\Agent\Access\AgentActor;
+use App\Agent\Access\AgentActorFactory;
 use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\PotenciaRequerida;
@@ -15,6 +16,8 @@ use App\Agent\Triage\TipoDeMensaje;
 use App\Agent\Triage\Triaje;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
+use App\Repository\UserRepository;
+use App\Service\Phone\PhoneSanitizer;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -52,6 +55,9 @@ final readonly class AiConversationProcessor
         private SelectorDePotencia $potencias,
         private SkillRegistry $skills,
         private Triaje $triaje,
+        private UserRepository $usuarios,
+        private AgentActorFactory $actores,
+        private PhoneSanitizer $telefonos,
         private bool $habilitado,
     ) {}
 
@@ -284,14 +290,36 @@ final readonly class AiConversationProcessor
      */
     private function generar(MessageConversation $conversacion, Message $entrante): ?string
     {
-        // El huésped es un actor con rol (ROLE_HUESPED), no un caso sin permisos. Sus skills
-        // quedan acotadas a SU reserva por el contexto de la conversación:
-        // ConsultarMiReservaSkill ni siquiera acepta un parámetro con el que apuntar a otra.
-        $actor = AgentActor::huesped(
-            (string) ($entrante->getChannel()?->getId() ?? 'chat'),
-            $conversacion->getContextType(),
-            $conversacion->getContextId(),
-        );
+        $origen = (string) ($entrante->getChannel()?->getId() ?? 'chat');
+
+        // ¿Escribe alguien del equipo desde su móvil, o un huésped?
+        //
+        // Lo decide el NÚMERO: si está registrado en `user.telefono`, el actor lleva los
+        // roles de esa persona y el agente le contesta con las skills de operación —quién
+        // sale mañana, cuánto debe la casita 2—. Sin número registrado es un huésped, y sus
+        // skills quedan acotadas a SU reserva por el contexto de la conversación.
+        //
+        // Este cable faltaba: `UserRepository::findByTelefono()` y
+        // `AgentActor::delEquipoPorChat()` existían desde el principio y no los llamaba
+        // nadie, así que TODO el que escribía por WhatsApp era huésped. Un operador
+        // preguntando por las salidas del día recibía «no tengo acceso a esa información».
+        //
+        // ⚠️ Esto convierte el número de teléfono en una credencial. Es aceptable porque
+        // `permitirEscritura` sigue en `false` más abajo: por este canal solo se consulta,
+        // nunca se modifica. Si algún día se abre la escritura aquí, hay que replantear la
+        // identificación — un número se puede perder con el teléfono.
+        $delEquipo = $this->usuarios->findByTelefono($conversacion->getGuestPhone(), $this->telefonos);
+
+        $actor = $delEquipo !== null
+            ? $this->actores->delEquipoPorChat($delEquipo, $origen, $conversacion->getContextType(), $conversacion->getContextId())
+            : $this->actores->huesped($origen, $conversacion->getContextType(), $conversacion->getContextId());
+
+        if ($delEquipo !== null) {
+            $this->logger->info(sprintf(
+                'IA: %s identificado como equipo por su número; se le atiende con sus roles.',
+                $delEquipo->getUserIdentifier()
+            ));
+        }
 
         $mensaje = trim((string) $entrante->getContentExternal());
         $historial = $this->historial($conversacion, $entrante);
