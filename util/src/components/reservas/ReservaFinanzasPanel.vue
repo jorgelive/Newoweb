@@ -1361,10 +1361,19 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#376875] hover:bg-slate-100">
                                     <i class="fas fa-pen text-[11px]"></i>
                                 </button>
-                                <button type="button" @click="borrarPago(p)" title="Eliminar pago"
+                                <!-- Sin basurero si el backend va a rechazarlo igual: el
+                                     depósito automático del canal se regenera solo. Ofrecer
+                                     la acción y luego negarla es el sistema peleando contra
+                                     el operador. En su lugar, un candado con el motivo. -->
+                                <button v-if="p.borrable !== false" type="button" @click="borrarPago(p)"
+                                    title="Eliminar pago"
                                     class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50">
                                     <i class="fas fa-trash text-[11px]"></i>
                                 </button>
+                                <span v-else :title="p.motivoNoBorrableTexto ?? 'Este pago no se puede eliminar.'"
+                                    class="w-7 h-7 flex items-center justify-center text-slate-300 cursor-help">
+                                    <i class="fas fa-lock text-[11px]"></i>
+                                </span>
                             </template>
                         </div>
                     </div>

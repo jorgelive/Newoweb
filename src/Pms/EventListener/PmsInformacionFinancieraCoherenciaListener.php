@@ -117,14 +117,16 @@ final class PmsInformacionFinancieraCoherenciaListener
             }
             // Borrar el depósito automático no sirve de nada: el siguiente recálculo lo
             // recrearía. Se bloquea para que el operador no pelee contra el sistema.
-            if ($entity instanceof PmsPagoFinanciero
-                && $entity->isEsAutomatico()
-                && !$this->pagoOta->estaSincronizando()
-            ) {
-                throw new DomainException(
-                    'No se puede eliminar el depósito automático del canal: se regenera solo '
-                    . 'mientras la reserva tenga cargos. Para que desaparezca, quita los cargos.'
-                );
+            //
+            // El MOTIVO lo decide la entidad (`getMotivoNoBorrable()`), no este listener:
+            // la SPA necesita la misma regla para no pintar un basurero que sólo puede
+            // fallar, y con la condición escondida aquí no tenía forma de conocerla.
+            if ($entity instanceof PmsPagoFinanciero && !$this->pagoOta->estaSincronizando()) {
+                $motivo = $entity->getMotivoNoBorrable();
+
+                if ($motivo !== null) {
+                    throw new DomainException($motivo);
+                }
             }
         }
 

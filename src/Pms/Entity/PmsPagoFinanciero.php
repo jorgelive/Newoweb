@@ -215,6 +215,43 @@ class PmsPagoFinanciero
     public function getNotas(): ?string { return $this->notas; }
     public function setNotas(?string $notas): self { $this->notas = $notas; return $this; }
 
+    /**
+     * Por qué NO se puede borrar este pago, o null si sí se puede.
+     *
+     * Fuente única de la regla: la usa el listener de coherencia para vetar el borrado y la
+     * SPA para no ofrecer un basurero que sólo puede fallar. Antes la condición vivía sólo
+     * dentro del listener, así que el frontend pintaba el botón, el operador lo pulsaba y se
+     * llevaba un error — el sistema ofreciendo una acción que él mismo iba a rechazar.
+     *
+     * Mismo patrón que `PmsEventoCalendario::getMotivoNoBorrable()`.
+     */
+    public function getMotivoNoBorrable(): ?string
+    {
+        // Ojo: `esAutomatico` NO es "lo creó el sistema", es "el sistema lo REGENERA solo".
+        // Marca el depósito espejo de las OTA de pago total (§12.8). Un cobro por pasarela
+        // también lo crea el sistema y sí es borrable, justamente porque no reaparece.
+        if ($this->esAutomatico) {
+            return 'Es el depósito automático del canal: se regenera solo mientras la reserva '
+                . 'tenga cargos. Para que desaparezca, quita los cargos.';
+        }
+
+        return null;
+    }
+
+    /** Se serializa para que la SPA decida si pinta el basurero. */
+    #[Groups(['pms_pago:read'])]
+    public function isBorrable(): bool
+    {
+        return null === $this->getMotivoNoBorrable();
+    }
+
+    /** El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+    #[Groups(['pms_pago:read'])]
+    public function getMotivoNoBorrableTexto(): ?string
+    {
+        return $this->getMotivoNoBorrable();
+    }
+
     public function isEsAutomatico(): bool { return $this->esAutomatico; }
     public function setEsAutomatico(bool $esAutomatico): self { $this->esAutomatico = $esAutomatico; return $this; }
 

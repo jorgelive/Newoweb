@@ -96,6 +96,19 @@ export interface PmsPagoFinanciero {
     fechaPago?: string | null;
     referencia?: string | null;
     notas?: string | null;
+    /**
+     * ¿Se puede eliminar? Falso en el depósito automático del canal, que se regenera solo.
+     *
+     * Espejo de `PmsPagoFinanciero::isBorrable()`. La UI no debe pintar el basurero cuando
+     * es `false`: el backend rechazaría el borrado y el operador se llevaría un error por
+     * una acción que el propio sistema le ofreció.
+     *
+     * Opcional porque los pagos guardados antes de este campo llegan sin él; se trata
+     * `undefined` como borrable, que es el caso mayoritario.
+     */
+    borrable?: boolean;
+    /** Motivo legible cuando `borrable` es false, para el tooltip del candado. */
+    motivoNoBorrableTexto?: string | null;
 }
 
 /**

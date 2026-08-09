@@ -579,6 +579,45 @@ La trazabilidad no depende de esa bandera: el enlace apunta al pago con
 `movimientoGeneradoId`, el pago guarda la referencia de la transacción y la nota dice por qué
 pasarela entró.
 
+### Una regla de negocio no es un error 500
+
+Al intentar borrar el depósito automático de una OTA, la SPA mostraba **"Internal Server
+Error"**. No era un fallo: era el listener de coherencia defendiendo una regla con un
+`DomainException`… que API Platform trataba como caída del servidor porque **no había
+`exception_to_status`**.
+
+Dos consecuencias, y la segunda es peor que la primera:
+
+- El operador leía un error genérico en vez del motivo, sin saber qué hacer.
+- El log se llenaba de `CRITICAL` por situaciones normales, así que **un 500 dejaba de
+  significar nada**: no se podía distinguir una regla de negocio de una caída de verdad.
+
+Arreglado globalmente en `config/packages/api_platform.yaml`:
+
+```yaml
+exception_to_status:
+    DomainException: 422
+```
+
+422 es lo correcto —la petición está bien formada, es el estado del dominio el que la
+rechaza— y arregla de golpe **todas** las guardas del módulo, no sólo ésta. El mensaje viaja
+en `hydra:description` y `extractApiErrorMessage()` ya lo pinta.
+
+> Consecuencia: el texto de cualquier `DomainException` **lo va a leer el operador**. Ya
+> estaban escritos así, pero conviene recordarlo al añadir uno nuevo.
+
+### Y antes de eso: no ofrecer lo que se va a rechazar
+
+Arreglar el código de estado no basta. El basurero seguía apareciendo en un pago que nunca
+iba a poder borrarse — el sistema ofreciendo una acción y negándola después.
+
+La regla pasa a vivir en la entidad (`PmsPagoFinanciero::getMotivoNoBorrable()`), que es
+**fuente única**: el listener la usa para vetar y la SPA para decidir si pinta el basurero o
+un candado con el motivo en el tooltip. Mismo patrón que
+`PmsEventoCalendario::getMotivoNoBorrable()`.
+
+Con la condición escondida dentro del listener, el frontend no tenía forma de conocerla.
+
 ### La relación pago ↔ enlace, y por qué los importes no coinciden
 
 Un enlace de US$ 328.11 genera un pago de US$ 311.00. **No es un descuadre**: el enlace cobra

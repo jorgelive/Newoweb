@@ -18,6 +18,23 @@ api_platform:
             # - '%kernel.project_dir%/src/Exchange/Entity'
 
 
+    # ==========================================================================
+    # EXCEPCIONES DE NEGOCIO → 422, no 500
+    #
+    # Las reglas del PMS se defienden lanzando `DomainException` desde los listeners de
+    # Doctrine (moneda bloqueada, cargo de canal no borrable, depósito automático...). Sin
+    # este mapeo, API Platform las trataba como fallo interno: el operador veía
+    # "Internal Server Error" en vez del motivo, el log se llenaba de CRITICAL por
+    # situaciones perfectamente normales, y no había forma de distinguir una regla de
+    # negocio de una caída de verdad.
+    #
+    # 422 (Unprocessable Entity) es lo que corresponde: la petición está bien formada, es
+    # el estado del dominio el que la rechaza. El mensaje de la excepción llega al cliente,
+    # así que TIENE que estar escrito para el operador — y lo está.
+    # ==========================================================================
+    exception_to_status:
+        DomainException: 422
+
     eager_loading:
         max_joins: 100
 
