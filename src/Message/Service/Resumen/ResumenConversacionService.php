@@ -170,7 +170,7 @@ final readonly class ResumenConversacionService
             ->andWhere('m.direction = :entrante')
             ->setParameter('c', $conversacion)
             ->setParameter('entrante', Message::DIRECTION_INCOMING)
-            ->orderBy('COALESCE(m.scheduledAt, m.createdAt)', 'DESC')
+            ->orderBy('m.createdAt', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
@@ -206,12 +206,16 @@ final readonly class ResumenConversacionService
             ->getQuery()
             ->getSingleScalarResult();
 
+        // Se ordena por `createdAt` y no por la fecha efectiva por dos motivos: DQL no
+        // admite COALESCE en ORDER BY (sí en SELECT y WHERE), y para un mensaje ENTRANTE
+        // ambas coinciden — `scheduledAt` solo lo llevan los salientes programados, y un
+        // huésped no programa nada.
         $qb = $repo->createQueryBuilder('m')
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :entrante')
             ->setParameter('c', $conversacion)
             ->setParameter('entrante', Message::DIRECTION_INCOMING)
-            ->orderBy('COALESCE(m.scheduledAt, m.createdAt)', 'DESC')
+            ->orderBy('m.createdAt', 'DESC')
             ->setMaxResults(self::MAX_MENSAJES);
 
         if ($ultimaSalida !== null) {
