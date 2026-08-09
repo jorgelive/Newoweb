@@ -1081,6 +1081,15 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
           </span>
         </h3>
 
+        <!-- El resumen IA va ARRIBA, antes del historial: la gracia de asomarse a una
+             conversación es saber qué piden sin leerla. Solo con no leídos, porque el
+             resumen es de lo pendiente; si ya se contestó, está vacío. -->
+        <div v-if="stalkConversation?.resumenIa && (stalkConversation?.unreadCount ?? 0) > 0"
+             class="flex gap-2 items-start bg-[#E07845]/8 border border-[#E07845]/20 rounded-xl px-3 py-2">
+          <i class="fas fa-wand-magic-sparkles text-[#E07845] text-[10px] mt-0.5 shrink-0"></i>
+          <p class="text-[11px] font-bold text-slate-700 leading-snug">{{ stalkConversation.resumenIa }}</p>
+        </div>
+
         <div v-if="isLoadingStalk" class="flex justify-center py-6"><i class="fas fa-circle-notch fa-spin text-slate-300 text-2xl"></i></div>
         <div v-else-if="stalkMessages.length === 0" class="text-xs text-slate-400 text-center py-4 italic">No hay historial reciente.</div>
 
