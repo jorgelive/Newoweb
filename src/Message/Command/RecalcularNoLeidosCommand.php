@@ -123,20 +123,44 @@ final class RecalcularNoLeidosCommand extends Command
         // ------------------------------------------------------------------
         // Se cuenta de una sola consulta agrupada en vez de una por conversación:
         // con miles de conversaciones lo segundo son miles de viajes a la BD.
+        //
+        // Se hace JOIN a la conversación y se selecciona `c.id` en vez de usar
+        // `IDENTITY(m.conversation)`: IDENTITY devuelve el valor CRUDO de la clave
+        // ajena sin pasarlo por el tipo Doctrine, y aquí los ids son UUID en
+        // binary(16). Con IDENTITY las claves del mapa eran los 16 bytes en bruto,
+        // no casaban nunca con `(string) $conversacion->getId()`, y el comando
+        // "veía" cero pendientes en todas: habría puesto a cero TODOS los
+        // contadores. Lo cazó el --dry-run; por eso existe.
         $conteos = $this->em->createQueryBuilder()
-            ->select('IDENTITY(m.conversation) AS conversationId', 'COUNT(m.id) AS pendientes')
+            ->select('c.id AS conversationId', 'COUNT(m.id) AS pendientes')
             ->from(Message::class, 'm')
+            ->innerJoin('m.conversation', 'c')
             ->where('m.direction = :entrante')
             ->andWhere('m.status = :recibido')
             ->setParameter('entrante', Message::DIRECTION_INCOMING)
             ->setParameter('recibido', Message::STATUS_RECEIVED)
-            ->groupBy('m.conversation')
+            ->groupBy('c.id')
             ->getQuery()
             ->getArrayResult();
 
         $reales = [];
         foreach ($conteos as $fila) {
             $reales[(string) $fila['conversationId']] = (int) $fila['pendientes'];
+        }
+
+        // Cinturón de seguridad: si el mapa saliera vacío habiendo conversaciones
+        // con contador > 0, es que las claves volvieron a no casar. Antes que
+        // poner a cero la base entera, se aborta.
+        $conContador = (int) $this->em->createQueryBuilder()
+            ->select('COUNT(c.id)')
+            ->from(MessageConversation::class, 'c')
+            ->where('c.unreadCount > 0')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        if ($reales === [] && $conContador > 0) {
+            $io->error('El recuento por conversación salió vacío habiendo contadores > 0. Se aborta para no poner a cero toda la base.');
+            return Command::FAILURE;
         }
 
         // Se recorren TODAS las conversaciones, no solo las que tienen mensajes
