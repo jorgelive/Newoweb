@@ -495,6 +495,37 @@ Efectos secundarios buenos de haberlo sacado del listener: el envío HTTP a FCM/
 ocurre dentro de un flush de Doctrine, y el handler descarta el aviso si para entonces
 alguien ya abrió el chat (`unreadCount === 0`).
 
+### 🔥 Quién escribe por WhatsApp: equipo o huésped, lo decide el NÚMERO
+
+`AiConversationProcessor::generar()` construía **siempre** un actor huésped, hardcodeado. Un
+operador preguntando por WhatsApp «¿quién sale mañana?» recibía *«no tengo acceso a esa
+información»*: el agente le daba las skills de un cliente.
+
+`UserRepository::findByTelefono()` y `AgentActor::delEquipoPorChat()` existían desde el
+principio —el docblock del primero describe exactamente este caso— y **no los llamaba nadie**.
+Faltaba el cable. Ahora:
+
+```
+número entrante → user.telefono ?
+                    ├── sí  → delEquipoPorChat()  → sus roles, skills de operación
+                    └── no  → huesped()           → acotado a SU reserva
+```
+
+**El formato del teléfono es lo que más falla.** La comparación es contra el número ya
+normalizado por `PhoneSanitizer::cleanPhoneNumber($n, 'PE')`, que devuelve código de país +
+dígitos, sin `+` ni espacios (`51921166466`). Guardar «+51 921 166 466» en `user.telefono`
+hace que no case **nunca**, y el síntoma es que el operador sigue siendo tratado como huésped
+sin un solo error en ningún log.
+
+> ⚠️ Esto convierte el número en una **credencial**. Es aceptable hoy porque el processor fija
+> `permitirEscritura: false`: por este canal solo se consulta, nunca se modifica. **Si algún
+> día se abre la escritura aquí, hay que replantear la identificación** — un teléfono se
+> pierde, se clona y se hereda.
+
+Efecto lateral a tener presente: si alguien del equipo tiene una **reserva de prueba con su
+propio número**, deja de comportarse como huésped en cuanto se registra ese número. Para
+probar el flujo de huésped hay que vaciar `user.telefono` o usar otro número en la reserva.
+
 ### 🔥 En DQL, pasar la ENTIDAD como parámetro no casa con un id `binary(16)`
 
 Los ids del proyecto son UUID guardados en `binary(16)` (ver `IdTrait`). En una consulta

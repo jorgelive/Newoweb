@@ -298,6 +298,107 @@ class MessageTemplate
         return $this;
     }
 
+    /** Stub para la columna «Canales» del listado. Ver {@see self::getVirtualEstadoMeta()}. */
+    public function getVirtualCanales(): string
+    {
+        return '';
+    }
+
+    /**
+     * En qué canales está redactada esta plantilla y en cuáles está encendida.
+     *
+     * Son **dos cosas distintas** y por eso se devuelven por separado:
+     *
+     * - `creado`: hay texto escrito para ese canal (`body` con contenido).
+     * - `habilitado`: el interruptor `is_active` del JSON está en `true`, que es lo que mira
+     *   {@see \App\Message\Service\Queue\MessageDispatcher} para decidir si sale por ahí.
+     *
+     * Una plantilla redactada pero apagada es el caso que más confunde al leer la lista:
+     * el texto está, se ve al editar, y sin embargo no se envía por ese canal.
+     *
+     * No se usa `is_active` a secas como prueba de existencia porque el constructor deja
+     * `whatsappMetaTmpl` con `is_official_meta` puesto: el array no está vacío aunque nadie
+     * haya escrito nada. La prueba honesta es que `body` tenga contenido.
+     *
+     * @return array<string, array{creado: bool, habilitado: bool}> Etiqueta => estado.
+     */
+    public function getCanales(): array
+    {
+        $canales = [
+            'Correo' => $this->emailTmpl,
+            'Beds24' => $this->beds24Tmpl,
+            'WhatsApp' => $this->whatsappMetaTmpl,
+            'WA enlace' => $this->whatsappLinkTmpl,
+        ];
+
+        $estado = [];
+
+        foreach ($canales as $etiqueta => $tmpl) {
+            $body = is_array($tmpl) ? ($tmpl['body'] ?? null) : null;
+
+            $estado[$etiqueta] = [
+                'creado' => is_array($body) && $body !== [],
+                'habilitado' => is_array($tmpl) && ($tmpl['is_active'] ?? false) === true,
+            ];
+        }
+
+        return $estado;
+    }
+
+    /**
+     * Stub para la columna «Estado Meta» del listado.
+     *
+     * Existe por una limitación de EasyAdmin, no por diseño: `TextField` valida el valor
+     * CRUDO antes de pasarlo por `formatValue()`, así que apuntarlo directamente a
+     * {@see self::getEstadoMetaPorIdioma()} —que devuelve un array— revienta. El campo se
+     * ancla aquí y el contenido real lo pinta el `formatValue` del CRUD.
+     *
+     * Mismo truco que `PmsCatalogo::$virtualContenidos`.
+     */
+    public function getVirtualEstadoMeta(): string
+    {
+        return '';
+    }
+
+    /**
+     * Estado de aprobación en Meta, por idioma. Campo VIRTUAL: no hay columna detrás.
+     *
+     * Meta aprueba **cada idioma por separado**, así que una plantilla no está «aprobada» o
+     * «pendiente» sin más: puede tener el español aprobado y el italiano en revisión, y
+     * entonces sirve para casi todo. Por eso se devuelve el recuento por estado y no una
+     * sola etiqueta, que obligaría a decidir cuál de los siete manda.
+     *
+     * El orden importa: primero lo que bloquea (`REJECTED`), luego lo que aún no se puede
+     * usar (`PENDING`), y al final lo aprobado. Quien mira la lista busca problemas.
+     *
+     * Vacío cuando la plantilla no tiene bloque de WhatsApp: no es un error, es que esa
+     * plantilla no sale por ese canal.
+     *
+     * @return array<string, int> Estado => cuántos idiomas, ej. `['APPROVED' => 6, 'PENDING' => 1]`
+     */
+    public function getEstadoMetaPorIdioma(): array
+    {
+        $cuerpos = $this->whatsappMetaTmpl['body'] ?? null;
+
+        if (!is_array($cuerpos) || $cuerpos === []) {
+            return [];
+        }
+
+        $conteo = [];
+
+        foreach ($cuerpos as $cuerpo) {
+            // Un idioma recién añadido a mano puede no traer `status` todavía; cuenta como
+            // no enviado, que es justo lo que es.
+            $estado = is_array($cuerpo) ? (string) ($cuerpo['status'] ?? 'SIN ENVIAR') : 'SIN ENVIAR';
+            $conteo[$estado] = ($conteo[$estado] ?? 0) + 1;
+        }
+
+        $prioridad = ['REJECTED' => 0, 'PENDING' => 1, 'SIN ENVIAR' => 2, 'APPROVED' => 3];
+        uksort($conteo, static fn (string $a, string $b): int => ($prioridad[$a] ?? 9) <=> ($prioridad[$b] ?? 9));
+
+        return $conteo;
+    }
+
     public function getWhatsappLinkTmpl(): ?array
     {
         return $this->whatsappLinkTmpl;

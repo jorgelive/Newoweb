@@ -128,6 +128,77 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setColumns(12)
             ->setHelp('Nombre descriptivo y amigable para el equipo.');
 
+        // Canales: en cuáles está redactada y en cuáles está encendida.
+        //
+        // Son dos cosas distintas y la lista tiene que distinguirlas: una plantilla escrita
+        // pero apagada se ve perfectamente al editar y sin embargo no sale por ese canal.
+        // Verde = redactado y encendido · Gris tachado = redactado pero apagado ·
+        // ausente = ni siquiera hay texto.
+        yield TextField::new('virtualCanales', 'Canales')
+            ->onlyOnIndex()
+            ->setSortable(false)
+            ->formatValue(static function ($value, ?MessageTemplate $entity): string {
+                $canales = $entity?->getCanales() ?? [];
+                $badges = [];
+
+                foreach ($canales as $etiqueta => $estado) {
+                    if (!$estado['creado']) {
+                        continue;
+                    }
+
+                    $badges[] = $estado['habilitado']
+                        ? sprintf('<span class="badge badge-success" title="Redactado y activo">%s</span>', htmlspecialchars($etiqueta, ENT_QUOTES))
+                        : sprintf('<span class="badge badge-secondary" title="Redactado pero APAGADO: no se envía por este canal"><s>%s</s></span>', htmlspecialchars($etiqueta, ENT_QUOTES));
+                }
+
+                return $badges === []
+                    ? '<span class="text-muted small">sin redactar</span>'
+                    : implode(' ', $badges);
+            })
+            ->renderAsHtml();
+
+        // Estado de aprobación en Meta, por idioma.
+        //
+        // Meta aprueba CADA IDIOMA por separado, así que no hay una sola etiqueta que
+        // resuma la plantilla: puede tener el español aprobado y el italiano en revisión.
+        // Se pintan los recuentos, con lo que bloquea primero.
+        //
+        // Campo virtual: se ancla a `virtualEstadoMeta` (un stub que devuelve cadena) y no
+        // a `estadoMetaPorIdioma`, porque TextField valida el valor CRUDO antes de
+        // formatearlo y un array lo hace reventar. Mismo motivo que en PmsCatalogo.
+        // Sin ordenación: no hay columna en la base de datos por la que ordenar.
+        yield TextField::new('virtualEstadoMeta', 'Estado Meta')
+            ->onlyOnIndex()
+            ->setSortable(false)
+            ->formatValue(static function ($value, ?MessageTemplate $entity): string {
+                $estados = $entity?->getEstadoMetaPorIdioma() ?? [];
+
+                if ($estados === []) {
+                    return '<span class="badge badge-secondary">sin WhatsApp</span>';
+                }
+
+                $color = [
+                    'APPROVED' => 'badge-success',
+                    'PENDING' => 'badge-warning',
+                    'REJECTED' => 'badge-danger',
+                    'SIN ENVIAR' => 'badge-secondary',
+                ];
+
+                $badges = [];
+                foreach ($estados as $estado => $cuantos) {
+                    $badges[] = sprintf(
+                        '<span class="badge %s" title="%d idioma(s)">%s %d</span>',
+                        $color[$estado] ?? 'badge-secondary',
+                        $cuantos,
+                        htmlspecialchars(ucfirst(strtolower($estado)), ENT_QUOTES),
+                        $cuantos
+                    );
+                }
+
+                return implode(' ', $badges);
+            })
+            ->renderAsHtml();
+
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Auto')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir')->onlyOnForms()->setColumns(6);
 
