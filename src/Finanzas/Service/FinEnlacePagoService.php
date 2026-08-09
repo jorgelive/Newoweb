@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Enum\FinEnlacePagoEstado;
 use App\Finanzas\Enum\FinOrigenCobro;
+use App\Finanzas\Enum\FinPasarela;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
 use DateTimeImmutable;
 use DomainException;
@@ -32,6 +33,7 @@ final class FinEnlacePagoService
         private readonly EntityManagerInterface $em,
         private readonly FinEnlacePagoRepository $repository,
         private readonly FinOrigenCobroRegistry $registry,
+        private readonly FinPasarelaRegistry $pasarelas,
         private readonly LoggerInterface $logger,
         #[Autowire('%pax_host_url%')]
         private readonly string $paxHostUrl,
@@ -45,6 +47,9 @@ final class FinEnlacePagoService
      * @param string|null $montoNeto  Importe a cobrar SIN recargo. Null = el saldo pendiente completo.
      * @param bool        $conRecargo Si se le traslada al cliente el coste de la pasarela.
      * @param int|null    $vigenciaDias Null usa el defecto; 0 emite un enlace sin caducidad.
+     * @param FinPasarela|null $pasarela Null usa la del registry. Se CONGELA en la fila: las
+     *                                   pasarelas conviven y el enlace tiene que recordar
+     *                                   por cuál se emitió aunque cambie el defecto.
      *
      * @throws DomainException si el documento no existe o el importe no tiene sentido.
      */
@@ -56,6 +61,7 @@ final class FinEnlacePagoService
         ?int $vigenciaDias = null,
         ?string $concepto = null,
         ?User $creadoPor = null,
+        ?FinPasarela $pasarela = null,
     ): FinEnlacePago {
         $origen = $this->registry->resolver($origenTipo, $origenId);
 
@@ -82,9 +88,15 @@ final class FinEnlacePagoService
         $porcentaje = $conRecargo ? $this->recargoTarjetaPorcentaje : '0';
         $total = $this->normalizarImporte((string) ((float) $neto * (1 + (float) $porcentaje / 100)));
 
+        // `para()` valida que tenga credenciales: mejor fallar aquí, al emitir, que dejar un
+        // enlace que revienta cuando el cliente ya lo abrió.
+        $pasarelaElegida = $pasarela ?? $this->pasarelas->porDefecto();
+        $this->pasarelas->para($pasarelaElegida);
+
         $enlace = new FinEnlacePago();
         $enlace
             ->setToken($this->generarToken())
+            ->setPasarela($pasarelaElegida)
             ->setOrigenTipo($origenTipo)
             ->setOrigenId($origenId)
             ->setMoneda($moneda)

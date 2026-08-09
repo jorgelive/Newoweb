@@ -22,8 +22,10 @@ declarado en el enum pero **sin resolver**: emitir un cobro con ese origen falla
 6. [Importes: neto, recargo y total](#6-importes-neto-recargo-y-total)
 7. [Espejos PHP ↔ TypeScript](#7-espejos-php--typescript)
 8. [Configuración y credenciales](#8-configuración-y-credenciales)
-9. [Añadir un módulo nuevo que cobre](#9-añadir-un-módulo-nuevo-que-cobre)
-10. [Dónde tocar para cambiar X](#10-dónde-tocar-para-cambiar-x)
+9. [El módulo en `util`: Cobros y Caja](#9-el-módulo-en-util-cobros-y-caja)
+10. [Añadir un módulo nuevo que cobre](#10-añadir-un-módulo-nuevo-que-cobre)
+11. [Dos pasarelas en paralelo: Izipay y Culqi](#11-dos-pasarelas-en-paralelo-izipay-y-culqi)
+12. [Dónde tocar para cambiar X](#12-dónde-tocar-para-cambiar-x)
 
 ---
 
@@ -31,22 +33,35 @@ declarado en el enum pero **sin resolver**: emitir un cobro con ese origen falla
 
 ```
 src/Finanzas/                          ← no importa NADA de Pms/, Travel/, Cotizacion/
-├── Contract/FinOrigenCobroResolverInterface   el puente; lleva #[AutoconfigureTag]
+├── Contract/
+│   ├── FinOrigenCobroResolverInterface        puente 1: "¿cuánto debe?" → sirve para COBRAR
+│   ├── FinMovimientoProviderInterface         puente 2: "¿qué entró?"   → sirve para MIRAR
+│   └── FinPasarelaClientInterface             puente 3: quién procesa el cobro (§11)
 ├── Dto/FinOrigenCobroDto                      "cuánto se debe y a quién", sin entidades
+├── Dto/{FinMovimientoDto, FinMovimientoFiltro} un cobro recibido, y sus criterios
 ├── Entity/FinEnlacePago                       la unidad de cobro
 ├── Entity/FinPasarelaWebhookAudit             traza cruda de cada IPN
 ├── Enum/{FinOrigenCobro, FinEnlacePagoEstado, FinPasarela}
 ├── Service/FinOrigenCobroRegistry             despacha origen → resolver
+├── Service/FinMovimientoRegistry              fusiona la caja de todos los módulos
+├── Service/FinPasarelaRegistry                despacha pasarela → cliente, y elige la de defecto
 ├── Service/FinEnlacePagoService               emite y cierra enlaces (único sitio que cambia estado)
-├── Service/Izipay/IzipayClient                REST + validación de firma
+├── Service/FinEnlacePagoSerializer            forma JSON del enlace, compartida por 2 pantallas
+├── Service/Izipay/IzipayClient                REST + validación de firma HMAC
+├── Service/Culqi/CulqiClient                  REST + verificación por API (no hay firma, §11)
 └── Controller/
-    ├── Api/FinEnlacePagoApiController         SPA util (con #[IsGranted])
-    ├── Publico/FinPagoPublicoController       SPA pax (sin sesión, credencial = token)
-    └── Webhook/IzipayWebhookController        IPN de Izipay
+    ├── Api/FinEnlacePagoApiController         panel de UNA reserva (con #[IsGranted])
+    ├── Api/FinCajaApiController               vista global: pestañas Cobros y Caja
+    ├── Publico/FinPagoPublicoController       SPA pax + cierre del cobro de Culqi
+    ├── Webhook/IzipayWebhookController        IPN firmado de Izipay
+    └── Webhook/CulqiWebhookController         aviso de Culqi: dispara, NO confirma
 
-src/Pms/Finanzas/PmsReservaOrigenCobroResolver ← el PMS implementa el contrato de Finanzas
+src/Pms/Finanzas/    ← el PMS implementa los DOS contratos de Finanzas
+├── PmsReservaOrigenCobroResolver              cobrar una reserva
+└── PmsPagoMovimientoProvider                  sus pagos, de cualquier medio, en la caja
 
-util/  ReservaEnlacesPagoSection.vue, stores/finanzas/enlacesPagoStore.ts
+util/  views/Finanzas/FinanzasView.vue, ReservaEnlacesPagoSection.vue,
+       stores/finanzas/{enlacesPagoStore, cajaStore}.ts
 pax/   views/pago/PaxPagoView.vue, types/izipayKrypton.d.ts
 ```
 
@@ -90,6 +105,9 @@ la misma deuda que ya duele en mensajería con los canales.
 ---
 
 ## 3. Flujo completo de un cobro
+
+> El diagrama de abajo es el de **Izipay**. Culqi confirma por otro camino (el navegador
+> devuelve un token y lo cobra nuestro servidor): ver §11.
 
 ```
 util (operador)                    backend                          Izipay / cliente
@@ -249,9 +267,12 @@ Ninguno se genera solo. **Si tocas un lado, toca el otro.**
 
 | PHP | TypeScript |
 |---|---|
-| `FinEnlacePagoApiController::serializar()` | `util/src/types/finEnlacePagoModel.ts` |
-| `FinPagoPublicoController::ver()` / `formToken()` | `pax/src/types/paxPagoModel.ts` |
+| `FinEnlacePagoSerializer::aArray()` | `util/src/types/finEnlacePagoModel.ts` |
+| `FinCajaApiController::cobros()` | `util/src/types/finEnlacePagoModel.ts` (`FinCobrosRespuesta`) |
+| `FinMovimientoDto::aArray()` y `FinCajaApiController::movimientos()` | `util/src/types/finMovimientoModel.ts` |
+| `FinPagoPublicoController::ver()` / `configuracion()` | `pax/src/types/paxPagoModel.ts` |
 | Librería KR de Izipay (sin paquete npm) | `pax/src/types/izipayKrypton.d.ts` |
+| Checkout v4 de Culqi (sin paquete npm) | `pax/src/types/culqiCheckout.d.ts` |
 
 Y un espejo que **no es TypeScript**: el porcentaje de recargo vive en
 `finanzas.recargo_tarjeta_porcentaje` (`config/services/services_finanzas.yaml`) **y** en
@@ -286,6 +307,30 @@ https://<API_HOST>/finanzas/webhooks/izipay
 Sin ese registro todo funciona salvo lo único que importa: los cobros nunca se confirman y
 los enlaces se quedan eternamente en `PENDIENTE`.
 
+### Culqi (la pasarela operativa hoy — ver §11)
+
+```
+CULQI_ENDPOINT=https://api.culqi.com
+CULQI_PUBLIC_KEY=            # pk_test_ / pk_live_. Pública: va al navegador
+CULQI_SECRET_KEY=            # ⚠️ sk_test_ / sk_live_. SOLO en .env.local
+FINANZAS_PASARELA_POR_DEFECTO=culqi   # izipay | culqi
+```
+
+CulqiPanel → Desarrollo → **API Keys**. Webhook en Desarrollo → **Webhooks**:
+
+```
+https://<API_HOST>/finanzas/webhooks/culqi
+```
+
+En Culqi el webhook es **red de seguridad, no camino principal**: aunque no se registre, los
+cobros se confirman igual desde `culqiCobrar()`. Cubre el caso de que el cliente pierda la
+conexión justo después de pagar.
+
+`FINANZAS_PASARELA_POR_DEFECTO` **no apaga la otra pasarela**: si la indicada no tiene
+credenciales, `FinPasarelaRegistry::porDefecto()` cae a la primera que sí las tenga, porque
+con dos conectores en paralelo un `.env` a medio rellenar es lo normal y no poder cobrar por
+una errata sería peor que cobrar por la otra.
+
 **Registro del módulo** (el patrón de este repo, por si se replica):
 
 | Qué | Dónde |
@@ -311,9 +356,56 @@ hayan reenviado.
 
 ---
 
-## 9. Añadir un módulo nuevo que cobre
+## 9. El módulo en `util`: Cobros y Caja
 
-Todo el diseño está pensado para que esto sean **dos pasos**:
+Entrada por `/finanzas` (grupo **Administración** del portal). Dos pestañas, y no se
+fusionan porque responden a preguntas distintas:
+
+| | COBROS | CAJA |
+|---|---|---|
+| Pregunta | ¿Qué emití y en qué quedó? | ¿Cuánto entró y por dónde? |
+| Filas | `FinEnlacePago` de todos los documentos | Pagos de cualquier medio, de todos los módulos |
+| Incluye lo no pagado | **Sí** (son los que hay que perseguir) | No |
+| Importe | `montoTotal` — con recargo, es la cifra que mueve la pasarela | **Neto** — el recargo se lo queda la pasarela, no llega a la cuenta |
+| Filtro por fecha | De **creación** del enlace | De **pago** |
+| Fuente | `FinEnlacePagoRepository::buscar()` | `FinMovimientoRegistry::buscar()` |
+
+Un cobro emitido y sin pagar sale en la primera y no en la segunda; un pago en efectivo, al
+revés. **Sumar las dos cifras no significa nada**, y por eso nunca se pintan juntas.
+
+El filtro de cobros va por fecha de **creación** a propósito: filtrando por fecha de pago
+desaparecerían justo los que nadie pagó, que son el motivo de mirar esta pantalla.
+
+### El segundo contrato: `FinMovimientoProviderInterface`
+
+La pestaña de caja necesita leer los pagos de cada módulo, y eso es otra pregunta que
+"cuánto debe este documento". Por eso hay un contrato aparte y no un método más en
+`FinOrigenCobroResolverInterface`: un módulo puede querer aparecer en la caja sin emitir
+enlaces, y juntarlos obligaría a implementar métodos vacíos.
+
+Mismo mecanismo de tags (`finanzas.movimiento_provider`, declarado en la interfaz). El del
+PMS es `PmsPagoMovimientoProvider`, que traduce `PmsPagoFinanciero` y expone **todos** los
+medios — efectivo, Yape, transferencia, tarjeta—, no sólo lo cobrado por pasarela.
+
+### Dos límites conocidos, y por qué se aceptan
+
+- **Los totales no se convierten entre monedas.** Se agrupan por moneda. Convertir obligaría
+  a Finanzas a elegir un tipo de cambio, y el bueno es el del día de cada pago — que el
+  módulo ya guardó en `tipoCambio`. Una cifra única con la cotización de hoy no cuadraría
+  con ningún extracto. Es la misma decisión que ya toma el panel de la reserva.
+- **No hay paginación: el tope de 500 filas es POR MÓDULO.** Cada provider devuelve hasta
+  ese tope y `FinMovimientoRegistry` fusiona y recorta. Con un solo módulo el resultado es
+  exacto; con varios, uno muy activo podría desplazar filas antiguas de otro. La respuesta
+  trae `truncado: true` cuando se roza y la vista lo avisa. Paginar de verdad exige una
+  tabla común de movimientos — eso es rehacer la contabilidad, no listar pagos; el día que
+  estorbe, la salida es materializar los movimientos en Finanzas, no complicar el registry.
+
+---
+
+## 10. Añadir un módulo nuevo que cobre
+
+Todo el diseño está pensado para que esto sean **dos pasos** (tres si además quieres que
+sus pagos salgan en la caja):
 
 1. Añadir el `case` a `FinOrigenCobro` (si no está ya).
 2. Crear `src/<Modulo>/Finanzas/<X>OrigenCobroResolver.php` implementando
@@ -324,14 +416,121 @@ Todo el diseño está pensado para que esto sean **dos pasos**:
    - `registrarCobro()` → crea el asiento del módulo y devuelve su UUID. Sin `flush()`: la
      transacción la cierra `FinEnlacePagoService::confirmarPago()`.
 
-No hay que tocar la entidad, ni la migración, ni el registry, ni el YAML de Finanzas. En el
-frontend, `ReservaEnlacesPagoSection.vue` se monta con otro `origen-tipo` y ya.
+3. *(Opcional, para la pestaña de caja)* Crear
+   `src/<Modulo>/Finanzas/<X>MovimientoProvider.php` implementando
+   `FinMovimientoProviderInterface`: `buscar()` traduce sus pagos a `FinMovimientoDto` y
+   `mediosDisponibles()` declara su vocabulario de medios. Aparece en `/finanzas` solo.
 
-El resolver del PMS (`PmsReservaOrigenCobroResolver`) es el modelo a copiar.
+No hay que tocar la entidad, ni la migración, ni los registries, ni el YAML de Finanzas, ni
+la vista del módulo. En el panel de reserva, `ReservaEnlacesPagoSection.vue` se monta con
+otro `origen-tipo` y ya.
+
+Los del PMS (`PmsReservaOrigenCobroResolver` y `PmsPagoMovimientoProvider`) son el modelo a
+copiar.
 
 ---
 
-## 10. Dónde tocar para cambiar X
+## 11. Dos pasarelas en paralelo: Izipay y Culqi
+
+**No se migra de una a otra: conviven.** Cada `FinEnlacePago` guarda en `pasarela` con cuál
+se emitió, y esa columna existe desde la primera migración precisamente para esto.
+
+### Por qué
+
+Izipay **exige S/200 000 de venta acumulada** para habilitar enlaces de pago — un círculo
+imposible: para vender eso necesitas los enlaces. Culqi no tiene muro de volumen ni coste de
+afiliación, así que es la pasarela operativa. El conector de Izipay se queda **entero y
+funcionando** para el día que cambien la política o nos habiliten; borrarlo obligaría a
+rehacerlo desde cero.
+
+### Los flujos NO se parecen, y por eso la interfaz es corta
+
+```
+IZIPAY (Lyra)                          CULQI
+─────────────────────────────          ─────────────────────────────
+servidor → formToken (1 uso)           servidor → nada (config estática)
+   ↓                                      ↓
+navegador monta el form                navegador captura tarjeta
+   ↓                                      ↓
+navegador ↔ pasarela                   navegador → nos devuelve un TOKEN
+   ↓                                      ↓
+IPN FIRMADO (HMAC) confirma            NUESTRO servidor crea el cargo
+                                       (POST /v2/charges) ← confirma aquí
+                                          ↓
+                                       webhook = red de seguridad
+```
+
+`FinPasarelaClientInterface` sólo declara `pasarela()`, `estaConfigurado()` y
+`configuracionPago()`. Forzar un método común de "cobrar" habría dado uno que Izipay
+implementa vacío — la abstracción que parece limpia y luego hay que deshacer. Lo específico
+vive en su cliente (`CulqiClient::cobrarConToken()`) y lo consume su propio controlador.
+
+### ⚠️ Culqi no firma sus webhooks — y eso cambia el diseño
+
+La documentación de Culqi **no publica firma, secreto compartido ni lista de IPs** para los
+webhooks (comprobado en su doc de webhooks y en la referencia de API). Con Izipay el IPN va
+firmado con HMAC y por eso se puede creer; aquí no hay nada que validar.
+
+Un endpoint público sin firma lo puede llamar cualquiera: **creerse el cuerpo permitiría
+saldar reservas con un `curl`**. Así que `CulqiWebhookController` trata el aviso como un
+simple disparador — saca un id de cargo y **nada más** — y la verdad la da
+`CulqiClient::verificarCargo()`, que pregunta a Culqi con nuestra clave secreta.
+
+Y no basta con que el cargo exista y esté pagado: `cargoPagaElEnlace()` comprueba **importe
+y moneda** contra el enlace. Sin eso, alguien podría mandarnos el id de un cargo real suyo de
+S/1 y saldar una reserva de S/2000 — el id viene de fuera, así que el importe se verifica
+siempre.
+
+Ese diseño es más robusto que la firma y **sigue valiendo si Culqi añade firma mañana**
+(entonces se suma como segunda barrera, no la sustituye).
+
+### Dónde está la confirmación de cada una
+
+| | Camino principal | Red de seguridad |
+|---|---|---|
+| Izipay | IPN firmado (`IzipayWebhookController`) | — |
+| Culqi | `FinPagoPublicoController::culqiCobrar()`, llamada nuestra autenticada | webhook + verificación por API |
+
+En Culqi el endpoint público de cobro es seguro pese a no tener sesión: el token del
+navegador no autoriza nada por sí solo, el cargo lo crea el servidor con la clave secreta, y
+**el importe sale del enlace, no del navegador**. Manipular el JS no abarata el cobro.
+
+Las dos rutas acaban en `FinEnlacePagoService::confirmarPago()`, que es idempotente — por eso
+el webhook de Culqi puede llegar después del cobro ya cerrado sin duplicar el pago.
+
+### Las llaves RSA de Culqi son OPCIONALES
+
+En el CulqiPanel se marca **qué endpoints proteger**: es cifrado selectivo, no un requisito.
+Si algún día se activa, es híbrido (AES-256-GCM para el payload, RSA-OAEP-SHA256 para clave e
+IV) con cabecera `x-culqi-rsa-id` y un cuerpo de `encrypted_data` / `encrypted_key` /
+`encrypted_iv`. **No está implementado y no hace falta**: triplica la superficie de fallo y
+no aporta nada yendo por HTTPS.
+
+### Qué ve el operador
+
+El selector de pasarela **sólo aparece si hay más de una configurada** (`/finanzas/enlaces-pago/pasarelas`
+devuelve únicamente las que tienen credenciales); con una sola, estorba. Por defecto va en
+"Automática", que es lo que decide `FinPasarelaRegistry::porDefecto()`.
+
+La pasarela se pinta en cada fila —tanto en el panel de la reserva como en el listado global
+de Cobros— porque al conciliar, lo primero que hace falta es saber contra qué extracto se
+cuadra ese cobro.
+
+### Pendiente de confirmar con el primer cobro real de test
+
+Dos cosas que la documentación pública no aclara y que se resuelven mirando un cobro de
+verdad:
+
+1. **Qué campo marca el éxito del cargo.** Hoy se usa `object === 'charge'` (Culqi sólo
+   materializa el objeto cargo cuando autoriza; un rechazo devuelve un objeto de error).
+   `outcome.type` se registra en el log a propósito: si aparece algún valor de rechazo con
+   el objeto ya creado, hay que añadirlo a `cargoPagaElEnlace()`.
+2. **Si Culqi manda alguna firma.** Merece preguntarlo a soporte. El diseño no depende de
+   ello, pero si la hay se añade.
+
+---
+
+## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
@@ -339,8 +538,14 @@ El resolver del PMS (`PmsReservaOrigenCobroResolver`) es el modelo a copiar.
 | Cambiar la vigencia por defecto | `src/Finanzas/Service/FinEnlacePagoService.php` | `VIGENCIA_DIAS_DEFECTO` |
 | Cambiar el formato del `orderId` | `src/Finanzas/Service/FinEnlacePagoService.php` | `generarOrdenId()` |
 | Cambiar la URL pública del enlace | `src/Finanzas/Service/FinEnlacePagoService.php` | `urlPublica()` (+ ruta en `pax/src/router/index.ts`) |
-| Añadir datos al `CreatePayment` | `src/Finanzas/Service/Izipay/IzipayClient.php` | `crearFormToken()` |
-| Cambiar qué respuesta cuenta como cobro | `src/Finanzas/Service/Izipay/IzipayClient.php` | `esPagoExitoso()` |
+| Añadir datos al `CreatePayment` (Izipay) | `src/Finanzas/Service/Izipay/IzipayClient.php` | `crearFormToken()` |
+| Cambiar qué respuesta cuenta como cobro (Izipay) | `src/Finanzas/Service/Izipay/IzipayClient.php` | `esPagoExitoso()` |
+| Añadir datos al cargo (Culqi) | `src/Finanzas/Service/Culqi/CulqiClient.php` | `cobrarConToken()` |
+| Cambiar qué cargo se da por bueno (Culqi) | `src/Finanzas/Service/Culqi/CulqiClient.php` | `cargoPagaElEnlace()` |
+| Cambiar la pasarela por defecto | `.env` / `.env.local` | `FINANZAS_PASARELA_POR_DEFECTO` |
+| Tocar el selector de pasarela del operador | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `eligePasarela` |
+| Cambiar el formulario de una pasarela en `pax` | `pax/src/views/pago/Pago{Izipay,Culqi}Form.vue` | — |
+| Añadir una TERCERA pasarela | §11 | `FinPasarelaClientInterface` + `FinPasarelaRegistry` |
 | Guardar otro campo de la transacción | `src/Finanzas/Service/FinEnlacePagoService.php` | `confirmarPago()` |
 | Cambiar cómo se imputa el pago en el PMS | `src/Pms/Finanzas/PmsReservaOrigenCobroResolver.php` | `registrarCobro()` |
 | Cambiar el texto que ve el cliente | `src/Pms/Finanzas/PmsReservaOrigenCobroResolver.php` | `describir()` |
@@ -349,5 +554,11 @@ El resolver del PMS (`PmsReservaOrigenCobroResolver`) es el modelo a copiar.
 | Cambiar el tema visual del formulario | `pax/src/views/pago/PaxPagoView.vue` | `cargarLibreria()` (assets `neon`) |
 | Cambiar el sondeo de confirmación | `pax/src/views/pago/PaxPagoView.vue` | `sondearConfirmacion()` |
 | Mover o rediseñar el botón del operador | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | — |
-| Añadir un módulo que cobre | §9 | `FinOrigenCobroResolverInterface` |
+| Cambiar el tope de filas de la vista global | `src/Finanzas/Controller/Api/FinCajaApiController.php` | `LIMITE` |
+| Cambiar qué se busca con el texto (cobros) | `src/Finanzas/Repository/FinEnlacePagoRepository.php` | `buscar()` |
+| Cambiar qué se busca con el texto (caja) | `src/Pms/Repository/PmsPagoFinancieroRepository.php` | `buscarParaCaja()` |
+| Cambiar las columnas de las tablas | `util/src/views/Finanzas/FinanzasView.vue` | — |
+| Cambiar el rango de fechas por defecto | `util/src/views/Finanzas/FinanzasView.vue` | `filtros` (arranca en 30 días) |
+| Que los pagos de un módulo salgan en la caja | §10, paso 3 | `FinMovimientoProviderInterface` |
+| Añadir un módulo que cobre | §10 | `FinOrigenCobroResolverInterface` |
 | Depurar "no se confirmó un cobro" | tabla `fin_pasarela_webhook_audit` | `payload_raw`, `estado`, `error_mensaje` |

@@ -97,6 +97,19 @@ const router = createRouter({
         },
 
         // ============================================================================
+        // MÓDULO DE FINANZAS (Cobros por pasarela y caja transversal)
+        //
+        // Transversal a propósito: no cuelga de /reservas porque no es del PMS. Sus dos
+        // pestañas se alimentan de los registries de `src/Finanzas/`, así que cuando
+        // existan las reservas de tours aparecerán aquí sin tocar la vista.
+        // ============================================================================
+        {
+            path: '/finanzas',
+            name: 'finanzas',
+            component: () => import('../views/Finanzas/FinanzasView.vue')
+        },
+
+        // ============================================================================
         // FALLBACK (Rutas no encontradas)
         // ============================================================================
         {

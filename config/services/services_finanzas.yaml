@@ -20,6 +20,22 @@ parameters:
     finanzas.izipay.hmac_key:   '%env(resolve:IZIPAY_HMAC_SHA256_KEY)%'
     finanzas.izipay.public_key: '%env(resolve:IZIPAY_PUBLIC_KEY)%'
 
+    # -------------------------------------------------------------------------
+    # Culqi (api.culqi.com/v2). Es la pasarela OPERATIVA hoy: Izipay exige S/200 000
+    # de venta acumulada para habilitar enlaces de pago, así que su conector se
+    # mantiene entero pero apagado hasta que nos habiliten.
+    # -------------------------------------------------------------------------
+    finanzas.culqi.endpoint:   '%env(resolve:CULQI_ENDPOINT)%'
+    finanzas.culqi.public_key: '%env(resolve:CULQI_PUBLIC_KEY)%'
+    finanzas.culqi.secret_key: '%env(resolve:CULQI_SECRET_KEY)%'
+
+    # Pasarela con la que se emiten los enlaces si el operador no elige otra.
+    #
+    # No apaga la otra: las dos conviven y cada enlace recuerda por cuál se emitió
+    # (`fin_enlace_pago.pasarela`). Si la de aquí no tiene credenciales,
+    # FinPasarelaRegistry cae a la primera que sí las tenga en vez de romper.
+    finanzas.pasarela_por_defecto: '%env(resolve:FINANZAS_PASARELA_POR_DEFECTO)%'
+
     # Recargo que se traslada al cliente al cobrar con tarjeta.
     #
     # ESPEJO de PmsMedioPago::TARJETA_CREDITO->comisionPorcentaje(). Está duplicado a

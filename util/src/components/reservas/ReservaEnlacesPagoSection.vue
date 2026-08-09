@@ -13,7 +13,12 @@
 // ============================================================================
 import { computed, ref, watch } from 'vue';
 import { useEnlacesPagoStore } from '@/stores/finanzas/enlacesPagoStore';
-import { clasesEstadoEnlace, type FinEnlacePago, type FinOrigenCobro } from '@/types/finEnlacePagoModel';
+import {
+    clasesEstadoEnlace,
+    type FinEnlacePago,
+    type FinOrigenCobro,
+    type FinPasarela,
+} from '@/types/finEnlacePagoModel';
 
 const props = defineProps<{
     origenTipo: FinOrigenCobro;
@@ -40,7 +45,12 @@ const form = ref({
     monto: '',
     conRecargo: true,
     vigenciaDias: 7,
+    /** Vacío = la que decida el backend. Solo se elige si hay más de una configurada. */
+    pasarela: '' as FinPasarela | '',
 });
+
+/** Con una sola pasarela no hay nada que elegir: el selector estorbaría. */
+const eligePasarela = computed(() => store.pasarelas.length > 1);
 
 const hayPendiente = computed(() => store.enlaces.some((e) => e.vigente));
 
@@ -63,8 +73,16 @@ function abrirForm(): void {
     error.value = null;
     // Se prellena con el saldo COMPLETO: cobrar todo lo pendiente es el caso normal;
     // los adelantos se teclean.
-    form.value = { monto: props.saldo > 0 ? props.saldo.toFixed(2) : '', conRecargo: true, vigenciaDias: 7 };
+    form.value = {
+        monto: props.saldo > 0 ? props.saldo.toFixed(2) : '',
+        conRecargo: true,
+        vigenciaDias: 7,
+        pasarela: '',
+    };
     formAbierto.value = true;
+    // Al abrir y no al montar: la mayoría de veces el panel se despliega para mirar, no
+    // para cobrar, y esto es una petición que casi siempre sobraría.
+    void store.fetchPasarelas();
 }
 
 async function crear(): Promise<void> {
@@ -77,6 +95,7 @@ async function crear(): Promise<void> {
             monto: form.value.monto || undefined,
             conRecargo: form.value.conRecargo,
             vigenciaDias: form.value.vigenciaDias,
+            pasarela: form.value.pasarela || undefined,
         });
         formAbierto.value = false;
         emit('actualizado');
@@ -163,6 +182,19 @@ function fechaCorta(iso: string | null): string {
                     </label>
                 </div>
 
+                <!-- Solo con más de una pasarela configurada. Ver §11 del doc: conviven, no
+                     se sustituyen, así que el operador puede necesitar forzar una. -->
+                <label v-if="eligePasarela" class="block">
+                    <span class="text-[10px] font-black text-slate-500 uppercase">Pasarela</span>
+                    <select v-model="form.pasarela"
+                        class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white">
+                        <option value="">Automática</option>
+                        <option v-for="p in store.pasarelas" :key="p.value" :value="p.value">
+                            {{ p.label }}{{ p.porDefecto ? ' (por defecto)' : '' }}
+                        </option>
+                    </select>
+                </label>
+
                 <label class="flex items-start gap-2 cursor-pointer">
                     <input v-model="form.conRecargo" type="checkbox" class="mt-0.5" />
                     <span class="text-[11px] text-slate-600 leading-snug">
@@ -188,7 +220,12 @@ function fechaCorta(iso: string | null): string {
                 <li v-for="enlace in store.enlaces" :key="enlace.id"
                     class="p-2.5 rounded-lg border" :class="clasesEstadoEnlace(enlace.estado)">
                     <div class="flex items-center justify-between gap-2">
-                        <span class="text-[10px] font-black uppercase tracking-wide">{{ enlace.estadoEtiqueta }}</span>
+                        <span class="text-[10px] font-black uppercase tracking-wide">
+                            {{ enlace.estadoEtiqueta }}
+                            <!-- Por dónde entró: con dos conectores en paralelo es la primera
+                                 pregunta al conciliar contra el extracto de la pasarela. -->
+                            <span class="ml-1 font-bold opacity-60">· {{ enlace.pasarelaEtiqueta }}</span>
+                        </span>
                         <span class="text-sm font-black">
                             {{ enlace.monedaSimbolo }} {{ enlace.montoTotal }}
                         </span>

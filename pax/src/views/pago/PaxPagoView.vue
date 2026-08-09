@@ -4,27 +4,35 @@
  *
  * Página de cobro que abre el cliente: `.pe/pago/{token}`.
  *
- * ## Por qué la página es nuestra y no un link de Izipay
+ * ## Por qué la página es nuestra y no un link de la pasarela
  *
  * Emitiendo la URL nosotros controlamos importe, vigencia, reintentos y el estado que ve el
- * operador en `util`. El formulario de tarjeta sí es de Izipay (va incrustado): los datos
- * de la tarjeta NUNCA pasan por este código ni por nuestro servidor, que es lo que mantiene
- * el alcance de PCI donde tiene que estar.
+ * operador en `util`. Y sobre todo: **el enlace no depende de la pasarela**. Cuando Izipay
+ * resultó inaccesible (exige S/200 000 de venta para habilitar sus links) bastó con añadir
+ * Culqi por debajo — los enlaces ya enviados habrían seguido funcionando. Ver §11 del doc.
  *
- * ## La confirmación NO se decide aquí
+ * El formulario de tarjeta sí es de la pasarela y va incrustado: los datos de la tarjeta
+ * NUNCA pasan por este código ni por nuestro servidor.
  *
- * Al terminar el pago, la librería nos avisa en el navegador. Ese aviso sólo cambia lo que
- * se pinta. Quien marca el cobro como bueno es el webhook firmado que Izipay manda a
- * nuestro servidor (`IzipayWebhookController`). Por eso, tras pagar, esta vista **pregunta
- * al backend** hasta ver `estado === 'pagado'` en vez de creerse al navegador: si alguien
- * manipula el JS, lo peor que consigue es ver una pantalla verde falsa en su propio equipo.
+ * ## Esta vista sólo orquesta
+ *
+ * Cada pasarela tiene su componente porque son dos librerías JS que no se parecen en nada.
+ * Aquí queda lo común: cargar el enlace, pintar el importe y decidir qué pantalla toca.
+ *
+ * ## La confirmación NO la decide el navegador
+ *
+ * - **Culqi** confirma de verdad: el cobro lo cierra nuestro backend y `pagado` es fiable.
+ * - **Izipay** avisa al navegador, pero quien manda es el IPN firmado. Por eso ese caso
+ *   emite `procesando` y aquí se **sondea al backend** hasta verlo pagado.
  *
  * Espejo del backend: `App\Finanzas\Controller\Publico\FinPagoPublicoController`.
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { apiClient } from '@/services/apiClient';
-import type { PaxEnlacePago, PaxFormToken } from '@/types/paxPagoModel';
+import PagoIzipayForm from '@/views/pago/PagoIzipayForm.vue';
+import PagoCulqiForm from '@/views/pago/PagoCulqiForm.vue';
+import type { PaxEnlacePago } from '@/types/paxPagoModel';
 
 const route = useRoute();
 const token = computed(() => String(route.params.token || '').trim());
@@ -33,11 +41,10 @@ const enlace = ref<PaxEnlacePago | null>(null);
 const cargando = ref(true);
 const error = ref<string | null>(null);
 
-/** Pantalla de "gracias": se enciende al volver la librería y se confirma al consultar. */
-const pagando = ref(false);
+/** Pagó pero falta la confirmación del servidor (sólo Izipay). */
+const esperandoConfirmacion = ref(false);
 const confirmado = ref(false);
 
-/** Handle del sondeo, para no dejarlo vivo si el cliente cierra la vista. */
 let sondeoId: number | null = null;
 
 const importe = computed(() => {
@@ -46,9 +53,7 @@ const importe = computed(() => {
 });
 
 const hayRecargo = computed(() => Number(enlace.value?.montoRecargo ?? 0) > 0.005);
-
 const yaPagado = computed(() => enlace.value?.estado === 'pagado' || confirmado.value);
-
 const noDisponible = computed(
     () => !!enlace.value && !enlace.value.vigente && enlace.value.estado !== 'pagado',
 );
@@ -61,99 +66,32 @@ const mensajeNoDisponible = computed(() => {
     }
 });
 
-/**
- * Carga el `<script>` y el CSS de la pasarela una sola vez.
- *
- * La clave pública va como atributo `kr-public-key` del propio `<script>`: la librería la
- * lee al inicializarse y no admite pasarla después. Por eso no se puede precargar el script
- * en `index.html` — hasta no consultar el enlace no sabemos con qué tienda se cobra.
- */
-const cargarLibreria = (staticUrl: string, publicKey: string): Promise<void> => {
-    if (window.KR) return Promise.resolve();
-
-    return new Promise((resolve, reject) => {
-        const css = document.createElement('link');
-        css.rel = 'stylesheet';
-        css.href = `${staticUrl}/static/js/krypton-client/V4.0/ext/neon-reset.min.css`;
-        document.head.appendChild(css);
-
-        const temaJs = document.createElement('script');
-        temaJs.src = `${staticUrl}/static/js/krypton-client/V4.0/ext/neon.js`;
-
-        const script = document.createElement('script');
-        script.src = `${staticUrl}/static/js/krypton-client/V4.0/stable/kr-payment-form.min.js`;
-        script.setAttribute('kr-public-key', publicKey);
-        script.setAttribute('kr-post-url-success', '');
-        script.onload = () => {
-            // El tema se añade después del cliente: al revés no encuentra la librería.
-            document.head.appendChild(temaJs);
-            resolve();
-        };
-        script.onerror = () => reject(new Error('No se pudo cargar el formulario de pago.'));
-
-        document.head.appendChild(script);
-    });
-};
-
-/** Pide un formToken nuevo y monta el formulario. Uno por carga: el token es de un solo uso. */
-const montarFormulario = async (): Promise<void> => {
-    const { data } = await apiClient.post<PaxFormToken>(`/finanzas/pago/${token.value}/form-token`, {});
-
-    const KR = window.KR;
-    if (!KR) throw new Error('El formulario de pago no está disponible.');
-
-    await KR.setFormConfig({
-        formToken: data.formToken,
-        'kr-language': 'es-ES',
-    });
-
-    KR.onSubmit((respuesta) => {
-        // No se da nada por cobrado con esto: sólo enciende la espera y arranca el sondeo
-        // contra nuestro backend, que es quien escucha el webhook firmado.
-        pagando.value = true;
-        if (respuesta.clientAnswer.orderStatus === 'PAID') {
-            sondearConfirmacion();
-        }
-
-        // `false` corta la redirección automática de la librería.
-        return false;
-    });
-
-    KR.onError((err) => {
-        error.value = err.errorMessage || 'El pago no se pudo completar. Inténtalo de nuevo.';
-        pagando.value = false;
-    });
-
-    const { result } = await KR.attachForm('#izipay-formulario');
-    await KR.showForm(result.formId);
+const consultar = async (): Promise<PaxEnlacePago> => {
+    const { data } = await apiClient.get<PaxEnlacePago>(`/finanzas/pago/${token.value}`);
+    enlace.value = data;
+    return data;
 };
 
 /**
- * Pregunta al backend hasta que el webhook haya llegado.
+ * Sondea hasta que el IPN haya llegado (Izipay).
  *
- * El IPN es servidor-a-servidor y suele tardar un par de segundos más que el navegador. Se
- * sondea 20 veces cada 2 s (~40 s) y luego se para: si a los 40 s no ha entrado, el pago no
- * se ha perdido —el webhook seguirá llegando— pero al cliente no se le deja girando, se le
- * dice que revisaremos y quede tranquilo.
+ * 20 intentos cada 2 s (~40 s) y para. Si tarda más, el pago no se ha perdido —el IPN
+ * seguirá llegando— pero al cliente no se le deja girando: se le dice que lo revisamos.
  */
 const sondearConfirmacion = (): void => {
     let intentos = 0;
 
     sondeoId = window.setInterval(async () => {
         intentos += 1;
-
         try {
-            const { data } = await apiClient.get<PaxEnlacePago>(`/finanzas/pago/${token.value}`);
-            enlace.value = data;
-
+            const data = await consultar();
             if (data.estado === 'pagado') {
                 confirmado.value = true;
                 detenerSondeo();
             }
         } catch {
-            // Un fallo de red puntual no aborta el sondeo: el siguiente tick reintenta.
+            // Fallo de red puntual: el siguiente tick reintenta.
         }
-
         if (intentos >= 20) detenerSondeo();
     }, 2000);
 };
@@ -165,7 +103,28 @@ const detenerSondeo = (): void => {
     }
 };
 
-const cargar = async (): Promise<void> => {
+/** Culqi: el backend ya confirmó. Se recarga una vez para pintar los datos del cobro. */
+const alPagar = async (): Promise<void> => {
+    confirmado.value = true;
+    try {
+        await consultar();
+    } catch {
+        // Da igual: `confirmado` ya manda y la pantalla de éxito está pintada.
+    }
+};
+
+/** Izipay: el navegador dice que pagó, pero eso no es prueba. A sondear. */
+const alProcesar = (): void => {
+    esperandoConfirmacion.value = true;
+    sondearConfirmacion();
+};
+
+const alError = (mensaje: string): void => {
+    error.value = mensaje;
+    esperandoConfirmacion.value = false;
+};
+
+onMounted(async () => {
     if (!token.value) {
         error.value = 'Enlace de pago incompleto.';
         cargando.value = false;
@@ -173,13 +132,7 @@ const cargar = async (): Promise<void> => {
     }
 
     try {
-        const { data } = await apiClient.get<PaxEnlacePago>(`/finanzas/pago/${token.value}`);
-        enlace.value = data;
-
-        if (data.vigente) {
-            await cargarLibreria(data.staticUrl, data.publicKey);
-            await montarFormulario();
-        }
+        await consultar();
     } catch (err) {
         const status = (err as { response?: { status?: number } })?.response?.status;
         error.value = status === 404
@@ -188,16 +141,9 @@ const cargar = async (): Promise<void> => {
     } finally {
         cargando.value = false;
     }
-};
-
-onMounted(cargar);
-
-onBeforeUnmount(() => {
-    detenerSondeo();
-    // Sin `removeForms` la librería deja el formulario colgado y al volver a entrar
-    // aparece duplicado.
-    void window.KR?.removeForms();
 });
+
+onBeforeUnmount(detenerSondeo);
 </script>
 
 <template>
@@ -220,8 +166,8 @@ onBeforeUnmount(() => {
                     </p>
                 </div>
 
-                <!-- Pagó, pero la confirmación del servidor aún no ha entrado -->
-                <div v-else-if="pagando" class="bg-white rounded-2xl shadow-sm p-8 text-center">
+                <!-- Izipay: pagó, pero el IPN aún no ha entrado -->
+                <div v-else-if="esperandoConfirmacion" class="bg-white rounded-2xl shadow-sm p-8 text-center">
                     <h1 class="text-lg font-black text-slate-800">Confirmando tu pago…</h1>
                     <p class="mt-2 text-sm text-slate-500">
                         Tu banco ya autorizó la operación. En cuanto nos llegue la confirmación
@@ -234,12 +180,7 @@ onBeforeUnmount(() => {
                     <p class="mt-2 text-sm text-slate-500">{{ mensajeNoDisponible }}</p>
                 </div>
 
-                <div v-else-if="error" class="bg-white rounded-2xl shadow-sm p-8 text-center">
-                    <h1 class="text-lg font-black text-slate-800">No pudimos abrir el pago</h1>
-                    <p class="mt-2 text-sm text-slate-500">{{ error }}</p>
-                </div>
-
-                <!-- Formulario incrustado de la pasarela -->
+                <!-- Importe + formulario de la pasarela que toque -->
                 <div v-else class="space-y-4">
                     <div class="bg-white rounded-2xl shadow-sm p-6">
                         <p class="text-[11px] font-black uppercase tracking-wide text-slate-400">A pagar</p>
@@ -258,12 +199,27 @@ onBeforeUnmount(() => {
                         </dl>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
-                        <div id="izipay-formulario" class="kr-embedded" kr-form-expiry></div>
-                    </div>
+                    <p v-if="error" class="px-4 py-3 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold">
+                        {{ error }}
+                    </p>
+
+                    <PagoCulqiForm
+                        v-if="enlace?.pasarela === 'culqi'"
+                        :token="token"
+                        :moneda-simbolo="enlace?.monedaSimbolo"
+                        :monto-total="enlace?.montoTotal ?? ''"
+                        @pagado="alPagar"
+                        @error="alError" />
+
+                    <PagoIzipayForm
+                        v-else-if="enlace?.pasarela === 'izipay'"
+                        :token="token"
+                        @procesando="alProcesar"
+                        @error="alError" />
 
                     <p class="text-center text-[11px] text-slate-400">
-                        Pago procesado por Izipay. Tus datos de tarjeta no pasan por nuestros servidores.
+                        Pago procesado por una pasarela certificada. Tus datos de tarjeta no
+                        pasan por nuestros servidores.
                     </p>
                 </div>
             </template>

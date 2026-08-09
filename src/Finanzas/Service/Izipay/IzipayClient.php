@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Finanzas\Service\Izipay;
 
+use App\Finanzas\Contract\FinPasarelaClientInterface;
 use App\Finanzas\Entity\FinEnlacePago;
+use App\Finanzas\Enum\FinPasarela;
 use JsonException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -38,7 +40,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *
  * @see https://developers.izipay.pe/api/
  */
-final class IzipayClient
+final class IzipayClient implements FinPasarelaClientInterface
 {
     /**
      * Endpoint de creación de transacción. Devuelve el `formToken` que consume la librería
@@ -59,7 +61,16 @@ final class IzipayClient
         private readonly string $hmacKey,
         #[Autowire('%finanzas.izipay.public_key%')]
         private readonly string $publicKey,
+        // Host de los assets de la librería JS. Va aquí y no en el controlador para que
+        // `configuracionPago()` devuelva TODO lo que el navegador necesita de una vez.
+        #[Autowire('%finanzas.izipay.static_url%')]
+        private readonly string $staticUrl,
     ) {}
+
+    public function pasarela(): FinPasarela
+    {
+        return FinPasarela::IZIPAY;
+    }
 
     /** Clave pública para el navegador. La página de pago la sirve en el JSON del enlace. */
     public function clavePublica(): string
@@ -70,6 +81,19 @@ final class IzipayClient
     public function estaConfigurado(): bool
     {
         return $this->username !== '' && $this->password !== '';
+    }
+
+    /**
+     * Config para el navegador. Ojo: **abre un intento de cobro**, porque el formToken de
+     * Lyra es de un solo uso y caduca en minutos. No se cachea.
+     */
+    public function configuracionPago(FinEnlacePago $enlace): array
+    {
+        return [
+            'formToken' => $this->crearFormToken($enlace),
+            'publicKey' => $this->publicKey,
+            'staticUrl' => $this->staticUrl,
+        ];
     }
 
     /**

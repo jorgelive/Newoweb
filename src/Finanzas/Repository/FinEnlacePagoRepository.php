@@ -55,6 +55,56 @@ class FinEnlacePagoRepository extends ServiceEntityRepository
     }
 
     /**
+     * Búsqueda de la vista global de cobros (pestaña "Cobros" del módulo Finanzas).
+     *
+     * Filtra por la fecha de CREACIÓN y no por la de pago: la pregunta que se hace desde
+     * esta pantalla es "qué cobros emití esta semana y en qué han quedado", y filtrando
+     * por fecha de pago desaparecerían justo los que interesan — los que nadie pagó.
+     *
+     * El texto busca en el localizador del documento, el `orderId` de la pasarela y el
+     * concepto: los tres datos con los que alguien llega preguntando por un cobro.
+     *
+     * @param string[] $estados Vacío = todos.
+     * @return FinEnlacePago[]
+     */
+    public function buscar(
+        array $estados = [],
+        ?\DateTimeImmutable $desde = null,
+        ?\DateTimeImmutable $hasta = null,
+        ?string $texto = null,
+        int $limite = 500,
+    ): array {
+        $qb = $this->createQueryBuilder('e')
+            ->leftJoin('e.moneda', 'm')->addSelect('m')
+            ->orderBy('e.createdAt', 'DESC')
+            ->addOrderBy('e.id', 'DESC')
+            ->setMaxResults($limite);
+
+        if ($estados !== []) {
+            $qb->andWhere('e.estado IN (:estados)')->setParameter('estados', $estados);
+        }
+
+        if ($desde !== null) {
+            $qb->andWhere('e.createdAt >= :desde')->setParameter('desde', $desde);
+        }
+
+        if ($hasta !== null) {
+            $qb->andWhere('e.createdAt <= :hasta')->setParameter('hasta', $hasta);
+        }
+
+        if ($texto !== null && trim($texto) !== '') {
+            $qb->andWhere($qb->expr()->orX(
+                'e.origenReferencia LIKE :texto',
+                'e.ordenId LIKE :texto',
+                'e.concepto LIKE :texto',
+                'e.clienteNombre LIKE :texto',
+            ))->setParameter('texto', '%' . trim($texto) . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
      * Enlaces caducados que siguen figurando como pendientes.
      *
      * La expiración no la aplica ningún cron: `FinEnlacePago::estaVigente()` ya cierra la

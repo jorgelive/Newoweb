@@ -1,9 +1,12 @@
 /**
  * src/types/paxPagoModel.ts
  *
- * Espejo TS de lo que sirve `App\Finanzas\Controller\Publico\FinPagoPublicoController`.
+ * Espejo TS de `App\Finanzas\Controller\Publico\FinPagoPublicoController`.
  * Si cambias un campo allí, cámbialo aquí: no hay generación automática.
  */
+
+/** Valores de `App\Finanzas\Enum\FinPasarela`. Conviven; no se migra de una a otra. */
+export type PaxPasarela = 'izipay' | 'culqi';
 
 /** Respuesta de `GET /finanzas/pago/{token}`. */
 export interface PaxEnlacePago {
@@ -23,14 +26,47 @@ export interface PaxEnlacePago {
     vigente: boolean;
     expiraEn: string | null;
     pagadoEn: string | null;
-    /** Clave pública de Izipay: es pública por diseño, va al navegador. */
+    /** Con qué librería se monta el formulario. La vista hace un switch por esto. */
+    pasarela: PaxPasarela;
+}
+
+/**
+ * Config de Izipay (plataforma Lyra).
+ *
+ * `formToken` es de UN SOLO USO y caduca en minutos: se pide en cada carga y no se cachea.
+ */
+export interface PaxConfigIzipay {
+    formToken: string;
     publicKey: string;
-    /** Host de los assets de la pasarela (`https://static.micuentaweb.pe`). */
+    /** Host de los assets (`https://static.micuentaweb.pe`). */
     staticUrl: string;
 }
 
-/** Respuesta de `POST /finanzas/pago/{token}/form-token`. */
-export interface PaxFormToken {
-    formToken: string;
+/**
+ * Config de Culqi.
+ *
+ * A diferencia de Izipay, no abre nada en la pasarela: son datos estáticos más el importe,
+ * así que recargar la página no consume nada.
+ */
+export interface PaxConfigCulqi {
     publicKey: string;
+    /** URL de la librería del Checkout v4. */
+    checkoutJs: string;
+    /** Céntimos, entero. Culqi cobra en la unidad mínima igual que Lyra. */
+    amount: number;
+    currency: string;
+    order: string | null;
+    descripcion: string;
+    email: string | null;
+}
+
+/** Respuesta de `POST /finanzas/pago/{token}/configuracion`. */
+export type PaxConfigPago =
+    | { pasarela: 'izipay'; config: PaxConfigIzipay }
+    | { pasarela: 'culqi'; config: PaxConfigCulqi };
+
+/** Respuesta de `POST /finanzas/pago/{token}/culqi/cobrar`. */
+export interface PaxCulqiCobroRespuesta {
+    ok: boolean;
+    estado: string;
 }

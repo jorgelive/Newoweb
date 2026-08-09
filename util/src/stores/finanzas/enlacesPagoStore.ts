@@ -13,7 +13,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
-import type { FinEnlacePago, FinEnlacePagoCreate, FinOrigenCobro } from '@/types/finEnlacePagoModel';
+import type {
+    FinEnlacePago,
+    FinEnlacePagoCreate,
+    FinOrigenCobro,
+    FinPasarelaOpcion,
+} from '@/types/finEnlacePagoModel';
 
 export const useEnlacesPagoStore = defineStore('enlacesPagoStore', () => {
     const isLoading = ref<boolean>(false);
@@ -21,6 +26,20 @@ export const useEnlacesPagoStore = defineStore('enlacesPagoStore', () => {
 
     /** Enlaces del documento abierto, del más nuevo al más viejo (los ordena el backend). */
     const enlaces = ref<FinEnlacePago[]>([]);
+
+    /**
+     * Pasarelas CON credenciales. Se cargan una vez por sesión: no cambian sin un deploy.
+     *
+     * Sólo llegan las configuradas, así que si el array trae una sola opción no hay nada
+     * que elegir y el formulario ni pinta el selector.
+     */
+    const pasarelas = ref<FinPasarelaOpcion[]>([]);
+
+    const fetchPasarelas = async (): Promise<void> => {
+        if (pasarelas.value.length) return;
+        const { data } = await apiClient.get<FinPasarelaOpcion[]>('/finanzas/enlaces-pago/pasarelas');
+        pasarelas.value = data ?? [];
+    };
 
     const fetchPorOrigen = async (origenTipo: FinOrigenCobro, origenId: string): Promise<void> => {
         isLoading.value = true;
@@ -65,5 +84,5 @@ export const useEnlacesPagoStore = defineStore('enlacesPagoStore', () => {
         enlaces.value = [];
     };
 
-    return { isLoading, isSaving, enlaces, fetchPorOrigen, crear, anular, clear };
+    return { isLoading, isSaving, enlaces, pasarelas, fetchPasarelas, fetchPorOrigen, crear, anular, clear };
 });

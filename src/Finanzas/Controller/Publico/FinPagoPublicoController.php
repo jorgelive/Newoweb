@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace App\Finanzas\Controller\Publico;
 
 use App\Finanzas\Entity\FinEnlacePago;
+use App\Finanzas\Enum\FinPasarela;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
-use App\Finanzas\Service\Izipay\IzipayClient;
+use App\Finanzas\Service\Culqi\CulqiClient;
+use App\Finanzas\Service\FinEnlacePagoService;
+use App\Finanzas\Service\FinPasarelaRegistry;
+use DomainException;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -26,15 +31,19 @@ use Symfony\Component\Routing\Attribute\Route;
  *    se la hayan reenviado.
  * 3. **Un enlace no vigente responde 410**, no 404: el cliente que llega tarde merece un
  *    "este enlace caducó" y no un error genérico.
+ *
+ * La misma página sirve las dos pasarelas: `ver()` dice cuál toca y `configuracionPago()`
+ * de cada cliente devuelve lo que su librería JS necesita.
  */
 #[Route('/finanzas/pago', name: 'finanzas_pago_publico_')]
 final class FinPagoPublicoController extends AbstractController
 {
     public function __construct(
         private readonly FinEnlacePagoRepository $repository,
-        private readonly IzipayClient $izipay,
-        #[Autowire('%finanzas.izipay.static_url%')]
-        private readonly string $staticUrl,
+        private readonly FinPasarelaRegistry $pasarelas,
+        private readonly CulqiClient $culqi,
+        private readonly FinEnlacePagoService $servicio,
+        private readonly LoggerInterface $logger,
     ) {}
 
     /** Datos para pintar la página antes de montar el formulario de la pasarela. */
@@ -60,21 +69,20 @@ final class FinPagoPublicoController extends AbstractController
             'vigente' => $enlace->estaVigente(),
             'expiraEn' => $enlace->getExpiraEn()?->format(DATE_ATOM),
             'pagadoEn' => $enlace->getPagadoEn()?->format(DATE_ATOM),
-            // La clave pública y el host estático son públicos por diseño: la librería JS
-            // los necesita en el navegador. La que nunca sale del servidor es `password`.
-            'publicKey' => $this->izipay->clavePublica(),
-            'staticUrl' => $this->staticUrl,
+            // Con qué librería se monta el formulario. La SPA hace un switch por esto.
+            'pasarela' => $enlace->getPasarela()->value,
         ]);
     }
 
     /**
-     * Abre un intento de cobro y devuelve el `formToken`.
+     * Abre el intento de cobro y devuelve lo que necesita el navegador.
      *
-     * Se pide en cada carga de la página y no se cachea: el formToken es de un solo uso y
-     * caduca en minutos (ver `IzipayClient::crearFormToken()`).
+     * Es POST y no GET porque en Izipay **tiene efecto**: pide un formToken de un solo uso
+     * que caduca en minutos. En Culqi es inocuo, pero se mantiene el mismo verbo para que
+     * la página no tenga que saber cuál es cuál.
      */
-    #[Route('/{token}/form-token', name: 'form_token', methods: ['POST'])]
-    public function formToken(string $token): JsonResponse
+    #[Route('/{token}/configuracion', name: 'configuracion', methods: ['POST'])]
+    public function configuracion(string $token): JsonResponse
     {
         $enlace = $this->repository->porToken($token);
 
@@ -83,18 +91,75 @@ final class FinPagoPublicoController extends AbstractController
         }
 
         if (!$enlace->estaVigente()) {
-            return $this->json([
-                'error' => 'no_vigente',
-                'estado' => $enlace->getEstado()->value,
-            ], 410);
+            return $this->json(['error' => 'no_vigente', 'estado' => $enlace->getEstado()->value], 410);
         }
 
         try {
-            $formToken = $this->izipay->crearFormToken($enlace);
-        } catch (RuntimeException $e) {
+            $config = $this->pasarelas->para($enlace->getPasarela())->configuracionPago($enlace);
+        } catch (DomainException | RuntimeException $e) {
             return $this->json(['error' => 'pasarela', 'mensaje' => $e->getMessage()], 502);
         }
 
-        return $this->json(['formToken' => $formToken, 'publicKey' => $this->izipay->clavePublica()]);
+        return $this->json(['pasarela' => $enlace->getPasarela()->value, 'config' => $config]);
+    }
+
+    /**
+     * CULQI — cierra el cobro con el token que devolvió el Checkout del navegador.
+     *
+     * Este endpoint es el camino principal de confirmación de Culqi, y es seguro pese a ser
+     * público: el `tokenTarjeta` no autoriza nada por sí solo, el cargo lo crea **nuestro
+     * servidor** con la clave secreta, y el importe sale del ENLACE —no del navegador—, así
+     * que nadie puede pagar menos de lo que debe manipulando el JS.
+     *
+     * Si el cargo sale bien se confirma aquí mismo, sin esperar al webhook. El webhook queda
+     * como red de seguridad para el caso de que el cliente pierda la conexión justo aquí, y
+     * no duplica nada porque `confirmarPago()` es idempotente.
+     */
+    #[Route('/{token}/culqi/cobrar', name: 'culqi_cobrar', methods: ['POST'])]
+    public function culqiCobrar(string $token, Request $request): JsonResponse
+    {
+        $enlace = $this->repository->porToken($token);
+
+        if (!$enlace instanceof FinEnlacePago) {
+            return $this->json(['error' => 'no_encontrado'], 404);
+        }
+
+        if ($enlace->getPasarela() !== FinPasarela::CULQI) {
+            return $this->json(['error' => 'pasarela_incorrecta'], 409);
+        }
+
+        if (!$enlace->estaVigente()) {
+            return $this->json(['error' => 'no_vigente', 'estado' => $enlace->getEstado()->value], 410);
+        }
+
+        /** @var array<string, mixed> $datos */
+        $datos = json_decode((string) $request->getContent(), true) ?: [];
+        $tokenTarjeta = $datos['token'] ?? null;
+
+        if (!is_string($tokenTarjeta) || $tokenTarjeta === '') {
+            return $this->json(['error' => 'token_requerido'], 400);
+        }
+
+        try {
+            $cargo = $this->culqi->cobrarConToken($enlace, $tokenTarjeta);
+        } catch (RuntimeException $e) {
+            // Rechazo del banco: NO es un error nuestro. Se registra el intento y el cliente
+            // puede reintentar con otra tarjeta en el mismo enlace (FALLIDO no es final).
+            $this->servicio->registrarFallo($enlace, ['error' => $e->getMessage()]);
+
+            return $this->json(['error' => 'rechazado', 'mensaje' => $e->getMessage()], 402);
+        }
+
+        if (!$this->culqi->cargoPagaElEnlace($cargo, $enlace)) {
+            $this->logger->error('[culqi] cargo creado que no cuadra con el enlace', [
+                'enlace' => (string) $enlace->getId(),
+            ]);
+
+            return $this->json(['error' => 'cargo_no_valido'], 422);
+        }
+
+        $this->servicio->confirmarPago($enlace, $this->culqi->comoRespuestaNormalizada($cargo));
+
+        return $this->json(['ok' => true, 'estado' => $enlace->getEstado()->value]);
     }
 }

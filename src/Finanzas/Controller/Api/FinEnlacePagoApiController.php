@@ -6,7 +6,10 @@ namespace App\Finanzas\Controller\Api;
 
 use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Enum\FinOrigenCobro;
+use App\Finanzas\Enum\FinPasarela;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
+use App\Finanzas\Service\FinPasarelaRegistry;
+use App\Finanzas\Service\FinEnlacePagoSerializer;
 use App\Finanzas\Service\FinEnlacePagoService;
 use App\Finanzas\Service\FinOrigenCobroRegistry;
 use App\Security\Roles;
@@ -38,6 +41,8 @@ final class FinEnlacePagoApiController extends AbstractController
         private readonly FinEnlacePagoService $servicio,
         private readonly FinEnlacePagoRepository $repository,
         private readonly FinOrigenCobroRegistry $registry,
+        private readonly FinEnlacePagoSerializer $serializador,
+        private readonly FinPasarelaRegistry $pasarelas,
     ) {}
 
     /**
@@ -95,6 +100,9 @@ final class FinEnlacePagoApiController extends AbstractController
                 vigenciaDias: isset($datos['vigenciaDias']) ? (int) $datos['vigenciaDias'] : null,
                 concepto: isset($datos['concepto']) ? (string) $datos['concepto'] : null,
                 creadoPor: $this->getUser() instanceof \App\Entity\User ? $this->getUser() : null,
+                // Null = la del registry. El operador sólo elige si hay más de una con
+                // credenciales; el selector de la SPA se puebla desde `/pasarelas`.
+                pasarela: isset($datos['pasarela']) ? FinPasarela::tryFrom((string) $datos['pasarela']) : null,
             );
         } catch (DomainException $e) {
             return $this->json(['error' => $e->getMessage()], 422);
@@ -131,37 +139,22 @@ final class FinEnlacePagoApiController extends AbstractController
     }
 
     /**
-     * Forma del enlace para la SPA.
+     * Pasarelas CON credenciales, para el selector del formulario.
      *
-     * A mano y no con el serializer de Symfony porque la URL pública no es un campo de la
-     * entidad —se compone con el host de `pax`— y es justo el dato que va a copiar el
-     * operador. Espejo en TS: `util/src/types/finEnlacePagoModel.ts`.
-     *
-     * @return array<string, mixed>
+     * Sólo las configuradas: ofrecer una pasarela a medio configurar es prometer un cobro
+     * que va a fallar al pulsar el botón. Si sólo hay una, la SPA ni pinta el selector.
      */
+    #[Route('/pasarelas', name: 'pasarelas', methods: ['GET'])]
+    #[IsGranted(Roles::RESERVAS_SHOW)]
+    public function pasarelas(): JsonResponse
+    {
+        return $this->json($this->pasarelas->opcionesDisponibles());
+    }
+
+    /** @return array<string, mixed> */
     private function serializar(FinEnlacePago $enlace): array
     {
-        return [
-            'id' => (string) $enlace->getId(),
-            'url' => $this->servicio->urlPublica($enlace),
-            'estado' => $enlace->getEstado()->value,
-            'estadoEtiqueta' => $enlace->getEstado()->etiqueta(),
-            'vigente' => $enlace->estaVigente(),
-            'moneda' => $enlace->getMonedaCodigo(),
-            'monedaSimbolo' => $enlace->getMonedaSimbolo(),
-            'montoNeto' => $enlace->getMontoNeto(),
-            'montoRecargo' => $enlace->getMontoRecargo(),
-            'montoTotal' => $enlace->getMontoTotal(),
-            'recargoPorcentaje' => $enlace->getRecargoPorcentaje(),
-            'concepto' => $enlace->getConcepto(),
-            'ordenId' => $enlace->getOrdenId(),
-            'expiraEn' => $enlace->getExpiraEn()?->format(DATE_ATOM),
-            'pagadoEn' => $enlace->getPagadoEn()?->format(DATE_ATOM),
-            'medioDetalle' => $enlace->getMedioDetalle(),
-            'autorizacionCodigo' => $enlace->getAutorizacionCodigo(),
-            'creadoPorNombre' => $enlace->getCreadoPorNombre(),
-            'createdAt' => $enlace->getCreatedAt()?->format(DATE_ATOM),
-        ];
+        return $this->serializador->aArray($enlace);
     }
 
     private function tipoDesde(mixed $valor): ?FinOrigenCobro

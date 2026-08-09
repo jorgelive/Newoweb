@@ -17,10 +17,30 @@ export type FinEnlacePagoEstado = 'pendiente' | 'pagado' | 'fallido' | 'expirado
 /** Orígenes de `App\Finanzas\Enum\FinOrigenCobro`. */
 export type FinOrigenCobro = 'pms_reserva' | 'tour_reserva';
 
+/**
+ * Pasarelas de `App\Finanzas\Enum\FinPasarela`.
+ *
+ * CONVIVEN, no se sustituyen: Izipay quedó sin habilitar (exigen S/200 000 de venta
+ * acumulada) y Culqi cobra hoy, pero cada enlace recuerda por cuál se emitió. Ver §11 de
+ * docs/FinanzasEnlacesPago.md.
+ */
+export type FinPasarela = 'izipay' | 'culqi';
+
+/** Opción del selector, servida por `GET /finanzas/enlaces-pago/pasarelas`. */
+export interface FinPasarelaOpcion {
+    value: FinPasarela;
+    label: string;
+    /** La que se usa si el operador no elige. Sólo llegan las que tienen credenciales. */
+    porDefecto: boolean;
+}
+
 export interface FinEnlacePago {
     id: string;
     /** URL completa que se le manda al cliente (vive en el host de `pax`). */
     url: string;
+    /** Por qué pasarela se emitió. Congelado en la fila, no se deduce de la config de hoy. */
+    pasarela: FinPasarela;
+    pasarelaEtiqueta: string;
     estado: FinEnlacePagoEstado;
     estadoEtiqueta: string;
     /** ¿Se puede pagar ahora? Un `fallido` sigue siendo vigente: se puede reintentar. */
@@ -44,6 +64,33 @@ export interface FinEnlacePago {
     autorizacionCodigo: string | null;
     creadoPorNombre: string | null;
     createdAt: string | null;
+    /**
+     * De quién es el cobro. Sólo se usa en la vista global: dentro del panel de una
+     * reserva ya se sabe, pero en la lista transversal sin esto no se puede ni etiquetar
+     * la fila ni enlazar a su ficha.
+     */
+    origenTipo: FinOrigenCobro;
+    origenId: string;
+    origenReferencia: string | null;
+    clienteNombre: string | null;
+}
+
+/** Respuesta de `GET /finanzas/caja/cobros`. */
+export interface FinCobrosRespuesta {
+    cobros: FinEnlacePago[];
+    totales: FinTotalCobro[];
+    estados: { value: FinEnlacePagoEstado; label: string }[];
+    /** Se rozó el tope de filas: hay más cobros de los que se ven. Estrecha las fechas. */
+    truncado: boolean;
+}
+
+/** Total por estado y moneda. El backend NO convierte entre monedas: ver §9 del doc. */
+export interface FinTotalCobro {
+    estado: FinEnlacePagoEstado;
+    etiqueta: string;
+    moneda: string;
+    total: string;
+    registros: number;
 }
 
 /** Cuerpo de `POST /finanzas/enlaces-pago`. */
@@ -57,6 +104,8 @@ export interface FinEnlacePagoCreate {
     /** 0 = sin caducidad. Omitido = el defecto del backend (7 días). */
     vigenciaDias?: number;
     concepto?: string;
+    /** Omitido = la del backend. Sólo se manda si el operador eligió otra. */
+    pasarela?: FinPasarela;
 }
 
 /** Clases de color por estado, para no repetir el `match` en cada plantilla. */

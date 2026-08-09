@@ -93,6 +93,23 @@ export const MODULOS_APP: readonly GrupoModulos[] = [
             },
         ],
     },
+    // Grupo propio y no dentro de Alojamiento o Viajes: Finanzas es transversal a los dos
+    // negocios por diseño (ver docs/FinanzasEnlacesPago.md). Meterlo bajo el PMS habría
+    // sugerido justo lo contrario el día que los tours empiecen a cobrar aquí también.
+    {
+        titulo: 'Administración',
+        desc: 'Cobros · Caja',
+        color: 'text-[#2E7D5B]',
+        modulos: [
+            {
+                to: '/finanzas', title: 'Finanzas', icon: 'fa-cash-register',
+                desc: 'Cobros por pasarela y caja transversal: estados, importes y filtros sobre todo el dinero que entra.',
+                iconBg: 'bg-[#2E7D5B]', iconColor: 'text-white',
+                bar: 'bg-[#2E7D5B]', titleHover: 'group-hover:text-[#2E7D5B]',
+                destacado: true,
+            },
+        ],
+    },
 ];
 
 /**
