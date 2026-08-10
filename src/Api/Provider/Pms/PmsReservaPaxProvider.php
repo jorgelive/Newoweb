@@ -10,6 +10,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use Doctrine\ORM\EntityManagerInterface;
@@ -38,6 +39,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
         private readonly EntityManagerInterface $em,
         private readonly TipoCambioDelDia $tipoCambioDelDia,
         private readonly PmsPrepagoCalculador $prepagoCalculador,
+        private readonly PmsPrepagoEnlaceService $prepagoEnlaces,
     ) {
     }
 
@@ -64,9 +66,61 @@ final class PmsReservaPaxProvider implements ProviderInterface
             'simbolo' => $finanzas->getMoneda()?->getSimbolo(),
         ] + $this->referenciaSoles($finanzas);
 
-        $reserva->setResumenFinancieroCliente($base + $this->cifras($finanzas));
+        $cifras = $this->cifras($finanzas);
+
+        // Enlaces por los que puede pagar AHORA. Van con las cifras y no aparte porque su
+        // sitio es la tarjeta de estado de cuenta, junto al saldo que pagan.
+        //
+        // En `soloProgreso` NO se mandan: esa reserva no enseña un solo importe a propósito
+        // (el canal ya cobró), y un botón de «pagar 40.50» ahí es pedirle dinero dos veces
+        // al mismo huésped. `pagables()` devuelve vacío con el flag apagado.
+        if (($cifras['soloProgreso'] ?? false) !== true) {
+            $enlaces = $this->enlacesPagables($reserva);
+
+            if ($enlaces !== []) {
+                $cifras['enlacesPago'] = $enlaces;
+            }
+        }
+
+        $reserva->setResumenFinancieroCliente($base + $cifras);
 
         return $reserva;
+    }
+
+    /**
+     * Enlaces de pago vigentes de esta reserva, en la forma mínima que necesita la app.
+     *
+     * ⚠️ Viaja el **token**, que es la credencial de la página de pago. Es correcto aquí y
+     * no en cualquier sitio: este endpoint ya está acotado al localizador, que es la misma
+     * llave con la que el huésped ve su reserva entera. Quien pueda leer esto podía ya ver
+     * el saldo; lo único que suma el token es poder PAGARLO, que no es un daño.
+     *
+     * No viaja nada del emisor ni del origen: la app arma la URL como `/pago/{token}` sobre
+     * su propio router, igual que hace el enlace que llega por WhatsApp.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function enlacesPagables(PmsReserva $reserva): array
+    {
+        $filas = [];
+
+        foreach ($this->prepagoEnlaces->pagables($reserva) as $enlace) {
+            $filas[] = [
+                'token' => $enlace->getToken(),
+                'concepto' => $enlace->getConcepto(),
+                // El NETO es lo que abona la reserva; el TOTAL es lo que se le pasa a la
+                // tarjeta. Van los dos porque el huésped tiene que poder cuadrar su extracto
+                // con su saldo, y no coinciden (§6).
+                'montoNeto' => $enlace->getMontoNeto(),
+                'montoTotal' => $enlace->getMontoTotal(),
+                'recargoPorcentaje' => $enlace->getRecargoPorcentaje(),
+                'moneda' => $enlace->getMonedaCodigo(),
+                'simbolo' => $enlace->getMonedaSimbolo(),
+                'expiraEn' => $enlace->getExpiraEn()?->format(DATE_ATOM),
+            ];
+        }
+
+        return $filas;
     }
 
     /**

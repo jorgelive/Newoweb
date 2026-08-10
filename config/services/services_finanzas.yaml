@@ -36,6 +36,14 @@ parameters:
     # FinPasarelaRegistry cae a la primera que sí las tenga en vez de romper.
     finanzas.pasarela_por_defecto: '%env(resolve:FINANZAS_PASARELA_POR_DEFECTO)%'
 
+    # ¿Está abierto el camino automático del PREPAGO? Ver el bloque de .env.
+    #
+    # No apaga los cobros —el botón del panel sigue igual—, apaga que un enlace salga hacia
+    # el huésped sin que nadie lo mire: la skill del agente y el botón de pagar de su app.
+    # Se queda en 0 hasta que Culqi esté en producción, porque en modo test la pasarela
+    # acepta el cobro sin mover dinero y el huésped se va convencido de que ya pagó.
+    finanzas.enlaces_prepago_activos: '%env(bool:FINANZAS_ENLACES_PREPAGO)%'
+
     # Recargo que se traslada al cliente al cobrar con tarjeta.
     #
     # ESPEJO de PmsMedioPago::TARJETA_CREDITO->comisionPorcentaje(). Está duplicado a

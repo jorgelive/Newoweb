@@ -25,6 +25,7 @@ declarado en el enum pero **sin resolver**: emitir un cobro con ese origen falla
 9. [El módulo en `util`: Cobros y Caja](#9-el-módulo-en-util-cobros-y-caja)
 10. [Añadir un módulo nuevo que cobre](#10-añadir-un-módulo-nuevo-que-cobre)
 11. [Dos pasarelas en paralelo: Izipay y Culqi](#11-dos-pasarelas-en-paralelo-izipay-y-culqi)
+11 bis. [Enlaces de PREPAGO](#11-bis-enlaces-de-prepago)
 12. [Despliegue: por qué no basta con `git pull`](#12-despliegue-por-qué-no-basta-con-git-pull)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
@@ -727,6 +728,117 @@ barrera.
 
 ---
 
+## 11 bis. Enlaces de PREPAGO
+
+Cobrar el adelanto por pasarela. **No hay maquinaria de cobro nueva debajo**: es lo que ya
+había, con el importe del prepago en vez del saldo.
+
+```
+consultar_cuenta ──► prepago_pendiente (sólo informa)
+                                │
+generar_enlace_prepago ─────────┤ PmsPrepagoEnlaceService::emitir()
+   (skill, RESERVAS_WRITE)      │   ├─ PmsPrepagoCalculador::pendiente()  ← el importe
+   confirmado=false → preview   │   └─ FinEnlacePagoService::crear(montoNeto: …)
+   confirmado=true  → emite     │
+                                ▼
+                        FinEnlacePago (normal y corriente)
+                                │
+        el modelo redacta ──► enviar_mensaje_huesped ──► el huésped
+                                │
+                                ├──► app del pax: botón «Pagar ahora»
+                                │     (PmsReservaPaxProvider::enlacesPagables())
+                                ▼
+                        /pago/{token} → Culqi → confirmarPago()
+                                            └─ PmsPagoFinanciero (§3)
+                                                 └─ el listener recalcula el saldo
+```
+
+### El interruptor: `FINANZAS_ENLACES_PREPAGO`
+
+En **0** hasta que Culqi pase a producción. Con `pk_test_`/`sk_test_` la pasarela **acepta el
+cobro y no mueve dinero**, y un huésped que "paga" ahí se va convencido de que ya está.
+
+Apaga sólo el camino **automático** —la skill y el botón del pax—, no los cobros: el botón
+«Cobrar con tarjeta» del panel sigue igual que siempre. Es la diferencia que importa: por el
+panel pasa un operador que mira; por aquí el enlace sale solo.
+
+⚠️ **El flag no comprueba las claves.** Una `pk_test_` es sintácticamente igual de válida que
+una `pk_live_`, así que encenderlo es una decisión de una persona, no un automatismo. Antes de
+ponerlo a 1: claves `_live_` en `.env.local` **y** `composer dump-env prod` (§12.1).
+
+Con el flag apagado la skill **no existe en el catálogo** —`SkillConmutableInterface`, ver
+`docs/Mensajeria.md` §11— y `enlacesPagables()` devuelve vacío, así que la app del pax no pinta
+ningún botón. Comprobado en local en los dos sentidos.
+
+### La reutilización, y por qué mira el importe
+
+`emitir()` devuelve un enlace **vigente por el mismo importe** en vez de emitir otro. Sin eso,
+«mándame el link» + «no me llegó» dejan dos enlaces vivos por el mismo dinero, y el huésped que
+pague los dos paga el adelanto dos veces.
+
+Se compara por `montoNeto` porque **la fila no guarda para qué se emitió**, y darle una columna
+de tipo sería meter vocabulario del PMS en una entidad transversal a propósito (§2). Se acepta
+lo que eso implica: si el prepago cambia, el importe deja de coincidir y se emite uno nuevo
+—correcto—; y un enlace manual del operador por ese mismo importe se reaprovecha —también
+correcto, es el mismo cobro—.
+
+`estaVigente()` y no `estado === PENDIENTE`: un FALLIDO se reintenta con otra tarjeta en la
+misma URL (§5), y emitir uno por cada rechazo llenaría la reserva de enlaces muertos.
+
+### La skill genera, pero NO envía
+
+El encargo decía «genera y envía». Envía `enviar_mensaje_huesped`, como todo lo demás. Las dos
+razones ya estaban escritas en `docs/Mensajeria.md` §11:
+
+1. **El texto lo compone el modelo.** Es la decisión que evitó un `enviar_estado_de_cuenta`.
+2. **El envío ya tiene su puerta**: borrador → «¿lo mando?» → sale. Meter el envío dentro de la
+   skill sacaría un enlace de cobro hacia un huésped real sin pasar por esa confirmación, y con
+   el autorespondedor encendido, sin que lo viera nadie.
+
+### La app del pax enseña, no emite
+
+`PmsReservaPaxProvider` manda `enlacesPago` con los **vigentes**, y la vista pinta un botón por
+cada uno. Nunca emite: esta vista se abre con el localizador, y crear un cobro desde ahí sería
+un write que dispara cualquiera que tenga el enlace de la reserva.
+
+Tres detalles que no son cosméticos:
+
+- **Viaja el token.** Es la credencial de la página de pago, y aquí es correcto: el endpoint ya
+  está acotado al localizador, la misma llave con la que el huésped ve su reserva entera. Quien
+  lee esto ya podía ver el saldo; lo único que suma el token es poder **pagarlo**.
+- **El botón enseña el TOTAL, no el neto**, y dice el recargo: es lo que aparecerá en el
+  extracto de la tarjeta (§6).
+- **El importe NO pasa por el conmutador a soles.** El enlace cobra lo que dice su fila, en su
+  moneda. Un botón que pone «S/ 137.20» y carga US$ 40.50 es la reclamación garantizada.
+
+En `soloProgreso` no se manda ninguno: esa reserva no enseña un solo importe a propósito (el
+canal ya cobró) y un botón de pagar ahí es pedir el dinero dos veces.
+
+### Conciliación: no había nada que decidir
+
+La duda era si un enlace pagado debía crear un `PmsPagoFinanciero` o sólo marcarse. **No es una
+elección**: `confirmarPago()` llama a `registrarCobro()` y no hay camino que confirme un enlace
+sin generar el movimiento (§3). El saldo no puede descuadrar por aquí.
+
+Verificado en local de punta a punta, simulando el cierre de la pasarela sobre un enlace de
+adelanto de 110.00 PEN:
+
+| Antes | Después |
+|---|---|
+| `total_pagos` 0.00, saldo 220.00 | `total_pagos` 110.00, saldo 110.00 |
+| enlace PENDIENTE | enlace PAGADO, `movimientoGeneradoId` apuntando al pago |
+| `prepago_pendiente` en `consultar_cuenta` | ya no aparece |
+| `generar_enlace_prepago` emitía | responde «no tiene prepago pendiente» |
+
+El pago se creó por el **neto** (110.00, no los 116.05 de la tarjeta) con `comisionPorcentaje`
+5.50, que es la regla de §6 y la que hace que el saldo cuadre.
+
+Que el prepago desaparezca solo no es un añadido: `pendiente()` devuelve `null` en cuanto hay
+un pago registrado, así que el mismo hecho apaga la cifra en el pax, en el panel y en el agente
+sin que nadie los sincronice.
+
+---
+
 ## 12. Despliegue: por qué no basta con `git pull`
 
 Dos pasos que **no se hacen solos** y cuyos fallos no se parecen a su causa. Los dos
@@ -809,6 +921,10 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar cómo lo ve el huésped | `pax/src/views/huesped/PmsReservaView.vue` | bloque «Prepago pendiente» |
 | Cambiar cómo lo ve el operador | `util/src/components/reservas/ReservaFinanzasPanel.vue` | fila «Prepago pendiente» del resumen |
 | Cambiar qué sabe el agente del prepago | `src/Agent/Skill/Pms/ConsultarCuentaSkill.php` | `prepago()` |
+| Encender/apagar los enlaces de prepago | `.env` → `FINANZAS_ENLACES_PREPAGO` | + `composer dump-env prod` (§12.1) |
+| Cambiar cuándo se reaprovecha un enlace | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `vigentePorImporte()` (§11 bis) |
+| Cambiar el concepto que lee el huésped al pagar | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `concepto()` |
+| Cambiar el botón de pagar del pax | `pax/src/views/huesped/PmsReservaView.vue` | bloque «PAGAR ONLINE» |
 
 ---
 

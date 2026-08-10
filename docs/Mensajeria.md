@@ -3021,6 +3021,58 @@ no tiene dónde escribir otra reserva—, y se acepta sólo porque la misma skil
 lados. Comprobado con las dos reservas de Susan: pasando el id de la otra desde el chat, la
 skill devuelve la del contexto.
 
+### `generar_enlace_prepago`: emite el cobro del adelanto, y ahí se para
+
+Emite el enlace con el que el huésped paga su adelanto y devuelve la URL.
+**No lo envía.** El flujo completo son dos llamadas encadenadas, igual que
+`localizar_conversacion` → `enviar_mensaje_huesped`:
+
+```
+generar_enlace_prepago(reserva_id, confirmado=false)  → importe + pregunta_aprobacion
+        ↓  el operador dice que sí
+generar_enlace_prepago(reserva_id, confirmado=true)   → url
+        ↓  el modelo redacta en el idioma del huésped
+enviar_mensaje_huesped(...)                       ✍️  → borrador → «¿lo mando?» → sale
+```
+
+El encargo pedía «una skill que genera y envía». Se partió en dos por las mismas dos razones
+que ya viven en esta sección: **el texto lo compone el modelo**, y **el envío ya tiene su
+puerta**. Meter el envío dentro sacaría un enlace de cobro hacia un huésped real sin pasar por
+la confirmación de envío — con el autorespondedor encendido, sin que lo viera nadie. Un enlace
+de dinero mal dirigido no se recoge.
+
+El importe **no lo elige el modelo**: sale de `PmsPrepagoCalculador::pendiente()`, la misma
+llamada que alimenta el estado de cuenta del huésped. Y `pendiente()` devuelve `null` en cuanto
+hay un pago registrado, así que a quien ya adelantó algo no se le puede emitir un segundo
+enlace aunque el modelo insista.
+
+#### 🔌 Una skill se puede APAGAR, y entonces no existe
+
+`SkillConmutableInterface` es opcional: quien no la implementa está siempre disponible, que es
+el caso normal. La implementan las que dependen de algo que todavía no está listo — aquí, una
+pasarela en modo test (`FINANZAS_ENLACES_PREPAGO=0`, ver `docs/FinanzasEnlacesPago.md` §11 bis).
+
+Apagada, `SkillRegistry::paraActor()` la salta **antes que los roles**: no es cuestión de
+permisos, la skill no puede funcionar se tengan los que se tengan. Es la misma regla que ya
+gobierna el catálogo — *lo que no se puede usar ni se le menciona al modelo*. Una skill listada
+que siempre falla es peor que no tenerla: el modelo la elige, gasta un turno y le cuenta al
+huésped una versión inventada de por qué no pudo.
+
+⚠️ **El filtro del registro no es seguridad.** Filtra el catálogo, no la ejecución: por nombre
+se llega igual desde `app:agent:skill` o desde un plan de una conversación que empezó antes de
+apagar el flag. Una skill apagada que además escriba **tiene que volver a comprobarlo en
+`ejecutar()`**, y `generar_enlace_prepago` lo hace.
+
+#### 🔥 El usuario del actor no siempre está en la base de datos
+
+`AgentSkillCommand` fabrica un `new User()` con SUPER_ADMIN para poder probar skills desde la
+consola. Ponerlo en una relación —`FinEnlacePago::$creadoPor`— revienta al flush con *«A new
+entity was found through the relationship»*, un mensaje que no dice nada del problema real.
+
+Comprobar el id **no sirve**: `IdTrait` lo genera en el constructor, así que el usuario fantasma
+también tiene uno. Lo que los distingue es estar gestionado (`EntityManager::contains()`). Vale
+para cualquier skill futura que quiera guardar quién hizo algo.
+
 ### Escribirle al huésped: localizar y enviar
 
 Dos skills, porque son dos preguntas distintas:
@@ -4238,6 +4290,8 @@ arreglar** — ver el aviso al final de esta sección.
 | Que una skill que escribe llegue al chat del huésped | la propia skill | `nivelRiesgo(): NivelRiesgo::Interna` — sólo si escribe *hacia dentro* y el peor caso es perder un minuto, §11 |
 | Cambiar qué se filtra en el chat del huésped (sólo lectura) | `SkillRegistry::paraActor()` | `NivelRiesgo::exigePermisoDeEscritura()` — **no** comparar con `Lectura`, §11 |
 | Que el huésped consulte su saldo o el desglose de su cuenta | `ConsultarMiReservaSkill` (cifra) / `ConsultarCuentaSkill` (detalle) | La segunda ignora `reserva_id` si hay contexto: `reservaDelContexto()`, §11 |
+| Mandarle al huésped el enlace para pagar su adelanto | `GenerarEnlacePrepagoSkill` + `EnviarMensajeHuespedSkill` | Son DOS llamadas: genera, y luego envía. §11 |
+| Apagar una skill sin borrarla | `SkillConmutableInterface` en la propia skill | Desaparece del catálogo; repite la guarda en `ejecutar()`. §11 |
 | Que el huésped pueda avisar al equipo | `EscalarAlEquipoSkill` | Ya la tiene (`Roles::HUESPED` + `Interna`). El prompt le obliga a llamarla si promete respuesta, §9 |
 | **Que el huésped pueda pedirse una plantilla** (su guía, tours) | CRUD de plantillas | Interruptor «autoenvío» (`autoenvio_habilitada`) + «Cuándo usarla» rellenado. La manda `EnviarmePlantillaSkill`, §11 |
 | Qué plantillas puede mandar el agente del panel | CRUD de plantillas | TODAS las que tengan «Cuándo usarla» escrito — ya no hay flag; guardan la confirmación del operador y `allowedSources`, §11 |

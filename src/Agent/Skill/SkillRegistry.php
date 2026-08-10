@@ -35,6 +35,13 @@ final readonly class SkillRegistry
         $permitidas = [];
 
         foreach ($this->skills as $skill) {
+            // Apagada por configuración: no existe para nadie, ni siquiera para un
+            // SUPER_ADMIN. Va ANTES que los roles porque no es una cuestión de permisos —
+            // la skill no puede funcionar, se tengan los que se tengan.
+            if ($skill instanceof SkillConmutableInterface && !$skill->estaActiva()) {
+                continue;
+            }
+
             if (!$actor->tieneAlguno($skill->rolesRequeridos())) {
                 continue;
             }

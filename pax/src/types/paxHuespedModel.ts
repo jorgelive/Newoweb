@@ -120,6 +120,30 @@ export interface PmsResumenFinanciero {
         claveI18n: string;
         politica: string;
     } | null;
+    /**
+     * Enlaces de pago VIGENTES de esta reserva: por los que puede pagar ahora mismo.
+     *
+     * Espejo de `PmsReservaPaxProvider::enlacesPagables()`. Sólo llega lo mínimo para pintar
+     * el botón; la URL la arma la app como `/pago/{token}` sobre su propio router, igual que
+     * el enlace que le llegó por WhatsApp.
+     *
+     * ⚠️ **`montoNeto` y `montoTotal` no coinciden, y no es un error**: el neto es lo que
+     * abona la reserva y el total lo que se le pasa a la tarjeta (el recargo se lo queda la
+     * pasarela). El botón enseña el TOTAL —es lo que verá en su extracto— y dice el recargo.
+     *
+     * No llega en las reservas `soloProgreso` ni mientras `FINANZAS_ENLACES_PREPAGO` esté
+     * apagado; entonces sencillamente no hay botón.
+     */
+    enlacesPago?: Array<{
+        token: string;
+        concepto: string;
+        montoNeto: string;
+        montoTotal: string;
+        recargoPorcentaje: string;
+        moneda?: string | null;
+        simbolo?: string | null;
+        expiraEn?: string | null;
+    }>;
     tipoCambioReferencial?: string;
     monedaReferencial?: string;
     simboloReferencial?: string;

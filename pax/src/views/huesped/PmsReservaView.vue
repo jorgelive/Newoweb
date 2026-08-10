@@ -259,6 +259,31 @@ const formatMonto = (v: number): string => {
  * mira de un vistazo.
  */
 const detalleCuentaAbierto = ref(false);
+
+/* ─────────────────────────────────────────────────────────────
+ * ENLACES DE PAGO
+ * Los emite el equipo (o el agente con `generar_enlace_prepago`); aquí solo se
+ * enseñan los que ya existen y siguen vigentes. La app NUNCA emite uno: esta
+ * vista se abre con el localizador y crear un cobro desde aquí sería un write
+ * que dispara cualquiera que tenga el enlace de la reserva.
+ *
+ * Van FUERA del plegable a propósito. Es la única acción de toda la tarjeta, y
+ * el detalle arranca cerrado: un botón de pagar escondido detrás de «Mostrar
+ * más» es un botón que nadie pulsa.
+ * ───────────────────────────────────────────────────────────── */
+const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
+
+/**
+ * Importe del botón, SIEMPRE en la moneda del enlace.
+ *
+ * No pasa por `formatMonto`: ese aplica el conmutador a soles, y el enlace cobra
+ * lo que dice su fila, en su moneda. Enseñar «S/ 137.20» en un botón que va a
+ * cargar US$ 40.50 a la tarjeta es la reclamación garantizada.
+ */
+const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string | null): string =>
+    `${simbolo || moneda || ''} ${Number(monto).toLocaleString(maestroStore.idiomaActual, {
+      minimumFractionDigits: 2, maximumFractionDigits: 2,
+    })}`;
 </script>
 
 <template>
@@ -451,6 +476,43 @@ const detalleCuentaAbierto = ref(false);
           <p v-if="enSoles" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-medium leading-snug text-amber-700">
             {{ maestroStore.t('res_soles_referencial') || 'Importes referenciales al tipo de cambio de hoy.' }}
           </p>
+
+          <!-- ═══ PAGAR ONLINE ═══
+               Fuera del plegable: es la única acción de la tarjeta y el detalle arranca
+               cerrado. Uno por enlace vigente — el equipo puede haber emitido el del
+               adelanto y el del saldo, y los dos son legítimos.
+
+               El importe va SIEMPRE en la moneda del enlace, sin pasar por el conmutador
+               de soles: la tarjeta se carga con lo que dice la fila. -->
+          <div v-if="enlacesPago.length" class="mt-4 space-y-2">
+            <router-link
+                v-for="enlace in enlacesPago"
+                :key="enlace.token"
+                :to="{ name: 'pago_enlace', params: { token: enlace.token } }"
+                class="flex items-center justify-between gap-3 rounded-2xl bg-[#E07845] px-4 py-3.5 text-white shadow-lg shadow-orange-100 transition-all hover:bg-[#D06535] active:scale-[0.98]"
+            >
+              <span class="min-w-0">
+                <span class="block text-[13px] font-black uppercase tracking-wider">
+                  <i class="fas fa-credit-card mr-1.5"></i>{{ maestroStore.t('res_pagar_online') || 'Pagar ahora' }}
+                </span>
+                <!-- El concepto lo redactó quien emitió el enlace y dice si es el adelanto
+                     o el saldo. Sin él, dos botones seguidos son indistinguibles. -->
+                <span class="block truncate text-[11px] font-medium text-white/85">{{ enlace.concepto }}</span>
+                <!-- El recargo se dice ANTES de pulsar: es la diferencia entre lo que abona
+                     su reserva y lo que verá en el extracto de la tarjeta. -->
+                <span v-if="Number(enlace.recargoPorcentaje) > 0" class="block text-[10px] font-semibold text-white/70">
+                  {{ maestroStore.t('res_recargo_nota', { pct: String(Number(enlace.recargoPorcentaje)) })
+                      || `Incluye ${Number(enlace.recargoPorcentaje)}% de comisión` }}
+                </span>
+              </span>
+              <span class="shrink-0 text-right">
+                <span class="block text-lg font-black tabular-nums leading-none">
+                  {{ importeEnlace(enlace.montoTotal, enlace.simbolo, enlace.moneda) }}
+                </span>
+                <i class="fas fa-arrow-right mt-1 text-[11px] text-white/80"></i>
+              </span>
+            </router-link>
+          </div>
 
           <!-- ═══ DETALLE PLEGABLE ═══
                El truco de grid-rows 0fr -> 1fr anima la altura sin conocerla de
