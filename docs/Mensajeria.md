@@ -28,6 +28,7 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 14. [El formato del texto libre y su degradación por canal](#14-el-formato-del-texto-libre-y-su-degradación-por-canal)
 15. [Dónde tocar para cambiar X](#15-dónde-tocar-para-cambiar-x)
 16. [Cómo se paga: medios de cobro y tipo de cambio](#16-cómo-se-paga-medios-de-cobro-y-tipo-de-cambio)
+17. [La conciencia del tiempo y del espacio](#17-la-conciencia-del-tiempo-y-del-espacio)
 
 ---
 
@@ -4359,6 +4360,7 @@ arreglar** — ver el aviso al final de esta sección.
 | Saber por qué un turno de Gemini tardó tanto | `var/log/dev.log` | Línea `Agent (google): vuelta N` con tiempo y tokens — §12 |
 | Que el panel deje elegir motor y modelo | `AsistenteBar.vue` + `PanelAssistantController::motores()` | El catálogo lo sirve el backend: depende de qué claves tenga ESE entorno, §12 |
 | Cambiar qué se hace cuando el modelo no usa ninguna skill | el adaptador del canal | `PanelAssistant::texto()` / `AiConversationProcessor::generar()` — §11 |
+| Que el agente pueda decidir un early check-in sin escalar | 🚧 falta el dato | No hay registro de salida real ni de fin de limpieza — §17.5. Hasta entonces, propone y escala |
 | Cambiar en qué idioma se guarda un mensaje del agente | `MessageTranslator` | `process()` — el caso saliente se distingue por `DIRECTION_OUTGOING`, §9 |
 | Entender por qué un mensaje no salió | `var/log/` | busca "Omisión preventiva", "Rescate descartado", "Poda de canales", "Caducidad", "Sanidad" |
 | Cambiar cuándo se sella el tipo de cambio de un cargo/pago del agente | `RegistrarCargoSkill` / `RegistrarPagoSkill` | `$tipoDelDia` (se persiste, siempre) vs `$tipoAplicado` (se reporta, sólo si hubo conversión) — §11, espejo del `tcSiempre` del panel |
@@ -4430,6 +4432,10 @@ arreglar** — ver el aviso al final de esta sección.
 | Comprobar el triaje y el esquema de Gemini sin gastar API | — | `php var/probar-triaje.php` — 15 comprobaciones + qué motor resuelve cada tramo, §13.10 |
 | Saber si el triaje está fallando en silencio | `var/log/info-*.log` | `grep -c "indeterminado — respuesta no era JSON"` — §13.6 bis. Degrada limpio, así que sólo se ve aquí |
 | **Ver qué contestaría hoy el agente a una charla que ya ocurrió** | — | `php bin/console app:agent:replay <uuid-reserva> --guion=<json>` — §16.7. No guarda nada, pero las skills sí se ejecutan |
+| Que el agente sepa en qué momento de la estancia está el huésped | `AiConversationProcessor` | `faseDeLaEstancia()` — §17. Va en el contexto, no en una skill: el triaje no llama a herramientas |
+| Que sepa si la casita está libre antes o después de su estancia | `PmsEspacioEstancia` | `alrededorDe()` — §17.3. Ocupación con `PmsEventoEstado::IMPIDEN_VENTA`, la misma del calendario |
+| Cambiar cuánta flexibilidad se ofrece en entrada y salida | panel → ítem «Early check in Late Check Out» | Campo «🗣️ Lo que dice el asistente». Es política: NO va en el contexto, §17.4 |
+| Decidir dónde poner algo nuevo: contexto, guía o skill | — | §17.4. Hechos de la conversación → contexto; norma → guía; datos que se piden → skill |
 | **Cambiar un número de cuenta o de Yape** | panel → Configuración → Cobros | «Medios de cobro» — §16. No se escribe en la guía ni en el código |
 | Que el agente pueda decir por dónde se paga | `ConsultarMediosPagoSkill` | `medios()` — lo que no se enumera ahí no llega al modelo, §16.7 |
 | Cambiar el tipo de cambio que se le dice al huésped | `TipoCambioDelDia` | `venta()` — misma fuente que el TC de cargos y pagos, §16.2 |
@@ -4641,11 +4647,28 @@ Recorre el mismo camino que `AiConversationProcessor::generar()` —triaje y, si
 el catálogo entero con `permitirEscritura: false`— y lee los prompts **por reflexión**, para que
 la prueba no se quede probando una copia vieja. No persiste nada: el historial vive en memoria.
 
-⚠️ **Lo único con efectos son las skills.** Con actor de huésped todas son de lectura menos
-`escalar_al_equipo`, que manda WhatsApp de verdad a quien tenga `ROLE_CUSTOMER_SUPPORT` y móvil.
-El comando se planta si detecta guardia con teléfono; vacíalos mientras pruebas (y **acuérdate de
-restaurarlos**) o pasa `--con-guardia` a sabiendas. Sin destinatarios, la skill deja un
-`Escalado sin guardia` en el log, que es justo la señal de que se invocó.
+⚠️ **Lo único con efectos son las skills, y son DOS, no una.** Con actor de huésped todo es de
+lectura salvo las dos `NivelRiesgo::Interna` —que es justo el matiz que las deja llegar al chat
+del huésped (§11)— y las dos mandan mensajes a personas reales:
+
+| Skill | A quién le llega | Cómo protegerse |
+|---|---|---|
+| `escalar_al_equipo` | WhatsApp a quien tenga `ROLE_CUSTOMER_SUPPORT` **y** móvil | Vaciar esos teléfonos mientras pruebas (y **acuérdate de restaurarlos**). Sin destinatarios deja un `Escalado sin guardia` en el log, que es la señal de que se invocó |
+| `enviarme_plantilla` | Un mensaje **AL PROPIO HUÉSPED**, por su canal | Usar una reserva de mentira. No hay flag que lo pare |
+
+🔥 **Vaciar los teléfonos de guardia NO deja la prueba limpia.** Eso protege a los operadores,
+no al huésped. Probando el flujo ampliado de V4JE5Q contra una copia de producción, ante
+«¿ofreces tours?» el modelo llamó a `enviarme_plantilla` y se creó un `Message` real con su cola
+de Beds24 **apuntando a una huésped de verdad**. No salió por casualidad —la plantilla «Menú de
+tours» no tenía ID de Meta para `es` y el encolado falló—, pero pudo salir.
+
+Si el guion va a tocar tours, menús o cualquier cosa que se «envíe», usa una reserva inventada.
+`--con-guardia` asume las dos cosas a la vez, no sólo la escalada.
+
+Y un efecto colateral que también ocurre en producción: la skill **le dijo al huésped que el
+menú se había enviado** cuando el encolado había fallado. El fallo se registra como `warning`
+(«encolado con fallos parciales») y la skill devuelve éxito igual, así que el modelo lo anuncia
+con toda confianza.
 
 Resultado del replay de V4JE5Q con el agente nuevo, turno a turno:
 
@@ -4704,3 +4727,203 @@ se resuelven al renderizar, contra el catálogo.
 | Que el agente empiece a ofrecer el enlace de pago | `.env` | `FINANZAS_ENLACES_PREPAGO=1` — `pago_con_tarjeta.disponible` pasa a `true` solo |
 | Que un medio deje de ofrecerse sin perder sus datos | panel | Casilla «Activo» de esa fila |
 | Añadir un campo al medio (ej. alias interbancario) | `FinMedioCobro` + su CRUD + `ConsultarMediosPagoSkill::medios()` **y** `PmsGuiaHuespedProvider::mediosPago()` | Los cuatro: lo que no se enumera no llega ni al modelo ni a la pantalla, §11 |
+
+
+---
+
+## 17. La conciencia del tiempo y del espacio
+
+El agente no tenía ninguna. El contexto de la conversación eran dos líneas —nombre e idioma— y
+con eso da exactamente igual que falten tres semanas para el check-in o que el huésped se fuera
+ayer. Dos casos reales del 10/08/2026 lo dejaron a la vista.
+
+### 17.1 Los dos fallos que lo destaparon
+
+**César Hiroyasu.** Se marchó el 09/08 tras un late check-out con cargo. Al día siguiente
+escribió disculpándose y el agente cerró con «quedo a su disposición si necesita cualquier otra
+cosa **durante su estancia**». La respuesta era buena —una disculpa al día siguiente se acepta y
+ya está, que es lo que conviene antes de los comentarios— salvo por el detalle de que no había
+estancia.
+
+**Alejandra Rodríguez.** Avisó de que llegaba a Cusco «aproximadamente 12» y el agente contestó
+«**te esperamos a esa hora**», con su check-in a las 14:00. Acertó de casualidad: la salida de
+ese día estaba cancelada y la casita llevaba dos días libre. Con otra reserva encima, habría
+mandado a alguien a un departamento ocupado.
+
+Los dos salieron por el **triaje**, que contesta la charla sin llamar a ninguna herramienta
+(§13.7). O sea: el único camino sin datos es el que atiende los mensajes que parecen
+inofensivos, que son justo los que salen caros.
+
+### 17.2 La fase va en el contexto, no en una skill
+
+`AiConversationProcessor::faseDeLaEstancia()` añade una línea al contexto:
+
+```
+Hablas con César Hiroyasu.
+SE FUE AYER. Su estancia terminó; no le hables como si siguiera alojado.
+Responde SIEMPRE en el idioma con código "es".
+```
+
+Va **en el contexto y no en una skill** por el motivo de arriba: el triaje no llama a
+herramientas, así que una skill habría dejado ciego justo al camino que la necesitaba.
+
+Sale de `contextData.milestones`, que la conversación ya trae cargado — **cero consultas**. Son
+unos 25 tokens en la parte no cacheada, y compran que el agente no le hable a un huésped que ya
+se fue como si siguiera dentro.
+
+Fases, en el orden en que se comprueban (primero lo que ya pasó, porque un huésped que se fue
+también encaja en «está alojado» si se mira al revés):
+
+| Fase | Qué se le dice al modelo |
+|---|---|
+| Se fue ayer / hace N días | Su estancia terminó; no le hables como si siguiera alojado |
+| Se va hoy | A las HH:MM. Puede estar recogiendo o ya fuera |
+| Llega hoy | A partir de las HH:MM. Antes puede no estar lista |
+| Llega mañana | A partir de las HH:MM |
+| Entra en N días | La fecha |
+| Está alojado | Se va el DD/MM a las HH:MM |
+| *(sufijo)* Mañana es su último día | Se añade a «está alojado»: es cuando preguntan por la salida tarde |
+
+### 17.3 El espacio: qué hay antes y después
+
+La fase dice en qué momento de SU estancia está. Lo que decide si cabe adelantar una entrada es
+otra cosa: **qué hay alrededor en la misma casita**. Lo calcula
+`PmsEspacioEstancia::alrededorDe()` y son cuatro hechos:
+
+| Dato | Para qué |
+|---|---|
+| `sale_alguien_el_dia_que_llega` (+ hora) | Si hay salida ese día, no hay margen: almacén y escalar |
+| `libre_la_vispera` | Si nadie ocupa la noche anterior, cabe pedir margen |
+| `desde_cuando_libre` | Para decir «libre desde el 08» en vez de un «sí» seco |
+| `entra_alguien_el_dia_que_se_va` (+ hora) | Si entra otro, la salida es a su hora |
+
+La ocupación se cuenta con `PmsEventoEstado::IMPIDEN_VENTA`, la misma constante que el
+calendario. Reimplementar el criterio habría hecho que el agente y el calendario contaran
+noches distintas, y la que se equivoca siempre es la que nadie mira.
+
+Llega por **dos caminos**, y no se pisan porque son el mismo servicio: en el chat del huésped,
+dentro del contexto de la conversación; y en `consultar_mi_reserva`, como `casita_ese_dia` y
+`casita_tras_su_salida`. El segundo hace falta porque **el panel no tiene contexto**: quien
+pregunta desde ahí «¿puede entrar antes?» no debería encadenar otra consulta.
+
+#### ⚠️ Los flags `entradaTemprana` / `salidaTardia` no son ocupación aparte
+
+`PmsEventoCalendario` los tiene como booleanos, y `PmsEventoEstado::CODIGO_EXTENSION` existe para
+la «noche fantasma» de una entrada temprana o salida tardía. Ninguno de los dos entra en este
+cálculo, y es correcto: **la hora del propio evento ya refleja lo pactado**. Medido sobre las 383
+estancias de la base: 0 con `entradaTemprana`, **1** con `salidaTardia` —y ésa tiene `fin` a las
+17:00 en vez de a las 10:00— y **cero** eventos en estado `extension`.
+
+O sea que leer `inicio`/`fin` cuenta la verdad sin necesidad de mirar los flags. Contarlos además
+sería contar dos veces y bloquear un día entero por una salida que termina a las 17:00. Es la
+diferencia entre «no se puede vender esa noche» y «hay alguien dentro»: los flags responden a la
+primera pregunta, no a la segunda.
+
+**Sólo se calcula en los bordes** —llega hoy, llega mañana, se va hoy, mañana es su último día—.
+El propio texto de la fase hace de filtro. Fuera de ahí no hay consulta ni tokens: preguntar por
+los vecinos de una estancia que empieza en tres semanas es gastar en un dato que nadie va a usar.
+
+### 17.4 Por qué NO es una skill: cada capa de su clase
+
+La pregunta que lo decidió fue «¿quién gana si una skill, la guía y una plantilla se pisan?».
+La respuesta es que **esa pregunta no debería llegar a plantearse**, y se evita separando por
+clase de contenido en vez de por jerarquía:
+
+| Capa | Qué contiene | Ejemplo |
+|---|---|---|
+| **Contexto** | Hechos de ESTA conversación | «llega hoy a las 14:00», «libre desde el 08» |
+| **Guía / `agente_contenido`** | La norma del negocio | «con la casita libre caben 3 h; nunca lo concedas tú» |
+| **Skills** | Datos que hay que ir a buscar | saldo, tipo de cambio, medios de cobro |
+
+Mientras cada una se quede en lo suyo no compiten: el contexto no dice qué se puede conceder, y
+la guía no sabe a qué hora llega este huésped. **El conflicto sólo aparece si se mete política
+en el contexto o hechos en la guía.**
+
+Y cuando dos skills sí se solapan, el proyecto ya tenía respuesta, y no es una tabla de
+prioridades: **cada fuente declara lo que NO es suyo**. `consultar_guia` remite el WiFi a
+`consultar_wifi`; `consultar_medios_pago` remite el tipo de cambio a `consultar_tipo_cambio`.
+Referencias cruzadas en las descripciones (§11), no jerarquía.
+
+Hay además un motivo que zanja el caso: **el triaje no llama a herramientas**. Una skill habría
+dejado ciego justo al camino por el que salieron los dos fallos.
+
+### 17.5 Lo que esto NO resuelve
+
+**No existe el «ya salió de verdad».** `PmsEventoCalendario` guarda el `fin` PREVISTO y un
+booleano `salidaTardia`; no hay registro de la salida real. Por eso la regla de negocio «si
+consta que el anterior se fue con 5 horas de margen, ofrécele entrar antes» **no se puede
+evaluar hoy**: sólo está implementada la rama de «libre la víspera».
+
+**Tampoco si la limpieza terminó.** `pms_event_assignment` dice quién tiene asignada la
+actividad —sólo existe «Limpieza»— sin fecha ni estado de completado. Que el anterior se fuera a
+las 5 no significa que esté listo.
+
+Consecuencia práctica, y es la que sostiene toda la política: lo que sale del contexto sirve
+para **descartar** («hoy sale alguien, ni lo plantees») y para **matizar** («está libre, pero la
+limpieza puede seguir»), nunca para conceder. **El agente propone y escala; decide una persona.**
+
+Registrar la salida real es lo que más rendimiento daría: desbloquea la regla de las 5 horas y,
+de paso, deja saber cuándo la casita está lista.
+
+⚠️ Y hay un dato que **no existe en el sistema**: si la limpieza terminó.
+`pms_event_assignment` guarda quién tiene asignada cada actividad, pero no lleva fecha ni estado
+de completado. Que el anterior se fuera a las 5 no significa que esté listo, así que ninguna
+regla automática de «ofrécele entrar antes» puede ser fiable mientras eso falte. La regla segura
+mientras tanto: **el agente propone y escala, nunca concede.**
+
+### 17.6 Quién manda cuando dos fuentes cubren lo mismo
+
+La regla, y no admite excepción: **lo diseñado a medida gana sobre la guía.**
+
+No es preferencia de estilo. Una skill dedicada comprueba permisos que un texto no puede
+comprobar —`consultar_codigos` mira la ventana de acceso antes de soltar el código de la caja— y
+es la que se actualiza cuando cambia el dato. Un párrafo de guía que diga lo mismo es una copia
+que envejece sin avisar.
+
+Se aplica **declarándolo en la guía**, igual que llevaba haciendo el WiFi desde el principio:
+
+| Ítem | Ya no cuenta | Remite a |
+|---|---|---|
+| Llaves | el código de la caja | `consultar_codigos` |
+| Wifi | la contraseña | `consultar_wifi` |
+| Pago | los números de Yape y las cuentas | `consultar_medios_pago` |
+
+Lo de Pago tiene un motivo que se ve solo al mirarlo desde el catálogo: si la guía nombrara los
+medios, **el día que se desactive uno en `FinMedioCobro` la guía lo seguiría ofreciendo**.
+
+#### Se aprende del revés: corregir el texto donde manda
+
+Se intentó arreglar en el ítem «Pago» el aviso de que el chat de Booking no admite adjuntos, y
+no sirvió de nada: el agente leía la **nota del catálogo** —que venía de `consultar_medios_pago`—
+y la repetía literal. Si la skill gana, el texto hay que corregirlo **en la skill**. Ver
+`Version20260810220000`.
+
+#### ⚠️ Antes de enseñar, comprobar — también en las skills
+
+Que la skill gane no la exime de lo que sí hacía la guía. **Cada una comprueba que el huésped
+tenga derecho a ese dato**, con el mismo criterio, y sólo se salta la comprobación cuando quien
+pregunta es del equipo:
+
+| Skill | Nivel que exige |
+|---|---|
+| `consultar_codigos`, `consultar_wifi` | **Ventana abierta** (`PmsGuiaAcceso::estaAbierto()`): estancia en curso |
+| `consultar_medios_pago` | **Cliente** (`getEventosActivosGuia()` no vacío) |
+
+La diferencia importa y es fácil equivocarse: usar `estaAbierto()` para los medios de pago
+habría dejado sin cuentas **justo a quien todavía no ha llegado**, que es el que necesita pagar
+el adelanto. La ventana es para credenciales; para el resto basta con ser cliente de una reserva
+viva.
+
+#### El mismo texto lo leen dos actores
+
+`agente_contenido` no sabe quién pregunta. El ítem de horarios explica **las dos vías** por las
+que llegan los datos de ocupación —el contexto en el chat del huésped, `casita_ese_dia` desde el
+panel— porque el campo de la skill es sólo para el equipo (§17.3) y el contexto sólo existe en
+el chat. Un texto que nombre una sola deja al otro actor buscando algo que no le llega.
+
+### 17.7 Qué cambió en las respuestas
+
+| Caso | Antes | Ahora |
+|---|---|---|
+| César, un día después de irse | «…cualquier otra cosa durante su estancia» | «Esperamos que hayas tenido un **buen viaje de regreso**» |
+| Alejandra, llega a las 12 con check-in a las 14 | «Te esperamos a esa hora» | «El ingreso es a partir de las 14:00. Si llegas a las 12:00, puedes **dejar tu equipaje**… ya he avisado al equipo para **revisar si fuera posible ingresar antes** según disponibilidad» |

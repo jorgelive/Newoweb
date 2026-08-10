@@ -57,8 +57,24 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
     /** Cuántos ítems se devuelven con cuerpo. Más que esto es una guía entera en el chat. */
     private const int MAX_ITEMS = 4;
 
-    /** Recorte del cuerpo de cada ítem. Suficiente para una instrucción; corta las parrafadas. */
-    private const int MAX_CARACTERES = 900;
+    /**
+     * Recorte del cuerpo de cada ítem.
+     *
+     * Estuvo en 900, calibrado cuando lo único que llegaba aquí era el cuerpo publicado **sin
+     * curar**: HTML de hasta 2.500 caracteres escrito para leerse en una pantalla, donde
+     * cortar era defenderse de una parrafada que nadie había revisado.
+     *
+     * Ya no es ese el material. Con `agente_contenido` ({@see PmsGuiaItem::$agenteContenido})
+     * el texto lo escribió alguien PARA el agente, y entonces **recortar es cortar una
+     * decisión**. Medido sobre los 40 ítems: media 792, máximo 1.668; con 900 se mutilaban 10,
+     * y entre ellos «Reglas», que perdía justo el final — la parte de que los huéspedes
+     * adicionales se pagan.
+     *
+     * 1800 no corta ninguno hoy, ni en el cuerpo publicado ni en el campo del agente. Y es un
+     * TOPE, no una reserva: con media de 792 no cambia lo que se paga en la llamada normal.
+     * Lo que sí acota el gasto es {@see self::MAX_ITEMS}, que es lo que multiplica.
+     */
+    private const int MAX_CARACTERES = 1800;
 
     /**
      * A partir de aquí, lo que llega no es un tema: es el mensaje del huésped pegado entero.
@@ -210,13 +226,43 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
         // mensaje de bloqueo—. A partir de aquí ya no hay nada sensible que decidir.
         $secciones = $this->filtro->podar($guia, $acceso, $contexto);
 
-        $idioma = $reserva->getIdioma()?->getId() ?? 'es';
+        // 🇪🇸 Al modelo se le da SIEMPRE el español, no el idioma del huésped. Redactar en su
+        // lengua ya se lo pide el contexto de la conversación, y traducir es lo que mejor hace.
+        //
+        // Tres motivos, y el tercero es el que no se ve venir:
+        //
+        // 1. **El español es el original.** Los otros seis los escribió el traductor
+        //    automático; si alguno quedó torcido, se hereda en la respuesta.
+        // 2. **Una sola fuente.** Es el mismo criterio que ya siguen `agente_contenido`,
+        //    `MessageTemplate::$agenteUso` y las notas de los medios de cobro: al modelo,
+        //    español; al huésped, lo que toque.
+        // 3. **El recorte deja de depender de quién pregunte.** `recortar()` corta por
+        //    caracteres, y las traducciones son más largas —medido: alemán +10% en «Llaves»,
+        //    +18% en «Wifi»—. Con el idioma del huésped, un alemán perdía ~120 caracteres más
+        //    que un peruano del MISMO ítem. Ese fallo es el peor de reproducir, porque «a mí
+        //    me funciona» es literalmente cierto.
+        //
+        // ⚠️ Esto es lo que se DEVUELVE. La BÚSQUEDA sigue mirando todos los idiomas
+        // ({@see self::coincideEnAlgunIdioma()}): el huésped pregunta en el suyo.
+        $idioma = 'es';
         $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
 
-        $base = [
+        // Las horas de entrada y salida viajan SIEMPRE, no sólo dentro del cuerpo del ítem.
+        //
+        // Estaban únicamente como `{{ check_in }}` en el texto de «Horarios de estancia», y eso
+        // ataba ese ítem al camino vivo: darle `agente_contenido` habría borrado las horas, que
+        // salen del evento y **cambian por estancia**. Con las horas fuera, el ítem ya puede
+        // tener su versión para el agente sin perder nada.
+        //
+        // Se enumeran dos claves a mano en vez de volcar `$contexto->valores`: ahí dentro
+        // también viven `door_code`, `safe_code` y `keybox_main` cuando la ventana está
+        // abierta, y un volcado es la forma clásica de que un día salgan sin querer.
+        $base = array_filter([
             'casita' => $unidad->getNombre(),
             'huesped' => $reserva->getNombreApellido(),
-        ];
+            'hora_check_in' => $contexto->valores['check_in'] ?? null,
+            'hora_check_out' => $contexto->valores['check_out'] ?? null,
+        ], static fn ($v) => $v !== null && $v !== '');
 
         // ── Camino 2 de 2: el modelo ya eligió y pide un tema por su id ──────────────────
         $temaId = trim((string) ($entrada['tema_id'] ?? ''));
@@ -383,12 +429,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
         PmsGuiaContexto $contexto,
         PmsGuiaAcceso $acceso
     ): array {
-        $cuerpo = $this->aTextoPlano($this->resolverBloquesDelFront(
-            $this->enIdioma($item->getContenidoParaCliente(), $idioma),
-            $contexto,
-            $acceso,
-            $idioma
-        ));
+        $cuerpo = $this->cuerpoParaElAgente($item, $idioma, $contexto, $acceso);
 
         return array_filter([
             'tema' => $this->enIdioma($item->getTituloParaCliente(), $idioma),
@@ -473,12 +514,12 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
         foreach ($secciones as $seccion) {
             foreach ($seccion->getItemsParaCliente() as $item) {
                 $titulo = $this->enIdioma($item->getTituloParaCliente(), $idioma);
-                $cuerpo = $this->aTextoPlano($this->resolverBloquesDelFront(
-                    $this->enIdioma($item->getContenidoParaCliente(), $idioma),
-                    $contexto,
-                    $acceso,
-                    $idioma
-                ));
+
+                // Ojo al reparto: se BUSCA en lo publicado (abajo, `$enCuerpo`) y se DEVUELVE
+                // lo que toque para el agente. Si se buscara en el override, un ítem dejaría de
+                // encontrarse por palabras que sí están en su guía, y el operador no tendría
+                // forma de saber por qué.
+                $cuerpo = $this->cuerpoParaElAgente($item, $idioma, $contexto, $acceso);
 
                 // Los términos del editor primero: son la respuesta a «con qué palabras
                 // preguntan por esto», así que un acierto ahí es el más fiable de los tres.
@@ -486,7 +527,19 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
                 $enTitulo = $this->coincideEnAlgunIdioma($item->getTituloParaCliente(), $aguja);
                 $enCuerpo = $this->coincideEnAlgunIdioma($item->getContenidoParaCliente(), $aguja);
 
-                if (!$enTerminos && !$enTitulo && !$enCuerpo) {
+                // 🔎 El override TAMBIÉN se busca, y hace falta decirlo: es lo que el operador
+                // escribió para el agente y a menudo cuenta cosas que NO están en el cuerpo
+                // publicado —por qué el importe del canal no cuadra, por ejemplo—. Sin esto,
+                // escribirlo ahí no servía de nada: la búsqueda no lo veía y el agente
+                // contestaba «tu guía no dice nada de eso» teniéndolo delante.
+                //
+                // Se busca en los dos y no sólo en el override porque el cuerpo publicado suele
+                // ser más largo: quitarlo estrecharía lo que se encuentra justo cuando el
+                // operador acaba de resumir el texto para el chat.
+                $enOverride = $item->getAgenteContenido() !== null
+                    && str_contains($this->normalizar($item->getAgenteContenido()), $aguja);
+
+                if (!$enTerminos && !$enTitulo && !$enCuerpo && !$enOverride) {
                     continue;
                 }
 
@@ -520,6 +573,42 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
         }
 
         return [...$porTitulo, ...$porCuerpo];
+    }
+
+    /**
+     * El texto de un ítem TAL COMO LO VA A CONTAR EL AGENTE.
+     *
+     * 🔀 Si el ítem trae `agenteContenido`, manda eso y el cuerpo publicado no se toca: es lo
+     * que permite que la pantalla diga una cosa y el chat diga otra —el depósito de garantía
+     * leído en la guía es información, soltado a bocajarro espanta—. Ver
+     * {@see PmsGuiaItem::$agenteContenido}.
+     *
+     * El override no pasa por `resolverBloquesDelFront()` ni por `aTextoPlano()`: se escribe en
+     * texto plano a propósito, sin HTML ni placeholders. El recorte lo aplica quien lo consume,
+     * igual que con el cuerpo.
+     *
+     * ⚠️ Existe como método y no repetido en línea porque el cuerpo se arma en DOS sitios —el
+     * detalle de un tema y el barrido de la búsqueda— y la primera versión de esto sólo parcheó
+     * uno: el override no salía al buscar por palabra, que es el camino más usado.
+     */
+    private function cuerpoParaElAgente(
+        PmsGuiaItem $item,
+        string $idioma,
+        PmsGuiaContexto $contexto,
+        PmsGuiaAcceso $acceso
+    ): string {
+        $override = $item->getAgenteContenido();
+
+        if ($override !== null) {
+            return $override;
+        }
+
+        return $this->aTextoPlano($this->resolverBloquesDelFront(
+            $this->enIdioma($item->getContenidoParaCliente(), $idioma),
+            $contexto,
+            $acceso,
+            $idioma
+        ));
     }
 
     /**

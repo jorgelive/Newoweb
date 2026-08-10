@@ -1024,8 +1024,24 @@ Y la consume la skill `consultar_cuenta` del agente, como `explicacion_para_hues
 
 | Método | Responde | Quién la llama |
 |---|---|---|
-| `calcular()` | «cuánto pide la política» | Nadie directamente; es la base |
+| `calcular()` | «cuánto pide la política» | El estado de cuenta del huésped y `ConsultarCuentaSkill::adelantoDeLaPolitica()` |
 | `pendiente()` | «cuánto queda por pedir» | Los tres consumidores |
+
+> 🐞 **El agente se quedaba sin saber cuánto vale una noche.** `ConsultarCuentaSkill` sólo
+> llamaba a `pendiente()`, que devuelve `null` en cuanto hay **cualquier** pago registrado. A
+> «me piden el pago de la primera noche, ¿cuánto es?», con los 30 ya pagados, el agente
+> contestó **150.00** —el alojamiento entero— antes de escalar. La cifra buena estaba calculada
+> y la pintaba el estado de cuenta; simplemente no llegaba hasta la skill.
+>
+> Por eso ahora viaja también `adelanto_de_la_politica`, con `ya_cubierto` para que el modelo
+> no tenga que restar. Son dos preguntas distintas —«cuánto vale» y «cuánto falta»— y fundirlas
+> en una clave es cobrar de más o dejar sin respuesta.
+
+**«En la app me sale otro monto» encadena con la guía.** La descripción de `consultar_cuenta`
+manda al modelo a `consultar_guia` (tema de pagos) cuando el huésped compara con lo que ve en
+Booking: la cifra la da la cuenta, pero **el porqué no cuadran es contenido editable** y vive en
+`PmsGuiaItem::$agenteContenido` — ver `docs/PmsGuiaHuesped.md`. Sin ese enlace el modelo
+improvisaba la explicación, que es la parte que nadie revisa.
 
 `pendiente()` es `calcular()` más una regla: **si hay algún pago registrado, ese pago ES el
 prepago** —es lo primero que se cobra— y volver a pedirlo es reclamarle al huésped algo que ya

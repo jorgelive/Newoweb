@@ -1019,3 +1019,238 @@ de esta skill no es no encontrar, es que el modelo se invente cómo funciona un 
 | Cambiar tipos del catálogo | `pax/src/types/paxCatalogoUnidadModel.ts` | espejo de `pax_catalogo:read` |
 | Llamadas HTTP del catálogo | `pax/src/stores/huesped/paxCatalogoUnidadStore.ts` | `cargar()` |
 | Retirar el circuito heredado | §6, lista de pendientes | — |
+
+
+---
+
+## Lo que el asistente cuenta: `agente_contenido`
+
+Un ítem de guía puede decirle **una cosa a la pantalla y otra al chat**. Con
+`PmsGuiaItem::$agenteContenido` escrito, `consultar_guia` devuelve ese texto **en lugar del
+cuerpo**; la app del huésped no se entera y sigue pintando la descripción de siempre.
+
+### Por qué hacen falta dos versiones
+
+No es censura, es que **leer y que te lo digan no son lo mismo**. El ítem «Pago y depósito de
+garantía» explica que en las reservas de Booking se pide un depósito de S/ 300 al check-in.
+Escrito en la guía está bien: el huésped lo lee cuando toca, junto a la parte de que se devuelve
+entero. Soltado por chat a alguien que sólo preguntó «¿el pago no es por Booking?» suena a peaje
+sorpresa y espanta.
+
+Y sirve al revés, que es el uso menos obvio: **contarle al agente lo que no cabe en la guía**.
+Las preguntas recurrentes que no son contenido publicable —por qué el importe de la app del
+canal no cuadra con el nuestro— tienen aquí su sitio. Sin él, el modelo improvisa una
+explicación verosímil y distinta cada vez; se le vio soltar que «las plataformas muestran
+importes sin desglosar impuestos», que no se lo había dicho nadie.
+
+### Reglas
+
+- **Sustituye, no acompaña.** Lo que no escribas aquí, el agente no lo sabrá de ese tema: no lo
+  completa leyendo el cuerpo, porque no lo recibe.
+- **Se busca en los DOS, se devuelve el override.** El barrido mira términos, título, cuerpo
+  publicado **y** el override. Buscar sólo en lo publicado dejaba el campo medio inútil: lo que
+  escribieras únicamente ahí —por qué el importe del canal no cuadra, por ejemplo— no se
+  encontraba, y el agente contestaba «tu guía no dice nada de eso» teniéndolo delante. Y buscar
+  sólo en el override estrecharía lo encontrable justo cuando el operador acaba de resumir el
+  texto para el chat.
+- **Texto plano, en español, sin HTML ni placeholders.** El chat no pinta HTML, y el modelo lo
+  redacta en el idioma del huésped — mismo criterio que
+  `MessageTemplate::$agenteUso`.
+
+⚠️ El cuerpo se arma en **dos** sitios de `ConsultarGuiaSkill` —el detalle de un tema y el
+barrido de la búsqueda—. Por eso existe `cuerpoParaElAgente()`: la primera versión parcheó sólo
+uno y el override no salía al buscar por palabra, que es el camino más usado.
+
+### 🚫 Nada de `{{ placeholders }}` en este campo
+
+El override **no pasa por el interpolador**: sale tal cual. Un `{{ door_code }}` escrito aquí
+llegaría literal al modelo, y resolverlo sería peor —congelaría una credencial que hoy sólo se
+revela dentro de su ventana de acceso—.
+
+El caso que mejor lo explica no es de seguridad sino de corrección: `{{ check_in }}` **cambia
+por reserva**. Horneado en el override, todos los huéspedes recibirían la misma hora.
+
+Por eso `Version20260810140000`, que sembró el campo con el cuerpo de los 28 ítems que no usan
+placeholders, **dejó fuera a los cuatro que sí**: «Llaves (general)», «Wifi (general)»,
+«Ubicación (general)» y «Early check in Late Check Out». Ésos siguen por el camino vivo, con su
+interpolación y su ventana intactas. Si algún día un ítem con placeholder necesita voz propia
+para el agente, lo que hay que escribir es la parte que NO depende de la reserva.
+
+### 🔥 Omitir un hecho no es callarlo: es NEGARLO
+
+Es lo más importante de este campo y va contra la intuición. **Quitar algo del override no hace
+que el agente se lo calle: hace que lo niegue.**
+
+Medido con el depósito de garantía de S/ 300, preguntando «¿hay que dejar algún depósito al
+llegar?». Tres formas de quitarlo, tres mentiras:
+
+| Cómo se quitó | Qué contestó el agente |
+|---|---|
+| Instrucción explícita: «NO menciones el depósito» | «**No, no es necesario** dejar ningún depósito de garantía» |
+| Simple omisión, sin instrucción | «**No requerimos** un depósito de garantía adicional» |
+| Omisión + quitar `deposito, garantia` de los términos | «**No se requiere** dejar un depósito de garantía» |
+
+El motivo es que el modelo recibe el override como **el contenido del tema**, y el prompt le
+prohíbe inventar: si el texto del tema de pagos no dice nada de depósitos, la conclusión
+razonable es que no hay. El vacío no se lee como «no lo sé», se lee como «no existe».
+
+Quitar la palabra de los términos tampoco salva: el ítem se sigue encontrando por «pago» y el
+resultado es el mismo.
+
+#### La regla, entonces
+
+> **El override cambia CÓMO y CUÁNDO se dice algo. Nunca SI existe.**
+
+Para que un hecho incómodo no se suelte de entrada, se deja escrito **con su instrucción de
+cuándo decirlo**:
+
+```
+Deposito de garantia: SOLO si pregunta por el. No lo saques tu.
+Si pregunta: si, se piden S/ 300 al hacer el check-in y se devuelven integros al salir,
+tras comprobar que se entregan las llaves y no hay danos. No es un cobro, es un deposito.
+```
+
+Con eso, medido: a «¿el pago no es por Booking?» **no lo menciona**, y a «¿hay depósito?»
+contesta la verdad entera, con la parte de que se devuelve.
+
+#### Y no, las instrucciones no se le escapan al huésped
+
+Era el miedo razonable —que contestara «no puedo hablarte del depósito»— y no pasó en ninguna
+de las pruebas. El modelo trata esas líneas como indicaciones para él, no como texto que
+repetir. Lo que sí hace es obedecerlas, incluida la de mentir por omisión: por eso la regla de
+arriba.
+
+### Las horas de entrada y salida viajan como campo, no dentro del texto
+
+`consultar_guia` devuelve `hora_check_in` y `hora_check_out` en la raíz de la respuesta, además
+de lo que diga el ítem que toque.
+
+No es comodidad: es lo que **desbloquea el override de «Horarios de estancia»**. Ese ítem tenía
+las horas sólo como `{{ check_in }}` / `{{ check_out }}` en su cuerpo, y como el override no
+pasa por el interpolador, darle `agente_contenido` habría borrado unas horas que salen del
+evento y **cambian por estancia**. Sacándolas fuera, el ítem puede tener su versión para el
+agente sin perder nada — y de paso el agente sabe las horas aunque el tema no salga en la
+búsqueda.
+
+⚠️ Se enumeran **dos claves a mano**, no se vuelca `PmsGuiaContexto::$valores`. En ese array
+también viven `door_code`, `safe_code` y `keybox_main` cuando la ventana está abierta, y un
+volcado es la forma clásica de que un día salgan sin querer. Misma regla que en §11 de
+`docs/Mensajeria.md`: lo que no se enumera, no viaja.
+
+### 🇪🇸 Al agente se le da SIEMPRE el español
+
+`consultar_guia` no lee la guía en el idioma del huésped: la lee en español y deja que el
+modelo traduzca al redactar, que es lo que ya le pide el contexto de la conversación.
+
+Es el mismo criterio que `agente_contenido`, `MessageTemplate::$agenteUso` y las notas de
+`FinMedioCobro`. Aquí suma dos motivos propios:
+
+- **El español es el original.** Los otros seis idiomas los escribió el traductor automático;
+  servirlos al modelo es heredar cualquier traducción torcida en la respuesta al huésped.
+- **El recorte deja de depender de quién pregunte.** Éste es el que no se ve venir.
+
+#### ⚠️ El truncado que cambiaba con el idioma
+
+`recortar()` corta por **caracteres**, y una traducción no ocupa lo mismo que su original.
+Medido sobre los ítems que leen el cuerpo publicado:
+
+| Ítem | Español | El idioma más largo |
+|---|---|---|
+| Llaves (general) | 1250 | 1372 (de) — **+10%** |
+| Early check in / Late check out | 486 | 555 (it) — **+14%** |
+| Wifi (general) | 222 | 261 (de) — **+18%** |
+
+Con el idioma del huésped, un alemán perdía ~120 caracteres más que un peruano **del mismo
+ítem**, y se quedaba sin el final de las instrucciones. Es de los fallos más difíciles de
+perseguir, porque «a mí me funciona» es literalmente cierto: en español entraba.
+
+🔎 De paso salió que **`Llaves (general)` se trunca hoy en todos los idiomas** (1250 contra un
+tope de 900). Es el ítem de cómo sacar las llaves de la caja fuerte, y es uno de los que no
+puede tener `agente_contenido` porque lleva `{{ keybox_main }}`.
+
+#### Lo que NO cambió: la búsqueda
+
+Sigue mirando los siete idiomas ({@see ConsultarGuiaSkill::coincideEnAlgunIdioma()}), y tiene
+que seguir así: el huésped pregunta en el suyo. «hot water» y «dusche» encuentran «Uso de la
+ducha» y reciben el contenido en español.
+
+**Buscar y responder van por caminos distintos** — misma regla que con el override.
+
+### El widget de medios de pago: `{{ medios_pago }}`
+
+Pinta las cuentas de cobro dentro de un ítem, igual que `{{ wifi_data }}` pinta las redes.
+Cadena completa: `PmsGuiaHuespedProvider::mediosPago()` filtra por procedencia →
+`GuiaMedioPago[]` en `paxHuespedGuiaModel.ts` → `RichContentEngine` lo normaliza a
+`{{ widget: medios_pago }}` → `MediosPagoWidget.vue`.
+
+Dos decisiones que no se ven en el código:
+
+- **No tiene ventana de acceso**, al revés que el WiFi. Quien todavía no ha entrado es justo el
+  que necesita saber por dónde adelantar el pago. Lo que sí lleva es el filtro de procedencia,
+  con el **mismo servicio** que usa el agente (`PmsProcedenciaHuesped`): si cada uno dedujera por
+  su cuenta, la pantalla y el chat acabarían ofreciendo cuentas distintas al mismo huésped.
+- **El marcador va sólo en el bloque español** (`Version20260810240000`). Es un marcador, no
+  texto: lo que se pinta dentro son los datos del catálogo, ya traducidos. Meterlo en los siete
+  idiomas sería repetirlo siete veces con el riesgo de que el traductor lo toque. ⚠️ La
+  contrapartida es real: **quien lea la guía en otro idioma no verá el widget** hasta que se
+  añada a su bloque desde el panel.
+
+### Cómo se escribe: hechos primero, instrucciones pegadas
+
+Ni copiar el cuerpo tal cual ni escribir un prompt. Las dos cosas, en este orden:
+
+```
+[HECHOS]  Todo lo que el huésped pueda preguntar o encontrarse, sin adornos.
+          Si un hecho falta, el agente lo NIEGA — no se lo calla.
+
+[CUÁNDO]  Pegado al hecho que gobierna, no como regla general al principio.
+          «SOLO si pregunta.» · «No lo saques tú.» · «Si insiste, avisa al equipo.»
+```
+
+Ejemplo real, el ítem de pagos:
+
+```
+El pago no lo cobra Booking: se abona directamente a nosotros. En reservas de
+Booking.com el pago total se hace al llegar. Tambien se puede adelantar antes por
+Yape, Plin o transferencia.                                          ← hecho
+
+Deposito de garantia: SOLO si pregunta por el. No lo saques tu.      ← cuándo
+Si pregunta: si, se piden S/ 300 al hacer el check-in y se devuelven
+integros al salir, tras comprobar que se entregan las llaves.        ← hecho
+```
+
+| Sí | No |
+|---|---|
+| Tutear al modelo, mayúsculas, «NO hagas X» | Borrar un hecho para que no lo diga |
+| Resumir, quitar repeticiones y emoji decorativo | Dejar HTML o `{{ placeholders }}` |
+| Contar lo que no es publicable (por qué el canal muestra otro importe) | Traducirlo: va en español y él traduce |
+| Instrucciones sin hecho detrás («si insiste, escala») | Pasarse de 900 caracteres |
+
+La prueba de que una ficha está bien escrita no es que suene bien: es preguntarle al agente
+por lo que quitaste, con `app:agent:replay`, y ver si lo niega.
+
+### El recorte: de 900 a 1800, y por qué
+
+`ConsultarGuiaSkill::MAX_CARACTERES` corta el override igual que al cuerpo. Estuvo en **900**,
+un número calibrado cuando lo único que llegaba era el cuerpo publicado **sin curar** —HTML de
+hasta 2.500 caracteres escrito para una pantalla—, donde cortar era defenderse de una parrafada
+que nadie había revisado.
+
+Con `agente_contenido` el material cambió: lo escribió alguien PARA el agente, y entonces
+**recortar es cortar una decisión**. Y cortaba donde más dolía: «Reglas (general)» se partía
+justo antes de que **los huéspedes adicionales se pagan** — una regla con dinero detrás que el
+agente no llegaba a leer.
+
+Medido sobre los 40 ítems: media **792**, máximo **1.668**. Con 1800 no se corta ninguno, ni en
+el cuerpo publicado ni en el campo del agente. Y es un **tope, no una reserva**: con esa media
+no cambia lo que se paga en la llamada normal. Lo que multiplica el gasto es `MAX_ITEMS`, que
+sigue en 4.
+
+### Dónde tocar
+
+| Necesitas… | Dónde |
+|---|---|
+| Que el asistente calle algo que sí va en la guía | Panel → ítem → «🗣️ Lo que dice el asistente» |
+| Contarle al asistente algo que no es publicable | El mismo campo |
+| Que el ítem se encuentre por más palabras | «🔎 Cómo lo preguntan», que es independiente |
+| Que informe pero no conceda | «🔔 Requiere confirmar con una persona» |

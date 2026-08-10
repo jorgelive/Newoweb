@@ -132,6 +132,24 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface
             return SkillResult::error('No existe ninguna reserva con ese identificador.');
         }
 
+        // 🔒 Antes de enseñar nada, la reserva tiene que dar acceso — el mismo criterio que la
+        // guía. `getEventosActivosGuia()` ya filtra por estado y por guía deshabilitada, así
+        // que una cancelada o un inquiry de Airbnb no pasan.
+        //
+        // ⚠️ Y NO se usa `PmsGuiaAcceso::estaAbierto()`, que es lo que parecería. Esa es la
+        // ventana de las CREDENCIALES —códigos, WiFi— y exige la estancia en curso. Quien
+        // todavía no ha llegado es justo el que necesita pagar el adelanto: cerrarle esto sería
+        // pedirle dinero y no decirle por dónde. El nivel que toca es el de «cliente», que es
+        // exactamente lo que responde esta comprobación.
+        //
+        // Al equipo no se le acota: consulta reservas de todo tipo, canceladas incluidas.
+        if (!$actor->esDelEquipo() && $reserva->getEventosActivosGuia() === []) {
+            return SkillResult::error(
+                'Esta reserva no tiene ninguna estancia activa, así que no se le pasan los datos '
+                . 'de cobro. Si insiste en pagar algo, avisa al equipo.'
+            );
+        }
+
         $desdePeru = $this->procedencia->pagaDesdePeru($reserva);
         $idioma = $reserva->getIdioma()?->getId() ?? 'es';
         $medios = $this->medios($this->catalogo->ofrecibles($desdePeru), $idioma);

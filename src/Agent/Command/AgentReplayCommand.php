@@ -46,11 +46,21 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * ### ⚠️ Lo único que sí tiene efectos: las skills
  *
  * Si el modelo llama a una skill, se ejecuta de verdad contra la base de datos a la que apuntes.
- * Con el actor de huésped todas son de lectura menos una: `escalar_al_equipo` **manda WhatsApp**
- * a quien tenga `ROLE_CUSTOMER_SUPPORT` y móvil. Por eso el comando se planta si encuentra
- * guardia con teléfono y obliga a pasar `--con-guardia` para seguir. Vaciar esos teléfonos
- * mientras se prueba es lo razonable — y de paso se ve que la skill se invocó, que es el dato
- * que importa, sin despertar a nadie.
+ * Con el actor de huésped **dos** escriben, y las dos mandan mensajes a personas reales:
+ *
+ * - `escalar_al_equipo` → WhatsApp a quien tenga `ROLE_CUSTOMER_SUPPORT` y móvil.
+ * - `enviarme_plantilla` → un mensaje **al propio huésped**, por su canal.
+ *
+ * Las dos sobreviven al filtro de `permitirEscritura: false` porque son `NivelRiesgo::Interna`,
+ * que es justo el matiz que las deja llegar al chat del huésped ({@see NivelRiesgo}).
+ *
+ * ⚠️ La primera versión de este comando sólo vigilaba la primera. Probando el flujo de la
+ * reserva V4JE5Q contra una copia de producción, el modelo llamó a la segunda ante «¿ofreces
+ * tours?» y se creó un mensaje real con su cola de Beds24 apuntando a una huésped de verdad. No
+ * salió de milagro —la plantilla no tenía ID de Meta para «es»—, pero pudo salir. **Vaciar los
+ * teléfonos de guardia protege a los operadores, no al huésped.**
+ *
+ * Por eso el aviso nombra las dos y `--con-guardia` es lo que asume el riesgo entero.
  *
  * Uso:
  *   php bin/console app:agent:replay <uuid-reserva> --guion=var/guion.json
@@ -210,8 +220,12 @@ final class AgentReplayCommand extends Command
         }
 
         $io->error(sprintf(
-            "Hay gente de guardia con móvil (%s). Si el modelo llama a escalar_al_equipo les llega "
-            . "un WhatsApp de verdad.\nVacía esos teléfonos mientras pruebas, o repite con --con-guardia.",
+            "Hay gente de guardia con móvil (%s): si el modelo llama a escalar_al_equipo les "
+            . "llega un WhatsApp de verdad.\n\n"
+            . "Y OJO, vaciar esos teléfonos NO deja la prueba limpia: «enviarme_plantilla» le "
+            . "manda un mensaje AL HUÉSPED por su canal, y esa reserva puede ser de una persona "
+            . "real. Si vas a preguntar por tours o por el menú, usa una reserva de mentira.\n\n"
+            . "Repite con --con-guardia cuando asumas las dos cosas.",
             $nombres
         ));
 

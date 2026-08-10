@@ -206,6 +206,37 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->renderAsSwitch(true)
             ->setColumns(6);
 
+        // Sustituye al cuerpo SOLO para el asistente. La app del huésped sigue pintando la
+        // descripción de siempre. Ver PmsGuiaItem::$agenteContenido.
+        yield TextareaField::new('agenteContenido', '🗣️ Lo que dice el asistente (si es distinto)')
+            ->setHelp(
+                'Déjalo vacío y el asistente cuenta el cuerpo del ítem, que es lo normal. '
+                . 'Escribe aquí cuando por chat convenga decir OTRA cosa: el depósito de garantía '
+                . 'leído en la guía está bien, soltado a bocajarro a quien preguntó otra cosa '
+                . 'espanta.<br>'
+                . 'Sirve también al revés: lo que el asistente necesita saber y no es contenido '
+                . 'publicable —por qué el importe de la app del canal no cuadra con el nuestro, '
+                . 'por ejemplo—. Así deja de improvisar una explicación distinta cada vez.<br>'
+                . '<strong>Ojo:</strong> SUSTITUYE al cuerpo, no lo acompaña. Lo que no escribas '
+                . 'aquí, el asistente no lo sabrá de este tema. Texto plano, en español y sin '
+                . 'HTML: él lo traduce al idioma del huésped.<br>'
+                . '<strong>Sin <code>{{ placeholders }}</code>:</strong> aquí NO se resuelven. Si '
+                . 'el tema necesita el código de la caja, la hora de entrada o el WiFi, deja este '
+                . 'campo vacío — esos datos cambian por reserva y tienen su propia ventana de '
+                . 'acceso.<br>'
+                . '<strong>Máximo útil ~900 caracteres:</strong> el asistente recorta a partir de '
+                . 'ahí, así que lo que sobre no lo va a leer. Si el texto es más largo, resume.<br>'
+                . '<strong>🔥 Lo que quites, lo NEGARÁ.</strong> Si borras un hecho de aquí, el '
+                . 'asistente no se lo calla: contesta que no existe. Probado con el depósito de '
+                . 'garantía — al quitarlo respondía «no es necesario dejar ningún depósito». '
+                . 'Para que no lo suelte de entrada, déjalo escrito con su instrucción: '
+                . '<em>«Depósito: SOLO si pregunta. No lo saques tú. Si pregunta: sí, son S/ 300 '
+                . 'y se devuelven al salir.»</em> Las instrucciones no se le escapan al huésped.'
+            )
+            ->setNumOfRows(5)
+            ->hideOnIndex()
+            ->setColumns(12);
+
         yield FormField::addPanel('Contenido Dinámico')
             ->setIcon('fa fa-align-left');
 

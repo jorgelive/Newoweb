@@ -119,6 +119,38 @@ class PmsGuiaItem
     #[ORM\Column(name: 'agente_requiere_humano', type: 'boolean', options: ['default' => false])]
     private bool $agenteRequiereHumano = false;
 
+    /**
+     * Lo que el asistente cuenta de este tema, cuando NO es lo mismo que se publica.
+     *
+     * Con contenido aquí, `consultar_guia` devuelve **esto en lugar del cuerpo**. La app del
+     * huésped no se entera: sigue pintando la descripción de siempre.
+     *
+     * ### Por qué hace falta poder decir cosas distintas
+     *
+     * No es censura ni un atajo: es que **leer y que te lo digan no son lo mismo**. El ítem de
+     * pagos explica que en las reservas de Booking se pide un depósito de garantía de S/ 300 al
+     * check-in. Escrito en la guía está bien —el huésped lo lee cuando toca, junto a la
+     * explicación de que se devuelve entero—; soltado por el chat a alguien que sólo preguntó
+     * «¿el pago no es por Booking?» suena a peaje sorpresa y espanta.
+     *
+     * Sirve también para lo contrario: **contarle al agente lo que no cabe en la guía**. Las
+     * preguntas recurrentes que no son contenido publicable —por qué el importe de la app de
+     * Booking no cuadra con el nuestro, por ejemplo— tienen aquí su sitio, y así el modelo deja
+     * de improvisar una explicación verosímil cada vez.
+     *
+     * ### Se escribe para el modelo, no para el huésped
+     *
+     * Texto plano y en español, como {@see \App\Message\Entity\MessageTemplate::$agenteUso}: no
+     * lleva HTML —el chat no lo pinta— y no se traduce, porque el modelo lo redacta en el idioma
+     * del huésped. Un diccionario más a cambio de nada.
+     *
+     * ⚠️ **Sustituye, no acompaña.** Si aquí escribes media explicación, media explicación es
+     * todo lo que el agente sabrá del tema: lo que quede fuera no lo va a completar leyendo el
+     * cuerpo, porque no lo recibe.
+     */
+    #[ORM\Column(name: 'agente_contenido', type: 'text', nullable: true)]
+    private ?string $agenteContenido = null;
+
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $labelBoton = [];
@@ -298,6 +330,16 @@ class PmsGuiaItem
     public function setAgenteRequiereHumano(bool $requiere): self
     {
         $this->agenteRequiereHumano = $requiere;
+        return $this;
+    }
+
+    public function getAgenteContenido(): ?string { return $this->agenteContenido; }
+
+    public function setAgenteContenido(?string $contenido): self
+    {
+        $contenido = $contenido !== null ? trim($contenido) : null;
+        $this->agenteContenido = ($contenido === null || $contenido === '') ? null : $contenido;
+
         return $this;
     }
 

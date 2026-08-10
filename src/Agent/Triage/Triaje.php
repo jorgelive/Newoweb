@@ -322,6 +322,10 @@ final readonly class Triaje
           quiere que PASE algo (salir más tarde, un extra, arreglar una avería, revisar un
           cobro). Es la mayoría de los mensajes. Ante la duda entre esto y «conversacion»,
           elige «peticion»: pasarse de trabajador no molesta a nadie; ignorar una pregunta sí.
+          ⚠️ AVISAR DE A QUÉ HORA LLEGA O SE VA ES «peticion», aunque no venga con pregunta
+          («llego a las 12», «estoy en Urubamba», «mi vuelo sale a las 10 de la noche»). Casi
+          siempre lleva dentro un «¿puedo entrar ya?» o un «¿dónde dejo las maletas?», y
+          contestarlo como charla sale un «te esperamos» que promete lo que nadie ha mirado.
         - «emergencia»: hay alguien en peligro o algo que no aguanta hasta mañana —fuego, olor
           a gas, agua inundando, una intrusión, un problema médico, alguien encerrado fuera de
           noche, una persona sola y asustada—. Ante la duda entre esto y «peticion», elige

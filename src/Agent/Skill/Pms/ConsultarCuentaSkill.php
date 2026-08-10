@@ -69,6 +69,14 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
                 . 'pago por separado, con su concepto, importe, fecha y medio de pago, más los '
                 . 'totales, el saldo pendiente, cuánto sale pagarlo con tarjeta y, si procede, '
                 . 'el adelanto que hay que pedir para asegurar la reserva (prepago_pendiente). '
+                . 'Para «¿cuánto es la primera noche?» o «¿cuánto es el adelanto?» usa '
+                . '«adelanto_de_la_politica»: dice lo que pide la política AUNQUE YA ESTÉ '
+                . 'PAGADO, y su «ya_cubierto» te dice si toca pedirlo o sólo informar del '
+                . 'importe. No respondas eso con el total del alojamiento. '
+                . 'Si el huésped dice que en la app del canal (Booking, Airbnb…) le sale OTRO '
+                . 'importe, dale la cifra de aquí y mira TAMBIÉN consultar_guia en el tema de '
+                . 'pagos: la explicación de por qué no cuadran está escrita ahí y no te la '
+                . 'inventes. '
                 . 'Cuando un cargo trae explicacion_para_huesped, ésa es la explicación buena '
                 . 'para dársela al huésped; el campo concepto viene del canal y puede ser un '
                 . 'código sin sentido para él. Úsala cuando '
@@ -147,6 +155,9 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
             // saldo total y el prepago responden a preguntas distintas —«cuánto debes» y
             // «cuánto hay que adelantar ahora»— y confundirlos es cobrar de más.
             'prepago_pendiente' => $this->prepago($info, $moneda),
+            // Cuánto PIDE la política, aunque ya esté pagado. Responde «¿cuánto es la primera
+            // noche?», que `prepago_pendiente` deja sin contestar en cuanto hay un pago.
+            'adelanto_de_la_politica' => $this->adelantoDeLaPolitica($info, $moneda),
             // El idioma del huésped viaja con los datos para que el modelo sepa en qué
             // lengua dirigirse a él si hay que redactarle algo. La skill NO traduce: devuelve
             // datos y quien redacta es el modelo, que es lo que mejor hace.
@@ -187,6 +198,48 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
             'nota' => 'Es el adelanto para asegurar la reserva, no el total: quedan '
                 . sprintf('%s %s', $info->getSaldo(), $moneda) . ' de saldo. Todavía no se ha '
                 . 'cobrado nada de esta reserva.',
+        ], static fn ($v) => $v !== null && $v !== '');
+    }
+
+    /**
+     * Cuánto PIDE la política, se haya pagado ya o no.
+     *
+     * Es `calcular()`, no `pendiente()`, y la diferencia importa: en cuanto hay un pago
+     * registrado `pendiente()` devuelve `null` —correctamente, porque ese pago ES el prepago—
+     * y el agente se quedaba **sin saber cuánto vale una noche**.
+     *
+     * Se vio en la reserva V4JE5Q: la huésped preguntó «me piden el pago de la primera noche,
+     * ¿cuánto es?» habiendo pagado ya los 30, y el agente contestó «150.00», que es el
+     * alojamiento entero, antes de escalar. La cifra buena estaba calculada —la pinta el estado
+     * de cuenta del huésped— pero no llegaba hasta aquí.
+     *
+     * Va en una clave aparte de `prepago_pendiente` a propósito: son dos preguntas distintas
+     * («cuánto vale» y «cuánto falta») y fundirlas es cobrar de más. `ya_cubierto` dice cuál de
+     * las dos aplica sin que el modelo tenga que restar.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function adelantoDeLaPolitica(PmsInformacionFinanciera $info, string $moneda): ?array
+    {
+        $prepago = $this->prepagoCalculador->calcular($info);
+
+        if ($prepago === null) {
+            return null;
+        }
+
+        $politica = PmsPoliticaPrepago::tryFrom($prepago['politica']);
+        $cubierto = (float) $info->getTotalPagos() > 0.0;
+
+        return array_filter([
+            'monto' => $prepago['monto'],
+            'moneda' => $moneda,
+            'politica' => $politica?->etiqueta(),
+            'ya_cubierto' => $cubierto,
+            'nota' => $cubierto
+                ? 'Esto es lo que pide la política de adelanto, y YA ESTÁ CUBIERTO con lo que '
+                    . 'tiene pagado. Sirve para responder «¿cuánto es la primera noche?»; no se '
+                    . 'lo vuelvas a pedir.'
+                : 'Es lo que pide la política de adelanto y todavía no se ha pagado nada.',
         ], static fn ($v) => $v !== null && $v !== '');
     }
 
