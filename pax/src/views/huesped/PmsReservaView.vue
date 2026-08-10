@@ -431,8 +431,12 @@ const detalleCuentaAbierto = ref(false);
                 </span>
               </span>
 
+              <!-- Por debajo de 420 px el badge con importe (227 px) y esta línea
+                   completa (71 px) no caben juntos en los 288 px útiles de la tarjeta
+                   y el renglón se partía en dos. Sin la palabra son 30 px y entran:
+                   con la barra justo encima, «34 %» no necesita apoyo. -->
               <p class="ml-auto text-[11px] font-bold text-slate-400 whitespace-nowrap">
-                {{ Math.round(pctPagado) }}% {{ maestroStore.t('res_pagado_pct') || 'pagado' }}
+                {{ Math.round(pctPagado) }}%<span class="max-[420px]:hidden"> {{ maestroStore.t('res_pagado_pct') || 'pagado' }}</span>
               </p>
             </div>
           </div>
