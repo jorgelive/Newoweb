@@ -221,6 +221,14 @@ const tcReferencial = computed(() => Number(finanzas.value?.tipoCambioReferencia
 const hayReferencia = computed(() => tcReferencial.value > 0);
 const enSoles = computed(() => verEnSoles.value && hayReferencia.value);
 
+/** Símbolo de la moneda en la que se cobra de verdad (la de la cabecera). */
+const simboloCobro = computed(() => finanzas.value?.simbolo || finanzas.value?.moneda || '');
+
+/** Símbolo de la moneda referencial (soles). Vacío si el backend no manda TC. */
+const simboloReferencia = computed(
+    () => finanzas.value?.simboloReferencial || finanzas.value?.monedaReferencial || ''
+);
+
 const pagosDetalle = computed(() => finanzas.value?.pagos ?? []);
 
 /** Fecha corta del pago: 'YYYY-MM-DD' -> '15 jun 2026' en el idioma activo. */
@@ -239,9 +247,7 @@ const formatMonto = (v: number): string => {
   // Único sitio que formatea importes, así que el conmutador se aplica aquí y la
   // tarjeta entera cambia de moneda a la vez: total, pagado, saldo y cada línea.
   const importe = enSoles.value ? v * tcReferencial.value : v;
-  const simbolo = enSoles.value
-      ? (finanzas.value?.simboloReferencial || finanzas.value?.monedaReferencial || '')
-      : (finanzas.value?.simbolo || finanzas.value?.moneda || '');
+  const simbolo = enSoles.value ? simboloReferencia.value : simboloCobro.value;
 
   return `${simbolo} ${importe.toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
@@ -358,22 +364,45 @@ const detalleCuentaAbierto = ref(false);
                 {{ maestroStore.t('res_estado_cuenta') || 'Estado de cuenta' }}
               </h2>
             </div>
-            <span v-if="todoPagado"
-                  class="shrink-0 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
-              <i class="fas fa-circle-check"></i> {{ maestroStore.t('res_al_dia') || 'Al día' }}
-            </span>
-            <!-- Con el detalle plegado el badge lleva el importe: es el dato que
-                 el huésped busca, y abajo no hay nada visible que lo muestre.
-                 Al desplegar se quita de aquí para no repetirlo junto al número
-                 grande de "Saldo por pagar". -->
-            <span v-else
-                  class="shrink-0 inline-flex items-center gap-1.5 bg-orange-50 text-[#E07845] border border-orange-200 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
-              <i class="fas fa-hourglass-half"></i> {{ maestroStore.t('res_saldo_pendiente') || 'Saldo pendiente' }}
-              <span v-if="!detalleCuentaAbierto"
-                    class="pl-1.5 ml-0.5 border-l border-orange-200 normal-case tracking-normal tabular-nums">
-                {{ formatMonto(finSaldo) }}
-              </span>
-            </span>
+            <!-- ═══ CONMUTADOR DE MONEDA ═══
+                 Vive en la cabecera —no dentro del desglose— porque el desglose
+                 arranca plegado y el importe que el huésped mira de un vistazo (el
+                 badge de saldo, abajo) también cambia de moneda: el mando tiene que
+                 estar visible en los dos estados de la tarjeta.
+
+                 Segmentado en vez de un botón que alterna: el botón discreto de antes
+                 obligaba a deducir si el símbolo era el estado actual o el destino.
+                 Aquí las dos monedas están siempre a la vista y la activa es la que
+                 lleva color.
+
+                 `!soloProgreso` no sobra: el backend manda el tipo de cambio al margen
+                 de que haya cifras que enseñar, y en una reserva de Airbnb sin extras
+                 el conmutador no tendría nada que convertir. Antes esto lo daba gratis
+                 el bloque plegable, que ya iba dentro de ese `v-if`. -->
+            <div v-if="hayReferencia && !soloProgreso"
+                 class="shrink-0 flex items-center gap-0.5 rounded-full bg-slate-100 p-1 ring-1 ring-slate-200"
+                 role="group"
+                 :aria-label="maestroStore.t('res_moneda_conmutador') || 'Cambiar moneda'">
+              <button type="button"
+                      @click="verEnSoles = false"
+                      :aria-pressed="!enSoles"
+                      class="rounded-full px-2.5 py-1 text-[13px] font-black leading-none tabular-nums transition-all"
+                      :class="!enSoles
+                        ? 'bg-white text-[#376875] shadow-sm ring-1 ring-slate-200'
+                        : 'text-slate-400 hover:text-slate-600'">
+                {{ simboloCobro }}
+              </button>
+              <i class="fas fa-right-left text-[9px] text-slate-400 px-0.5" aria-hidden="true"></i>
+              <button type="button"
+                      @click="verEnSoles = true"
+                      :aria-pressed="enSoles"
+                      class="rounded-full px-2.5 py-1 text-[13px] font-black leading-none tabular-nums transition-all"
+                      :class="enSoles
+                        ? 'bg-white text-amber-600 shadow-sm ring-1 ring-amber-200'
+                        : 'text-slate-400 hover:text-slate-600'">
+                {{ simboloReferencia }}
+              </button>
+            </div>
           </div>
 
           <!-- Progreso de pago -->
@@ -382,10 +411,40 @@ const detalleCuentaAbierto = ref(false);
               <div class="h-full rounded-full bg-linear-to-r from-[#376875] to-emerald-500 transition-all duration-700"
                    :style="{ width: pctPagado + '%' }"></div>
             </div>
-            <p class="text-[11px] font-bold text-slate-400 mt-2 text-right">
-              {{ Math.round(pctPagado) }}% {{ maestroStore.t('res_pagado_pct') || 'pagado' }}
-            </p>
+
+            <!-- Estado (izquierda) y porcentaje (derecha) a la misma altura, bajo la
+                 barra: son las dos lecturas de lo mismo y antes estaban separadas por
+                 media tarjeta. `flex-wrap` porque en móviles estrechos el badge con
+                 importe y el porcentaje no siempre caben en un renglón. -->
+            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <span v-if="todoPagado"
+                    class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">
+                <i class="fas fa-circle-check"></i> {{ maestroStore.t('res_al_dia') || 'Al día' }}
+              </span>
+              <!-- Con el detalle desplegado el saldo ya aparece abajo como número
+                   grande («Saldo por pagar»): repetirlo aquí era ruido. -->
+              <span v-else-if="!detalleCuentaAbierto"
+                    class="inline-flex items-center gap-1.5 bg-orange-50 text-[#E07845] border border-orange-200 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">
+                <i class="fas fa-hourglass-half"></i> {{ maestroStore.t('res_saldo_pendiente') || 'Saldo pendiente' }}
+                <span class="pl-1.5 ml-0.5 border-l border-orange-200 normal-case tracking-normal tabular-nums">
+                  {{ formatMonto(finSaldo) }}
+                </span>
+              </span>
+
+              <p class="ml-auto text-[11px] font-bold text-slate-400 whitespace-nowrap">
+                {{ Math.round(pctPagado) }}% {{ maestroStore.t('res_pagado_pct') || 'pagado' }}
+              </p>
+            </div>
           </div>
+
+          <!-- El aviso de «referencial» está FUERA del plegable a propósito: con el
+               conmutador en la cabecera se puede pasar a soles sin desplegar nada, y
+               entonces el badge de saldo enseñaría una cifra en soles sin decir que no
+               es la que se cobra (docs/FinanzasEnlacesPago.md §8). Una sola línea: dos
+               renglones de aviso empujaban el desglose fuera de la pantalla en móvil. -->
+          <p v-if="enSoles" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-medium leading-snug text-amber-700">
+            {{ maestroStore.t('res_soles_referencial') || 'Importes referenciales al tipo de cambio de hoy.' }}
+          </p>
 
           <!-- ═══ DETALLE PLEGABLE ═══
                El truco de grid-rows 0fr -> 1fr anima la altura sin conocerla de
@@ -399,26 +458,6 @@ const detalleCuentaAbierto = ref(false);
 
               <!-- Detalle de cargos, línea a línea -->
               <div class="pt-6">
-
-                <!-- Conmutador a soles. Solo existe si el backend mandó tipo de cambio;
-                     la etiqueta «referencial» no es opcional: el cobro real va en la
-                     moneda de la cabecera. -->
-                <div v-if="hayReferencia" class="flex items-center justify-end gap-2 mb-3">
-                  <button type="button" @click="verEnSoles = !verEnSoles"
-                          class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700">
-                    <i class="fas fa-right-left text-[9px]" aria-hidden="true"></i>
-                    {{ enSoles
-                        ? (finanzas?.simbolo || finanzas?.moneda)
-                        : (finanzas?.simboloReferencial || finanzas?.monedaReferencial) }}
-                  </button>
-                </div>
-
-                <!-- Una sola línea: en móvil dos renglones de aviso empujaban el desglose
-                     fuera de la pantalla. La moneda de cobro ya se ve en cada importe al
-                     desactivar el conmutador, así que decirla aquí era redundante. -->
-                <p v-if="enSoles" class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-medium leading-snug text-amber-700">
-                  {{ maestroStore.t('res_soles_referencial') || 'Importes referenciales al tipo de cambio de hoy.' }}
-                </p>
 
                 <!-- Prepago pendiente. Solo lo manda el backend a quien no ha pagado nada:
                      si ya hay un pago, ese pago era el prepago. Se pinta ARRIBA del

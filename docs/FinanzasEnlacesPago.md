@@ -848,3 +848,20 @@ quiere evitar.
 Por eso **la pantalla tiene que decir que es referencial**: no es lo que se cobró ni lo que se
 va a cobrar. El cobro real sigue siendo en la moneda de la cabecera. Si no hay TC del día, o
 la cabecera ya está en soles, no se manda nada y el conmutador no se pinta.
+
+#### Dónde vive el conmutador, y por qué el aviso está fuera del plegable
+
+En `PmsReservaView.vue` el conmutador es un **segmentado** (`$` ⇄ `S/.`, la moneda activa en
+color) y vive en la **cabecera de la tarjeta**, no dentro del desglose. El desglose arranca
+plegado, y el badge de saldo —que sí se ve plegado— también cambia de moneda: el mando tiene
+que estar accesible en los dos estados.
+
+⚠️ Esa mudanza arrastra el aviso de «referencial»: **también tiene que estar fuera del
+plegable**. Si el aviso se queda dentro, se puede pasar a soles sin desplegar nada y el badge
+enseña una cifra en soles sin decir que no es la que se cobra —justo lo que esta sección
+prohíbe—. Van juntos: si alguna vez se mueve uno, se mueve el otro.
+
+Dos condiciones, no una: el conmutador se pinta con `hayReferencia && !soloProgreso`. El
+`referenciaSoles()` del provider se añade al margen de que haya cifras (va en `$base`, no en
+`cifras()`), así que en una reserva de Airbnb sin extras llega TC pero no hay nada que
+convertir. Antes esto lo daba gratis el bloque plegable, que ya iba dentro de `!soloProgreso`.
