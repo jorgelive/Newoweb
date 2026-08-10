@@ -171,9 +171,34 @@ autorizar. Es otra razón por la que el canal entero es de solo lectura (§7).
 `username` que no existe en la base de datos, o con el usuario deshabilitado. Dar de baja a
 alguien en el panel le cierra también esta puerta.
 
-Cuando no reconoce a nadie, el log escribe **los tres ids completos**. Son exactamente lo que
-hay que copiar a `ALEXA_USUARIOS`, y van los tres porque cuál registrar —persona, sitio o casa
+### Cómo se sacan los ids del log
+
+Cuando **no** reconoce a nadie, el log escribe los tres completos. Son exactamente lo que hay
+que copiar a `ALEXA_USUARIOS`, y van los tres porque cuál registrar —persona, sitio o casa
 entera— es una decisión que el código no puede tomar por ti.
+
+```
+WARNING  Alexa: consulta no autorizada. persona=… dispositivo=… cuenta=…
+```
+
+⚠️ **Esa línea desaparece en cuanto registras una entrada de dispositivo o de cuenta**, porque
+a partir de ahí siempre se reconoce algo. Y con ella se iría la única forma de averiguar el
+`personId` de alguien para darlo de alta por voz: el huevo y la gallina de esta configuración.
+Por eso `resolver()` registra también lo que **sí** resolvió, con el `personId` cuando viene:
+
+```
+INFO     Alexa: consulta de «susan.acuna» (por cuenta). persona=amzn1.ask.person.XXXX
+                                                ↑              ↑
+                                    voz / dispositivo / cuenta  el id que hay que registrar
+                                    (cómo se resolvió)          para que esa voz sea ella misma
+```
+
+Así es como se pasa de «toda la casa consulta como Susan» a «cada voz es quien es»: que hable
+cada uno una vez, se copian los `persona=` del log y se añaden al mapa.
+
+Es además la traza de **quién** preguntó. Sin ella, con una red de seguridad puesta, todas las
+consultas del log se ven idénticas pregunte quien pregunte — que es justo lo contrario de lo
+que se busca al mapear identidades.
 
 El actor se construye con `AgentActorFactory::delEquipoPorChat($usuario, 'alexa')` — no hizo
 falta un constructor nuevo, el origen ya era un parámetro. Los roles van **efectivos**, con la
@@ -245,19 +270,25 @@ certificadora»* si el dominio va con un wildcard. Idioma: el español que corre
 ### Nombre de invocación
 
 Es lo que se dice en voz alta y **no está en el código**: se elige en la consola. El acordado es
-**`el sistema`**:
+**`openperu`**:
 
 ```
-Alexa, abre el sistema                          → LaunchRequest, micrófono abierto
-Alexa, pregúntale al sistema qué salidas hay hoy      → IntentRequest de un tiro
+Alexa, abre openperu                          → LaunchRequest, micrófono abierto
+Alexa, pregúntale a openperu qué salidas hay hoy    → IntentRequest de un tiro
 ```
 
-Cumple el formato que exige Amazon —dos palabras, minúsculas, sin palabras de activación—,
-pero es **genérico**, y la revisión de certificación puede rechazar por eso un skill público.
-En *beta testing*, que es como va a distribuirse (§9 más abajo), no hay tal revisión. Si algún
-día se publicase y lo rechazaran, la salida es un nombre con algo propio dentro (`el sistema
-de casitas`, `mi sistema de reservas`): se cambia en la consola y **no toca el código**, salvo
-el saludo de `AlexaController::BIENVENIDA`, que conviene que suene a lo mismo.
+Empezó siendo `el sistema`, que cumplía el formato de Amazon —dos palabras, minúsculas, sin
+palabras de activación— pero era **genérico**: la revisión de certificación rechaza por eso un
+skill público, y sobre todo no dice nada a quien lo usa. `openperu` es el nombre de la casa.
+
+⚠️ Al cambiarlo hay que tocar **una línea del código**: `AlexaController::BIENVENIDA`. Es la
+única atadura entre la consola y el repositorio, y es fácil de olvidar porque nada falla — el
+skill sigue funcionando, sólo que se abre con un nombre y responde con otro, que suena a haber
+llamado a quien no era.
+
+Ojo con el formato si algún día se publica: Amazon pide dos palabras salvo que el nombre sea una
+marca propia. `openperu` lo es, pero eso lo decide la revisión, no nosotros. En *beta testing*,
+que es como se distribuye (§9), no hay revisión.
 
 Con la sesión abierta ya no hace falta repetir «Alexa» ni el nombre: se pregunta directamente,
 que es lo que hace utilizable el canal. `AMAZON.StopIntent` («Alexa, para») cierra.
@@ -277,9 +308,23 @@ que es lo que hace utilizable el canal. `AMAZON.StopIntent` («Alexa, para») ci
       "samples": [
         "que {consulta}",
         "dime {consulta}",
+        "dime que {consulta}",
         "pregunta {consulta}",
         "sobre {consulta}",
-        "necesito saber {consulta}"
+        "necesito saber {consulta}",
+        "quiero saber {consulta}",
+        "averigua {consulta}",
+        "revisa {consulta}",
+        "busca {consulta}",
+        "consulta {consulta}",
+        "cuántas {consulta}",
+        "cuántos {consulta}",
+        "cuál es {consulta}",
+        "cuándo {consulta}",
+        "a qué hora {consulta}",
+        "quién {consulta}",
+        "dónde {consulta}",
+        "hay {consulta}"
       ]
     }
   ]
@@ -287,10 +332,28 @@ que es lo que hace utilizable el canal. `AMAZON.StopIntent` («Alexa, para») ci
 ```
 
 ⚠️ **Un `{consulta}` a secas NO es válido con `AMAZON.SearchQuery`**: Amazon exige al menos una
-palabra portadora delante del slot y rechaza el modelo al compilarlo. De ahí que todas las
-muestras empiecen por «que», «dime», «pregunta»… Es la razón, además, de que la conversación
-abierta sea el modo bueno: dentro de la sesión la frase portadora la pone el propio contexto y
-el operador habla natural.
+palabra portadora delante del slot y rechaza el modelo al compilarlo.
+
+**Y de ahí sale la trampa que costó una tarde de depuración**, porque no falla en ningún sitio
+donde se pueda ver: si la frase no empieza por una de las portadoras de la lista, Alexa **no
+enruta al skill y la petición NUNCA LLEGA AL SERVIDOR**. No hay log, no hay error, no hay 4xx —
+el dispositivo contesta «no tengo claro cómo puedo ayudarte con eso» y desde el backend parece
+que nadie ha hablado. Con solo cinco portadoras, un «cuántas casitas hay libres mañana» —la
+forma en que habla cualquiera— era irrutable.
+
+Por eso la lista es larga y hay que ampliarla cuando aparezca una forma de preguntar que se
+quede fuera. Dos familias, con distinta consecuencia:
+
+- **Portadoras vacías** (`dime`, `pregunta`, `averigua`, `busca`…): Alexa se las come y el slot
+  llega íntegro. Son las buenas.
+- **Palabras de pregunta** (`cuántas`, `cuándo`, `dónde`…): también funcionan, pero **la
+  portadora se pierde**: «cuántas casitas hay libres mañana» llega al modelo como «casitas hay
+  libres mañana». El sentido se sostiene y el modelo responde bien, pero conviene saber que el
+  texto que ve no es el que se dijo.
+
+Diagnóstico rápido cuando «no contesta»: mira si hay petición en nginx
+(`grep " /alexa " access.log`). **Sin petición, el problema es el modelo de interacción, no el
+código.** Con petición y sin línea `Agent (…)` detrás, el problema es de permisos o de motor.
 
 `PeticionAlexa::slot()` busca `consulta` y, si no está, coge el primer slot con valor:
 renombrarlo en la consola no debería dejar el skill mudo sin ninguna pista de por qué.
@@ -324,6 +387,7 @@ de la consola de desarrollo.
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
 | Dar de alta una persona, un Echo o la casa entera | `.env.local` del servidor | `ALEXA_USUARIOS` (los tres ids salen del log, §5) |
+| Saber quién preguntó, o pescar un `personId` con la red ya puesta | `AlexaUsuarios::resolver()` | la línea `INFO Alexa: consulta de …`, §5 |
 | Cambiar la prioridad persona → sitio → cuenta | `PeticionAlexa` | `identidades()` |
 | Cambiar qué dice al abrir o al no entender | `AlexaController` | `BIENVENIDA`, `REINTENTO`, `AYUDA` |
 | Cambiar cómo habla el asistente | `VoiceAssistant` | `systemPrompt()` |

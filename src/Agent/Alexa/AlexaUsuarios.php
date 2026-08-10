@@ -79,10 +79,12 @@ final readonly class AlexaUsuarios
     {
         $mapa = $this->mapa();
         $username = null;
+        $porDonde = null;
 
         foreach ($peticion->identidades() as $identidad) {
             if (isset($mapa[$identidad])) {
                 $username = $mapa[$identidad];
+                $porDonde = $identidad;
                 break;
             }
         }
@@ -122,7 +124,32 @@ final readonly class AlexaUsuarios
             return null;
         }
 
+        // 🔑 También se registra lo que SÍ se resolvió, y no es adorno: en cuanto hay una
+        // entrada de dispositivo o de cuenta haciendo de red, la línea de «no autorizada» deja
+        // de aparecer — siempre se reconoce algo—, y con ella se perdía la única forma de
+        // averiguar el `personId` de alguien para darlo de alta por voz. Aquí sale aunque la
+        // consulta se haya resuelto por la red.
+        //
+        // Es además la traza de QUIÉN preguntó, que es media razón de ser del mapa: sin esto,
+        // con la red puesta, todo el log dice lo mismo pregunte quien pregunte.
+        $this->logger->info(sprintf(
+            'Alexa: consulta de «%s» (por %s). persona=%s',
+            $username,
+            $this->tipoDeIdentidad($porDonde),
+            $peticion->persona ?? 'voz no reconocida'
+        ));
+
         return $usuario;
+    }
+
+    /** Traduce el prefijo del id a algo legible de un vistazo en el log. */
+    private function tipoDeIdentidad(string $identidad): string
+    {
+        return match (true) {
+            str_starts_with($identidad, 'amzn1.ask.person.') => 'voz',
+            str_starts_with($identidad, 'amzn1.ask.device.') => 'dispositivo',
+            default => 'cuenta',
+        };
     }
 
     public function estaConfigurado(): bool

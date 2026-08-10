@@ -39,8 +39,14 @@ final class AlexaController extends AbstractController
     /** Lo que se recuerda de la conversación. Alexa limita el tamaño de `sessionAttributes`. */
     private const int MAX_TURNOS_RECORDADOS = 6;
 
-    /** Va a juego con el nombre de invocación («Alexa, abre el sistema»). Ver docs/AgentVoz.md §9. */
-    private const string BIENVENIDA = 'Sistema listo. ¿Qué necesitas?';
+    /**
+     * Va a juego con el nombre de invocación («Alexa, abre openperu»). Ver docs/AgentVoz.md.
+     *
+     * Si se cambia el nombre en la consola de Amazon, esta línea es lo ÚNICO del código que hay
+     * que tocar — y hay que tocarla: un skill que se abre diciendo un nombre y contesta con otro
+     * suena a que has llamado a quien no era.
+     */
+    private const string BIENVENIDA = 'Openperu listo. ¿Qué necesitas?';
 
     private const string REINTENTO = '¿Sigues ahí? Dime qué necesitas.';
 
