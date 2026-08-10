@@ -349,6 +349,20 @@ class PmsUnidad
     public function getTarifaBaseMinStay(): int { return $this->tarifaBaseMinStay; }
     public function setTarifaBaseMinStay(int $val): self { $this->tarifaBaseMinStay = $val; return $this; }
 
+    /**
+     * Stub para la columna «Pax extra» del listado, que resume `paxIncluidos` y
+     * `precioPaxAdicional` en una celda.
+     *
+     * Existe por una limitación de EasyAdmin: `TextField` valida el valor CRUDO antes de
+     * pasarlo por `formatValue()`, así que anclarlo a `paxIncluidos` —un `int`— revienta con
+     * «can't be converted into a string». El contenido real lo pinta el `formatValue` del
+     * CRUD. Mismo truco que `PmsCatalogo::$virtualContenidos`.
+     */
+    public function getVirtualPaxExtra(): string
+    {
+        return '';
+    }
+
     public function getPaxIncluidos(): int { return $this->paxIncluidos; }
     public function setPaxIncluidos(int $val): self { $this->paxIncluidos = max(0, $val); return $this; }
 

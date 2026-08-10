@@ -240,7 +240,10 @@ final class PmsUnidadCrudController extends BaseCrudController
 
         // Una sola columna en el listado, para poder revisar de un vistazo que ninguna casita
         // se quedó sin la regla: dos campos sueltos ahí serían ruido.
-        yield TextField::new('paxIncluidos', 'Pax extra')
+        // Anclada al stub `virtualPaxExtra`, NO a `paxIncluidos`: TextField valida el valor
+        // crudo antes de formatearlo y un `int` lo hace reventar con «can't be converted
+        // into a string». El contenido lo pone el formatValue desde la entidad.
+        yield TextField::new('virtualPaxExtra', 'Pax extra')
             ->onlyOnIndex()
             ->setSortable(false)
             ->formatValue(static function ($value, $entity) {
