@@ -25,6 +25,19 @@ const props = defineProps<{
     origenId: string;
     /** Saldo pendiente de la cabecera, para prellenar el importe. */
     saldo: number;
+    /**
+     * Prepago pendiente de la cabecera, o `null` si ya no procede pedirlo.
+     *
+     * Lo manda `PmsInformacionFinancieraPorReservaProvider`. Es `null` en cuanto hay un pago
+     * registrado (ese pago ERA el adelanto), y de eso depende qué atajos se ofrecen.
+     */
+    prepago?: {
+        monto: string;
+        politica?: string;
+        politicaEtiqueta?: string;
+        politicaCorta?: string;
+        concepto?: string;
+    } | null;
     monedaSimbolo?: string | null;
     readOnly?: boolean;
 }>();
@@ -127,16 +140,77 @@ watch(
     { immediate: true },
 );
 
-function abrirForm(): void {
+// ============================================================================
+// ATAJOS DE IMPORTE
+//
+// Los dos cobros que se piden de verdad, sin teclear ni calcular de cabeza:
+//
+//   · Con adelanto pendiente → «Primera noche» y «Total».
+//     Los dos son legítimos y conviven: la política pide el adelanto, pero hay
+//     huéspedes que prefieren dejarlo pagado entero de una vez.
+//   · Ya cobrado el adelanto → sólo «Saldo». Ofrecer «primera noche» ahí sería
+//     pedir por segunda vez algo que el huésped ya hizo; el backend además lo
+//     impide (`prepago` llega null en cuanto hay un pago).
+//
+// El atajo NO emite: prellena el formulario y lo abre. La vigencia, el recargo y
+// el concepto siguen a la vista y el operador confirma con «Generar enlace» — es
+// un cobro, y ahorrar el tecleo no es razón para quitar la última mirada.
+//
+// ⚠️ La etiqueta de la política viene del backend (`PmsPoliticaPrepago`), no de un
+// Record de aquí: el establecimiento puede pasar a `mitad_total` y el botón tiene
+// que dejar de decir «Primera noche» solo.
+// ============================================================================
+
+interface PresetImporte {
+    clave: string;
+    etiqueta: string;
+    /** El matiz largo de la política, al `title`: en el botón estorba. */
+    detalle?: string;
+    monto: string;
+    /** Lo que verá el huésped en la página de pago. Vacío = lo describe el backend. */
+    concepto: string;
+    destacado: boolean;
+}
+
+const presets = computed<PresetImporte[]>(() => {
+    const lista: PresetImporte[] = [];
+    const prepago = props.prepago;
+
+    if (prepago && Number(prepago.monto) > 0.005) {
+        lista.push({
+            clave: 'prepago',
+            etiqueta: prepago.politicaCorta || 'Adelanto',
+            detalle: prepago.politicaEtiqueta,
+            monto: Number(prepago.monto).toFixed(2),
+            concepto: prepago.concepto ?? '',
+            destacado: true,
+        });
+    }
+
+    if (haySaldo.value) {
+        lista.push({
+            // Sin adelanto pendiente lo que queda ES el saldo, y llamarlo «total» mentiría:
+            // el total de la reserva incluye lo ya cobrado.
+            clave: 'saldo',
+            etiqueta: prepago ? 'Total' : 'Saldo',
+            monto: props.saldo.toFixed(2),
+            concepto: '',
+            destacado: !prepago,
+        });
+    }
+
+    return lista;
+});
+
+function abrirForm(preset?: PresetImporte): void {
     error.value = null;
-    // Se prellena con el saldo COMPLETO: cobrar todo lo pendiente es el caso normal;
-    // los adelantos se teclean.
+    // Sin atajo se prellena con el saldo COMPLETO: cobrar todo lo pendiente es el caso normal.
     form.value = {
-        monto: haySaldo.value ? props.saldo.toFixed(2) : '',
+        monto: preset ? preset.monto : (haySaldo.value ? props.saldo.toFixed(2) : ''),
         conRecargo: true,
         vigenciaDias: 7,
         pasarela: '',
-        concepto: '',
+        concepto: preset?.concepto ?? '',
     };
     formAbierto.value = true;
     // Al abrir y no al montar: la mayoría de veces el panel se despliega para mirar, no
@@ -207,9 +281,26 @@ function fechaCorta(iso: string | null): string {
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">
                     <i class="fas fa-link mr-1"></i> Enlaces de pago
                 </p>
-                <button v-if="puedeCobrar && !formAbierto" type="button" @click="abrirForm"
+                <button v-if="puedeCobrar && !formAbierto" type="button" @click="abrirForm()"
                     class="px-3 py-1.5 bg-[#376875] hover:bg-[#2d5660] text-white rounded-lg text-[11px] font-black">
                     <i class="fas fa-credit-card mr-1"></i> Cobrar con tarjeta
+                </button>
+            </div>
+
+            <!-- ===== ATAJOS DE IMPORTE =====
+                 Prellenan el formulario, no emiten: el operador sigue viendo vigencia,
+                 recargo y concepto antes de confirmar. Ver el bloque del script. -->
+            <div v-if="puedeCobrar && !formAbierto && presets.length" class="mt-2 flex flex-wrap gap-2">
+                <button v-for="preset in presets" :key="preset.clave" type="button"
+                    :title="preset.detalle"
+                    @click="abrirForm(preset)"
+                    class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-colors"
+                    :class="preset.destacado
+                        ? 'border-[#376875]/30 bg-[#376875]/8 text-[#376875] hover:bg-[#376875]/15'
+                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'">
+                    <i class="fas fa-bolt text-[9px]"></i>
+                    {{ preset.etiqueta }}
+                    <span class="font-black tabular-nums">{{ props.monedaSimbolo }} {{ preset.monto }}</span>
                 </button>
             </div>
 

@@ -222,7 +222,7 @@ class PmsInformacionFinanciera
      * que sale de `PmsPoliticaPrepago::etiqueta()` — así la etiqueta sigue teniendo una
      * sola fuente y no hay que duplicarla en TypeScript.
      *
-     * @var array{monto: string, politica: string, politicaEtiqueta: string}|null
+     * @var array{monto: string, politica: string, politicaEtiqueta: string, politicaCorta: string, concepto: string}|null
      */
     private ?array $prepagoPendiente = null;
 
@@ -233,10 +233,15 @@ class PmsInformacionFinanciera
         'type' => 'object',
         'nullable' => true,
         'description' => 'Prepago que todavía hay que pedir, o null si no procede.',
+        // Sin `required`, openapi-typescript marca TODO como opcional y el espejo TS obliga
+        // a comprobar un `monto` que siempre viaja cuando el objeto existe.
+        'required' => ['monto', 'politica'],
         'properties' => [
             'monto' => ['type' => 'string', 'example' => '45.00'],
             'politica' => ['type' => 'string', 'example' => 'primera_noche_total'],
             'politicaEtiqueta' => ['type' => 'string', 'example' => 'Primera noche (sobre el total)'],
+            'politicaCorta' => ['type' => 'string', 'example' => 'Primera noche'],
+            'concepto' => ['type' => 'string', 'example' => 'Adelanto de reserva AB12CD — Casita 4'],
         ],
     ])]
     #[Groups(['pms_finanzas:read'])]

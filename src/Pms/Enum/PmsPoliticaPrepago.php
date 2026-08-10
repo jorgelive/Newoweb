@@ -71,6 +71,26 @@ enum PmsPoliticaPrepago: string
     }
 
     /**
+     * Etiqueta CORTA, para botones. «Primera noche», «50 %».
+     *
+     * Existe porque `etiqueta()` lleva el matiz entre paréntesis —«(solo alojamiento)»— que
+     * es imprescindible en un desplegable de configuración y sobra en un botón de tres
+     * palabras. El matiz no se pierde: el atajo del panel lo pone en el `title`.
+     *
+     * ⚠️ Vive aquí y no en un `Record` de TypeScript a propósito. El panel enseña la política
+     * en un botón que EMITE UN COBRO, y una etiqueta copiada en el front se queda diciendo
+     * «primera noche» el día que alguien pase el establecimiento a `mitad_total`.
+     */
+    public function etiquetaCorta(): string
+    {
+        return match ($this) {
+            self::SIN_PREPAGO                                       => 'Sin prepago',
+            self::PRIMERA_NOCHE_TOTAL, self::PRIMERA_NOCHE_ALOJAMIENTO => 'Primera noche',
+            self::MITAD_TOTAL, self::MITAD_ALOJAMIENTO              => '50 %',
+        };
+    }
+
+    /**
      * Clave del diccionario del huésped con la frase que explica la política.
      *
      * Se devuelve la CLAVE y no el texto porque el huésped puede leer en siete idiomas; el

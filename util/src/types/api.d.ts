@@ -15311,11 +15311,15 @@ export interface components {
             /** @description Prepago que todavía hay que pedir, o null si no procede. */
             prepagoPendiente?: {
                 /** @example 45.00 */
-                monto?: string;
+                monto: string;
                 /** @example primera_noche_total */
-                politica?: string;
+                politica: string;
                 /** @example Primera noche (sobre el total) */
                 politicaEtiqueta?: string;
+                /** @example Primera noche */
+                politicaCorta?: string;
+                /** @example Adelanto de reserva AB12CD — Casita 4 */
+                concepto?: string;
             } | null;
             /** Format: uuid */
             readonly id?: string | null;
@@ -15376,11 +15380,15 @@ export interface components {
             /** @description Prepago que todavía hay que pedir, o null si no procede. */
             prepagoPendiente?: {
                 /** @example 45.00 */
-                monto?: string;
+                monto: string;
                 /** @example primera_noche_total */
-                politica?: string;
+                politica: string;
                 /** @example Primera noche (sobre el total) */
                 politicaEtiqueta?: string;
+                /** @example Primera noche */
+                politicaCorta?: string;
+                /** @example Adelanto de reserva AB12CD — Casita 4 */
+                concepto?: string;
             } | null;
             /** Format: uuid */
             readonly id?: string | null;
@@ -15425,11 +15433,15 @@ export interface components {
             /** @description Prepago que todavía hay que pedir, o null si no procede. */
             prepagoPendiente?: {
                 /** @example 45.00 */
-                monto?: string;
+                monto: string;
                 /** @example primera_noche_total */
-                politica?: string;
+                politica: string;
                 /** @example Primera noche (sobre el total) */
                 politicaEtiqueta?: string;
+                /** @example Primera noche */
+                politicaCorta?: string;
+                /** @example Adelanto de reserva AB12CD — Casita 4 */
+                concepto?: string;
             } | null;
             /** Format: uuid */
             readonly id?: string | null;
@@ -15474,11 +15486,15 @@ export interface components {
             /** @description Prepago que todavía hay que pedir, o null si no procede. */
             prepagoPendiente?: {
                 /** @example 45.00 */
-                monto?: string;
+                monto: string;
                 /** @example primera_noche_total */
-                politica?: string;
+                politica: string;
                 /** @example Primera noche (sobre el total) */
                 politicaEtiqueta?: string;
+                /** @example Primera noche */
+                politicaCorta?: string;
+                /** @example Adelanto de reserva AB12CD — Casita 4 */
+                concepto?: string;
             } | null;
             /** Format: uuid */
             readonly id?: string | null;

@@ -1619,10 +1619,14 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
 
                          Al confirmarse un cobro, el webhook crea el PmsPagoFinanciero en el
                          backend; `recargar()` es lo que lo trae a esta lista. -->
+                    <!-- El prepago viaja para los ATAJOS de importe. Es `null` en cuanto hay un
+                         pago registrado, y de eso depende que el atajo ofrezca «adelanto +
+                         total» o sólo «saldo»: ver los presets del componente. -->
                     <ReservaEnlacesPagoSection
                         origen-tipo="pms_reserva"
                         :origen-id="props.reservaId"
                         :saldo="Number(finanzas.info.saldo ?? 0)"
+                        :prepago="prepago"
                         :moneda-simbolo="monedaCabecera?.simbolo"
                         :read-only="readOnly"
                         @actualizado="finanzas.recargar()" />

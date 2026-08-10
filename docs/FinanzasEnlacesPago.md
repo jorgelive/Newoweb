@@ -795,6 +795,41 @@ razones ya estaban escritas en `docs/Mensajeria.md` §11:
    skill sacaría un enlace de cobro hacia un huésped real sin pasar por esa confirmación, y con
    el autorespondedor encendido, sin que lo viera nadie.
 
+### Los atajos del panel
+
+`ReservaEnlacesPagoSection.vue` ofrece los dos cobros que se piden de verdad, sin teclear ni
+calcular de cabeza. **Cuáles aparecen depende de si el adelanto sigue pendiente:**
+
+| Estado | Atajos |
+|---|---|
+| Adelanto pendiente | **«Primera noche» + «Total»** |
+| Adelanto ya cobrado | **«Saldo»**, y sólo ése |
+
+Los dos primeros conviven porque los dos son legítimos: la política pide el adelanto, pero hay
+huéspedes que prefieren dejarlo pagado entero de una vez. El segundo se llama «Total» sólo
+mientras no se ha cobrado nada — después, lo que queda es el **saldo**, y llamarlo total
+mentiría porque el total de la reserva incluye lo ya pagado.
+
+Que «Primera noche» desaparezca no hay que programarlo: el panel recibe `prepagoPendiente` de
+`pendiente()`, que devuelve `null` en cuanto hay un pago (§8). El backend además lo impediría.
+
+⚠️ **El atajo NO emite: prellena el formulario y lo abre.** Vigencia, recargo y concepto siguen
+a la vista y el operador confirma con «Generar enlace». Es un cobro; ahorrar el tecleo no es
+razón para quitar la última mirada.
+
+⚠️ **La etiqueta sale del enum, no de un `Record` en TypeScript.** `PmsPoliticaPrepago` expone
+`etiquetaCorta()` («Primera noche», «50 %») para el botón y `etiqueta()` («Primera noche (solo
+alojamiento)») para su `title`. Copiada en el front, el botón seguiría diciendo «Primera noche»
+el día que alguien pase el establecimiento a `mitad_total` — en un botón que emite un cobro.
+
+El **concepto** del atajo de adelanto lo redacta `PmsPrepagoEnlaceService::concepto()`, la misma
+que usa la skill del agente: si cada camino redactara el suyo, el mismo cobro se llamaría de dos
+maneras en el extracto del huésped según quién lo emitiera.
+
+Los atajos **no están detrás de `FINANZAS_ENLACES_PREPAGO`**, y es deliberado: el flag apaga el
+camino automático —el enlace que sale solo—, no al operador. Aquí hay alguien mirando, igual que
+cuando teclea el importe a mano.
+
 ### La app del pax enseña, no emite
 
 `PmsReservaPaxProvider` manda `enlacesPago` con los **vigentes**, y la vista pinta un botón por
@@ -925,6 +960,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar cuándo se reaprovecha un enlace | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `vigentePorImporte()` (§11 bis) |
 | Cambiar el concepto que lee el huésped al pagar | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `concepto()` |
 | Cambiar el botón de pagar del pax | `pax/src/views/huesped/PmsReservaView.vue` | bloque «PAGAR ONLINE» |
+| Cambiar los atajos de importe del panel | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `presets` (§11 bis) |
+| Cambiar cómo se llama una política en el botón | `src/Pms/Enum/PmsPoliticaPrepago.php` | `etiquetaCorta()` |
 
 ---
 

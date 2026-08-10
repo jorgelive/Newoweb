@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Enum\PmsPoliticaPrepago;
+use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use App\Pms\Repository\PmsInformacionFinancieraRepository;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use Symfony\Component\Uid\Uuid;
@@ -28,6 +29,7 @@ final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterf
     public function __construct(
         private readonly PmsInformacionFinancieraRepository $repository,
         private readonly PmsPrepagoCalculador $prepagoCalculador,
+        private readonly PmsPrepagoEnlaceService $prepagoEnlaces,
     ) {}
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PmsInformacionFinanciera
@@ -69,7 +71,7 @@ final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterf
      * lugar viaja `PmsPoliticaPrepago::etiqueta()`, en español y ya legible. Así la etiqueta
      * mantiene una sola fuente (el enum) en vez de acabar copiada en un `Record` de TypeScript.
      *
-     * @return array{monto: string, politica: string, politicaEtiqueta?: string}|null
+     * @return array{monto: string, politica: string, politicaEtiqueta?: string, politicaCorta?: string, concepto?: string}|null
      */
     private function prepago(PmsInformacionFinanciera $info): ?array
     {
@@ -80,11 +82,20 @@ final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterf
         }
 
         $politica = PmsPoliticaPrepago::tryFrom($prepago['politica']);
+        $reserva = $info->getReserva();
 
         return array_filter([
             'monto' => $prepago['monto'],
             'politica' => $prepago['politica'],
             'politicaEtiqueta' => $politica?->etiqueta(),
+            // Corta para el botón del atajo, larga para su `title`: en un botón de tres
+            // palabras el matiz «(solo alojamiento)» estorba, y en la configuración es
+            // imprescindible. Las dos salen del enum — ver PmsPoliticaPrepago.
+            'politicaCorta' => $politica?->etiquetaCorta(),
+            // El concepto que verá el huésped si el operador usa el atajo. Lo redacta el
+            // mismo servicio que usa la skill del agente, para que el cobro no se llame de
+            // dos maneras distintas según quién lo emitiera.
+            'concepto' => $reserva === null ? null : $this->prepagoEnlaces->concepto($reserva),
         ], static fn ($v) => $v !== null);
     }
 }

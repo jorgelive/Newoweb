@@ -223,8 +223,15 @@ final readonly class PmsPrepagoEnlaceService
         ];
     }
 
-    /** Lo que el huésped lee en la página de pago. Dice que es un adelanto, no el total. */
-    private function concepto(PmsReserva $reserva): string
+    /**
+     * Lo que el huésped lee en la página de pago. Dice que es un adelanto, no el total.
+     *
+     * Pública porque la usan los DOS caminos que emiten un enlace de adelanto: la skill del
+     * agente por `emitir()`, y el atajo del panel, que la recibe prellenada en el formulario.
+     * Si cada uno redactara la suya, el mismo cobro tendría dos nombres en el extracto del
+     * huésped según quién lo emitiera.
+     */
+    public function concepto(PmsReserva $reserva): string
     {
         return substr(sprintf(
             'Adelanto de reserva %s — %s',
