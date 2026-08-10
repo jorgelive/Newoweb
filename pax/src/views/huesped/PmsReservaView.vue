@@ -436,7 +436,9 @@ const detalleCuentaAbierto = ref(false);
                    y el renglón se partía en dos. Sin la palabra son 30 px y entran:
                    con la barra justo encima, «34 %» no necesita apoyo. -->
               <p class="ml-auto text-[11px] font-bold text-slate-400 whitespace-nowrap">
-                {{ Math.round(pctPagado) }}%<span class="max-[420px]:hidden"> {{ maestroStore.t('res_pagado_pct') || 'pagado' }}</span>
+                <!-- `&nbsp;` y no un espacio normal: Vue condensa el blanco que abre el
+                     span y el texto salía pegado ("34%pagado"). -->
+                {{ Math.round(pctPagado) }}%<span class="max-[420px]:hidden">&nbsp;{{ maestroStore.t('res_pagado_pct') || 'pagado' }}</span>
               </p>
             </div>
           </div>
