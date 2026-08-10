@@ -2980,6 +2980,27 @@ Dos cosas que la skill filtra a propósito:
 Es un patrón a repetir en cualquier skill nueva: **un dato que un humano tolera en pantalla
 puede ser ruido o mentira dicho en voz alta por el agente.**
 
+#### Lo que la skill dice del prepago y de cada cargo
+
+Dos campos más, y los dos existen para que el agente no contradiga a la pantalla del huésped:
+
+- **`prepago_pendiente`** — el adelanto que todavía hay que pedir. La cifra sale de
+  `PmsPrepagoCalculador::pendiente()`, **la misma llamada que alimenta el estado de cuenta de
+  `pax`**. No se recalcula aquí a propósito: dos cálculos son dos cifras, y el huésped tiene
+  una de ellas abierta en el móvil mientras el agente le contesta. Sólo viaja si queda algo
+  que pedir — con cualquier pago registrado, ese pago ERA el prepago y el campo desaparece.
+- **`explicacion_para_huesped`** en cada cargo — `descripcionClienteEn($idioma)`, la redacción
+  que escribió el operador (`docs/FinanzasEnlacesPago.md` §8). `concepto` viene del canal y
+  puede ser un código; ésta se le puede repetir tal cual. La mayoría de los cargos no la
+  tienen y `array_filter` la quita, así que no se pagan tokens por un campo vacío.
+
+⚠️ **La `claveI18n` del calculador NO se le pasa al modelo.** Es una clave del diccionario de
+`pax` (`res_prepago_mitad_total`), que se resuelve en el navegador del huésped; aquí sería un
+identificador que el modelo acabaría leyendo en voz alta o traduciendo a ojo. Viaja
+`PmsPoliticaPrepago::etiqueta()`, que ya es español legible, y el modelo lo redacta en el
+idioma que toque. Mismo criterio que `medio` en los pagos: **al modelo se le dan etiquetas, no
+identificadores.**
+
 #### 🔒 La cuenta la consulta también el huésped, y ahí el contexto MANDA
 
 `consultar_cuenta` está en `[ROLE_HUESPED, ROLE_RESERVAS_SHOW]`. Cuánto debe es de las dos o

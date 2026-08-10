@@ -13666,6 +13666,12 @@ export interface components {
             telefonoPrincipal?: string | null;
         };
         PmsEstablecimientoVirtual: {
+            /**
+             * @description Cuánto se le pide por adelantado al huésped al reservar en ESTE establecimiento.
+             * @default sin_prepago
+             * @enum {string}
+             */
+            politicaPrepago: "sin_prepago" | "primera_noche_total" | "primera_noche_alojamiento" | "mitad_total" | "mitad_alojamiento";
             /** @description El establecimiento físico (Hotel/Edificio) al que pertenece este listing virtual. */
             establecimiento?: components["schemas"]["PmsEstablecimiento"];
             /** @description Nombre comercial (Ej: "Saphy", "Inti"). */
@@ -13686,6 +13692,12 @@ export interface components {
             updatedAt?: string | null;
         };
         "PmsEstablecimientoVirtual.html": {
+            /**
+             * @description Cuánto se le pide por adelantado al huésped al reservar en ESTE establecimiento.
+             * @default sin_prepago
+             * @enum {string}
+             */
+            politicaPrepago: "sin_prepago" | "primera_noche_total" | "primera_noche_alojamiento" | "mitad_total" | "mitad_alojamiento";
             /** @description El establecimiento físico (Hotel/Edificio) al que pertenece este listing virtual. */
             establecimiento?: components["schemas"]["PmsEstablecimiento.html"];
             /** @description Nombre comercial (Ej: "Saphy", "Inti"). */
@@ -13706,6 +13718,12 @@ export interface components {
             updatedAt?: string | null;
         };
         "PmsEstablecimientoVirtual.jsonld": {
+            /**
+             * @description Cuánto se le pide por adelantado al huésped al reservar en ESTE establecimiento.
+             * @default sin_prepago
+             * @enum {string}
+             */
+            politicaPrepago: "sin_prepago" | "primera_noche_total" | "primera_noche_alojamiento" | "mitad_total" | "mitad_alojamiento";
             /** @description El establecimiento físico (Hotel/Edificio) al que pertenece este listing virtual. */
             establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld"];
             /** @description Nombre comercial (Ej: "Saphy", "Inti"). */
@@ -13726,6 +13744,12 @@ export interface components {
             updatedAt?: string | null;
         };
         "PmsEstablecimientoVirtual.multipart": {
+            /**
+             * @description Cuánto se le pide por adelantado al huésped al reservar en ESTE establecimiento.
+             * @default sin_prepago
+             * @enum {string}
+             */
+            politicaPrepago: "sin_prepago" | "primera_noche_total" | "primera_noche_alojamiento" | "mitad_total" | "mitad_alojamiento";
             /** @description El establecimiento físico (Hotel/Edificio) al que pertenece este listing virtual. */
             establecimiento?: components["schemas"]["PmsEstablecimiento.multipart"];
             /** @description Nombre comercial (Ej: "Saphy", "Inti"). */
@@ -15284,6 +15308,15 @@ export interface components {
             cargos?: components["schemas"]["PmsCargoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
             /** @description Pagos efectivamente recibidos por nosotros (efectivo, yape, tarjeta, etc.). */
             pagos?: components["schemas"]["PmsPagoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Prepago que todavía hay que pedir, o null si no procede. */
+            prepagoPendiente?: {
+                /** @example 45.00 */
+                monto?: string;
+                /** @example primera_noche_total */
+                politica?: string;
+                /** @example Primera noche (sobre el total) */
+                politicaEtiqueta?: string;
+            } | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15340,6 +15373,15 @@ export interface components {
             cargos?: components["schemas"]["PmsCargoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
             /** @description Pagos efectivamente recibidos por nosotros (efectivo, yape, tarjeta, etc.). */
             pagos?: components["schemas"]["PmsPagoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Prepago que todavía hay que pedir, o null si no procede. */
+            prepagoPendiente?: {
+                /** @example 45.00 */
+                monto?: string;
+                /** @example primera_noche_total */
+                politica?: string;
+                /** @example Primera noche (sobre el total) */
+                politicaEtiqueta?: string;
+            } | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15380,6 +15422,15 @@ export interface components {
             cargos?: components["schemas"]["PmsCargoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
             /** @description Pagos efectivamente recibidos por nosotros (efectivo, yape, tarjeta, etc.). */
             pagos?: components["schemas"]["PmsPagoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Prepago que todavía hay que pedir, o null si no procede. */
+            prepagoPendiente?: {
+                /** @example 45.00 */
+                monto?: string;
+                /** @example primera_noche_total */
+                politica?: string;
+                /** @example Primera noche (sobre el total) */
+                politicaEtiqueta?: string;
+            } | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15420,6 +15471,15 @@ export interface components {
             cargos?: components["schemas"]["PmsCargoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
             /** @description Pagos efectivamente recibidos por nosotros (efectivo, yape, tarjeta, etc.). */
             pagos?: components["schemas"]["PmsPagoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Prepago que todavía hay que pedir, o null si no procede. */
+            prepagoPendiente?: {
+                /** @example 45.00 */
+                monto?: string;
+                /** @example primera_noche_total */
+                politica?: string;
+                /** @example Primera noche (sobre el total) */
+                politicaEtiqueta?: string;
+            } | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -17579,6 +17639,11 @@ export interface components {
             /** @description Helper: Obtiene el Password de la primera red (Principal). */
             readonly mainWifiPass?: string;
             /**
+             * @description Stub para la columna «Pax extra» del listado, que resume `paxIncluidos` y
+             *     `precioPaxAdicional` en una celda.
+             */
+            readonly virtualPaxExtra?: string;
+            /**
              * Format: iri-reference
              * @example https://example.com/
              */
@@ -17756,6 +17821,11 @@ export interface components {
             readonly mainWifiSsid?: string;
             /** @description Helper: Obtiene el Password de la primera red (Principal). */
             readonly mainWifiPass?: string;
+            /**
+             * @description Stub para la columna «Pax extra» del listado, que resume `paxIncluidos` y
+             *     `precioPaxAdicional` en una celda.
+             */
+            readonly virtualPaxExtra?: string;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -17938,6 +18008,11 @@ export interface components {
             readonly mainWifiSsid?: string;
             /** @description Helper: Obtiene el Password de la primera red (Principal). */
             readonly mainWifiPass?: string;
+            /**
+             * @description Stub para la columna «Pax extra» del listado, que resume `paxIncluidos` y
+             *     `precioPaxAdicional` en una celda.
+             */
+            readonly virtualPaxExtra?: string;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -18132,6 +18207,11 @@ export interface components {
             readonly mainWifiSsid?: string;
             /** @description Helper: Obtiene el Password de la primera red (Principal). */
             readonly mainWifiPass?: string;
+            /**
+             * @description Stub para la columna «Pax extra» del listado, que resume `paxIncluidos` y
+             *     `precioPaxAdicional` en una celda.
+             */
+            readonly virtualPaxExtra?: string;
             /**
              * Format: iri-reference
              * @example https://example.com/

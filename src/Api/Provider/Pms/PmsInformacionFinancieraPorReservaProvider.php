@@ -7,7 +7,9 @@ namespace App\Api\Provider\Pms;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Pms\Entity\PmsInformacionFinanciera;
+use App\Pms\Enum\PmsPoliticaPrepago;
 use App\Pms\Repository\PmsInformacionFinancieraRepository;
+use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -24,7 +26,8 @@ use Symfony\Component\Uid\Uuid;
 final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterface
 {
     public function __construct(
-        private readonly PmsInformacionFinancieraRepository $repository
+        private readonly PmsInformacionFinancieraRepository $repository,
+        private readonly PmsPrepagoCalculador $prepagoCalculador,
     ) {}
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PmsInformacionFinanciera
@@ -47,6 +50,41 @@ final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterf
         }
 
         // null → API Platform responde 404, que es lo correcto: esa reserva no tiene cabecera.
-        return $this->repository->findOneByReservaId($reservaId);
+        $info = $this->repository->findOneByReservaId($reservaId);
+
+        $info?->setPrepagoPendiente($info === null ? null : $this->prepago($info));
+
+        return $info;
+    }
+
+    /**
+     * El prepago tal como lo quiere el PANEL.
+     *
+     * La cifra sale de `PmsPrepagoCalculador::pendiente()`, la MISMA llamada que alimenta el
+     * estado de cuenta del huésped: si el panel y el pax dieran importes distintos, la
+     * conversación ya estaría perdida antes de empezar.
+     *
+     * Lo que cambia es la envoltura. La `claveI18n` del calculador se queda fuera —es una
+     * clave del diccionario de `pax`, que se resuelve en el navegador del huésped— y en su
+     * lugar viaja `PmsPoliticaPrepago::etiqueta()`, en español y ya legible. Así la etiqueta
+     * mantiene una sola fuente (el enum) en vez de acabar copiada en un `Record` de TypeScript.
+     *
+     * @return array{monto: string, politica: string, politicaEtiqueta?: string}|null
+     */
+    private function prepago(PmsInformacionFinanciera $info): ?array
+    {
+        $prepago = $this->prepagoCalculador->pendiente($info);
+
+        if ($prepago === null) {
+            return null;
+        }
+
+        $politica = PmsPoliticaPrepago::tryFrom($prepago['politica']);
+
+        return array_filter([
+            'monto' => $prepago['monto'],
+            'politica' => $prepago['politica'],
+            'politicaEtiqueta' => $politica?->etiqueta(),
+        ], static fn ($v) => $v !== null);
     }
 }

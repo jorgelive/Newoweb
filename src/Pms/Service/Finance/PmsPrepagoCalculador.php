@@ -40,6 +40,34 @@ use App\Pms\Enum\PmsTipoCargo;
 final readonly class PmsPrepagoCalculador
 {
     /**
+     * El prepago que TODAVÍA hay que pedir, o `null` si ya no procede pedirlo.
+     *
+     * Es `calcular()` más una regla: **si hay algún pago registrado, ese pago ES el prepago**
+     * —es lo primero que se cobra— y volver a pedirlo sería reclamarle al huésped algo que ya
+     * hizo. `calcular()` responde «cuánto pide la política»; éste, «cuánto queda por pedir».
+     *
+     * Vive aquí y no en quien lo pinta porque lo consumen tres sitios —el estado de cuenta del
+     * huésped, el resumen del panel y la skill `consultar_cuenta` del agente— y una regla
+     * escrita tres veces se separa a la primera. El agente es el que más lo agradece: decirle
+     * a alguien que ya pagó que tiene un prepago pendiente es una equivocación que se lee.
+     *
+     * Se mira `getTotalPagos()`, el mismo agregado de la cabecera que el estado de cuenta
+     * enseña como «pagado»: así lo que dice esta regla y lo que ve el huésped no pueden
+     * discrepar. En los canales que cobran por nosotros da igual — `calcular()` ya devuelve
+     * `null` antes de llegar aquí.
+     *
+     * @return array{monto: string, claveI18n: string, politica: string}|null
+     */
+    public function pendiente(PmsInformacionFinanciera $finanzas): ?array
+    {
+        if ((float) $finanzas->getTotalPagos() > 0.0) {
+            return null;
+        }
+
+        return $this->calcular($finanzas);
+    }
+
+    /**
      * @return array{
      *     monto: string,
      *     claveI18n: string,

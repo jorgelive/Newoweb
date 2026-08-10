@@ -15,6 +15,8 @@ use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsMedioPago;
+use App\Pms\Enum\PmsPoliticaPrepago;
+use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -51,7 +53,8 @@ use Symfony\Component\Uid\Uuid;
 final readonly class ConsultarCuentaSkill implements SkillInterface
 {
     public function __construct(
-        private EntityManagerInterface $em
+        private EntityManagerInterface $em,
+        private PmsPrepagoCalculador $prepagoCalculador,
     ) {}
 
     public function nombre(): string
@@ -64,9 +67,14 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
         return new SkillDefinition(
             descripcion: 'Devuelve el DETALLE de la cuenta de una reserva: cada cargo y cada '
                 . 'pago por separado, con su concepto, importe, fecha y medio de pago, más los '
-                . 'totales, el saldo pendiente y cuánto sale pagarlo con tarjeta. Úsala cuando '
+                . 'totales, el saldo pendiente, cuánto sale pagarlo con tarjeta y, si procede, '
+                . 'el adelanto que hay que pedir para asegurar la reserva (prepago_pendiente). '
+                . 'Cuando un cargo trae explicacion_para_huesped, ésa es la explicación buena '
+                . 'para dársela al huésped; el campo concepto viene del canal y puede ser un '
+                . 'código sin sentido para él. Úsala cuando '
                 . 'pregunten de qué se compone una cuenta, por qué un importe es el que es, qué '
-                . 'se ha cobrado, cómo pagó alguien o cómo puede pagar lo que queda. Si sólo '
+                . 'se ha cobrado, cómo pagó alguien, cuánto hay que adelantar o cómo puede '
+                . 'pagar lo que queda. Si sólo '
                 . 'quieren la cifra del saldo, consultar_mi_reserva (o buscar_reserva) ya la '
                 . 'trae y es más barata. Hablando con un huésped NO pases reserva_id: se usa '
                 . 'siempre la reserva de esta conversación, la suya.',
@@ -118,8 +126,9 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
         }
 
         $moneda = $info->getMoneda()?->getId() ?? '';
+        $idioma = $reserva->getIdioma()?->getId();
 
-        return SkillResult::ok([
+        return SkillResult::ok(array_filter([
             'reserva_id' => $reservaId,
             'huesped' => $this->huesped($reserva),
             'tiene_cuenta' => true,
@@ -131,14 +140,54 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
             // según si hay cargos: sin cargos no es que esté pagada, es que no se ha cobrado.
             'esta_saldada' => (float) $info->getTotalCargos() > 0.0
                 && (float) $info->getSaldo() <= 0.0,
-            'cargos' => $this->cargos($info),
+            'cargos' => $this->cargos($info, $idioma),
             'pagos' => $this->pagos($info),
             'pago_con_tarjeta' => $this->conRecargoTarjeta($info->getSaldo(), $moneda),
+            // Solo viaja si hay algo que pedir; `array_filter` lo quita cuando es null. El
+            // saldo total y el prepago responden a preguntas distintas —«cuánto debes» y
+            // «cuánto hay que adelantar ahora»— y confundirlos es cobrar de más.
+            'prepago_pendiente' => $this->prepago($info, $moneda),
             // El idioma del huésped viaja con los datos para que el modelo sepa en qué
             // lengua dirigirse a él si hay que redactarle algo. La skill NO traduce: devuelve
             // datos y quien redacta es el modelo, que es lo que mejor hace.
-            'idioma_huesped' => $reserva->getIdioma()?->getId(),
-        ]);
+            'idioma_huesped' => $idioma,
+        ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * El adelanto que todavía hay que pedir, o `null` si no procede.
+     *
+     * La cifra y la regla las pone {@see PmsPrepagoCalculador::pendiente()} —la misma que
+     * alimenta el estado de cuenta del huésped—, así que el agente no puede decir un importe
+     * distinto del que el huésped tiene delante en su pantalla. Eso es todo el motivo de que
+     * esto no se calcule aquí.
+     *
+     * ⚠️ La `claveI18n` del calculador NO se pasa al modelo. Es una clave del diccionario de
+     * `pax`, que se resuelve en el navegador del huésped: aquí sería un identificador
+     * (`res_prepago_mitad_total`) que el modelo acabaría leyendo en voz alta o traduciendo a
+     * ojo. Se manda `PmsPoliticaPrepago::etiqueta()`, que es español legible, y el modelo lo
+     * redacta en el idioma que toque. Es el mismo criterio que ya aplica `medio` en los pagos.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function prepago(PmsInformacionFinanciera $info, string $moneda): ?array
+    {
+        $prepago = $this->prepagoCalculador->pendiente($info);
+
+        if ($prepago === null) {
+            return null;
+        }
+
+        $politica = PmsPoliticaPrepago::tryFrom($prepago['politica']);
+
+        return array_filter([
+            'monto' => $prepago['monto'],
+            'moneda' => $moneda,
+            'politica' => $politica?->etiqueta(),
+            'nota' => 'Es el adelanto para asegurar la reserva, no el total: quedan '
+                . sprintf('%s %s', $info->getSaldo(), $moneda) . ' de saldo. Todavía no se ha '
+                . 'cobrado nada de esta reserva.',
+        ], static fn ($v) => $v !== null && $v !== '');
     }
 
     /**
@@ -153,8 +202,12 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
         return $actor->contextoTipo() === 'pms_reserva' ? $actor->contextoId() : null;
     }
 
-    /** @return list<array<string, mixed>> */
-    private function cargos(PmsInformacionFinanciera $info): array
+    /**
+     * @param string|null $idioma Idioma del huésped, para elegir la explicación del cargo.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function cargos(PmsInformacionFinanciera $info, ?string $idioma): array
     {
         $filas = [];
 
@@ -162,6 +215,13 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
             /** @var PmsCargoFinanciero $cargo */
             $filas[] = array_filter([
                 'concepto' => $this->concepto($cargo),
+                // La explicación REDACTADA PARA EL HUÉSPED, cuando el operador la escribió.
+                // `concepto` viene del canal —códigos, nombres de tarifa sin normalizar, a
+                // veces placeholders— y sirve para cuadrar, no para explicar; ésta se puede
+                // repetir tal cual. La mayoría de los cargos no la tienen y se entienden por
+                // su tipo, así que `array_filter` la quita y no gasta tokens.
+                // Ver docs/FinanzasEnlacesPago.md §8.
+                'explicacion_para_huesped' => $cargo->descripcionClienteEn($idioma ?? 'es'),
                 'tipo' => $cargo->getTipoCargo()?->value,
                 'importe' => $cargo->getTotalLinea(),
                 'moneda' => $cargo->getMoneda()?->getId(),

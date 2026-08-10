@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -202,6 +203,45 @@ class PmsInformacionFinanciera
     {
         return number_format((float) $this->totalCargos - (float) $this->totalPagos, 2, '.', '');
     }
+
+    /**
+     * Prepago que todavía hay que pedir. Transitorio: NO es una columna.
+     *
+     * Lo calcula `PmsPrepagoCalculador::pendiente()` y lo inyecta
+     * `PmsInformacionFinancieraPorReservaProvider`, igual que `PmsReservaPaxProvider` hace
+     * con el resumen del huésped. No puede vivir dentro de la entidad porque depende de la
+     * política del establecimiento virtual y de las noches de la reserva, y ese cálculo es
+     * un servicio.
+     *
+     * ⚠️ Sólo lo rellena la operación `por-reserva`, que es la que usa el panel. En un
+     * `GET` por id o en la colección llega `null` — no es que no haya prepago, es que ahí
+     * nadie lo ha calculado. Si algún día hace falta en esas operaciones, se decoran igual.
+     *
+     * No viaja la `claveI18n` que devuelve el calculador: es una clave del diccionario de
+     * `pax`, que se resuelve en el navegador del huésped. Al panel va `politicaEtiqueta`,
+     * que sale de `PmsPoliticaPrepago::etiqueta()` — así la etiqueta sigue teniendo una
+     * sola fuente y no hay que duplicarla en TypeScript.
+     *
+     * @var array{monto: string, politica: string, politicaEtiqueta: string}|null
+     */
+    private ?array $prepagoPendiente = null;
+
+    // La forma se declara a mano: de un `?array` API Platform deduce `string[]`, y el tipo
+    // que openapi-typescript genera para `util` sale inservible (`.monto` no existe en un
+    // array de strings). Con esto el espejo TS se deriva del esquema como los demás.
+    #[ApiProperty(openapiContext: [
+        'type' => 'object',
+        'nullable' => true,
+        'description' => 'Prepago que todavía hay que pedir, o null si no procede.',
+        'properties' => [
+            'monto' => ['type' => 'string', 'example' => '45.00'],
+            'politica' => ['type' => 'string', 'example' => 'primera_noche_total'],
+            'politicaEtiqueta' => ['type' => 'string', 'example' => 'Primera noche (sobre el total)'],
+        ],
+    ])]
+    #[Groups(['pms_finanzas:read'])]
+    public function getPrepagoPendiente(): ?array { return $this->prepagoPendiente; }
+    public function setPrepagoPendiente(?array $prepago): self { $this->prepagoPendiente = $prepago; return $this; }
 
     /**
      * Suma de los cargos de un tipo concreto, en la moneda de la cabecera.

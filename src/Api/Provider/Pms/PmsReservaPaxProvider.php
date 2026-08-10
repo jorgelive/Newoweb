@@ -125,13 +125,10 @@ final class PmsReservaPaxProvider implements ProviderInterface
             'lineas' => $finanzas->getLineasCliente(excluirEspejoCanal: $espejo),
             'pagos'  => $pagos,
 
-            // Prepago pendiente. Solo se pide a quien NO ha pagado todavía nada: si hay
-            // algún pago registrado, ese pago ES el prepago —es lo primero que se cobra— y
-            // volver a pedírselo sería reclamarle algo que ya hizo.
-            //
-            // Va después de `$pagado` a propósito: necesita saber si hay cobros, y esa
-            // cifra ya está calculada arriba con las exclusiones del canal aplicadas.
-            'prepago' => $pagado > 0.0 ? null : $this->prepagoCalculador->calcular($finanzas),
+            // Prepago pendiente. La regla «si ya pagó algo, ese pago ERA el prepago» está
+            // dentro de `pendiente()`, no aquí: la comparten el panel y la skill
+            // `consultar_cuenta` del agente, y escrita tres veces se separa a la primera.
+            'prepago' => $this->prepagoCalculador->pendiente($finanzas),
         ];
     }
 

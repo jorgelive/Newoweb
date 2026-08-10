@@ -804,6 +804,11 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Que los pagos de un módulo salgan en la caja | §10, paso 3 | `FinMovimientoProviderInterface` |
 | Añadir un módulo que cobre | §10 | `FinOrigenCobroResolverInterface` |
 | Depurar "no se confirmó un cobro" | tabla `fin_pasarela_webhook_audit` | `payload_raw`, `estado`, `error_mensaje` |
+| Cambiar CUÁNTO se pide de prepago | `src/Pms/Enum/PmsPoliticaPrepago.php` | `fraccion()`, `soloAlojamiento()` |
+| Cambiar CUÁNDO deja de pedirse | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pendiente()` (§8) |
+| Cambiar cómo lo ve el huésped | `pax/src/views/huesped/PmsReservaView.vue` | bloque «Prepago pendiente» |
+| Cambiar cómo lo ve el operador | `util/src/components/reservas/ReservaFinanzasPanel.vue` | fila «Prepago pendiente» del resumen |
+| Cambiar qué sabe el agente del prepago | `src/Agent/Skill/Pms/ConsultarCuentaSkill.php` | `prepago()` |
 
 ---
 
@@ -827,6 +832,61 @@ explican con su tipo y obligar a redactar cada uno sería trabajo inútil.
 Se edita desde `util` (`ReservaFinanzasPanel.vue`) vía el `PATCH` de API Platform, mandando
 el accesor plano `descripcionClienteEs`. El CRUD del panel es de **solo lectura** para esta
 entidad (`disable(Action::NEW, Action::EDIT)`), así que allí solo se consulta.
+
+La descripción del cliente se ve ahora **también en la fila del cargo** del panel
+(`ReservaFinanzasPanel.vue`), entre comillas y en cursiva. Antes sólo se leía abriendo el
+formulario de edición, así que de un vistazo no había forma de saber si un cargo llegaba
+explicado o como una cifra suelta — que es justo lo que el campo viene a evitar.
+
+Y la consume la skill `consultar_cuenta` del agente, como `explicacion_para_huesped`
+(`docs/Mensajeria.md` §11).
+
+### Quién pide el prepago: `calcular()` vs `pendiente()`
+
+`PmsPrepagoCalculador` tiene **dos** entradas y confundirlas cobra de más:
+
+| Método | Responde | Quién la llama |
+|---|---|---|
+| `calcular()` | «cuánto pide la política» | Nadie directamente; es la base |
+| `pendiente()` | «cuánto queda por pedir» | Los tres consumidores |
+
+`pendiente()` es `calcular()` más una regla: **si hay algún pago registrado, ese pago ES el
+prepago** —es lo primero que se cobra— y volver a pedirlo es reclamarle al huésped algo que ya
+hizo. La regla vive en el servicio y no en quien la pinta porque la comparten tres sitios:
+
+| Consumidor | Dónde | Forma en que sale |
+|---|---|---|
+| Estado de cuenta del huésped | `PmsReservaPaxProvider::cifras()` | `prepago` con `claveI18n` (el front la resuelve) |
+| Panel financiero | `PmsInformacionFinancieraPorReservaProvider::prepago()` | `prepagoPendiente` con `politicaEtiqueta` |
+| Agente | `ConsultarCuentaSkill::prepago()` | `prepago_pendiente` con la etiqueta y una nota |
+
+Se mira `getTotalPagos()` —el agregado de la cabecera, el mismo que el estado de cuenta enseña
+como «pagado»— para que la regla y lo que ve el huésped no puedan discrepar.
+
+⚠️ **La `claveI18n` sólo sirve en `pax`.** Es una clave del diccionario `pax_ui_i18n` que se
+resuelve en el navegador del huésped. En el panel y en el agente se sustituye por
+`PmsPoliticaPrepago::etiqueta()`: así la etiqueta mantiene una sola fuente (el enum) en vez de
+acabar copiada en un `Record` de TypeScript o leída en voz alta por el modelo.
+
+#### El prepago del panel no es una columna
+
+`PmsInformacionFinanciera::$prepagoPendiente` es una propiedad **transitoria**: la inyecta el
+provider de `por-reserva`, igual que `PmsReservaPaxProvider` hace con el resumen del huésped.
+No puede vivir dentro de la entidad porque depende de la política del establecimiento virtual
+y de las noches de la reserva, y ese cálculo es un servicio.
+
+Dos consecuencias:
+
+1. **Sólo la rellena `por-reserva`.** En un `GET` por id o en la colección llega `null`, y eso
+   no significa «no hay prepago» sino «ahí nadie lo ha calculado».
+2. **La forma se declara a mano** con `#[ApiProperty(openapiContext: …)]`. De un `?array` API
+   Platform deduce `string[]`, y el tipo que `openapi-typescript` genera para `util` sale
+   inservible (`.monto` no existe en un array de cadenas). Con el `openapiContext` el espejo
+   TS se deriva del esquema como el resto y no hay que escribirlo a mano.
+
+En el panel se pinta **en la moneda de la cabecera**, aunque el conmutador de vista dual esté
+en la otra: el prepago es la cifra que se le pide al huésped, y convertirla al vuelo inventaría
+una tercera cantidad que nadie le ha dicho.
 
 ### El estado de cuenta del huésped pasó a ser línea a línea
 

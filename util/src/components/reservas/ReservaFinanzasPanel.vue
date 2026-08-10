@@ -269,6 +269,26 @@ async function cambiarMonedaBase(nueva: string): Promise<void> {
     }
 }
 
+// ============================================================================
+// PREPAGO PENDIENTE
+//
+// Lo calcula el backend (`PmsPrepagoCalculador::pendiente()`) y lo inyecta el
+// provider de `por-reserva`: es LA MISMA llamada que alimenta el estado de cuenta
+// del huésped, así que el importe que se ve aquí es el que él tiene delante.
+//
+// ⚠️ Va SIEMPRE en la moneda de la cabecera, aunque el conmutador de vista esté en
+// la otra: el prepago es la cifra que se le pide al huésped y convertirla al vuelo
+// crearía una tercera cantidad que nadie le ha dicho. Por eso usa `monedaCabecera`
+// y no `monedaVistaRef` como el resto de importes del panel.
+// ============================================================================
+
+const prepago = computed(() => finanzas.info?.prepagoPendiente ?? null);
+
+/** El prepago ya cobrado deja de existir, así que esto sólo aparece si queda algo por pedir. */
+const prepagoImporte = computed(() =>
+    prepago.value ? importeConMoneda(prepago.value.monto, monedaCabecera.value) : '',
+);
+
 const saldoPositivo = computed(() => totalesVista.value.saldo > 0.005);
 
 /**
@@ -964,6 +984,33 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </div>
                 </div>
 
+                <!-- ===== PREPAGO PENDIENTE =====
+                     Fila propia y no una cuarta columna del grid: en el drawer las tres
+                     cifras ya van justas y una cuarta las partía. Además esto no es un
+                     total, es una acción pendiente, y leerlo en la misma hilera que
+                     Cargos/Pagado/Saldo invitaba a sumarlo o restarlo — que es justo lo
+                     que no hay que hacer con él.
+
+                     Sólo aparece si queda algo por pedir: en cuanto hay un pago registrado
+                     el backend deja de mandarlo (ese pago ERA el prepago). -->
+                <div v-if="prepago"
+                    class="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-100 bg-[#376875]/5">
+                    <span class="min-w-0">
+                        <span class="text-[10px] font-black text-[#376875] uppercase tracking-wide">
+                            <i class="fas fa-hand-holding-dollar mr-1"></i>Prepago pendiente
+                        </span>
+                        <span v-if="prepago.politicaEtiqueta"
+                            class="block text-[10px] font-bold text-slate-400 leading-tight mt-0.5">
+                            {{ prepago.politicaEtiqueta }}
+                        </span>
+                    </span>
+                    <!-- En la moneda de la CABECERA aunque se esté mirando la otra: ver el
+                         bloque PREPAGO PENDIENTE del script. -->
+                    <span class="text-sm font-black text-[#376875] tabular-nums shrink-0">
+                        {{ prepagoImporte }}
+                    </span>
+                </div>
+
                 <!-- ===== MONEDA BASE (contable, persistida) =====
                      Sólo en directas puras. En una reserva con cargos del canal ni siquiera
                      se pinta: la moneda la manda la OTA. -->
@@ -1111,6 +1158,17 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                         class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-slate-100 text-slate-500"
                                         title="Cargo creado manualmente">Manual</span>
                                 </div>
+                                <!-- Lo que el huésped ve de este cargo en su estado de cuenta.
+                                     Hasta ahora sólo se podía leer abriendo el formulario de
+                                     edición, así que el operador no sabía sin más si un cargo
+                                     estaba explicado o llegaba como una cifra suelta. En cursiva
+                                     y con comillas para que no se confunda con `descripcion`,
+                                     que es la interna y viene del canal. -->
+                                <p v-if="c.descripcionClienteEs"
+                                    class="text-[10px] font-bold text-[#376875] italic mt-1 leading-snug">
+                                    <i class="fas fa-comment-dots mr-1 not-italic" title="Descripción que ve el huésped"></i>
+                                    «{{ c.descripcionClienteEs }}»
+                                </p>
                                 <p class="text-[10px] font-bold text-slate-400 mt-1">
                                     {{ fechaLegible(c.fechaCreacionBeds24) }}
                                     <template v-if="c.tipoCambio"> · TC {{ c.tipoCambio }}</template>
