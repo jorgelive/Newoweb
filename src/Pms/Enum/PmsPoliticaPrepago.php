@@ -109,13 +109,21 @@ enum PmsPoliticaPrepago: string
         };
     }
 
-    /** @return array<string, string> etiqueta => valor, para los desplegables del panel. */
+    /**
+     * @return array<string, self> etiqueta => CASO, para los desplegables del panel.
+     *
+     * ⚠️ Devuelve las instancias del enum, no sus `value`. La propiedad de la entidad está
+     * tipada como este enum, así que con cadenas Symfony intenta convertir el dato (un
+     * objeto) a string para compararlo con las opciones y revienta con
+     * «Object of class PmsPoliticaPrepago could not be converted to string». Es el mismo
+     * patrón que usa PmsCargoFinancieroCrudController con PmsTipoCargo.
+     */
     public static function opciones(): array
     {
         $opciones = [];
 
         foreach (self::cases() as $caso) {
-            $opciones[$caso->etiqueta()] = $caso->value;
+            $opciones[$caso->etiqueta()] = $caso;
         }
 
         return $opciones;
