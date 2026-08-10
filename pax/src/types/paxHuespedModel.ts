@@ -105,6 +105,21 @@ export interface PmsResumenFinanciero {
      * No llega si la cabecera ya está en soles o no hay tipo de cambio del día: entonces el
      * conmutador no se pinta.
      */
+    /**
+     * Prepago pendiente, o `null` si no procede.
+     *
+     * Solo llega a quien NO ha pagado nada todavía: si hay algún pago registrado, ese pago
+     * ES el prepago —es lo primero que se cobra— y volver a pedírselo sería reclamarle algo
+     * que ya hizo. Tampoco llega en Airbnb/VRBO, donde el canal ya cobró.
+     *
+     * `claveI18n` es la clave del diccionario (`res_prepago_*`) que explica la política; el
+     * texto se resuelve con `maestroStore.t()`. Espejo de `PmsPrepagoCalculador::calcular()`.
+     */
+    prepago?: {
+        monto: string;
+        claveI18n: string;
+        politica: string;
+    } | null;
     tipoCambioReferencial?: string;
     monedaReferencial?: string;
     simboloReferencial?: string;

@@ -419,6 +419,24 @@ const detalleCuentaAbierto = ref(false);
                   {{ finanzas?.moneda }}.
                 </p>
 
+                <!-- Prepago pendiente. Solo lo manda el backend a quien no ha pagado nada:
+                     si ya hay un pago, ese pago era el prepago. Se pinta ARRIBA del
+                     desglose porque es lo único aquí que pide una acción. -->
+                <div v-if="finanzas?.prepago"
+                     class="mb-4 rounded-xl border border-[#376875]/20 bg-[#376875]/5 px-4 py-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="text-[12px] font-black uppercase tracking-wider text-[#376875]">
+                      💳 {{ maestroStore.t('res_prepago_titulo') || 'Prepago' }}
+                    </span>
+                    <span class="text-[15px] font-black text-[#376875] tabular-nums">
+                      {{ formatMonto(Number(finanzas.prepago.monto)) }}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-[11px] font-medium leading-snug text-slate-500">
+                    {{ maestroStore.t(finanzas.prepago.claveI18n) }}
+                  </p>
+                </div>
+
                 <div v-if="cargosDetalle.length" class="space-y-2 mb-3">
                   <div v-for="(linea, i) in cargosDetalle" :key="`${linea.tipo}-${i}`"
                        class="flex items-start justify-between gap-4">

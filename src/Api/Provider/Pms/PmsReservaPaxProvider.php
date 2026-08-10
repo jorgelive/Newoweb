@@ -10,6 +10,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -36,6 +37,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
         private readonly ItemProvider $itemProvider,
         private readonly EntityManagerInterface $em,
         private readonly TipoCambioDelDia $tipoCambioDelDia,
+        private readonly PmsPrepagoCalculador $prepagoCalculador,
     ) {
     }
 
@@ -122,6 +124,14 @@ final class PmsReservaPaxProvider implements ProviderInterface
             // el resumen barato para cualquier otro consumidor.
             'lineas' => $finanzas->getLineasCliente(excluirEspejoCanal: $espejo),
             'pagos'  => $pagos,
+
+            // Prepago pendiente. Solo se pide a quien NO ha pagado todavía nada: si hay
+            // algún pago registrado, ese pago ES el prepago —es lo primero que se cobra— y
+            // volver a pedírselo sería reclamarle algo que ya hizo.
+            //
+            // Va después de `$pagado` a propósito: necesita saber si hay cobros, y esa
+            // cifra ya está calculada arriba con las exclusiones del canal aplicadas.
+            'prepago' => $pagado > 0.0 ? null : $this->prepagoCalculador->calcular($finanzas),
         ];
     }
 
