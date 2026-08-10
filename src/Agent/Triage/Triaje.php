@@ -80,10 +80,29 @@ final readonly class Triaje
     private const int HISTORIAL_MAX = 6;
 
     /**
-     * Cuatro campos cortos más la respuesta de charla, que son dos frases. Más presupuesto
-     * sólo invita a razonar en voz alta — o a charlar de más, que aquí es lo mismo.
+     * Cuatro campos cortos más la respuesta de charla, que son dos frases.
+     *
+     * Estuvo en 500 con el razonamiento de que «más presupuesto invita a razonar en voz alta».
+     * El razonamiento no se sostiene aquí y el número salía caro:
+     *
+     * - **La salida la fija `responseSchema`**, no el presupuesto. Con esquema el modelo no
+     *   puede irse por las ramas: los campos son los que son. El freno a la verborrea es el
+     *   esquema, no el techo de tokens.
+     * - **`maxOutputTokens` es un tope, no una reserva.** Subirlo no cuesta un céntimo mientras
+     *   no se use: se factura lo que se emite. Bajarlo no ahorra; sólo corta.
+     * - Y cortar aquí **no da una respuesta corta, da una respuesta rota**: el JSON llega a
+     *   medias, `interpretar()` lo tira a `indeterminado` y el turno se va por el camino largo
+     *   pagando una llamada de más. Se ahorraban tokens en el paso barato para gastarlos en el
+     *   caro.
+     *
+     * Con 500 el truncado era intermitente —los mensajes largos lo disparaban—, que es la peor
+     * forma de fallar: no se reproduce cuando lo buscas. 900 deja holgura para el `resumen` y
+     * la `respuesta` de charla sin cambiar lo que se paga en el caso normal.
+     *
+     * Si vuelve a pasar, `GoogleAIEngine::turnoDirecto()` ya lo avisa con el desglose de en qué
+     * se fue el presupuesto. Ver docs/Mensajeria.md §13.6 bis.
      */
-    private const int MAX_TOKENS = 500;
+    private const int MAX_TOKENS = 900;
 
     /** Tope del resumen de cada skill en la lista. Es un índice, no la descripción entera. */
     private const int RESUMEN_MAX = 180;
@@ -333,8 +352,9 @@ final readonly class Triaje
           contestaría un anfitrión amable, en una o dos frases y en SU idioma. Con cualquier
           otro tipo va vacío. Reglas de esa respuesta:
           · EN ESTE TURNO NO PUEDES CONSULTAR NADA. No des ni una fecha, ni un importe, ni un
-            horario, ni un código, ni una norma — tampoco si crees recordarlos: aquí no hay
-            nada que los respalde.
+            horario, ni un código, ni una norma, ni un enlace, ni un número de cuenta o de
+            Yape, ni un tipo de cambio — tampoco si crees recordarlos: aquí no hay nada que los
+            respalde. La lista no es cerrada: si es un DATO, no sale de este turno.
           · Si al escribirla ves que sí había una pregunta escondida, NO era «conversacion»:
             cambia el tipo y deja la respuesta vacía.
           · No prometas plazos ni digas que has avisado a nadie: en este turno no has avisado.

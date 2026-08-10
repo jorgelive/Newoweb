@@ -32,12 +32,24 @@ const COMPONENT_REGISTRY: Record<string, Component> = {
     'video': defineAsyncComponent(() => import('@/components/RichText/VideoBlock.vue')),
     'img':   defineAsyncComponent(() => import('@/components/RichText/ImageBlock.vue')),
     'map':   defineAsyncComponent(() => import('@/components/RichText/MapBlock.vue')),
-    'widget': defineAsyncComponent(() => import('@/components/GuiaUnidad/WifiCardWidget.vue')),
 
     'videobloqueado': MediaBloqueada,
     'imgbloqueado':   MediaBloqueada,
     'video_ventana':  MediaBloqueada,
     'img_ventana':    MediaBloqueada,
+};
+
+/**
+ * Los `{{ widget: X }}`, resueltos por su VALOR y no por la clave `widget`.
+ *
+ * Antes `widget` estaba en COMPONENT_REGISTRY apuntando directo a la tarjeta de WiFi, así que
+ * `{{ widget: loquesea }}` pintaba el WiFi igual: la clave decidía el componente y el valor no
+ * se miraba. Con un solo widget no se notaba; con dos habría sido un fallo silencioso —el
+ * bloque de medios de pago habría salido como una tarjeta de WiFi vacía—.
+ */
+const WIDGET_REGISTRY: Record<string, Component> = {
+    'wifi': defineAsyncComponent(() => import('@/components/GuiaUnidad/WifiCardWidget.vue')),
+    'medios_pago': defineAsyncComponent(() => import('@/components/GuiaUnidad/MediosPagoWidget.vue')),
 };
 
 /**
@@ -69,8 +81,12 @@ export class RichContentEngine {
     public parse(rawText: string): RenderBlock[] {
         if (!rawText) return [];
 
-        // Normalizar la forma antigua del widget de WiFi.
-        const textToProcess = rawText.replace(/{{\s*wifi_data\s*}}/gi, '{{ widget: wifi }}');
+        // Normalizar los placeholders sin `:` a la forma `{{ widget: X }}`. El editor escribe
+        // `{{ wifi_data }}` y `{{ medios_pago }}` porque es lo que se le enseña en la chuleta
+        // del panel; el motor sólo entiende bloques con dos partes.
+        const textToProcess = rawText
+            .replace(/{{\s*wifi_data\s*}}/gi, '{{ widget: wifi }}')
+            .replace(/{{\s*medios_pago\s*}}/gi, '{{ widget: medios_pago }}');
 
         // Componentes: {{ tipo : valor }}
         // El `_` en la clave es lo que permite reconocer `video_ventana` e
@@ -91,17 +107,22 @@ export class RichContentEngine {
             const type = match[1].toLowerCase();
             const value = match[2].trim();
 
-            if (COMPONENT_REGISTRY[type]) {
+            // `widget` se resuelve por su valor (`wifi`, `medios_pago`); el resto, por la clave.
+            const component = type === 'widget'
+                ? WIDGET_REGISTRY[value.toLowerCase()]
+                : COMPONENT_REGISTRY[type];
+
+            if (component) {
                 blocks.push({
                     id: `cmp-${match.index}`,
                     type: 'component',
-                    component: COMPONENT_REGISTRY[type],
+                    component,
                     // `tipo` lo usa MediaBloqueadaBlock para elegir silueta e
                     // icono; los demás bloques lo ignoran.
                     props: { src: value, value, tipo: type, ...this.datosWidget },
                 });
             } else {
-                console.warn(`[Engine] Componente desconocido: ${type}`);
+                console.warn(`[Engine] Componente desconocido: ${type}${type === 'widget' ? `: ${value}` : ''}`);
             }
 
             lastIndex = regex.lastIndex;

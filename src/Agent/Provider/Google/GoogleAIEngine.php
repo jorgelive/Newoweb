@@ -231,9 +231,21 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
         if ($esquema !== null) {
             $generacion['responseMimeType'] = 'application/json';
             $generacion['responseSchema'] = $this->esquemaGemini($esquema);
-        } elseif (($nivel = $this->google->razonamiento()) !== null) {
-            // Con esquema no se pide pensamiento: la salida está tan acotada que pagarlo no
-            // cambia la clasificación, y es un paso que se ejecuta en CADA mensaje entrante.
+        }
+
+        // 🔥 Esto era un `elseif` del bloque de arriba, y el `else` se comía el triaje entero.
+        //
+        // La intención era buena —«con esquema no hace falta pagar pensamiento»— pero **no
+        // poner `thinkingConfig` no lo apaga: deja el DEFAULT de Gemini 3.x, que es razonar**
+        // ({@see GoogleAIClient::razonamiento()}). Y como `maxOutputTokens` incluye los tokens
+        // de pensamiento, el modelo se gastaba los 500 del triaje razonando y devolvía el JSON
+        // cortado a media clave: `{"tipo":"peticion","skill`.
+        //
+        // Eso no reventaba nada —`Triaje::interpretar()` lo da por `indeterminado` y el turno
+        // sigue por el camino largo—, así que sólo se veía como un `info` en el log. Medido en
+        // producción el 10/08/2026: **4 de cada 6 triajes** salían indeterminados. Se perdía la
+        // pista de skill, el atajo de la charla, y se pagaba una llamada de más por mensaje.
+        if (($nivel = $this->google->razonamiento()) !== null) {
             $generacion['thinkingConfig'] = ['thinkingLevel' => $nivel];
         }
 
@@ -265,6 +277,35 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
 
         $candidato = $datos['candidates'][0] ?? null;
         if (!is_array($candidato) || in_array($candidato['finishReason'] ?? '', self::FIN_RECHAZADO, true)) {
+            return null;
+        }
+
+        // 🔥 Un JSON cortado NO es una respuesta: es basura con forma de respuesta.
+        //
+        // Antes esto se devolvía tal cual y el fallo aparecía tres capas más arriba, como un
+        // `info` de `Triaje::interpretar()` diciendo «respuesta no era JSON» con los primeros
+        // 120 caracteres — que además parecían JSON válido, porque lo eran hasta que se
+        // acabaron los tokens. Nadie relacionaba eso con un presupuesto corto.
+        //
+        // Se devuelve `null`, que es lo que ya significa «no pude»: quien llama degrada al
+        // camino de siempre. Y se avisa con `warning`, no con `info`, porque un tramo que no
+        // cabe en su presupuesto es configuración rota, no información de paso.
+        if (($candidato['finishReason'] ?? '') === 'MAX_TOKENS') {
+            // El desglose es la mitad del valor del aviso: dice si el presupuesto se fue en
+            // pensamiento (y entonces sobra con apagarlo) o en salida de verdad (y entonces
+            // hay que subirlo). Sin esto, «no cabe» deja las dos hipótesis abiertas.
+            $uso = $datos['usageMetadata'] ?? [];
+
+            $this->logger->warning(sprintf(
+                'Agent (google): turno directo truncado para %s — no cabe en maxTokens=%d '
+                . '(pensamiento: %s, salida: %s). En Gemini 3.x los tokens de pensamiento SALEN '
+                . 'DE AHÍ: si «pensamiento» no es 0, apágalo antes de subir el presupuesto.',
+                $peticion->actor->etiqueta(),
+                $peticion->maxTokens,
+                (string) ($uso['thoughtsTokenCount'] ?? '?'),
+                (string) ($uso['candidatesTokenCount'] ?? '?')
+            ));
+
             return null;
         }
 

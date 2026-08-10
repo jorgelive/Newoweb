@@ -13,6 +13,8 @@ use App\Pms\Guia\PmsGuiaAcceso;
 use App\Pms\Guia\PmsGuiaArbolFiltro;
 use App\Pms\Guia\PmsGuiaContexto;
 use App\Pms\Guia\PmsGuiaThrottle;
+use App\Finanzas\Repository\FinMedioCobroRepository;
+use App\Pms\Finanzas\PmsProcedenciaHuesped;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -41,6 +43,8 @@ final class PmsGuiaHuespedProvider implements ProviderInterface
         private readonly EntityManagerInterface $em,
         private readonly PmsGuiaArbolFiltro $filtro,
         private readonly PmsGuiaThrottle $throttle,
+        private readonly FinMedioCobroRepository $mediosCobro,
+        private readonly PmsProcedenciaHuesped $procedencia,
     ) {
     }
 
@@ -90,7 +94,51 @@ final class PmsGuiaHuespedProvider implements ProviderInterface
             // abierta. Cerrada, el array va vacío: no hay contraseña que
             // enmascarar porque no se envía.
             ->setRedesWifiParaCliente($acceso->estaAbierto() ? $contexto->redesWifi : [])
+            // Los medios de cobro NO tienen ventana, al revés que el WiFi: quien todavía no ha
+            // entrado es justo el que necesita saber por dónde adelantar el pago. Lo que sí
+            // llevan es el filtro de procedencia, con el MISMO servicio que usa el agente en el
+            // chat — si cada uno dedujera por su cuenta, la pantalla y el asistente acabarían
+            // ofreciendo cuentas distintas al mismo huésped.
+            ->setMediosPagoParaCliente(
+                $this->mediosPago($this->procedencia->pagaDesdePeru($reserva))
+            )
             ->setAccesoParaCliente($acceso);
+    }
+
+    /**
+     * Los medios de cobro que aplican, aplanados para el navegador.
+     *
+     * 🪞 Espejo de `pax/src/types/paxHuespedGuiaModel.ts` (`GuiaMedioPago`). **Si añades una
+     * clave aquí, añádela allí**: nada la genera sola y el front la ignoraría en silencio.
+     * Ver docs/FinanzasEnlacesPago.md §7.
+     *
+     * La `nota` viaja como el array i18n crudo: la traduce el front con
+     * `maestroStore.traducir()`, igual que el resto de textos de la guía. Traducirla aquí
+     * obligaría al backend a saber en qué idioma está mirando el huésped ahora mismo, que es
+     * algo que cambia con un clic y sin recargar.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function mediosPago(?bool $desdePeru): array
+    {
+        $filas = [];
+
+        foreach ($this->mediosCobro->ofrecibles($desdePeru) as $medio) {
+            $filas[] = array_filter([
+                'tipo' => $medio->getTipo()->value,
+                'medio' => $medio->getTipo()->label(),
+                'icono' => $medio->getTipo()->icono(),
+                'titular' => $medio->getTitular(),
+                'titularAlterno' => $medio->getTitularAlterno(),
+                'numero' => $medio->getNumero(),
+                'banco' => $medio->getBanco(),
+                'cci' => $medio->getCci(),
+                'moneda' => $medio->getMoneda(),
+                'nota' => $medio->getNota() !== [] ? $medio->getNota() : null,
+            ], static fn ($v) => $v !== null && $v !== '');
+        }
+
+        return $filas;
     }
 
     /**

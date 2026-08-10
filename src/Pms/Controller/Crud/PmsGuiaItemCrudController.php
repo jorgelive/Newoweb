@@ -408,7 +408,15 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                     <code>{{ video: URL }}</code> reproductor<br>
                     <code>{{ img: URL }}</code> imagen<br>
                     <code>{{ map: coordenadas }}</code> mapa<br>
-                    <code>{{ widget: wifi }}</code> tarjeta de redes WiFi
+                    <code>{{ widget: wifi }}</code> tarjeta de redes WiFi<br>
+                    <code>{{ medios_pago }}</code> Yape, cuentas y demás medios de cobro
+                    <div class="text-muted" style="margin-top:4px;">
+                        Los números salen de <strong>Establecimiento Virtual → Medios de
+                        cobro</strong>, no de este texto: así el asistente y la pantalla dicen
+                        lo mismo y un número no se parte al citarlo en el chat. Aquí escribe la
+                        política —cuándo se paga, el depósito— y deja el placeholder para los
+                        datos.
+                    </div>
                 </div>
 
                 <strong>Maquetación protegida — solo dentro de la ventana</strong>

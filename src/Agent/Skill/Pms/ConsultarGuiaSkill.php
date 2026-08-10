@@ -533,6 +533,8 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
      * - **`{{ wifi_data }}`** → una remisión a `consultar_wifi`. No es una errata del editor:
      *   el front lo traduce a `{{ widget: wifi }}` (`RichContentEngine.ts`) y lo pinta con
      *   `guia.redesWifi`. Aquí no se resuelve porque la credencial es de la otra skill.
+     * - **`{{ medios_pago }}`** → una remisión a `consultar_medios_pago`, por lo mismo: los
+     *   números de cobro viven en el catálogo `FinMedioCobro`, no en el texto.
      * - **`{{ img: … }}`, `{{ video: … }}`, `{{ map: … }}`, `{{ widget: … }}`** → se borran.
      *   Son maquetación: una URL de imagen no ayuda a explicar cómo va la ducha.
      * - **Cualquier otra clave suelta** → se borra. Para el interpolador es una errata del
@@ -554,6 +556,15 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
         $texto = (string) preg_replace(
             '/\{\{\s*wifi_data\s*\}\}/i',
             '(los datos del WiFi se piden con consultar_wifi)',
+            $texto
+        );
+
+        // Mismo caso que el WiFi: el ítem de pagos explica la POLÍTICA (cuándo se paga, el
+        // depósito) y deja los números al placeholder. Sin esta remisión el modelo leía el
+        // texto, veía que no había ninguna cuenta y se la inventaba, teniendo la skill al lado.
+        $texto = (string) preg_replace(
+            '/\{\{\s*medios_pago\s*\}\}/i',
+            '(los números de cuenta y de Yape se piden con consultar_medios_pago)',
             $texto
         );
 

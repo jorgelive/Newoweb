@@ -311,6 +311,7 @@ abrir las herramientas de desarrollo para leer el código de la puerta antes de 
 | `{{ door_code }}`, `{{ guest_name }}`, … | **PHP** (`PmsGuiaInterpolador`) | Son datos, y algunos son sensibles |
 | `{{ video: url }}`, `{{ img: }}`, `{{ map: }}`, `{{ widget: wifi }}` | **Vue** (`RichContentEngine`) | Son maquetación; los componentes están en el front |
 | `{{ video_ventana: url }}`, `{{ img_ventana: url }}` | **Los dos** | PHP decide si la URL sale; Vue pinta el bloque |
+| `{{ medios_pago }}` | **Vue** (`MediosPagoWidget`) | Los números de cobro viven en el catálogo `FinMedioCobro`, no en el texto — mismo motivo que el WiFi. Llegan por `guia.mediosPago`, ya filtrados por procedencia. Ver `docs/Mensajeria.md` §16 |
 
 El inventario completo y actualizado no está aquí, sino en el propio formulario:
 `PmsGuiaItemCrudController::ayudaPlaceholders()` lo pinta bajo el cuerpo del ítem, que es donde

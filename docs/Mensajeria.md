@@ -27,6 +27,7 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 13. [Triaje de entrada y tramos de potencia](#13-triaje-de-entrada-y-tramos-de-potencia)
 14. [El formato del texto libre y su degradación por canal](#14-el-formato-del-texto-libre-y-su-degradación-por-canal)
 15. [Dónde tocar para cambiar X](#15-dónde-tocar-para-cambiar-x)
+16. [Cómo se paga: medios de cobro y tipo de cambio](#16-cómo-se-paga-medios-de-cobro-y-tipo-de-cambio)
 
 ---
 
@@ -3394,6 +3395,35 @@ php bin/console app:agent:preguntar --motor=anthropic "¿qué casitas tengo libr
 php bin/console app:agent:preguntar --motor=google --modelo=gemini-2.5-pro "¿qué casitas tengo libres del 12 al 15 de marzo?"
 ```
 
+### 12 bis. ⚠️ Una clave vacía degrada en silencio (y llevaba meses)
+
+`SelectorDePotencia` **no distingue «tramo mal escrito» de «proveedor sin credenciales»**: los
+dos caen al motor de `AGENT_IA_PROVEEDOR` con un `warning` y la conversación sigue. Está bien
+pensado —un ajuste de coste no puede tumbar el chat— pero tiene un efecto que cuesta ver:
+
+> Con `ANTHROPIC_API_KEY` vacía y los tres tramos apuntando a Anthropic, **el agente entero
+> contestaba con `gemini-3.6-flash`** mientras la configuración decía Opus, Sonnet y Haiku.
+> Verificado en producción el 10/08/2026: la clave tenía **0 caracteres** en `.env` y en
+> `.env.local`, y el log llevaba días con 11 avisos de tramo medio y 17 de tramo bajo.
+
+Nada fallaba y nadie miraba: el huésped recibía respuestas, el coste era el de Flash y el aviso
+vive en `info-*.log`, no en `error-*.log`. **Que el `.env` nombre un modelo no significa que ese
+modelo esté respondiendo.** Para saber cuál contesta de verdad:
+
+```bash
+grep -ho "potencia [a-z]* mal configurada" var/log/info-*.log | sort | uniq -c
+```
+
+Cero líneas = se está usando lo que dice la configuración. Cualquier otra cosa es un tramo que
+no se está pagando ni sirviendo como se cree.
+
+Desde entonces los tres tramos apuntan a Google explícitamente. El tramo **alto** también, y no
+a `gemini-3.1-pro` como pediría su semántica: en cuenta gratuita un 429 llega antes, y ese
+fallback **no cubre errores de cuota** —sólo de configuración—, así que una emergencia se
+quedaría con el acuse de recibo genérico. Se sube a Pro cuando haya facturación.
+
+---
+
 ## 13. Triaje de entrada y tramos de potencia
 
 Hasta aquí, un turno del agente costaba lo mismo dijera lo que dijera el huésped. «Hola» y
@@ -3612,6 +3642,81 @@ opcionales en «no exigido» sacándolos de `required`.
 herramientas que autorizar. Un turno seco no puede tocar nada por construcción, y eso es lo que
 lo hace seguro para contestar la charla. Nunca lanza por culpa del proveedor: devuelve `null` y
 quien llama decide.
+
+### 13.6 bis 🐛 El `elseif` que apagaba el triaje en Gemini (y no se veía)
+
+En `GoogleAIEngine::turnoDirecto()`, la configuración de razonamiento colgaba de un `elseif`
+del bloque del esquema:
+
+```php
+if ($esquema !== null) {
+    // … responseMimeType + responseSchema
+} elseif (($nivel = $this->google->razonamiento()) !== null) {
+    $generacion['thinkingConfig'] = ['thinkingLevel' => $nivel];   // ← nunca con esquema
+}
+```
+
+La intención estaba escrita al lado y era razonable: «con esquema no se pide pensamiento, la
+salida está tan acotada que pagarlo no cambia la clasificación». **Pero no poner
+`thinkingConfig` no lo apaga: deja el default de Gemini 3.x, que es razonar.** Y como
+`maxOutputTokens` **incluye los tokens de pensamiento**, el triaje se gastaba sus 500 razonando
+y devolvía el JSON cortado a media clave:
+
+```
+indeterminado — respuesta no era JSON: {"tipo":"peticion","skill
+```
+
+Lo que lo hizo durar es que **degrada limpio**: `Triaje::interpretar()` lo da por
+`indeterminado`, el turno sigue por el camino largo y el huésped recibe su respuesta. El aviso
+vive en `info-*.log`, no en `error-*.log`, y nadie mira los `info`.
+
+Medido en producción el 10/08/2026, antes de arreglarlo: **4 de cada 6 triajes salían
+`indeterminado`**. Se perdía la pista de skill (§13.8), el atajo de la charla (§13.7) y se
+pagaba una llamada de más en cada mensaje — justo lo contrario de lo que el tramo venía a
+ahorrar. Tras separarlo en dos `if`, los cuatro turnos del replay de V4JE5Q clasifican con su
+skill y no queda ni un `indeterminado`.
+
+**La regla que deja:** en Gemini, «no configurar» nunca significa «desactivar». Si algo tiene
+que estar apagado, se apaga explícitamente. Y un presupuesto de tokens corto con razonamiento
+por defecto no da una respuesta corta: da una respuesta **cortada**.
+
+#### El presupuesto: 500 → 900, y por qué subirlo no cuesta
+
+Apagado el pensamiento, el truncado bajó mucho pero **no desapareció**: seguía saltando con los
+mensajes largos, de forma intermitente. La peor manera de fallar, porque no se reproduce cuando
+la buscas.
+
+`Triaje::MAX_TOKENS` estaba en 500 con el argumento de que «más presupuesto invita a razonar en
+voz alta». Ese argumento no aplica aquí, y son tres cosas:
+
+- **Quien acota la salida es `responseSchema`, no el techo de tokens.** Con esquema el modelo no
+  puede irse por las ramas: los campos son los que son.
+- **`maxOutputTokens` es un tope, no una reserva.** Se factura lo que se emite, así que subirlo
+  no cuesta nada mientras no se use. Bajarlo no ahorra: sólo corta.
+- Y cortar aquí **no da una respuesta corta, da una respuesta rota**. El JSON llega a medias,
+  `interpretar()` lo manda a `indeterminado` y el turno se va por el camino largo pagando una
+  llamada de más. Se ahorraban tokens en el paso barato para gastarlos en el caro.
+
+#### Y que se vea si vuelve a pasar
+
+`turnoDirecto()` ya no devuelve el texto cortado como si fuera bueno: si `finishReason` es
+`MAX_TOKENS` devuelve `null` —que es lo que ya significa «no pude»— y deja un **`warning`** con
+el desglose de en qué se fue el presupuesto:
+
+```
+turno directo truncado para … — no cabe en maxTokens=500 (pensamiento: 487, salida: 13)
+```
+
+Ese desglose es la mitad del valor del aviso: separa «se lo comió el pensamiento» (apágalo) de
+«la salida no cabe» (súbelo). Antes el síntoma aparecía tres capas más arriba, como un `info`
+de `Triaje` con los primeros 120 caracteres de un JSON que **parecía válido** —lo era, hasta que
+se acabaron los tokens—, y nadie lo relacionaba con un presupuesto corto.
+
+Para vigilarlo:
+
+```bash
+grep -c "indeterminado — respuesta no era JSON" var/log/info-*.log
+```
 
 ### 13.7 La charla: la contesta el propio clasificador
 
@@ -4323,3 +4428,279 @@ arreglar** — ver el aviso al final de esta sección.
 | Que un esquema JSON funcione también en Gemini | `GoogleAIEngine::esquemaGemini()` | Gemini rechaza `additionalProperties` y los `type` en lista con un 400, §13.6 |
 | Medir cuánto ocupa cada prompt sin gastar API | — | `php var/medir-triaje.php` — §13.3 |
 | Comprobar el triaje y el esquema de Gemini sin gastar API | — | `php var/probar-triaje.php` — 15 comprobaciones + qué motor resuelve cada tramo, §13.10 |
+| Saber si el triaje está fallando en silencio | `var/log/info-*.log` | `grep -c "indeterminado — respuesta no era JSON"` — §13.6 bis. Degrada limpio, así que sólo se ve aquí |
+| **Ver qué contestaría hoy el agente a una charla que ya ocurrió** | — | `php bin/console app:agent:replay <uuid-reserva> --guion=<json>` — §16.7. No guarda nada, pero las skills sí se ejecutan |
+| **Cambiar un número de cuenta o de Yape** | panel → Configuración → Cobros | «Medios de cobro» — §16. No se escribe en la guía ni en el código |
+| Que el agente pueda decir por dónde se paga | `ConsultarMediosPagoSkill` | `medios()` — lo que no se enumera ahí no llega al modelo, §16.7 |
+| Cambiar el tipo de cambio que se le dice al huésped | `TipoCambioDelDia` | `venta()` — misma fuente que el TC de cargos y pagos, §16.2 |
+| Que el agente ofrezca el enlace de pago con tarjeta | `.env` | `FINANZAS_ENLACES_PREPAGO=1` — §16.2 |
+| Cambiar a quién se le ofrece cada medio de cobro | `FinAudienciaCobro` | `aplicaA()` — no es un permiso, es dinero, §16.3 |
+
+---
+
+## 16. Cómo se paga: medios de cobro y tipo de cambio
+
+Esta sección existe por un incidente concreto, y conviene leerla con él delante porque el fallo
+**no fue del modelo**: fue un hueco de datos que el modelo tapó como pudo.
+
+### 16.1 El incidente de la reserva V4JE5Q
+
+El 09/08/2026, entre las 23:09 y las 23:22, una huésped preguntó cuatro veces seguidas cómo
+pagar su adelanto. El agente contestó con:
+
+| Lo que dijo | Lo que era | De dónde salió |
+|---|---|---|
+| adelanto 30.00 USD, saldo 187.50 | correcto | `consultar_cuenta` → `prepago_pendiente` |
+| recargo del 5.5% con tarjeta | correcto | `consultar_cuenta` → `pago_con_tarjeta` |
+| `https://micasita.com/pagar-tarjeta` | **no existe** | inventado |
+| tipo de cambio 3.80 | era 3.391 | inventado |
+| Yape al `984 000 000` | no existe | inventado |
+
+A las 23:19 escaló de verdad —`escalar_al_equipo` avisó a dos operadores— y a las 23:35 entró
+una persona a corregir el tipo de cambio. O sea: **las herramientas funcionaron y la escalada
+funcionó**. Lo que no había era de dónde leer un número de cuenta.
+
+Dos lecciones, y las dos van contra el reflejo de tocar el prompt:
+
+1. **El modelo llamó a las herramientas para todo lo que cubrían e inventó exactamente lo que
+   no cubrían.** No era un problema de criterio ni de modelo pequeño: `consultar_cuenta`
+   decía cuánto y ninguna decía por dónde.
+2. **La prohibición del prompt era enumerativa.** Decía «nunca inventes precios,
+   disponibilidad, horarios ni políticas». Una URL no es ninguna de las cuatro; un número de
+   Yape tampoco. El modelo cumplió la regla al pie de la letra.
+
+De ahí que el arreglo sea, en este orden: **primero el dato, luego la skill, y sólo al final el
+prompt** — y que la prohibición nueva sea por categoría («si es un DATO, se copia») en vez de
+por lista.
+
+Un detalle que se paga caro si se olvida: `consultar_cuenta` **sí** devolvía `tipo_cambio` en
+cada cargo, pero es el del día en que se cobró, no el de hoy. Un dato correcto leído fuera de
+contexto es tan malo como uno inventado, y por eso el TC vive en su propia skill.
+
+### 16.2 Dónde vive cada cosa, y por qué no en el mismo sitio
+
+El reparto lo decide **cada cuánto caduca el dato**:
+
+```
+  ┌───────────────────────────────────────────────────────────────────────┐
+  │ NÚMEROS DE COBRO          estables — se escriben una vez y valen un año│
+  │ FinMedioCobro  (catálogo GLOBAL, una fila por cuenta)                 │
+  │   Yape · Plin · 4 bancos × soles/dólares · Western Union · efectivo   │
+  │   → los edita el equipo en Configuración → Cobros                     │
+  │   → los sirve  ConsultarMediosPagoSkill (vía FinMedioCobroRepository) │
+  │   → los pinta  {{ medios_pago }} en la guía                           │
+  │   → los reusa  las condiciones de pago de una cotización (§16.8)      │
+  ├───────────────────────────────────────────────────────────────────────┤
+  │ TIPO DE CAMBIO            volátil — cambia a diario                    │
+  │ TipoCambioDelDia::referencia()  (venta SUNAT, con caché y fallback)   │
+  │   → lo sirve   ConsultarTipoCambioSkill                               │
+  │   ⚠️ NO se escribe en la guía: envejece en silencio                    │
+  ├───────────────────────────────────────────────────────────────────────┤
+  │ ENLACE DE PAGO            no existe todavía                            │
+  │ GenerarEnlacePrepagoSkill, apagada con FINANZAS_ENLACES_PREPAGO=0     │
+  │   → mientras esté apagada, consultar_medios_pago devuelve             │
+  │     pago_con_tarjeta.disponible = false + la orden de no inventarlo   │
+  └───────────────────────────────────────────────────────────────────────┘
+```
+
+#### Por qué un catálogo global y no una columna por establecimiento
+
+La primera versión de esto vivía en `PmsEstablecimientoVirtual::$mediosCobro`, un JSON por
+listing comercial. **Duró un día.** Falla por dos sitios a la vez:
+
+1. Las cuentas son **las mismas para todos** los establecimientos —el dinero entra a la misma
+   empresa—, así que aquel diseño obligaba a corregir el mismo número en cada listing, y el que
+   se olvidara quedaba mintiendo con un número viejo.
+2. Hacen falta **fuera del PMS**: las condiciones de pago de una cotización necesitan
+   exactamente estos datos y ahí no hay reserva ni establecimiento virtual de por medio.
+
+Por eso `FinMedioCobro` vive en `src/Finanzas/` y no en `src/Pms/`: `src/Finanzas/` no importa
+de `App\Pms` en ningún archivo, y las flechas van Pms → Finanzas y Cotizacion → Finanzas. Es lo
+que permite que el segundo consumidor no herede el PMS entero.
+
+**Por qué los números NO van escritos en el ítem de guía**, que era lo natural: es el mismo
+criterio que ya separó el WiFi de su ítem (§11 y `ConsultarWifiSkill`). `ConsultarGuiaSkill`
+recorta cada ítem a 900 caracteres y devuelve como mucho 4; un CCI de 20 dígitos partido por la
+mitad es una transferencia perdida. Además, un campo se valida y un párrafo no.
+
+Y **por qué el tipo de cambio no va con los medios de cobro**, aunque se pregunten juntos: los
+medios son configuración y el TC es una cotización. Ponerlos en el mismo sitio obliga a que
+alguien edite a mano todos los días la ficha donde está el número de cuenta, que es justo la
+que no se quiere tocar.
+
+### 16.3 La audiencia no es un permiso, es dinero
+
+Cada medio declara a quién sirve (`FinAudienciaCobro`): `todos`, `peru`, `internacional`.
+No es control de acceso — es que ofrecer el medio equivocado **le cuesta al huésped**: una
+transferencia internacional a una cuenta peruana se lleva en comisiones buena parte de un
+adelanto de 30 USD, y al revés, mandar a un peruano a Western Union es cobrarle un giro que no
+necesitaba.
+
+Por eso **filtra la skill y no el modelo**: el modelo sólo vería un número de cuenta, y un
+número de cuenta no dice cuánto cuesta llegar hasta él.
+
+⚠️ **El prefijo 51 no demuestra que alguien sea peruano.** `PhoneSanitizer::cleanPhoneNumber()`
+antepone el 51 a cualquier móvil de 9 dígitos que llegue sin prefijo, que es la mayoría. Leer
+ese 51 como «es de Perú» es leer nuestro propio valor por defecto. De ahí que la evidencia sea
+asimétrica en `ConsultarMediosPagoSkill::esDePeru()`, que es lo contrario de lo que uno
+escribiría:
+
+| Señal | Conclusión | Por qué |
+|---|---|---|
+| `PmsReserva::$pais` relleno | manda, sin más | Lo dijo el canal |
+| Teléfono que **no** empieza por 51 | `false` | Eso lo tecleó alguien: nadie pone un +34 por defecto |
+| Teléfono que empieza por 51, sin país | `null`, **no** `true` | El 51 puede haberlo puesto el saneador |
+| Sin teléfono ni país | `null` | — |
+
+Con `null` pasan **todos** los medios: enumerar de más es recuperable; esconderle al huésped el
+único que le servía, no.
+
+#### Consecuencia: no hay transferencias internacionales, y por eso no hay SWIFT
+
+Las cuentas están todas en `peru`, así que a quien pague desde fuera **no le llega ninguna** —ve
+Western Union y efectivo—. De ahí se sigue algo que no es obvio leyendo el catálogo: el SWIFT no
+se pide nunca, porque nadie a quien se le ofrezca una cuenta va a hacer una transferencia
+internacional. El agente tiene prohibido mencionarlo para no abrir una puerta que cuesta dinero.
+
+El **CCI** es otra cosa y sí hace falta: es lo que se usa para transferir entre dos bancos
+peruanos distintos. Está vacío en las doce filas a propósito —se teclea cuando alguien lo
+comprueba, no se publica de oficio— y la regla es explícita: si la cuenta no lo trae, el agente
+**no lo compone a partir del número de cuenta**. Se parecen lo bastante como para que un modelo
+lo intente, y un CCI mal armado manda el dinero a un tercero. Sin CCI se escala.
+
+### 16.4 Lista vacía ≠ silencio
+
+Si el establecimiento no tiene medios configurados, la skill **no** devuelve `medios: []` y ya.
+Devuelve además una `instruccion` explícita de escalar. Una lista vacía se lee como «este
+alojamiento no cobra» y el hueco se vuelve a rellenar con imaginación — que es exactamente lo
+que pasó en V4JE5Q. Lo mismo con `pago_con_tarjeta.disponible: false`, que viaja siempre en vez
+de omitirse: **el silencio es lo que el modelo rellena solo.**
+
+Por el mismo motivo, un medio al que le falte el `numero` se descarta en vez de viajar a medias:
+un titular y un banco sin destino son la materia prima con la que antes se inventaba el resto.
+
+### 16.5 Lo que cambió en los dos prompts
+
+Los dos, porque el triaje también contesta solo (§13.7) y tenía el mismo agujero enumerativo:
+
+- **`AiConversationProcessor::reglas()`** — bloque nuevo «datos que se copian, nunca se escriben
+  de cabeza» (enlaces, cuentas, CCI, Yape/Plin, titulares, tipos de cambio), la prohibición de
+  ofrecer enlace de pago sin `pago_con_tarjeta.disponible: true`, y una regla de escalada **por
+  falta de dato** — no sólo por haber prometido un humano, que era el único disparador y por eso
+  llegó tres turnos tarde.
+- **`Triaje::reglas()`** — la lista de lo que no puede decir en la charla se cierra con «la lista
+  no es cerrada: si es un DATO, no sale de este turno».
+
+### 16.6 La pantalla y el chat dicen lo mismo, por construcción
+
+El huésped ve los mismos medios en su guía (`{{ medios_pago }}`) que le dicta el asistente por
+el chat, y eso **no depende de que nadie se acuerde de sincronizarlos**: los dos piden la misma
+lista al mismo repositorio con el mismo filtro.
+
+```
+   PmsProcedenciaHuesped::pagaDesdePeru($reserva)   ← una sola regla
+                          │
+          ┌───────────────┴───────────────┐
+          ▼                               ▼
+  ConsultarMediosPagoSkill        PmsGuiaHuespedProvider
+  (chat)                          (guía en pax)
+          │                               │
+          └────► FinMedioCobroRepository::ofrecibles($desdePeru) ◄────┘
+```
+
+Que la deducción de procedencia sea un servicio y no un método privado es justo el motivo:
+si el chat y la pantalla la calcularan cada uno por su lado, un huésped podría ver una cuenta
+del BCP en su guía y oír del asistente que no tenemos cuentas para él. No sabría a cuál creer.
+
+Diferencias deliberadas entre los dos lados, que no son divergencia:
+
+- **La guía no tiene ventana.** Al revés que el WiFi, los medios se ven antes de llegar: quien
+  todavía no ha entrado es justo el que necesita adelantar el pago.
+- **La `nota` viaja sin traducir** a `pax` (array i18n crudo, lo resuelve `maestroStore.traducir()`
+  con el idioma que el huésped tenga puesto ahora) y **ya traducida** al modelo, que redacta en
+  el idioma del huésped. El backend no sabe qué idioma está mirando alguien en este segundo.
+- **La lista vacía dice lo mismo en los dos sitios**: «consúltanos por el chat». Ni la pantalla
+  ni el modelo improvisan instrucciones de pago cuando no hay datos.
+
+⚠️ El widget se resuelve por el VALOR del placeholder (`WIDGET_REGISTRY` en
+`RichContentEngine.ts`), no por la clave `widget`. Antes la clave apuntaba directa a la tarjeta
+de WiFi y `{{ widget: loquesea }}` pintaba WiFi igual; con un solo widget no se notaba, con dos
+habría salido el bloque de pagos como una tarjeta de WiFi vacía.
+
+### 16.7 Comprobar que no vuelve a alucinar
+
+Que una skill devuelva el dato correcto **no demuestra que el huésped lo reciba correcto**: en
+medio hay un modelo que redacta. Para eso está `app:agent:replay`, que le vuelve a hacer al
+agente de hoy las preguntas de una conversación que ya ocurrió:
+
+```bash
+php bin/console app:agent:replay <uuid-reserva> --guion=var/guion-v4je5q.json
+```
+
+Recorre el mismo camino que `AiConversationProcessor::generar()` —triaje y, si no era charla,
+el catálogo entero con `permitirEscritura: false`— y lee los prompts **por reflexión**, para que
+la prueba no se quede probando una copia vieja. No persiste nada: el historial vive en memoria.
+
+⚠️ **Lo único con efectos son las skills.** Con actor de huésped todas son de lectura menos
+`escalar_al_equipo`, que manda WhatsApp de verdad a quien tenga `ROLE_CUSTOMER_SUPPORT` y móvil.
+El comando se planta si detecta guardia con teléfono; vacíalos mientras pruebas (y **acuérdate de
+restaurarlos**) o pasa `--con-guardia` a sabiendas. Sin destinatarios, la skill deja un
+`Escalado sin guardia` en el log, que es justo la señal de que se invocó.
+
+Resultado del replay de V4JE5Q con el agente nuevo, turno a turno:
+
+| Pregunta | Antes (09/08) | Ahora |
+|---|---|---|
+| «¿el pago no es por Booking?» | inventó el desglose | enumera los medios reales, sin dar números todavía |
+| «por tarjeta de crédito» | `https://micasita.com/pagar-tarjeta` | **escala**: no hay enlace y no se lo inventa |
+| «¿qué tipo de cambio manejan?» | 3.80 → 114 soles | **3.391 → S/ 101.73**, copiado literal de `consultar_tipo_cambio`, más el Yape real |
+| «el número de cuenta en dólares» | avisó al equipo | pregunta **con qué banco**, en vez de soltar las ocho cuentas |
+
+🚧 **Con una salvedad que importa:** el replay corrió contra Gemini, porque en local no hay
+`ANTHROPIC_API_KEY` y `SelectorDePotencia` cae al motor por defecto. Producción atiende el tramo
+medio con `anthropic:claude-sonnet-5`. La prueba dice que **los datos y las reglas están en su
+sitio**; para afirmar lo mismo del modelo que responde de verdad, hay que repetirla con la clave
+de Anthropic puesta.
+
+### 16.8 Reutilizarlo desde las cotizaciones
+
+El catálogo es agnóstico a propósito: no sabe qué es una reserva ni qué es una cotización.
+Quien quiera ofrecer medios de pago pide **la misma lista** y decide cómo pintarla.
+
+```
+                        FinMedioCobroRepository::ofrecibles(?bool $desdePeru)
+                                          │
+                 ┌────────────────────────┴────────────────────────┐
+                 ▼                                                 ▼
+   ConsultarMediosPagoSkill                          Condiciones de pago de
+   (chat del huésped)                                una cotización  🚧
+     · ¿de Perú? ← país de la reserva                   · ¿de Perú? ← país del
+       o prefijo del teléfono                             cliente de la cotización
+     · aplana a texto para el modelo                    · renderiza a HTML para el PDF
+```
+
+Lo único que cada consumidor pone de su parte es **de dónde saca el `desdePeru`**, porque el
+dato de origen no está en el mismo sitio: en el PMS es `PmsReserva::$pais` con el teléfono de
+suplente (§16.3); en una cotización será el país del cliente. Ese cálculo NO se sube al
+repositorio a propósito — subirlo obligaría a que Finanzas supiera qué es una reserva, que es
+justo lo que este reparto evita.
+
+🚧 **Todavía no existe el campo «condiciones de pago» en `Cotizacion`.** Cuando se cree, la
+regla es: no duplicar números en un texto libre de la cotización. Si el comercial escribe la
+cuenta a mano en cada presupuesto, vuelve el problema de V4JE5Q por la puerta de atrás —ocho
+cuentas copiadas a mano envejecen igual de mal que una inventada—. Lo que se guarda en la
+cotización es la **decisión** (qué medios se le ofrecen a este cliente, qué plazos); los números
+se resuelven al renderizar, contra el catálogo.
+
+### 16.9 Dónde tocar para cambiar X
+
+| Necesitas… | Archivo | Símbolo |
+|---|---|---|
+| Cambiar un número de Yape o de cuenta | panel → Configuración → Cobros → Medios de cobro | Una fila por cuenta. **No** se toca código ni se escribe en la guía |
+| Añadir una clase de medio (PayPal, cripto…) | `FinMedioCobroTipo` | El `case` + `label()`. El CRUD y la skill lo recogen solos |
+| Cambiar a quién se le ofrece un medio | panel, campo «¿A quién se le ofrece?» | Respaldo: `FinAudienciaCobro::aplicaA()` |
+| Cambiar cómo se deduce si el huésped paga desde Perú | `PmsProcedenciaHuesped` | `pagaDesdePeru()` — **fuente única** del chat y de la guía; lee el aviso del prefijo 51 antes de tocarlo |
+| Cambiar de qué punta sale el tipo de cambio (venta/compra) | `TipoCambioDelDia` | `venta()` — **es la misma que se snapshotea en cargos y pagos**; cambiarla aquí descuadra el agente con la contabilidad |
+| Que el agente empiece a ofrecer el enlace de pago | `.env` | `FINANZAS_ENLACES_PREPAGO=1` — `pago_con_tarjeta.disponible` pasa a `true` solo |
+| Que un medio deje de ofrecerse sin perder sus datos | panel | Casilla «Activo» de esa fila |
+| Añadir un campo al medio (ej. alias interbancario) | `FinMedioCobro` + su CRUD + `ConsultarMediosPagoSkill::medios()` **y** `PmsGuiaHuespedProvider::mediosPago()` | Los cuatro: lo que no se enumera no llega ni al modelo ni a la pantalla, §11 |

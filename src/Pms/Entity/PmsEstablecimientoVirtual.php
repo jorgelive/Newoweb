@@ -44,6 +44,7 @@ class PmsEstablecimientoVirtual
     public function getPoliticaPrepago(): PmsPoliticaPrepago { return $this->politicaPrepago; }
     public function setPoliticaPrepago(PmsPoliticaPrepago $politicaPrepago): self { $this->politicaPrepago = $politicaPrepago; return $this; }
 
+
     use IdTrait;
     use TimestampTrait;
 

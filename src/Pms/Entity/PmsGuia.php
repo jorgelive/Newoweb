@@ -109,6 +109,12 @@ class PmsGuia
     /** @var array<int, array<string, mixed>> Redes WiFi; vacío si la ventana no está abierta. */
     private array $redesWifiParaCliente = [];
 
+    /**
+     * @var array<int, array<string, mixed>> Medios de cobro que aplican a ESTE huésped,
+     *                                       ya filtrados por procedencia.
+     */
+    private array $mediosPagoParaCliente = [];
+
     private ?PmsGuiaAcceso $accesoParaCliente = null;
 
 
@@ -206,6 +212,33 @@ class PmsGuia
     public function getRedesWifiParaCliente(): array
     {
         return $this->redesWifiParaCliente;
+    }
+
+    public function setMediosPagoParaCliente(array $medios): self
+    {
+        $this->mediosPagoParaCliente = $medios;
+        return $this;
+    }
+
+    /**
+     * Los medios de cobro que pinta `{{ medios_pago }}`, ya filtrados por procedencia.
+     *
+     * A diferencia del WiFi, esto **no tiene ventana**: un huésped que aún no ha entrado es
+     * justo el que necesita saber por dónde adelantar el pago. Lo que sí lleva es el filtro de
+     * audiencia, y por eso se calcula en el provider y no aquí: hace falta la reserva para
+     * saber si paga desde Perú, y una entidad no debería tener que averiguarlo.
+     *
+     * La `nota` viaja como array i18n crudo, sin traducir: la elige el navegador con
+     * `maestroStore.traducir()`, igual que el resto de textos de la guía. Traducirla aquí
+     * obligaría a que el backend supiera en qué idioma está mirando el huésped ahora mismo.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    #[Groups(['pax_guia:read'])]
+    #[SerializedName('mediosPago')]
+    public function getMediosPagoParaCliente(): array
+    {
+        return $this->mediosPagoParaCliente;
     }
 
     public function setAccesoParaCliente(?PmsGuiaAcceso $acceso): self

@@ -28,6 +28,9 @@ declarado en el enum pero **sin resolver**: emitir un cobro con ese origen falla
 11 bis. [Enlaces de PREPAGO](#11-bis-enlaces-de-prepago)
 12. [Despliegue: por qué no basta con `git pull`](#12-despliegue-por-qué-no-basta-con-git-pull)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
+14. [El catálogo de medios de cobro (`FinMedioCobro`)](#14-el-catálogo-de-medios-de-cobro-finmediocobro)
+    - [⚠️ Gotcha: `opciones()` de un enum devuelve CASOS](#144--gotcha-opciones-de-un-enum-devuelve-casos-no-value)
+    - [⚠️ `#[AutoTranslate]` necesita DOS cosas más](#145--una-entidad-con-autotranslate-necesita-dos-cosas-más)
 
 ---
 
@@ -275,6 +278,7 @@ Ninguno se genera solo. **Si tocas un lado, toca el otro.**
 | `FinPagoPublicoController::ver()` / `configuracion()` | `pax/src/types/paxPagoModel.ts` |
 | Librería KR de Izipay (sin paquete npm) | `pax/src/types/izipayKrypton.d.ts` |
 | Checkout Custom de Culqi (sin paquete npm) | `pax/src/types/culqiCheckout.d.ts` |
+| `PmsGuiaHuespedProvider::mediosPago()` (aplana `FinMedioCobro`) | `pax/src/types/paxHuespedGuiaModel.ts` (`GuiaMedioPago`) — §14 |
 
 Y un espejo que **no es TypeScript**: el porcentaje de recargo vive en
 `finanzas.recargo_tarjeta_porcentaje` (`config/services/services_finanzas.yaml`) **y** en
@@ -978,9 +982,29 @@ La primera trae códigos y nombres de tarifa sin normalizar: no es presentable. 
 segunda, un cargo de tipo «Otros» le llegaba al huésped como una cifra suelta —un −0.20 de
 ajuste de cuadre que nadie sabe interpretar—.
 
-`descripcion_cliente` es `I18nContent[]` con `#[AutoTranslate]`: se escribe en español y el
-traductor rellena los demás idiomas. **Es opcional a propósito**; la mayoría de los cargos se
-explican con su tipo y obligar a redactar cada uno sería trabajo inútil.
+`descripcion_cliente` es `I18nContent[]` con `#[AutoTranslate]`. **Es opcional a propósito**;
+la mayoría de los cargos se explican con su tipo y obligar a redactar cada uno sería trabajo
+inútil.
+
+> 🐞 **Pero hoy NO se traduce, aunque el atributo esté puesto.** `PmsCargoFinanciero` no usa
+> `AutoTranslateControlTrait`, y `AutoTranslationService::processEntity()` **sale por la puerta
+> de atrás en su primera línea** cuando la entidad no tiene `getEjecutarTraduccion()`:
+>
+> ```php
+> if (!$execute && method_exists($entity, 'getEjecutarTraduccion')) { … }
+> if (!$execute) { return; }   // ← sin el trait, siempre sale por aquí
+> ```
+>
+> Consecuencia: un huésped francés que pregunte «¿por qué me cobráis esto?» recibe la
+> explicación en español, por el `?? 'es'` de `descripcionClienteEn()`, y nadie ve un error.
+> Lo consume así tanto la pantalla como `consultar_cuenta`.
+>
+> **Arreglarlo son tres cosas y van juntas:** el trait en la entidad, la columna
+> `sobreescribir_traduccion` (migración) y la casilla en su CRUD. Sueltas no sirven: sin el
+> trait la propiedad no existe y el campo del formulario reventaría.
+>
+> No cuesta llamadas de más en la sincronización: `processEntity()` hace `continue` con los
+> valores vacíos, y los cargos que llegan de Beds24 no traen descripción de cliente.
 
 Se edita desde `util` (`ReservaFinanzasPanel.vue`) vía el `PATCH` de API Platform, mandando
 el accesor plano `descripcionClienteEs`. El CRUD del panel es de **solo lectura** para esta
@@ -1078,3 +1102,145 @@ Dos condiciones, no una: el conmutador se pinta con `hayReferencia && !soloProgr
 `referenciaSoles()` del provider se añade al margen de que haya cifras (va en `$base`, no en
 `cifras()`), así que en una reserva de Airbnb sin extras llega TC pero no hay nada que
 convertir. Antes esto lo daba gratis el bloque plegable, que ya iba dentro de `!soloProgreso`.
+
+
+---
+
+## 14. El catálogo de medios de cobro (`FinMedioCobro`)
+
+Todo lo de arriba trata de cobrar **por pasarela**: una URL, una tarjeta, un webhook. Este
+apartado es lo contrario y por eso vive aparte: **las vías por las que el cliente nos manda el
+dinero él mismo** —un Yape, una transferencia, un giro— y de las que sólo tenemos que darle el
+destino correcto.
+
+### 14.1 Qué es y por qué está en `Finanzas`
+
+Una tabla plana, `fin_medio_cobro`, con una fila por cuenta: tipo, titular, número, banco, CCI,
+moneda, a quién se le ofrece y una nota traducida. Doce filas hoy.
+
+Está aquí y no en `src/Pms/` porque **tiene dos consumidores y ninguno manda sobre el otro**:
+
+- `ConsultarMediosPagoSkill` se lo lee a un huésped por el chat de su reserva.
+- Las condiciones de pago de una cotización lo necesitarán igual, y ahí no hay reserva.
+
+`src/Finanzas/` no importa de `App\Pms` en ningún archivo. Esta entidad mantiene la regla: las
+flechas van Pms → Finanzas y Cotizacion → Finanzas. Si el catálogo hubiera vivido en el PMS, la
+cotización habría tenido que arrastrar el módulo entero para pedir un número de cuenta.
+
+### 14.2 Lo que NO guarda: el enlace de pago
+
+Un `FinMedioCobro` es un destino estable que se teclea una vez. Un {@see FinEnlacePago} es un
+cobro concreto, con importe, caducidad y estado. **No se mezclan**, y en particular no existe un
+medio de cobro de tipo «tarjeta» con una URL dentro: esa URL la emite la pasarela por cada
+cobro, y escribirla a mano en el catálogo sería congelar un enlace que caduca.
+
+Mientras `FINANZAS_ENLACES_PREPAGO=0`, la skill responde `pago_con_tarjeta.disponible: false`
+con la orden explícita de no ofrecer ninguna URL. Ver `docs/Mensajeria.md` §16.
+
+### 14.3 La audiencia es dinero, no permisos
+
+`FinAudienciaCobro` (`todos` / `peru` / `internacional`) existe porque ofrecer el medio
+equivocado **le cuesta al cliente**: una transferencia internacional a una cuenta peruana se
+lleva en comisiones buena parte de un adelanto, y mandar a un peruano a Western Union es
+cobrarle un giro que no necesitaba. El filtro lo aplica `FinMedioCobroRepository::ofrecibles()`,
+no el consumidor —y desde luego no el modelo de IA, que sólo ve un número.
+
+⚠️ De dónde sale el «¿es de Perú?» **lo pone cada consumidor**, porque el dato no está en el
+mismo sitio: en el PMS es `PmsReserva::$pais` con el prefijo del teléfono de suplente, y ojo con
+ese prefijo (`PhoneSanitizer` antepone el 51 por defecto). En una cotización será el país del
+cliente. Subir ese cálculo al repositorio obligaría a Finanzas a saber qué es una reserva.
+
+### 14.4 ⚠️ Gotcha: `opciones()` de un enum devuelve CASOS, no `->value`
+
+Los desplegables de enum del panel (`ChoiceField::setChoices(FinMedioCobroTipo::opciones())`)
+tienen que recibir **el caso del enum**, no su valor de cadena. La entidad los guarda como
+objetos (`enumType` en el mapping), así que con un array de strings `ChoiceType` intenta
+convertir el valor actual a texto para casarlo con las opciones y muere con:
+
+```
+Object of class App\Finanzas\Enum\FinMedioCobroTipo could not be converted to string
+```
+
+Lo que hace que cueste encontrarlo es **dónde NO falla**: el listado se pinta bien y el
+formulario de ALTA también, porque ahí no hay ningún valor previo que casar. Sólo revienta al
+abrir **editar**, que es la pantalla a la que se llega la segunda vez. Ni `php -l` ni
+`lint:container` lo ven: es un error de ejecución del componente Form.
+
+Es la misma convención que ya seguía `PmsPoliticaPrepago::opciones()`; el enum nuevo se escribió
+sin mirarla y por eso apareció. Al añadir un enum al panel, cópiala.
+
+`php var/probar-medios-cobro.php` lo comprueba sin navegador —y de paso verifica que cada
+propiedad de `configureFields()` se pueda leer y escribir en la entidad, que es el otro fallo
+que sólo se ve al abrir la pantalla—.
+
+### 14.5 ⚠️ Una entidad con `#[AutoTranslate]` necesita TRES cosas más
+
+El atributo por sí solo no traduce nada. Hacen falta cuatro piezas y **ninguna avisa si falta**:
+
+| Pieza | Dónde | Qué pasa si falta |
+|---|---|---|
+| `#[AutoTranslate]` en la propiedad | la entidad | Nada se traduce |
+| `use AutoTranslateControlTrait` | la entidad | **Nada se traduce, en silencio.** `processEntity()` sale en su primera línea si no encuentra `getEjecutarTraduccion()` |
+| `BooleanField::new('ejecutarTraduccion', 'Traducir Auto')` | su CRUD | No hay forma de **apagar** el traductor en un guardado suelto: corregir una errata del español paga una tanda de traducciones que nadie pidió |
+| `BooleanField::new('sobreescribirTraduccion', 'Sobrescribir')` | su CRUD | Se traduce lo vacío, pero **no hay forma de rehacer una traducción** tras corregir el español: el modo seguro respeta lo que ya existe |
+
+Los dos interruptores van **en pareja** (`->onlyOnForms()->setColumns(6)`), juntos y justo antes
+del campo que gobiernan. Es el patrón de `PmsGuiaItemCrudController` y de los diez CRUD de
+Travel. No son intercambiables:
+
+- **«Traducir Auto»** (`ejecutarTraduccion`) es un flag **virtual**: no es columna, no persiste,
+  vale sólo para ese guardado. Apaga el proceso entero.
+- **«Sobrescribir»** (`sobreescribirTraduccion`) **sí es columna**, y decide si se rehacen los
+  idiomas que ya tienen texto. `AutoTranslationService` lo devuelve a `false` él solo en cuanto
+  lo usa, para que no se quede pegado retraduciendo en cada edición.
+
+El caso del trait es el que más caro sale, porque el atributo queda a la vista en la entidad y
+todo parece bien puesto. Pasó dos veces en un mismo día: en `PmsEstablecimientoVirtual` (se
+detectó a tiempo y el campo se dejó sin traducir a propósito) y en `PmsCargoFinanciero`, donde
+sigue vivo — ver §8.
+
+Auditar el parque entero es un comando:
+
+```bash
+for f in $(grep -rl "#\[AutoTranslate" --include="*.php" src/); do
+  ent=$(basename $f .php)
+  crud=$(grep -rl "return ${ent}::class" --include="*.php" src/ | head -1)
+  [ -z "$crud" ] && continue
+  for control in ejecutarTraduccion sobreescribirTraduccion; do
+    grep -q "$control" "$crud" || echo "FALTA $control en $(basename $crud)"
+  done
+done
+```
+
+Ojo con los falsos positivos: los CRUD **de solo lectura** (`disable(Action::NEW, Action::EDIT)`,
+como `CotizacionCrudController` y el de `PmsCargoFinanciero`) no tienen formulario donde poner
+la casilla, y ahí la ausencia es correcta. La entidad se edita desde `util`.
+
+### 14.6 Las notas del catálogo, en los siete idiomas
+
+`Version20260810040000` dejó las notas de Yape, Plin, Western Union y efectivo escritas en los
+siete idiomas activos (`maestro_idioma` con `prioridad > 0`: es, en, pt, fr, it, de, nl).
+
+Se hizo a mano y no dejándoselo al traductor automático porque **el traductor sólo corre al
+guardar desde el panel**, y esas cuatro filas no tienen motivo para tocarse. Hasta entonces un
+huésped francés habría visto la nota en español: la del widget de la guía no pasa por ningún
+modelo que la redacte, se pinta tal cual venga. La del chat sí, porque ahí el modelo traduce.
+
+A partir de ahora se mantienen como cualquier otro texto: se corrige el español en el panel y
+se marca «Retraducir la nota al guardar». Las ocho cuentas bancarias no llevan nota.
+
+### 14.7 Dónde tocar para cambiar X
+
+| Necesitas… | Archivo | Símbolo |
+|---|---|---|
+| Corregir una cuenta, un Yape o un titular | panel → Configuración → Cobros | «Medios de cobro». Una fila por cuenta; no se toca código |
+| Que un medio deje de ofrecerse | panel | Casilla «Activo» — conserva el número |
+| Añadir una clase de medio (cripto, otra billetera) | `FinMedioCobroTipo` | El `case` + `label()` + `exigeNumero()` |
+| Cambiar a quién se le ofrece algo | `FinAudienciaCobro` | `aplicaA()` — es dinero, no permisos |
+| Cambiar el orden en que se le enseñan al cliente | panel | Campo «Orden» |
+| Añadir un campo (alias interbancario, etc.) | `FinMedioCobro` + su CRUD **y** `ConsultarMediosPagoSkill::medios()` | Los tres: lo que no se enumera en `medios()` no llega al modelo |
+| Consumirlo desde un módulo nuevo | `FinMedioCobroRepository` | `ofrecibles(?bool $desdePeru)` — tú pones el `desdePeru` |
+| Cambiar si el huésped cuenta como «de Perú» | `PmsProcedenciaHuesped` | `pagaDesdePeru()` — fuente única del chat y de la guía del huésped |
+| Añadir un campo que vea el huésped en su guía | `PmsGuiaHuespedProvider::mediosPago()` **y** `paxHuespedGuiaModel.ts` | Espejo, §7. El front lo ignora en silencio si falta |
+| Quién puede editar el catálogo | `FinMedioCobroCrudController` | `MAESTROS_WRITE` hoy; ver el aviso de su docblock |
+| Comprobar el CRUD sin abrir el navegador | — | `php var/probar-medios-cobro.php` — §14.4 |

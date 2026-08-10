@@ -12,10 +12,21 @@ const props = defineProps<{
   content: string;
   /** Redes WiFi para `{{ widget: wifi }}`. Vacío = el backend no las liberó. */
   wifiData?: unknown[];
+  /**
+   * Medios de cobro para `{{ medios_pago }}`. Llegan ya filtrados por procedencia; vacío =
+   * ninguno aplica a este huésped, y el widget pinta «consúltanos» en vez de improvisar.
+   */
+  mediosPago?: unknown[];
 }>();
 
 const blocks = computed<RenderBlock[]>(() => {
-  const engine = new RichContentEngine({ wifiData: props.wifiData ?? [] });
+  // Las claves son los NOMBRES DE PROP que reciben los widgets: se esparcen tal cual en
+  // `props` del bloque (ver RichContentEngine). Renombrar una aquí sin renombrarla en su
+  // componente lo deja recibiendo `undefined` y pintando el estado vacío, sin ningún error.
+  const engine = new RichContentEngine({
+    wifiData: props.wifiData ?? [],
+    mediosPago: props.mediosPago ?? [],
+  });
   return engine.parse(props.content);
 });
 </script>

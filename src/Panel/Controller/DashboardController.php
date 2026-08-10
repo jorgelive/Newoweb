@@ -44,6 +44,7 @@ use App\Pms\Controller\Crud\PmsBookingsPullQueueCrudController;
 use App\Pms\Controller\Crud\PmsBookingsPushQueueCrudController;
 use App\Pms\Controller\Crud\PmsChannelCrudController;
 use App\Pms\Controller\Crud\PmsEstablecimientoCrudController;
+use App\Finanzas\Controller\Crud\FinMedioCobroCrudController;
 use App\Pms\Controller\Crud\PmsEstablecimientoVirtualCrudController;
 use App\Pms\Controller\Crud\PmsEventAssignmentActivityCrudController;
 use App\Pms\Controller\Crud\PmsEventoBeds24LinkCrudController;
@@ -228,6 +229,15 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(PmsEventAssignmentActivityCrudController::class, 'Tareas / Actividades', 'fa fa-clipboard-list'),
                 MenuItem::linkTo(PmsEventoEstadoCrudController::class, 'Estados de Evento', 'fa fa-tag'),
                 MenuItem::linkTo(PmsEventoEstadoPagoCrudController::class, 'Estados de Pago', 'fa fa-credit-card'),
+            ])
+            ->setPermission(Roles::MAESTROS_SHOW);
+
+        // Los números por los que cobra el negocio. Vive en Configuración y no en Finanzas
+        // porque se teclea una vez y se consulta mucho; lo lee el agente y, en cuanto exista,
+        // las condiciones de pago de las cotizaciones. Ver docs/FinanzasEnlacesPago.md.
+        yield MenuItem::subMenu('Cobros', 'fa fa-hand-holding-dollar')
+            ->setSubItems([
+                MenuItem::linkTo(FinMedioCobroCrudController::class, 'Medios de cobro', 'fa fa-building-columns'),
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 

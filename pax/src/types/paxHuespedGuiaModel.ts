@@ -90,6 +90,35 @@ export interface GuiaUnidadResumen {
     capacidad?: number | null;
 }
 
+/**
+ * Un medio de cobro que se le puede ofrecer a ESTE huésped.
+ *
+ * 🪞 Espejo de `PmsGuiaHuespedProvider::mediosPago()`, que a su vez aplana
+ * `App\Finanzas\Entity\FinMedioCobro`. Si allí se añade una clave, se añade aquí.
+ *
+ * La lista llega **ya filtrada por procedencia** (`PmsProcedenciaHuesped`): a quien paga desde
+ * fuera de Perú no le viaja ninguna cuenta bancaria, así que aquí no hay nada que decidir —se
+ * pinta lo que venga—. Ese filtro es el mismo que aplica el asistente en el chat, a propósito.
+ *
+ * `nota` viaja sin traducir, como el resto de textos de la guía: la resuelve
+ * `maestroStore.traducir()` con el idioma que el huésped tenga elegido en ese momento.
+ */
+export interface GuiaMedioPago {
+    /** Valor de `FinMedioCobroTipo`: `yape`, `plin`, `transferencia_bancaria`… */
+    tipo: string;
+    /** Etiqueta ya legible («Transferencia bancaria»). Viene del backend para no duplicar el diccionario. */
+    medio: string;
+    icono?: string;
+    titular?: string;
+    /** Cómo lo escribe la banca sin tildes ni «ñ». */
+    titularAlterno?: string;
+    numero?: string;
+    banco?: string;
+    cci?: string;
+    moneda?: string;
+    nota?: PmsContenidoTraducible[];
+}
+
 /** Raíz de la respuesta: una PmsGuia serializada con `pax_guia:read`. */
 export interface GuiaHuespedResponse {
     '@id'?: string;
@@ -98,5 +127,7 @@ export interface GuiaHuespedResponse {
     secciones: GuiaSeccion[];
     contexto: GuiaContexto;
     redesWifi: GuiaRedWifi[];
+    /** Medios de cobro para `{{ medios_pago }}`. Sin ventana: se ven antes de llegar. */
+    mediosPago: GuiaMedioPago[];
     acceso: GuiaAcceso;
 }

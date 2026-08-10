@@ -34,4 +34,17 @@ final readonly class SkillParameter
     {
         return new self($nombre, 'boolean', $descripcion, $requerido);
     }
+
+    /**
+     * Con decimales: importes, tasas, porcentajes.
+     *
+     * `entero()` no vale para dinero —30.50 llegaría como 30— y `texto()` obliga a la skill a
+     * validar lo que el motor ya sabe validar. Los dos adaptadores lo aceptan sin tocarlos:
+     * Anthropic pasa el tipo tal cual (`number`, JSON Schema) y Google lo pone en mayúsculas
+     * (`NUMBER`, que es tipo válido de OpenAPI).
+     */
+    public static function numero(string $nombre, string $descripcion, bool $requerido = false): self
+    {
+        return new self($nombre, 'number', $descripcion, $requerido);
+    }
 }

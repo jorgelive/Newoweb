@@ -617,7 +617,7 @@ const mensajeError = computed(() => {
             <div v-if="esItemUnico" class="bg-white rounded-3xl shadow-sm shadow-slate-900/3 border border-slate-200/60 p-6 md:p-7 animate-fadeIn">
               <!-- eslint-disable-next-line vue/no-v-for-template-key -->
               <template v-for="item in [itemsSeccionActiva[0]]" :key="item['@id']">
-                <RichTextRenderer :content="maestroStore.traducir(item.descripcion)" :wifi-data="guia.redesWifi" />
+                <RichTextRenderer :content="maestroStore.traducir(item.descripcion)" :wifi-data="guia.redesWifi" :medios-pago="guia.mediosPago" />
                 <div v-if="tieneGaleria(item)" class="mt-5 grid grid-cols-2 gap-3">
                   <button v-for="(foto, i) in item.galeria" :key="i" @click="abrirFoto(item, i)"
                           class="aspect-4/3 rounded-2xl overflow-hidden ring-1 ring-black/5 cursor-zoom-in">
@@ -700,7 +700,7 @@ const mensajeError = computed(() => {
           <div id="nivel3-scroll" class="flex-1 overflow-y-auto p-5 pb-24 scrollbar-hide scroll-smooth">
             <div class="bg-white rounded-3xl shadow-sm shadow-slate-900/3 border border-slate-200/60 p-6 md:p-7 animate-fadeIn"
                  :class="itemActivo.tipo === 'alert' ? 'border-amber-200 bg-amber-50/60' : ''">
-              <RichTextRenderer :content="maestroStore.traducir(itemActivo.descripcion)" :wifi-data="guia.redesWifi" />
+              <RichTextRenderer :content="maestroStore.traducir(itemActivo.descripcion)" :wifi-data="guia.redesWifi" :medios-pago="guia.mediosPago" />
 
               <div v-if="tieneGaleria(itemActivo)" class="mt-6">
                 <div class="flex items-center gap-3 mb-4">
