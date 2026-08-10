@@ -12,8 +12,25 @@ export const usePmsReservaStore = defineStore('pmsReservaStore', () => {
         const error = ref<string | null>(null);
         const lastUpdate = ref<number>(0);
 
-        // ⏳ TTL: 15 minutos para reservas (un poco más frecuente que la guía)
-        const CACHE_TTL = 15 * 60 * 1000;
+        /**
+         * ⏳ Cuánto se considera «fresca» la reserva antes de volver a pedirla.
+         *
+         * Diez segundos, no quince minutos. El momento en que el huésped mira esta pantalla
+         * con más atención es JUSTO DESPUÉS DE PAGAR: quiere ver su saldo actualizado. Con
+         * una caché de quince minutos veía el saldo viejo y volvía a pagar, o escribía al
+         * chat preguntando si su pago entró — que es trabajo para el equipo por un problema
+         * que no existía.
+         *
+         * No es «desactivar la caché»: son los diez segundos que hacen falta para que un
+         * refresco compulsivo —el mismo huésped recargando cinco veces seguidas— no se
+         * convierta en cinco peticiones. Cubre la ráfaga y deja de estorbar.
+         *
+         * ⚠️ Esto NO afecta al modo offline: el CASO B de abajo sigue devolviendo lo
+         * guardado cuando no hay conexión, por viejo que sea. Un dato de ayer es infinitamente
+         * mejor que una pantalla en blanco en un hotel sin wifi, y por eso la comprobación de
+         * `navigator.onLine` va DESPUÉS de la de frescura y no antes.
+         */
+        const CACHE_TTL = 10 * 1000;
 
         // 2. ACTIONS
         const cargarReserva = async (localizador: string) => {
