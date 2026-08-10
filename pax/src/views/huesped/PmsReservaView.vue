@@ -413,10 +413,11 @@ const detalleCuentaAbierto = ref(false);
                   </button>
                 </div>
 
+                <!-- Una sola línea: en móvil dos renglones de aviso empujaban el desglose
+                     fuera de la pantalla. La moneda de cobro ya se ve en cada importe al
+                     desactivar el conmutador, así que decirla aquí era redundante. -->
                 <p v-if="enSoles" class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-medium leading-snug text-amber-700">
-                  {{ maestroStore.t('res_soles_referencial')
-                     || 'Importes referenciales al tipo de cambio de hoy. El cobro se realiza en' }}
-                  {{ finanzas?.moneda }}.
+                  {{ maestroStore.t('res_soles_referencial') || 'Importes referenciales al tipo de cambio de hoy.' }}
                 </p>
 
                 <!-- Prepago pendiente. Solo lo manda el backend a quien no ha pagado nada:
@@ -436,6 +437,11 @@ const detalleCuentaAbierto = ref(false);
                     {{ maestroStore.t(finanzas.prepago.claveI18n) }}
                   </p>
                 </div>
+
+                <!-- Separa el prepago —lo único que pide acción— del desglose informativo. -->
+                <p class="mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
+                  {{ maestroStore.t('res_detalle') || 'Detalle' }}
+                </p>
 
                 <div v-if="cargosDetalle.length" class="space-y-2 mb-3">
                   <div v-for="(linea, i) in cargosDetalle" :key="`${linea.tipo}-${i}`"
