@@ -1497,6 +1497,43 @@ hay, y de paso se ahorran los tokens de su definición.
 **El huésped no es un caso sin permisos**: es un actor más. Lo que lo distingue es que sus
 skills están acotadas a su reserva por el contexto.
 
+#### 🎭 Cuatro perfiles, cuatro personas
+
+Por el mismo WhatsApp entran cuatro clases de persona, y durante mucho tiempo el prompt del
+sistema era uno solo: «Hablas con un huésped por el chat de su reserva». Fallaba por los dos
+lados — al compañero se le trataba de usted y se le escondían cifras que puede ver, y a quien va
+a limpiar se le podía soltar el saldo de un huésped por no haberle dicho que no.
+
+`PerfilConversacion::deActor()` decide quién es, y `AiConversationProcessor::reglas()` compone
+**tronco común + bloque del perfil**:
+
+| Perfil | Quién | Voz | Lo que NO hace |
+|---|---|---|---|
+| `Prospecto` | Número desconocido, sin reserva | Vender, de usted | Nombrar a otros huéspedes; comprometer precios |
+| `Huesped` | Con reserva viva | Asistir, de usted | Conceder lo que se PIDE (eso escala) |
+| `Personal` | Equipo, grupo **OFICINA** | Compañero, tuteo, al grano | Escribir nada: por este canal sólo se consulta |
+| `Colaborador` | Equipo, grupo **CAMPO** | Directo y muy breve | Dinero, deudas o contacto de un huésped |
+
+**La frontera personal/colaborador es la que ya existía**: `Roles::getChoices('OFICINA')` frente
+a `CAMPO`. No se enumera una lista de roles aquí, se pregunta a la misma función — una copia se
+desincronizaría con el maestro a la primera. Los roles de `SISTEMA` cuentan como oficina: un
+admin gestiona reservas por definición, y dejarlo fuera lo habría mandado al perfil más
+restringido de los cuatro.
+
+⚠️ **Se mira primero si es del equipo.** Alguien del equipo puede además ser huésped en su propia
+reserva (`tambienHuesped: true`), y ahí manda su condición de compañero: es quien más puede ver y
+a quien menos falta le hace la cortesía.
+
+⚠️ **El perfil NO sustituye a los permisos.** Lo que cada uno *puede* hacer lo decide
+`SkillRegistry::paraActor()` con los roles; si a un colaborador no le toca `consultar_cuenta`, la
+herramienta no aparece en su lista y no hay prompt que la invoque. El perfil aporta la otra
+mitad, la que ningún filtro puede dar: el tono y el criterio. **Los permisos evitan el acceso; el
+perfil evita el desliz.**
+
+El tronco común va primero y el bloque del perfil después, para que éste pueda endurecerlo pero
+no aflojarlo: no inventar datos y no escribir de memoria un número de cuenta valen para los
+cuatro.
+
 #### 🛒 El prospecto: quien pregunta sin ser todavía nadie
 
 Un número desconocido que escribe a preguntar precios **no es un huésped con menos permisos: es

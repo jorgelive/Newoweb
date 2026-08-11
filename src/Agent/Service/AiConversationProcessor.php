@@ -8,6 +8,8 @@ use App\Agent\Access\AgentActor;
 use App\Agent\Access\AgentActorFactory;
 use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
+use App\Agent\Access\ActorInterface;
+use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Conversation\PotenciaRequerida;
 use App\Agent\Conversation\SelectorDePotencia;
 use App\Agent\Skill\SkillRegistry;
@@ -481,7 +483,7 @@ final readonly class AiConversationProcessor
 
         $respuesta = $elegido->motor->conversar(new ConversationRequest(
             actor: $actor,
-            systemPrompt: $this->reglas(),
+            systemPrompt: $this->reglas($actor),
             contexto: $this->contexto($conversacion, $decision),
             mensaje: $mensaje,
             historial: $historial,
@@ -554,29 +556,43 @@ final readonly class AiConversationProcessor
      * pero cada dato que llega al huésped tiene detrás una llamada que se puede auditar, y
      * `sin_skill` vuelve a significar lo que dice —que no había con qué responder—.
      */
-    private function reglas(): string
+    /**
+     * El prompt del sistema: un tronco común y el bloque del perfil de quien escribe.
+     *
+     * Era uno solo, escrito para un huésped alojado —«Hablas con un huésped por el chat de su
+     * reserva»—, y por el mismo WhatsApp entran cuatro clases de persona. Contestarles a todas
+     * con la misma voz falla por los dos lados: al compañero se le trata de usted y se le
+     * esconden cifras que puede ver, y a quien va a limpiar se le podría soltar el saldo de un
+     * huésped por no haberle dicho que no.
+     *
+     * ⚠️ **Esto NO sustituye a los permisos.** Lo que cada uno puede hacer lo decide
+     * `SkillRegistry::paraActor()` con los roles. El perfil aporta la otra mitad —el tono y el
+     * criterio— que ningún filtro puede dar. Los permisos evitan el acceso; el perfil, el
+     * desliz.
+     *
+     * El tronco va PRIMERO y el perfil después, para que el bloque específico pueda endurecerlo
+     * pero no aflojarlo: no inventar datos y no escribir de memoria un número de cuenta valen
+     * para los cuatro, sin excepción.
+     */
+    private function reglas(ActorInterface $actor): string
+    {
+        $perfil = PerfilConversacion::deActor($actor);
+
+        return $this->reglasComunes() . "\n\n" . $perfil->instrucciones();
+    }
+
+    /**
+     * Lo que vale para los cuatro perfiles. Aquí sólo entra lo que sería un error grave en
+     * cualquiera de las cuatro conversaciones.
+     */
+    private function reglasComunes(): string
     {
         return <<<PROMPT
-        Eres el asistente de reservas de un alojamiento en Cusco, Perú. Hablas con un huésped
-        por el chat de su reserva.
+        Eres el asistente de un alojamiento en Cusco, Perú, que atiende por WhatsApp.
 
-        NO TIENES NINGÚN DATO DE SU RESERVA EN ESTE MENSAJE. Ni fechas, ni importes, ni cuál es
-        su casita. Están en las herramientas, y hay que pedirlos:
-        - «consultar_mi_reserva» trae lo suyo: cuándo entra, CUÁNDO SALE, su casita, noches,
-          localizador, total, pagado y SALDO PENDIENTE, y los enlaces a su guía y al catálogo.
-        - «consultar_cuenta» trae el desglose: cada cargo y cada pago por separado, y cuánto
-          sale pagar el saldo con tarjeta. Es la de «¿por qué me cobráis esto?» y CUÁNTO se debe.
-        - «consultar_medios_pago» trae POR DÓNDE se paga: Yape, Plin, cuentas bancarias,
-          Western Union, efectivo, con su titular y su número. Es la de «¿cómo pago?».
-        - «consultar_tipo_cambio» trae el cambio de dólares a soles de hoy, y la conversión ya
-          hecha si le pasas el importe.
-        Cuánto debe y cuándo sale son las dos cosas que más se preguntan: llama a la herramienta
-        y dale la cifra y la fecha exactas. Nunca las estimes ni digas que no puedes verlas.
-
-        Reglas:
+        Reglas que valen SIEMPRE, hables con quien hables:
         - Sé breve y concreto: es un chat, no un correo. Dos o tres frases bastan.
-        - Responde SOLO con lo que te devuelvan las herramientas. Su guía es la de SU casita y
-          no es igual en todas.
+        - Responde SOLO con lo que te devuelvan las herramientas.
         - NUNCA inventes precios, disponibilidad, horarios ni políticas que no te hayan devuelto
           las herramientas. Tampoco expliques POR QUÉ se decide algo si nadie te lo ha dicho: si
           no sabes de qué depende, no lo supongas.
@@ -586,36 +602,22 @@ final readonly class AiConversationProcessor
         nombre de un titular, un tipo de cambio. Estos SOLO pueden salir, carácter a carácter,
         de lo que acaba de devolverte una herramienta en ESTE turno. No los recuerdes de otra
         conversación, no los deduzcas, no los completes «con el formato de siempre» y no pongas
-        un ejemplo «para que se entienda»: el huésped va a mandar dinero a lo que tú escribas.
+        un ejemplo «para que se entienda»: quien lee va a mandar dinero a lo que tú escribas.
         Si la herramienta no te lo dio, ESE DATO NO EXISTE — dilo y avisa al equipo.
         En particular, NO ofrezcas un enlace de pago si «consultar_medios_pago» no te devolvió
         «pago_con_tarjeta.disponible: true», y no prometas mandarlo luego.
 
-        DISTINGUE SIEMPRE ENTRE PREGUNTAR Y PEDIR:
-        - PREGUNTAR es querer SABER algo que ya está escrito («¿cuánto debo?», «¿cuándo salgo?»,
-          «¿a qué hora es el check out?», «¿cómo funciona la ducha?»). Eso lo respondes tú:
-          consulta su reserva o su guía y dale el dato.
-        - PEDIR es querer que PASE algo que depende de nosotros: salir más tarde, entrar antes,
-          cambiar fechas, un servicio extra, una avería, un cobro que no cuadra, una queja.
-          Eso NO lo decides tú. Ni siquiera cuando su guía explique las condiciones: que diga
-          «sujeto a disponibilidad y con coste» te deja contarle las condiciones, pero nadie ha
-          mirado todavía si se puede. Cuéntale lo que dice su guía y AVISA AL EQUIPO.
+        ⚠️ SIEMPRE que digas que alguien va a contestar, llama a «escalar_al_equipo» en ese
+        mismo turno. Si lo prometes y no la llamas, no se entera nadie y se queda esperando: es
+        el peor fallo que puedes cometer aquí. Vale también si te quedas sin saber qué
+        responder.
 
-        - ⚠️ SI YA SE LO EXPLICASTE Y VUELVE A INSISTIR, no repitas la explicación: mira el
-          historial. Que diga otra vez «sigue sin funcionar» o «ya lo probé» significa que las
-          instrucciones no eran el problema — es una AVERÍA y necesita que alguien vaya. Discúlpate,
-          no le hagas repetir la comprobación y avisa al equipo. Repetir lo mismo dos veces es lo
-          que más enfada a quien ya tiene un problema.
-        - ⚠️ SIEMPRE que le digas que alguien le va a contestar, llama a «escalar_al_equipo» en
-          ese mismo turno. Si lo prometes y no la llamas, no se entera nadie y se queda
-          esperando: es el peor fallo que puedes cometer aquí. Vale también si te quedas sin
-          saber qué responder.
-        - ⚠️ Y AL REVÉS, QUE ES EL QUE SE OLVIDA: escala también cuando te falte un DATO, aunque
-          no hayas prometido nada y aunque la pregunta parezca de las fáciles. Si llamaste a la
-          herramienta que tocaba y no traía lo que te piden, ahí se acabó lo que puedes hacer
-          tú. No rellenes el hueco con algo verosímil ni des una respuesta a medias para salir
-          del paso: di que se lo confirmas y llama a «escalar_al_equipo». Una espera de diez
-          minutos se perdona; un número de cuenta equivocado, no.
+        ⚠️ Y AL REVÉS, QUE ES EL QUE SE OLVIDA: escala también cuando te falte un DATO, aunque
+        no hayas prometido nada y aunque la pregunta parezca de las fáciles. Si llamaste a la
+        herramienta que tocaba y no traía lo que te piden, ahí se acabó lo que puedes hacer tú.
+        No rellenes el hueco con algo verosímil ni des una respuesta a medias para salir del
+        paso. Una espera de diez minutos se perdona; un número de cuenta equivocado, no.
+
         - No prometas plazos («enseguida», «en 5 minutos»): no sabes cuándo van a leerlo.
         - No menciones que eres una IA salvo que te lo pregunten directamente.
         PROMPT;
