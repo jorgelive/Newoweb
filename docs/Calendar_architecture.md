@@ -111,7 +111,7 @@ Además de los ids, los providers SPA mandan los **campos sueltos** que la SPA p
 
 | Calendario | Campos |
 |---|---|
-| Reservas | `canalId`, `cliente`, `unidad`, `pax`, `noches`, `estado`, `estadoIcono`, `estadoColor`, `estadoPago`, `referenciaCanal`, `simbolo`, `total`, `saldo` |
+| Reservas | `canalId`, `cliente`, `unidad`, `pax`, `noches`, `estado`, `estadoIcono`, `estadoColor`, `estadoPago`, `descripcion`, `referenciaCanal`, `simbolo`, `total`, `saldo` |
 | Tarifas | `precio`, `minStay`, `moneda`, `importante`, `active` |
 
 #### Las cifras financieras de la barra (`simbolo`, `total`, `saldo`)
@@ -155,6 +155,27 @@ pendiente una reserva ya cobrada.
 
 El importe de la barra va **sin decimales** (`importeCorto()`): en 60 px no caben. Los
 céntimos exactos están en el tooltip y en el panel financiero.
+
+#### La barra de un evento SIN reserva (`descripcion`)
+
+Un bloqueo de mantenimiento no tiene cliente ni cifras, pero se pinta con **la misma
+anatomía de dos filas** que una estancia: icono a la izquierda, qué es arriba, el detalle
+abajo. No es simetría por gusto — es que tenía dos cosas que decir y sólo se le daba una
+línea:
+
+- **Arriba va el estado** (`estado`, «Bloqueo»), no el `title`. El título de estos eventos lo
+  fabrica `buildTitle()` como `Evento (Bloqueo)`, que repite lo que el color de la barra y el
+  icono ya dicen. Sigue siendo el respaldo si el evento llegara sin datos sueltos.
+- **Abajo va `descripcion`**, el motivo que alguien escribió a mano («Pintado»,
+  «Fumigación»). Es el ÚNICO dato propio del bloqueo y antes sólo se veía abriendo el
+  tooltip. Ocupa la fila entera —donde una estancia lleva sus pastillas— y va como texto
+  suelto: el lienzo opaco de `.fc-reserva-dato` existe para defender un código de color sobre
+  la barra, y aquí no hay ninguno que defender.
+- **El icono es el del ESTADO, no el del canal.** Un bloqueo es siempre `directo` y el
+  apretón de manos de ese canal no dice nada; el `fa-ban` del estado sí.
+
+`descripcion` viaja para todos los eventos, también los de reserva, pero ahí no se pinta: esa
+segunda fila la ocupan pax, noches y saldo.
 
 #### El icono del estado (`estadoIcono`, `estadoColor`)
 

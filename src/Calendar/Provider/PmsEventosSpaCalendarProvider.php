@@ -357,6 +357,13 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             'estadoIcono' => $evento->getEstado()?->getIcono(),
             'estadoColor' => $evento->getEstado()?->getColor(),
             'estadoPago' => $evento->getEstadoPago()?->getNombre(),
+
+            // El motivo escrito a mano («Pintado», «Fumigación»…). Es lo ÚNICO propio de un
+            // evento sin reserva: su `title` es un «Evento (Bloqueo)» sintético que repite lo
+            // que el color y el icono ya dicen. La barra lo pinta en la segunda fila, donde una
+            // estancia lleva sus cifras. En una reserva va igualmente, pero ahí no se pinta:
+            // esa fila la ocupan pax, noches y saldo.
+            'descripcion' => $evento->getDescripcion(),
             'referenciaCanal' => $evento->getReferenciaCanal(),
             'noches' => $evento->getNoches(),
             // Horario extra: la barra los marca con un icono. La noche que bloquean

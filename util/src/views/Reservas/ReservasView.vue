@@ -818,23 +818,43 @@ async function onEventResize(info: EventResizeDoneArg): Promise<void> {
  * motivo. Se paga un precio: la fila de cifras es la primera que se recorta, así que en una
  * estancia de una noche el estado no llega a verse —ahí queda el tooltip—.
  *
- * 🔒 `icono` es texto que teclea un operador en el CRUD y acaba dentro de un atributo `class`.
- * Se acota a la forma de una clase de FontAwesome (letras, dígitos, guiones y espacios) ANTES
- * de escaparlo: escapar protege del cierre de atributo, no de que alguien cuele
- * `fa-x" onload="`. Lo que no encaje no se pinta.
+ * 🔒 El saneado del icono y del color vive en `claseIconoEstado()` / `estiloColorEstado()`,
+ * porque lo usan también los eventos sin reserva. Ahí está el porqué de cada regla.
  */
 function iconoEstadoHtml(p: PmsEventoExtendedProps): string {
+    const clase = claseIconoEstado(p);
+    if (!clase) return '';
+
+    return `<span class="fc-reserva-dato fc-reserva-estado" title="${escaparHtml(p.estado ?? '')}">`
+        + `<i class="${clase}"${estiloColorEstado(p)}></i>`
+        + `</span>`;
+}
+
+/**
+ * La clase de FontAwesome del estado, ya saneada y escapada. `''` si no sirve.
+ *
+ * 🔒 `icono` es texto que teclea un operador en el CRUD y acaba dentro de un atributo
+ * `class`. Se acota a la FORMA de una clase de FontAwesome (letras, dígitos, guiones y
+ * espacios) ANTES de escaparlo: escapar protege del cierre de atributo, no de que alguien
+ * cuele `fa-x" onload="`. Lo que no encaje no se pinta.
+ */
+function claseIconoEstado(p: PmsEventoExtendedProps): string {
     const icono = (p.estadoIcono ?? '').trim();
     if (!icono || !/^[a-zA-Z0-9 -]{1,50}$/.test(icono)) return '';
 
-    // El maestro normaliza a `#RRGGBB` (PmsEventoEstado::normalizeColor), pero el estilo se
-    // compone aquí y no se confía en eso: lo que no sea un hex exacto no se pinta.
-    const color = (p.estadoColor ?? '').trim();
-    const estilo = /^#[0-9A-Fa-f]{6}$/.test(color) ? ` style="color:${color}"` : '';
+    return escaparHtml(icono);
+}
 
-    return `<span class="fc-reserva-dato fc-reserva-estado" title="${escaparHtml(p.estado ?? '')}">`
-        + `<i class="${escaparHtml(icono)}"${estilo}></i>`
-        + `</span>`;
+/**
+ * El `style` con el color del estado, o `''`.
+ *
+ * El maestro normaliza a `#RRGGBB` (`PmsEventoEstado::normalizeColor()`), pero el estilo se
+ * compone aquí y no se confía en eso: lo que no sea un hex exacto no se pinta.
+ */
+function estiloColorEstado(p: PmsEventoExtendedProps): string {
+    const color = (p.estadoColor ?? '').trim();
+
+    return /^#[0-9A-Fa-f]{6}$/.test(color) ? ` style="color:${color}"` : '';
 }
 
 const calendarOptions: CalendarOptions = {
@@ -1025,7 +1045,34 @@ const calendarOptions: CalendarOptions = {
      */
     eventContent: (arg) => {
         const p = arg.event.extendedProps as PmsEventoExtendedProps;
-        if (!p?.cliente) return { html: `<div class="fc-reserva">${escaparHtml(arg.event.title)}</div>` };
+        // Un evento SIN reserva —un bloqueo de mantenimiento, típicamente— también va a dos
+        // filas, y por el mismo motivo que una estancia: tiene dos cosas que decir.
+        //
+        // Antes se despachaba con una línea suelta que pintaba el `title`, y ese título es un
+        // «Evento (Bloqueo)» que fabrica `buildTitle()`: repite el estado, que el color de la
+        // barra y el icono ya dicen. Mientras tanto la DESCRIPCIÓN —«Pintado»— que es el único
+        // dato propio del bloqueo, sólo se veía abriendo el tooltip.
+        //
+        // Misma anatomía que una estancia para que el calendario no hable dos idiomas: icono a
+        // la izquierda, qué es arriba, el detalle abajo. El icono es el del ESTADO y no el del
+        // canal: un bloqueo es siempre «directo» y ese apretón de manos no dice nada aquí.
+        if (!p?.cliente) {
+            const clase = p ? claseIconoEstado(p) : '';
+            const estilo = p ? estiloColorEstado(p) : '';
+            const descripcion = (p?.descripcion ?? '').trim();
+
+            return {
+                html: `<div class="fc-reserva">`
+                    + (clase ? `<i class="${clase} fc-reserva-canal"${estilo}></i>` : '')
+                    + `<span class="fc-reserva-col">`
+                    + `<span class="fc-reserva-nombre">${escaparHtml(p?.estado ?? arg.event.title)}</span>`
+                    + (descripcion
+                        ? `<span class="fc-reserva-meta fc-reserva-motivo">${escaparHtml(descripcion)}</span>`
+                        : '')
+                    + `</span>`
+                    + `</div>`,
+            };
+        }
 
         const canal = canalInfo(p.canalId);
 
@@ -1510,6 +1557,19 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 .fc-reserva-dato i {
     font-size: 0.85em;
     opacity: 0.7;
+}
+
+/* El motivo de un bloqueo ocupa la segunda fila entera, donde una estancia lleva
+   sus pastillas. Va como TEXTO y no en pastilla: no compite con nada al lado, y
+   el lienzo propio de `.fc-reserva-dato` existe para que un rojo o un verde se
+   lean sobre la barra — aquí no hay código de color que defender. Se recorta con
+   puntos suspensivos porque un «Mantenimiento del calentador» no cabe. */
+.fc-reserva-motivo {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+    opacity: 0.85;
 }
 
 /* La pastilla del estado es sólo el glifo, sin cifra al lado: se le quita el

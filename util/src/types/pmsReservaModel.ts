@@ -226,11 +226,21 @@ export interface PmsEventoExtendedProps {
     estadoIcono?: string | null;
     estadoColor?: string | null;
     estadoPago?: string | null;
+
+    /**
+     * El motivo escrito a mano de un evento sin reserva («Pintado», «Fumigación»…).
+     *
+     * Es lo único propio de un bloqueo: su `title` es un «Evento (Bloqueo)» sintético que
+     * repite lo que el color y el icono ya dicen. La barra lo pinta en la segunda fila. En una
+     * reserva llega igual, pero ahí no se usa: esa fila la ocupan pax, noches y saldo.
+     */
+    descripcion?: string | null;
+
     referenciaCanal?: string | null;
     noches?: number;
-    /** Early check-in pactado: la barra lo marca con una puerta. */
+    /** Early check-in pactado: la barra lo marca con la flecha de ENTRAR al umbral. */
     entradaTemprana?: boolean;
-    /** Late check-out pactado: la barra lo marca con un reloj. */
+    /** Late check-out pactado: la barra lo marca con la flecha de SALIR del umbral. */
     salidaTardia?: boolean;
 
     /**

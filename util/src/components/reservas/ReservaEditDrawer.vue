@@ -393,6 +393,23 @@ function nombreIdioma(): string {
 function estadoObj(id: string) {
     return reservasStore.estados.find(e => e.id === id);
 }
+
+/**
+ * Icono del estado, el MISMO que pinta la barra del calendario (`pms_evento_estado.icono`).
+ *
+ * ⚠️ El cast no es cosmético y tiene fecha de caducidad: el backend sí manda el campo
+ * —`PmsEventoEstado::getIcono()` está en el grupo `pms_evento_estado:read`, verificado
+ * contra `api:openapi:export`—, pero el tipo generado todavía no lo conoce: `api.d.ts` y
+ * `openapi.json` no se regeneran desde que se añadió la columna. Regenerarlos ahora mismo
+ * arrastraría cambios de otro trabajo en curso, así que se deja para quien lo cierre.
+ *
+ * Cuando se regeneren, esto se borra y se lee `estadoObj(id)?.icono` directo.
+ */
+function iconoEstado(id: string): string {
+    const estado = estadoObj(id) as { icono?: string | null } | undefined;
+
+    return estado?.icono || 'fas fa-circle';
+}
 function estadoPagoObj(id: string) {
     return reservasStore.estadosPago.find(e => e.id === id);
 }
@@ -1543,7 +1560,14 @@ async function ejecutarBorrado(): Promise<void> {
                                     <span class="flex items-center gap-2 text-sm font-bold text-slate-700 min-w-0">
                                         <i class="fas fa-chevron-right text-[10px] text-slate-400 transition-transform shrink-0"
                                             :class="{ 'rotate-90': activeIndex === i }"></i>
-                                        <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: colorEntry(entry) }"></span>
+                                        <!-- El icono del ESTADO, no un punto anónimo: el punto repetía
+                                             el color que ya llevan el borde y el fondo de la cabecera,
+                                             así que no añadía nada. Y va con el color del estado, que
+                                             puede NO ser el de la cabecera —ésa la tiñe `colorEntry()`,
+                                             donde el estado de pago manda—: ahí está lo que aporta. -->
+                                        <i class="shrink-0 text-xs w-4 text-center" :class="iconoEstado(entry.form.estado)"
+                                            :style="{ color: estadoObj(entry.form.estado)?.color || COLOR_ESTADO_FALLBACK }"
+                                            :title="nombreEstado(entry)"></i>
                                         <span class="truncate">{{ nombreUnidad(entry) }}</span>
                                         <!-- Las fechas son el dato que más se consulta de la cabecera:
                                              van en el mismo peso que la casita, con el pax en gris. -->
@@ -1618,8 +1642,9 @@ async function ejecutarBorrado(): Promise<void> {
                                         </div>
                                         <div v-if="!isCreate || isCreateReserva">
                                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Estado</p>
-                                            <span class="inline-block mt-1 px-2.5 py-1 rounded-full text-[11px] font-black"
+                                            <span class="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-full text-[11px] font-black"
                                                 :style="{ backgroundColor: estadoObj(entry.form.estado)?.color || COLOR_ESTADO_FALLBACK, color: contrastText(estadoObj(entry.form.estado)?.color || COLOR_ESTADO_FALLBACK) }">
+                                                <i :class="iconoEstado(entry.form.estado)"></i>
                                                 {{ nombreEstado(entry) }}
                                             </span>
                                         </div>
