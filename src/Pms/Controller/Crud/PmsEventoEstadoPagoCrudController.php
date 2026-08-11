@@ -97,7 +97,15 @@ class PmsEventoEstadoPagoCrudController extends BaseCrudController
         // ============================================================
         yield FormField::addPanel('Visualización')->setIcon('fa fa-palette');
 
+        // El color, VISTO. Misma muestra que en el maestro de estados de evento
+        // (`BaseCrudController::muestraDeColor()`): la lista se revisa sin abrir cada fila.
+        yield TextField::new('color', 'Color')
+            ->onlyOnIndex()
+            ->formatValue(static fn ($valor): string => self::muestraDeColor($valor))
+            ->renderAsHtml();
+
         yield TextField::new('color', 'Color (HEX)')
+            ->hideOnIndex()
             ->setHelp('Formato: #RRGGBB. Se usa si el Estado de Evento no fuerza su propio color.')
             ->setFormTypeOption('attr', [
                 'maxlength' => 7,

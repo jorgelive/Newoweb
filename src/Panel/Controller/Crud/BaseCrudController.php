@@ -160,4 +160,33 @@ abstract class BaseCrudController extends AbstractCrudController
 
         return $ctx->getCrud()?->getControllerFqcn() !== static::class;
     }
+
+    /**
+     * Un color HEX, VISTO: la muestra y el código al lado, para el índice de los maestros.
+     *
+     * Un `#FFB300` en una celda no dice nada y obliga a abrir cada fila para saber cómo se
+     * ve. Vive aquí y no en cada CRUD porque ya son dos los maestros que pintan color
+     * (`PmsEventoEstadoCrudController`, `PmsEventoEstadoPagoCrudController`) y la copia
+     * pegada se habría desincronizado a la primera.
+     *
+     * Se usa desde `formatValue()`, así que el `renderAsHtml()` del campo lo pone quien
+     * llama; lo que sale de aquí ya viene escapado.
+     */
+    protected static function muestraDeColor(mixed $hex): string
+    {
+        if (!is_string($hex) || $hex === '') {
+            return '<span style="color:#94a3b8">—</span>';
+        }
+
+        $seguro = htmlspecialchars($hex, ENT_QUOTES);
+
+        return sprintf(
+            '<span style="display:inline-flex;align-items:center;gap:.5rem">'
+            . '<span style="width:1rem;height:1rem;border-radius:.25rem;'
+            . 'background:%s;border:1px solid rgba(0,0,0,.15);display:inline-block"></span>'
+            . '<code style="font-size:.8em">%s</code></span>',
+            $seguro,
+            $seguro,
+        );
+    }
 }

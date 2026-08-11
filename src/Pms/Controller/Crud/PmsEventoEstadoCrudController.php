@@ -124,25 +124,11 @@ class PmsEventoEstadoCrudController extends BaseCrudController
         yield FormField::addPanel('Configuración Visual')->setIcon('fa fa-palette');
 
         // El color, VISTO. Un `#FFB300` en una celda no dice nada: la muestra al lado
-        // convierte la lista en algo que se puede revisar sin abrir cada estado.
+        // convierte la lista en algo que se puede revisar sin abrir cada estado. La pinta
+        // `BaseCrudController::muestraDeColor()`, compartida con el maestro de estados de pago.
         yield TextField::new('color', 'Color')
             ->onlyOnIndex()
-            ->formatValue(function ($valor): string {
-                if (!is_string($valor) || $valor === '') {
-                    return '<span style="color:#94a3b8">—</span>';
-                }
-
-                $hex = htmlspecialchars($valor, ENT_QUOTES);
-
-                return sprintf(
-                    '<span style="display:inline-flex;align-items:center;gap:.5rem">'
-                    . '<span style="width:1rem;height:1rem;border-radius:.25rem;'
-                    . 'background:%s;border:1px solid rgba(0,0,0,.15);display:inline-block"></span>'
-                    . '<code style="font-size:.8em">%s</code></span>',
-                    $hex,
-                    $hex,
-                );
-            })
+            ->formatValue(static fn ($valor): string => self::muestraDeColor($valor))
             ->renderAsHtml();
 
         yield TextField::new('color', 'Color (HEX)')
