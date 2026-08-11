@@ -496,10 +496,23 @@ export function pagoMandaSobreEstado(estadoId: string, estadoPagoId: string): bo
 }
 
 /**
- * Filtra las opciones de estado disponibles para un evento, replicando
- * PmsEventoCalendarioSecurityListener: eventos OTA no pueden pasar a
- * cancelada/abierto/bloqueo (salvo abierto -> cancelada), y una vez
- * cancelada queda en estado terminal (no seleccionable ningún cambio).
+ * Filtra las opciones de estado de un evento. **Espejo de
+ * `PmsEventoEstado::transicionOtaPermitida()`** (PHP), que es la fuente única de la regla y
+ * la que aplica también `PmsEventoCalendarioSecurityListener` al guardar.
+ *
+ * ```
+ *   pendiente ⇄ confirmada ⇄ requerimiento     ✔  los tres, entre sí
+ *   abierto   → cancelada                      ✔  unidireccional: limpiar una consulta
+ *   cancelada → *                              ✘  terminal
+ *   bloqueo   → *                              ✘  terminal
+ * ```
+ *
+ * ⚠️ **Si cambia la regla, hay que tocar los dos lados.** Lo que aquí sobre, el backend lo
+ * rechaza con un 403 y el operador ve una opción que no puede elegir; lo que aquí falte, no
+ * se puede hacer desde el panel aunque el backend lo permita. Hay una comprobación cruzada
+ * de los dos lados en `var/verificar_transiciones_ota.php`.
+ *
+ * Un evento que NO es de OTA no se filtra: ahí mandamos nosotros.
  */
 export function filtrarEstadosDisponibles(
     todos: PmsEventoEstadoOption[],
@@ -510,6 +523,15 @@ export function filtrarEstadosDisponibles(
 
     if (estadoActualId === PMS_ESTADO.CANCELADA) {
         return todos.filter(e => e.id === PMS_ESTADO.CANCELADA);
+    }
+
+    // `bloqueo` es tan terminal como `cancelada` para una OTA: calendario cerrado no se
+    // convierte en una reserva vendida. Faltaba, y el desplegable ofrecía los tres estados
+    // vivos — lo destapó la matriz de transiciones al comparar esto con
+    // `PmsEventoEstado::transicionOtaPermitida()`. El backend ya lo rechaza (REGLA 4 del
+    // listener de seguridad), así que sin esto el operador veía una opción que da 403.
+    if (estadoActualId === PMS_ESTADO.BLOQUEO) {
+        return todos.filter(e => e.id === PMS_ESTADO.BLOQUEO);
     }
 
     if (estadoActualId === PMS_ESTADO.ABIERTO) {

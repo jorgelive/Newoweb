@@ -10,6 +10,7 @@ use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use RuntimeException;
 
@@ -23,12 +24,15 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     /**
      * Status de Beds24 para una reserva cancelada.
      *
-     * Es el ÚNICO estado que el PMS puede imponerle a una reserva de OTA (ver el bloque
-     * "4. ESTADO"), así que se nombra en vez de repetir la cadena: el día que Beds24 cambie
-     * el literal, esto tiene que fallar en un solo sitio. Espejo de
-     * `pms_evento_estado.codigo_beds24` para el estado `cancelada`.
+     * Se nombra en vez de repetir la cadena: el día que Beds24 cambie el literal, esto tiene
+     * que fallar en un solo sitio. Espejo de `pms_evento_estado.codigo_beds24` para `cancelada`.
+     *
+     * Qué estados puede imponerle el PMS a una OTA ya NO se decide aquí: lo dice
+     * `PmsEventoEstado::transicionOtaPermitida()`. Esta constante sólo sobrevive porque un
+     * DELETE manda `cancelled` por definición, sin transición que juzgar.
      */
     private const string BEDS24_CANCELLED = 'cancelled';
+
 
     /**
      * Transforma el lote de la cola al formato de transporte HTTP.
@@ -205,10 +209,34 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         // cancela aquí vuelve a aparecer abierta en el siguiente pull programado, porque
         // Beds24 nunca se enteró. El operador la cancela una y otra vez sin efecto.
         //
-        // Dicho de otro modo: el PMS puede CERRAR en el canal, nunca abrir ni confirmar.
+        // Lo que el PMS SÍ puede imponerle a una OTA lo decide una sola regla,
+        // `PmsEventoEstado::transicionOtaPermitida()`, la misma que aplica el listener de
+        // seguridad al bloquear la mutación local y el desplegable de `util` al ofrecer
+        // opciones. Antes esto era una lista suelta aquí y se desincronizaba con ellos.
+        //
+        //   pendiente ⇄ confirmada ⇄ requerimiento   ✔
+        //   abierto   → cancelada                    ✔
+        //   el resto                                 ✘
+        //
+        // 🔑 El «desde» es lo que dice el CANAL —`estadoBeds24`, el último `status` que
+        // reportó Beds24—, no lo que decimos nosotros. Es lo que impide el daño original: si
+        // el canal ya la canceló, ninguna transición sale permitida y el `status` no viaja,
+        // así que la cancelación sobrevive.
+        //
+        // Queda la ventana entre el último pull y este push (~20 min): si el canal cancela
+        // justo ahí, nuestro «desde» está caduco. Se acepta a sabiendas.
         $estadoBeds24 = $this->resolveBeds24Status($queue);
 
-        if (!$isOta || $isMirror || $estadoBeds24 === self::BEDS24_CANCELLED) {
+        // Un DELETE manda `cancelled` por definición y no es una transición de estado que
+        // discutir: es la baja del registro. Se deja pasar aparte para no atarlo a la regla.
+        $esBorrado = $queue->getEndpoint()?->getMetodo() === 'DELETE';
+
+        $transicionPermitida = PmsEventoEstado::transicionOtaPermitida(
+            PmsEventoEstado::desdeCodigoBeds24($evento->getEstadoBeds24()),
+            PmsEventoEstado::desdeCodigoBeds24($estadoBeds24),
+        );
+
+        if (!$isOta || $isMirror || $esBorrado || $transicionPermitida) {
             $payload['status'] = $estadoBeds24;
         }
 

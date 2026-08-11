@@ -182,6 +182,32 @@ final class PmsEventoCalendarioSecurityListener
                     sprintf('SEGURIDAD OTA: No se permite transicionar manualmente una reserva hacia el estado "%s".', $idNuevo)
                 );
             }
+
+            // =================================================================
+            // REGLA 4: RED FINAL — la regla completa, tal cual la declara el maestro
+            // =================================================================
+            //
+            // Las tres reglas de arriba miran el estado DESTINO y dejaban pasar dos casos que
+            // sí importan, porque el destino es inocente y el origen no:
+            //
+            //   · `abierto` → confirmada    ascender una consulta que el canal no ha vendido
+            //   · `bloqueo` → confirmada    convertir calendario cerrado en una reserva
+            //
+            // Los destapó la matriz de transiciones al comparar esta clase con
+            // `PmsEventoEstado::transicionOtaPermitida()` y con el desplegable de `util`: el
+            // listener era MÁS PERMISIVO que el desplegable, así que no se veían por el panel
+            // —pero la API y la consola sí llegaban—.
+            //
+            // Se deja como red al final y no sustituyendo a las tres anteriores para no perder
+            // sus mensajes, que le dicen al operador qué hacer en su caso concreto.
+            if (!PmsEventoEstado::transicionOtaPermitida($idAnterior ?: null, $idNuevo)) {
+                throw new AccessDeniedHttpException(sprintf(
+                    'SEGURIDAD OTA: no se permite pasar de "%s" a "%s" en una reserva de canal. '
+                    . 'Entre pendiente, confirmada y requerimiento sí puedes moverte libremente.',
+                    $idAnterior !== '' ? $idAnterior : 'sin estado',
+                    $idNuevo,
+                ));
+            }
         }
     }
 

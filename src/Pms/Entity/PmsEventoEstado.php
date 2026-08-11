@@ -92,6 +92,94 @@ class PmsEventoEstado
     ];
 
     /**
+     * Los tres estados de una reserva OTA VIVA. Intercambiables entre sí.
+     *
+     * Que una reserva de Booking esté en `new`, `request` o `confirmed` es una gradación del
+     * mismo hecho —hay alguien que quiere esas noches— y moverla entre ellos no le quita ni le
+     * da la habitación a nadie. Por eso el PMS sí puede imponérselos al canal.
+     *
+     * ⚠️ Coincide con `OCUPAN_UNIDAD`, y también es CASUALIDAD. Aquélla dice qué se pinta como
+     * ocupado; ésta, qué transiciones puede imponerle el PMS a una OTA. No se deriven la una de
+     * la otra.
+     */
+    public const array OTA_VIVOS = [
+        self::CODIGO_PENDIENTE,
+        self::CODIGO_CONFIRMADA,
+        self::CODIGO_REQUERIMIENTO,
+    ];
+
+    /**
+     * ¿Puede el PMS llevar una reserva de OTA de `$desde` a `$hasta`?
+     *
+     * **Fuente única de la regla.** La aplican tres sitios que antes decidían por su cuenta:
+     * `PmsEventoCalendarioSecurityListener` (bloquea la mutación local),
+     * `BookingsPushMappingStrategy` (decide si el `status` viaja al canal) y el desplegable de
+     * `util` (`pmsReservaModel.ts::estadosSeleccionables()`, espejo declarado).
+     *
+     * ```
+     *   pendiente ⇄ confirmada ⇄ requerimiento     ✔  los tres, entre sí
+     *   abierto   → cancelada                      ✔  unidireccional: limpiar una consulta
+     *   todo lo demás                              ✘
+     * ```
+     *
+     * El porqué de cada mitad:
+     *
+     * - **Los tres vivos son intercambiables** porque moverse entre ellos no cambia quién tiene
+     *   la habitación. Bloquearlos era lo que dejaba estancias cobradas en `pendiente` sin
+     *   poder decírselo al canal (§12.9.a del doc de sync).
+     * - **Nada entra ni sale del par `abierto`/`cancelada`**, salvo esa flecha. `cancelada` es
+     *   terminal —resucitar una reserva que el canal liberó es vender dos veces la misma
+     *   noche— y `abierto` es una consulta: degradar a consulta una reserva en firme no
+     *   significa nada en el canal. La flecha que sí existe es la de limpiar consultas muertas.
+     *
+     * ⚠️ **`$desde === null` NIEGA, no permite.** Es una regla de seguridad y su valor por
+     * defecto tiene que caer del lado cerrado. El caso que lo destapó: el mapper traduce el
+     * `status` crudo del canal con `desdeCodigoBeds24()`, que devuelve `null` para `black`
+     * —y para cualquier literal que Beds24 añada mañana—; con el defecto permisivo, un
+     * `black → confirmed` viajaba al canal. Quien tenga un caso legítimo sin origen (un
+     * evento recién nacido) que lo resuelva antes de preguntar.
+     */
+    public static function transicionOtaPermitida(?string $desde, ?string $hasta): bool
+    {
+        if ($desde === null || $hasta === null) {
+            return false;
+        }
+
+        if ($desde === $hasta) {
+            return true;
+        }
+
+        if (in_array($desde, self::OTA_VIVOS, true) && in_array($hasta, self::OTA_VIVOS, true)) {
+            return true;
+        }
+
+        return $desde === self::CODIGO_ABIERTO && $hasta === self::CODIGO_CANCELADA;
+    }
+
+    /**
+     * `status` de Beds24 → código del maestro. `null` si no lo conocemos.
+     *
+     * Existe para que `BookingsPushMappingStrategy` pueda aplicar `transicionOtaPermitida()`
+     * sobre lo que dice el CANAL (`PmsEventoCalendario::$estadoBeds24`, texto crudo) sin
+     * bajar a la base de datos en mitad del mapeo de un lote.
+     *
+     * ⚠️ Espejo de la columna `pms_evento_estado.codigo_beds24`. `black` queda fuera a
+     * propósito: lo comparten `bloqueo` y `extension`, así que no tiene vuelta única — y
+     * ninguno de los dos es un estado de reserva de OTA.
+     */
+    public static function desdeCodigoBeds24(?string $codigo): ?string
+    {
+        return match ($codigo) {
+            'new'       => self::CODIGO_PENDIENTE,
+            'confirmed' => self::CODIGO_CONFIRMADA,
+            'request'   => self::CODIGO_REQUERIMIENTO,
+            'inquiry'   => self::CODIGO_ABIERTO,
+            'cancelled' => self::CODIGO_CANCELADA,
+            default     => null,
+        };
+    }
+
+    /**
      * Estados en los que un evento acredita que ALGUIEN es huésped nuestro.
      *
      * La usa la identificación por teléfono del chat entrante
