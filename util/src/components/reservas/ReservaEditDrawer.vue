@@ -1694,12 +1694,12 @@ async function ejecutarBorrado(): Promise<void> {
                                                     title="Entrada temprana: llega por la mañana. Bloquea la NOCHE ANTERIOR en Beds24 y añade el cargo «Entrada temprana» en 0.00 para que pongas lo que se cobre.">
                                                     <input type="checkbox" v-model="entry.form.entradaTemprana"
                                                         class="w-4 h-4 accent-[#E07845]" />
-                                                    <i class="fas fa-door-open text-sm" :class="entry.form.entradaTemprana ? 'text-amber-600' : 'text-slate-400'"></i>
+                                                    <i class="fas fa-right-to-bracket text-sm" :class="entry.form.entradaTemprana ? 'text-amber-600' : 'text-slate-400'"></i>
                                                 </label>
                                             </div>
 
                                             <p v-if="entry.form.entradaTemprana" class="mt-1.5 text-[11px] font-bold text-amber-700 leading-snug">
-                                                <i class="fas fa-door-open mr-1"></i>
+                                                <i class="fas fa-right-to-bracket mr-1"></i>
                                                 Entrada temprana: bloquea la noche ANTERIOR en Beds24 y abre su cargo en 0.00.
                                             </p>
                                         </div>
@@ -1724,12 +1724,12 @@ async function ejecutarBorrado(): Promise<void> {
                                                     title="Salida tardía: se va por la tarde. Bloquea ESA NOCHE en Beds24 y añade el cargo «Salida tardía» en 0.00. La estancia sigue contando las noches reales.">
                                                     <input type="checkbox" v-model="entry.form.salidaTardia"
                                                         class="w-4 h-4 accent-[#E07845]" />
-                                                    <i class="fas fa-clock text-sm" :class="entry.form.salidaTardia ? 'text-amber-600' : 'text-slate-400'"></i>
+                                                    <i class="fas fa-right-from-bracket text-sm" :class="entry.form.salidaTardia ? 'text-amber-600' : 'text-slate-400'"></i>
                                                 </label>
                                             </div>
 
                                             <p v-if="entry.form.salidaTardia" class="mt-1.5 text-[11px] font-bold text-amber-700 leading-snug">
-                                                <i class="fas fa-clock mr-1"></i>
+                                                <i class="fas fa-right-from-bracket mr-1"></i>
                                                 Salida tardía: bloquea ESA noche en Beds24 y abre su cargo en 0.00.
                                                 Las noches de la estancia no cambian.
                                             </p>

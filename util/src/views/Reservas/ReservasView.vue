@@ -803,7 +803,7 @@ async function onEventResize(info: EventResizeDoneArg): Promise<void> {
 // FULLCALENDAR OPTIONS
 // ============================================================================
 /**
- * Icono del estado, pequeño y debajo del icono del canal en la barra del evento.
+ * Icono del estado, como primera pastilla de la fila de cifras.
  *
  * Sale del maestro (`pms_evento_estado.icono/color`, vía `PmsEventosSpaCalendarProvider`) y no
  * de una tabla aquí: un estado nuevo dado de alta en el panel se pinta solo, sin recompilar.
@@ -811,6 +811,12 @@ async function onEventResize(info: EventResizeDoneArg): Promise<void> {
  * El color es el del ESTADO, que no siempre es el de la barra —ésta puede venir tintada por el
  * estado de PAGO (`resolveColor()` en el provider)—. Ahí está la gracia: el icono dice algo que
  * el color de fondo ya no siempre dice.
+ *
+ * Por eso va en pastilla y no suelto sobre la barra, que es como estaba: el rojo de «Cancelada»
+ * o el ámbar de «Pendiente» sobre el morado o el azul del fondo no se leían. `.fc-reserva-dato`
+ * le da el mismo lienzo plomo claro y opaco que ya usan el saldo y el total, y por el mismo
+ * motivo. Se paga un precio: la fila de cifras es la primera que se recorta, así que en una
+ * estancia de una noche el estado no llega a verse —ahí queda el tooltip—.
  *
  * 🔒 `icono` es texto que teclea un operador en el CRUD y acaba dentro de un atributo `class`.
  * Se acota a la forma de una clase de FontAwesome (letras, dígitos, guiones y espacios) ANTES
@@ -826,8 +832,9 @@ function iconoEstadoHtml(p: PmsEventoExtendedProps): string {
     const color = (p.estadoColor ?? '').trim();
     const estilo = /^#[0-9A-Fa-f]{6}$/.test(color) ? ` style="color:${color}"` : '';
 
-    return `<i class="${escaparHtml(icono)} fc-reserva-estado"${estilo}`
-        + ` title="${escaparHtml(p.estado ?? '')}"></i>`;
+    return `<span class="fc-reserva-dato fc-reserva-estado" title="${escaparHtml(p.estado ?? '')}">`
+        + `<i class="${escaparHtml(icono)}"${estilo}></i>`
+        + `</span>`;
 }
 
 const calendarOptions: CalendarOptions = {
@@ -1025,11 +1032,21 @@ const calendarOptions: CalendarOptions = {
         // Cada dato es opcional por separado: un bloqueo no trae cifras y una
         // reserva recién creada tampoco. La fila se arma con lo que haya.
         const meta = [
-            // Puerta / reloj = horario extra: esas noches están bloqueadas en el
-            // canal aunque la barra no llegue hasta ellas (ver getInicioCanal()
-            // y getFinCanal() en PmsEventoCalendario).
-            p.entradaTemprana ? '<span class="fc-reserva-dato fc-reserva-tarde" title="Entrada temprana"><i class="fas fa-door-open"></i></span>' : '',
-            p.salidaTardia ? '<span class="fc-reserva-dato fc-reserva-tarde" title="Salida tardía"><i class="fas fa-clock"></i></span>' : '',
+            // El estado abre la fila: es lo que primero se busca al barrer el
+            // calendario, y así es lo último que se recorta de la fila.
+            iconoEstadoHtml(p),
+            // Horario extra: esas noches están bloqueadas en el canal aunque la
+            // barra no llegue hasta ellas (ver getInicioCanal() y getFinCanal()
+            // en PmsEventoCalendario).
+            //
+            // Las dos son la misma bandera y el ámbar de `.fc-reserva-tarde` ya
+            // dice «fuera de horario», así que al glifo sólo le toca decir POR QUÉ
+            // EXTREMO. De ahí el par entrar/salir del umbral: misma silueta y
+            // sentido opuesto, que a 0.58rem es lo único que se distingue de un
+            // vistazo. Antes eran una puerta y un reloj —dos dibujos sin relación
+            // entre sí, y ninguno decía si era el principio o el final—.
+            p.entradaTemprana ? '<span class="fc-reserva-dato fc-reserva-tarde" title="Entrada temprana"><i class="fas fa-right-to-bracket"></i></span>' : '',
+            p.salidaTardia ? '<span class="fc-reserva-dato fc-reserva-tarde" title="Salida tardía"><i class="fas fa-right-from-bracket"></i></span>' : '',
             p.pax ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-user"></i>${escaparHtml(String(p.pax))}</span>` : '',
             p.noches ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-moon"></i>${escaparHtml(String(p.noches))}</span>` : '',
             p.total ? `<span class="fc-reserva-dato fc-reserva-total">${escaparHtml(importeCorto(p.total, p.simbolo))}</span>` : '',
@@ -1040,10 +1057,7 @@ const calendarOptions: CalendarOptions = {
 
         return {
             html: `<div class="fc-reserva">`
-                + `<span class="fc-reserva-iconos">`
                 + `<i class="${canal.icono} fc-reserva-canal" title="${escaparHtml(canal.texto)}"></i>`
-                + iconoEstadoHtml(p)
-                + `</span>`
                 + `<span class="fc-reserva-col">`
                 + `<span class="fc-reserva-nombre">${escaparHtml(p.cliente)}</span>`
                 + filaMeta
@@ -1443,30 +1457,9 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 
 /* Más grande que antes porque ahora tiene dos filas de alto que ocupar: a
    0.68rem quedaba flotando arriba y perdía su papel de ancla visual. */
-/* Columna de iconos a la izquierda: canal arriba, estado debajo y más pequeño.
-   Antes el canal era un `<i>` suelto; ahora los dos van apilados y centrados,
-   ocupando el mismo hueco que ocupaba el canal solo. */
-.fc-reserva-iconos {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1px;
-    flex-shrink: 0;
-    line-height: 1;
-}
-
 .fc-reserva-canal {
     font-size: 0.95rem;
     opacity: 0.9;
-    flex-shrink: 0;
-}
-
-/* Deliberadamente pequeño: acompaña al canal, no compite con él. El color lo pone
-   el estado en línea; este `opacity` lo suaviza para que no grite sobre la barra. */
-.fc-reserva-estado {
-    font-size: 0.62rem;
-    opacity: 0.95;
     flex-shrink: 0;
 }
 
@@ -1517,6 +1510,21 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 .fc-reserva-dato i {
     font-size: 0.85em;
     opacity: 0.7;
+}
+
+/* La pastilla del estado es sólo el glifo, sin cifra al lado: se le quita el
+   `gap` y se aprieta el padding lateral para que no quede un óvalo con aire.
+   El icono va a plena opacidad y algo mayor que el resto —al contrario que el
+   `.fc-reserva-dato i` de arriba, que atenúa iconos que sólo acompañan a un
+   número—: aquí el glifo ES el dato, y su color es el del estado. */
+.fc-reserva-estado {
+    gap: 0;
+    padding: 2px 3px;
+}
+
+.fc-reserva-estado i {
+    font-size: 1em;
+    opacity: 1;
 }
 
 /* Pax y noches un punto por encima del resto de la fila: son los dos números

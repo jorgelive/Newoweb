@@ -111,7 +111,7 @@ Además de los ids, los providers SPA mandan los **campos sueltos** que la SPA p
 
 | Calendario | Campos |
 |---|---|
-| Reservas | `canalId`, `cliente`, `unidad`, `pax`, `noches`, `estado`, `estadoPago`, `referenciaCanal`, `simbolo`, `total`, `saldo` |
+| Reservas | `canalId`, `cliente`, `unidad`, `pax`, `noches`, `estado`, `estadoIcono`, `estadoColor`, `estadoPago`, `referenciaCanal`, `simbolo`, `total`, `saldo` |
 | Tarifas | `precio`, `minStay`, `moneda`, `importante`, `active` |
 
 #### Las cifras financieras de la barra (`simbolo`, `total`, `saldo`)
@@ -155,6 +155,34 @@ pendiente una reserva ya cobrada.
 
 El importe de la barra va **sin decimales** (`importeCorto()`): en 60 px no caben. Los
 céntimos exactos están en el tooltip y en el panel financiero.
+
+#### El icono del estado (`estadoIcono`, `estadoColor`)
+
+La barra pinta el estado como una pastilla más de esa fila (`iconoEstadoHtml()`), y hay tres
+decisiones detrás que no se ven leyendo el código:
+
+1. **Es un DATO del maestro, no un `match()` en PHP.** La clase de FontAwesome y el color
+   viven en `pms_evento_estado.icono` / `.color` y los reenvía
+   `PmsEventosSpaCalendarProvider`. Un estado nuevo que alguien dé de alta en el panel llega
+   al calendario con su icono **sin tocar código ni recompilar el front**. El precio es que
+   el valor lo teclea un operador — ver el punto 3.
+2. **El color es el del ESTADO, que no siempre es el de la barra.** El fondo de la barra
+   puede venir tintado por el estado de PAGO (`resolveColor()` en el provider). Ahí está toda
+   la gracia del icono: dice algo que el color de fondo ya no siempre dice. Y por eso va en
+   pastilla y no suelto encima de la barra, que es como nació: el rojo de «Cancelada» o el
+   ámbar de «Pendiente» sobre un fondo morado o azul no se leían. Es el mismo motivo que
+   justifica el `#eef0f3` de las cifras, aplicado a un glifo.
+
+   > **El precio de estar en esa fila**: `.fc-reserva-meta` es lo primero que se recorta al
+   > estrecharse la barra, así que en una estancia de una noche el estado NO se ve. Queda en
+   > el tooltip. Fue una decisión consciente frente a la alternativa —apilarlo bajo el icono
+   > del canal, donde nunca se recorta pero no se puede leer sobre el fondo—.
+3. **`icono` acaba dentro de un atributo `class`, y lo escribe un humano.** Se acota a la
+   forma de una clase de FontAwesome (letras, dígitos, guiones y espacios) **antes** de
+   escaparlo: escapar protege del cierre de atributo, no de que alguien cuele
+   `fa-x" onload="`. El color sólo se pinta si es un hex exacto de 6 dígitos, aunque
+   `PmsEventoEstado::normalizeColor()` ya lo normalice en el maestro — el estilo se compone
+   en el front y no se confía en el origen. Lo que no encaje, no se pinta.
 
 El `title` y el `tooltip` de texto plano **siguen existiendo**: son parte del contrato del
 `CalendarEventDto`, los usa el calendario legacy de EasyAdmin, y la SPA cae a ellos si un evento
