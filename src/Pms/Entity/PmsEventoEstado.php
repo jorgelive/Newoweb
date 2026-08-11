@@ -255,6 +255,20 @@ class PmsEventoEstado
     private ?string $color = null;
 
     /**
+     * Icono FontAwesome del estado, con su prefijo (ej: `fas fa-circle-check`).
+     *
+     * Dato, no código: se guarda en el maestro para que un estado nuevo llegue con su icono
+     * sin tocar PHP ni recompilar el front. El mismo valor lo usan el CRUD del panel, el
+     * calendario de reservas y cualquier consumidor futuro — así el estado se ve igual en
+     * todas partes, que era lo que un `#RRGGBB` a secas no conseguía.
+     *
+     * La familia es deliberada: `circle-*` para los estados de una reserva viva y un glifo
+     * inequívoco para los terminales. De un vistazo, ✓ / − / ? / ✗ dicen más que el nombre.
+     */
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $icono = null;
+
+    /**
      * Valor que espera Beds24 (ej: "confirmed", "cancelled", "request").
      */
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
@@ -314,6 +328,10 @@ class PmsEventoEstado
     #[Groups(['pms_evento_estado:read', 'pms_evento:read'])]
     public function getColor(): ?string { return $this->color; }
     public function setColor(?string $color): self { $this->color = $color; return $this; }
+
+    #[Groups(['pms_evento_estado:read', 'pms_evento:read'])]
+    public function getIcono(): ?string { return $this->icono; }
+    public function setIcono(?string $icono): self { $this->icono = $icono; return $this; }
 
     public function getCodigoBeds24(): ?string { return $this->codigoBeds24; }
     public function setCodigoBeds24(?string $codigoBeds24): self { $this->codigoBeds24 = $codigoBeds24; return $this; }

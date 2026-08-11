@@ -91,7 +91,24 @@ class PmsEventoEstadoCrudController extends BaseCrudController
             ->setFormTypeOption('disabled', Crud::PAGE_EDIT === $pageName) // Bloqueado en Edición
             ->setRequired(Crud::PAGE_NEW === $pageName); // Requerido en Creación
 
-        yield TextField::new('nombre', 'Nombre Visible');
+        // En el índice el nombre va CON su icono y su color: la lista de estados se lee de
+        // un vistazo, que es justo lo que no pasaba cuando sólo se veía el texto y un
+        // `#FFB300` en otra columna. En los formularios se edita el texto pelado.
+        yield TextField::new('nombre', 'Estado')
+            ->onlyOnIndex()
+            ->formatValue(function ($valor, PmsEventoEstado $estado): string {
+                return sprintf(
+                    '<span style="display:inline-flex;align-items:center;gap:.5rem">'
+                    . '<i class="%s" style="color:%s;width:1.1rem;text-align:center"></i>'
+                    . '<span>%s</span></span>',
+                    htmlspecialchars($estado->getIcono() ?? 'fas fa-circle', ENT_QUOTES),
+                    htmlspecialchars($estado->getColor() ?? '#94a3b8', ENT_QUOTES),
+                    htmlspecialchars((string) $valor, ENT_QUOTES),
+                );
+            })
+            ->renderAsHtml();
+
+        yield TextField::new('nombre', 'Nombre Visible')->hideOnIndex();
 
         yield TextField::new('codigoBeds24', 'Código Beds24')
             ->setHelp('Mapeo técnico para la API de Beds24.')
@@ -106,12 +123,68 @@ class PmsEventoEstadoCrudController extends BaseCrudController
         // ============================================================
         yield FormField::addPanel('Configuración Visual')->setIcon('fa fa-palette');
 
+        // El color, VISTO. Un `#FFB300` en una celda no dice nada: la muestra al lado
+        // convierte la lista en algo que se puede revisar sin abrir cada estado.
+        yield TextField::new('color', 'Color')
+            ->onlyOnIndex()
+            ->formatValue(function ($valor): string {
+                if (!is_string($valor) || $valor === '') {
+                    return '<span style="color:#94a3b8">—</span>';
+                }
+
+                $hex = htmlspecialchars($valor, ENT_QUOTES);
+
+                return sprintf(
+                    '<span style="display:inline-flex;align-items:center;gap:.5rem">'
+                    . '<span style="width:1rem;height:1rem;border-radius:.25rem;'
+                    . 'background:%s;border:1px solid rgba(0,0,0,.15);display:inline-block"></span>'
+                    . '<code style="font-size:.8em">%s</code></span>',
+                    $hex,
+                    $hex,
+                );
+            })
+            ->renderAsHtml();
+
         yield TextField::new('color', 'Color (HEX)')
+            ->hideOnIndex()
             ->setHelp('Ejemplo: #FFB300. Se usa para el renderizado del calendario.')
             ->setFormTypeOption('attr', [
                 'maxlength' => 7,
                 'pattern' => '^#?[0-9A-Fa-f]{6}$',
                 'placeholder' => '#FFB300',
+            ])
+            ->setRequired(false);
+
+        // El icono, también VISTO. Se teclea la clase de FontAwesome con su prefijo; el
+        // maestro es el único sitio donde se decide, así que un estado nuevo llega con su
+        // icono sin tocar PHP ni recompilar el front.
+        yield TextField::new('icono', 'Icono')
+            ->onlyOnIndex()
+            ->formatValue(function ($valor): string {
+                if (!is_string($valor) || $valor === '') {
+                    return '<span style="color:#94a3b8">—</span>';
+                }
+
+                $clase = htmlspecialchars($valor, ENT_QUOTES);
+
+                return sprintf(
+                    '<span style="display:inline-flex;align-items:center;gap:.5rem">'
+                    . '<i class="%s" style="width:1.1rem;text-align:center"></i>'
+                    . '<code style="font-size:.8em">%s</code></span>',
+                    $clase,
+                    $clase,
+                );
+            })
+            ->renderAsHtml();
+
+        yield TextField::new('icono', 'Icono (FontAwesome)')
+            ->hideOnIndex()
+            ->setHelp('Clase completa CON prefijo. Ej: <code>fas fa-circle-check</code>. '
+                . 'Los estados de una reserva viva usan la familia <code>circle-*</code>; '
+                . 'los terminales, un glifo inequívoco (<code>fa-ban</code>).')
+            ->setFormTypeOption('attr', [
+                'maxlength' => 50,
+                'placeholder' => 'fas fa-circle-check',
             ])
             ->setRequired(false);
 

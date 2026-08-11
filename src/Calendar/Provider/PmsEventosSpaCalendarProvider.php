@@ -346,6 +346,16 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             'telefono' => $reserva?->getTelefonoContacto(),
             'conversacionId' => $conversacionId,
             'estado' => $evento->getEstado()?->getNombre(),
+            // Icono y color del estado, tal como los tiene el maestro. Viajan como DATO y no
+            // como una tabla en el front: un estado nuevo que alguien dé de alta se pinta
+            // solo, y se ve idéntico aquí, en el CRUD del panel y donde haga falta mañana.
+            //
+            // El color va aparte del `backgroundColor` de la barra a propósito: aquél puede
+            // venir pisado por el estado de PAGO (ver resolveColor()), y este icono tiene que
+            // seguir diciendo el estado de la RESERVA aunque la barra esté tintada por otro
+            // motivo.
+            'estadoIcono' => $evento->getEstado()?->getIcono(),
+            'estadoColor' => $evento->getEstado()?->getColor(),
             'estadoPago' => $evento->getEstadoPago()?->getNombre(),
             'referenciaCanal' => $evento->getReferenciaCanal(),
             'noches' => $evento->getNoches(),

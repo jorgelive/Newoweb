@@ -213,6 +213,18 @@ export interface PmsEventoExtendedProps {
     unidad?: string | null;
     pax?: number;
     estado?: string | null;
+    /**
+     * Icono y color del estado, tal cual los tiene el maestro (`pms_evento_estado`).
+     *
+     * Vienen como dato y NO se resuelven aquí con una tabla: un estado nuevo dado de alta en
+     * el panel se pinta solo, sin recompilar. Espejo de
+     * `PmsEventosSpaCalendarProvider::buildContext()`.
+     *
+     * ⚠️ `estadoColor` NO es el color de la barra: ése puede venir pisado por el estado de
+     * PAGO (`resolveColor()` en el provider). Éste dice siempre el estado de la RESERVA.
+     */
+    estadoIcono?: string | null;
+    estadoColor?: string | null;
     estadoPago?: string | null;
     referenciaCanal?: string | null;
     noches?: number;

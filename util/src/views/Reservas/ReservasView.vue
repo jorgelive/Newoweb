@@ -802,6 +802,34 @@ async function onEventResize(info: EventResizeDoneArg): Promise<void> {
 // ============================================================================
 // FULLCALENDAR OPTIONS
 // ============================================================================
+/**
+ * Icono del estado, pequeño y debajo del icono del canal en la barra del evento.
+ *
+ * Sale del maestro (`pms_evento_estado.icono/color`, vía `PmsEventosSpaCalendarProvider`) y no
+ * de una tabla aquí: un estado nuevo dado de alta en el panel se pinta solo, sin recompilar.
+ *
+ * El color es el del ESTADO, que no siempre es el de la barra —ésta puede venir tintada por el
+ * estado de PAGO (`resolveColor()` en el provider)—. Ahí está la gracia: el icono dice algo que
+ * el color de fondo ya no siempre dice.
+ *
+ * 🔒 `icono` es texto que teclea un operador en el CRUD y acaba dentro de un atributo `class`.
+ * Se acota a la forma de una clase de FontAwesome (letras, dígitos, guiones y espacios) ANTES
+ * de escaparlo: escapar protege del cierre de atributo, no de que alguien cuele
+ * `fa-x" onload="`. Lo que no encaje no se pinta.
+ */
+function iconoEstadoHtml(p: PmsEventoExtendedProps): string {
+    const icono = (p.estadoIcono ?? '').trim();
+    if (!icono || !/^[a-zA-Z0-9 -]{1,50}$/.test(icono)) return '';
+
+    // El maestro normaliza a `#RRGGBB` (PmsEventoEstado::normalizeColor), pero el estilo se
+    // compone aquí y no se confía en eso: lo que no sea un hex exacto no se pinta.
+    const color = (p.estadoColor ?? '').trim();
+    const estilo = /^#[0-9A-Fa-f]{6}$/.test(color) ? ` style="color:${color}"` : '';
+
+    return `<i class="${escaparHtml(icono)} fc-reserva-estado"${estilo}`
+        + ` title="${escaparHtml(p.estado ?? '')}"></i>`;
+}
+
 const calendarOptions: CalendarOptions = {
     plugins: [resourceTimelinePlugin, interactionPlugin],
     schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
@@ -1012,7 +1040,10 @@ const calendarOptions: CalendarOptions = {
 
         return {
             html: `<div class="fc-reserva">`
+                + `<span class="fc-reserva-iconos">`
                 + `<i class="${canal.icono} fc-reserva-canal" title="${escaparHtml(canal.texto)}"></i>`
+                + iconoEstadoHtml(p)
+                + `</span>`
                 + `<span class="fc-reserva-col">`
                 + `<span class="fc-reserva-nombre">${escaparHtml(p.cliente)}</span>`
                 + filaMeta
@@ -1412,9 +1443,30 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 
 /* Más grande que antes porque ahora tiene dos filas de alto que ocupar: a
    0.68rem quedaba flotando arriba y perdía su papel de ancla visual. */
+/* Columna de iconos a la izquierda: canal arriba, estado debajo y más pequeño.
+   Antes el canal era un `<i>` suelto; ahora los dos van apilados y centrados,
+   ocupando el mismo hueco que ocupaba el canal solo. */
+.fc-reserva-iconos {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
 .fc-reserva-canal {
     font-size: 0.95rem;
     opacity: 0.9;
+    flex-shrink: 0;
+}
+
+/* Deliberadamente pequeño: acompaña al canal, no compite con él. El color lo pone
+   el estado en línea; este `opacity` lo suaviza para que no grite sobre la barra. */
+.fc-reserva-estado {
+    font-size: 0.62rem;
+    opacity: 0.95;
     flex-shrink: 0;
 }
 
