@@ -188,9 +188,60 @@ class PmsUnidad
     #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
     private string $precioPaxAdicional = '0.00';
 
+    /**
+     * Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+     * y una semana no ensucia siete veces.
+     *
+     * Se cobra en todos los canales, a diferencia de {@see $porcentajeServicio}. Antes vivía
+     * como texto libre en `pms_cargo_financiero` —«suplemento de limpieza», siempre 15.00 USD,
+     * escrito a mano y con tres grafías distintas—, así que ninguna cotización automática la
+     * incluía: el precio que veía el operador salía siempre corto.
+     *
+     * En la moneda de la tarifa base de la unidad, por el mismo motivo que el suplemento de
+     * pax: sumar dos monedas pide un tipo de cambio que aquí nadie ha pedido.
+     *
+     * En `0.00` no se cobra.
+     */
+    #[ORM\Column(name: 'precio_limpieza', type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
+    private string $precioLimpieza = '0.00';
+
+    /**
+     * Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+     * la base.
+     *
+     * ⚠️ **Este importe no lo cobra el PMS**: lo aplica la OTA por su cuenta. Se guarda para
+     * poder cuadrar lo que el huésped acaba pagando en Booking con lo que aquí se cotiza —sin
+     * él, los dos números no coinciden nunca y no hay forma de saber si la diferencia es la
+     * comisión o un error—.
+     *
+     * De ahí que no baste un booleano: a qué canales aplica lo dice
+     * {@see $serviciosCanales}, y a los directos no se les aplica ninguno.
+     */
+    #[ORM\Column(name: 'porcentaje_servicio', type: 'decimal', precision: 5, scale: 2, options: ['default' => '0.00'])]
+    #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
+    private string $porcentajeServicio = '0.00';
+
     // ============================================================
     // 🔗 RELACIONES
     // ============================================================
+
+    /**
+     * En qué canales se aplica {@see $porcentajeServicio}.
+     *
+     * Una lista y no un booleano porque el porcentaje no es del PMS, es de cada OTA: Booking
+     * y Airbnb aplican el suyo y un directo no aplica ninguno. Vacía = no se aplica en
+     * ninguno, que es el valor seguro —cotizar de más espanta a un cliente igual que cotizar
+     * de menos cuesta dinero—.
+     *
+     * @var Collection<int, PmsChannel>
+     */
+    #[ORM\ManyToMany(targetEntity: PmsChannel::class)]
+    #[ORM\JoinTable(name: 'pms_unidad_servicio_canal')]
+    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(name: 'channel_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[Groups(['pms_unidad:read'])]
+    private Collection $serviciosCanales;
 
     /** @var Collection<int, PmsUnidadBeds24Map> */
     #[ORM\OneToMany(mappedBy: 'pmsUnidad', targetEntity: PmsUnidadBeds24Map::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -217,6 +268,7 @@ class PmsUnidad
         $this->beds24Maps = new ArrayCollection();
         $this->tarifaQueues = new ArrayCollection();
         $this->bookingsPullQueues = new ArrayCollection();
+        $this->serviciosCanales = new ArrayCollection();
         $this->wifiNetworks = []; // Inicializamos array vacío
         $this->id = Uuid::v7();
     }
@@ -403,6 +455,90 @@ class PmsUnidad
         $adicionales = max(0, $pax - $this->paxIncluidos);
 
         return $adicionales * (float) $this->precioPaxAdicional * $noches;
+    }
+
+    /**
+     * La limpieza de toda la estancia. **No se multiplica por noches**: se limpia al salir.
+     *
+     * Recibe las noches sólo para no cobrarla en un tramo vacío, que es un error de llamada,
+     * no una estancia de cero noches.
+     */
+    public function costoLimpieza(int $noches): float
+    {
+        return $noches >= 1 ? (float) $this->precioLimpieza : 0.0;
+    }
+
+    /** ¿Aplica el porcentaje de servicio en este canal? */
+    public function aplicaServicioEn(?string $canalId): bool
+    {
+        if ($canalId === null || (float) $this->porcentajeServicio <= 0.0) {
+            return false;
+        }
+
+        foreach ($this->serviciosCanales as $canal) {
+            if ($canal->getId() === $canalId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Lo que la OTA añade sobre `$base`, o `0.0` si en ese canal no aplica.
+     *
+     * **Fuente única de la regla**, igual que `suplementoPorPax()`: la base es alojamiento +
+     * suplemento de pax, y la limpieza queda FUERA. Quien llame pasa la base ya sumada; que
+     * la limpieza no entre se decide aquí una vez y no en cada sitio que cotice.
+     */
+    public function servicioSobre(float $base, ?string $canalId): float
+    {
+        if (!$this->aplicaServicioEn($canalId) || $base <= 0.0) {
+            return 0.0;
+        }
+
+        return $base * (float) $this->porcentajeServicio / 100.0;
+    }
+
+    /** @return list<string> Los ids de canal donde aplica el servicio. */
+    public function idsCanalesServicio(): array
+    {
+        $ids = [];
+
+        foreach ($this->serviciosCanales as $canal) {
+            $id = $canal->getId();
+
+            if ($id !== null) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    public function getPrecioLimpieza(): string { return $this->precioLimpieza; }
+    public function setPrecioLimpieza(string $val): self { $this->precioLimpieza = $val; return $this; }
+
+    public function getPorcentajeServicio(): string { return $this->porcentajeServicio; }
+    public function setPorcentajeServicio(string $val): self { $this->porcentajeServicio = $val; return $this; }
+
+    /** @return Collection<int, PmsChannel> */
+    public function getServiciosCanales(): Collection { return $this->serviciosCanales; }
+
+    public function addServicioCanal(PmsChannel $canal): self
+    {
+        if (!$this->serviciosCanales->contains($canal)) {
+            $this->serviciosCanales->add($canal);
+        }
+
+        return $this;
+    }
+
+    public function removeServicioCanal(PmsChannel $canal): self
+    {
+        $this->serviciosCanales->removeElement($canal);
+
+        return $this;
     }
 
     public function getTarifaBaseMoneda(): ?MaestroMoneda { return $this->tarifaBaseMoneda; }

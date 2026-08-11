@@ -90,13 +90,33 @@ final readonly class PmsTarifaCalculadora
      * Sin `$pax` no se aplica nada — consultar el precio de una casita sin saber cuántos van
      * es una pregunta legítima, y ahí el suplemento todavía no se puede calcular.
      *
-     * @return array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, moneda: ?string, min_stay: int, noches: int, noches_sin_tarifa: int, precios_por_noche: list<float>}
+     * ### 🧹 La limpieza
+     *
+     * Va **por estancia y no por noche** ({@see PmsUnidad::costoLimpieza()}): se limpia al
+     * salir, una vez. Se cobra en todos los canales y entra en el total siempre.
+     *
+     * ### 🏷️ El servicio de la OTA
+     *
+     * Sólo si `$canalId` es uno de los canales marcados en la unidad. **No lo cobra el PMS**:
+     * lo aplica Booking o Airbnb por su cuenta, y se calcula aquí para poder cuadrar lo que el
+     * huésped acaba pagando allí con lo que se cotiza aquí.
+     *
+     * ⚠️ Su base es alojamiento + suplemento, **sin la limpieza** — la regla vive en
+     * {@see PmsUnidad::servicioSobre()} y no se reescribe aquí.
+     *
+     * Sin `$canalId` no se aplica: una cotización sin canal es un directo o un tanteo, y
+     * ninguno de los dos paga servicio. El porcentaje y los canales viajan igualmente en la
+     * respuesta, como REFERENCIA, para poder decir «en Booking se le añade un 16%» sin
+     * inflar un total que nadie va a cobrar.
+     *
+     * @return array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, limpieza: float, servicio: float, porcentaje_servicio: float, servicio_canales: list<string>, moneda: ?string, min_stay: int, noches: int, noches_sin_tarifa: int, precios_por_noche: list<float>}
      */
     public function resumen(
         PmsUnidad $unidad,
         DateTimeInterface $desde,
         DateTimeInterface $hasta,
-        ?int $pax = null
+        ?int $pax = null,
+        ?string $canalId = null
     ): array {
         $diarios = $this->preciosPorNoche($unidad, $desde, $hasta);
 
@@ -132,11 +152,23 @@ final readonly class PmsTarifaCalculadora
         )));
         sort($precios);
 
+        $limpieza = $unidad->costoLimpieza($noches);
+
+        // La base del servicio NO incluye la limpieza. Quién lo decide es `servicioSobre()`;
+        // aquí sólo se le entrega lo que sí cuenta.
+        $servicio = $unidad->servicioSobre($alojamiento + $suplemento, $canalId);
+
         return [
-            'total' => $noches > 0 ? $alojamiento + $suplemento : null,
+            'total' => $noches > 0 ? $alojamiento + $suplemento + $limpieza + $servicio : null,
             'alojamiento' => $noches > 0 ? $alojamiento : null,
             'suplemento_pax' => $suplemento,
             'pax_adicionales' => $adicionales,
+            'limpieza' => $limpieza,
+            'servicio' => $servicio,
+            // De referencia, viajen o no aplicados: sirven para decir en cuánto sale por
+            // Booking sin tener que cotizar dos veces.
+            'porcentaje_servicio' => (float) $unidad->getPorcentajeServicio(),
+            'servicio_canales' => $unidad->idsCanalesServicio(),
             'moneda' => $moneda,
             'min_stay' => $minStay,
             'noches' => $noches,

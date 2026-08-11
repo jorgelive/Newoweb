@@ -258,6 +258,61 @@ final class PmsUnidadCrudController extends BaseCrudController
                 );
             });
 
+        yield FormField::addPanel('Limpieza y servicio')
+            ->setIcon('fa fa-broom')
+            ->setHelp(
+                'La limpieza se cobra SIEMPRE y va en el total. El servicio NO lo cobra este '
+                . 'sistema: lo aplica la OTA por su cuenta, y se guarda aquí para poder cuadrar '
+                . 'lo que el huésped acaba pagando allí con lo que cotizamos nosotros.'
+            );
+
+        yield NumberField::new('precioLimpieza', 'Limpieza')
+            ->setNumDecimals(2)
+            ->hideOnIndex()
+            ->setHelp(
+                '<strong>Por estancia, no por noche</strong>: se limpia al salir, una vez. En la '
+                . 'moneda de la tarifa base. En 0.00 no se cobra.'
+            );
+
+        yield NumberField::new('porcentajeServicio', '% de servicio')
+            ->setNumDecimals(2)
+            ->hideOnIndex()
+            ->setHelp(
+                'Se calcula sobre <strong>alojamiento + persona extra</strong>; la limpieza NO '
+                . 'entra en la base. Sólo se aplica en los canales de abajo: si no marcas '
+                . 'ninguno, no se aplica en ninguno.'
+            );
+
+        yield AssociationField::new('serviciosCanales', 'Canales con servicio')
+            ->hideOnIndex()
+            ->setFormTypeOption('by_reference', false)
+            ->setHelp(
+                'En qué canales se añade ese porcentaje. Los directos se dejan SIN marcar: a un '
+                . 'cliente que reserva contigo no le cobra comisión nadie.'
+            );
+
+        // Una columna y no tres: en el listado sólo interesa comprobar de un vistazo que
+        // ninguna casita se quedó sin la regla. Mismo criterio que «Pax extra».
+        yield TextField::new('virtualLimpiezaServicio', 'Limpieza / servicio')
+            ->onlyOnIndex()
+            ->setSortable(false)
+            ->formatValue(static function ($value, $entity) {
+                if (!$entity instanceof PmsUnidad) {
+                    return '—';
+                }
+
+                $limpieza = (float) $entity->getPrecioLimpieza() > 0.0
+                    ? $entity->getPrecioLimpieza()
+                    : '—';
+
+                $canales = $entity->idsCanalesServicio();
+                $servicio = (float) $entity->getPorcentajeServicio() > 0.0 && $canales !== []
+                    ? sprintf('%s%% en %s', $entity->getPorcentajeServicio(), implode(', ', $canales))
+                    : '—';
+
+                return sprintf('%s · %s', $limpieza, $servicio);
+            });
+
         // ---------------------------------------------------------------------
         // PANEL: INTEGRACIONES
         // ---------------------------------------------------------------------

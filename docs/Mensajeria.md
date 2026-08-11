@@ -4233,6 +4233,52 @@ decir que falta el dato:
 El suplemento va **desglosado y no escondido en el total**: el operador tiene que poder explicar
 de dónde sale la diferencia, no soltar una cifra mayor sin motivo aparente.
 
+#### 🧹 La limpieza
+
+`PmsUnidad::precioLimpieza`, **por estancia y no por noche** — se limpia al salir, una vez, y una
+semana no ensucia siete veces. Se cobra en TODOS los canales y entra en el total.
+
+Antes no existía como concepto: se tecleaba a mano en `pms_cargo_financiero` como «suplemento de
+limpieza», siempre 15.00 USD. Se encontraron **tres grafías distintas conviviendo**
+(`suplemento de limpieza`, `Suplemento de limpieza`, y la variante con el tipo de cambio), que es
+la huella de una costumbre y no de un dato. Ninguna cotización automática lo incluía, así que
+todo precio que diera el agente salía corto.
+
+#### 🏷️ El porcentaje de servicio de la OTA
+
+`PmsUnidad::porcentajeServicio` **no lo cobra este sistema**: lo aplica Booking o Airbnb por su
+cuenta. Se guarda para poder cuadrar lo que el huésped acaba pagando allí con lo que se cotiza
+aquí — sin él los dos números no coinciden nunca y no hay forma de saber si la diferencia es la
+comisión o un error.
+
+⚠️ **Su base es alojamiento + suplemento de pax. La limpieza NO entra.** La regla vive en
+`PmsUnidad::servicioSobre()` y no se reescribe en ningún otro sitio.
+
+**A qué canales aplica lo dice una tabla, `pms_unidad_servicio_canal`, y no un booleano.** El
+porcentaje no es del alojamiento sino de cada canal: Booking y Airbnb aplican el suyo y un
+directo no aplica ninguno. Un `aplica_servicio` de sí/no obligaría a preguntar aparte «¿en
+cuáles?», y esa pregunta acabaría contestada con una constante en PHP — justo lo que este
+proyecto evita en los maestros. Vacía = no se aplica en ninguno, que es el valor seguro.
+
+En `consultar_disponibilidad` va **fuera del total** y con la cifra ya sumada:
+
+```
+8 pax · Casita 3 · 3 noches
+  precio              204.00 USD   ← 135 alojamiento + 54 suplemento + 15 limpieza
+  suplemento_por_pax   54.00 USD
+  limpieza             15.00 USD   (por estancia, no por noche)
+  servicio_en_otas    «NO incluido en el total de arriba. Por airbnb y booking el huésped
+                       vería 234.24 USD: son 30.24 de servicio (16% sobre alojamiento +
+                       suplemento, la limpieza no entra en la base)…»
+```
+
+Dos decisiones de esa cadena de texto, y las dos son sobre el modelo y no sobre el dinero:
+
+1. **El total ya viene sumado**, no «un 16% sobre 189». Pedirle una multiplicación al modelo es
+   pedirle que se equivoque con dinero.
+2. **Empieza diciendo que NO está incluido.** Si el modelo sólo lee media frase, que la media que
+   lea sea ésa.
+
 #### 🔁 `PmsTarifaCalculadora`: una sola respuesta a «cuánto cuesta esta noche»
 
 Tres sitios hacen la misma pregunta —`consultar_tarifas`, `consultar_disponibilidad` y el cargo

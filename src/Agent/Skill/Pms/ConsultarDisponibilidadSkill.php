@@ -124,6 +124,40 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
     }
 
     /**
+     * Cuánto costaría lo mismo por una OTA, ya sumado. `null` si la unidad no marca ningún
+     * canal con servicio.
+     *
+     * **No entra en el total** de la cotización: aquí se cotiza directo, y por directo no se
+     * cobra servicio. Es un dato para comparar, y por eso el texto empieza diciendo que no
+     * está incluido — si el modelo sólo lee media frase, que la media que lea sea ésa.
+     *
+     * @param array{total: ?float, alojamiento: ?float, suplemento_pax: float, porcentaje_servicio: float, servicio_canales: list<string>} $resumen
+     */
+    private function referenciaServicio(array $resumen, string $moneda): ?string
+    {
+        $porcentaje = $resumen['porcentaje_servicio'];
+
+        if ($porcentaje <= 0.0 || $resumen['servicio_canales'] === [] || $resumen['total'] === null) {
+            return null;
+        }
+
+        // La base excluye la limpieza — regla de `PmsUnidad::servicioSobre()`, que es quien la
+        // decide; esto la reconstruye para poder enseñarla, no para redefinirla.
+        $servicio = ($resumen['alojamiento'] + $resumen['suplemento_pax']) * $porcentaje / 100.0;
+
+        return sprintf(
+            'NO incluido en el total de arriba. Por %s el huésped vería %.2f %s: son %.2f de '
+            . 'servicio (%s%% sobre alojamiento + suplemento, la limpieza no entra en la base) '
+            . 'que cobra la OTA y que aquí no se cobra.',
+            implode(' y ', $resumen['servicio_canales']),
+            $resumen['total'] + $servicio,
+            $moneda,
+            $servicio,
+            rtrim(rtrim(sprintf('%.2f', $porcentaje), '0'), '.'),
+        );
+    }
+
+    /**
      * La casita libre, con lo que costaría de verdad ese tramo.
      *
      * El DTO de disponibilidad sólo lleva la tarifa base, así que el precio se resuelve aquí
@@ -193,6 +227,18 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                     $unidad->getPrecioPaxAdicional()
                 )
                 : null,
+            // Desglosada y no escondida en el total, igual que el suplemento: es un concepto
+            // que el huésped pregunta («¿y eso qué es?») y que hay que poder nombrar.
+            'limpieza' => $resumen['limpieza'] > 0.0
+                ? sprintf('%.2f %s (por estancia, no por noche)', $resumen['limpieza'], $moneda)
+                : null,
+            // 📌 REFERENCIA, no cobro. Va fuera del total a propósito: esta cotización es
+            // directa, y el servicio lo aplicaría la OTA por su cuenta. Sirve para responder
+            // «por Booking le saldría más» sin tener que cotizar dos veces.
+            //
+            // El total ya sumado y NO «un 16% sobre 189»: pedirle la multiplicación al modelo
+            // es pedirle que se equivoque con dinero. Aquí llega hecha.
+            'servicio_en_otas' => $this->referenciaServicio($resumen, $moneda),
             'estancia_minima' => $resumen['min_stay'] > 0 ? $resumen['min_stay'] : null,
             'noches_sin_tarifa' => $resumen['noches_sin_tarifa'] > 0
                 ? $resumen['noches_sin_tarifa']
