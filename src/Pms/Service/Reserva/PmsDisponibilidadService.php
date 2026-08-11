@@ -110,6 +110,9 @@ final readonly class PmsDisponibilidadService
                 capacidad:       $u->getCapacidad(),
                 tarifaBase:      $u->getTarifaBasePrecio(),
                 moneda:          $u->getTarifaBaseMonedaId(),
+                habitaciones:    $u->getHabitaciones(),
+                camas:           $u->getCamas(),
+                banosPrivados:   $u->getBanosPrivados(),
             ),
             $qb->getQuery()->getResult()
         );

@@ -129,6 +129,33 @@ final class PmsUnidadCrudController extends BaseCrudController
         yield IntegerField::new('capacidad', 'Capacidad')
             ->setRequired(false);
 
+        yield FormField::addPanel('Acomodación')
+            ->setIcon('fa fa-bed')
+            ->setHelp(
+                'Capacidad dice cuántos CABEN; esto dice cómo van. Es lo que el agente usa para '
+                . 'contestar «quiero algo más cómodo», que es una comparación entre casitas y no '
+                . 'una cuestión de aforo. <strong>Es un resumen de lo que ya cuenta la guía</strong> '
+                . '(ítem «Descripción»): si cambias uno, mira el otro.'
+            );
+
+        yield IntegerField::new('habitaciones', 'Habitaciones')
+            ->hideOnIndex()
+            ->setRequired(false)
+            ->setHelp('Cuántos dormitorios. Es la medida de privacidad: dos grupos de 8 caben '
+                . 'igual en una de 2 habitaciones que en una de 3, y no es lo mismo.');
+
+        yield TextField::new('camas', 'Camas')
+            ->hideOnIndex()
+            ->setRequired(false)
+            ->setHelp('Una línea, como se diría al vender. Ej: '
+                . '<code>Hab 1: 2 dobles · Hab 2: 2 dobles</code>');
+
+        yield IntegerField::new('banosPrivados', 'Baños privados')
+            ->hideOnIndex()
+            ->setRequired(false)
+            ->setHelp('Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un '
+                . 'grupo que se reparte entre gente que no se conoce.');
+
         // ---------------------------------------------------------------------
         // PANEL: ESTADO
         // ---------------------------------------------------------------------

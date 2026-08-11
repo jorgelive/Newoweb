@@ -19,6 +19,12 @@ final readonly class PmsUnidadDisponibleDto
         public ?int $capacidad,
         public string $tarifaBase,
         public ?string $moneda,
+        // 🛏️ Comodidad, que NO es aforo: dos grupos de 8 caben igual en una casita de dos
+        // habitaciones y en una de tres, y no es lo mismo. Viaja aquí para poder COMPARAR sin
+        // ir a la guía casita por casita.
+        public ?int $habitaciones = null,
+        public ?string $camas = null,
+        public ?int $banosPrivados = null,
     ) {}
 
     /**
@@ -33,6 +39,9 @@ final readonly class PmsUnidadDisponibleDto
             'nombre'          => $this->nombre,
             'establecimiento' => $this->establecimiento,
             'capacidad'       => $this->capacidad,
+            'habitaciones'    => $this->habitaciones,
+            'camas'           => $this->camas,
+            'banos_privados'  => $this->banosPrivados,
             'tarifa_base'     => $this->tarifaBase,
             'moneda'          => $this->moneda,
         ];

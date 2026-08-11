@@ -81,6 +81,13 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 . 'total ni como precio cerrado: es un mínimo al que le falta el suplemento '
                 . 'por persona. Di «desde X» y PREGUNTA cuántas personas son; con ese dato '
                 . 'vuelve a llamarme con «pax» y entonces sí tendrás el total. '
+                . '🛏️ SI PREGUNTAN POR COMODIDAD, ESPACIO, PRIVACIDAD O CAMAS —«quiero algo '
+                . 'más cómodo», «vamos en familia», «somos dos parejas»— usa «habitaciones», '
+                . '«camas» y «banos_privados». CAPACIDAD NO ES COMODIDAD: en dos casitas de '
+                . 'capacidad 8 caben los mismos, pero la de 3 habitaciones con baños privados '
+                . 'es la cómoda. Recomienda comparándolas, no listes todo. Si quieren el '
+                . 'detalle completo de una (equipamiento, fotos, ubicación), pídelo con '
+                . 'consultar_guia indicando esa casita. '
                 . '«servicio_en_otas» es sólo para comparar: quien te escribe está reservando '
                 . 'DIRECTO y no paga ese porcentaje. Úsalo como argumento de venta —reservando '
                 . 'directo se lo ahorra—, nunca lo sumes al total.',
@@ -123,11 +130,34 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
             $pax = isset($entrada['pax']) ? (int) $entrada['pax'] : null;
 
             $libres = $this->disponibilidad->buscar($desde, $hasta, $pax);
+
+            // 🛒 «No hay» es una respuesta que cierra una venta, y casi nunca es verdad.
+            //
+            // El filtro de `pax` pide UNA casita que quepa al grupo entero, así que un grupo de
+            // 20 devolvía la lista vacía y el agente contestaba «no hay capacidad» — teniendo
+            // tres casitas libres que sumaban exactamente 20. El dato era correcto y la
+            // respuesta, inútil.
+            //
+            // Así que cuando el filtro deja la lista en cero se vuelve a preguntar SIN él: si
+            // hay sitio repartido, eso es lo que hay que ofrecer. No caber en una habitación no
+            // es lo mismo que no caber.
+            $repartido = false;
+
+            if ($libres === [] && $pax !== null && $pax > 0) {
+                $libres = $this->disponibilidad->buscar($desde, $hasta);
+                $repartido = $libres !== [];
+            }
         } catch (Throwable $e) {
             return SkillResult::error($e->getMessage());
         }
 
         $noches = (int) $desde->diff($hasta)->days;
+
+        // En un reparto NO se sabe cuántos van en cada casita, así que el suplemento por
+        // persona no se puede calcular: pasar los 20 a cada una cobraría el grupo entero siete
+        // veces. Se cotiza como si no supiéramos el pax —que es la verdad— y cada casita sale
+        // con `precio_desde` hasta que el cliente diga cómo se reparten.
+        $paxPorCasita = $repartido ? null : $pax;
 
         return SkillResult::ok(array_filter([
             'total' => count($libres),
@@ -140,11 +170,47 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                     . 'suplemento por persona adicional. Si el grupo pasa de lo que cubre la '
                     . 'tarifa, el precio sube: pregunta cuántos son antes de cerrar nada.'
                 : null,
+            'reparto' => $repartido ? $this->reparto($libres, $pax) : null,
             'casitas' => array_map(
-                fn ($u) => $this->conPrecio($u, $desde, $hasta, $noches, $pax),
+                fn ($u) => $this->conPrecio($u, $desde, $hasta, $noches, $paxPorCasita),
                 $libres
             ),
         ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * El mensaje para cuando el grupo no cabe en una casita pero sí en varias.
+     *
+     * Dice tres cosas y las tres hacen falta: que juntos no caben, cuánta gente suman las
+     * libres, y qué preguntar para poder cerrar. Sin la última se queda en un dato y lo que
+     * hay que hacer es vender.
+     *
+     * @param list<object> $libres
+     */
+    private function reparto(array $libres, ?int $pax): string
+    {
+        $capacidad = 0;
+
+        foreach ($libres as $u) {
+            $capacidad += (int) ($u->capacidad ?? 0);
+        }
+
+        $alcanza = $pax !== null && $capacidad >= $pax;
+
+        return sprintf(
+            'NO hay una sola casita para %d persona(s), pero SÍ hay sitio repartido: estas %d '
+            . 'están libres y suman %d plaza(s). %s Ofrécelas como una propuesta conjunta —di '
+            . 'cuáles son y para cuántos es cada una— y pregunta cómo se quieren repartir; con '
+            . 'ese dato vuelve a llamarme con «pax» por casita para dar el total exacto. NO '
+            . 'contestes que no hay disponibilidad.',
+            (int) $pax,
+            count($libres),
+            $capacidad,
+            $alcanza
+                ? 'Da para el grupo entero.'
+                : sprintf('Aun así faltan %d plaza(s), así que dilo con franqueza y ofrece '
+                    . 'lo que hay: puede que parte del grupo cambie de fechas.', $pax - $capacidad)
+        );
     }
 
     /**

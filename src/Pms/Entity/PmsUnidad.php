@@ -207,6 +207,45 @@ class PmsUnidad
     private string $precioLimpieza = '0.00';
 
     /**
+     * Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+     * igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+     *
+     * Existe para poder contestar «quiero estar más cómodo», que es una COMPARACIÓN entre
+     * casitas. El texto completo sigue en la guía —item «Descripción», visibilidad pública—,
+     * pero leerlo obliga a una llamada por casita y a comparar dos prosas. Esto es el resumen
+     * que viaja en cada cotización.
+     *
+     * `null` = no se ha rellenado; el agente simplemente no lo menciona.
+     */
+    #[ORM\Column(name: 'habitaciones', type: 'smallint', nullable: true)]
+    #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
+    private ?int $habitaciones = null;
+
+    /**
+     * Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles».
+     *
+     * Texto y no una estructura de camas por habitación: hoy sólo hace falta para nombrarlo al
+     * vender, y modelar camas por tipo y habitación sería inventar un esquema para una
+     * pregunta que nadie ha hecho todavía. Cuando haga falta filtrar por «cama doble», se
+     * migra con el caso delante.
+     *
+     * ⚠️ **Es un espejo de la guía, no la fuente.** El original está en el ítem «Descripción»
+     * y es lo que ve el cliente en su guía; esto es la versión corta para el catálogo de
+     * ventas. Al cambiar uno hay que mirar el otro.
+     */
+    #[ORM\Column(name: 'camas', type: 'string', length: 255, nullable: true)]
+    #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
+    private ?string $camas = null;
+
+    /**
+     * Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+     * reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+     */
+    #[ORM\Column(name: 'banos_privados', type: 'smallint', nullable: true)]
+    #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
+    private ?int $banosPrivados = null;
+
+    /**
      * Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
      * la base.
      *
@@ -515,6 +554,15 @@ class PmsUnidad
 
         return $ids;
     }
+
+    public function getHabitaciones(): ?int { return $this->habitaciones; }
+    public function setHabitaciones(?int $val): self { $this->habitaciones = $val; return $this; }
+
+    public function getCamas(): ?string { return $this->camas; }
+    public function setCamas(?string $val): self { $this->camas = $val; return $this; }
+
+    public function getBanosPrivados(): ?int { return $this->banosPrivados; }
+    public function setBanosPrivados(?int $val): self { $this->banosPrivados = $val; return $this; }
 
     public function getPrecioLimpieza(): string { return $this->precioLimpieza; }
     public function setPrecioLimpieza(string $val): self { $this->precioLimpieza = $val; return $this; }

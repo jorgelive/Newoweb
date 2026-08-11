@@ -4296,6 +4296,36 @@ decir que falta el dato:
 El suplemento va **desglosado y no escondido en el total**: el operador tiene que poder explicar
 de dónde sale la diferencia, no soltar una cifra mayor sin motivo aparente.
 
+#### 🛒 «No hay» casi nunca es verdad
+
+El filtro de `pax` pide **una** casita que quepa el grupo entero. Un grupo de 20 devolvía la
+lista vacía y el agente contestaba «no hay capacidad» — teniendo tres casitas libres que sumaban
+exactamente 20. El dato era correcto y la respuesta, inútil.
+
+Cuando el filtro deja la lista en cero se vuelve a preguntar **sin él**, y la respuesta trae un
+bloque `reparto` que dice las tres cosas que hacen falta: que juntos no caben, cuántas plazas
+suman las libres, y qué preguntar para poder cerrar.
+
+⚠️ En un reparto **no se pasa el `pax` a `resumen()`**. No se sabe cuántos van en cada casita, y
+pasar los 20 a todas cobraría el grupo entero siete veces. Cada casita sale con `precio_desde`
+hasta que el cliente diga cómo se reparten.
+
+#### 🛏️ Comodidad no es aforo
+
+`capacidad` dice cuántos caben y con eso no se contesta «quiero estar más cómodo»: en la Casita 3
+(2 habitaciones) y en la 6 (3 habitaciones, 2 baños privados) caben los mismos 8, y no es lo
+mismo. Comodidad es **privacidad**.
+
+`PmsUnidad` lleva `habitaciones`, `camas` y `banos_privados`, y viajan en cada resultado de
+`consultar_disponibilidad` para poder **comparar sin llamadas extra**.
+
+⚠️ **Son un espejo de la guía, no la fuente.** El original es el bloque «Distribución» del ítem
+«Descripción» de cada guía —que es lo que el cliente lee, traducido a siete idiomas—; esto es el
+resumen corto para el catálogo de ventas. Al cambiar uno hay que mirar el otro.
+
+Que no sea una estructura de camas por habitación es deliberado: hoy sólo hace falta para
+nombrarlo al vender. Cuando haya que filtrar por «cama doble», se migra con el caso delante.
+
 #### 🧹 La limpieza
 
 `PmsUnidad::precioLimpieza`, **por estancia y no por noche** — se limpia al salir, una vez, y una
