@@ -4927,3 +4927,78 @@ el chat. Un texto que nombre una sola deja al otro actor buscando algo que no le
 |---|---|---|
 | César, un día después de irse | «…cualquier otra cosa durante su estancia» | «Esperamos que hayas tenido un **buen viaje de regreso**» |
 | Alejandra, llega a las 12 con check-in a las 14 | «Te esperamos a esa hora» | «El ingreso es a partir de las 14:00. Si llegas a las 12:00, puedes **dejar tu equipaje**… ya he avisado al equipo para **revisar si fuera posible ingresar antes** según disponibilidad» |
+
+---
+
+## 18. Sincronizar plantillas con Meta: por qué aparecen duplicados y qué NO hacer
+
+`WhatsappMetaTemplateSyncService::processTemplateRecord()` empareja lo que devuelve Meta con lo
+local **por `meta_template_name`, nunca por `code`**. Si ninguna plantilla local reclama el
+nombre que llega, crea una fila nueva con el código generado
+`sprintf('%s_META', strtoupper($metaName))`.
+
+Eso explica los códigos en mayúsculas del panel: no los escribió nadie, son plantillas de Meta
+que aquí no tenían dueño.
+
+> 📌 **Hay uno vivo ahora mismo y está sin resolver:** `WELCOME_BOOKING_META`. La decisión —y la
+> idea de dejar cosas fuera del sincronizador— está en `docs/Pendientes.md` §1, con los números
+> y el punto exacto del código donde encajaría la exclusión. Esta sección explica el mecanismo;
+> aquélla, qué falta por decidir.
+
+### 🔁 Borrar el duplicado en el panel no sirve
+
+El servicio es **create-or-update puro**: no hay una sola línea de borrado ni de desactivación.
+Mientras la plantilla exista en Meta y ninguna local reclame su nombre, **cada sincronización la
+vuelve a crear**. La sincronización corre por cron **a diario, a las 03:15**, así que el
+duplicado reaparece esa misma noche.
+
+Se resuelve en uno de los dos extremos, no en medio:
+
+- **En Meta**, archivando o borrando la plantilla sobrante. Meta es la fuente de la verdad.
+- **En local**, apuntando `meta_template_name` de la plantilla buena al nombre que llega, para
+  que lo reclame. Ojo con lo de abajo antes de hacerlo.
+
+### 🔥 Repuntar `meta_template_name` puede romper los envíos en silencio
+
+Es la trampa cara, y no falla al guardar: falla al enviar, días después.
+
+El sincronizador **preserva `resolver_key`** al actualizar un botón que ya existe —está puesto a
+propósito, para no perder el cableado interno— pero **sí pisa `type` y `content`**. Si las dos
+plantillas no tienen el mismo diseño de botones, queda un híbrido imposible:
+
+| Botón | Antes | Lo que llega de Meta | Queda |
+|---|---|---|---|
+| 0 | `quick_reply` + `CMD_OBTENER_TOURS` | `url` → pax | `url` **+ `CMD_OBTENER_TOURS`** |
+| 2 | *(no existía)* | `quick_reply` | `quick_reply` **+ `resolver_key: null`** |
+
+Y en `WhatsappMetaSendMappingStrategy`, al enviar:
+
+- La rama `url` hace `$variables[$resolverKey]`. Con `CMD_OBTENER_TOURS` —que es un payload de
+  comando, no una variable de URL— sale **cadena vacía**: botón sin enlace.
+- La rama `quick_reply` con `resolver_key` vacío **lanza `RuntimeException`** y tumba el envío
+  entero, no sólo el botón.
+
+Así que repuntar el nombre obliga a **arreglar los `resolver_key` en la misma sesión**, antes de
+que corra el cron de las 03:15. Las claves en uso hoy son `guide_path`, `tours_catalog_path` y
+`chat_path` (ver `welcome_airbnb`, que ya usa las dos primeras).
+
+### Los dos diseños de botón, y qué se gana y se pierde
+
+| | `quick_reply` + `CMD_*` | `url` + `*_path` |
+|---|---|---|
+| Qué hace | vuelve como mensaje entrante y el resolver dispara otra plantilla | abre pax en el navegador |
+| Rastro | **queda en la conversación**: se ve quién pulsó | ninguno |
+| Pasos para el huésped | dos | uno |
+| Ejemplo | `welcome_booking` | `welcome_airbnb`, `enviar_guia`, `recordatorio_llegada` |
+
+No hay uno correcto: el de comando da señal y el de URL da inmediatez. Lo que no se puede es
+mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
+
+### Dónde tocar
+
+| Necesitas… | Dónde |
+|---|---|
+| Que deje de reaparecer un `*_META` | Archivar esa plantilla en la consola de Meta |
+| Adoptar una plantilla nueva de Meta | Repuntar `meta_template_name` **y** rehacer los `resolver_key` |
+| Subir a Meta la versión local | `WhatsappMetaTemplatePushService` (valida que no falte ningún `resolver_key`) |
+| Saber cuándo corre la sincronización | Cron de `www-data`: `app:whatsapp:sync-templates`, 03:15 |
