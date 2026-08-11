@@ -14,6 +14,7 @@ use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Entity\PmsGuiaSeccion;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Entity\PmsUnidad;
 use App\Pms\Guia\PmsGuiaAcceso;
 use App\Pms\Guia\PmsGuiaArbolFiltro;
 use App\Pms\Guia\PmsGuiaContexto;
@@ -147,7 +148,9 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
     /** El huésped la tiene por serlo; el equipo, por poder ver reservas. */
     public function rolesRequeridos(): array
     {
-        return [Roles::HUESPED, Roles::RESERVAS_SHOW];
+        // El prospecto entra, pero por la puerta pública: sin reserva sólo alcanza los ítems
+        // marcados `publico`, que es lo que se puede contar antes de vender nada.
+        return [Roles::PROSPECTO, Roles::HUESPED, Roles::RESERVAS_SHOW];
     }
 
     public function nivelRiesgo(): NivelRiesgo
@@ -161,6 +164,22 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
         // —un huésped por chat—, es la suya y sólo la suya: aceptar aquí un `reserva_id` sería
         // regalarle la guía de cualquiera, con sus códigos de puerta, escribiendo un UUID.
         $reservaId = $actor->contextoId() ?? trim((string) ($entrada['reserva_id'] ?? ''));
+
+        // 🚪 SEGUNDA PUERTA: por casita y sin reserva ninguna.
+        //
+        // La guía cuelga de la UNIDAD, pero hasta ahora sólo se llegaba a ella atravesando una
+        // reserva, así que «¿cuál es la acomodación de la Casita 3?» no tenía respuesta ni
+        // para un prospecto ni para el equipo — y el dato estaba ahí, a un JOIN, marcado como
+        // público.
+        //
+        // Lo que se ve por esta puerta lo decide `PmsGuiaAcceso::publico()`, que es el peldaño
+        // más bajo de LA MATRIZ y el que el propio modelo documenta como «el visitante sin
+        // estancia». No hay lista blanca que mantener aquí: qué es público lo marca el
+        // operador ítem a ítem en el campo `visibilidad`, y lo aplica el mismo filtro que
+        // protege la guía del huésped.
+        if ($reservaId === '' && ($actor->esProspecto() || $actor->esDelEquipo())) {
+            return $this->guiaPublica($entrada, trim((string) ($entrada['casita'] ?? '')));
+        }
 
         if ($actor->contextoId() === null && !$actor->esDelEquipo()) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');
@@ -245,7 +264,6 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
         // ⚠️ Esto es lo que se DEVUELVE. La BÚSQUEDA sigue mirando todos los idiomas
         // ({@see self::coincideEnAlgunIdioma()}): el huésped pregunta en el suyo.
         $idioma = 'es';
-        $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
 
         // Las horas de entrada y salida viajan SIEMPRE, no sólo dentro del cuerpo del ítem.
         //
@@ -263,6 +281,137 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
             'hora_check_in' => $contexto->valores['check_in'] ?? null,
             'hora_check_out' => $contexto->valores['check_out'] ?? null,
         ], static fn ($v) => $v !== null && $v !== '');
+
+        return $this->responder($entrada, $base, $secciones, $idioma, $contexto, $acceso);
+    }
+
+    /**
+     * La guía de una casita SIN reserva detrás: sólo lo marcado como público.
+     *
+     * Es la puerta que faltaba. La guía cuelga de `PmsUnidad`, pero el único camino hasta ella
+     * atravesaba una reserva, así que un dato tan vendedor como la distribución de camas
+     * —«Habitación 1: dos camas dobles»— existía, estaba marcado `publico`, y no había forma de
+     * pedirlo. A un prospecto se le contestaba con un escalado a un humano.
+     *
+     * 🔒 **El filtro es el mismo de siempre.** `PmsGuiaAcceso::publico()` es el peldaño más bajo
+     * de LA MATRIZ y `permite()` sólo deja pasar `PmsGuiaVisibilidad::Publico`. No hay aquí
+     * ninguna lista de qué se puede enseñar: eso lo marca el operador ítem a ítem desde el
+     * panel, y lo aplica el mismo `podar()` que protege la guía del huésped. Una lista blanca
+     * aquí sería una segunda fuente de verdad, y la que se olvidaría de actualizar.
+     *
+     * Sin evento: `PmsGuiaContexto::construir()` lo acepta nulo, y sin estancia no hay horas ni
+     * códigos que resolver — que es exactamente lo que se quiere.
+     */
+    private function guiaPublica(array $entrada, string $casita): SkillResult
+    {
+        if ($casita === '') {
+            return SkillResult::ok([
+                'falta_datos' => ['casita'],
+                'pregunta' => 'No sé de qué casita me hablas. Pregúntale cuál le interesa y '
+                    . 'vuelve a llamarme con «casita».',
+            ]);
+        }
+
+        $encontradas = $this->resolverUnidad($casita);
+
+        if ($encontradas === []) {
+            return SkillResult::error(sprintf('No hay ninguna casita que se llame «%s».', $casita));
+        }
+
+        // Con varias coincidencias NO se elige: mismo criterio que buscar_reserva.
+        if (count($encontradas) > 1) {
+            return SkillResult::error(sprintf(
+                '«%s» encaja con varias casitas: %s. Pregunta al usuario cuál.',
+                $casita,
+                implode(', ', array_map(static fn (PmsUnidad $u) => $u->getNombre() ?? '—', $encontradas))
+            ));
+        }
+
+        $unidad = $encontradas[0];
+        $guia = $unidad->getGuia();
+
+        if ($guia === null || !$guia->isActivo()) {
+            return SkillResult::error(sprintf(
+                'La casita %s no tiene guía publicada.',
+                $unidad->getNombre() ?? '(sin nombre)'
+            ));
+        }
+
+        $acceso = PmsGuiaAcceso::publico();
+        $contexto = PmsGuiaContexto::construir($unidad, null);
+        $secciones = $this->filtro->podar($guia, $acceso, $contexto);
+
+        if ($secciones === []) {
+            return SkillResult::error(sprintf(
+                'La guía de %s no tiene nada marcado como público. Que un operador revise la '
+                . 'visibilidad de sus ítems.',
+                $unidad->getNombre() ?? '(sin nombre)'
+            ));
+        }
+
+        // Sin `huesped` ni horas: no hay nadie ni estancia. El nombre de la casita sí, que es
+        // lo que `responder()` necesita para poder nombrarla.
+        $base = [
+            'casita' => $unidad->getNombre(),
+            'alcance' => 'Guía PÚBLICA: sólo lo que puede ver alguien que todavía no tiene '
+                . 'reserva. Los códigos de acceso y las instrucciones de la estancia NO están '
+                . 'aquí, y es correcto que no estén.',
+        ];
+
+        return $this->responder($entrada, $base, $secciones, 'es', $contexto, $acceso);
+    }
+
+    /**
+     * «Casita 1», «casita 1» o «1» resuelven a la misma unidad.
+     *
+     * Mismo criterio que `ConsultarOcupacionSkill::resolverCasita()`, incluido el anclaje del
+     * número al final para que «1» no traiga la 11 ni la 21.
+     *
+     * @return list<PmsUnidad>
+     */
+    private function resolverUnidad(string $busqueda): array
+    {
+        $qb = $this->em->getRepository(PmsUnidad::class)
+            ->createQueryBuilder('u')
+            ->where('u.activo = true')
+            ->orderBy('u.nombre', 'ASC');
+
+        if (preg_match('/^\d+$/', $busqueda) === 1) {
+            $qb->andWhere('u.nombre LIKE :sufijo')->setParameter('sufijo', '% ' . $busqueda);
+        } else {
+            $qb->andWhere('LOWER(u.nombre) LIKE :like')
+               ->setParameter('like', '%' . mb_strtolower($busqueda) . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Los dos caminos de respuesta —catálogo y tema elegido— una vez que el árbol ya está
+     * podado.
+     *
+     * Extraído porque a la guía se llega por DOS puertas: la de una reserva y la pública por
+     * casita. Lo que cambia entre ellas es a qué unidad se llega y con qué `PmsGuiaAcceso`;
+     * de aquí para abajo el árbol ya viene filtrado y no queda nada sensible que decidir, así
+     * que duplicar este tramo sólo serviría para que un día las dos puertas contesten
+     * distinto.
+     *
+     * @param array<string, mixed> $entrada
+     * @param array<string, mixed> $base
+     * @param array<int, PmsGuiaSeccion> $secciones
+     */
+    private function responder(
+        array $entrada,
+        array $base,
+        array $secciones,
+        string $idioma,
+        PmsGuiaContexto $contexto,
+        PmsGuiaAcceso $acceso,
+    ): SkillResult {
+        // El nombre de la casita se lee de `$base` y no de la unidad: las dos puertas lo ponen
+        // ahí, y así este tramo no necesita conocer por cuál se entró.
+        $casita = (string) ($base['casita'] ?? 'esta casita');
+        $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
 
         // ── Camino 2 de 2: el modelo ya eligió y pide un tema por su id ──────────────────
         $temaId = trim((string) ($entrada['tema_id'] ?? ''));
@@ -336,7 +485,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
                     'La guía de %s no dice nada sobre «%s». NO te lo inventes: dile al huésped '
                     . 'que eso no está en su guía y ofrécele preguntar al anfitrión, o mira si '
                     . 'alguno de los «temas» es lo que buscaba.',
-                    $unidad->getNombre(),
+                    $casita,
                     $busqueda
                 ),
             ]);

@@ -76,7 +76,7 @@ final readonly class ConsultarTipoCambioSkill implements SkillInterface
     /** El huésped la necesita para pagar; el equipo, para cotizar en soles. */
     public function rolesRequeridos(): array
     {
-        return [Roles::HUESPED, Roles::RESERVAS_SHOW];
+        return [Roles::PROSPECTO, Roles::HUESPED, Roles::RESERVAS_SHOW];
     }
 
     public function nivelRiesgo(): NivelRiesgo

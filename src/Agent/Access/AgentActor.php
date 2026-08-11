@@ -72,6 +72,21 @@ final readonly class AgentActor implements ActorInterface
         return new self(null, $origen, [Roles::HUESPED], $contextoTipo, $contextoId);
     }
 
+    /**
+     * Quien pregunta sin ser todavía nadie: un número desconocido pidiendo precios.
+     *
+     * **Nace sin contexto y eso no es un olvido.** Es lo que lo distingue del huésped y lo que
+     * le cierra las skills acotadas a una reserva sin necesidad de enumerarlas. Por eso no
+     * acepta parámetros de contexto: pasárselos sería convertirlo en un huésped a medias.
+     *
+     * Es siempre DIRECTO: quien escribe a nuestro número no viene por una OTA, así que a su
+     * cotización no se le aplica ningún porcentaje de servicio.
+     */
+    public static function prospecto(string $origen): self
+    {
+        return new self(null, $origen, [Roles::PROSPECTO]);
+    }
+
     public function roles(): array
     {
         return $this->roles;
@@ -124,10 +139,20 @@ final readonly class AgentActor implements ActorInterface
         return false;
     }
 
+    /** ¿Pregunta sin ser todavía cliente de nada? */
+    public function esProspecto(): bool
+    {
+        return $this->usuario === null && $this->tieneRol(Roles::PROSPECTO);
+    }
+
     public function etiqueta(): string
     {
-        return $this->usuario !== null
-            ? sprintf('%s (%s)', $this->usuario->getUserIdentifier(), $this->origen)
+        if ($this->usuario !== null) {
+            return sprintf('%s (%s)', $this->usuario->getUserIdentifier(), $this->origen);
+        }
+
+        return $this->esProspecto()
+            ? sprintf('prospecto (%s)', $this->origen)
             : sprintf('huésped %s (%s)', $this->contextoId ?? '¿?', $this->origen);
     }
 }

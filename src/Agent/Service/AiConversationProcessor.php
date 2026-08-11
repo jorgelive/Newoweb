@@ -43,6 +43,15 @@ final readonly class AiConversationProcessor
     private const int HISTORIAL_MAX = 20;
 
     /**
+     * El `contextType` de una conversación que cuelga de una reserva.
+     *
+     * Es la frontera entre huésped y prospecto: con reserva detrás hay algo que consultar y
+     * alguien a quien acreditar; sin ella, quien escribe es un desconocido. Los otros valores
+     * vivos (`manual`, `staff`) no acreditan a nadie como huésped.
+     */
+    private const string CONTEXTO_RESERVA = 'pms_reserva';
+
+    /**
      * Si un operador humano escribió hace menos de esto, el bot no interviene.
      *
      * Es el guardia más importante de todos: nada enfada más a un huésped —ni deja peor al
@@ -396,9 +405,32 @@ final readonly class AiConversationProcessor
         // reserva a su nombre es las dos cosas a la vez: debe poder consultar su propia
         // estancia sin dejar de ser operador. Las skills de huésped siguen acotadas por el
         // contexto de ESTA conversación, así que sumar el rol no le abre la reserva de nadie.
-        $actor = $delEquipo !== null
-            ? $this->actores->delEquipoPorChat($delEquipo, $origen, $conversacion->getContextType(), $conversacion->getContextId(), tambienHuesped: true)
-            : $this->actores->huesped($origen, $conversacion->getContextType(), $conversacion->getContextId());
+        // Y si no es del equipo: ¿es huésped nuestro, o alguien que aún no es nadie?
+        //
+        // Lo decide tener una RESERVA detrás. Un número desconocido escribiendo a preguntar
+        // precios no tiene ninguna, y hasta ahora se le trataba como huésped: se le daban las
+        // nueve skills del huésped, de las que siete mueren en «Esta conversación no está
+        // asociada a ninguna reserva» y ninguna sabe de disponibilidad ni de tarifas. Escribir
+        // para preguntar cuánto cuesta una casita era chocar contra una pared.
+        //
+        // `ROLE_PROSPECTO` invierte eso: menos acceso a lo privado —no hay reserva que
+        // consultar— y a cambio lo que un desconocido sí puede saber, que es justo lo que hay
+        // que contestarle para venderle algo.
+        $esProspecto = $delEquipo === null
+            && self::CONTEXTO_RESERVA !== $conversacion->getContextType();
+
+        $actor = match (true) {
+            $delEquipo !== null => $this->actores->delEquipoPorChat($delEquipo, $origen, $conversacion->getContextType(), $conversacion->getContextId(), tambienHuesped: true),
+            $esProspecto => $this->actores->prospecto($origen),
+            default => $this->actores->huesped($origen, $conversacion->getContextType(), $conversacion->getContextId()),
+        };
+
+        if ($esProspecto) {
+            $this->logger->info(sprintf(
+                'IA: %s no tiene reserva ni es del equipo; se le atiende como PROSPECTO.',
+                $conversacion->getGuestPhone() ?? '(sin número)'
+            ));
+        }
 
         if ($delEquipo !== null) {
             $this->logger->info(sprintf(

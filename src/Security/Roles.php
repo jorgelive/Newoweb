@@ -84,6 +84,23 @@ final class Roles
     public const HUESPED            = 'ROLE_HUESPED';
 
     /**
+     * Rol SINTÉTICO de quien pregunta sin ser todavía nadie: un número desconocido que escribe
+     * para preguntar precios. Ningún `User` lo tiene, igual que {@see self::HUESPED}.
+     *
+     * Lo que lo separa del huésped **no es tener menos permisos, es no tener CONTEXTO**. Las
+     * skills del huésped están acotadas a SU reserva y casi todas fallan sin ella («Esta
+     * conversación no está asociada a ninguna reserva»); un prospecto no tiene ninguna que
+     * acotar, y ese vacío es justo lo que le cierra `consultar_cuenta` o `consultar_mi_reserva`
+     * sin necesidad de una lista negra que alguien tenga que mantener.
+     *
+     * A cambio se le abre lo que un desconocido SÍ puede saber: qué hay libre, a qué precio, a
+     * qué cambio, y la parte de la guía marcada como pública. Nada de eso menciona a nadie.
+     *
+     * Tampoco se ofrece en `getChoices()`: no es asignable desde el panel.
+     */
+    public const PROSPECTO          = 'ROLE_PROSPECTO';
+
+    /**
      * Devuelve los roles filtrados por grupo funcional.
      */
     public static function getChoices(?string $group = null): array

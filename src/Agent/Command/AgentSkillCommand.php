@@ -56,6 +56,7 @@ final class AgentSkillCommand extends Command
             ->addArgument('entrada', InputArgument::OPTIONAL, 'Parámetros en JSON', '{}')
             ->addOption('contexto', null, InputOption::VALUE_REQUIRED, 'UUID de reserva, para las skills acotadas al contexto')
             ->addOption('como-huesped', null, InputOption::VALUE_NONE, 'Ejecutar con ROLE_HUESPED en vez de SUPER_ADMIN')
+            ->addOption('como-prospecto', null, InputOption::VALUE_NONE, 'Ejecutar con ROLE_PROSPECTO: quien pregunta sin reserva ninguna')
             ->addOption('usuario', null, InputOption::VALUE_REQUIRED, 'Username de un usuario REAL: ejecuta con su identidad y sus roles');
     }
 
@@ -95,6 +96,10 @@ final class AgentSkillCommand extends Command
             $actor = $contexto !== null
                 ? $this->actores->delEquipoPorChat($usuario, 'cli', 'pms_reserva', (string) $contexto)
                 : $this->actores->delPanel($usuario);
+        } elseif ($input->getOption('como-prospecto')) {
+            // Sin contexto ni aunque se pase `--contexto`: un prospecto sin contexto es la
+            // definición, no una limitación de la prueba.
+            $actor = AgentActor::prospecto('cli');
         } elseif ($input->getOption('como-huesped')) {
             $actor = AgentActor::huesped('cli', 'pms_reserva', $contexto !== null ? (string) $contexto : null);
         } else {

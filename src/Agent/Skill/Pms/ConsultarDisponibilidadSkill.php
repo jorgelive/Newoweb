@@ -13,6 +13,7 @@ use App\Agent\Skill\SkillResult;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Pms\Service\Tarifa\PmsTarifaCalculadora;
+use App\Pms\Service\Finance\TipoCambioDelDia;
 use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -39,8 +40,12 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
     public function __construct(
         private PmsDisponibilidadService $disponibilidad,
         private PmsTarifaCalculadora $tarifas,
+        private TipoCambioDelDia $tipoCambio,
         private EntityManagerInterface $em,
     ) {}
+
+    /** Moneda en la que ya no hay nada que convertir. */
+    private const string MONEDA_SOLES = 'PEN';
 
     public function nombre(): string
     {
@@ -66,7 +71,19 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 . 'Si una casita trae «noches_sin_tarifa», esas noches se están vendiendo a la '
                 . 'tarifa base por no tener uno cargado: dilo en una frase, porque suele ser un '
                 . 'olvido. Para el detalle noche a noche de UNA casita usa consultar_tarifas, y '
-                . 'para revisar las tarifas base configuradas, consultar_tarifas_base.',
+                . 'para revisar las tarifas base configuradas, consultar_tarifas_base. '
+                . '🧾 AL COTIZAR, LEE «desglose» TAL CUAL: ya trae la cuenta hecha '
+                . '(tarifa × noches + extras + limpieza → TOTAL). No rehagas tú la '
+                . 'multiplicación ni montes tu propia suma. Si viene '
+                . '«total_referencial_soles», dilo también: quien pregunta desde Perú piensa '
+                . 'en soles. '
+                . '⚠️ Si en vez de «precio» recibes «precio_desde», NO lo presentes como '
+                . 'total ni como precio cerrado: es un mínimo al que le falta el suplemento '
+                . 'por persona. Di «desde X» y PREGUNTA cuántas personas son; con ese dato '
+                . 'vuelve a llamarme con «pax» y entonces sí tendrás el total. '
+                . '«servicio_en_otas» es sólo para comparar: quien te escribe está reservando '
+                . 'DIRECTO y no paga ese porcentaje. Úsalo como argumento de venta —reservando '
+                . 'directo se lo ahorra—, nunca lo sumes al total.',
             parametros: [
                 SkillParameter::texto('desde', 'Fecha de entrada en formato YYYY-MM-DD.'),
                 SkillParameter::texto('hasta', 'Fecha de salida en formato YYYY-MM-DD. '
@@ -77,12 +94,19 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
     }
 
     /**
-     * Sólo el equipo. Un huésped preguntando por disponibilidad general es una venta, y eso
-     * pasa por una persona: implicaría precio, y `tarifa_base` NO es el precio de venta.
+     * El equipo y el PROSPECTO — no el huésped alojado.
+     *
+     * Puede sonar al revés y no lo es. Un huésped con reserva que pregunta «¿qué más tenéis
+     * libre?» está pidiendo que le vendan algo, y eso lo cierra una persona. Un prospecto es
+     * alguien que TODAVÍA no es cliente: contestarle qué hay libre y a cuánto es el trabajo,
+     * no una excepción. Y la respuesta no nombra a ningún huésped —eso es
+     * `consultar_ocupacion`, que sigue siendo sólo del equipo—.
      */
     public function rolesRequeridos(): array
     {
-        return [Roles::RESERVAS_SHOW];
+        // El prospecto entra aquí: qué hay libre y a qué precio es justo lo que un
+        // desconocido puede saber, y la respuesta no nombra a ningún huésped.
+        return [Roles::PROSPECTO, Roles::RESERVAS_SHOW];
     }
 
     public function nivelRiesgo(): NivelRiesgo
@@ -121,6 +145,80 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 $libres
             ),
         ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * La cuenta escrita como se la dirías a un cliente: tarifa × noches, los extras sumados
+     * uno a uno, y el total.
+     *
+     * Existe para que el modelo **no calcule**. Antes recibía piezas sueltas y tenía que
+     * componer «45 por noche, 3 noches, más 15 de limpieza»; multiplicar y sumar es
+     * exactamente lo que un modelo hace mal, y aquí cada error es dinero mal cotizado.
+     *
+     * Con tarifas distintas por noche no se inventa un promedio —sería un precio que no se
+     * cobra ninguna noche— y se dice el subtotal del alojamiento sin desglosarlo: el detalle
+     * noche a noche es de `consultar_tarifas`.
+     *
+     * @param array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, limpieza: float, precios_por_noche: list<float>} $resumen
+     */
+    private function desglose(array $resumen, int $noches, string $moneda): ?string
+    {
+        if ($resumen['total'] === null || $resumen['alojamiento'] === null) {
+            return null;
+        }
+
+        $partes = [count($resumen['precios_por_noche']) === 1
+            ? sprintf(
+                '%.2f %s × %d noche(s) = %.2f',
+                $resumen['precios_por_noche'][0],
+                $moneda,
+                $noches,
+                $resumen['alojamiento']
+            )
+            : sprintf('alojamiento %d noche(s) = %.2f %s', $noches, $resumen['alojamiento'], $moneda),
+        ];
+
+        if ($resumen['suplemento_pax'] > 0.0) {
+            $partes[] = sprintf(
+                '%d persona(s) adicional(es) = %.2f',
+                $resumen['pax_adicionales'],
+                $resumen['suplemento_pax']
+            );
+        }
+
+        if ($resumen['limpieza'] > 0.0) {
+            $partes[] = sprintf('limpieza %.2f', $resumen['limpieza']);
+        }
+
+        return sprintf('%s → TOTAL %.2f %s', implode(' + ', $partes), $resumen['total'], $moneda);
+    }
+
+    /**
+     * El total en soles, al cambio del día. `null` si ya está en soles o si no hay cambio
+     * publicado —que pasa: el maestro se alimenta de SUNAT y hay días sin publicar—.
+     *
+     * Referencial y dicho con esas palabras: se cobra en la moneda de la tarifa, y entre la
+     * cotización y el pago el cambio se mueve. Prometer un importe exacto en soles sería
+     * comprometer un número que no controlamos.
+     */
+    private function enSoles(float $total, string $moneda): ?string
+    {
+        if ($moneda === self::MONEDA_SOLES || $moneda === '') {
+            return null;
+        }
+
+        $cambio = $this->tipoCambio->venta();
+
+        if ($cambio === null || (float) $cambio <= 0.0) {
+            return null;
+        }
+
+        return sprintf(
+            'referencial S/ %.2f (al cambio de %s del día; se cobra en %s)',
+            $total * (float) $cambio,
+            $cambio,
+            $moneda
+        );
     }
 
     /**
@@ -198,11 +296,32 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
 
         $moneda = $resumen['moneda'] ?? '';
 
-        // El orden importa: `precio` primero porque es lo que hay que decir. El suplemento va
+        // ⚠️ `precio` vs `precio_desde`: la diferencia NO es cosmética.
+        //
+        // Sin `pax` el total va corto —le falta el suplemento— y ya se comprobó que avisarlo
+        // en prosa no basta: el `aviso_pax` estaba escrito, el modelo no lo repitió y cotizó
+        // tres casitas 144 USD por debajo presentando el número como cerrado. Un aviso depende
+        // de que alguien lo lea; el NOMBRE del campo no. A un `precio_desde` no se le puede
+        // llamar total sin mentir en la misma frase.
+        //
+        // Sólo cuando la unidad puede cobrar más: la Casita 5 no cobra persona extra, así que
+        // su precio sin `pax` ya es exacto y llamarlo «desde» sería sembrar una duda falsa.
+        $incierto = $pax === null && $unidad->cobraPaxAdicional();
+        $claveP = $incierto ? 'precio_desde' : 'precio';
+
+        // El orden importa: el precio primero porque es lo que hay que decir. El suplemento va
         // desglosado —no escondido dentro del total— para que el operador pueda explicar de
         // dónde sale la diferencia en vez de soltar una cifra mayor sin motivo aparente.
         return array_filter([
-            'precio' => sprintf('%.2f %s', $resumen['total'], $moneda),
+            $claveP => sprintf('%.2f %s', $resumen['total'], $moneda),
+            // 🧾 La cuenta HECHA, para leerla tal cual al cliente. Es lo que hace un vendedor:
+            // no suelta un total, enseña de dónde sale. Y al venir armada desde aquí, el modelo
+            // no tiene que multiplicar noches por tarifa — que es justo donde se equivocaría.
+            'desglose' => $this->desglose($resumen, $noches, $moneda),
+            // 💱 El mismo total en soles. Quien pregunta desde Perú piensa en soles, y hacerle
+            // la conversión es parte de vender. Va marcado como referencial: el cobro se hace
+            // en la moneda de la tarifa y el cambio se mueve.
+            'total_referencial_soles' => $this->enSoles($resumen['total'], $moneda),
             // Un promedio aquí sería un precio inventado: con 65 tres noches y 45 dos, la
             // media da 57.00, que no se cobra ninguna noche. Se dice el precio si es uno solo,
             // y el recorrido si varía —el desglose completo lo da consultar_tarifas—.

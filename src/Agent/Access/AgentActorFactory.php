@@ -94,6 +94,15 @@ final readonly class AgentActorFactory
     }
 
     /**
+     * Quien pregunta sin reserva ninguna. `ROLE_PROSPECTO` es sintético y plano, igual que
+     * `ROLE_HUESPED`: tampoco hay jerarquía que expandirle.
+     */
+    public function prospecto(string $origen): AgentActor
+    {
+        return AgentActor::prospecto($origen);
+    }
+
+    /**
      * Roles literales + los que se alcanzan por jerarquía.
      *
      * @return list<string>

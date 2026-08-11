@@ -138,7 +138,9 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
     /** El huésped la dispara sin saberlo; el equipo puede escalar desde el panel. */
     public function rolesRequeridos(): array
     {
-        return [Roles::HUESPED, Roles::MENSAJES_SHOW];
+        // Sin esto un prospecto al que no se le sabe contestar es un callejon sin
+        // salida; con esto, es un aviso al equipo. Que es literalmente un lead.
+        return [Roles::PROSPECTO, Roles::HUESPED, Roles::MENSAJES_SHOW];
     }
 
     /**

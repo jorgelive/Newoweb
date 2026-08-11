@@ -1491,10 +1491,45 @@ hay, y de paso se ahorran los tokens de su definición.
 |---|---|---|
 | `AgentActor::delPanel($user)` | Empleado con sesión | Los suyos |
 | `AgentActor::delEquipoPorChat($user, …)` | Empleado desde su móvil | Los suyos |
-| `AgentActor::huesped($origen, $tipo, $id)` | Quien escribe sin ser del equipo | `ROLE_HUESPED` |
+| `AgentActor::huesped($origen, $tipo, $id)` | Quien escribe **con** reserva | `ROLE_HUESPED` |
+| `AgentActor::prospecto($origen)` | Quien escribe **sin** reserva | `ROLE_PROSPECTO` |
 
 **El huésped no es un caso sin permisos**: es un actor más. Lo que lo distingue es que sus
 skills están acotadas a su reserva por el contexto.
+
+#### 🛒 El prospecto: quien pregunta sin ser todavía nadie
+
+Un número desconocido que escribe a preguntar precios **no es un huésped con menos permisos: es
+un actor sin CONTEXTO**, y esa es toda la diferencia.
+
+Antes caía en `huesped()` y el resultado era una pared: de sus nueve skills, siete mueren en
+«Esta conversación no está asociada a ninguna reserva» y ninguna sabe de disponibilidad ni de
+tarifas. Escribir para preguntar cuánto cuesta una casita no tenía respuesta.
+
+`AgentActor::prospecto()` **no acepta parámetros de contexto**, y eso no es un olvido: es lo que
+le cierra `consultar_cuenta` y `consultar_mi_reserva` sin necesidad de una lista negra que
+alguien tenga que acordarse de ampliar. A cambio se le abre lo que un desconocido sí puede
+saber:
+
+| Skill | Por qué sí |
+|---|---|
+| `consultar_disponibilidad` | Qué hay libre y a qué precio. No nombra a ningún huésped |
+| `consultar_guia` | Sólo por la puerta pública (ver abajo) |
+| `consultar_tipo_cambio` | Un dato público |
+| `escalar_al_equipo` | Un prospecto sin respuesta es un **lead**, no un callejón sin salida |
+
+`consultar_ocupacion` se queda fuera y es el ejemplo que explica el resto: devuelve
+`PmsOcupacionDto`, que lleva `huesped`, `localizador` y `reserva_id`. Era la skill que contestaba
+«¿cuándo está libre la 6?» diciendo «sale Sarah Beament el 15/08», y esa frase no puede salir del
+equipo.
+
+**Quién es prospecto lo decide tener una reserva detrás**, no el número:
+`AiConversationProcessor` mira `contextType !== 'pms_reserva'` una vez identificado que no es del
+equipo. Los otros valores vivos (`manual`, `staff`) no acreditan a nadie como huésped.
+
+⚠️ **El prospecto es siempre DIRECTO.** Quien escribe a nuestro número no viene por una OTA, así
+que a su cotización no se le aplica ningún porcentaje de servicio. El dato de la OTA viaja como
+argumento de venta —«reservando directo se ahorra el 16%»—, nunca sumado al total.
 
 **El patrón importa más que la comprobación.** `ConsultarMiReservaSkill` no recibe *qué*
 reserva consultar — la saca del contexto. Un huésped no puede pedir la de otro porque **no hay
@@ -2335,6 +2370,34 @@ debes_escalar: "Cuéntale lo que dice la guía, pero NO se lo concedas: esto lo 
 
 Se anuncia además en el **catálogo** (`necesita_confirmacion_humana`), para que el modelo pueda
 decidir desde el índice y no después de haber redactado la respuesta.
+
+##### 🚪 Las dos puertas de `consultar_guia`
+
+La guía cuelga de la **unidad**, pero durante mucho tiempo el único camino hasta ella atravesaba
+una reserva (`$actor->contextoId() ?? $entrada['reserva_id']`). Consecuencia: «¿cuál es la
+acomodación de la Casita 3?» no tenía respuesta ni para un prospecto ni para el equipo, aunque el
+texto estuviera escrito, marcado `publico` y a un JOIN de distancia. Escalaba a un humano.
+
+Ahora hay dos entradas, y lo único que cambia entre ellas es **a qué unidad se llega y con qué
+`PmsGuiaAcceso`**:
+
+| Puerta | Se entra con | Acceso | Ve |
+|---|---|---|---|
+| Reserva | contexto del huésped, o `reserva_id` del equipo | `PmsGuiaAcceso::paraEvento($evento)` | Según el estado de su estancia |
+| Pública | `casita` (nombre o número), sin reserva | `PmsGuiaAcceso::publico()` | Sólo `visibilidad = publico` |
+
+De ahí para abajo el árbol ya viene podado y **el tramo de respuesta es el mismo método**
+(`responder()`). Duplicarlo sólo habría servido para que un día las dos puertas contesten
+distinto.
+
+🔒 **No hay ninguna lista blanca en el código.** Qué puede ver un desconocido lo marca el operador
+ítem a ítem en `visibilidad`, y lo aplica el mismo `podar()` que protege la guía del huésped —
+`permite(Publico)` es el peldaño más bajo de LA MATRIZ. Una lista aquí sería una segunda fuente
+de verdad, y precisamente la que nadie se acordaría de actualizar.
+
+Y el ataque obvio está cerrado: pedir un `tema_id` privado por su UUID exacto desde la puerta
+pública devuelve `tema_no_disponible`, porque `buscarPorId()` busca **dentro del árbol ya
+podado** y no con un `find()`. Comprobado con el ítem del código de la caja fuerte.
 
 Lo decide quien edita la guía, sin tocar código. Y el `help` del CRUD insiste en lo
 contraintuitivo: **márcalo aunque el texto ya explique las condiciones**, que es justo cuando

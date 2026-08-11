@@ -68,6 +68,17 @@ final class AgentPermisosCommand extends Command
             )),
         ];
 
+        // Y el prospecto: quien pregunta sin ser todavía nadie. Nace SIN contexto a propósito
+        // —ver AgentActor::prospecto()—, así que esta fila enseña justo lo que puede un número
+        // desconocido que escribe a preguntar precios.
+        $filas[] = [
+            'Prospecto (chat)',
+            $this->listar($this->registro->paraActor(
+                AgentActor::prospecto('whatsapp_meta'),
+                incluirEscritura: false
+            )),
+        ];
+
         $io->table(['Perfil', 'Skills visibles'], $filas);
 
         return Command::SUCCESS;
