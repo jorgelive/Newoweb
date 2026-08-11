@@ -21,6 +21,7 @@ las entidades `PmsGuia*` / `PmsUnidad` / `PmsEstablecimiento`, `src/Api/Controll
 6. [Qué se arregló y qué sigue roto](#6-qué-se-arregló-y-qué-sigue-roto)
 7. [Gotchas](#7-gotchas)
 8. [Dónde tocar para cambiar X](#8-dónde-tocar-para-cambiar-x)
+9. [Los cuatro temas que faltaban](#9-los-cuatro-temas-que-faltaban-y-las-reglas-que-ahora-viven-aquí)
 
 ---
 
@@ -967,6 +968,41 @@ de esta skill no es no encontrar, es que el modelo se invente cómo funciona un 
   **miniatura** de la fila del nivel 2 se queda en todos los tipos a propósito: ahí la imagen no
   anuncia una galería, es una pista visual de la fila.
 
+### 🔥 Un `@return` mal formado degrada el schema y contamina el frontend
+
+`PmsReserva::getEventosActivosGuia()` devuelve `array` a secas. El tipo nativo de PHP no puede
+decir *de qué*, así que **lo único de lo que API Platform puede deducir el contenido es el
+docblock**. El de este getter tenía un asterisco de más:
+
+```php
+ * * @return array<int, PmsEventoCalendario>   ← el tag se lee como TEXTO, no como tag
+```
+
+Consecuencias, en cadena y todas silenciosas:
+
+1. El schema publicaba `eventosActivosGuia: string[]`.
+2. Sin schema anidado, `pax/` no podía anclar nada: `PmsUnidad`, `PmsEventoEstado` y
+   `PmsEventoCalendario` se escribieron **a mano**.
+3. Esos tipos a mano envejecieron apuntando a `PmsUnidad-pax_evento.read`, un grupo de
+   serialización **que ya no existe** en el backend. El error solo salió al regenerar
+   `api.d.ts`, meses después.
+4. Y mientras tanto mentían: declaraban `id: string` cuando el schema real dice
+   `string | null`, y `cantidadAdultos: number` cuando llega opcional.
+
+Arreglado el asterisco, API Platform emite `PmsEventoCalendario-pax_reserva.read` y
+`PmsUnidad-pax_reserva.read`, y los tres tipos se anclan sin ningún override.
+
+**Regla práctica:** si un tipo del backend «no tiene schema» y estás a punto de escribirlo a
+mano en el front, **sospecha primero del docblock**. Comprobación:
+
+```bash
+php bin/console api:openapi:export | python3 -c "import json,sys; \
+  print(json.load(sys.stdin)['components']['schemas']['PmsReserva-pax_reserva.read']['properties']['eventosActivosGuia'])"
+```
+
+Si sale `{'items': {'type': 'string'}}` en algo que devuelve objetos, el problema es el getter,
+no el frontend.
+
 ---
 
 ## 8. Dónde tocar para cambiar X
@@ -974,6 +1010,8 @@ de esta skill no es no encontrar, es que el modelo se invente cómo funciona un 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
 | **Cambiar quién ve qué** | `src/Pms/Guia/PmsGuiaAcceso.php` | `permite()` (la matriz, §3) |
+| Que un getter que devuelve `array` salga tipado en el schema | la entidad | el `@return array<int, X>` del docblock — es la única fuente (§7) |
+| Tipos de la vista del huésped en `pax/` | `pax/src/types/paxHuespedModel.ts` | anclados a `components['schemas'][...]`; a mano solo lo que el backend no describe |
 | Cambiar las horas de anticipación | mismo archivo | `HORAS_ANTICIPACION` |
 | Cambiar qué invalida una estancia | mismo archivo | `paraEvento()`, las tres comprobaciones |
 | Que un ítem bloqueado se oculte en vez de anunciarse | mismo archivo | `debeAnunciarBloqueo()` |
@@ -1254,3 +1292,87 @@ sigue en 4.
 | Contarle al asistente algo que no es publicable | El mismo campo |
 | Que el ítem se encuentre por más palabras | «🔎 Cómo lo preguntan», que es independiente |
 | Que informe pero no conceda | «🔔 Requiere confirmar con una persona» |
+
+---
+
+## 9. Los cuatro temas que faltaban, y las reglas que ahora viven aquí
+
+`Version20260811160000` añadió cuatro ítems y publicó un quinto tema que sólo veía el agente.
+No fue una lluvia de ideas: se contaron los mensajes entrantes de 2026 por tema y se cruzaron
+con los 42 ítems publicados.
+
+| Tema | Menciones | Qué había |
+|---|---|---|
+| Tours | 62 | plantilla `menu_tours` + autoenvío (funciona) |
+| Equipaje | 56 | sólo `agente_contenido` |
+| Cancelación / estadía mínima | 27 | nada |
+| Taxi / aeropuerto | 25 | nada |
+| Estacionamiento | 20 | nada |
+| Boleta / factura | 18 | nada |
+
+### El método: la política se extrae del chat, no se inventa
+
+Las respuestas manuales del equipo son la única fuente escrita de estas reglas. Cada afirmación
+de los ítems nuevos sale de ahí, y varias son cita textual («no cobramos igv y damos boleta
+electrónica a todos los huéspedes pero no factura»). Cuando se quiera documentar otro tema, el
+camino es el mismo: buscar en `msg_message` las salientes sin `template_id` que hablen de él.
+
+### Las reglas de negocio que quedan fijadas
+
+- **Estadía mínima: dos noches.** Es la causa habitual de que `consultar_disponibilidad`
+  devuelva vacío. El agente tiene instrucción de decirlo en vez de dejarlo en «no hay».
+- **Cancelación directa: gratis hasta 30 días antes; después, penalidad de la primera noche.**
+  El prepago de la primera noche es lo que activa la condición.
+- **Boleta de venta electrónica sí, factura no, y no se cobra IGV.** El precio publicado es
+  final. Para emitirla hacen falta la foto del documento y a nombre de quién va.
+- **Estacionamiento: dos opciones, ninguna nuestra** — playa pública gratuita enfrente, cochera
+  privada de pago a una cuadra. Se dice siempre que la gratuita no es vigilada.
+- **No hay traslado propio.** El recojo en aeropuerto de las reservas de Booking **lo presta
+  Booking**, no nosotros: el huésped les manda a *ellos* sus datos de vuelo.
+- **Equipaje:** se guarda antes de la entrada y después de la salida, y también varios días
+  (un trek) avisando con un día de antelación y diciendo cuántos bultos son.
+
+⚠️ **El coste de guardar el equipaje sigue sin estar escrito en ninguna parte.** Se presta
+siempre y nadie lo ha cobrado, pero nunca se dijo por escrito que sea gratis, así que el ítem
+publicado **no lo promete** y el campo del agente conserva su «si pregunta el costo, avisa al
+equipo». Si se decide que es gratis, se escribe en el panel — no lo deduzca nadie de aquí.
+
+### ⚠️ La cancelación choca con las OTA, y por eso no es `publico`
+
+El «30 días / primera noche» es la política **directa**. Booking y Airbnb imponen la suya por
+plan tarifario, y en una misma reserva puede no coincidir. Por eso:
+
+1. El ítem va en visibilidad `cliente`, no `publico`: lo ve quien ya tiene localizador.
+2. Cierra remitiendo a «las condiciones que figuran en tu reserva».
+3. El `agente_contenido` le prohíbe expresamente contradecir a la plataforma y le obliga a
+   **escalar** cualquier cancelación en curso, reembolso o cambio de fechas ya pagado.
+
+Es el mismo patrón de §«Temas que se explican pero no se conceden»: informar sin decidir.
+
+### Dos trampas de las migraciones de contenido
+
+**Los siete idiomas van escritos.** Una migración inserta con SQL crudo y **no dispara los
+listeners de Doctrine**, así que el `#[AutoTranslate]` de `$titulo` y `$descripcion` nunca llega
+a ejecutarse. Sembrar sólo el español deja los otros seis vacíos hasta que alguien reedite el
+ítem en el panel — y nada avisa.
+
+**Las secciones se buscan por `nombre_interno`, no por el título.** `Version20260810160000` las
+localizó con `JSON_EXTRACT(titulo, '$[0].content')`, que da por hecho que el bloque español es
+el primero del array. Nadie garantiza ese orden: basta que el traductor reescriba el JSON para
+que `[0]` pase a ser el inglés y la migración no encuentre nada, **en silencio y sin error**.
+
+### Encadenar posiciones se calcula en memoria
+
+`addSql()` **difiere** la ejecución. Al colocar «Estacionamiento» detrás de «Traslados», ese
+predecesor todavía no existe en la base, así que un `fetchOne()` devolvería `false` y lo mandaría
+al final. `Version20260811160000::colocarEn()` lee el orden actual una vez, inserta en el array,
+y reescribe todas las posiciones de la sección.
+
+### Dónde tocar
+
+| Necesitas… | Dónde |
+|---|---|
+| Cambiar la política de cancelación | Panel → ítem «Cancelación (general)» — y su `agente_contenido` |
+| Fijar el precio de guardar equipaje | Ítem «Early check in Late Check Out», cuerpo y campo del agente |
+| Cambiar el mínimo de noches del texto | «Cancelación (general)»; el dato real vive en Beds24 |
+| Añadir un tema nuevo a las 7 casitas | Copiar el patrón de `Version20260811160000` |
