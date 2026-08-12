@@ -362,6 +362,25 @@ class Message
     public function getSubjectExternal(): ?string { return $this->subjectExternal; }
     public function setSubjectExternal(?string $subjectExternal): self { $this->subjectExternal = $subjectExternal; return $this; }
 
+    /**
+     * El texto que se manda a la IA: lo que de verdad escribió quien escribió.
+     *
+     * Existe porque había CUATRO sitios leyéndolo de tres formas distintas: el pre-router de
+     * ráfaga por `contentLocal` a secas, el procesador por `contentExternal` a secas, y otros
+     * dos con respaldo. Hoy los mensajes entrantes llenan las dos columnas y por eso funciona;
+     * el día que un canal llene sólo una, el que lea la otra vería cadena vacía —y el
+     * pre-router, ante un texto vacío, ESPERA SIEMPRE, sin error y sin rastro—.
+     *
+     * `contentExternal` primero porque es lo que llegó por el canal, tal cual; `contentLocal`
+     * es la copia normalizada. Sin el asunto delante, al contrario que
+     * {@see self::getFullContentExternal()}: aquí interesa el mensaje, no una cabecera que el
+     * huésped no escribió.
+     */
+    public function getTextoEntrante(): string
+    {
+        return trim((string) ($this->contentExternal ?? $this->contentLocal ?? ''));
+    }
+
     public function getFullContentLocal(): string
     {
         $content = $this->contentLocal ?? $this->contentExternal ?? '';

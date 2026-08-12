@@ -19,30 +19,44 @@ use Throwable;
  * ### Por qué existe
  *
  * La espera de ráfaga era un número fijo, y un número fijo no puede servir para las dos
- * cosas. Medido sobre 873 mensajes reales (mayo-agosto 2026):
- *
- * - Solo el **37 %** de las continuaciones ocurría dentro de los 20 s configurados: al que
- *   escribe despacio se le contestaba a medias igual.
- * - Y el **81 %** de los mensajes no se continúa nunca: esperaban 20 s para nada.
+ * cosas: al que escribe despacio se le contestaba a medias igual, y el que ya había terminado
+ * esperaba para nada.
  *
  * La espera correcta no depende del reloj, depende de si el mensaje **se lee como
  * terminado**. Eso es lo que decide este pre-router.
  *
  * ### Por qué las reglas son estas y no otras
  *
- * Tasa de continuación (≤40 s) medida por rasgo, sobre mensajes reales:
+ * Tasa de continuación (≤40 s) medida sobre **2.087 mensajes entrantes reales** (remedido en
+ * agosto de 2026; la primera versión se decidió sobre 873 y sus cifras ya no valen):
  *
- * | Rasgo | Mensajes | Continúa |
- * |---|---|---|
- * | Saludo suelto («hola», «buenas») | 2 % | **60 %** |
- * | Termina en `?` | 20 % | 12 % |
- * | 12+ palabras | 24 % | 8 % |
- * | Resto (2-11 palabras, sin `?`) | 54 % | 24 % |
+ * | Rasgo | Tráfico | Continúa | Decisión |
+ * |---|---|---|---|
+ * | Saludo suelto («hola», «buenas») | 8 % | **43,5 %** | espera |
+ * | Termina en `?` | 13,6 % | 14,1 % | ejecuta |
+ * | 12+ palabras | 23,4 % | 13,7 % | ejecuta |
+ * | Resto (2-11 palabras, sin `?`) | 53,2 % | 27,1 % | al modelo |
  *
- * ⚠️ **La longitud NO sirve entre 2 y 11 palabras**: la curva es plana y ruidosa ahí
- * (13-27 % sin tendencia). Un umbral en esa banda sería inventado. «Pásame la reserva del 4»
- * son cinco palabras y está terminada; «hola, mira» son dos y no. Solo el significado las
- * distingue, y por eso esa banda —la mayoría del tráfico— es la única que va al modelo.
+ * ⚠️ **La longitud NO sirve entre 2 y 11 palabras.** Medida por bandas, excluyendo saludos y
+ * preguntas cerradas:
+ *
+ * ```
+ *   2-3 palabras   515   29,9 %
+ *   4-6 palabras   341   25,8 %
+ *  7-11 palabras   291   22,7 %
+ * 12-17 palabras   402   14,2 %   ← el escalón está aquí
+ * 18-29 palabras    86   11,6 %
+ * ```
+ *
+ * De 2 a 11 la caída es de 29,9 a 22,7: demasiado poco para partir la banda, y por eso esa
+ * mayoría del tráfico es la única que va al modelo. «Pásame la reserva del 4» son cinco
+ * palabras y está terminada; «hola, mira» son dos y no. El salto de verdad está en 12, y
+ * subir el umbral a 18 no compra casi nada.
+ *
+ * 🚫 **Probado y descartado: una regla para preguntas sin `?`.** En WhatsApp se escriben
+ * constantemente («Que costo tiene»), pero son el 1,8 % del tráfico —37 mensajes— y continúan
+ * el 18,9 %, indistinguible del resto con esa muestra. No merece regla; queda escrito para que
+ * nadie la vuelva a proponer sin medirla.
  *
  * ### La asimetría, que es lo importante
  *
@@ -51,9 +65,12 @@ use Throwable;
  * todavía está escribiendo su pregunta — el desastre que la espera vino a evitar, y ahora
  * con el agente encendido le pasa a clientes reales.
  *
- * Por eso el prompt está sesgado a esperar y **cualquier fallo devuelve `true`**: modelo sin
- * credenciales, JSON roto, excepción, pre-router apagado. Nunca se arriesga a contestar
- * antes de tiempo por un problema técnico.
+ * Por eso el prompt está sesgado a esperar y **cualquier FALLO devuelve `true`**: modelo sin
+ * credenciales, JSON roto, excepción, pre-router apagado. Nunca se arriesga a contestar antes
+ * de tiempo por un problema técnico.
+ *
+ * La única excepción es un mensaje SIN TEXTO —un audio, una foto—, que sí pasa: ahí no hay
+ * nada que clasificar y esperar sólo retrasa. Ver `debeEsperar()`.
  */
 final readonly class PreRouterRafaga
 {
@@ -99,10 +116,20 @@ final readonly class PreRouterRafaga
      */
     public function debeEsperar(Message $mensaje): bool
     {
-        $texto = trim(strip_tags((string) $mensaje->getContentLocal()));
+        // Una sola forma de leer el mensaje en todo el agente: ver `getTextoEntrante()`.
+        // Leerlo de una columna concreta hacía que este pre-router pudiera quedarse con la
+        // cadena vacía y esperar siempre, en silencio.
+        $texto = trim(strip_tags($mensaje->getTextoEntrante()));
 
+        // Sin texto no hay nada que clasificar: un audio, una foto, una ubicación. Esperar la
+        // ventana entera sólo retrasa lo que igualmente se va a procesar tal cual, porque en
+        // el reintento `yaEsperado` salta este pre-router. Se deja pasar.
+        //
+        // El riesgo asumido —que llegue un audio y detrás el texto explicándolo— lo sigue
+        // cubriendo el guardia de ráfaga de `AiConversationProcessor`, que es la segunda red y
+        // sí mira si el huésped escribió mientras se generaba la respuesta.
         if ($texto === '') {
-            return true;
+            return false;
         }
 
         // Regla 1 — saludo suelto. Es el rasgo con la señal más fuerte de todos y no

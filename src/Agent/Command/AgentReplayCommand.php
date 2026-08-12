@@ -255,7 +255,7 @@ final class AgentReplayCommand extends Command
                 continue;
             }
 
-            $texto = trim((string) ($m->getContentExternal() ?? $m->getContentLocal() ?? ''));
+            $texto = $m->getTextoEntrante();
 
             if ($texto !== '') {
                 $mensajes[] = $texto;

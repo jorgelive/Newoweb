@@ -445,7 +445,7 @@ final readonly class AiConversationProcessor
             ));
         }
 
-        $mensaje = trim((string) $entrante->getContentExternal());
+        $mensaje = $entrante->getTextoEntrante();
         $historial = $this->historial($conversacion, $entrante);
 
         // PASO 1 — TRIAJE. Barato, sin herramientas, y con un desenlace («indeterminado») que
@@ -959,7 +959,7 @@ final readonly class AiConversationProcessor
                 continue;
             }
 
-            $texto = trim((string) ($m->getContentExternal() ?? $m->getContentLocal() ?? ''));
+            $texto = $m->getTextoEntrante();
             if ($texto === '') {
                 continue;
             }
