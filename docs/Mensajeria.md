@@ -6098,3 +6098,46 @@ fuente.
 Queda anotado que la raíz —fecha como contenido en lugar de como metadato— sigue ahí. Cambiar
 el formato del historial arriesga el fallo de las cotizaciones viejas, así que se optó por la
 guarda determinista en la salida.
+
+### 19.10 La cuenta de un huésped cuyo canal ya le cobró
+
+Salió tirando de otro hilo: al revisar si `prepago_pendiente` debía callarse en canal
+restringido, resultó que **esa parte ya estaba bien** —`PmsPrepagoCalculador::pendiente()`
+devuelve `null` en `PmsChannel::CANAL_PAGO_TOTAL` (Airbnb, VRBO) desde siempre— pero apareció
+una inconsistencia mayor al lado.
+
+`PmsReservaPaxProvider::cifras()`, que alimenta la guía web del huésped, excluye la
+contabilidad espejo del canal y, si no queda nada, devuelve `soloProgreso` — la barra al 100 %
+y **ni una sola cifra**. El motivo está escrito en `PmsCargoFinanciero`:
+
+> En esos canales el importe que guardamos es lo que la OTA nos remite, no lo que el huésped
+> pagó (que incluye la comisión de servicio de la OTA). Enseñárselo invita a una conversación
+> incómoda sobre por qué las cifras no cuadran.
+
+**`ConsultarCuentaSkill` no heredaba esa política.** Ni una referencia a `CANAL_PAGO_TOTAL`: le
+recitaba al modelo `total_cargos`, `total_pagado`, `saldo_pendiente` y el desglose entero. Dos
+superficies con los mismos datos y criterios opuestos — la web se lo oculta a propósito y el
+chat se lo cantaba. Y el riesgo es peor que dar un dato de más: si nuestro saldo no cuadra con
+lo que él pagó a la plataforma, parece que le estamos reclamando dinero.
+
+Es el mismo patrón que el incidente que abre este capítulo: **una política que vive en una
+superficie y que la del agente no heredó.** Conviene mirarlo como una clase de fallo, no como
+dos casos sueltos.
+
+Ahora la skill aplica la misma regla:
+
+- Se excluye el espejo del canal por el flag `esAutomatico` —de cargos y de pagos—, sin
+  adivinar por importe ni por subtipo. ⚠️ `esAutomatico` **no** significa «lo generó el
+  sistema»: los cargos de reservas directas también se generan solos y llevan el flag en
+  `false` a propósito, porque el huésped nos los paga a nosotros y tiene que verlos.
+- Si los extras suman cero, no se devuelve un saldo `0.00` sino que **el pago está cerrado con
+  la plataforma**. Un cero invita al modelo a decir «no debes nada» y de ahí a hablar de
+  importes que no debe mencionar; una frase sin cifras cierra la puerta.
+- Si hay extras —una cena, un traslado, una noche añadida—, se devuelven **sólo ésos**, que son
+  los que el huésped reconoce y sí nos paga a nosotros.
+
+El corte por el total y no por la lista vacía es deliberado: es el mismo de la web, y
+comprobar además si la lista viene vacía habría hecho que las dos superficies dijeran cosas
+distintas cuando los extras se anulan entre sí.
+
+Afecta a 59 reservas de Airbnb en producción.

@@ -13,6 +13,7 @@ use App\Agent\Skill\SkillResult;
 use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
+use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Enum\PmsPoliticaPrepago;
@@ -135,6 +136,29 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
 
         $moneda = $info->getMoneda()?->getId() ?? '';
         $idioma = $reserva->getIdioma()?->getId();
+
+        // 🪞 CANALES QUE COBRAN POR NOSOTROS: la misma regla que ya aplica la guía del huésped.
+        //
+        // En Airbnb y VRBO ({@see PmsChannel::CANAL_PAGO_TOTAL}) el importe que guardamos es lo
+        // que la OTA nos remite, NO lo que el huésped pagó —que lleva encima la comisión de
+        // servicio de la plataforma—. `PmsReservaPaxProvider::cifras()` lo excluye desde
+        // siempre, así que en su pantalla el huésped ve la barra al 100 % y ni una sola cifra.
+        //
+        // Esta skill no heredaba esa política y le recitaba total, pagado y saldo. Dos
+        // superficies con los mismos datos y criterios opuestos: la web se lo oculta a
+        // propósito y el chat se lo cantaba. Y no es «un dato de más» — si nuestro saldo no
+        // cuadra con lo que él pagó a la OTA, parece que le reclamamos dinero.
+        //
+        // Ver docs/Mensajeria.md §19.10.
+        $espejo = in_array(
+            $reserva->getChannel()?->getId(),
+            PmsChannel::CANAL_PAGO_TOTAL,
+            true
+        );
+
+        if ($espejo) {
+            return $this->cuentaDeCanalQueCobra($reservaId, $reserva, $info, $moneda, $idioma);
+        }
 
         return SkillResult::ok(array_filter([
             'reserva_id' => $reservaId,
@@ -260,12 +284,90 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
      *
      * @return list<array<string, mixed>>
      */
-    private function cargos(PmsInformacionFinanciera $info, ?string $idioma): array
+    /**
+     * La cuenta de un huésped cuyo canal ya le cobró todo.
+     *
+     * Sólo se le enseñan los EXTRAS: lo que consumió aquí y nos debe a nosotros —una cena, un
+     * traslado, una noche extra—, que sí reconoce y sí puede pagar. Lo demás es contabilidad
+     * interna del canal y se excluye por el flag `esAutomatico`, sin adivinar por importe ni
+     * por subtipo. Es la contraparte exacta de `PmsReservaPaxProvider::pagosVisibles()`.
+     *
+     * Si no queda nada, no se devuelve un cero: se devuelve que su pago está cerrado con la
+     * plataforma. Un «saldo 0.00» invita al modelo a decir «no debes nada» y de ahí a hablar
+     * de importes que no debe mencionar; una frase sin cifras cierra la puerta.
+     */
+    private function cuentaDeCanalQueCobra(
+        string $reservaId,
+        PmsReserva $reserva,
+        PmsInformacionFinanciera $info,
+        string $moneda,
+        ?string $idioma
+    ): SkillResult {
+        $cargos = array_values(array_filter(
+            $this->cargos($info, $idioma, excluirEspejoCanal: true),
+            static fn (array $fila): bool => $fila !== []
+        ));
+
+        $pagos = $this->pagos($info, excluirEspejoCanal: true);
+
+        $totalExtras = array_sum(array_map(
+            static fn (array $fila): float => (float) ($fila['importe'] ?? 0),
+            $cargos
+        ));
+
+        $base = [
+            'reserva_id' => $reservaId,
+            'huesped' => $this->huesped($reserva),
+            'tiene_cuenta' => true,
+            'canal_ya_cobro' => true,
+            'idioma_huesped' => $idioma,
+        ];
+
+        // Mismo corte que `PmsReservaPaxProvider::cifras()`: manda el TOTAL, no si la lista
+        // viene vacía. Unos extras que suman cero —anulados, o un cargo de cortesía— no son
+        // algo que enseñar, y comprobar la lista además del total habría hecho que las dos
+        // superficies dijeran cosas distintas en ese caso.
+        if ($totalExtras <= 0.0) {
+            return SkillResult::ok(array_filter($base + [
+                'mensaje' => 'Su pago está cerrado con la plataforma donde reservó: aquí no '
+                    . 'tiene nada pendiente. NO le des importes, ni totales, ni saldo: las '
+                    . 'cifras que guardamos son lo que la plataforma nos remite, no lo que él '
+                    . 'pagó, y no van a cuadrar con su recibo. Si insiste con cifras, dile que '
+                    . 'las consulte en la propia plataforma.',
+            ], static fn ($v) => $v !== null));
+        }
+
+        return SkillResult::ok(array_filter($base + [
+            'moneda' => $moneda,
+            'cargos' => $cargos,
+            'pagos' => $pagos,
+            'total_extras' => number_format($totalExtras, 2, '.', ''),
+            'mensaje' => 'El alojamiento ya lo cobró la plataforma donde reservó. Lo que ves '
+                . 'aquí son SÓLO los extras consumidos aquí, que se pagan a nosotros. No '
+                . 'menciones el total de la reserva ni el saldo global: esas cifras son '
+                . 'internas y no cuadran con lo que él pagó.',
+        ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * @param bool $excluirEspejoCanal Deja fuera la contabilidad espejo del canal que cobra
+     *        por nosotros. Ver {@see self::cuentaDeCanalQueCobra()}.
+     */
+    private function cargos(PmsInformacionFinanciera $info, ?string $idioma, bool $excluirEspejoCanal = false): array
     {
         $filas = [];
 
         foreach ($info->getCargos() as $cargo) {
             /** @var PmsCargoFinanciero $cargo */
+
+            // `esAutomatico` en un cargo NO significa «lo generó el sistema»: los cargos de
+            // reservas directas también se generan solos y llevan el flag en false a
+            // propósito, porque el huésped nos los paga a nosotros y tiene que verlos. Lo que
+            // marca es «esto es contabilidad interna del canal». Ver PmsCargoFinanciero.
+            if ($excluirEspejoCanal && $cargo->isEsAutomatico()) {
+                continue;
+            }
+
             $filas[] = array_filter([
                 'concepto' => $this->concepto($cargo),
                 // La explicación REDACTADA PARA EL HUÉSPED, cuando el operador la escribió.
@@ -289,12 +391,20 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
     }
 
     /** @return list<array<string, mixed>> */
-    private function pagos(PmsInformacionFinanciera $info): array
+    /**
+     * @param bool $excluirEspejoCanal Deja fuera el pago que la OTA se apunta a sí misma.
+     *        Mismo criterio que `PmsReservaPaxProvider::pagosVisibles()`.
+     */
+    private function pagos(PmsInformacionFinanciera $info, bool $excluirEspejoCanal = false): array
     {
         $filas = [];
 
         foreach ($info->getPagos() as $pago) {
             /** @var PmsPagoFinanciero $pago */
+            if ($excluirEspejoCanal && $pago->isEsAutomatico()) {
+                continue;
+            }
+
             $filas[] = array_filter([
                 'importe' => $pago->getMonto(),
                 'moneda' => $pago->getMoneda()?->getId(),
