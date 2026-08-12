@@ -406,6 +406,29 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const messageTextarea = ref<HTMLTextAreaElement | null>(null);
 const selectedChannels = ref<string[]>([]);
 
+/**
+ * Las plantillas que además de estar permitidas para esta conversación pueden salir de verdad
+ * por los canales que hay marcados ahora mismo.
+ *
+ * El desplegable ya decía «No hay plantillas para este canal», pero no filtraba por canal:
+ * `chatStore.validTemplates` solo mira `contextType` y `allowedSources`. En una conversación de
+ * OTA aparecían plantillas que únicamente tienen cuerpo de WhatsApp —y al revés—, y elegir una
+ * de ésas no da un aviso: el despacho se queda sin canales y el mensaje acaba en `failed`.
+ *
+ * `channels` lo calcula el backend (`MessageTemplate::getChannels()`) a partir del `is_active`
+ * de cada bloque, así que es la misma verdad que usa `MessageDispatcher::resolveChannels()`.
+ *
+ * Sin ningún canal marcado no se filtra: la lista vacía se leería como «no hay plantillas»
+ * cuando lo que falta es elegir por dónde enviar.
+ */
+const plantillasVisibles = computed<ApiTemplate[]>(() => {
+  const permitidas = store.validTemplates as ApiTemplate[];
+
+  if (selectedChannels.value.length === 0) return permitidas;
+
+  return permitidas.filter(t => (t.channels ?? []).some(canal => selectedChannels.value.includes(canal)));
+});
+
 const isPreviewModalOpen = ref(false);
 const previewImageUrl = ref<string | null>(null);
 
@@ -1519,7 +1542,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 <button @click="showTemplateDropdown = false" class="text-slate-300 hover:text-red-400"><i class="fas fa-times"></i></button>
               </div>
               <button
-                  v-for="tpl in store.validTemplates"
+                  v-for="tpl in plantillasVisibles"
                   :key="tpl.id"
                   @click="selectTemplate(tpl)"
                   class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl transition-colors mb-1 group flex items-center justify-between"
@@ -1529,7 +1552,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                   <span class="block text-[10px] font-mono text-slate-400 truncate">{{ tpl.code }}</span>
                 </span>
               </button>
-              <div v-if="store.validTemplates.length === 0" class="p-4 text-center text-xs text-slate-400 italic">No hay plantillas para este canal.</div>
+              <div v-if="plantillasVisibles.length === 0" class="p-4 text-center text-xs text-slate-400 italic">No hay plantillas para este canal.</div>
             </div>
           </Transition>
 

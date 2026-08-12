@@ -1,0 +1,105 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{#
+    Lo que Meta tiene, enfrentado a lo que tenemos aquí.
+
+    El estado que enseña el listado de plantillas sale del JSON local, y ese JSON se escribe a
+    mano tan fácil como lo escribe el sincronizador. Cuando no coinciden, se ve un estado
+    inventado con toda la pinta de ser real —`menu_tours` estuvo meses en «PENDING» sin existir
+    en Meta—. Esta pantalla es la única forma de verlo sin abrir la consola de Amazon.
+
+    Las tablas van dentro de un contenedor con scroll propio: son 10 filas hoy y pueden ser 40,
+    y no tiene por qué crecer la página entera.
+#}
+
+{% block content_title %}
+    <i class="fa-brands fa-whatsapp text-success me-2"></i> Plantillas en Meta
+{% endblock %}
+
+{% block main %}
+    <div class="container-fluid">
+
+        {% if error is defined and error %}
+            <div class="alert alert-danger">
+                <strong>No se pudo preguntar a Meta.</strong> {{ error }}
+            </div>
+        {% else %}
+
+            <p class="text-muted mb-3">
+                {{ enMeta|length }} plantilla(s) en Meta · {{ total }} filas (plantilla × idioma).
+                Consultado ahora mismo contra la Graph API; no se ha guardado nada.
+            </p>
+
+            {% if soloLocales|length %}
+                <div class="alert alert-warning">
+                    <strong>Estas de aquí dicen ser de Meta y Meta no las conoce.</strong>
+                    El estado que enseña el panel para ellas es texto local, no una revisión en curso:
+                    mientras estén así, <em>nadie puede aprobarlas</em>.
+                    <ul class="mb-0 mt-2">
+                        {% for fila in soloLocales %}
+                            <li>
+                                <code>{{ fila.code }}</code> — {{ fila.nombre }}
+                                {% if fila.nombreMeta %}
+                                    (apunta a <code>{{ fila.nombreMeta }}</code>, que no está en Meta)
+                                {% else %}
+                                    <strong>sin «Nombre en Meta»</strong>: así no se puede ni subir
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    {# El scroll vive aquí: la página no crece con el número de plantillas. #}
+                    <div style="max-height: 60vh; overflow: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th>Nombre en Meta</th>
+                                    <th>Plantilla local</th>
+                                    <th style="min-width: 22rem">Idiomas y estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for fila in enMeta %}
+                                <tr>
+                                    <td class="font-monospace">{{ fila.nombre }}</td>
+                                    <td>
+                                        {% if fila.reclamada %}
+                                            <code>{{ fila.local }}</code>
+                                        {% else %}
+                                            <span class="badge badge-warning">sin dueño aquí</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% for idioma in fila.idiomas %}
+                                            <span class="badge {{ idioma.estado == 'APPROVED' ? 'badge-success'
+                                                : (idioma.estado == 'REJECTED' ? 'badge-danger' : 'badge-warning') }} me-1">
+                                                {{ idioma.codigo }}: {{ idioma.estado }}
+                                            </span>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-muted small mt-3 mb-0">
+                «Sin dueño aquí» significa que Meta la tiene y ninguna plantilla local reclama ese
+                nombre. El sincronizador de las 03:15 le fabricará una fila <code>*_META</code>
+                cada noche mientras siga existiendo en Meta: se resuelve archivándola allí, o
+                apuntándole el «Nombre en Meta» de la plantilla buena.
+            </p>
+
+        {% endif %}
+
+        <div class="mt-4">
+            <a href="{{ urlVolver }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+{% endblock %}

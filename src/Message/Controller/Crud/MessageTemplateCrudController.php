@@ -10,6 +10,7 @@ use App\Message\Form\Type\EmailTemplateType;
 use App\Message\Form\Type\WhatsappLinkTemplateType;
 use App\Message\Form\Type\WhatsappMetaTemplateType;
 use App\Message\Service\MessageSegmentationAggregator;
+use App\Message\Service\Meta\Template\WhatsappMetaTemplateInventario;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplatePushService;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplateSyncService;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -87,10 +88,22 @@ class MessageTemplateCrudController extends BaseCrudController
                 return !empty($entity->getWhatsappMetaTmpl());
             });
 
+        // 3. Botón global para VER LO QUE META TIENE DE VERDAD.
+        //
+        // No toca nada: es un GET a la Graph API. Existe porque el estado que enseña este
+        // listado sale del JSON local, y ese JSON se escribe a mano igual que lo escribe el
+        // sincronizador: cuando no coinciden, aquí se ve un «PENDING» que en Meta no existe.
+        $inventarioMetaAction = Action::new('inventarioMeta', 'Ver plantillas en Meta', 'fa fa-list-check')
+            ->linkToCrudAction('executeInventarioMeta')
+            ->createAsGlobalAction()
+            ->setCssClass('btn btn-secondary');
+
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $syncMetaAction)
+            ->add(Crud::PAGE_INDEX, $inventarioMetaAction)
+            ->add(Crud::PAGE_DETAIL, $inventarioMetaAction)
             // También en el detalle: se entra a mirar una plantilla concreta para ver si
             // Meta ya la aprobó, y tener que volver al listado para refrescar es absurdo.
             ->add(Crud::PAGE_DETAIL, $syncMetaAction)
@@ -118,7 +131,9 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setPermission('pushMetaTemplate', Roles::MENSAJES_WRITE) // Requiere permisos de escritura
             // Revisar estado solo LEE de Meta y actualiza el estado local: basta con poder
             // ver plantillas. Se declara explícitamente para que no dependa del defecto.
-            ->setPermission('syncMetaTemplates', Roles::MENSAJES_SHOW);
+            ->setPermission('syncMetaTemplates', Roles::MENSAJES_SHOW)
+            // Solo lee de Meta y no escribe ni en local ni allí.
+            ->setPermission('inventarioMeta', Roles::MENSAJES_SHOW);
     }
 
     /**
@@ -345,6 +360,48 @@ class MessageTemplateCrudController extends BaseCrudController
 
         yield DateTimeField::new('createdAt', 'Creado')->onlyOnDetail();
         yield DateTimeField::new('updatedAt', 'Actualizado')->onlyOnDetail();
+    }
+
+    /**
+     * Enseña lo que Meta tiene de verdad, sin tocar nada.
+     *
+     * ¿Por qué existe, habiendo un «Revisar estado»? Porque ése **escribe**: baja lo que Meta
+     * devuelve y lo guarda en local, así que después de correrlo ya no puedes comparar — y lo
+     * que no encaja, en vez de verse, desaparece o se convierte en una fila `*_META` nueva.
+     * Esta pantalla es un `GET` y se queda mirando:
+     *
+     * - una plantilla local que dice estar `PENDING` y **no existe en Meta** sale señalada
+     *   arriba (fue el caso de `menu_tours` durante cinco meses);
+     * - una plantilla de Meta que **aquí no reclama nadie** sale marcada «sin dueño»: es la
+     *   antesala de las gemelas `*_META` que fabrica el cron.
+     *
+     * El resultado va en una tabla con scroll propio; la página no crece con el listado.
+     */
+    public function executeInventarioMeta(
+        AdminContext $context,
+        WhatsappMetaTemplateInventario $inventario,
+        AdminUrlGenerator $adminUrlGenerator
+    ): Response {
+        $urlVolver = $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl();
+
+        try {
+            $datos = $inventario->listar();
+        } catch (Throwable $e) {
+            // Se pinta dentro de la propia pantalla, no como flash: quien pulsó el botón vino a
+            // ver una lista, y un aviso rojo en el listado de plantillas se confunde con un
+            // problema de las plantillas.
+            return $this->render('panel/message/message_template/inventario_meta.html.twig', [
+                'error' => $e->getMessage(),
+                'urlVolver' => $urlVolver,
+            ]);
+        }
+
+        return $this->render('panel/message/message_template/inventario_meta.html.twig', [
+            'enMeta' => $datos['enMeta'],
+            'soloLocales' => $datos['soloLocales'],
+            'total' => $datos['total'],
+            'urlVolver' => $urlVolver,
+        ]);
     }
 
     /**

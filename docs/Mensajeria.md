@@ -835,6 +835,29 @@ menú puede resolverse pasaron de **82 a 151** de 284.
 es, en la práctica, la única puerta del motor determinista para las OTA — por eso el bug lo
 dejaba prácticamente muerto en Beds24 (2 disparos frente a 835 mensajes) y no se notaba en Meta.
 
+
+### 🔥 El desplegable de plantillas del chat SÍ filtra por canal (desde 2026-08-12)
+
+`ChatView.vue` enseña las plantillas en `plantillasVisibles`, que cruza dos cosas:
+
+1. `chatStore.validTemplates` — permiso por `contextType` y `allowedSources`.
+2. **Los canales marcados en ese momento** (`selectedChannels`) contra `tpl.channels`.
+
+El punto 2 faltaba, y el desplegable llevaba desde siempre diciendo «No hay plantillas para
+este canal» sin mirar el canal: en una conversación de OTA salían plantillas que solo tienen
+cuerpo de WhatsApp, y al revés. Elegir una de ésas no avisa de nada —el despacho se queda sin
+canales y el mensaje termina en `failed` con `dispatch_errors`.
+
+`channels` lo calcula el backend en `MessageTemplate::getChannels()` a partir del `is_active` de
+cada bloque, así que el desplegable y `MessageDispatcher::resolveChannels()` usan la misma
+verdad. Sin ningún canal marcado no se filtra: una lista vacía se leería como «no hay
+plantillas» cuando lo que falta es elegir por dónde enviar.
+
+⚠️ El equivalente de EasyAdmin (`MessageCrudController::getValidTemplateIds()`) **sigue sin
+filtrar por canal**, y ahí es defendible: los canales se eligen en el propio formulario, después
+de la plantilla. El de la reserva (`ReservasView.vue`) filtra por `whatsappLinkContent`, que es
+su criterio correcto — ése es el enlace manual, no un canal.
+
 ### El menú caduca
 
 `InboundMenuResolver::VENTANA_VALIDEZ` (24 h). Sin ella, un huésped que contesta «2» a un
@@ -5546,6 +5569,26 @@ que aquí no tenían dueño.
 > y el punto exacto del código donde encajaría la exclusión. Esta sección explica el mecanismo;
 > aquélla, qué falta por decidir.
 
+### 👁️ «Ver plantillas en Meta»: la pantalla que no escribe
+
+`MessageTemplateCrudController::executeInventarioMeta()` (botón del listado de plantillas)
+pregunta a la Graph API y enseña lo que Meta tiene, **sin guardar nada**.
+
+Existe porque el botón de al lado, «Revisar estado en Meta», **escribe**: baja lo que Meta
+devuelve y lo mete en local. Después de pulsarlo ya no hay nada que comparar, y lo que no
+encajaba no se ve — o desapareció, o se convirtió en una fila `*_META` nueva. Esta pantalla se
+queda mirando, y por eso enseña las dos anomalías que el listado normal no puede:
+
+| Lo que marca | Qué significa |
+|---|---|
+| **«sin dueño aquí»** en una fila de Meta | ninguna plantilla local reclama ese nombre; el cron de las 03:15 le fabricará su gemela `*_META` cada noche mientras exista allí |
+| El aviso amarillo de arriba | plantillas locales que dicen ser de Meta y Meta no conoce: su estado en el panel es texto escrito a mano, no una revisión en curso |
+
+La tabla vive dentro de un contenedor con `max-height: 60vh; overflow: auto` y cabecera fija:
+son 10 filas hoy y pueden ser 40, y no tiene por qué crecer la página.
+
+Es de solo lectura (`Roles::MENSAJES_SHOW`), a diferencia del push.
+
 ### 🔥 Sin `meta_template_name` la plantilla es invisible en las DOS direcciones
 
 Peor que apuntar al nombre equivocado es no tener ninguno, porque no produce un duplicado que se
@@ -5638,4 +5681,5 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Adoptar una plantilla nueva de Meta | Repuntar `meta_template_name` **y** rehacer los `resolver_key` |
 | Subir a Meta la versión local | `WhatsappMetaTemplatePushService` (valida que no falte ningún `resolver_key`) |
 | Saber cuándo corre la sincronización | Cron de `www-data`: `app:whatsapp:sync-templates`, 03:15 |
+| Ver qué tiene Meta sin escribir nada | Botón «Ver plantillas en Meta» → `WhatsappMetaTemplateInventario::listar()` |
 | Averiguar por qué una plantilla lleva meses en `PENDING` | Mirar `meta_template_name` y `is_official_meta`: si es `null`/`false`, nunca llegó a Meta |
