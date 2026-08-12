@@ -267,6 +267,40 @@ opción *«mi certificado de desarrollo es un certificado comodín de una autori
 certificadora»* si el dominio va con un wildcard. Idioma: el español que corresponda
 (`es-MX` / `es-US`); el skill sólo existe en los idiomas que se le añadan.
 
+### 🔇 «No sé cómo puedo ayudarte con eso»: el idioma del dispositivo
+
+Es el fallo que más despista, porque **no deja rastro en nuestros logs**: Alexa responde ella
+misma y nunca llama al endpoint. Si el skill parece muerto en un Echo pero el simulador va bien,
+mira esto ANTES que nada.
+
+El skill existe **por idioma**, no por cuenta. Si está construido sólo en `es-MX` y el Echo está
+configurado en `es-US`, para ese dispositivo el skill **no existe**: el nombre de invocación no
+resuelve y Alexa contesta que no sabe ayudarte. En Perú los dispositivos vienen a menudo en
+`es-US`, así que el caso es la norma, no la excepción.
+
+Cómo distinguirlo de un problema nuestro, en un vistazo:
+
+| Síntoma | Dónde está |
+|---|---|
+| Alexa dice «no sé cómo puedo ayudarte con eso» y **no hay petición en el log** | Consola: idioma o nombre de invocación |
+| Llega la petición y responde «este dispositivo no está autorizado» | `ALEXA_USUARIOS`: falta el id, y el log lo trae |
+| Llega y contesta con un saludo que no toca | `AlexaController::BIENVENIDA` sin actualizar |
+
+```bash
+ssh <servidor> 'grep -c app_agent_alexa /var/www/<proyecto>/var/log/info-$(date +%F).log'
+```
+
+Cero peticiones tras hablarle al Echo = no es nuestro.
+
+**El arreglo** es añadir el idioma que use el dispositivo en la consola (*Distribution → Skill
+locales*) y copiar ahí el modelo de interacción; el endpoint y el código no cambian, el skill es
+el mismo. Para una prueba rápida basta con poner el Echo en el idioma que sí está construido,
+desde la app de Alexa: Dispositivos → el Echo → Idioma.
+
+⚠️ Y al añadir un idioma hay que **reconstruir el modelo** («Build Model»): el nombre de
+invocación y los intents se compilan por idioma, así que uno recién añadido nace vacío aunque el
+skill lleve meses funcionando en el otro.
+
 ### Nombre de invocación
 
 Es lo que se dice en voz alta y **no está en el código**: se elige en la consola. El acordado es
