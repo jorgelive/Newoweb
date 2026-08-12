@@ -190,13 +190,20 @@ export const MODO_COMERCIAL_CONFIG: Record<ComponenteModoValue | ItemModoValue |
     reemplazado: { label: 'Reemplazado', bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    icon: 'fa-rotate' },
 };
 
-export type ComponenteEstadoValue = 'pendiente' | 'confirmado' | 'reconfirmado' | 'cancelado';
+/**
+ * Espejo de `ComponenteEstadoEnum` (PHP). Responde **sólo** si el componente sigue en
+ * pie dentro de la cotización.
+ *
+ * ⚠️ No confundir con `ESTADO_OPERATIVO_CONFIG`, justo debajo: ése sí es el estado de
+ * reserva con el proveedor y vive en La Biblia. Este enum tuvo `confirmado` y
+ * `reconfirmado` durante un tiempo, no los leía nadie, y hacían creer al vendedor que
+ * marcaba una confirmación real. Ver docs/Cotizaciones.md §3.b.
+ */
+export type ComponenteEstadoValue = 'activo' | 'cancelado';
 
 export const ESTADO_COMPONENTE_CONFIG: Record<ComponenteEstadoValue, EstadoUIConfig> = {
-    pendiente:    { label: 'Pendiente',    bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200', icon: 'fa-clock' },
-    confirmado:   { label: 'Confirmado',   bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
-    reconfirmado: { label: 'Reconfirmado', bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200',  icon: 'fa-check-double' },
-    cancelado:    { label: 'Cancelado',    bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200',  icon: 'fa-times-circle' },
+    activo:    { label: 'Activo',    bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
+    cancelado: { label: 'Cancelado', bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200',     icon: 'fa-times-circle' },
 };
 
 export type EstadoOperativoValue = 'sin-solicitar' | 'solicitado' | 'confirmado' | 'reconfirmado' | 'pendiente-pago';
@@ -212,8 +219,11 @@ export const ESTADO_OPERATIVO_CONFIG: Record<EstadoOperativoValue, EstadoUIConfi
 export const getModoItemConfig = (modo?: string | null): EstadoUIConfig =>
     MODO_COMERCIAL_CONFIG[modo || 'incluido'] || MODO_COMERCIAL_CONFIG.incluido;
 
+// El fallback es `activo`: si llega un valor viejo o desconocido, lo prudente es
+// tratarlo como vigente. Dar por cancelado lo que no se reconoce lo borraría del
+// cálculo y de la propuesta sin que nadie lo pidiera.
 export const getEstadoComponenteConfig = (estado?: string | null): EstadoUIConfig =>
-    ESTADO_COMPONENTE_CONFIG[(estado as ComponenteEstadoValue) || 'pendiente'] || ESTADO_COMPONENTE_CONFIG.pendiente;
+    ESTADO_COMPONENTE_CONFIG[(estado as ComponenteEstadoValue) || 'activo'] || ESTADO_COMPONENTE_CONFIG.activo;
 
 export const getEstadoOperativoConfig = (estado?: string | null): EstadoUIConfig =>
     ESTADO_OPERATIVO_CONFIG[(estado as EstadoOperativoValue) || 'sin-solicitar'] || ESTADO_OPERATIVO_CONFIG['sin-solicitar'];
@@ -272,8 +282,10 @@ export type TarifaBase = components['schemas']['Tarifa-componente.item.read'];
 
 export type ComponenteCatalogo = Componente | ComponentePlaceholder;
 
+// `proveedor` NO se redeclara: el schema ya lo da como `string | null` (IRI) y no es
+// requerido. Repetirlo era ruido — y del tipo que envejece mal, porque una redeclaración
+// sobrevive intacta a que el backend cambie la forma del campo.
 export type Tarifa = Omit<TarifaBase, 'moneda' | 'titulo'> & {
-    proveedor?: string | null;
     moneda: MaestroMoneda;
     titulo: I18nContent[];
     tarifaId: string;
@@ -427,6 +439,11 @@ type CotComponenteBase = components["schemas"]["CotizacionCotcomponente-cotizaci
 export type ComponenteCompleto = Omit<CotComponenteBase,
     'id' | 'nombreSnapshot' | 'estado' | 'modo' | 'fechaHoraInicio' | 'fechaHoraFin'
     | 'snapshotItems' | 'cottarifas' | 'detallesOperativos' | 'cotsegmento'
+    // Las dos columnas json del prestador salen del schema como `string[]`; se
+    // redeclaran abajo con su forma real. Tienen que ir en el Omit o la
+    // intersección produce `string[] & I18nContent[]`, que no falla aquí sino
+    // lejos, al usarlo (§2 de docs/Cotizaciones.md).
+    | 'prestadorTituloSnapshot' | 'prestadorImagenesSnapshot'
 > & {
     id: string;
     nombreSnapshot: I18nContent[];
@@ -444,6 +461,9 @@ export type ComponenteCompleto = Omit<CotComponenteBase,
     upsellSourceItemId?: string;
     /** La hora del componente representa el horario de toda la excursión (servicio completo). */
     horaServicioCompleto?: boolean;
+    /** Cara pública del prestador (ver el Omit de arriba y `resolverPrestador()`). */
+    prestadorTituloSnapshot?: I18nContent[];
+    prestadorImagenesSnapshot?: ImagenProveedorSnapshot[];
 };
 
 export type SegmentoComponenteProcesado = components['schemas']['TravelSegmentoComponente-segmento.item.read'] & {
@@ -699,6 +719,21 @@ export interface InclusionLinea {
     edadMax: number | null;
     tarifaTitulo: I18nContent[];
     tarifas: InclusionTarifa[];
+    /**
+     * Prestador de referencia — SOLO en líneas `no_incluido` de origen componente.
+     *
+     * Es el hotel o el vuelo que el pasajero contrató por su cuenta. Convierte un
+     * «no incluye alojamiento» en «Alojamiento, por su cuenta — Casa Andina», que es
+     * la diferencia entre una lista de carencias y un itinerario completo.
+     *
+     * Sólo la cara pública: el nombre comercial, el teléfono y la dirección son
+     * operativos y no salen del backend en `pax_cotizacion:read`. Espejo de
+     * `CotizacionCotcomponente::resolverPrestador()` (ver `resolverPrestador()` en
+     * `cotizacionEditorStore.ts`).
+     */
+    prestadorTitulo?: I18nContent[];
+    prestadorUrl?: string | null;
+    prestadorImagenes?: ImagenProveedorSnapshot[];
 }
 
 export interface InclusionServicio {

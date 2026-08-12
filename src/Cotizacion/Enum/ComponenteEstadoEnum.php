@@ -5,39 +5,24 @@ declare(strict_types=1);
 namespace App\Cotizacion\Enum;
 
 /**
- * Define el estado operativo de un componente logístico en la cotización.
- * Reemplaza la antigua tabla de estados en base de datos.
+ * ¿Este componente sigue en pie dentro de la cotización?
+ *
+ * Sólo eso. **No dice si el proveedor confirmó**: esa pregunta la responde
+ * `App\Operacion\Enum\EstadoReservaEnum` sobre la fila de La Biblia, que es donde
+ * de verdad se gestiona y donde se edita.
+ *
+ * Antes tenía cuatro casos —`pendiente`, `confirmado`, `reconfirmado`, `cancelado`—
+ * heredados de cuando cotización y operación eran lo mismo. Tres de ellos no los leía
+ * **nadie**: el cálculo financiero y la propuesta al cliente sólo preguntan por
+ * `cancelado`. Pero se pintaban en un `<select>` del editor, así que el vendedor podía
+ * marcar «Confirmado» creyendo que estaba registrando la confirmación del proveedor.
+ * Un flag que no hace nada es ruido; uno que aparenta hacer lo que hace otro módulo es
+ * una trampa. En la base había 2 componentes marcados así, sin efecto alguno.
+ *
+ * Ver docs/Cotizaciones.md §3.b.
  */
 enum ComponenteEstadoEnum: string
 {
-    case PENDIENTE = 'pendiente';
-    case CONFIRMADO = 'confirmado';
-    case RECONFIRMADO = 'reconfirmado';
+    case ACTIVO = 'activo';
     case CANCELADO = 'cancelado';
-
-    /**
-     * Retorna el color principal heredado del sistema legacy (para badges/UI general).
-     */
-    public function colorLegacy(): string
-    {
-        return match($this) {
-            self::PENDIENTE => 'red',
-            self::CONFIRMADO => 'steelblue',
-            self::RECONFIRMADO => 'seagreen',
-            self::CANCELADO => 'violet',
-        };
-    }
-
-    /**
-     * Retorna el color heredado para las vistas de calendario operativo.
-     */
-    public function colorCalendar(): string
-    {
-        return match($this) {
-            self::PENDIENTE => '#01ff28',
-            self::CONFIRMADO => '#cccccc',
-            self::RECONFIRMADO => 'white',
-            self::CANCELADO => 'red',
-        };
-    }
 }

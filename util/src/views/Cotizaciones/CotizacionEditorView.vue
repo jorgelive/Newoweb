@@ -2,11 +2,13 @@
 import { ref, onMounted, computed, watch, onUnmounted, type DirectiveBinding } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
+import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { getUrls } from '@/services/apiClient';
 import { thumbUrl } from '@/services/imageThumb';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import WysiwygEditor from '@/components/WysiwygEditor.vue';
 import ResumenClasificacion from '@/components/cotizacion/ResumenClasificacion.vue';
+import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
 
 // 🔥 IMPORTS DEL DATEPICKER Y MÁSCARAS
 import { VueDatePicker } from '@vuepic/vue-datepicker';
@@ -58,6 +60,23 @@ const verEnSoles = ref(false);
 const route = useRoute();
 const router = useRouter();
 const store = useCotizacionEditorStore();
+const fileStore = useCotizacionFileStore();
+
+// ============================================================================
+// REVISAR CAMBIOS DE OPERACIÓN
+//
+// La generación automática sólo se dispara en la TRANSICIÓN a `confirmado`, y ocurre
+// una vez: lo que se edite después no llega al Centro de Operaciones. Pero regenerar a
+// ciegas tampoco vale —La Biblia guarda hora pactada, prestador y teléfono del recojo,
+// que no están en la cotización—, así que se abre un panel con el diff y se aplica sólo
+// lo aprobado. Ver docs/Operacion.md §3.5.
+// ============================================================================
+const planOperacionId = ref<string | null>(null);
+
+const abrirPlanOperacion = () => {
+  const id = String(store.cotizacion?.id ?? '').split('/').pop();
+  if (id) planOperacionId.value = id;
+};
 
 // ============================================================================
 // 🔥 GUARDIÁN DE CAMBIOS SIN GUARDAR
@@ -360,6 +379,56 @@ const opcionesTarifas = computed(() => {
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
 
+// ── Filtro BLANDO del selector de TARIFAS MAESTRAS por prestador ─────────────
+//
+// Si el componente (o su día) fija prestador, el buscador de tarifas arranca
+// mostrando sólo las de ese proveedor. Evita el error más caro de cotizar: colgar
+// de un componente la tarifa de otro proveedor, que no se nota hasta que hay que
+// pedirle el servicio a alguien que nunca la cotizó.
+//
+// Es ayuda, nunca validación — las mismas tres reglas que el filtro de proveedores:
+//  · Se desactiva con un clic. Prestador ≠ proveedor comercial (compras al
+//    consolidador lo que opera otro), y un filtro duro haría esa tarifa
+//    inseleccionable.
+//  · Si ninguna tarifa del catálogo es de ese prestador, no se filtra nada:
+//    dejar la lista vacía sería dejar al operador sin salida.
+//  · La tarifa YA asignada nunca se esconde, aunque no case (ver abajo).
+const verTodasLasTarifas = ref(false);
+
+/** Ids de las tarifas del catálogo que pertenecen al prestador. `null` = no filtrar. */
+const idsTarifasDelPrestador = computed<Set<string> | null>(() => {
+  const esperado = prestadorParaFiltro.value;
+  if (verTodasLasTarifas.value || !esperado?.maestroId) return null;
+
+  const ids = new Set(
+      store.catalogos.tarifas
+          .filter(t => store.extractIdStr(t.proveedor) === esperado.maestroId)
+          .map(t => store.extractIdStr(t))
+  );
+
+  return ids.size ? ids : null;
+});
+
+const opcionesTarifasFiltradas = computed(() => {
+  const ids = idsTarifasDelPrestador.value;
+  if (!ids) return opcionesTarifas.value;
+
+  // 🔥 La tarifa ya seleccionada se conserva SIEMPRE en la lista. SearchableSelect
+  // deriva la etiqueta visible de `options.find(o => o.value === modelValue)`: si la
+  // opción elegida desaparece, el campo pinta el placeholder como si no hubiera nada
+  // asignado. El dato seguiría ahí, pero la pantalla estaría mintiendo.
+  const seleccionada = store.extractIdStr(store.tarifaActiva?.tarifaMaestraId);
+
+  return opcionesTarifas.value.filter(
+      o => (o.value !== '' && ids.has(String(o.value))) || o.value === seleccionada
+  );
+});
+
+const filtroTarifasActivo = computed(() =>
+    !!idsTarifasDelPrestador.value
+    && opcionesTarifasFiltradas.value.length < opcionesTarifas.value.length
+);
+
 const opcionesProveedores = computed(() => {
   return store.catalogos.proveedores
       .map(p => ({
@@ -367,6 +436,58 @@ const opcionesProveedores = computed(() => {
         label: p.nombreComercial || 'Sin nombre'
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+});
+
+// ── Filtro BLANDO del selector de proveedores de una tarifa ──────────────────
+//
+// Si el componente (o su día) fija un prestador, el selector arranca mostrando
+// sólo ese proveedor. Es comodidad y calidad de datos, NUNCA una validación:
+//
+//  · Se puede desactivar con un clic. Prestador y proveedor comercial no siempre
+//    coinciden — la entrada de tren la opera PeruRail y se la compras a un
+//    consolidador. Un filtro duro haría esa tarifa inseleccionable.
+//  · No toca lo ya asignado: las tarifas existentes se muestran y se calculan
+//    igual aunque su proveedor no case con el prestador. Ocultarlas convertiría
+//    una ayuda en pérdida de datos silenciosa.
+const verTodosLosProveedores = ref(false);
+
+const prestadorParaFiltro = computed(() => store.prestadorEsperadoDeTarifaActiva);
+
+const opcionesProveedoresTarifa = computed(() => {
+  const esperado = prestadorParaFiltro.value;
+  if (verTodosLosProveedores.value || !esperado?.maestroId) return opcionesProveedores.value;
+
+  const soloDelPrestador = opcionesProveedores.value.filter(o => o.value === esperado.maestroId);
+
+  // Si el prestador no está en el catálogo cargado, filtrar dejaría la lista
+  // vacía y el operador sin salida: mejor no filtrar nada.
+  return soloDelPrestador.length ? soloDelPrestador : opcionesProveedores.value;
+});
+
+const filtroProveedorActivo = computed(() =>
+    !verTodosLosProveedores.value
+    && !!prestadorParaFiltro.value?.maestroId
+    && opcionesProveedoresTarifa.value.length < opcionesProveedores.value.length
+);
+
+/**
+ * Prestador que aplica al componente abierto, ya resuelta la cascada
+ * componente → día → proveedor de la tarifa. Sirve para que el panel diga
+ * «heredado» en vez de fingir que el campo está vacío cuando en realidad sí hay
+ * un prestador, solo que puesto más arriba.
+ */
+const prestadorComponenteResuelto = computed(() => {
+  const comp = store.componenteActivo;
+  if (!comp) return null;
+
+  const servicio = store.servicioActualDeComponente;
+  if (!servicio) return null;
+
+  // La tarifa de referencia es la estándar, igual que en construirInclusiones.
+  const tarifaRef = (comp.cottarifas || []).find(t => (t.rolSnapshot || 'estandar') === 'estandar') || null;
+  const p = store.resolverPrestador(comp, servicio, tarifaRef);
+
+  return p ? { nombre: p.nombre, esHeredado: p.origen !== 'componente' } : null;
 });
 
 const handleNombreProveedorInput = (event: Event) => {
@@ -1307,6 +1428,23 @@ store.$onAction(({ name, args }) => {
                     </option>
                   </select>
                 </div>
+
+                <!-- Forzar operación: sólo con la versión ya guardada como confirmada.
+                     La Biblia se genera en la TRANSICIÓN a confirmado y una sola vez, así
+                     que todo lo editado después no llega al Centro de Operaciones si no se
+                     regenera a mano. En catálogo no aplica (fechas nominales, sin expediente). -->
+                <div v-if="!store.modoCatalogo && store.cotizacion.estado === 'confirmado'" class="col-span-2">
+                  <button type="button" @click="abrirPlanOperacion"
+                          class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white font-bold text-xs rounded-lg shadow-sm transition-colors">
+                    <i class="fas fa-code-compare"></i>
+                    Revisar cambios de operación
+                  </button>
+                  <p class="text-[10px] text-slate-400 mt-1.5 leading-snug">
+                    Compara esta versión con el Centro de Operaciones y aplica sólo lo que
+                    apruebes. Guarda primero: se compara con lo que hay en la base de datos,
+                    no con lo que ves en pantalla.
+                  </p>
+                </div>
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Num Pax (Base) *</label>
@@ -1461,6 +1599,36 @@ store.$onAction(({ name, args }) => {
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="far fa-calendar-alt mr-1"></i> Fecha Ejecución (Milestone)</label>
                 <input v-model="store.servicioActivo.fechaInicioAbsoluta" @change="store.onServicioFechaChange" type="date" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
+              </div>
+
+              <!-- Prestador por defecto del día. Guarda una INTENCIÓN, no contenido:
+                   sus componentes lo heredan si no definen el suyo, y el selector de
+                   proveedores de las tarifas se filtra por él. Nunca sale a pax. -->
+              <div class="col-span-2">
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                  <i class="fas fa-hotel mr-1 text-indigo-500"></i> Prestador del día (opcional)
+                </label>
+                <div class="flex gap-2 items-center">
+                  <SearchableSelect
+                      v-model="store.servicioActivo.prestadorMaestroId"
+                      :options="opcionesProveedores"
+                      placeholder="Buscar en el catálogo..."
+                      :darkMode="false"
+                      @change="val => store.onPrestadorServicioChange(val)"
+                      @search="val => store.buscarProveedoresAsincrono(val)"
+                      class="flex-1"
+                  />
+                  <button v-if="store.servicioActivo.prestadorMaestroId"
+                          @click="store.onPrestadorServicioChange(null)"
+                          class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
+                          title="Quitar prestador del día">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                <p class="text-[9px] text-slate-400 mt-1 ml-1 leading-snug">
+                  Se hereda a los componentes que no tengan el suyo y filtra el selector de
+                  proveedores de las tarifas. No se muestra al cliente.
+                </p>
               </div>
             </div>
 
@@ -1777,21 +1945,97 @@ store.$onAction(({ name, args }) => {
                   </div>
                 </div>
 
+                <!-- Sólo dice si el componente sigue en pie. La confirmación del
+                     proveedor NO se registra aquí: vive en el estado de reserva de La
+                     Biblia, que es donde se gestiona. Este selector llegó a ofrecer
+                     «Confirmado» y «Reconfirmado» sin que nadie los leyera. -->
                 <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Estado del Servicio</label>
+                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Estado en la cotización</label>
                   <div class="relative">
                     <select v-model="store.componenteActivo.estado"
                             class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
                             :class="[getEstadoComponenteConfig(store.componenteActivo.estado).bg, getEstadoComponenteConfig(store.componenteActivo.estado).text, getEstadoComponenteConfig(store.componenteActivo.estado).border]">
-                      <option value="pendiente">Pendiente</option>
-                      <option value="confirmado">Confirmado</option>
-                      <option value="reconfirmado">Reconfirmado</option>
+                      <option value="activo">Activo</option>
                       <option value="cancelado">Cancelado</option>
                     </select>
                     <i class="fas absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs"
                        :class="[getEstadoComponenteConfig(store.componenteActivo.estado).icon, getEstadoComponenteConfig(store.componenteActivo.estado).text]"></i>
                   </div>
+                  <p class="text-[9px] text-slate-400 mt-1 ml-1 leading-snug">
+                    Cancelado deja de sumar costo y desaparece de la propuesta. La confirmación
+                    del proveedor se registra en Operaciones.
+                  </p>
                 </div>
+
+                <!-- ══ PRESTADOR ══════════════════════════════════════════════
+                     Quién presta el servicio, frente al proveedor de la tarifa (a
+                     quién se le compra). Es opcional: vacío hereda del día y, en
+                     último término, del proveedor de la tarifa — por eso en el caso
+                     normal no hay que tocarlo.
+
+                     Colapsado por defecto salvo en `no_incluido`, donde es lo único
+                     que puede identificar el servicio: ahí no hay tarifa de la que
+                     heredar y es además lo que se le muestra al cliente. -->
+                <details :open="store.componenteActivo.modo === 'no_incluido'"
+                         class="group/prest border border-slate-200 rounded-xl overflow-hidden bg-white">
+                  <summary class="px-3 py-2.5 cursor-pointer list-none flex items-center justify-between gap-2 hover:bg-slate-50 transition-colors">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <i class="fas fa-hotel text-indigo-500"></i> Prestador
+                      <span v-if="prestadorComponenteResuelto?.esHeredado"
+                            class="text-[8px] bg-slate-100 text-slate-500 border border-slate-200 rounded px-1.5 py-0.5 normal-case font-bold">
+                        heredado
+                      </span>
+                    </span>
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="text-[11px] font-bold truncate max-w-[10rem]"
+                            :class="prestadorComponenteResuelto ? 'text-slate-700' : 'text-slate-300 italic'">
+                        {{ prestadorComponenteResuelto?.nombre || 'Sin definir' }}
+                      </span>
+                      <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform group-open/prest:rotate-180"></i>
+                    </span>
+                  </summary>
+
+                  <div class="px-3 pb-3 pt-1 border-t border-slate-100 bg-slate-50/60">
+                    <p class="text-[9px] text-slate-400 leading-snug mb-2">
+                      Quién opera el servicio, no a quién se le compra. Si lo dejas vacío se
+                      hereda del día y, si tampoco, del proveedor de la tarifa.
+                      <template v-if="store.componenteActivo.modo === 'no_incluido'">
+                        <b class="text-indigo-600">En un no incluido se le muestra al cliente</b>
+                        como referencia, y viaja a Operaciones con su teléfono y dirección.
+                      </template>
+                    </p>
+
+                    <div class="flex gap-2 items-center">
+                      <SearchableSelect
+                          v-model="store.componenteActivo.prestadorMaestroId"
+                          :options="opcionesProveedores"
+                          placeholder="Buscar en el catálogo..."
+                          :darkMode="false"
+                          @change="val => store.onPrestadorComponenteChange(val)"
+                          @search="val => store.buscarProveedoresAsincrono(val)"
+                          class="flex-1"
+                      />
+                      <button v-if="store.componenteActivo.prestadorMaestroId"
+                              @click="store.onPrestadorComponenteChange(null)"
+                              class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
+                              title="Quitar prestador">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+
+                    <!-- Contacto congelado: es lo que el transportista lee el día del
+                         servicio, y por eso se muestra aquí en vez de esconderlo. -->
+                    <div v-if="store.componenteActivo.prestadorTelefonoSnapshot || store.componenteActivo.prestadorDireccionSnapshot"
+                         class="mt-2 flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                      <span v-if="store.componenteActivo.prestadorTelefonoSnapshot">
+                        <i class="fas fa-phone text-slate-300 mr-1.5"></i>{{ store.componenteActivo.prestadorTelefonoSnapshot }}
+                      </span>
+                      <span v-if="store.componenteActivo.prestadorDireccionSnapshot">
+                        <i class="fas fa-location-dot text-slate-300 mr-1.5"></i>{{ store.componenteActivo.prestadorDireccionSnapshot }}
+                      </span>
+                    </div>
+                  </div>
+                </details>
               </div>
             </div>
 
@@ -2000,10 +2244,30 @@ store.$onAction(({ name, args }) => {
             <div class="bg-white border border-slate-200 shadow-sm p-4 rounded-xl">
               <label class="block text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2"><i class="fas fa-tags mr-1"></i> Tarifa Maestra</label>
 
+              <!-- Filtro blando por el prestador del componente/día: se anuncia, dice
+                   por quién filtra y se quita con un clic. Nunca impide elegir otra. -->
+              <div v-if="filtroTarifasActivo"
+                   class="flex items-center gap-2 mb-2 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1.5">
+                <i class="fas fa-filter"></i>
+                <span class="flex-1 min-w-0 truncate">
+                  Solo tarifas de {{ prestadorParaFiltro?.nombre || 'el prestador' }}
+                </span>
+                <button @click="verTodasLasTarifas = true"
+                        class="shrink-0 underline hover:text-indigo-800 uppercase tracking-wide">
+                  Ver todas
+                </button>
+              </div>
+              <div v-else-if="verTodasLasTarifas && prestadorParaFiltro?.maestroId"
+                   class="flex items-center gap-2 mb-2 text-[10px] font-bold text-slate-400">
+                <button @click="verTodasLasTarifas = false" class="underline hover:text-indigo-600 uppercase tracking-wide">
+                  <i class="fas fa-filter mr-1"></i> Volver a filtrar por el prestador
+                </button>
+              </div>
+
               <div class="flex gap-2 items-center">
                 <SearchableSelect
                     v-model="store.tarifaActiva.tarifaMaestraId"
-                    :options="opcionesTarifas"
+                    :options="opcionesTarifasFiltradas"
                     placeholder="Precio manual..."
                     :darkMode="false"
                     @update:model-value="val => store.onTarifaMaestraChange(val)"
@@ -2267,10 +2531,30 @@ store.$onAction(({ name, args }) => {
                       </label>
                     </div>
 
+                    <!-- Filtro blando por el prestador del componente/día. Se anuncia
+                         y se puede quitar: nunca bloquea elegir otro proveedor. -->
+                    <div v-if="filtroProveedorActivo"
+                         class="flex items-center gap-2 mb-2 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1.5">
+                      <i class="fas fa-filter"></i>
+                      <span class="flex-1 min-w-0 truncate">
+                        Filtrado por el prestador: {{ prestadorParaFiltro?.nombre || 'definido arriba' }}
+                      </span>
+                      <button @click="verTodosLosProveedores = true"
+                              class="shrink-0 underline hover:text-indigo-800 uppercase tracking-wide">
+                        Ver todos
+                      </button>
+                    </div>
+                    <div v-else-if="verTodosLosProveedores && prestadorParaFiltro?.maestroId"
+                         class="flex items-center gap-2 mb-2 text-[10px] font-bold text-slate-400">
+                      <button @click="verTodosLosProveedores = false" class="underline hover:text-indigo-600 uppercase tracking-wide">
+                        <i class="fas fa-filter mr-1"></i> Volver a filtrar por el prestador
+                      </button>
+                    </div>
+
                     <div class="flex gap-2 items-center">
                       <SearchableSelect
                           v-model="store.tarifaActiva.proveedorMaestroId"
-                          :options="opcionesProveedores"
+                          :options="opcionesProveedoresTarifa"
                           placeholder="Seleccionar proveedor del catálogo..."
                           :darkMode="false"
                           @change="val => store.onProveedorChange(val)"
@@ -2933,6 +3217,12 @@ store.$onAction(({ name, args }) => {
     </Transition>
 
   </Teleport>
+
+  <PlanOperacionModal
+      :cotizacion-id="planOperacionId"
+      :titulo="store.cotizacion ? `Versión ${store.cotizacion.version ?? '?'}` : undefined"
+      @cerrar="planOperacionId = null"
+  />
 </template>
 
 <style scoped>

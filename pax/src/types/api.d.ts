@@ -96,6 +96,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/message/conversations/unread-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen de mensajes sin leer
+         * @description Total de mensajes sin leer, desglose por estado y las conversaciones pendientes. Fuente única del badge y de los contadores del portal.
+         */
+        get: operations["api_messageconversationsunread-summary_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/message/conversations/{id}": {
         parameters: {
             query?: never;
@@ -110,10 +130,18 @@ export interface paths {
         get: operations["api_messageconversations_id_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Removes the Conversation resource.
+         * @description Removes the Conversation resource.
+         */
+        delete: operations["api_messageconversations_id_delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Updates the Conversation resource.
+         * @description Updates the Conversation resource.
+         */
+        patch: operations["api_messageconversations_id_patch"];
         trace?: never;
     };
     "/platform/message/conversations/{id}/read": {
@@ -210,6 +238,26 @@ export interface paths {
          * @description Updates the Cotizacion resource.
          */
         patch: operations["api_salescotizacions_id_patch"];
+        trace?: never;
+    };
+    "/platform/sales/cotizacions/{id}/resincronizar-operacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a Cotizacion resource.
+         * @description Creates a Cotizacion resource.
+         */
+        post: operations["api_salescotizacions_idresincronizar-operacion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/platform/sales/client/cotizacion/cotizacion_catalogo/{localizador}": {
@@ -1076,7 +1124,183 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/public/pax/pms/pms_guia/pms_unidad/{unidad}": {
+    "/platform/pms/pms_cargo_financieros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a PmsCargoFinanciero resource.
+         * @description Creates a PmsCargoFinanciero resource.
+         */
+        post: operations["api_pmspms_cargo_financieros_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_cargo_financieros/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsCargoFinanciero resource.
+         * @description Retrieves a PmsCargoFinanciero resource.
+         */
+        get: operations["api_pmspms_cargo_financieros_id_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Removes the PmsCargoFinanciero resource.
+         * @description Removes the PmsCargoFinanciero resource.
+         */
+        delete: operations["api_pmspms_cargo_financieros_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the PmsCargoFinanciero resource.
+         * @description Updates the PmsCargoFinanciero resource.
+         */
+        patch: operations["api_pmspms_cargo_financieros_id_patch"];
+        trace?: never;
+    };
+    "/platform/public/pax/pms/pms_guia/{establecimiento}/{unidad}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsCatalogo resource.
+         * @description Retrieves a PmsCatalogo resource.
+         */
+        get: operations["api_publicpaxpmspms_guia_establecimiento_unidad_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsChannel resources.
+         * @description Retrieves the collection of PmsChannel resources.
+         */
+        get: operations["api_pmspms_channels_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_evento_calendarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a PmsEventoCalendario resource.
+         * @description Creates a PmsEventoCalendario resource.
+         */
+        post: operations["api_pmspms_evento_calendarios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_evento_calendarios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsEventoCalendario resource.
+         * @description Retrieves a PmsEventoCalendario resource.
+         */
+        get: operations["api_pmspms_evento_calendarios_id_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Removes the PmsEventoCalendario resource.
+         * @description Removes the PmsEventoCalendario resource.
+         */
+        delete: operations["api_pmspms_evento_calendarios_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the PmsEventoCalendario resource.
+         * @description Updates the PmsEventoCalendario resource.
+         */
+        patch: operations["api_pmspms_evento_calendarios_id_patch"];
+        trace?: never;
+    };
+    "/platform/pms/pms_evento_estados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsEventoEstado resources.
+         * @description Retrieves the collection of PmsEventoEstado resources.
+         */
+        get: operations["api_pmspms_evento_estados_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_evento_estado_pagos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsEventoEstadoPago resources.
+         * @description Retrieves the collection of PmsEventoEstadoPago resources.
+         */
+        get: operations["api_pmspms_evento_estado_pagos_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/client/pax/pms/pms_guia/{localizador}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1087,13 +1311,169 @@ export interface paths {
          * Retrieves a PmsGuia resource.
          * @description Retrieves a PmsGuia resource.
          */
-        get: operations["api_publicpaxpmspms_guiapms_unidad_unidad_get"];
+        get: operations["api_clientpaxpmspms_guia_localizador_get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/platform/client/pax/pms/pms_guia/{localizador}/{unidad}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsGuia resource.
+         * @description Retrieves a PmsGuia resource.
+         */
+        get: operations["api_clientpaxpmspms_guia_localizador_unidad_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_informacion_financieras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsInformacionFinanciera resources.
+         * @description Retrieves the collection of PmsInformacionFinanciera resources.
+         */
+        get: operations["api_pmspms_informacion_financieras_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_informacion_financieras/por-reserva/{reservaId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsInformacionFinanciera resource.
+         * @description Retrieves a PmsInformacionFinanciera resource.
+         */
+        get: operations["api_pmspms_informacion_financieraspor-reserva_reservaId_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_informacion_financieras/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsInformacionFinanciera resource.
+         * @description Retrieves a PmsInformacionFinanciera resource.
+         */
+        get: operations["api_pmspms_informacion_financieras_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Updates the PmsInformacionFinanciera resource.
+         * @description Updates the PmsInformacionFinanciera resource.
+         */
+        patch: operations["api_pmspms_informacion_financieras_id_patch"];
+        trace?: never;
+    };
+    "/platform/pms/pms_informacion_financieras/{id}/moneda-base": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a PmsInformacionFinanciera resource.
+         * @description Creates a PmsInformacionFinanciera resource.
+         */
+        post: operations["api_pmspms_informacion_financieras_idmoneda-base_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_pago_financieros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsPagoFinanciero resources.
+         * @description Retrieves the collection of PmsPagoFinanciero resources.
+         */
+        get: operations["api_pmspms_pago_financieros_get_collection"];
+        put?: never;
+        /**
+         * Creates a PmsPagoFinanciero resource.
+         * @description Creates a PmsPagoFinanciero resource.
+         */
+        post: operations["api_pmspms_pago_financieros_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_pago_financieros/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsPagoFinanciero resource.
+         * @description Retrieves a PmsPagoFinanciero resource.
+         */
+        get: operations["api_pmspms_pago_financieros_id_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Removes the PmsPagoFinanciero resource.
+         * @description Removes the PmsPagoFinanciero resource.
+         */
+        delete: operations["api_pmspms_pago_financieros_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the PmsPagoFinanciero resource.
+         * @description Updates the PmsPagoFinanciero resource.
+         */
+        patch: operations["api_pmspms_pago_financieros_id_patch"];
         trace?: never;
     };
     "/platform/client/pax/pms/pms_reserva/{localizador}": {
@@ -1108,6 +1488,146 @@ export interface paths {
          * @description Retrieves a PmsReserva resource.
          */
         get: operations["pax_get_reserva"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_reservas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a PmsReserva resource.
+         * @description Creates a PmsReserva resource.
+         */
+        post: operations["api_pmspms_reservas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_reservas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsReserva resource.
+         * @description Retrieves a PmsReserva resource.
+         */
+        get: operations["api_pmspms_reservas_id_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Removes the PmsReserva resource.
+         * @description Removes the PmsReserva resource.
+         */
+        delete: operations["api_pmspms_reservas_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the PmsReserva resource.
+         * @description Updates the PmsReserva resource.
+         */
+        patch: operations["api_pmspms_reservas_id_patch"];
+        trace?: never;
+    };
+    "/platform/pms/pms_tarifa_rangos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsTarifaRango resources.
+         * @description Retrieves the collection of PmsTarifaRango resources.
+         */
+        get: operations["api_pmspms_tarifa_rangos_get_collection"];
+        put?: never;
+        /**
+         * Creates a PmsTarifaRango resource.
+         * @description Creates a PmsTarifaRango resource.
+         */
+        post: operations["api_pmspms_tarifa_rangos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_tarifa_rangos/generar-masivo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a PmsTarifaRango resource.
+         * @description Creates a PmsTarifaRango resource.
+         */
+        post: operations["api_pmspms_tarifa_rangosgenerar-masivo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/pms_tarifa_rangos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a PmsTarifaRango resource.
+         * @description Retrieves a PmsTarifaRango resource.
+         */
+        get: operations["api_pmspms_tarifa_rangos_id_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Removes the PmsTarifaRango resource.
+         * @description Removes the PmsTarifaRango resource.
+         */
+        delete: operations["api_pmspms_tarifa_rangos_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the PmsTarifaRango resource.
+         * @description Updates the PmsTarifaRango resource.
+         */
+        patch: operations["api_pmspms_tarifa_rangos_id_patch"];
+        trace?: never;
+    };
+    "/platform/pms/pms_unidads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsUnidad resources.
+         * @description Retrieves the collection of PmsUnidad resources.
+         */
+        get: operations["api_pmspms_unidads_get_collection"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1464,11 +1984,291 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Beds24Config: {
+            /** @description Gestión de auditoría temporal (DateTimeImmutable). */
+            nombre?: string | null;
+            refreshToken?: string | null;
+            authToken?: string | null;
+            /** Format: date-time */
+            authTokenExpiresAt?: string | null;
+            /** @default true */
+            activo: boolean;
+            webhookToken?: string | null;
+            /** @default https://api.beds24.com/v2 */
+            baseUrl: string | null;
+            /** @description Colección de colas de envío de Beds24 asociadas a esta configuración. */
+            beds24SendQueues?: components["schemas"]["Beds24SendQueue"][];
+            /** @description Colección de colas de recepción (webhooks entrantes) asociadas a esta configuración de Beds24. */
+            beds24ReceiveQueues?: components["schemas"]["Beds24ReceiveQueue"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Retorna el alias del proveedor que debe procesar esta configuración
+             *     Se utiliza para seleccionar el cliente.
+             */
+            readonly providerName?: string;
+            readonly baseUrlRaw?: string | null;
+        };
+        "Beds24Config.html": {
+            /** @description Gestión de auditoría temporal (DateTimeImmutable). */
+            nombre?: string | null;
+            refreshToken?: string | null;
+            authToken?: string | null;
+            /** Format: date-time */
+            authTokenExpiresAt?: string | null;
+            /** @default true */
+            activo: boolean;
+            webhookToken?: string | null;
+            /** @default https://api.beds24.com/v2 */
+            baseUrl: string | null;
+            /** @description Colección de colas de envío de Beds24 asociadas a esta configuración. */
+            beds24SendQueues?: components["schemas"]["Beds24SendQueue.html"][];
+            /** @description Colección de colas de recepción (webhooks entrantes) asociadas a esta configuración de Beds24. */
+            beds24ReceiveQueues?: components["schemas"]["Beds24ReceiveQueue.html"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Retorna el alias del proveedor que debe procesar esta configuración
+             *     Se utiliza para seleccionar el cliente.
+             */
+            readonly providerName?: string;
+            readonly baseUrlRaw?: string | null;
+        };
+        "Beds24Config.jsonld": {
+            /** @description Gestión de auditoría temporal (DateTimeImmutable). */
+            nombre?: string | null;
+            refreshToken?: string | null;
+            authToken?: string | null;
+            /** Format: date-time */
+            authTokenExpiresAt?: string | null;
+            /** @default true */
+            activo: boolean;
+            webhookToken?: string | null;
+            /** @default https://api.beds24.com/v2 */
+            baseUrl: string | null;
+            /** @description Colección de colas de envío de Beds24 asociadas a esta configuración. */
+            beds24SendQueues?: components["schemas"]["Beds24SendQueue.jsonld"][];
+            /** @description Colección de colas de recepción (webhooks entrantes) asociadas a esta configuración de Beds24. */
+            beds24ReceiveQueues?: components["schemas"]["Beds24ReceiveQueue.jsonld"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Retorna el alias del proveedor que debe procesar esta configuración
+             *     Se utiliza para seleccionar el cliente.
+             */
+            readonly providerName?: string;
+            readonly baseUrlRaw?: string | null;
+        };
+        "Beds24Config.multipart": {
+            /** @description Gestión de auditoría temporal (DateTimeImmutable). */
+            nombre?: string | null;
+            refreshToken?: string | null;
+            authToken?: string | null;
+            /** Format: date-time */
+            authTokenExpiresAt?: string | null;
+            /** @default true */
+            activo: boolean;
+            webhookToken?: string | null;
+            /** @default https://api.beds24.com/v2 */
+            baseUrl: string | null;
+            /** @description Colección de colas de envío de Beds24 asociadas a esta configuración. */
+            beds24SendQueues?: components["schemas"]["Beds24SendQueue.multipart"][];
+            /** @description Colección de colas de recepción (webhooks entrantes) asociadas a esta configuración de Beds24. */
+            beds24ReceiveQueues?: components["schemas"]["Beds24ReceiveQueue.multipart"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Retorna el alias del proveedor que debe procesar esta configuración
+             *     Se utiliza para seleccionar el cliente.
+             */
+            readonly providerName?: string;
+            readonly baseUrlRaw?: string | null;
+        };
+        Beds24ReceiveQueue: {
+            config?: components["schemas"]["Beds24Config"];
+            endpoint?: components["schemas"]["ExchangeEndpoint"];
+            targetBookId?: string;
+            /** Format: date-time */
+            runAt?: string;
+            /** @default pending */
+            status: string;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "Beds24ReceiveQueue.html": {
+            config?: components["schemas"]["Beds24Config.html"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.html"];
+            targetBookId?: string;
+            /** Format: date-time */
+            runAt?: string;
+            /** @default pending */
+            status: string;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "Beds24ReceiveQueue.jsonld": {
+            config?: components["schemas"]["Beds24Config.jsonld"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.jsonld"];
+            targetBookId?: string;
+            /** Format: date-time */
+            runAt?: string;
+            /** @default pending */
+            status: string;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "Beds24ReceiveQueue.multipart": {
+            config?: components["schemas"]["Beds24Config.multipart"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.multipart"];
+            targetBookId?: string;
+            /** Format: date-time */
+            runAt?: string;
+            /** @default pending */
+            status: string;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        Beds24SendQueue: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            message?: string;
+            config?: components["schemas"]["Beds24Config"];
+            endpoint?: components["schemas"]["ExchangeEndpoint"];
+            targetBookId?: string | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
+            readonly channelId?: string;
+        };
         "Beds24SendQueue-message.read": {
             /** @default pending */
             status: string;
             /** Format: date-time */
             runAt?: string | null;
+        };
+        "Beds24SendQueue.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            message?: string;
+            config?: components["schemas"]["Beds24Config.html"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.html"];
+            targetBookId?: string | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "Beds24SendQueue.html-message.read": {
             /** @default pending */
@@ -1476,11 +2276,79 @@ export interface components {
             /** Format: date-time */
             runAt?: string | null;
         };
+        "Beds24SendQueue.jsonld": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            message?: string;
+            config?: components["schemas"]["Beds24Config.jsonld"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.jsonld"];
+            targetBookId?: string | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
+            readonly channelId?: string;
+        };
         "Beds24SendQueue.jsonld-message.read": {
             /** @default pending */
             status: string;
             /** Format: date-time */
             runAt?: string | null;
+        };
+        "Beds24SendQueue.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            message?: string;
+            config?: components["schemas"]["Beds24Config.multipart"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.multipart"];
+            targetBookId?: string | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "Beds24SendQueue.multipart-message.read": {
             /** @default pending */
@@ -1964,6 +2832,362 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
         };
+        ComprobanteComprobante: {
+            readonly id?: number;
+            dependencia?: components["schemas"]["UserDependencia"];
+            comprobanteitems?: components["schemas"]["ComprobanteComprobanteitem"][];
+            serviciocontables?: components["schemas"]["TransporteServiciocontable"][];
+            nota?: string | null;
+            moneda?: components["schemas"]["MaestroMoneda"];
+            neto?: string | null;
+            impuesto?: string | null;
+            total?: string | null;
+            tipo?: components["schemas"]["ComprobanteTipo"];
+            serie?: string | null;
+            documento?: string | null;
+            /** Format: date-time */
+            fechaemision?: string | null;
+            url?: string | null;
+            mensajes?: components["schemas"]["ComprobanteMensaje"][];
+            dependientes?: components["schemas"]["ComprobanteComprobante"][];
+            original?: components["schemas"]["ComprobanteComprobante"] | null;
+            estado?: components["schemas"]["ComprobanteEstado"];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            readonly seriedocumento?: string;
+        };
+        "ComprobanteComprobante.html": {
+            readonly id?: number;
+            dependencia?: components["schemas"]["UserDependencia.html"];
+            comprobanteitems?: components["schemas"]["ComprobanteComprobanteitem.html"][];
+            serviciocontables?: components["schemas"]["TransporteServiciocontable.html"][];
+            nota?: string | null;
+            moneda?: components["schemas"]["MaestroMoneda.html"];
+            neto?: string | null;
+            impuesto?: string | null;
+            total?: string | null;
+            tipo?: components["schemas"]["ComprobanteTipo.html"];
+            serie?: string | null;
+            documento?: string | null;
+            /** Format: date-time */
+            fechaemision?: string | null;
+            url?: string | null;
+            mensajes?: components["schemas"]["ComprobanteMensaje.html"][];
+            dependientes?: components["schemas"]["ComprobanteComprobante.html"][];
+            original?: components["schemas"]["ComprobanteComprobante.html"] | null;
+            estado?: components["schemas"]["ComprobanteEstado.html"];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            readonly seriedocumento?: string;
+        };
+        "ComprobanteComprobante.jsonld": {
+            readonly id?: number;
+            dependencia?: components["schemas"]["UserDependencia.jsonld"];
+            comprobanteitems?: components["schemas"]["ComprobanteComprobanteitem.jsonld"][];
+            serviciocontables?: components["schemas"]["TransporteServiciocontable.jsonld"][];
+            nota?: string | null;
+            moneda?: components["schemas"]["MaestroMoneda.jsonld"];
+            neto?: string | null;
+            impuesto?: string | null;
+            total?: string | null;
+            tipo?: components["schemas"]["ComprobanteTipo.jsonld"];
+            serie?: string | null;
+            documento?: string | null;
+            /** Format: date-time */
+            fechaemision?: string | null;
+            url?: string | null;
+            mensajes?: components["schemas"]["ComprobanteMensaje.jsonld"][];
+            dependientes?: components["schemas"]["ComprobanteComprobante.jsonld"][];
+            original?: components["schemas"]["ComprobanteComprobante.jsonld"] | null;
+            estado?: components["schemas"]["ComprobanteEstado.jsonld"];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            readonly seriedocumento?: string;
+        };
+        "ComprobanteComprobante.multipart": {
+            readonly id?: number;
+            dependencia?: components["schemas"]["UserDependencia.multipart"];
+            comprobanteitems?: components["schemas"]["ComprobanteComprobanteitem.multipart"][];
+            serviciocontables?: components["schemas"]["TransporteServiciocontable.multipart"][];
+            nota?: string | null;
+            moneda?: components["schemas"]["MaestroMoneda.multipart"];
+            neto?: string | null;
+            impuesto?: string | null;
+            total?: string | null;
+            tipo?: components["schemas"]["ComprobanteTipo.multipart"];
+            serie?: string | null;
+            documento?: string | null;
+            /** Format: date-time */
+            fechaemision?: string | null;
+            url?: string | null;
+            mensajes?: components["schemas"]["ComprobanteMensaje.multipart"][];
+            dependientes?: components["schemas"]["ComprobanteComprobante.multipart"][];
+            original?: components["schemas"]["ComprobanteComprobante.multipart"] | null;
+            estado?: components["schemas"]["ComprobanteEstado.multipart"];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            readonly seriedocumento?: string;
+        };
+        ComprobanteComprobanteitem: {
+            readonly id?: number;
+            comprobante?: components["schemas"]["ComprobanteComprobante"];
+            cantidad?: number;
+            productoservicio?: components["schemas"]["ComprobanteProductoservicio"];
+            unitario?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteComprobanteitem.html": {
+            readonly id?: number;
+            comprobante?: components["schemas"]["ComprobanteComprobante.html"];
+            cantidad?: number;
+            productoservicio?: components["schemas"]["ComprobanteProductoservicio.html"];
+            unitario?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteComprobanteitem.jsonld": {
+            readonly id?: number;
+            comprobante?: components["schemas"]["ComprobanteComprobante.jsonld"];
+            cantidad?: number;
+            productoservicio?: components["schemas"]["ComprobanteProductoservicio.jsonld"];
+            unitario?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteComprobanteitem.multipart": {
+            readonly id?: number;
+            comprobante?: components["schemas"]["ComprobanteComprobante.multipart"];
+            cantidad?: number;
+            productoservicio?: components["schemas"]["ComprobanteProductoservicio.multipart"];
+            unitario?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        ComprobanteEstado: {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteEstado.html": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteEstado.jsonld": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteEstado.multipart": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        ComprobanteMensaje: {
+            readonly id?: number;
+            clave?: string;
+            contenido?: string;
+            comprobante?: components["schemas"]["ComprobanteComprobante"];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteMensaje.html": {
+            readonly id?: number;
+            clave?: string;
+            contenido?: string;
+            comprobante?: components["schemas"]["ComprobanteComprobante.html"];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteMensaje.jsonld": {
+            readonly id?: number;
+            clave?: string;
+            contenido?: string;
+            comprobante?: components["schemas"]["ComprobanteComprobante.jsonld"];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteMensaje.multipart": {
+            readonly id?: number;
+            clave?: string;
+            contenido?: string;
+            comprobante?: components["schemas"]["ComprobanteComprobante.multipart"];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        ComprobanteProductoservicio: {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            codigosunat?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            tipoproductoservicio?: components["schemas"]["ComprobanteTipoproductoservicio"];
+        };
+        "ComprobanteProductoservicio.html": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            codigosunat?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            tipoproductoservicio?: components["schemas"]["ComprobanteTipoproductoservicio.html"];
+        };
+        "ComprobanteProductoservicio.jsonld": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            codigosunat?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            tipoproductoservicio?: components["schemas"]["ComprobanteTipoproductoservicio.jsonld"];
+        };
+        "ComprobanteProductoservicio.multipart": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            codigosunat?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            tipoproductoservicio?: components["schemas"]["ComprobanteTipoproductoservicio.multipart"];
+        };
+        ComprobanteTipo: {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            codigoexterno?: string;
+            serie?: string;
+            correlativo?: number;
+            esnotacredito?: boolean;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteTipo.html": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            codigoexterno?: string;
+            serie?: string;
+            correlativo?: number;
+            esnotacredito?: boolean;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteTipo.jsonld": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            codigoexterno?: string;
+            serie?: string;
+            correlativo?: number;
+            esnotacredito?: boolean;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteTipo.multipart": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            codigoexterno?: string;
+            serie?: string;
+            correlativo?: number;
+            esnotacredito?: boolean;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        ComprobanteTipoproductoservicio: {
+            readonly id?: number;
+            nombre?: string;
+            codigoexterno?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteTipoproductoservicio.html": {
+            readonly id?: number;
+            nombre?: string;
+            codigoexterno?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteTipoproductoservicio.jsonld": {
+            readonly id?: number;
+            nombre?: string;
+            codigoexterno?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "ComprobanteTipoproductoservicio.multipart": {
+            readonly id?: number;
+            nombre?: string;
+            codigoexterno?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
         /** @description Unprocessable entity */
         ConstraintViolation: {
             /** @default 422 */
@@ -2026,6 +3250,16 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
+            /**
+             * Format: date-time
+             * @description Fecha del mensaje más reciente que YA está reflejado en `resumenIa`.
+             */
+            resumenIaHasta?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -2047,6 +3281,11 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
@@ -2069,6 +3308,11 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -2087,11 +3331,30 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
             readonly contextFinancialTotal?: number | null;
             readonly contextFinancialIsCleared?: boolean;
+        };
+        "Conversation-conversation.write.jsonMergePatch": {
+            /** @default open */
+            status: string;
+            guestName?: string | null;
+            guestPhone?: string | null;
+            whatsappDisabled?: boolean;
+            whatsappDisabledReason?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma?: string;
+            idiomaFijado?: boolean;
         };
         "Conversation.html-conversation.read": {
             /** @default open */
@@ -2108,6 +3371,11 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -2126,6 +3394,11 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
@@ -2147,6 +3420,11 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -2165,6 +3443,11 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
@@ -2186,6 +3469,11 @@ export interface components {
              */
             idioma?: string;
             idiomaFijado?: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
             /** Format: date-time */
             lastMessageAt?: string | null;
             /** Format: date-time */
@@ -2204,6 +3492,11 @@ export interface components {
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
             contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
             contextStatusTag?: string | null;
             contextMilestones?: string[];
             contextItems?: string[];
@@ -2225,6 +3518,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2252,6 +3551,18 @@ export interface components {
              *     isPortada recorriendo el itinerario, o la primera disponible.
              */
             imagenPortada?: string[] | null;
+            /**
+             * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
+             *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
+             *     CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
+             *     contexto donde se pintan tarjetas de tour en el panel interno.
+             */
+            imagenTarjeta?: string[] | null;
+            /**
+             * @description Duración del tour (span de fechas nominales). Virtual, mismo origen que
+             *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
+             */
+            numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -2286,6 +3597,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2362,6 +3679,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2428,6 +3751,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2480,6 +3809,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2530,6 +3865,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2586,6 +3927,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2630,6 +3977,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2658,6 +4011,42 @@ export interface components {
             clasificacionFinancieraCliente?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-pax_file.read_pax_cotizacion.read"][];
         };
+        "Cotizacion.ResincronizacionResultado-operacion.resync.read": {
+            creados?: number;
+            borrados?: number;
+            /** @description Filas que ya pertenecían a una Orden de Servicio y no se tocaron. */
+            conservados?: number;
+            /** @description Total de componentes de la cotización, generen fila o no. */
+            componentes?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.ResincronizacionResultado.html-operacion.resync.read": {
+            creados?: number;
+            borrados?: number;
+            /** @description Filas que ya pertenecían a una Orden de Servicio y no se tocaron. */
+            conservados?: number;
+            /** @description Total de componentes de la cotización, generen fila o no. */
+            componentes?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.ResincronizacionResultado.jsonld-operacion.resync.read": components["schemas"]["HydraItemBaseSchema"] & {
+            creados?: number;
+            borrados?: number;
+            /** @description Filas que ya pertenecían a una Orden de Servicio y no se tocaron. */
+            conservados?: number;
+            /** @description Total de componentes de la cotización, generen fila o no. */
+            componentes?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.ResincronizacionResultado.multipart-operacion.resync.read": {
+            creados?: number;
+            borrados?: number;
+            /** @description Filas que ya pertenecían a una Orden de Servicio y no se tocaron. */
+            conservados?: number;
+            /** @description Total de componentes de la cotización, generen fila o no. */
+            componentes?: number;
+            mensaje?: string;
+        };
         "Cotizacion.html-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             /** @default 1 */
             version: number;
@@ -2673,6 +4062,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2700,6 +4095,18 @@ export interface components {
              *     isPortada recorriendo el itinerario, o la primera disponible.
              */
             imagenPortada?: string[] | null;
+            /**
+             * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
+             *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
+             *     CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
+             *     contexto donde se pintan tarjetas de tour en el panel interno.
+             */
+            imagenTarjeta?: string[] | null;
+            /**
+             * @description Duración del tour (span de fechas nominales). Virtual, mismo origen que
+             *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
+             */
+            numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -2734,6 +4141,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2796,6 +4209,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2846,6 +4265,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2902,6 +4327,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -2945,6 +4376,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -2990,6 +4427,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3016,6 +4459,18 @@ export interface components {
              *     isPortada recorriendo el itinerario, o la primera disponible.
              */
             imagenPortada?: string[] | null;
+            /**
+             * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
+             *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
+             *     CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
+             *     contexto donde se pintan tarjetas de tour en el panel interno.
+             */
+            imagenTarjeta?: string[] | null;
+            /**
+             * @description Duración del tour (span de fechas nominales). Virtual, mismo origen que
+             *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
+             */
+            numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -3050,6 +4505,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -3112,6 +4573,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3162,6 +4629,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -3218,6 +4691,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3261,6 +4740,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -3306,6 +4791,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3332,6 +4823,18 @@ export interface components {
              *     isPortada recorriendo el itinerario, o la primera disponible.
              */
             imagenPortada?: string[] | null;
+            /**
+             * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
+             *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
+             *     CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
+             *     contexto donde se pintan tarjetas de tour en el panel interno.
+             */
+            imagenTarjeta?: string[] | null;
+            /**
+             * @description Duración del tour (span de fechas nominales). Virtual, mismo origen que
+             *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
+             */
+            numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -3366,6 +4869,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -3428,6 +4937,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3478,6 +4993,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -3534,6 +5055,12 @@ export interface components {
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
             /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -3577,6 +5104,12 @@ export interface components {
             precioOculto?: boolean;
             /** @description Determina si todos los proveedores de la cotización deben ocultarse al cliente. */
             proveedorOculto?: boolean;
+            /**
+             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
+             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
+             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
+             */
+            totalesOcultos?: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -4249,6 +5782,23 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4306,6 +5856,23 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4358,6 +5925,23 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -4394,6 +5978,16 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4421,6 +6015,16 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4477,6 +6081,23 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4534,6 +6155,23 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4574,6 +6212,16 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4601,6 +6249,16 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4657,6 +6315,23 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4715,6 +6390,23 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4757,6 +6449,16 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4785,6 +6487,16 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4841,6 +6553,23 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4898,6 +6627,23 @@ export interface components {
             detallesOperativos?: string[];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4938,6 +6684,16 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4965,6 +6721,16 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
             sinHorario?: boolean;
+            /**
+             * @description La hora de este componente representa el horario global de toda la
+             *     excursión (servicio/itinerario), no la del segmento donde está anclado.
+             */
+            horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -4976,12 +6742,23 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4998,12 +6775,23 @@ export interface components {
         "CotizacionCotservicio-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5015,12 +6803,23 @@ export interface components {
         "CotizacionCotservicio-cotizacion.write": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.write"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.write"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -5055,12 +6854,23 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5077,12 +6887,23 @@ export interface components {
         "CotizacionCotservicio.html-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5121,12 +6942,23 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5143,12 +6975,23 @@ export interface components {
         "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5187,12 +7030,23 @@ export interface components {
             cotizacion?: string;
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5209,12 +7063,23 @@ export interface components {
         "CotizacionCotservicio.multipart-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
+            /**
+             * @description Id del maestro TravelItinerario (plantilla) desde el que se armó este
+             *     servicio. Solo referencia interna: permite re-sincronizar con exactitud las
+             *     filas TravelSegmentoComponente ligadas a esa plantilla (p.ej. la promoción
+             *     "hora de servicio completo", única por plantilla/día). Null si el servicio
+             *     no proviene de una plantilla o es previo a este campo.
+             */
+            itinerarioMaestroId?: string | null;
             nombrePublicoSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6228,6 +8093,10 @@ export interface components {
             estado: "abierto" | "cerrado" | "archivado";
         };
         "CotizacionFile-operacion.item.read_timestamp.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -6398,6 +8267,10 @@ export interface components {
             readonly localizador?: string | null;
         };
         "CotizacionFile.html-operacion.item.read_timestamp.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -6571,6 +8444,10 @@ export interface components {
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -6742,6 +8619,10 @@ export interface components {
             readonly localizador?: string | null;
         };
         "CotizacionFile.multipart-operacion.item.read_timestamp.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -7797,6 +9678,322 @@ export interface components {
             notasSnapshot?: string[];
             id?: string;
         };
+        CuentaCentro: {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            unidad?: components["schemas"]["TransporteUnidad"] | null;
+            movimientos?: components["schemas"]["CuentaMovimiento"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaCentro.html": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            unidad?: components["schemas"]["TransporteUnidad.html"] | null;
+            movimientos?: components["schemas"]["CuentaMovimiento.html"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaCentro.jsonld": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            unidad?: components["schemas"]["TransporteUnidad.jsonld"] | null;
+            movimientos?: components["schemas"]["CuentaMovimiento.jsonld"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaCentro.multipart": {
+            readonly id?: number;
+            nombre?: string;
+            codigo?: string;
+            unidad?: components["schemas"]["TransporteUnidad.multipart"] | null;
+            movimientos?: components["schemas"]["CuentaMovimiento.multipart"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        CuentaClase: {
+            readonly id?: number;
+            nombre?: string;
+            tipo?: components["schemas"]["CuentaTipo"];
+            movimientos?: components["schemas"]["CuentaMovimiento"][];
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaClase.html": {
+            readonly id?: number;
+            nombre?: string;
+            tipo?: components["schemas"]["CuentaTipo.html"];
+            movimientos?: components["schemas"]["CuentaMovimiento.html"][];
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaClase.jsonld": {
+            readonly id?: number;
+            nombre?: string;
+            tipo?: components["schemas"]["CuentaTipo.jsonld"];
+            movimientos?: components["schemas"]["CuentaMovimiento.jsonld"][];
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaClase.multipart": {
+            readonly id?: number;
+            nombre?: string;
+            tipo?: components["schemas"]["CuentaTipo.multipart"];
+            movimientos?: components["schemas"]["CuentaMovimiento.multipart"][];
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        CuentaCuenta: {
+            readonly id?: number;
+            nombre?: string;
+            moneda?: components["schemas"]["MaestroMoneda"];
+            periodos?: components["schemas"]["CuentaPeriodo"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaCuenta.html": {
+            readonly id?: number;
+            nombre?: string;
+            moneda?: components["schemas"]["MaestroMoneda.html"];
+            periodos?: components["schemas"]["CuentaPeriodo.html"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaCuenta.jsonld": {
+            readonly id?: number;
+            nombre?: string;
+            moneda?: components["schemas"]["MaestroMoneda.jsonld"];
+            periodos?: components["schemas"]["CuentaPeriodo.jsonld"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaCuenta.multipart": {
+            readonly id?: number;
+            nombre?: string;
+            moneda?: components["schemas"]["MaestroMoneda.multipart"];
+            periodos?: components["schemas"]["CuentaPeriodo.multipart"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        CuentaMovimiento: {
+            readonly id?: number;
+            periodo?: components["schemas"]["CuentaPeriodo"];
+            periodotransferencia?: components["schemas"]["CuentaPeriodo"] | null;
+            /** @description Relación con el usuario. */
+            user?: components["schemas"]["User"];
+            centro?: components["schemas"]["CuentaCentro"] | null;
+            clase?: components["schemas"]["CuentaClase"];
+            /** Format: date-time */
+            fechahora?: string;
+            descripcion?: string;
+            cobradorpagador?: string | null;
+            debe?: string | null;
+            /** @description Campo virtual para cálculo en moneda local. */
+            readonly debesoles?: string;
+            haber?: string | null;
+            /** @description Campo virtual para cálculo en moneda local. */
+            readonly habersoles?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaMovimiento.html": {
+            readonly id?: number;
+            periodo?: components["schemas"]["CuentaPeriodo.html"];
+            periodotransferencia?: components["schemas"]["CuentaPeriodo.html"] | null;
+            /** @description Relación con el usuario. */
+            user?: components["schemas"]["User.html"];
+            centro?: components["schemas"]["CuentaCentro.html"] | null;
+            clase?: components["schemas"]["CuentaClase.html"];
+            /** Format: date-time */
+            fechahora?: string;
+            descripcion?: string;
+            cobradorpagador?: string | null;
+            debe?: string | null;
+            /** @description Campo virtual para cálculo en moneda local. */
+            readonly debesoles?: string;
+            haber?: string | null;
+            /** @description Campo virtual para cálculo en moneda local. */
+            readonly habersoles?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaMovimiento.jsonld": {
+            readonly id?: number;
+            periodo?: components["schemas"]["CuentaPeriodo.jsonld"];
+            periodotransferencia?: components["schemas"]["CuentaPeriodo.jsonld"] | null;
+            /** @description Relación con el usuario. */
+            user?: components["schemas"]["User.jsonld"];
+            centro?: components["schemas"]["CuentaCentro.jsonld"] | null;
+            clase?: components["schemas"]["CuentaClase.jsonld"];
+            /** Format: date-time */
+            fechahora?: string;
+            descripcion?: string;
+            cobradorpagador?: string | null;
+            debe?: string | null;
+            /** @description Campo virtual para cálculo en moneda local. */
+            readonly debesoles?: string;
+            haber?: string | null;
+            /** @description Campo virtual para cálculo en moneda local. */
+            readonly habersoles?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaMovimiento.multipart": {
+            readonly id?: number;
+            periodo?: components["schemas"]["CuentaPeriodo.multipart"];
+            periodotransferencia?: components["schemas"]["CuentaPeriodo.multipart"] | null;
+            /** @description Relación con el usuario. */
+            user?: components["schemas"]["User.multipart"];
+            centro?: components["schemas"]["CuentaCentro.multipart"] | null;
+            clase?: components["schemas"]["CuentaClase.multipart"];
+            /** Format: date-time */
+            fechahora?: string;
+            descripcion?: string;
+            cobradorpagador?: string | null;
+            debe?: string | null;
+            /** @description Campo virtual para cálculo en moneda local. */
+            readonly debesoles?: string;
+            haber?: string | null;
+            /** @description Campo virtual para cálculo en moneda local. */
+            readonly habersoles?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        CuentaPeriodo: {
+            readonly id?: number;
+            cuenta?: components["schemas"]["CuentaCuenta"];
+            movimientos?: components["schemas"]["CuentaMovimiento"][];
+            /** Format: date-time */
+            fechainicio?: string;
+            /** Format: date-time */
+            fechafin?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get nombre. */
+            readonly nombre?: string;
+        };
+        "CuentaPeriodo.html": {
+            readonly id?: number;
+            cuenta?: components["schemas"]["CuentaCuenta.html"];
+            movimientos?: components["schemas"]["CuentaMovimiento.html"][];
+            /** Format: date-time */
+            fechainicio?: string;
+            /** Format: date-time */
+            fechafin?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get nombre. */
+            readonly nombre?: string;
+        };
+        "CuentaPeriodo.jsonld": {
+            readonly id?: number;
+            cuenta?: components["schemas"]["CuentaCuenta.jsonld"];
+            movimientos?: components["schemas"]["CuentaMovimiento.jsonld"][];
+            /** Format: date-time */
+            fechainicio?: string;
+            /** Format: date-time */
+            fechafin?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get nombre. */
+            readonly nombre?: string;
+        };
+        "CuentaPeriodo.multipart": {
+            readonly id?: number;
+            cuenta?: components["schemas"]["CuentaCuenta.multipart"];
+            movimientos?: components["schemas"]["CuentaMovimiento.multipart"][];
+            /** Format: date-time */
+            fechainicio?: string;
+            /** Format: date-time */
+            fechafin?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get nombre. */
+            readonly nombre?: string;
+        };
+        CuentaTipo: {
+            readonly id?: number;
+            nombre?: string;
+            clases?: components["schemas"]["CuentaClase"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaTipo.html": {
+            readonly id?: number;
+            nombre?: string;
+            clases?: components["schemas"]["CuentaClase.html"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaTipo.jsonld": {
+            readonly id?: number;
+            nombre?: string;
+            clases?: components["schemas"]["CuentaClase.jsonld"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "CuentaTipo.multipart": {
+            readonly id?: number;
+            nombre?: string;
+            clases?: components["schemas"]["CuentaClase.multipart"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
         Diccionario: {
             nombreInterno?: string;
             titulo?: string[];
@@ -7958,6 +10155,138 @@ export interface components {
             readonly type?: string;
             readonly description?: string | null;
         };
+        ExchangeEndpoint: {
+            /** @enum {string} */
+            provider: "beds24" | "meta";
+            nombre: string;
+            /** @description Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
+            accion: string;
+            /** @description Ruta de la API o URL completa. */
+            endpoint: string;
+            /**
+             * @description Verbo HTTP (GET, POST, PUT, DELETE).
+             * @default POST
+             * @enum {string}
+             */
+            metodo: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+            descripcion?: string | null;
+            /** @default true */
+            activo: boolean;
+            ratesPushQueues?: components["schemas"]["PmsRatesPushQueue"][];
+            bookingsPushQueues?: components["schemas"]["PmsBookingsPushQueue"][];
+            bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue"][];
+            /** @description Colección de colas de envío de WhatsApp Meta asociadas a este endpoint. */
+            whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue"][];
+            /** @description Colección de colas de envío de Beds24 asociadas a este endpoint. */
+            beds24SendQueues?: components["schemas"]["Beds24SendQueue"][];
+            /** @description Colección de colas de recepción (webhooks entrantes) de Beds24 que entraron por este endpoint. */
+            beds24ReceiveQueues?: components["schemas"]["Beds24ReceiveQueue"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "ExchangeEndpoint.html": {
+            /** @enum {string} */
+            provider: "beds24" | "meta";
+            nombre: string;
+            /** @description Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
+            accion: string;
+            /** @description Ruta de la API o URL completa. */
+            endpoint: string;
+            /**
+             * @description Verbo HTTP (GET, POST, PUT, DELETE).
+             * @default POST
+             * @enum {string}
+             */
+            metodo: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+            descripcion?: string | null;
+            /** @default true */
+            activo: boolean;
+            ratesPushQueues?: components["schemas"]["PmsRatesPushQueue.html"][];
+            bookingsPushQueues?: components["schemas"]["PmsBookingsPushQueue.html"][];
+            bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.html"][];
+            /** @description Colección de colas de envío de WhatsApp Meta asociadas a este endpoint. */
+            whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.html"][];
+            /** @description Colección de colas de envío de Beds24 asociadas a este endpoint. */
+            beds24SendQueues?: components["schemas"]["Beds24SendQueue.html"][];
+            /** @description Colección de colas de recepción (webhooks entrantes) de Beds24 que entraron por este endpoint. */
+            beds24ReceiveQueues?: components["schemas"]["Beds24ReceiveQueue.html"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "ExchangeEndpoint.jsonld": {
+            /** @enum {string} */
+            provider: "beds24" | "meta";
+            nombre: string;
+            /** @description Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
+            accion: string;
+            /** @description Ruta de la API o URL completa. */
+            endpoint: string;
+            /**
+             * @description Verbo HTTP (GET, POST, PUT, DELETE).
+             * @default POST
+             * @enum {string}
+             */
+            metodo: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+            descripcion?: string | null;
+            /** @default true */
+            activo: boolean;
+            ratesPushQueues?: components["schemas"]["PmsRatesPushQueue.jsonld"][];
+            bookingsPushQueues?: components["schemas"]["PmsBookingsPushQueue.jsonld"][];
+            bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.jsonld"][];
+            /** @description Colección de colas de envío de WhatsApp Meta asociadas a este endpoint. */
+            whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.jsonld"][];
+            /** @description Colección de colas de envío de Beds24 asociadas a este endpoint. */
+            beds24SendQueues?: components["schemas"]["Beds24SendQueue.jsonld"][];
+            /** @description Colección de colas de recepción (webhooks entrantes) de Beds24 que entraron por este endpoint. */
+            beds24ReceiveQueues?: components["schemas"]["Beds24ReceiveQueue.jsonld"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "ExchangeEndpoint.multipart": {
+            /** @enum {string} */
+            provider: "beds24" | "meta";
+            nombre: string;
+            /** @description Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
+            accion: string;
+            /** @description Ruta de la API o URL completa. */
+            endpoint: string;
+            /**
+             * @description Verbo HTTP (GET, POST, PUT, DELETE).
+             * @default POST
+             * @enum {string}
+             */
+            metodo: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+            descripcion?: string | null;
+            /** @default true */
+            activo: boolean;
+            ratesPushQueues?: components["schemas"]["PmsRatesPushQueue.multipart"][];
+            bookingsPushQueues?: components["schemas"]["PmsBookingsPushQueue.multipart"][];
+            bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.multipart"][];
+            /** @description Colección de colas de envío de WhatsApp Meta asociadas a este endpoint. */
+            whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.multipart"][];
+            /** @description Colección de colas de envío de Beds24 asociadas a este endpoint. */
+            beds24SendQueues?: components["schemas"]["Beds24SendQueue.multipart"][];
+            /** @description Colección de colas de recepción (webhooks entrantes) de Beds24 que entraron por este endpoint. */
+            beds24ReceiveQueues?: components["schemas"]["Beds24ReceiveQueue.multipart"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         HydraCollectionBaseSchema: components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
             /**
              * @example {
@@ -8046,6 +10375,16 @@ export interface components {
             /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
         };
+        "Idioma-pms_reserva.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
+            id?: string;
+            /** @description Obtiene el nombre del idioma. */
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Idioma.html-file.read_file.item.read_timestamp.read": {
             /** @description Obtiene el identificador único del idioma. */
             id?: string;
@@ -8083,6 +10422,16 @@ export interface components {
             bandera?: string | null;
             /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
+        };
+        "Idioma.html-pms_reserva.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
+            id?: string;
+            /** @description Obtiene el nombre del idioma. */
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "Idioma.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el identificador único del idioma. */
@@ -8122,6 +10471,16 @@ export interface components {
             /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
         };
+        "Idioma.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el identificador único del idioma. */
+            id?: string;
+            /** @description Obtiene el nombre del idioma. */
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Idioma.multipart-file.read_file.item.read_timestamp.read": {
             /** @description Obtiene el identificador único del idioma. */
             id?: string;
@@ -8159,6 +10518,16 @@ export interface components {
             bandera?: string | null;
             /** @description Obtiene el nivel de prioridad del idioma. */
             prioridad?: number;
+        };
+        "Idioma.multipart-pms_reserva.read_timestamp.read": {
+            /** @description Obtiene el identificador único del idioma. */
+            id?: string;
+            /** @description Obtiene el nombre del idioma. */
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         Itinerario: {
             /**
@@ -8412,6 +10781,138 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
         };
+        MaestroMoneda: {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get simbolo */
+            simbolo?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** @description Get codigoexterno */
+            codigoexterno?: string;
+            tipocambios?: components["schemas"]["MaestroTipocambio"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "MaestroMoneda.html": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get simbolo */
+            simbolo?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** @description Get codigoexterno */
+            codigoexterno?: string;
+            tipocambios?: components["schemas"]["MaestroTipocambio.html"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "MaestroMoneda.jsonld": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get simbolo */
+            simbolo?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** @description Get codigoexterno */
+            codigoexterno?: string;
+            tipocambios?: components["schemas"]["MaestroTipocambio.jsonld"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "MaestroMoneda.multipart": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get simbolo */
+            simbolo?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** @description Get codigoexterno */
+            codigoexterno?: string;
+            tipocambios?: components["schemas"]["MaestroTipocambio.multipart"][];
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        MaestroTipocambio: {
+            readonly id?: number;
+            moneda?: components["schemas"]["MaestroMoneda"];
+            /** Format: date-time */
+            fecha?: string;
+            compra?: string;
+            venta?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Calcula el promedio exacto con 3 decimales usando BCMath. */
+            readonly promedio?: string;
+            /** @description Calcula el promedio y lo redondea a 2 decimales. */
+            readonly promedioredondeado?: string;
+        };
+        "MaestroTipocambio.html": {
+            readonly id?: number;
+            moneda?: components["schemas"]["MaestroMoneda.html"];
+            /** Format: date-time */
+            fecha?: string;
+            compra?: string;
+            venta?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Calcula el promedio exacto con 3 decimales usando BCMath. */
+            readonly promedio?: string;
+            /** @description Calcula el promedio y lo redondea a 2 decimales. */
+            readonly promedioredondeado?: string;
+        };
+        "MaestroTipocambio.jsonld": {
+            readonly id?: number;
+            moneda?: components["schemas"]["MaestroMoneda.jsonld"];
+            /** Format: date-time */
+            fecha?: string;
+            compra?: string;
+            venta?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Calcula el promedio exacto con 3 decimales usando BCMath. */
+            readonly promedio?: string;
+            /** @description Calcula el promedio y lo redondea a 2 decimales. */
+            readonly promedioredondeado?: string;
+        };
+        "MaestroTipocambio.multipart": {
+            readonly id?: number;
+            moneda?: components["schemas"]["MaestroMoneda.multipart"];
+            /** Format: date-time */
+            fecha?: string;
+            compra?: string;
+            venta?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Calcula el promedio exacto con 3 decimales usando BCMath. */
+            readonly promedio?: string;
+            /** @description Calcula el promedio y lo redondea a 2 decimales. */
+            readonly promedioredondeado?: string;
+        };
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
          *     Expuesta a través de API Platform permitiendo lectura y escritura.
@@ -8428,6 +10929,8 @@ export interface components {
              * @example https://example.com/
              */
             template?: string | null;
+            /** @description Regla que programó este mensaje. Sólo se rellena en mensajes del sistema. */
+            rule?: components["schemas"]["MessageRule-message.read"] | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue-message.read"][];
             attachments?: components["schemas"]["MessageAttachment-message.read"][];
@@ -8496,6 +10999,8 @@ export interface components {
              * @example https://example.com/
              */
             template?: string | null;
+            /** @description Regla que programó este mensaje. Sólo se rellena en mensajes del sistema. */
+            rule?: components["schemas"]["MessageRule.html-message.read"] | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.html-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.html-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.html-message.read"][];
@@ -8538,6 +11043,8 @@ export interface components {
              * @example https://example.com/
              */
             template?: string | null;
+            /** @description Regla que programó este mensaje. Sólo se rellena en mensajes del sistema. */
+            rule?: components["schemas"]["MessageRule.jsonld-message.read"] | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.jsonld-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.jsonld-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.jsonld-message.read"][];
@@ -8580,6 +11087,8 @@ export interface components {
              * @example https://example.com/
              */
             template?: string | null;
+            /** @description Regla que programó este mensaje. Sólo se rellena en mensajes del sistema. */
+            rule?: components["schemas"]["MessageRule.multipart-message.read"] | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.multipart-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.multipart-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.multipart-message.read"][];
@@ -8654,6 +11163,122 @@ export interface components {
             id: string;
             name: string;
         };
+        "MessageRule-message.read": Record<string, never>;
+        "MessageRule.html-message.read": Record<string, never>;
+        "MessageRule.jsonld-message.read": Record<string, never>;
+        "MessageRule.multipart-message.read": Record<string, never>;
+        MetaConfig: {
+            nombre?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default https://graph.facebook.com */
+            baseUrl: string | null;
+            /** @description Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken. */
+            credentials?: string[];
+            whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue"][];
+            /** @description Colección de establecimientos PMS vinculados a esta configuración de Meta. */
+            establecimientos?: components["schemas"]["PmsEstablecimiento"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly providerName?: string;
+            /** @description Retorna el System User Access Token (Token Permanente). */
+            apiKey?: string | null;
+            /** @description Retorna el WhatsApp Business Account ID (Para sincronizar plantillas). */
+            wabaId?: string | null;
+            /** @description Retorna el Phone Number ID (Para envío de mensajes). */
+            phoneId?: string | null;
+            /** @description Retorna el token secreto para la validación del Webhook. */
+            verifyToken?: string | null;
+            readonly baseUrlRaw?: string | null;
+        };
+        "MetaConfig.html": {
+            nombre?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default https://graph.facebook.com */
+            baseUrl: string | null;
+            /** @description Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken. */
+            credentials?: string[];
+            whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.html"][];
+            /** @description Colección de establecimientos PMS vinculados a esta configuración de Meta. */
+            establecimientos?: components["schemas"]["PmsEstablecimiento.html"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly providerName?: string;
+            /** @description Retorna el System User Access Token (Token Permanente). */
+            apiKey?: string | null;
+            /** @description Retorna el WhatsApp Business Account ID (Para sincronizar plantillas). */
+            wabaId?: string | null;
+            /** @description Retorna el Phone Number ID (Para envío de mensajes). */
+            phoneId?: string | null;
+            /** @description Retorna el token secreto para la validación del Webhook. */
+            verifyToken?: string | null;
+            readonly baseUrlRaw?: string | null;
+        };
+        "MetaConfig.jsonld": {
+            nombre?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default https://graph.facebook.com */
+            baseUrl: string | null;
+            /** @description Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken. */
+            credentials?: string[];
+            whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.jsonld"][];
+            /** @description Colección de establecimientos PMS vinculados a esta configuración de Meta. */
+            establecimientos?: components["schemas"]["PmsEstablecimiento.jsonld"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly providerName?: string;
+            /** @description Retorna el System User Access Token (Token Permanente). */
+            apiKey?: string | null;
+            /** @description Retorna el WhatsApp Business Account ID (Para sincronizar plantillas). */
+            wabaId?: string | null;
+            /** @description Retorna el Phone Number ID (Para envío de mensajes). */
+            phoneId?: string | null;
+            /** @description Retorna el token secreto para la validación del Webhook. */
+            verifyToken?: string | null;
+            readonly baseUrlRaw?: string | null;
+        };
+        "MetaConfig.multipart": {
+            nombre?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default https://graph.facebook.com */
+            baseUrl: string | null;
+            /** @description Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken. */
+            credentials?: string[];
+            whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.multipart"][];
+            /** @description Colección de establecimientos PMS vinculados a esta configuración de Meta. */
+            establecimientos?: components["schemas"]["PmsEstablecimiento.multipart"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly providerName?: string;
+            /** @description Retorna el System User Access Token (Token Permanente). */
+            apiKey?: string | null;
+            /** @description Retorna el WhatsApp Business Account ID (Para sincronizar plantillas). */
+            wabaId?: string | null;
+            /** @description Retorna el Phone Number ID (Para envío de mensajes). */
+            phoneId?: string | null;
+            /** @description Retorna el token secreto para la validación del Webhook. */
+            verifyToken?: string | null;
+            readonly baseUrlRaw?: string | null;
+        };
         "Moneda-componente.item.read": {
             id?: string;
             nombre?: string;
@@ -8683,6 +11308,30 @@ export interface components {
             updatedAt?: string | null;
         };
         "Moneda-operacion.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda-pms_cargo.read_maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda-pms_pago.read_maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
@@ -8728,6 +11377,30 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "Moneda.html-pms_cargo.read_maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.html-pms_pago.read_maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Moneda.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
@@ -8765,6 +11438,30 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "Moneda.jsonld-pms_cargo.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.jsonld-pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Moneda.multipart-componente.item.read": {
             id?: string;
             nombre?: string;
@@ -8794,6 +11491,30 @@ export interface components {
             updatedAt?: string | null;
         };
         "Moneda.multipart-operacion.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.multipart-pms_cargo.read_maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.multipart-pms_pago.read_maestro.moneda.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
+        "Moneda.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
@@ -9500,23 +12221,41 @@ export interface components {
             file?: components["schemas"]["CotizacionFile-operacion.item.read_timestamp.read"];
             cotizacionServicio?: components["schemas"]["CotizacionCotservicio-operacion.item.read_timestamp.read"];
             cotizacionComponente?: components["schemas"]["CotizacionCotcomponente-operacion.item.read_timestamp.read"];
-            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa-operacion.item.read_timestamp.read"];
+            /**
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
+             */
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
             costoCotizado: string;
-            monedaCotizada?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"];
+            /** @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
+            monedaCotizada?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
             costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"];
+            monedaReal?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -9532,6 +12271,10 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
+            /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
+            readonly prioridadOperativa?: number;
         };
         "OperacionServicio-operacion.read_timestamp.read": {
             /** Format: date-time */
@@ -9548,15 +12291,30 @@ export interface components {
             file?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
              * @example https://example.com/
              */
-            cotizacionTarifa?: string;
+            cotizacionTarifa?: string | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /** @default 0.00 */
@@ -9565,16 +12323,17 @@ export interface components {
             costoCotizado: string;
             /**
              * Format: iri-reference
+             * @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda.
              * @example https://example.com/
              */
-            monedaCotizada?: string;
+            monedaCotizada?: string | null;
             /** @default 0.00 */
             costoRealOperativo: string;
             /**
              * Format: iri-reference
              * @example https://example.com/
              */
-            monedaReal?: string;
+            monedaReal?: string | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -9596,15 +12355,30 @@ export interface components {
             file?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
              * @example https://example.com/
              */
-            cotizacionTarifa?: string;
+            cotizacionTarifa?: string | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /** @default 0.00 */
@@ -9613,16 +12387,17 @@ export interface components {
             costoCotizado: string;
             /**
              * Format: iri-reference
+             * @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda.
              * @example https://example.com/
              */
-            monedaCotizada?: string;
+            monedaCotizada?: string | null;
             /** @default 0.00 */
             costoRealOperativo: string;
             /**
              * Format: iri-reference
              * @example https://example.com/
              */
-            monedaReal?: string;
+            monedaReal?: string | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -9640,23 +12415,41 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.html-operacion.item.read_timestamp.read"];
             cotizacionServicio?: components["schemas"]["CotizacionCotservicio.html-operacion.item.read_timestamp.read"];
             cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.html-operacion.item.read_timestamp.read"];
-            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.html-operacion.item.read_timestamp.read"];
+            /**
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
+             */
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.html-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
             costoCotizado: string;
-            monedaCotizada?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"];
+            /** @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
+            monedaCotizada?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
             costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"];
+            monedaReal?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -9672,6 +12465,10 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
+            /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
+            readonly prioridadOperativa?: number;
         };
         "OperacionServicio.html-operacion.read_timestamp.read": {
             /** Format: date-time */
@@ -9684,23 +12481,41 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.jsonld-operacion.item.read_timestamp.read"];
             cotizacionServicio?: components["schemas"]["CotizacionCotservicio.jsonld-operacion.item.read_timestamp.read"];
             cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read"];
-            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read"];
+            /**
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
+             */
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
             costoCotizado: string;
-            monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"];
+            /** @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
+            monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
             costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"];
+            monedaReal?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -9716,6 +12531,10 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
+            /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
+            readonly prioridadOperativa?: number;
         };
         "OperacionServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
@@ -9728,23 +12547,41 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.multipart-operacion.item.read_timestamp.read"];
             cotizacionServicio?: components["schemas"]["CotizacionCotservicio.multipart-operacion.item.read_timestamp.read"];
             cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read"];
-            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.multipart-operacion.item.read_timestamp.read"];
+            /**
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
+             */
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.multipart-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
             costoCotizado: string;
-            monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"];
+            /** @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
+            monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
             costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"];
+            monedaReal?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -9760,6 +12597,10 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
+            /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
+            readonly prioridadOperativa?: number;
         };
         "OperacionServicio.multipart-operacion.read_timestamp.read": {
             /** Format: date-time */
@@ -9806,6 +12647,18 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais-pms_reserva.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais.html-file.read_file.item.read_timestamp.read": {
             id?: string;
             nombre?: string;
@@ -9836,6 +12689,18 @@ export interface components {
             id?: string;
             nombre?: string;
             bandera?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.html-pms_reserva.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /**
          * @description Entidad MaestroPais.
@@ -9876,6 +12741,18 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais.multipart-file.read_file.item.read_timestamp.read": {
             id?: string;
             nombre?: string;
@@ -9907,20 +12784,1006 @@ export interface components {
             nombre?: string;
             bandera?: string | null;
         };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.multipart-pms_reserva.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        PmsBookingsPullQueue: {
+            config?: components["schemas"]["Beds24Config"];
+            endpoint?: components["schemas"]["ExchangeEndpoint"];
+            /** @description * @var Collection<int, PmsUnidad> */
+            unidades?: components["schemas"]["PmsUnidad"][];
+            /** Format: date-time */
+            arrivalFrom?: string | null;
+            /** Format: date-time */
+            arrivalTo?: string | null;
+            /** Format: date-time */
+            runAt?: string;
+            /** @default pending */
+            status: string;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "PmsBookingsPullQueue.html": {
+            config?: components["schemas"]["Beds24Config.html"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.html"];
+            /** @description * @var Collection<int, PmsUnidad> */
+            unidades?: components["schemas"]["PmsUnidad.html"][];
+            /** Format: date-time */
+            arrivalFrom?: string | null;
+            /** Format: date-time */
+            arrivalTo?: string | null;
+            /** Format: date-time */
+            runAt?: string;
+            /** @default pending */
+            status: string;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "PmsBookingsPullQueue.jsonld": {
+            config?: components["schemas"]["Beds24Config.jsonld"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.jsonld"];
+            /** @description * @var Collection<int, PmsUnidad> */
+            unidades?: components["schemas"]["PmsUnidad.jsonld"][];
+            /** Format: date-time */
+            arrivalFrom?: string | null;
+            /** Format: date-time */
+            arrivalTo?: string | null;
+            /** Format: date-time */
+            runAt?: string;
+            /** @default pending */
+            status: string;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "PmsBookingsPullQueue.multipart": {
+            config?: components["schemas"]["Beds24Config.multipart"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.multipart"];
+            /** @description * @var Collection<int, PmsUnidad> */
+            unidades?: components["schemas"]["PmsUnidad.multipart"][];
+            /** Format: date-time */
+            arrivalFrom?: string | null;
+            /** Format: date-time */
+            arrivalTo?: string | null;
+            /** Format: date-time */
+            runAt?: string;
+            /** @default pending */
+            status: string;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        PmsBookingsPushQueue: {
+            link?: components["schemas"]["PmsEventoBeds24Link"] | null;
+            endpoint?: components["schemas"]["ExchangeEndpoint"];
+            config?: components["schemas"]["Beds24Config"] | null;
+            dedupeKey?: string | null;
+            payloadHash?: string | null;
+            beds24BookIdOriginal?: string | null;
+            linkIdOriginal?: string | null;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "PmsBookingsPushQueue.html": {
+            link?: components["schemas"]["PmsEventoBeds24Link.html"] | null;
+            endpoint?: components["schemas"]["ExchangeEndpoint.html"];
+            config?: components["schemas"]["Beds24Config.html"] | null;
+            dedupeKey?: string | null;
+            payloadHash?: string | null;
+            beds24BookIdOriginal?: string | null;
+            linkIdOriginal?: string | null;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "PmsBookingsPushQueue.jsonld": {
+            link?: components["schemas"]["PmsEventoBeds24Link.jsonld"] | null;
+            endpoint?: components["schemas"]["ExchangeEndpoint.jsonld"];
+            config?: components["schemas"]["Beds24Config.jsonld"] | null;
+            dedupeKey?: string | null;
+            payloadHash?: string | null;
+            beds24BookIdOriginal?: string | null;
+            linkIdOriginal?: string | null;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "PmsBookingsPushQueue.multipart": {
+            link?: components["schemas"]["PmsEventoBeds24Link.multipart"] | null;
+            endpoint?: components["schemas"]["ExchangeEndpoint.multipart"];
+            config?: components["schemas"]["Beds24Config.multipart"] | null;
+            dedupeKey?: string | null;
+            payloadHash?: string | null;
+            beds24BookIdOriginal?: string | null;
+            linkIdOriginal?: string | null;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
+        "PmsCargoFinanciero-pms_cargo.patch.jsonMergePatch": {
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            monto?: string | null;
+            totalLinea?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
+        "PmsCargoFinanciero-pms_cargo.read_maestro.moneda.read": {
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /** @description ID del invoiceItem en Beds24. Llave de dedupe dentro del padre. */
+            beds24ItemId?: string | null;
+            /** @description ID del booking de Beds24 al que pertenece este cargo. */
+            beds24BookingId?: string | null;
+            /** @description ID de la factura en Beds24. Sólo lo trae el endpoint on-demand, NO el webhook. */
+            beds24InvoiceId?: string | null;
+            /** @description type de Beds24: 'charge' | 'payment'. */
+            tipo?: string | null;
+            /** @description subType de Beds24 (8 = alojamiento, 11 = limpieza/servicio, etc.). Verdad histórica cruda. */
+            subTipo?: number | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
+            /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
+            moneda?: components["schemas"]["Moneda-pms_cargo.read_maestro.moneda.read"] | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            estado?: string | null;
+            cantidad?: string | null;
+            monto?: string | null;
+            totalLinea?: string | null;
+            tasaIva?: string | null;
+            /**
+             * Format: date-time
+             * @description createTime de Beds24.
+             */
+            fechaCreacionBeds24?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
+            readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
+        "PmsCargoFinanciero-pms_cargo.write": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string;
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * Format: iri-reference
+             * @description Moneda del importe (resolver contra maestro; default USD si no llega).
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            monto?: string | null;
+            totalLinea?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        "PmsCargoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /** @description ID del invoiceItem en Beds24. Llave de dedupe dentro del padre. */
+            beds24ItemId?: string | null;
+            /** @description ID del booking de Beds24 al que pertenece este cargo. */
+            beds24BookingId?: string | null;
+            /** @description ID de la factura en Beds24. Sólo lo trae el endpoint on-demand, NO el webhook. */
+            beds24InvoiceId?: string | null;
+            /** @description type de Beds24: 'charge' | 'payment'. */
+            tipo?: string | null;
+            /** @description subType de Beds24 (8 = alojamiento, 11 = limpieza/servicio, etc.). Verdad histórica cruda. */
+            subTipo?: number | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
+            /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
+            moneda?: components["schemas"]["Moneda-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            estado?: string | null;
+            cantidad?: string | null;
+            monto?: string | null;
+            totalLinea?: string | null;
+            tasaIva?: string | null;
+            /**
+             * Format: date-time
+             * @description createTime de Beds24.
+             */
+            fechaCreacionBeds24?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
+            readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
+        "PmsCargoFinanciero.html-pms_cargo.read_maestro.moneda.read": {
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /** @description ID del invoiceItem en Beds24. Llave de dedupe dentro del padre. */
+            beds24ItemId?: string | null;
+            /** @description ID del booking de Beds24 al que pertenece este cargo. */
+            beds24BookingId?: string | null;
+            /** @description ID de la factura en Beds24. Sólo lo trae el endpoint on-demand, NO el webhook. */
+            beds24InvoiceId?: string | null;
+            /** @description type de Beds24: 'charge' | 'payment'. */
+            tipo?: string | null;
+            /** @description subType de Beds24 (8 = alojamiento, 11 = limpieza/servicio, etc.). Verdad histórica cruda. */
+            subTipo?: number | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
+            /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
+            moneda?: components["schemas"]["Moneda.html-pms_cargo.read_maestro.moneda.read"] | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            estado?: string | null;
+            cantidad?: string | null;
+            monto?: string | null;
+            totalLinea?: string | null;
+            tasaIva?: string | null;
+            /**
+             * Format: date-time
+             * @description createTime de Beds24.
+             */
+            fechaCreacionBeds24?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
+            readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        "PmsCargoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /** @description ID del invoiceItem en Beds24. Llave de dedupe dentro del padre. */
+            beds24ItemId?: string | null;
+            /** @description ID del booking de Beds24 al que pertenece este cargo. */
+            beds24BookingId?: string | null;
+            /** @description ID de la factura en Beds24. Sólo lo trae el endpoint on-demand, NO el webhook. */
+            beds24InvoiceId?: string | null;
+            /** @description type de Beds24: 'charge' | 'payment'. */
+            tipo?: string | null;
+            /** @description subType de Beds24 (8 = alojamiento, 11 = limpieza/servicio, etc.). Verdad histórica cruda. */
+            subTipo?: number | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
+            /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
+            moneda?: components["schemas"]["Moneda.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            estado?: string | null;
+            cantidad?: string | null;
+            monto?: string | null;
+            totalLinea?: string | null;
+            tasaIva?: string | null;
+            /**
+             * Format: date-time
+             * @description createTime de Beds24.
+             */
+            fechaCreacionBeds24?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
+            readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
+        "PmsCargoFinanciero.jsonld-pms_cargo.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /** @description ID del invoiceItem en Beds24. Llave de dedupe dentro del padre. */
+            beds24ItemId?: string | null;
+            /** @description ID del booking de Beds24 al que pertenece este cargo. */
+            beds24BookingId?: string | null;
+            /** @description ID de la factura en Beds24. Sólo lo trae el endpoint on-demand, NO el webhook. */
+            beds24InvoiceId?: string | null;
+            /** @description type de Beds24: 'charge' | 'payment'. */
+            tipo?: string | null;
+            /** @description subType de Beds24 (8 = alojamiento, 11 = limpieza/servicio, etc.). Verdad histórica cruda. */
+            subTipo?: number | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
+            /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
+            moneda?: components["schemas"]["Moneda.jsonld-pms_cargo.read_maestro.moneda.read"] | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            estado?: string | null;
+            cantidad?: string | null;
+            monto?: string | null;
+            totalLinea?: string | null;
+            tasaIva?: string | null;
+            /**
+             * Format: date-time
+             * @description createTime de Beds24.
+             */
+            fechaCreacionBeds24?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
+            readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
+        "PmsCargoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /** @description ID del invoiceItem en Beds24. Llave de dedupe dentro del padre. */
+            beds24ItemId?: string | null;
+            /** @description ID del booking de Beds24 al que pertenece este cargo. */
+            beds24BookingId?: string | null;
+            /** @description ID de la factura en Beds24. Sólo lo trae el endpoint on-demand, NO el webhook. */
+            beds24InvoiceId?: string | null;
+            /** @description type de Beds24: 'charge' | 'payment'. */
+            tipo?: string | null;
+            /** @description subType de Beds24 (8 = alojamiento, 11 = limpieza/servicio, etc.). Verdad histórica cruda. */
+            subTipo?: number | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
+            /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
+            moneda?: components["schemas"]["Moneda.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            estado?: string | null;
+            cantidad?: string | null;
+            monto?: string | null;
+            totalLinea?: string | null;
+            tasaIva?: string | null;
+            /**
+             * Format: date-time
+             * @description createTime de Beds24.
+             */
+            fechaCreacionBeds24?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
+            readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
+        "PmsCargoFinanciero.multipart-pms_cargo.read_maestro.moneda.read": {
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /** @description ID del invoiceItem en Beds24. Llave de dedupe dentro del padre. */
+            beds24ItemId?: string | null;
+            /** @description ID del booking de Beds24 al que pertenece este cargo. */
+            beds24BookingId?: string | null;
+            /** @description ID de la factura en Beds24. Sólo lo trae el endpoint on-demand, NO el webhook. */
+            beds24InvoiceId?: string | null;
+            /** @description type de Beds24: 'charge' | 'payment'. */
+            tipo?: string | null;
+            /** @description subType de Beds24 (8 = alojamiento, 11 = limpieza/servicio, etc.). Verdad histórica cruda. */
+            subTipo?: number | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
+            /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
+            moneda?: components["schemas"]["Moneda.multipart-pms_cargo.read_maestro.moneda.read"] | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            estado?: string | null;
+            cantidad?: string | null;
+            monto?: string | null;
+            totalLinea?: string | null;
+            tasaIva?: string | null;
+            /**
+             * Format: date-time
+             * @description createTime de Beds24.
+             */
+            fechaCreacionBeds24?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
+            readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        "PmsCargoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            /**
+             * Format: iri-reference
+             * @description Estancia a la que se imputa el cargo, para reservas con varias casitas.
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            /** @description ID del invoiceItem en Beds24. Llave de dedupe dentro del padre. */
+            beds24ItemId?: string | null;
+            /** @description ID del booking de Beds24 al que pertenece este cargo. */
+            beds24BookingId?: string | null;
+            /** @description ID de la factura en Beds24. Sólo lo trae el endpoint on-demand, NO el webhook. */
+            beds24InvoiceId?: string | null;
+            /** @description type de Beds24: 'charge' | 'payment'. */
+            tipo?: string | null;
+            /** @description subType de Beds24 (8 = alojamiento, 11 = limpieza/servicio, etc.). Verdad histórica cruda. */
+            subTipo?: number | null;
+            /**
+             * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
+             * @enum {string|null}
+             */
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
+             *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
+             *     PmsPagoFinanciero, y sirve para lo mismo: poder EXCLUIRLO del estado de
+             *     cuenta que ve el huésped sin adivinar por importe ni por subtipo.
+             */
+            esAutomatico?: boolean;
+            /** @description Moneda del importe (resolver contra maestro; default USD si no llega). */
+            moneda?: components["schemas"]["Moneda.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
+            tipoCambio?: string | null;
+            /**
+             * @description Descripción INTERNA. La rellena Beds24 al importar la factura, así que trae lo que
+             *     venga del canal: códigos, nombres de tarifa, texto sin normalizar. No se le enseña
+             *     al huésped por eso mismo — para eso está `$descripcionCliente`.
+             */
+            descripcion?: string | null;
+            /** @description Descripción que SÍ ve el huésped, traducible (`I18nContent[]`). */
+            descripcionCliente?: string[][];
+            estado?: string | null;
+            cantidad?: string | null;
+            monto?: string | null;
+            totalLinea?: string | null;
+            tasaIva?: string | null;
+            /**
+             * Format: date-time
+             * @description createTime de Beds24.
+             */
+            fechaCreacionBeds24?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
+            readonly manual?: boolean;
+            /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
+            descripcionClienteEs?: string | null;
+        };
+        /** @description Escaparate público de una unidad: `.pe/{establecimiento}/{unidad}`. */
+        "PmsCatalogo-pax_catalogo.read": {
+            unidad: components["schemas"]["PmsUnidad-pax_catalogo.read"];
+            /**
+             * @description Título COMERCIAL, independiente del de la guía. La guía puede llamarse
+             *     «Manual de Casita 3» y el escaparate «Casita con vista al bosque».
+             */
+            titulo: string[];
+            /** @description Gancho bajo el título del hero. Opcional. */
+            subtitulo?: string[] | null;
+            /** @description Bloques ya armados y ordenados, listos para pintar. */
+            bloques?: string[][];
+            unidadesHermanas?: string[][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Escaparate público de una unidad: `.pe/{establecimiento}/{unidad}`. */
+        "PmsCatalogo.html-pax_catalogo.read": {
+            unidad: components["schemas"]["PmsUnidad.html-pax_catalogo.read"];
+            /**
+             * @description Título COMERCIAL, independiente del de la guía. La guía puede llamarse
+             *     «Manual de Casita 3» y el escaparate «Casita con vista al bosque».
+             */
+            titulo: string[];
+            /** @description Gancho bajo el título del hero. Opcional. */
+            subtitulo?: string[] | null;
+            /** @description Bloques ya armados y ordenados, listos para pintar. */
+            bloques?: string[][];
+            unidadesHermanas?: string[][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Escaparate público de una unidad: `.pe/{establecimiento}/{unidad}`. */
+        "PmsCatalogo.jsonld-pax_catalogo.read": components["schemas"]["HydraItemBaseSchema"] & {
+            unidad: components["schemas"]["PmsUnidad.jsonld-pax_catalogo.read"];
+            /**
+             * @description Título COMERCIAL, independiente del de la guía. La guía puede llamarse
+             *     «Manual de Casita 3» y el escaparate «Casita con vista al bosque».
+             */
+            titulo: string[];
+            /** @description Gancho bajo el título del hero. Opcional. */
+            subtitulo?: string[] | null;
+            /** @description Bloques ya armados y ordenados, listos para pintar. */
+            bloques?: string[][];
+            unidadesHermanas?: string[][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Escaparate público de una unidad: `.pe/{establecimiento}/{unidad}`. */
+        "PmsCatalogo.multipart-pax_catalogo.read": {
+            unidad: components["schemas"]["PmsUnidad.multipart-pax_catalogo.read"];
+            /**
+             * @description Título COMERCIAL, independiente del de la guía. La guía puede llamarse
+             *     «Manual de Casita 3» y el escaparate «Casita con vista al bosque».
+             */
+            titulo: string[];
+            /** @description Gancho bajo el título del hero. Opcional. */
+            subtitulo?: string[] | null;
+            /** @description Bloques ya armados y ordenados, listos para pintar. */
+            bloques?: string[][];
+            unidadesHermanas?: string[][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         "PmsChannel-pax_reserva.read": {
             /** @description El ID es el código string. */
             id?: string;
             nombre?: string;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel-pms_channel.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+        };
+        "PmsChannel-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsChannel-pms_reserva.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "PmsChannel.html-pax_reserva.read": {
             /** @description El ID es el código string. */
             id?: string;
             nombre?: string;
         };
-        "PmsChannel.jsonld-pax_reserva.read": {
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.html-pms_channel.read": {
             /** @description El ID es el código string. */
             id?: string;
             nombre?: string;
+            color?: string | null;
+        };
+        "PmsChannel.html-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsChannel.html-pms_reserva.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.jsonld-pms_channel.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "PmsChannel.multipart-pax_reserva.read": {
             /** @description El ID es el código string. */
@@ -9928,52 +13791,2948 @@ export interface components {
             nombre?: string;
         };
         /**
-         * @description PmsGuia centraliza la información de la guía para el huésped.
-         *     La operación principal se accede vía el UUID de la unidad vinculada.
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
          */
-        "PmsGuia-pax_evento.read": {
-            unidad?: components["schemas"]["PmsUnidad-pax_evento.read"];
-            /** @default true */
-            activo: boolean;
-            titulo: string[];
-            readonly secciones?: string[];
+        "PmsChannel.multipart-pms_channel.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+        };
+        "PmsChannel.multipart-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsChannel.multipart-pms_reserva.read_timestamp.read": {
+            /** @description El ID es el código string. */
+            id?: string;
+            nombre?: string;
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        PmsEstablecimiento: {
+            beds24Config: components["schemas"]["Beds24Config"];
+            metaConfig: components["schemas"]["MetaConfig"] | null;
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            direccionLinea1: string | null;
+            ciudad: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais: string | null;
+            telefonoPrincipal?: string | null;
+            /** Format: email */
+            emailContacto: string | null;
+            /** Format: date-time */
+            horaCheckIn: string | null;
+            /** Format: date-time */
+            horaCheckOut: string | null;
+            timezone?: string | null;
+            codigoCajaPrincipal?: string | null;
+            codigoCajaSecundaria?: string | null;
+            unidades?: components["schemas"]["PmsUnidad"][];
+            reservas?: components["schemas"]["PmsReserva"][];
+            virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEstablecimiento-pax_catalogo.read": {
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            ciudad: string | null;
+            telefonoPrincipal?: string | null;
+        };
+        "PmsEstablecimiento.html": {
+            beds24Config: components["schemas"]["Beds24Config.html"];
+            metaConfig: components["schemas"]["MetaConfig.html"] | null;
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            direccionLinea1: string | null;
+            ciudad: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais: string | null;
+            telefonoPrincipal?: string | null;
+            /** Format: email */
+            emailContacto: string | null;
+            /** Format: date-time */
+            horaCheckIn: string | null;
+            /** Format: date-time */
+            horaCheckOut: string | null;
+            timezone?: string | null;
+            codigoCajaPrincipal?: string | null;
+            codigoCajaSecundaria?: string | null;
+            unidades?: components["schemas"]["PmsUnidad.html"][];
+            reservas?: components["schemas"]["PmsReserva.html"][];
+            virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual.html"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEstablecimiento.html-pax_catalogo.read": {
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            ciudad: string | null;
+            telefonoPrincipal?: string | null;
+        };
+        "PmsEstablecimiento.jsonld": {
+            beds24Config: components["schemas"]["Beds24Config.jsonld"];
+            metaConfig: components["schemas"]["MetaConfig.jsonld"] | null;
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            direccionLinea1: string | null;
+            ciudad: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais: string | null;
+            telefonoPrincipal?: string | null;
+            /** Format: email */
+            emailContacto: string | null;
+            /** Format: date-time */
+            horaCheckIn: string | null;
+            /** Format: date-time */
+            horaCheckOut: string | null;
+            timezone?: string | null;
+            codigoCajaPrincipal?: string | null;
+            codigoCajaSecundaria?: string | null;
+            unidades?: components["schemas"]["PmsUnidad.jsonld"][];
+            reservas?: components["schemas"]["PmsReserva.jsonld"][];
+            virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual.jsonld"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEstablecimiento.jsonld-pax_catalogo.read": {
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            ciudad: string | null;
+            telefonoPrincipal?: string | null;
+        };
+        "PmsEstablecimiento.multipart": {
+            beds24Config: components["schemas"]["Beds24Config.multipart"];
+            metaConfig: components["schemas"]["MetaConfig.multipart"] | null;
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            direccionLinea1: string | null;
+            ciudad: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais: string | null;
+            telefonoPrincipal?: string | null;
+            /** Format: email */
+            emailContacto: string | null;
+            /** Format: date-time */
+            horaCheckIn: string | null;
+            /** Format: date-time */
+            horaCheckOut: string | null;
+            timezone?: string | null;
+            codigoCajaPrincipal?: string | null;
+            codigoCajaSecundaria?: string | null;
+            unidades?: components["schemas"]["PmsUnidad.multipart"][];
+            reservas?: components["schemas"]["PmsReserva.multipart"][];
+            virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual.multipart"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEstablecimiento.multipart-pax_catalogo.read": {
+            nombreComercial: string | null;
+            /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
+            slug?: string | null;
+            ciudad: string | null;
+            telefonoPrincipal?: string | null;
+        };
+        PmsEstablecimientoVirtual: {
+            /**
+             * @description Cuánto se le pide por adelantado al huésped al reservar en ESTE establecimiento.
+             * @default sin_prepago
+             * @enum {string}
+             */
+            politicaPrepago: "sin_prepago" | "primera_noche_total" | "primera_noche_alojamiento" | "mitad_total" | "mitad_alojamiento";
+            /** @description El establecimiento físico (Hotel/Edificio) al que pertenece este listing virtual. */
+            establecimiento?: components["schemas"]["PmsEstablecimiento"];
+            /** @description Nombre comercial (Ej: "Saphy", "Inti"). */
+            nombre?: string;
+            /** @description Código único para casar unidades al mover reservas. */
+            codigo?: string;
+            /** @description ID de la propiedad en el Canal (Ej: Hotel ID de Booking.com). */
+            codigoExterno?: string | null;
+            /** @description Si es true, este es el establecimiento virtual por defecto. */
+            esPrincipal?: boolean;
+            /** @description Los mapas técnicos de Beds24 que usan este establecimiento virtual. */
+            readonly beds24Maps?: components["schemas"]["PmsUnidadBeds24Map"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEstablecimientoVirtual.html": {
+            /**
+             * @description Cuánto se le pide por adelantado al huésped al reservar en ESTE establecimiento.
+             * @default sin_prepago
+             * @enum {string}
+             */
+            politicaPrepago: "sin_prepago" | "primera_noche_total" | "primera_noche_alojamiento" | "mitad_total" | "mitad_alojamiento";
+            /** @description El establecimiento físico (Hotel/Edificio) al que pertenece este listing virtual. */
+            establecimiento?: components["schemas"]["PmsEstablecimiento.html"];
+            /** @description Nombre comercial (Ej: "Saphy", "Inti"). */
+            nombre?: string;
+            /** @description Código único para casar unidades al mover reservas. */
+            codigo?: string;
+            /** @description ID de la propiedad en el Canal (Ej: Hotel ID de Booking.com). */
+            codigoExterno?: string | null;
+            /** @description Si es true, este es el establecimiento virtual por defecto. */
+            esPrincipal?: boolean;
+            /** @description Los mapas técnicos de Beds24 que usan este establecimiento virtual. */
+            readonly beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.html"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEstablecimientoVirtual.jsonld": {
+            /**
+             * @description Cuánto se le pide por adelantado al huésped al reservar en ESTE establecimiento.
+             * @default sin_prepago
+             * @enum {string}
+             */
+            politicaPrepago: "sin_prepago" | "primera_noche_total" | "primera_noche_alojamiento" | "mitad_total" | "mitad_alojamiento";
+            /** @description El establecimiento físico (Hotel/Edificio) al que pertenece este listing virtual. */
+            establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld"];
+            /** @description Nombre comercial (Ej: "Saphy", "Inti"). */
+            nombre?: string;
+            /** @description Código único para casar unidades al mover reservas. */
+            codigo?: string;
+            /** @description ID de la propiedad en el Canal (Ej: Hotel ID de Booking.com). */
+            codigoExterno?: string | null;
+            /** @description Si es true, este es el establecimiento virtual por defecto. */
+            esPrincipal?: boolean;
+            /** @description Los mapas técnicos de Beds24 que usan este establecimiento virtual. */
+            readonly beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.jsonld"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEstablecimientoVirtual.multipart": {
+            /**
+             * @description Cuánto se le pide por adelantado al huésped al reservar en ESTE establecimiento.
+             * @default sin_prepago
+             * @enum {string}
+             */
+            politicaPrepago: "sin_prepago" | "primera_noche_total" | "primera_noche_alojamiento" | "mitad_total" | "mitad_alojamiento";
+            /** @description El establecimiento físico (Hotel/Edificio) al que pertenece este listing virtual. */
+            establecimiento?: components["schemas"]["PmsEstablecimiento.multipart"];
+            /** @description Nombre comercial (Ej: "Saphy", "Inti"). */
+            nombre?: string;
+            /** @description Código único para casar unidades al mover reservas. */
+            codigo?: string;
+            /** @description ID de la propiedad en el Canal (Ej: Hotel ID de Booking.com). */
+            codigoExterno?: string | null;
+            /** @description Si es true, este es el establecimiento virtual por defecto. */
+            esPrincipal?: boolean;
+            /** @description Los mapas técnicos de Beds24 que usan este establecimiento virtual. */
+            readonly beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.multipart"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        PmsEventAssignment: {
+            /**
+             * Format: iri-reference
+             * @description Relación con el Evento (UUID v7).
+             * @example https://example.com/
+             */
+            evento?: string;
+            /**
+             * @description ✅ CORRECCIÓN CLAVE:
+             *     Activity usa ID Natural (String), por lo tanto NO debe llevar BINARY(16).
+             */
+            activity?: components["schemas"]["PmsEventAssignmentActivity"];
+            /** @description Relación con el Usuario (UUID v7). */
+            usuario?: components["schemas"]["User"] | null;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEventAssignment.html": {
+            /**
+             * Format: iri-reference
+             * @description Relación con el Evento (UUID v7).
+             * @example https://example.com/
+             */
+            evento?: string;
+            /**
+             * @description ✅ CORRECCIÓN CLAVE:
+             *     Activity usa ID Natural (String), por lo tanto NO debe llevar BINARY(16).
+             */
+            activity?: components["schemas"]["PmsEventAssignmentActivity.html"];
+            /** @description Relación con el Usuario (UUID v7). */
+            usuario?: components["schemas"]["User.html"] | null;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEventAssignment.jsonld": {
+            /**
+             * Format: iri-reference
+             * @description Relación con el Evento (UUID v7).
+             * @example https://example.com/
+             */
+            evento?: string;
+            /**
+             * @description ✅ CORRECCIÓN CLAVE:
+             *     Activity usa ID Natural (String), por lo tanto NO debe llevar BINARY(16).
+             */
+            activity?: components["schemas"]["PmsEventAssignmentActivity.jsonld"];
+            /** @description Relación con el Usuario (UUID v7). */
+            usuario?: components["schemas"]["User.jsonld"] | null;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEventAssignment.multipart": {
+            /**
+             * Format: iri-reference
+             * @description Relación con el Evento (UUID v7).
+             * @example https://example.com/
+             */
+            evento?: string;
+            /**
+             * @description ✅ CORRECCIÓN CLAVE:
+             *     Activity usa ID Natural (String), por lo tanto NO debe llevar BINARY(16).
+             */
+            activity?: components["schemas"]["PmsEventAssignmentActivity.multipart"];
+            /** @description Relación con el Usuario (UUID v7). */
+            usuario?: components["schemas"]["User.multipart"] | null;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        PmsEventAssignmentActivity: {
+            /** @description Identificador Natural (PK). */
+            id?: string;
+            /** @description Nombre descriptivo de la actividad. */
+            nombre?: string;
+            /** @description Orden de visualización en selectores y listas. */
+            orden?: number;
+            /** @description Rol de seguridad necesario para realizar esta actividad. */
+            rol?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEventAssignmentActivity.html": {
+            /** @description Identificador Natural (PK). */
+            id?: string;
+            /** @description Nombre descriptivo de la actividad. */
+            nombre?: string;
+            /** @description Orden de visualización en selectores y listas. */
+            orden?: number;
+            /** @description Rol de seguridad necesario para realizar esta actividad. */
+            rol?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEventAssignmentActivity.jsonld": {
+            /** @description Identificador Natural (PK). */
+            id?: string;
+            /** @description Nombre descriptivo de la actividad. */
+            nombre?: string;
+            /** @description Orden de visualización en selectores y listas. */
+            orden?: number;
+            /** @description Rol de seguridad necesario para realizar esta actividad. */
+            rol?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEventAssignmentActivity.multipart": {
+            /** @description Identificador Natural (PK). */
+            id?: string;
+            /** @description Nombre descriptivo de la actividad. */
+            nombre?: string;
+            /** @description Orden de visualización en selectores y listas. */
+            orden?: number;
+            /** @description Rol de seguridad necesario para realizar esta actividad. */
+            rol?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        PmsEventoBeds24Link: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            unidadBeds24Map?: components["schemas"]["PmsUnidadBeds24Map"];
+            beds24BookId?: string | null;
+            /** @description ✅ NUEVO: Flag plano para identificar el link maestro. */
+            esPrincipal?: boolean;
+            /** Format: date-time */
+            lastSeenAt?: string | null;
+            /** @default active */
+            status: string;
+            /** Format: date-time */
+            deactivatedAt?: string | null;
+            referenciaCanal?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            queues?: components["schemas"]["PmsBookingsPushQueue"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly mirror?: boolean;
+            readonly active?: boolean;
+        };
+        "PmsEventoBeds24Link.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            unidadBeds24Map?: components["schemas"]["PmsUnidadBeds24Map.html"];
+            beds24BookId?: string | null;
+            /** @description ✅ NUEVO: Flag plano para identificar el link maestro. */
+            esPrincipal?: boolean;
+            /** Format: date-time */
+            lastSeenAt?: string | null;
+            /** @default active */
+            status: string;
+            /** Format: date-time */
+            deactivatedAt?: string | null;
+            referenciaCanal?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            queues?: components["schemas"]["PmsBookingsPushQueue.html"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly mirror?: boolean;
+            readonly active?: boolean;
+        };
+        "PmsEventoBeds24Link.jsonld": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            unidadBeds24Map?: components["schemas"]["PmsUnidadBeds24Map.jsonld"];
+            beds24BookId?: string | null;
+            /** @description ✅ NUEVO: Flag plano para identificar el link maestro. */
+            esPrincipal?: boolean;
+            /** Format: date-time */
+            lastSeenAt?: string | null;
+            /** @default active */
+            status: string;
+            /** Format: date-time */
+            deactivatedAt?: string | null;
+            referenciaCanal?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            queues?: components["schemas"]["PmsBookingsPushQueue.jsonld"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly mirror?: boolean;
+            readonly active?: boolean;
+        };
+        "PmsEventoBeds24Link.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            evento?: string | null;
+            unidadBeds24Map?: components["schemas"]["PmsUnidadBeds24Map.multipart"];
+            beds24BookId?: string | null;
+            /** @description ✅ NUEVO: Flag plano para identificar el link maestro. */
+            esPrincipal?: boolean;
+            /** Format: date-time */
+            lastSeenAt?: string | null;
+            /** @default active */
+            status: string;
+            /** Format: date-time */
+            deactivatedAt?: string | null;
+            referenciaCanal?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            queues?: components["schemas"]["PmsBookingsPushQueue.multipart"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly mirror?: boolean;
+            readonly active?: boolean;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        PmsEventoCalendario: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            reserva?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel: string | null;
+            referenciaCanal?: string | null;
+            horaLlegadaCanal?: string | null;
+            /** Format: date-time */
+            fechaReservaCanal?: string | null;
+            /** Format: date-time */
+            fechaModificacionCanal?: string | null;
+            comentariosHuesped?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estado: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estadoPago: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            isOta?: boolean;
+            tituloCache?: string | null;
+            /** @description Indica si la asignación de guía para este evento está deshabilitada. */
+            guiaDisabled?: boolean;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /**
+             * Format: iri-reference
+             * @description Estancia que generó esta EXTENSIÓN (estado `extension`).
+             * @example https://example.com/
+             */
+            eventoOrigen?: string | null;
+            rateDescription?: string | null;
+            estadoBeds24?: string | null;
+            subestadoBeds24?: string | null;
+            beds24Links?: components["schemas"]["PmsEventoBeds24Link"][];
+            assignments?: components["schemas"]["PmsEventAssignment"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Comprueba si el evento está completamente sincronizado. */
+            readonly synced?: boolean;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            readonly ota?: boolean;
+            /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
+            readonly trazabilidadReserva?: string | null;
+            readonly trazabilidadLinks?: string | null;
+            readonly noches?: number;
+        };
+        "PmsEventoCalendario-pax_reserva.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad-pax_reserva.read"];
+            reserva?: components["schemas"]["PmsReserva-pax_reserva.read"] | null;
+            channel: components["schemas"]["PmsChannel-pax_reserva.read"] | null;
+            referenciaCanal?: string | null;
+            estado: components["schemas"]["PmsEventoEstado-pax_reserva.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario-pms_evento.read_timestamp.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad-pms_evento.read_timestamp.read"];
+            reserva?: components["schemas"]["PmsReserva-pms_evento.read_timestamp.read"] | null;
+            channel: components["schemas"]["PmsChannel-pms_evento.read_timestamp.read"] | null;
+            referenciaCanal?: string | null;
+            comentariosHuesped?: string | null;
+            estado: components["schemas"]["PmsEventoEstado-pms_evento.read_timestamp.read"];
+            estadoPago: components["schemas"]["PmsEventoEstadoPago-pms_evento.read_timestamp.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /** @description Estancia que generó esta EXTENSIÓN (estado `extension`). */
+            eventoOrigen?: components["schemas"]["PmsEventoCalendario-pms_evento.read_timestamp.read"] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            readonly ota?: boolean;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario-pms_evento.write.jsonMergePatch": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            comentariosHuesped?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estado?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estadoPago?: string;
+            /** Format: date-time */
+            inicio?: string;
+            /** Format: date-time */
+            fin?: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario-pms_evento.write_pms_evento.write_create": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            reserva?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel: string | null;
+            comentariosHuesped?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estado: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estadoPago: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+        };
+        "PmsEventoCalendario-pms_reserva.read_timestamp.read": {
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            reserva?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel: string | null;
+            referenciaCanal?: string | null;
+            horaLlegadaCanal?: string | null;
+            /** Format: date-time */
+            fechaReservaCanal?: string | null;
+            /** Format: date-time */
+            fechaModificacionCanal?: string | null;
+            comentariosHuesped?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estado: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estadoPago: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            isOta?: boolean;
+            tituloCache?: string | null;
+            /** @description Indica si la asignación de guía para este evento está deshabilitada. */
+            guiaDisabled?: boolean;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /**
+             * Format: iri-reference
+             * @description Estancia que generó esta EXTENSIÓN (estado `extension`).
+             * @example https://example.com/
+             */
+            eventoOrigen?: string | null;
+            rateDescription?: string | null;
+            estadoBeds24?: string | null;
+            subestadoBeds24?: string | null;
+            beds24Links?: components["schemas"]["PmsEventoBeds24Link.html"][];
+            assignments?: components["schemas"]["PmsEventAssignment.html"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Comprueba si el evento está completamente sincronizado. */
+            readonly synced?: boolean;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            readonly ota?: boolean;
+            /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
+            readonly trazabilidadReserva?: string | null;
+            readonly trazabilidadLinks?: string | null;
+            readonly noches?: number;
+        };
+        "PmsEventoCalendario.html-pax_reserva.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad.html-pax_reserva.read"];
+            reserva?: components["schemas"]["PmsReserva.html-pax_reserva.read"] | null;
+            channel: components["schemas"]["PmsChannel.html-pax_reserva.read"] | null;
+            referenciaCanal?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.html-pax_reserva.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.html-pms_evento.read_timestamp.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad.html-pms_evento.read_timestamp.read"];
+            reserva?: components["schemas"]["PmsReserva.html-pms_evento.read_timestamp.read"] | null;
+            channel: components["schemas"]["PmsChannel.html-pms_evento.read_timestamp.read"] | null;
+            referenciaCanal?: string | null;
+            comentariosHuesped?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.html-pms_evento.read_timestamp.read"];
+            estadoPago: components["schemas"]["PmsEventoEstadoPago.html-pms_evento.read_timestamp.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /** @description Estancia que generó esta EXTENSIÓN (estado `extension`). */
+            eventoOrigen?: components["schemas"]["PmsEventoCalendario.html-pms_evento.read_timestamp.read"] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            readonly ota?: boolean;
+        };
+        "PmsEventoCalendario.html-pms_reserva.read_timestamp.read": {
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            reserva?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel: string | null;
+            referenciaCanal?: string | null;
+            horaLlegadaCanal?: string | null;
+            /** Format: date-time */
+            fechaReservaCanal?: string | null;
+            /** Format: date-time */
+            fechaModificacionCanal?: string | null;
+            comentariosHuesped?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estado: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estadoPago: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            isOta?: boolean;
+            tituloCache?: string | null;
+            /** @description Indica si la asignación de guía para este evento está deshabilitada. */
+            guiaDisabled?: boolean;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /**
+             * Format: iri-reference
+             * @description Estancia que generó esta EXTENSIÓN (estado `extension`).
+             * @example https://example.com/
+             */
+            eventoOrigen?: string | null;
+            rateDescription?: string | null;
+            estadoBeds24?: string | null;
+            subestadoBeds24?: string | null;
+            beds24Links?: components["schemas"]["PmsEventoBeds24Link.jsonld"][];
+            assignments?: components["schemas"]["PmsEventAssignment.jsonld"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Comprueba si el evento está completamente sincronizado. */
+            readonly synced?: boolean;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            readonly ota?: boolean;
+            /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
+            readonly trazabilidadReserva?: string | null;
+            readonly trazabilidadLinks?: string | null;
+            readonly noches?: number;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+            pmsUnidad: components["schemas"]["PmsUnidad.jsonld-pax_reserva.read"];
+            reserva?: components["schemas"]["PmsReserva.jsonld-pax_reserva.read"] | null;
+            channel: components["schemas"]["PmsChannel.jsonld-pax_reserva.read"] | null;
+            referenciaCanal?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.jsonld-pax_reserva.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read": {
+            /** @description Estancia que generó esta EXTENSIÓN (estado `extension`). */
+            eventoOrigen?: components["schemas"]["PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read"] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            readonly ota?: boolean;
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
+            pmsUnidad: components["schemas"]["PmsUnidad.jsonld-pms_evento.read_timestamp.read"];
+            reserva?: components["schemas"]["PmsReserva.jsonld-pms_evento.read_timestamp.read"] | null;
+            channel: components["schemas"]["PmsChannel.jsonld-pms_evento.read_timestamp.read"] | null;
+            referenciaCanal?: string | null;
+            comentariosHuesped?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.jsonld-pms_evento.read_timestamp.read"];
+            estadoPago: components["schemas"]["PmsEventoEstadoPago.jsonld-pms_evento.read_timestamp.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+        });
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            reserva?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel: string | null;
+            referenciaCanal?: string | null;
+            horaLlegadaCanal?: string | null;
+            /** Format: date-time */
+            fechaReservaCanal?: string | null;
+            /** Format: date-time */
+            fechaModificacionCanal?: string | null;
+            comentariosHuesped?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estado: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            estadoPago: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            isOta?: boolean;
+            tituloCache?: string | null;
+            /** @description Indica si la asignación de guía para este evento está deshabilitada. */
+            guiaDisabled?: boolean;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /**
+             * Format: iri-reference
+             * @description Estancia que generó esta EXTENSIÓN (estado `extension`).
+             * @example https://example.com/
+             */
+            eventoOrigen?: string | null;
+            rateDescription?: string | null;
+            estadoBeds24?: string | null;
+            subestadoBeds24?: string | null;
+            beds24Links?: components["schemas"]["PmsEventoBeds24Link.multipart"][];
+            assignments?: components["schemas"]["PmsEventAssignment.multipart"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Comprueba si el evento está completamente sincronizado. */
+            readonly synced?: boolean;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            readonly ota?: boolean;
+            /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
+            readonly trazabilidadReserva?: string | null;
+            readonly trazabilidadLinks?: string | null;
+            readonly noches?: number;
+        };
+        "PmsEventoCalendario.multipart-pax_reserva.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad.multipart-pax_reserva.read"];
+            reserva?: components["schemas"]["PmsReserva.multipart-pax_reserva.read"] | null;
+            channel: components["schemas"]["PmsChannel.multipart-pax_reserva.read"] | null;
+            referenciaCanal?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.multipart-pax_reserva.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.multipart-pms_evento.read_timestamp.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad.multipart-pms_evento.read_timestamp.read"];
+            reserva?: components["schemas"]["PmsReserva.multipart-pms_evento.read_timestamp.read"] | null;
+            channel: components["schemas"]["PmsChannel.multipart-pms_evento.read_timestamp.read"] | null;
+            referenciaCanal?: string | null;
+            comentariosHuesped?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.multipart-pms_evento.read_timestamp.read"];
+            estadoPago: components["schemas"]["PmsEventoEstadoPago.multipart-pms_evento.read_timestamp.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string | null;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** @description Entrada temprana pactada: el huésped llega por la mañana del día de entrada. */
+            entradaTemprana?: boolean;
+            /** @description Estancia que generó esta EXTENSIÓN (estado `extension`). */
+            eventoOrigen?: components["schemas"]["PmsEventoCalendario.multipart-pms_evento.read_timestamp.read"] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            readonly ota?: boolean;
+        };
+        "PmsEventoCalendario.multipart-pms_reserva.read_timestamp.read": {
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsEventoEstado-pax_reserva.read": {
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+        };
+        "PmsEventoEstado-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado-pms_evento_estado.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** @description Orden para listados en la UI. */
+            orden?: number | null;
+        };
+        "PmsEventoEstado.html-pax_reserva.read": {
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+        };
+        "PmsEventoEstado.html-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.html-pms_evento_estado.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** @description Orden para listados en la UI. */
+            orden?: number | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.jsonld-pms_evento_estado.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** @description Orden para listados en la UI. */
+            orden?: number | null;
+        };
+        "PmsEventoEstado.multipart-pax_reserva.read": {
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+        };
+        "PmsEventoEstado.multipart-pms_evento.read_timestamp.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.multipart-pms_evento_estado.read": {
+            /** @description El ID es el código string del estado. */
+            id?: string;
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+            /** @description Color visual en formato hexadecimal (ej: #FF5733). */
+            color?: string | null;
+            /** @description Orden para listados en la UI. */
+            orden?: number | null;
+        };
+        "PmsEventoEstadoPago-pms_evento.read_timestamp.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Si este estado fuerza su color e ignora otras reglas visuales. */
+            colorOverride?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago-pms_evento_estado_pago.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Si este estado fuerza su color e ignora otras reglas visuales. */
+            colorOverride?: boolean;
+            /** @description Orden de prioridad/aparición en la interfaz. */
+            orden?: number | null;
+        };
+        "PmsEventoEstadoPago.html-pms_evento.read_timestamp.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Si este estado fuerza su color e ignora otras reglas visuales. */
+            colorOverride?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago.html-pms_evento_estado_pago.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Si este estado fuerza su color e ignora otras reglas visuales. */
+            colorOverride?: boolean;
+            /** @description Orden de prioridad/aparición en la interfaz. */
+            orden?: number | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Si este estado fuerza su color e ignora otras reglas visuales. */
+            colorOverride?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago.jsonld-pms_evento_estado_pago.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Si este estado fuerza su color e ignora otras reglas visuales. */
+            colorOverride?: boolean;
+            /** @description Orden de prioridad/aparición en la interfaz. */
+            orden?: number | null;
+        };
+        "PmsEventoEstadoPago.multipart-pms_evento.read_timestamp.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Si este estado fuerza su color e ignora otras reglas visuales. */
+            colorOverride?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstadoPago.
+         *     Define los niveles de cumplimiento de pago de un evento.
+         *     IDs Naturales con guion-central (ej: pago-parcial).
+         */
+        "PmsEventoEstadoPago.multipart-pms_evento_estado_pago.read": {
+            /** @description Clave primaria basada en código natural. */
+            id?: string;
+            /** @description Nombre visible para el usuario (ej: "Pago Parcial"). */
+            nombre?: string;
+            /** @description Color visual asociado (HEX: #00FF00). */
+            color?: string | null;
+            /** @description Si este estado fuerza su color e ignora otras reglas visuales. */
+            colorOverride?: boolean;
+            /** @description Orden de prioridad/aparición en la interfaz. */
+            orden?: number | null;
         };
         /**
          * @description PmsGuia centraliza la información de la guía para el huésped.
          *     La operación principal se accede vía el UUID de la unidad vinculada.
          */
-        "PmsGuia.html-pax_evento.read": {
-            unidad?: components["schemas"]["PmsUnidad.html-pax_evento.read"];
-            /** @default true */
-            activo: boolean;
+        "PmsGuia-pax_guia.read": {
+            unidad?: components["schemas"]["PmsUnidad-pax_guia.read"];
             titulo: string[];
-            readonly secciones?: string[];
+            /** @description Árbol ya podado por PmsGuiaArbolFiltro. */
+            secciones?: components["schemas"]["PmsGuiaSeccion-pax_guia.read"][];
+            /** @description Datos de cabecera de la estancia (nombre del huésped, unidad, fechas). */
+            contexto?: {
+                [key: string]: string;
+            };
+            /** @description Redes WiFi; vacío si la ventana no está abierta. */
+            redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Medios de cobro que aplican a ESTE huésped,
+             *     ya filtrados por procedencia.
+             */
+            mediosPago?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
+             *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
+             */
+            acceso?: string[];
         };
         /**
          * @description PmsGuia centraliza la información de la guía para el huésped.
          *     La operación principal se accede vía el UUID de la unidad vinculada.
          */
-        "PmsGuia.jsonld-pax_evento.read": components["schemas"]["HydraItemBaseSchema"] & {
-            unidad?: components["schemas"]["PmsUnidad.jsonld-pax_evento.read"];
-            /** @default true */
-            activo: boolean;
+        "PmsGuia.html-pax_guia.read": {
+            unidad?: components["schemas"]["PmsUnidad.html-pax_guia.read"];
             titulo: string[];
-            readonly secciones?: string[];
+            /** @description Árbol ya podado por PmsGuiaArbolFiltro. */
+            secciones?: components["schemas"]["PmsGuiaSeccion.html-pax_guia.read"][];
+            /** @description Datos de cabecera de la estancia (nombre del huésped, unidad, fechas). */
+            contexto?: {
+                [key: string]: string;
+            };
+            /** @description Redes WiFi; vacío si la ventana no está abierta. */
+            redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Medios de cobro que aplican a ESTE huésped,
+             *     ya filtrados por procedencia.
+             */
+            mediosPago?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
+             *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
+             */
+            acceso?: string[];
         };
         /**
          * @description PmsGuia centraliza la información de la guía para el huésped.
          *     La operación principal se accede vía el UUID de la unidad vinculada.
          */
-        "PmsGuia.multipart-pax_evento.read": {
-            unidad?: components["schemas"]["PmsUnidad.multipart-pax_evento.read"];
-            /** @default true */
-            activo: boolean;
+        "PmsGuia.jsonld-pax_guia.read": components["schemas"]["HydraItemBaseSchema"] & {
+            unidad?: components["schemas"]["PmsUnidad.jsonld-pax_guia.read"];
             titulo: string[];
-            readonly secciones?: string[];
+            /** @description Árbol ya podado por PmsGuiaArbolFiltro. */
+            secciones?: components["schemas"]["PmsGuiaSeccion.jsonld-pax_guia.read"][];
+            /** @description Datos de cabecera de la estancia (nombre del huésped, unidad, fechas). */
+            contexto?: {
+                [key: string]: string;
+            };
+            /** @description Redes WiFi; vacío si la ventana no está abierta. */
+            redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Medios de cobro que aplican a ESTE huésped,
+             *     ya filtrados por procedencia.
+             */
+            mediosPago?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
+             *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
+             */
+            acceso?: string[];
+        };
+        /**
+         * @description PmsGuia centraliza la información de la guía para el huésped.
+         *     La operación principal se accede vía el UUID de la unidad vinculada.
+         */
+        "PmsGuia.multipart-pax_guia.read": {
+            unidad?: components["schemas"]["PmsUnidad.multipart-pax_guia.read"];
+            titulo: string[];
+            /** @description Árbol ya podado por PmsGuiaArbolFiltro. */
+            secciones?: components["schemas"]["PmsGuiaSeccion.multipart-pax_guia.read"][];
+            /** @description Datos de cabecera de la estancia (nombre del huésped, unidad, fechas). */
+            contexto?: {
+                [key: string]: string;
+            };
+            /** @description Redes WiFi; vacío si la ventana no está abierta. */
+            redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Medios de cobro que aplican a ESTE huésped,
+             *     ya filtrados por procedencia.
+             */
+            mediosPago?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
+             *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
+             */
+            acceso?: string[];
+        };
+        "PmsGuiaItem-pax_guia.read": {
+            /**
+             * @default card
+             * @enum {string}
+             */
+            tipo: "card" | "album" | "alert";
+            icono?: string | null;
+            labelBoton?: string[] | null;
+            galeria?: components["schemas"]["PmsGuiaItemGaleria-pax_guia.read"][];
+            /**
+             * @description Título y cuerpo con los placeholders `{{ door_code }}` YA resueltos, en
+             *     todos los idiomas. Antes esa sustitución la hacía el navegador
+             *     (RichContentEngine.interpolateString), lo que obligaba a mandarle al
+             *     cliente el diccionario entero de valores sensibles para que eligiera
+             *     cuál pintar. Ahora el valor real solo sale del servidor si el acceso lo
+             *     permite; si no, en su lugar viaja el mensaje de bloqueo traducido.
+             */
+            titulo?: string[][];
+            descripcion?: string[][];
+            /**
+             * Format: date-time
+             * @description Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
+             *     que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
+             *     pintar "[Disponible el 12/08 a las 15:00]".
+             */
+            bloqueadoHasta?: string | null;
+            /**
+             * @description Si el ítem viaja anunciado pero con el contenido sustituido por el
+             *     mensaje de bloqueo.
+             */
+            bloqueado?: boolean;
+            urlBoton?: string | null;
+            /**
+             * @description Expuesto al cliente para que la UI pueda pintar el candado sin recalcular
+             *     la regla: si el ítem llega bloqueado, ya viene con `bloqueadoHasta`.
+             */
+            readonly visibilidad?: string;
+        };
+        "PmsGuiaItem.html-pax_guia.read": {
+            /**
+             * @default card
+             * @enum {string}
+             */
+            tipo: "card" | "album" | "alert";
+            icono?: string | null;
+            labelBoton?: string[] | null;
+            galeria?: components["schemas"]["PmsGuiaItemGaleria.html-pax_guia.read"][];
+            /**
+             * @description Título y cuerpo con los placeholders `{{ door_code }}` YA resueltos, en
+             *     todos los idiomas. Antes esa sustitución la hacía el navegador
+             *     (RichContentEngine.interpolateString), lo que obligaba a mandarle al
+             *     cliente el diccionario entero de valores sensibles para que eligiera
+             *     cuál pintar. Ahora el valor real solo sale del servidor si el acceso lo
+             *     permite; si no, en su lugar viaja el mensaje de bloqueo traducido.
+             */
+            titulo?: string[][];
+            descripcion?: string[][];
+            /**
+             * Format: date-time
+             * @description Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
+             *     que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
+             *     pintar "[Disponible el 12/08 a las 15:00]".
+             */
+            bloqueadoHasta?: string | null;
+            /**
+             * @description Si el ítem viaja anunciado pero con el contenido sustituido por el
+             *     mensaje de bloqueo.
+             */
+            bloqueado?: boolean;
+            urlBoton?: string | null;
+            /**
+             * @description Expuesto al cliente para que la UI pueda pintar el candado sin recalcular
+             *     la regla: si el ítem llega bloqueado, ya viene con `bloqueadoHasta`.
+             */
+            readonly visibilidad?: string;
+        };
+        "PmsGuiaItem.jsonld-pax_guia.read": {
+            /**
+             * @default card
+             * @enum {string}
+             */
+            tipo: "card" | "album" | "alert";
+            icono?: string | null;
+            labelBoton?: string[] | null;
+            galeria?: components["schemas"]["PmsGuiaItemGaleria.jsonld-pax_guia.read"][];
+            /**
+             * @description Título y cuerpo con los placeholders `{{ door_code }}` YA resueltos, en
+             *     todos los idiomas. Antes esa sustitución la hacía el navegador
+             *     (RichContentEngine.interpolateString), lo que obligaba a mandarle al
+             *     cliente el diccionario entero de valores sensibles para que eligiera
+             *     cuál pintar. Ahora el valor real solo sale del servidor si el acceso lo
+             *     permite; si no, en su lugar viaja el mensaje de bloqueo traducido.
+             */
+            titulo?: string[][];
+            descripcion?: string[][];
+            /**
+             * Format: date-time
+             * @description Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
+             *     que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
+             *     pintar "[Disponible el 12/08 a las 15:00]".
+             */
+            bloqueadoHasta?: string | null;
+            /**
+             * @description Si el ítem viaja anunciado pero con el contenido sustituido por el
+             *     mensaje de bloqueo.
+             */
+            bloqueado?: boolean;
+            urlBoton?: string | null;
+            /**
+             * @description Expuesto al cliente para que la UI pueda pintar el candado sin recalcular
+             *     la regla: si el ítem llega bloqueado, ya viene con `bloqueadoHasta`.
+             */
+            readonly visibilidad?: string;
+        };
+        "PmsGuiaItem.multipart-pax_guia.read": {
+            /**
+             * @default card
+             * @enum {string}
+             */
+            tipo: "card" | "album" | "alert";
+            icono?: string | null;
+            labelBoton?: string[] | null;
+            galeria?: components["schemas"]["PmsGuiaItemGaleria.multipart-pax_guia.read"][];
+            /**
+             * @description Título y cuerpo con los placeholders `{{ door_code }}` YA resueltos, en
+             *     todos los idiomas. Antes esa sustitución la hacía el navegador
+             *     (RichContentEngine.interpolateString), lo que obligaba a mandarle al
+             *     cliente el diccionario entero de valores sensibles para que eligiera
+             *     cuál pintar. Ahora el valor real solo sale del servidor si el acceso lo
+             *     permite; si no, en su lugar viaja el mensaje de bloqueo traducido.
+             */
+            titulo?: string[][];
+            descripcion?: string[][];
+            /**
+             * Format: date-time
+             * @description Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
+             *     que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
+             *     pintar "[Disponible el 12/08 a las 15:00]".
+             */
+            bloqueadoHasta?: string | null;
+            /**
+             * @description Si el ítem viaja anunciado pero con el contenido sustituido por el
+             *     mensaje de bloqueo.
+             */
+            bloqueado?: boolean;
+            urlBoton?: string | null;
+            /**
+             * @description Expuesto al cliente para que la UI pueda pintar el candado sin recalcular
+             *     la regla: si el ítem llega bloqueado, ya viene con `bloqueadoHasta`.
+             */
+            readonly visibilidad?: string;
+        };
+        "PmsGuiaItemGaleria-pax_guia.read": {
+            descripcion?: string[] | null;
+            /** @description PROPIEDAD VIRTUAL */
+            imageUrl?: string | null;
+        };
+        "PmsGuiaItemGaleria.html-pax_guia.read": {
+            descripcion?: string[] | null;
+            /** @description PROPIEDAD VIRTUAL */
+            imageUrl?: string | null;
+        };
+        "PmsGuiaItemGaleria.jsonld-pax_guia.read": {
+            descripcion?: string[] | null;
+            /** @description PROPIEDAD VIRTUAL */
+            imageUrl?: string | null;
+        };
+        "PmsGuiaItemGaleria.multipart-pax_guia.read": {
+            descripcion?: string[] | null;
+            /** @description PROPIEDAD VIRTUAL */
+            imageUrl?: string | null;
+        };
+        "PmsGuiaSeccion-pax_guia.read": {
+            titulo: string[];
+            subtitulo?: string[] | null;
+            /** @default fa-info-circle */
+            icono: string | null;
+            /** @enum {string|null} */
+            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            /**
+             * @description Ítems ya filtrados por visibilidad para esta petición. Los llena
+             *     PmsGuiaArbolFiltro a partir de getItemsApi(), que devuelve el árbol
+             *     completo y no se serializa.
+             */
+            items?: components["schemas"]["PmsGuiaItem-pax_guia.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "PmsGuiaSeccion.html-pax_guia.read": {
+            titulo: string[];
+            subtitulo?: string[] | null;
+            /** @default fa-info-circle */
+            icono: string | null;
+            /** @enum {string|null} */
+            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            /**
+             * @description Ítems ya filtrados por visibilidad para esta petición. Los llena
+             *     PmsGuiaArbolFiltro a partir de getItemsApi(), que devuelve el árbol
+             *     completo y no se serializa.
+             */
+            items?: components["schemas"]["PmsGuiaItem.html-pax_guia.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "PmsGuiaSeccion.jsonld-pax_guia.read": {
+            titulo: string[];
+            subtitulo?: string[] | null;
+            /** @default fa-info-circle */
+            icono: string | null;
+            /** @enum {string|null} */
+            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            /**
+             * @description Ítems ya filtrados por visibilidad para esta petición. Los llena
+             *     PmsGuiaArbolFiltro a partir de getItemsApi(), que devuelve el árbol
+             *     completo y no se serializa.
+             */
+            items?: components["schemas"]["PmsGuiaItem.jsonld-pax_guia.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "PmsGuiaSeccion.multipart-pax_guia.read": {
+            titulo: string[];
+            subtitulo?: string[] | null;
+            /** @default fa-info-circle */
+            icono: string | null;
+            /** @enum {string|null} */
+            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            /**
+             * @description Ítems ya filtrados por visibilidad para esta petición. Los llena
+             *     PmsGuiaArbolFiltro a partir de getItemsApi(), que devuelve el árbol
+             *     completo y no se serializa.
+             */
+            items?: components["schemas"]["PmsGuiaItem.multipart-pax_guia.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation). */
+        "PmsInformacionFinanciera-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            /** @description Moneda principal de la reserva (resolver contra maestro; default USD). */
+            moneda?: components["schemas"]["Moneda-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Cache de la suma de los cargos de Beds24 (PmsCargoFinanciero con tipo=charge), convertidos
+             *     a esta moneda. Recalculado por PmsInformacionFinancieraCoherenciaListener.
+             * @default 0.00
+             */
+            totalCargos: string;
+            /**
+             * @description Cache de la suma de nuestros pagos propios (PmsPagoFinanciero), convertidos a esta moneda.
+             * @default 0.00
+             */
+            totalPagos: string;
+            /**
+             * @description ¿Los cargos de la estancia siguen contando para el saldo?
+             * @default true
+             */
+            activa: boolean;
+            /** Format: date-time */
+            lastSyncedAt?: string | null;
+            cargos?: components["schemas"]["PmsCargoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Pagos efectivamente recibidos por nosotros (efectivo, yape, tarjeta, etc.). */
+            pagos?: components["schemas"]["PmsPagoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Prepago que todavía hay que pedir, o null si no procede. */
+            prepagoPendiente?: {
+                /** @example 45.00 */
+                monto: string;
+                /** @example primera_noche_total */
+                politica: string;
+                /** @example Primera noche (sobre el total) */
+                politicaEtiqueta?: string;
+                /** @example Primera noche */
+                politicaCorta?: string;
+                /** @example Adelanto de reserva AB12CD — Casita 4 */
+                concepto?: string;
+            } | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Saldo pendiente en la moneda de la cabecera: cargos menos pagos (ambos ya convertidos
+             *     a esta moneda por el listener de coherencia). Cálculo en tiempo de lectura.
+             */
+            readonly saldo?: string;
+            /** @description ¿Se puede cambiar la moneda base (contable) de esta reserva? */
+            readonly monedaBaseEditable?: boolean;
+            readonly totalAlojamiento?: string;
+            readonly totalLimpieza?: string;
+            readonly totalServicio?: string;
+            /** @description Estancias de la reserva indexadas por su ID de booking en Beds24. */
+            readonly estancias?: string[][];
+        };
+        /** @description Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation). */
+        "PmsInformacionFinanciera-pms_finanzas.write": {
+            /**
+             * @description ¿Los cargos de la estancia siguen contando para el saldo?
+             * @default true
+             */
+            activa: boolean;
+        };
+        /** @description Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation). */
+        "PmsInformacionFinanciera-pms_finanzas.write.jsonMergePatch": {
+            /**
+             * @description ¿Los cargos de la estancia siguen contando para el saldo?
+             * @default true
+             */
+            activa: boolean;
+        };
+        /** @description Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation). */
+        "PmsInformacionFinanciera.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            /** @description Moneda principal de la reserva (resolver contra maestro; default USD). */
+            moneda?: components["schemas"]["Moneda.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Cache de la suma de los cargos de Beds24 (PmsCargoFinanciero con tipo=charge), convertidos
+             *     a esta moneda. Recalculado por PmsInformacionFinancieraCoherenciaListener.
+             * @default 0.00
+             */
+            totalCargos: string;
+            /**
+             * @description Cache de la suma de nuestros pagos propios (PmsPagoFinanciero), convertidos a esta moneda.
+             * @default 0.00
+             */
+            totalPagos: string;
+            /**
+             * @description ¿Los cargos de la estancia siguen contando para el saldo?
+             * @default true
+             */
+            activa: boolean;
+            /** Format: date-time */
+            lastSyncedAt?: string | null;
+            cargos?: components["schemas"]["PmsCargoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Pagos efectivamente recibidos por nosotros (efectivo, yape, tarjeta, etc.). */
+            pagos?: components["schemas"]["PmsPagoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Prepago que todavía hay que pedir, o null si no procede. */
+            prepagoPendiente?: {
+                /** @example 45.00 */
+                monto: string;
+                /** @example primera_noche_total */
+                politica: string;
+                /** @example Primera noche (sobre el total) */
+                politicaEtiqueta?: string;
+                /** @example Primera noche */
+                politicaCorta?: string;
+                /** @example Adelanto de reserva AB12CD — Casita 4 */
+                concepto?: string;
+            } | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Saldo pendiente en la moneda de la cabecera: cargos menos pagos (ambos ya convertidos
+             *     a esta moneda por el listener de coherencia). Cálculo en tiempo de lectura.
+             */
+            readonly saldo?: string;
+            /** @description ¿Se puede cambiar la moneda base (contable) de esta reserva? */
+            readonly monedaBaseEditable?: boolean;
+            readonly totalAlojamiento?: string;
+            readonly totalLimpieza?: string;
+            readonly totalServicio?: string;
+            /** @description Estancias de la reserva indexadas por su ID de booking en Beds24. */
+            readonly estancias?: string[][];
+        };
+        /** @description Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation). */
+        "PmsInformacionFinanciera.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Moneda principal de la reserva (resolver contra maestro; default USD). */
+            moneda?: components["schemas"]["Moneda.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Cache de la suma de los cargos de Beds24 (PmsCargoFinanciero con tipo=charge), convertidos
+             *     a esta moneda. Recalculado por PmsInformacionFinancieraCoherenciaListener.
+             * @default 0.00
+             */
+            totalCargos: string;
+            /**
+             * @description Cache de la suma de nuestros pagos propios (PmsPagoFinanciero), convertidos a esta moneda.
+             * @default 0.00
+             */
+            totalPagos: string;
+            /**
+             * @description ¿Los cargos de la estancia siguen contando para el saldo?
+             * @default true
+             */
+            activa: boolean;
+            /** Format: date-time */
+            lastSyncedAt?: string | null;
+            cargos?: components["schemas"]["PmsCargoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Pagos efectivamente recibidos por nosotros (efectivo, yape, tarjeta, etc.). */
+            pagos?: components["schemas"]["PmsPagoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Prepago que todavía hay que pedir, o null si no procede. */
+            prepagoPendiente?: {
+                /** @example 45.00 */
+                monto: string;
+                /** @example primera_noche_total */
+                politica: string;
+                /** @example Primera noche (sobre el total) */
+                politicaEtiqueta?: string;
+                /** @example Primera noche */
+                politicaCorta?: string;
+                /** @example Adelanto de reserva AB12CD — Casita 4 */
+                concepto?: string;
+            } | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Saldo pendiente en la moneda de la cabecera: cargos menos pagos (ambos ya convertidos
+             *     a esta moneda por el listener de coherencia). Cálculo en tiempo de lectura.
+             */
+            readonly saldo?: string;
+            /** @description ¿Se puede cambiar la moneda base (contable) de esta reserva? */
+            readonly monedaBaseEditable?: boolean;
+            readonly totalAlojamiento?: string;
+            readonly totalLimpieza?: string;
+            readonly totalServicio?: string;
+            /** @description Estancias de la reserva indexadas por su ID de booking en Beds24. */
+            readonly estancias?: string[][];
+        };
+        /** @description Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation). */
+        "PmsInformacionFinanciera.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            /** @description Moneda principal de la reserva (resolver contra maestro; default USD). */
+            moneda?: components["schemas"]["Moneda.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Cache de la suma de los cargos de Beds24 (PmsCargoFinanciero con tipo=charge), convertidos
+             *     a esta moneda. Recalculado por PmsInformacionFinancieraCoherenciaListener.
+             * @default 0.00
+             */
+            totalCargos: string;
+            /**
+             * @description Cache de la suma de nuestros pagos propios (PmsPagoFinanciero), convertidos a esta moneda.
+             * @default 0.00
+             */
+            totalPagos: string;
+            /**
+             * @description ¿Los cargos de la estancia siguen contando para el saldo?
+             * @default true
+             */
+            activa: boolean;
+            /** Format: date-time */
+            lastSyncedAt?: string | null;
+            cargos?: components["schemas"]["PmsCargoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Pagos efectivamente recibidos por nosotros (efectivo, yape, tarjeta, etc.). */
+            pagos?: components["schemas"]["PmsPagoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+            /** @description Prepago que todavía hay que pedir, o null si no procede. */
+            prepagoPendiente?: {
+                /** @example 45.00 */
+                monto: string;
+                /** @example primera_noche_total */
+                politica: string;
+                /** @example Primera noche (sobre el total) */
+                politicaEtiqueta?: string;
+                /** @example Primera noche */
+                politicaCorta?: string;
+                /** @example Adelanto de reserva AB12CD — Casita 4 */
+                concepto?: string;
+            } | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Saldo pendiente en la moneda de la cabecera: cargos menos pagos (ambos ya convertidos
+             *     a esta moneda por el listener de coherencia). Cálculo en tiempo de lectura.
+             */
+            readonly saldo?: string;
+            /** @description ¿Se puede cambiar la moneda base (contable) de esta reserva? */
+            readonly monedaBaseEditable?: boolean;
+            readonly totalAlojamiento?: string;
+            readonly totalLimpieza?: string;
+            readonly totalServicio?: string;
+            /** @description Estancias de la reserva indexadas por su ID de booking en Beds24. */
+            readonly estancias?: string[][];
+        };
+        "PmsPagoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
+            moneda?: components["schemas"]["Moneda-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Importe del recargo: `monto × porcentaje / 100`. Derivado, nunca se guarda —
+             *     así no puede quedar desfasado si se corrige el monto.
+             */
+            readonly montoComision?: string;
+            /**
+             * @description Lo que se le cobra REALMENTE al huésped: neto + recargo. Es la cifra que se pasa por
+             *     la tarjeta; `monto` (el neto) es la que abona su estancia.
+             */
+            readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
+        };
+        /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
+        "PmsPagoFinanciero-pms_pago.patch.jsonMergePatch": {
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+        };
+        /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
+        "PmsPagoFinanciero-pms_pago.read_maestro.moneda.read": {
+            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
+            moneda?: components["schemas"]["Moneda-pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Importe del recargo: `monto × porcentaje / 100`. Derivado, nunca se guarda —
+             *     así no puede quedar desfasado si se corrige el monto.
+             */
+            readonly montoComision?: string;
+            /**
+             * @description Lo que se le cobra REALMENTE al huésped: neto + recargo. Es la cifra que se pasa por
+             *     la tarjeta; `monto` (el neto) es la que abona su estancia.
+             */
+            readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
+        };
+        /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
+        "PmsPagoFinanciero-pms_pago.write": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string;
+            /**
+             * Format: iri-reference
+             * @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes.
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+        };
+        "PmsPagoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
+            moneda?: components["schemas"]["Moneda.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Importe del recargo: `monto × porcentaje / 100`. Derivado, nunca se guarda —
+             *     así no puede quedar desfasado si se corrige el monto.
+             */
+            readonly montoComision?: string;
+            /**
+             * @description Lo que se le cobra REALMENTE al huésped: neto + recargo. Es la cifra que se pasa por
+             *     la tarjeta; `monto` (el neto) es la que abona su estancia.
+             */
+            readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
+        };
+        /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
+        "PmsPagoFinanciero.html-pms_pago.read_maestro.moneda.read": {
+            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
+            moneda?: components["schemas"]["Moneda.html-pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Importe del recargo: `monto × porcentaje / 100`. Derivado, nunca se guarda —
+             *     así no puede quedar desfasado si se corrige el monto.
+             */
+            readonly montoComision?: string;
+            /**
+             * @description Lo que se le cobra REALMENTE al huésped: neto + recargo. Es la cifra que se pasa por
+             *     la tarjeta; `monto` (el neto) es la que abona su estancia.
+             */
+            readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
+        };
+        /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
+        "PmsPagoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
+            moneda?: components["schemas"]["Moneda.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Importe del recargo: `monto × porcentaje / 100`. Derivado, nunca se guarda —
+             *     así no puede quedar desfasado si se corrige el monto.
+             */
+            readonly montoComision?: string;
+            /**
+             * @description Lo que se le cobra REALMENTE al huésped: neto + recargo. Es la cifra que se pasa por
+             *     la tarjeta; `monto` (el neto) es la que abona su estancia.
+             */
+            readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
+        };
+        /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
+        "PmsPagoFinanciero.jsonld-pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
+            moneda?: components["schemas"]["Moneda.jsonld-pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Importe del recargo: `monto × porcentaje / 100`. Derivado, nunca se guarda —
+             *     así no puede quedar desfasado si se corrige el monto.
+             */
+            readonly montoComision?: string;
+            /**
+             * @description Lo que se le cobra REALMENTE al huésped: neto + recargo. Es la cifra que se pasa por
+             *     la tarjeta; `monto` (el neto) es la que abona su estancia.
+             */
+            readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
+        };
+        "PmsPagoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
+            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
+            moneda?: components["schemas"]["Moneda.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Importe del recargo: `monto × porcentaje / 100`. Derivado, nunca se guarda —
+             *     así no puede quedar desfasado si se corrige el monto.
+             */
+            readonly montoComision?: string;
+            /**
+             * @description Lo que se le cobra REALMENTE al huésped: neto + recargo. Es la cifra que se pasa por
+             *     la tarjeta; `monto` (el neto) es la que abona su estancia.
+             */
+            readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
+        };
+        /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
+        "PmsPagoFinanciero.multipart-pms_pago.read_maestro.moneda.read": {
+            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
+            moneda?: components["schemas"]["Moneda.multipart-pms_pago.read_maestro.moneda.read"] | null;
+            /**
+             * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
+             * @default 0.00
+             */
+            monto: string;
+            /** @description Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+            tipoCambio?: string | null;
+            /**
+             * @default efectivo
+             * @enum {string}
+             */
+            medioPago: "efectivo" | "plin_yape" | "tarjeta_credito" | "western_union" | "transferencia_bancaria" | "paypal";
+            /** @description Recargo del medio de pago en **PORCENTAJE** (5.50 = 5.5%), no en importe. */
+            comisionPorcentaje?: string | null;
+            /** Format: date-time */
+            fechaPago?: string;
+            /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
+            referencia?: string | null;
+            notas?: string | null;
+            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
+            esAutomatico?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description Importe del recargo: `monto × porcentaje / 100`. Derivado, nunca se guarda —
+             *     así no puede quedar desfasado si se corrige el monto.
+             */
+            readonly montoComision?: string;
+            /**
+             * @description Lo que se le cobra REALMENTE al huésped: neto + recargo. Es la cifra que se pasa por
+             *     la tarjeta; `monto` (el neto) es la que abona su estancia.
+             */
+            readonly montoTotalCobrado?: string;
+            /** @description Se serializa para que la SPA decida si pinta el basurero. */
+            readonly borrable?: boolean;
+            /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
+            readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
+            /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
+            readonly cobradorNombre?: string | null;
+        };
+        PmsRatesPushQueue: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            unidad?: string;
+            unidadBeds24Map?: components["schemas"]["PmsUnidadBeds24Map"];
+            config?: components["schemas"]["Beds24Config"];
+            endpoint?: components["schemas"]["ExchangeEndpoint"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaRango?: string | null;
+            /** Format: date-time */
+            fechaInicio?: string;
+            /** Format: date-time */
+            fechaFin?: string;
+            precio?: string;
+            /** @default 2 */
+            minStay: number;
+            /**
+             * Format: iri-reference
+             * @description Moneda: ID Natural String(3).
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            effectiveAt?: string | null;
+            dedupeKey?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            lastHttpCode?: number | null;
+            executionResult?: string[] | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "PmsRatesPushQueue.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            unidad?: string;
+            unidadBeds24Map?: components["schemas"]["PmsUnidadBeds24Map.html"];
+            config?: components["schemas"]["Beds24Config.html"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.html"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaRango?: string | null;
+            /** Format: date-time */
+            fechaInicio?: string;
+            /** Format: date-time */
+            fechaFin?: string;
+            precio?: string;
+            /** @default 2 */
+            minStay: number;
+            /**
+             * Format: iri-reference
+             * @description Moneda: ID Natural String(3).
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            effectiveAt?: string | null;
+            dedupeKey?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            lastHttpCode?: number | null;
+            executionResult?: string[] | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "PmsRatesPushQueue.jsonld": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            unidad?: string;
+            unidadBeds24Map?: components["schemas"]["PmsUnidadBeds24Map.jsonld"];
+            config?: components["schemas"]["Beds24Config.jsonld"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.jsonld"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaRango?: string | null;
+            /** Format: date-time */
+            fechaInicio?: string;
+            /** Format: date-time */
+            fechaFin?: string;
+            precio?: string;
+            /** @default 2 */
+            minStay: number;
+            /**
+             * Format: iri-reference
+             * @description Moneda: ID Natural String(3).
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            effectiveAt?: string | null;
+            dedupeKey?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            lastHttpCode?: number | null;
+            executionResult?: string[] | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        "PmsRatesPushQueue.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            unidad?: string;
+            unidadBeds24Map?: components["schemas"]["PmsUnidadBeds24Map.multipart"];
+            config?: components["schemas"]["Beds24Config.multipart"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.multipart"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaRango?: string | null;
+            /** Format: date-time */
+            fechaInicio?: string;
+            /** Format: date-time */
+            fechaFin?: string;
+            precio?: string;
+            /** @default 2 */
+            minStay: number;
+            /**
+             * Format: iri-reference
+             * @description Moneda: ID Natural String(3).
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            effectiveAt?: string | null;
+            dedupeKey?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            retryCount?: number;
+            /** @default 5 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            lastHttpCode?: number | null;
+            executionResult?: string[] | null;
+            failedReason?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+        };
+        PmsReserva: {
+            beds24MasterId?: string | null;
+            beds24BookIdPrincipal?: string | null;
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            establecimiento?: components["schemas"]["PmsEstablecimiento"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma: string;
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /**
+             * @description Solo trae `id` (ver Groups en PmsEventoCalendario::getId()): el frontend usa esta
+             *     lista para saber qué estancias tiene la reserva y luego pide el detalle completo
+             *     de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
+             *     editar un evento individual).
+             */
+            eventosCalendario?: string[];
+            huespedes?: components["schemas"]["PmsReservaHuesped"][];
+            /**
+             * Format: iri-reference
+             * @description Cabecera financiera (1:1). Existe SOLO para que el borrado cascadee.
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string | null;
+            canalesAggregate?: string | null;
+            unidadesAggregate?: string | null;
+            referenciaCanalAggregate?: string | null;
+            horaLlegadaCanalAggregate?: string | null;
+            /** Format: date-time */
+            primeraFechaReservaCanal?: string | null;
+            /** Format: date-time */
+            ultimaFechaModificacionCanal?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
+             */
+            resumenFinanciero?: string[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly nombreCompleto?: string | null;
+            readonly numeroNoches?: number;
+            readonly paxTotal?: number;
+            readonly nombreHotel?: string;
+            readonly nombreHabitacion?: string;
+            readonly nombreApellido?: string | null;
+            readonly noches?: number;
+            readonly urlBeds24?: string | null;
+            /**
+             * @description Una reserva solo es borrable si TODAS sus estancias lo son
+             *     (misma regla que aplica PmsReservaDeleteListener::preRemove).
+             */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
+            /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
+            readonly eventosActivosGuia?: string[];
+            /** @description ¿Está cancelada esta reserva por completo? */
+            readonly cancelada?: boolean;
+            /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
+            readonly establecimientoVirtualPrincipal?: components["schemas"]["PmsEstablecimientoVirtual"] | null;
+            /** @description REGLA DE NEGOCIO: Determina si la reserva está COMPLETAMENTE cancelada. */
+            readonly totalmenteCancelada?: boolean;
+            /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
+            readonly urlCanalExtranet?: string | null;
+            /** @description Getter virtual para EasyAdmin (Trazabilidad) */
+            readonly trazabilidadEventos?: string | null;
         };
         "PmsReserva-pax_reserva.read": {
             nombreCliente: string | null;
-            apellidoCliente: string | null;
+            apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
             /** Format: email */
@@ -9996,6 +16755,13 @@ export interface components {
             /** Format: date-time */
             fechaSalida: string | null;
             unidadesAggregate?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -10005,11 +16771,248 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
+            readonly eventosActivosGuia?: components["schemas"]["PmsEventoCalendario-pax_reserva.read"][];
+        };
+        "PmsReserva-pms_evento.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsReserva-pms_reserva.read_timestamp.read": {
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            channel?: components["schemas"]["PmsChannel-pms_reserva.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais-pms_reserva.read_timestamp.read"] | null;
+            idioma: components["schemas"]["Idioma-pms_reserva.read_timestamp.read"];
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /**
+             * @description Solo trae `id` (ver Groups en PmsEventoCalendario::getId()): el frontend usa esta
+             *     lista para saber qué estancias tiene la reserva y luego pide el detalle completo
+             *     de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
+             *     editar un evento individual).
+             */
+            eventosCalendario?: components["schemas"]["PmsEventoCalendario-pms_reserva.read_timestamp.read"][];
+            referenciaCanalAggregate?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly urlBeds24?: string | null;
+            /**
+             * @description Una reserva solo es borrable si TODAS sus estancias lo son
+             *     (misma regla que aplica PmsReservaDeleteListener::preRemove).
+             */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
+            /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
+            readonly urlCanalExtranet?: string | null;
+        };
+        "PmsReserva-pms_reserva.write.jsonMergePatch": {
+            nombreCliente?: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma?: string;
+            datosLocked?: boolean;
+            nota?: string | null;
+        };
+        "PmsReserva.PmsReservaCrearInput-pms_reserva_crear.write": {
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description Cuál de los dos números usa el sistema. Ver PmsReserva::getTelefonoContacto(). */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Si no se envía, el processor usa MaestroIdioma::DEFAULT_IDIOMA.
+             * @example https://example.com/
+             */
+            idioma?: string | null;
+            nota?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string | null;
+            inicio: string | null;
+            fin: string | null;
+            /** @default 1 */
+            cantidadAdultos: number;
+            cantidadNinos?: number;
+            descripcion?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /** @default 0.00 */
+            comision: string;
+        };
+        "PmsReserva.html": {
+            beds24MasterId?: string | null;
+            beds24BookIdPrincipal?: string | null;
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            establecimiento?: components["schemas"]["PmsEstablecimiento.html"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma: string;
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /**
+             * @description Solo trae `id` (ver Groups en PmsEventoCalendario::getId()): el frontend usa esta
+             *     lista para saber qué estancias tiene la reserva y luego pide el detalle completo
+             *     de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
+             *     editar un evento individual).
+             */
+            eventosCalendario?: string[];
+            huespedes?: components["schemas"]["PmsReservaHuesped.html"][];
+            /**
+             * Format: iri-reference
+             * @description Cabecera financiera (1:1). Existe SOLO para que el borrado cascadee.
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string | null;
+            canalesAggregate?: string | null;
+            unidadesAggregate?: string | null;
+            referenciaCanalAggregate?: string | null;
+            horaLlegadaCanalAggregate?: string | null;
+            /** Format: date-time */
+            primeraFechaReservaCanal?: string | null;
+            /** Format: date-time */
+            ultimaFechaModificacionCanal?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
+             */
+            resumenFinanciero?: string[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly nombreCompleto?: string | null;
+            readonly numeroNoches?: number;
+            readonly paxTotal?: number;
+            readonly nombreHotel?: string;
+            readonly nombreHabitacion?: string;
+            readonly nombreApellido?: string | null;
+            readonly noches?: number;
+            readonly urlBeds24?: string | null;
+            /**
+             * @description Una reserva solo es borrable si TODAS sus estancias lo son
+             *     (misma regla que aplica PmsReservaDeleteListener::preRemove).
+             */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
+            /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
+            /** @description ¿Está cancelada esta reserva por completo? */
+            readonly cancelada?: boolean;
+            /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
+            readonly establecimientoVirtualPrincipal?: components["schemas"]["PmsEstablecimientoVirtual.html"] | null;
+            /** @description REGLA DE NEGOCIO: Determina si la reserva está COMPLETAMENTE cancelada. */
+            readonly totalmenteCancelada?: boolean;
+            /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
+            readonly urlCanalExtranet?: string | null;
+            /** @description Getter virtual para EasyAdmin (Trazabilidad) */
+            readonly trazabilidadEventos?: string | null;
         };
         "PmsReserva.html-pax_reserva.read": {
             nombreCliente: string | null;
-            apellidoCliente: string | null;
+            apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
             /** Format: email */
@@ -10032,6 +17035,13 @@ export interface components {
             /** Format: date-time */
             fechaSalida: string | null;
             unidadesAggregate?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -10041,11 +17051,192 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
-            readonly eventosActivosGuia?: string[];
+            readonly eventosActivosGuia?: components["schemas"]["PmsEventoCalendario.html-pax_reserva.read"][];
         };
-        "PmsReserva.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "PmsReserva.html-pms_evento.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsReserva.html-pms_reserva.read_timestamp.read": {
             nombreCliente: string | null;
-            apellidoCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            channel?: components["schemas"]["PmsChannel.html-pms_reserva.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais.html-pms_reserva.read_timestamp.read"] | null;
+            idioma: components["schemas"]["Idioma.html-pms_reserva.read_timestamp.read"];
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /**
+             * @description Solo trae `id` (ver Groups en PmsEventoCalendario::getId()): el frontend usa esta
+             *     lista para saber qué estancias tiene la reserva y luego pide el detalle completo
+             *     de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
+             *     editar un evento individual).
+             */
+            eventosCalendario?: components["schemas"]["PmsEventoCalendario.html-pms_reserva.read_timestamp.read"][];
+            referenciaCanalAggregate?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly urlBeds24?: string | null;
+            /**
+             * @description Una reserva solo es borrable si TODAS sus estancias lo son
+             *     (misma regla que aplica PmsReservaDeleteListener::preRemove).
+             */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
+            /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
+            readonly urlCanalExtranet?: string | null;
+        };
+        "PmsReserva.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            beds24MasterId?: string | null;
+            beds24BookIdPrincipal?: string | null;
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma: string;
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /**
+             * @description Solo trae `id` (ver Groups en PmsEventoCalendario::getId()): el frontend usa esta
+             *     lista para saber qué estancias tiene la reserva y luego pide el detalle completo
+             *     de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
+             *     editar un evento individual).
+             */
+            eventosCalendario?: string[];
+            huespedes?: components["schemas"]["PmsReservaHuesped.jsonld"][];
+            /**
+             * Format: iri-reference
+             * @description Cabecera financiera (1:1). Existe SOLO para que el borrado cascadee.
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string | null;
+            canalesAggregate?: string | null;
+            unidadesAggregate?: string | null;
+            referenciaCanalAggregate?: string | null;
+            horaLlegadaCanalAggregate?: string | null;
+            /** Format: date-time */
+            primeraFechaReservaCanal?: string | null;
+            /** Format: date-time */
+            ultimaFechaModificacionCanal?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
+             */
+            resumenFinanciero?: string[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly nombreCompleto?: string | null;
+            readonly numeroNoches?: number;
+            readonly paxTotal?: number;
+            readonly nombreHotel?: string;
+            readonly nombreHabitacion?: string;
+            readonly nombreApellido?: string | null;
+            readonly noches?: number;
+            readonly urlBeds24?: string | null;
+            /**
+             * @description Una reserva solo es borrable si TODAS sus estancias lo son
+             *     (misma regla que aplica PmsReservaDeleteListener::preRemove).
+             */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
+            /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
+            readonly eventosActivosGuia?: string[];
+            /** @description ¿Está cancelada esta reserva por completo? */
+            readonly cancelada?: boolean;
+            /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
+            readonly establecimientoVirtualPrincipal?: components["schemas"]["PmsEstablecimientoVirtual.jsonld"] | null;
+            /** @description REGLA DE NEGOCIO: Determina si la reserva está COMPLETAMENTE cancelada. */
+            readonly totalmenteCancelada?: boolean;
+            /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
+            readonly urlCanalExtranet?: string | null;
+            /** @description Getter virtual para EasyAdmin (Trazabilidad) */
+            readonly trazabilidadEventos?: string | null;
+        };
+        "PmsReserva.jsonld-pax_reserva.read": {
+            /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
+            readonly eventosActivosGuia?: components["schemas"]["PmsEventoCalendario.jsonld-pax_reserva.read"][];
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
             /** Format: email */
@@ -10068,6 +17259,13 @@ export interface components {
             /** Format: date-time */
             fechaSalida: string | null;
             unidadesAggregate?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -10076,12 +17274,188 @@ export interface components {
             readonly paxTotal?: number;
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
+        });
+        "PmsReserva.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsReserva.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            channel?: components["schemas"]["PmsChannel.jsonld-pms_reserva.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais.jsonld-pms_reserva.read_timestamp.read"] | null;
+            idioma: components["schemas"]["Idioma.jsonld-pms_reserva.read_timestamp.read"];
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /**
+             * @description Solo trae `id` (ver Groups en PmsEventoCalendario::getId()): el frontend usa esta
+             *     lista para saber qué estancias tiene la reserva y luego pide el detalle completo
+             *     de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
+             *     editar un evento individual).
+             */
+            eventosCalendario?: components["schemas"]["PmsEventoCalendario.jsonld-pms_reserva.read_timestamp.read"][];
+            referenciaCanalAggregate?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly urlBeds24?: string | null;
+            /**
+             * @description Una reserva solo es borrable si TODAS sus estancias lo son
+             *     (misma regla que aplica PmsReservaDeleteListener::preRemove).
+             */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
+            /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
+            readonly urlCanalExtranet?: string | null;
+        };
+        "PmsReserva.multipart": {
+            beds24MasterId?: string | null;
+            beds24BookIdPrincipal?: string | null;
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            establecimiento?: components["schemas"]["PmsEstablecimiento.multipart"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            channel?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma: string;
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /**
+             * @description Solo trae `id` (ver Groups en PmsEventoCalendario::getId()): el frontend usa esta
+             *     lista para saber qué estancias tiene la reserva y luego pide el detalle completo
+             *     de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
+             *     editar un evento individual).
+             */
+            eventosCalendario?: string[];
+            huespedes?: components["schemas"]["PmsReservaHuesped.multipart"][];
+            /**
+             * Format: iri-reference
+             * @description Cabecera financiera (1:1). Existe SOLO para que el borrado cascadee.
+             * @example https://example.com/
+             */
+            informacionFinanciera?: string | null;
+            canalesAggregate?: string | null;
+            unidadesAggregate?: string | null;
+            referenciaCanalAggregate?: string | null;
+            horaLlegadaCanalAggregate?: string | null;
+            /** Format: date-time */
+            primeraFechaReservaCanal?: string | null;
+            /** Format: date-time */
+            ultimaFechaModificacionCanal?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
+             */
+            resumenFinanciero?: string[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly nombreCompleto?: string | null;
+            readonly numeroNoches?: number;
+            readonly paxTotal?: number;
+            readonly nombreHotel?: string;
+            readonly nombreHabitacion?: string;
+            readonly nombreApellido?: string | null;
+            readonly noches?: number;
+            readonly urlBeds24?: string | null;
+            /**
+             * @description Una reserva solo es borrable si TODAS sus estancias lo son
+             *     (misma regla que aplica PmsReservaDeleteListener::preRemove).
+             */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
+            /** @description ¿Está cancelada esta reserva por completo? */
+            readonly cancelada?: boolean;
+            /** @description 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal. */
+            readonly establecimientoVirtualPrincipal?: components["schemas"]["PmsEstablecimientoVirtual.multipart"] | null;
+            /** @description REGLA DE NEGOCIO: Determina si la reserva está COMPLETAMENTE cancelada. */
+            readonly totalmenteCancelada?: boolean;
+            /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
+            readonly urlCanalExtranet?: string | null;
+            /** @description Getter virtual para EasyAdmin (Trazabilidad) */
+            readonly trazabilidadEventos?: string | null;
         };
         "PmsReserva.multipart-pax_reserva.read": {
             nombreCliente: string | null;
-            apellidoCliente: string | null;
+            apellidoCliente?: string | null;
             telefono?: string | null;
             telefono2?: string | null;
             /** Format: email */
@@ -10104,6 +17478,13 @@ export interface components {
             /** Format: date-time */
             fechaSalida: string | null;
             unidadesAggregate?: string | null;
+            /**
+             * @description Resumen del estado de cuenta para el huésped: total, adelanto y saldo, en la
+             *     moneda de la cabecera. Lo llena PmsReservaPaxProvider desde
+             *     PmsInformacionFinanciera. Ojo: `$informacionFinanciera` existe sólo para cascadear
+             *     el borrado y no se serializa; este resumen sigue siendo la única vía hacia pax.
+             */
+            resumenFinanciero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -10113,23 +17494,1455 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
-            readonly eventosActivosGuia?: string[];
+            readonly eventosActivosGuia?: components["schemas"]["PmsEventoCalendario.multipart-pax_reserva.read"][];
         };
-        "PmsUnidad-pax_evento.read": {
+        "PmsReserva.multipart-pms_evento.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsReserva.multipart-pms_reserva.read_timestamp.read": {
+            nombreCliente: string | null;
+            apellidoCliente?: string | null;
+            telefono?: string | null;
+            telefono2?: string | null;
+            /** @description El operador marca cuál de los dos números es el bueno para contactar. */
+            telefono2EsPrincipal?: boolean;
+            /** Format: email */
+            emailCliente?: string | null;
+            channel?: components["schemas"]["PmsChannel.multipart-pms_reserva.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais.multipart-pms_reserva.read_timestamp.read"] | null;
+            idioma: components["schemas"]["Idioma.multipart-pms_reserva.read_timestamp.read"];
+            cantidadAdultos?: number | null;
+            cantidadNinos?: number | null;
+            montoTotal?: string | null;
+            comisionTotal?: string | null;
+            /** Format: date-time */
+            fechaLlegada: string | null;
+            /** Format: date-time */
+            fechaSalida: string | null;
+            datosLocked?: boolean;
+            nota?: string | null;
+            /**
+             * @description Solo trae `id` (ver Groups en PmsEventoCalendario::getId()): el frontend usa esta
+             *     lista para saber qué estancias tiene la reserva y luego pide el detalle completo
+             *     de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
+             *     editar un evento individual).
+             */
+            eventosCalendario?: components["schemas"]["PmsEventoCalendario.multipart-pms_reserva.read_timestamp.read"][];
+            referenciaCanalAggregate?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly urlBeds24?: string | null;
+            /**
+             * @description Una reserva solo es borrable si TODAS sus estancias lo son
+             *     (misma regla que aplica PmsReservaDeleteListener::preRemove).
+             */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            /**
+             * @description Peor estado de sincronización de sus estancias: si una está `pending`, la reserva
+             *     entera lo está. Serializado por el mismo motivo que `PmsEventoCalendario::getSyncStatus()`:
+             *     el borrado de la reserva completa tiene que esperar a que TODAS sus cancelaciones
+             *     hayan llegado a Beds24.
+             */
+            readonly syncStatusAggregate?: string;
+            /** @description EL número al que hay que escribir. Fuente única de verdad. */
+            readonly telefonoContacto?: string | null;
+            /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
+            readonly urlCanalExtranet?: string | null;
+        };
+        PmsReservaHuesped: {
+            /**
+             * Format: iri-reference
+             * @description Trait para tokens de seguridad en archivos y helpers de medios
+             * @example https://example.com/
+             */
+            reserva?: string;
+            nombre?: string;
+            apellido?: string;
+            /** Format: date-time */
+            fechaNacimiento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description País: ID Natural (String 2 - ISO)
+             *     SE ELIMINA BINARY(16)
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * @description Tipo de Documento: Enum String
+             *     SE ELIMINA BINARY(16) Y RELACIÓN CON TABLA MAESTRA
+             * @enum {string|null}
+             */
+            tipoDocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
+            documentoNumero?: string | null;
+            esPrincipal?: boolean;
+            /** Format: binary */
+            documentoFile?: string | null;
+            documentoName?: string | null;
+            tamNumero?: string | null;
+            /** Format: binary */
+            tamFile?: string | null;
+            tamName?: string | null;
+            /** Format: binary */
+            firmaFile?: string | null;
+            firmaName?: string | null;
+            /** Format: date-time */
+            firmadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Trigger técnico para VichUploader
+             */
+            fileUpdatedAt?: string | null;
+            documentoUrl?: string | null;
+            tamUrl?: string | null;
+            firmaUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            readonly edadAlCheckOut?: number | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsReservaHuesped.html": {
+            /**
+             * Format: iri-reference
+             * @description Trait para tokens de seguridad en archivos y helpers de medios
+             * @example https://example.com/
+             */
+            reserva?: string;
+            nombre?: string;
+            apellido?: string;
+            /** Format: date-time */
+            fechaNacimiento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description País: ID Natural (String 2 - ISO)
+             *     SE ELIMINA BINARY(16)
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * @description Tipo de Documento: Enum String
+             *     SE ELIMINA BINARY(16) Y RELACIÓN CON TABLA MAESTRA
+             * @enum {string|null}
+             */
+            tipoDocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
+            documentoNumero?: string | null;
+            esPrincipal?: boolean;
+            /** Format: binary */
+            documentoFile?: string | null;
+            documentoName?: string | null;
+            tamNumero?: string | null;
+            /** Format: binary */
+            tamFile?: string | null;
+            tamName?: string | null;
+            /** Format: binary */
+            firmaFile?: string | null;
+            firmaName?: string | null;
+            /** Format: date-time */
+            firmadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Trigger técnico para VichUploader
+             */
+            fileUpdatedAt?: string | null;
+            documentoUrl?: string | null;
+            tamUrl?: string | null;
+            firmaUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            readonly edadAlCheckOut?: number | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsReservaHuesped.jsonld": {
+            /**
+             * Format: iri-reference
+             * @description Trait para tokens de seguridad en archivos y helpers de medios
+             * @example https://example.com/
+             */
+            reserva?: string;
+            nombre?: string;
+            apellido?: string;
+            /** Format: date-time */
+            fechaNacimiento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description País: ID Natural (String 2 - ISO)
+             *     SE ELIMINA BINARY(16)
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * @description Tipo de Documento: Enum String
+             *     SE ELIMINA BINARY(16) Y RELACIÓN CON TABLA MAESTRA
+             * @enum {string|null}
+             */
+            tipoDocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
+            documentoNumero?: string | null;
+            esPrincipal?: boolean;
+            /** Format: binary */
+            documentoFile?: string | null;
+            documentoName?: string | null;
+            tamNumero?: string | null;
+            /** Format: binary */
+            tamFile?: string | null;
+            tamName?: string | null;
+            /** Format: binary */
+            firmaFile?: string | null;
+            firmaName?: string | null;
+            /** Format: date-time */
+            firmadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Trigger técnico para VichUploader
+             */
+            fileUpdatedAt?: string | null;
+            documentoUrl?: string | null;
+            tamUrl?: string | null;
+            firmaUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            readonly edadAlCheckOut?: number | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsReservaHuesped.multipart": {
+            /**
+             * Format: iri-reference
+             * @description Trait para tokens de seguridad en archivos y helpers de medios
+             * @example https://example.com/
+             */
+            reserva?: string;
+            nombre?: string;
+            apellido?: string;
+            /** Format: date-time */
+            fechaNacimiento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description País: ID Natural (String 2 - ISO)
+             *     SE ELIMINA BINARY(16)
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            /**
+             * @description Tipo de Documento: Enum String
+             *     SE ELIMINA BINARY(16) Y RELACIÓN CON TABLA MAESTRA
+             * @enum {string|null}
+             */
+            tipoDocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
+            documentoNumero?: string | null;
+            esPrincipal?: boolean;
+            /** Format: binary */
+            documentoFile?: string | null;
+            documentoName?: string | null;
+            tamNumero?: string | null;
+            /** Format: binary */
+            tamFile?: string | null;
+            tamName?: string | null;
+            /** Format: binary */
+            firmaFile?: string | null;
+            firmaName?: string | null;
+            /** Format: date-time */
+            firmadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Trigger técnico para VichUploader
+             */
+            fileUpdatedAt?: string | null;
+            documentoUrl?: string | null;
+            tamUrl?: string | null;
+            firmaUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            localizador?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            readonly edadAlCheckOut?: number | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
+            /** @description Gestión de auditoría temporal (DateTimeImmutable) */
+            unidad: components["schemas"]["PmsUnidad-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+            /** Format: date-time */
+            fechaInicio: string;
+            /** Format: date-time */
+            fechaFin: string;
+            precio: string;
+            /**
+             * @description Moneda: ID Natural (String 3)
+             *     SE ELIMINA BINARY(16)
+             */
+            moneda: components["schemas"]["Moneda-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+            /** @default 2 */
+            minStay: number;
+            importante?: boolean;
+            prioridad?: number;
+            /** @default true */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Estado consolidado del push de tarifas a Beds24 (mismo criterio y mismos
+             *     valores que PmsEventoCalendario::getSyncStatus(), para que el frontend
+             *     pinte ambos módulos con la misma leyenda).
+             */
+            readonly syncStatus?: string;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango-pms_tarifa.write": {
+            /**
+             * Format: iri-reference
+             * @description Gestión de auditoría temporal (DateTimeImmutable)
+             * @example https://example.com/
+             */
+            unidad: string;
+            /** Format: date-time */
+            fechaInicio: string;
+            /** Format: date-time */
+            fechaFin: string;
+            precio: string;
+            /**
+             * Format: iri-reference
+             * @description Moneda: ID Natural (String 3)
+             *     SE ELIMINA BINARY(16)
+             * @example https://example.com/
+             */
+            moneda: string;
+            /** @default 2 */
+            minStay: number;
+            importante?: boolean;
+            prioridad?: number;
+            /** @default true */
+            activo: boolean;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango-pms_tarifa.write.jsonMergePatch": {
+            /**
+             * Format: iri-reference
+             * @description Gestión de auditoría temporal (DateTimeImmutable)
+             * @example https://example.com/
+             */
+            unidad?: string;
+            /** Format: date-time */
+            fechaInicio?: string;
+            /** Format: date-time */
+            fechaFin?: string;
+            precio?: string;
+            /**
+             * Format: iri-reference
+             * @description Moneda: ID Natural (String 3)
+             *     SE ELIMINA BINARY(16)
+             * @example https://example.com/
+             */
+            moneda?: string;
+            /** @default 2 */
+            minStay: number;
+            importante?: boolean;
+            prioridad?: number;
+            /** @default true */
+            activo: boolean;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango.PmsTarifaMasivaInput-pms_tarifa_masiva.write": {
+            fechaInicio: string | null;
+            fechaFin: string | null;
+            /** @description Porcentaje de ajuste sobre la tarifa base de cada unidad (ej: 20 = +20%, -10 = -10%). */
+            porcentaje: number;
+            /** @default 2 */
+            minStay: number;
+            prioridad: number;
+            importante: boolean;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango.PmsTarifaMasivaResult-pms_tarifa_masiva.read": {
+            creadas?: number;
+            mensaje?: string;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango.PmsTarifaMasivaResult.html-pms_tarifa_masiva.read": {
+            creadas?: number;
+            mensaje?: string;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango.PmsTarifaMasivaResult.jsonld-pms_tarifa_masiva.read": components["schemas"]["HydraItemBaseSchema"] & {
+            creadas?: number;
+            mensaje?: string;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango.PmsTarifaMasivaResult.multipart-pms_tarifa_masiva.read": {
+            creadas?: number;
+            mensaje?: string;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
+            /** @description Gestión de auditoría temporal (DateTimeImmutable) */
+            unidad: components["schemas"]["PmsUnidad.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+            /** Format: date-time */
+            fechaInicio: string;
+            /** Format: date-time */
+            fechaFin: string;
+            precio: string;
+            /**
+             * @description Moneda: ID Natural (String 3)
+             *     SE ELIMINA BINARY(16)
+             */
+            moneda: components["schemas"]["Moneda.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+            /** @default 2 */
+            minStay: number;
+            importante?: boolean;
+            prioridad?: number;
+            /** @default true */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Estado consolidado del push de tarifas a Beds24 (mismo criterio y mismos
+             *     valores que PmsEventoCalendario::getSyncStatus(), para que el frontend
+             *     pinte ambos módulos con la misma leyenda).
+             */
+            readonly syncStatus?: string;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Gestión de auditoría temporal (DateTimeImmutable) */
+            unidad: components["schemas"]["PmsUnidad.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+            /** Format: date-time */
+            fechaInicio: string;
+            /** Format: date-time */
+            fechaFin: string;
+            precio: string;
+            /**
+             * @description Moneda: ID Natural (String 3)
+             *     SE ELIMINA BINARY(16)
+             */
+            moneda: components["schemas"]["Moneda.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+            /** @default 2 */
+            minStay: number;
+            importante?: boolean;
+            prioridad?: number;
+            /** @default true */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Estado consolidado del push de tarifas a Beds24 (mismo criterio y mismos
+             *     valores que PmsEventoCalendario::getSyncStatus(), para que el frontend
+             *     pinte ambos módulos con la misma leyenda).
+             */
+            readonly syncStatus?: string;
+        };
+        /**
+         * @description Entidad PmsTarifaRango.
+         *     Define precios y estancias mínimas por unidad y rango de fechas.
+         *     IDs: UUID (Propio/Negocio), String 3 (Moneda).
+         */
+        "PmsTarifaRango.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
+            /** @description Gestión de auditoría temporal (DateTimeImmutable) */
+            unidad: components["schemas"]["PmsUnidad.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+            /** Format: date-time */
+            fechaInicio: string;
+            /** Format: date-time */
+            fechaFin: string;
+            precio: string;
+            /**
+             * @description Moneda: ID Natural (String 3)
+             *     SE ELIMINA BINARY(16)
+             */
+            moneda: components["schemas"]["Moneda.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+            /** @default 2 */
+            minStay: number;
+            importante?: boolean;
+            prioridad?: number;
+            /** @default true */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Estado consolidado del push de tarifas a Beds24 (mismo criterio y mismos
+             *     valores que PmsEventoCalendario::getSyncStatus(), para que el frontend
+             *     pinte ambos módulos con la misma leyenda).
+             */
+            readonly syncStatus?: string;
+        };
+        PmsUnidad: {
+            establecimiento?: components["schemas"]["PmsEstablecimiento"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            codigoInterno?: string | null;
+            capacidad?: number | null;
+            /** @default true */
+            activo: boolean;
+            codigoPuerta?: string | null;
+            codigoCaja?: string | null;
+            /** @description Almacena múltiples redes WiFi. */
+            wifiNetworks?: string[] | null;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaBaseMoneda?: string;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            beds24Maps?: components["schemas"]["PmsUnidadBeds24Map"][];
+            tarifaQueues?: components["schemas"]["PmsRatesPushQueue"][];
+            bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue"][];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            guia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Escaparate público. Estructura propia, independiente de la guía (ver PmsCatalogo).
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            readonly token?: string | null;
+            /** @description Helper: Obtiene el SSID de la primera red (Principal). */
+            readonly mainWifiSsid?: string;
+            /** @description Helper: Obtiene el Password de la primera red (Principal). */
+            readonly mainWifiPass?: string;
+            /**
+             * @description Stub para la columna «Pax extra» del listado, que resume `paxIncluidos` y
+             *     `precioPaxAdicional` en una celda.
+             */
+            readonly virtualPaxExtra?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            readonly tarifaBaseMonedaOrFail?: string;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+            readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map"] | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsUnidad-pax_catalogo.read": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento-pax_catalogo.read"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            capacidad?: number | null;
+        };
+        "PmsUnidad-pax_guia.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
-        "PmsUnidad.html-pax_evento.read": {
+        "PmsUnidad-pax_reserva.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "PmsUnidad-pms_evento.read_timestamp.read": {
+            nombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsUnidad-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad-pms_unidad.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+        };
+        "PmsUnidad.html": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.html"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            codigoInterno?: string | null;
+            capacidad?: number | null;
+            /** @default true */
+            activo: boolean;
+            codigoPuerta?: string | null;
+            codigoCaja?: string | null;
+            /** @description Almacena múltiples redes WiFi. */
+            wifiNetworks?: string[] | null;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaBaseMoneda?: string;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.html"][];
+            tarifaQueues?: components["schemas"]["PmsRatesPushQueue.html"][];
+            bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.html"][];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            guia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Escaparate público. Estructura propia, independiente de la guía (ver PmsCatalogo).
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            readonly token?: string | null;
+            /** @description Helper: Obtiene el SSID de la primera red (Principal). */
+            readonly mainWifiSsid?: string;
+            /** @description Helper: Obtiene el Password de la primera red (Principal). */
+            readonly mainWifiPass?: string;
+            /**
+             * @description Stub para la columna «Pax extra» del listado, que resume `paxIncluidos` y
+             *     `precioPaxAdicional` en una celda.
+             */
+            readonly virtualPaxExtra?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            readonly tarifaBaseMonedaOrFail?: string;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+            readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.html"] | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsUnidad.html-pax_catalogo.read": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.html-pax_catalogo.read"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            capacidad?: number | null;
+        };
+        "PmsUnidad.html-pax_guia.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
-        "PmsUnidad.jsonld-pax_evento.read": {
+        "PmsUnidad.html-pax_reserva.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "PmsUnidad.html-pms_evento.read_timestamp.read": {
+            nombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsUnidad.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.html-pms_unidad.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            codigoInterno?: string | null;
+            capacidad?: number | null;
+            /** @default true */
+            activo: boolean;
+            codigoPuerta?: string | null;
+            codigoCaja?: string | null;
+            /** @description Almacena múltiples redes WiFi. */
+            wifiNetworks?: string[] | null;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaBaseMoneda?: string;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.jsonld"][];
+            tarifaQueues?: components["schemas"]["PmsRatesPushQueue.jsonld"][];
+            bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.jsonld"][];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            guia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Escaparate público. Estructura propia, independiente de la guía (ver PmsCatalogo).
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            readonly token?: string | null;
+            /** @description Helper: Obtiene el SSID de la primera red (Principal). */
+            readonly mainWifiSsid?: string;
+            /** @description Helper: Obtiene el Password de la primera red (Principal). */
+            readonly mainWifiPass?: string;
+            /**
+             * @description Stub para la columna «Pax extra» del listado, que resume `paxIncluidos` y
+             *     `precioPaxAdicional` en una celda.
+             */
+            readonly virtualPaxExtra?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            readonly tarifaBaseMonedaOrFail?: string;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+            readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.jsonld"] | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pax_catalogo.read": components["schemas"]["HydraItemBaseSchema"] & {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld-pax_catalogo.read"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            capacidad?: number | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pax_guia.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
-        "PmsUnidad.multipart-pax_evento.read": {
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.jsonld-pms_unidad.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+        };
+        "PmsUnidad.multipart": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.multipart"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            codigoInterno?: string | null;
+            capacidad?: number | null;
+            /** @default true */
+            activo: boolean;
+            codigoPuerta?: string | null;
+            codigoCaja?: string | null;
+            /** @description Almacena múltiples redes WiFi. */
+            wifiNetworks?: string[] | null;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            tarifaBaseMoneda?: string;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.multipart"][];
+            tarifaQueues?: components["schemas"]["PmsRatesPushQueue.multipart"][];
+            bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.multipart"][];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            guia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Escaparate público. Estructura propia, independiente de la guía (ver PmsCatalogo).
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+            readonly token?: string | null;
+            /** @description Helper: Obtiene el SSID de la primera red (Principal). */
+            readonly mainWifiSsid?: string;
+            /** @description Helper: Obtiene el Password de la primera red (Principal). */
+            readonly mainWifiPass?: string;
+            /**
+             * @description Stub para la columna «Pax extra» del listado, que resume `paxIncluidos` y
+             *     `precioPaxAdicional` en una celda.
+             */
+            readonly virtualPaxExtra?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            readonly tarifaBaseMonedaOrFail?: string;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+            readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.multipart"] | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsUnidad.multipart-pax_catalogo.read": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.multipart-pax_catalogo.read"];
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            capacidad?: number | null;
+        };
+        "PmsUnidad.multipart-pax_guia.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+        };
+        "PmsUnidad.multipart-pax_reserva.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "PmsUnidad.multipart-pms_evento.read_timestamp.read": {
+            nombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsUnidad.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
+        "PmsUnidad.multipart-pms_unidad.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @default true */
+            activo: boolean;
+            /** @default 0.00 */
+            tarifaBasePrecio: string;
+            /** @default 2 */
+            tarifaBaseMinStay: number;
+            /** @default true */
+            tarifaBaseActiva: boolean;
+            /** @description Hasta cuántas personas entran en la tarifa sin recargo. */
+            paxIncluidos?: number;
+            /**
+             * @description Cuánto suma cada persona por encima de `$paxIncluidos`, **por noche**.
+             * @default 0.00
+             */
+            precioPaxAdicional: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
+            readonly tarifaBaseMonedaId?: string | null;
+            readonly tarifaBaseMonedaSimbolo?: string | null;
+        };
+        PmsUnidadBeds24Map: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            virtualEstablecimiento?: components["schemas"]["PmsEstablecimientoVirtual"] | null;
+            beds24RoomId: number;
+            beds24PropertyId?: number;
+            beds24UnitId?: number | null;
+            /** @default true */
+            activo: boolean;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly channelPropId?: string | null;
+            readonly esPrincipal?: boolean;
+        };
+        "PmsUnidadBeds24Map.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            virtualEstablecimiento?: components["schemas"]["PmsEstablecimientoVirtual.html"] | null;
+            beds24RoomId: number;
+            beds24PropertyId?: number;
+            beds24UnitId?: number | null;
+            /** @default true */
+            activo: boolean;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly channelPropId?: string | null;
+            readonly esPrincipal?: boolean;
+        };
+        "PmsUnidadBeds24Map.jsonld": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            virtualEstablecimiento?: components["schemas"]["PmsEstablecimientoVirtual.jsonld"] | null;
+            beds24RoomId: number;
+            beds24PropertyId?: number;
+            beds24UnitId?: number | null;
+            /** @default true */
+            activo: boolean;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly channelPropId?: string | null;
+            readonly esPrincipal?: boolean;
+        };
+        "PmsUnidadBeds24Map.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pmsUnidad: string;
+            virtualEstablecimiento?: components["schemas"]["PmsEstablecimientoVirtual.multipart"] | null;
+            beds24RoomId: number;
+            beds24PropertyId?: number;
+            beds24UnitId?: number | null;
+            /** @default true */
+            activo: boolean;
+            nota?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly channelPropId?: string | null;
+            readonly esPrincipal?: boolean;
         };
         /**
          * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
@@ -11558,6 +20371,10 @@ export interface components {
             code: string;
             name: string;
             contextType?: string | null;
+            /** @description Cuándo usar esta plantilla, escrito **para el agente de IA**. */
+            agenteUso?: string | null;
+            /** @description ¿Puede el huésped pedírsela a sí mismo por el chat (autoenvío)? */
+            autoenvioHabilitada?: boolean;
             allowedSources?: string[] | null;
             allowedAgencies?: string[] | null;
             /** Format: uuid */
@@ -11574,11 +20391,21 @@ export interface components {
             whatsappMetaOfficial?: boolean;
             /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
             readonly channels?: string[];
+            /**
+             * @description Indica si la plantilla tiene contenido "link" de WhatsApp (api.whatsapp.com)
+             *     en español o inglés. Usado por el frontend para filtrar qué plantillas
+             *     ofrecer en el selector de "Enviar WhatsApp" de una reserva.
+             */
+            readonly whatsappLinkContent?: boolean;
         };
         "Template.html-template.read": {
             code: string;
             name: string;
             contextType?: string | null;
+            /** @description Cuándo usar esta plantilla, escrito **para el agente de IA**. */
+            agenteUso?: string | null;
+            /** @description ¿Puede el huésped pedírsela a sí mismo por el chat (autoenvío)? */
+            autoenvioHabilitada?: boolean;
             allowedSources?: string[] | null;
             allowedAgencies?: string[] | null;
             /** Format: uuid */
@@ -11595,11 +20422,21 @@ export interface components {
             whatsappMetaOfficial?: boolean;
             /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
             readonly channels?: string[];
+            /**
+             * @description Indica si la plantilla tiene contenido "link" de WhatsApp (api.whatsapp.com)
+             *     en español o inglés. Usado por el frontend para filtrar qué plantillas
+             *     ofrecer en el selector de "Enviar WhatsApp" de una reserva.
+             */
+            readonly whatsappLinkContent?: boolean;
         };
         "Template.jsonld-template.read": components["schemas"]["HydraItemBaseSchema"] & {
             code: string;
             name: string;
             contextType?: string | null;
+            /** @description Cuándo usar esta plantilla, escrito **para el agente de IA**. */
+            agenteUso?: string | null;
+            /** @description ¿Puede el huésped pedírsela a sí mismo por el chat (autoenvío)? */
+            autoenvioHabilitada?: boolean;
             allowedSources?: string[] | null;
             allowedAgencies?: string[] | null;
             /** Format: uuid */
@@ -11616,11 +20453,21 @@ export interface components {
             whatsappMetaOfficial?: boolean;
             /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
             readonly channels?: string[];
+            /**
+             * @description Indica si la plantilla tiene contenido "link" de WhatsApp (api.whatsapp.com)
+             *     en español o inglés. Usado por el frontend para filtrar qué plantillas
+             *     ofrecer en el selector de "Enviar WhatsApp" de una reserva.
+             */
+            readonly whatsappLinkContent?: boolean;
         };
         "Template.multipart-template.read": {
             code: string;
             name: string;
             contextType?: string | null;
+            /** @description Cuándo usar esta plantilla, escrito **para el agente de IA**. */
+            agenteUso?: string | null;
+            /** @description ¿Puede el huésped pedírsela a sí mismo por el chat (autoenvío)? */
+            autoenvioHabilitada?: boolean;
             allowedSources?: string[] | null;
             allowedAgencies?: string[] | null;
             /** Format: uuid */
@@ -11637,6 +20484,12 @@ export interface components {
             whatsappMetaOfficial?: boolean;
             /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
             readonly channels?: string[];
+            /**
+             * @description Indica si la plantilla tiene contenido "link" de WhatsApp (api.whatsapp.com)
+             *     en español o inglés. Usado por el frontend para filtrar qué plantillas
+             *     ofrecer en el selector de "Enviar WhatsApp" de una reserva.
+             */
+            readonly whatsappLinkContent?: boolean;
         };
         /**
          * @description Entidad MaestroTipocambio.
@@ -11728,6 +20581,674 @@ export interface components {
             venta?: string;
             readonly promedio?: string;
             readonly promedioredondeado?: string;
+        };
+        TransporteConductor: {
+            /** @description Identificador autoincremental del conductor. */
+            readonly id?: number;
+            licencia?: string;
+            abreviatura?: string;
+            color?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de creación del registro.
+             */
+            creado?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de la última modificación del registro.
+             */
+            modificado?: string;
+            /** @description Listado de servicios realizados por este conductor. */
+            servicios?: components["schemas"]["TransporteServicio"][];
+            /** @description Relación uno a uno con la entidad User. */
+            user?: components["schemas"]["User"];
+            /** @description Obtiene el nombre completo del conductor a través de la relación User. */
+            readonly nombre?: string;
+        };
+        "TransporteConductor.html": {
+            /** @description Identificador autoincremental del conductor. */
+            readonly id?: number;
+            licencia?: string;
+            abreviatura?: string;
+            color?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de creación del registro.
+             */
+            creado?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de la última modificación del registro.
+             */
+            modificado?: string;
+            /** @description Listado de servicios realizados por este conductor. */
+            servicios?: components["schemas"]["TransporteServicio.html"][];
+            /** @description Relación uno a uno con la entidad User. */
+            user?: components["schemas"]["User.html"];
+            /** @description Obtiene el nombre completo del conductor a través de la relación User. */
+            readonly nombre?: string;
+        };
+        "TransporteConductor.jsonld": {
+            /** @description Identificador autoincremental del conductor. */
+            readonly id?: number;
+            licencia?: string;
+            abreviatura?: string;
+            color?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de creación del registro.
+             */
+            creado?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de la última modificación del registro.
+             */
+            modificado?: string;
+            /** @description Listado de servicios realizados por este conductor. */
+            servicios?: components["schemas"]["TransporteServicio.jsonld"][];
+            /** @description Relación uno a uno con la entidad User. */
+            user?: components["schemas"]["User.jsonld"];
+            /** @description Obtiene el nombre completo del conductor a través de la relación User. */
+            readonly nombre?: string;
+        };
+        "TransporteConductor.multipart": {
+            /** @description Identificador autoincremental del conductor. */
+            readonly id?: number;
+            licencia?: string;
+            abreviatura?: string;
+            color?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de creación del registro.
+             */
+            creado?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de la última modificación del registro.
+             */
+            modificado?: string;
+            /** @description Listado de servicios realizados por este conductor. */
+            servicios?: components["schemas"]["TransporteServicio.multipart"][];
+            /** @description Relación uno a uno con la entidad User. */
+            user?: components["schemas"]["User.multipart"];
+            /** @description Obtiene el nombre completo del conductor a través de la relación User. */
+            readonly nombre?: string;
+        };
+        TransporteServicio: {
+            /** @description Get id */
+            readonly id?: number;
+            dependencia?: components["schemas"]["UserDependencia"];
+            unidad?: components["schemas"]["TransporteUnidad"];
+            conductor?: components["schemas"]["TransporteConductor"];
+            serviciocontables?: components["schemas"]["TransporteServiciocontable"][];
+            /** @description Get nombre */
+            nombre?: string;
+            /**
+             * Format: date-time
+             * @description Get fechahorainicio
+             */
+            fechahorainicio?: string;
+            /**
+             * Format: date-time
+             * @description Get fechahorafin
+             */
+            fechahorafin?: string;
+            serviciocomponentes?: components["schemas"]["TransporteServiciocomponente"][];
+            readonly exportcomponentes?: unknown;
+            serviciooperativos?: components["schemas"]["TransporteServiciooperativo"][];
+            readonly exportoperativos?: unknown;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        "TransporteServicio.html": {
+            /** @description Get id */
+            readonly id?: number;
+            dependencia?: components["schemas"]["UserDependencia.html"];
+            unidad?: components["schemas"]["TransporteUnidad.html"];
+            conductor?: components["schemas"]["TransporteConductor.html"];
+            serviciocontables?: components["schemas"]["TransporteServiciocontable.html"][];
+            /** @description Get nombre */
+            nombre?: string;
+            /**
+             * Format: date-time
+             * @description Get fechahorainicio
+             */
+            fechahorainicio?: string;
+            /**
+             * Format: date-time
+             * @description Get fechahorafin
+             */
+            fechahorafin?: string;
+            serviciocomponentes?: components["schemas"]["TransporteServiciocomponente.html"][];
+            readonly exportcomponentes?: unknown;
+            serviciooperativos?: components["schemas"]["TransporteServiciooperativo.html"][];
+            readonly exportoperativos?: unknown;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        "TransporteServicio.jsonld": {
+            /** @description Get id */
+            readonly id?: number;
+            dependencia?: components["schemas"]["UserDependencia.jsonld"];
+            unidad?: components["schemas"]["TransporteUnidad.jsonld"];
+            conductor?: components["schemas"]["TransporteConductor.jsonld"];
+            serviciocontables?: components["schemas"]["TransporteServiciocontable.jsonld"][];
+            /** @description Get nombre */
+            nombre?: string;
+            /**
+             * Format: date-time
+             * @description Get fechahorainicio
+             */
+            fechahorainicio?: string;
+            /**
+             * Format: date-time
+             * @description Get fechahorafin
+             */
+            fechahorafin?: string;
+            serviciocomponentes?: components["schemas"]["TransporteServiciocomponente.jsonld"][];
+            readonly exportcomponentes?: unknown;
+            serviciooperativos?: components["schemas"]["TransporteServiciooperativo.jsonld"][];
+            readonly exportoperativos?: unknown;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        "TransporteServicio.multipart": {
+            /** @description Get id */
+            readonly id?: number;
+            dependencia?: components["schemas"]["UserDependencia.multipart"];
+            unidad?: components["schemas"]["TransporteUnidad.multipart"];
+            conductor?: components["schemas"]["TransporteConductor.multipart"];
+            serviciocontables?: components["schemas"]["TransporteServiciocontable.multipart"][];
+            /** @description Get nombre */
+            nombre?: string;
+            /**
+             * Format: date-time
+             * @description Get fechahorainicio
+             */
+            fechahorainicio?: string;
+            /**
+             * Format: date-time
+             * @description Get fechahorafin
+             */
+            fechahorafin?: string;
+            serviciocomponentes?: components["schemas"]["TransporteServiciocomponente.multipart"][];
+            readonly exportcomponentes?: unknown;
+            serviciooperativos?: components["schemas"]["TransporteServiciooperativo.multipart"][];
+            readonly exportoperativos?: unknown;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        TransporteServiciocomponente: {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio"];
+            /**
+             * Format: date-time
+             * @description Get hora
+             */
+            hora?: string;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** @description Get numadl */
+            numadl?: number;
+            /** @description Get numchd */
+            numchd?: number;
+            /** @description Get origen */
+            origen?: string;
+            /** @description Get destino */
+            destino?: string;
+            /** @description Get nota */
+            nota?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        "TransporteServiciocomponente.html": {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio.html"];
+            /**
+             * Format: date-time
+             * @description Get hora
+             */
+            hora?: string;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** @description Get numadl */
+            numadl?: number;
+            /** @description Get numchd */
+            numchd?: number;
+            /** @description Get origen */
+            origen?: string;
+            /** @description Get destino */
+            destino?: string;
+            /** @description Get nota */
+            nota?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        "TransporteServiciocomponente.jsonld": {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio.jsonld"];
+            /**
+             * Format: date-time
+             * @description Get hora
+             */
+            hora?: string;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** @description Get numadl */
+            numadl?: number;
+            /** @description Get numchd */
+            numchd?: number;
+            /** @description Get origen */
+            origen?: string;
+            /** @description Get destino */
+            destino?: string;
+            /** @description Get nota */
+            nota?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        "TransporteServiciocomponente.multipart": {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio.multipart"];
+            /**
+             * Format: date-time
+             * @description Get hora
+             */
+            hora?: string;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** @description Get numadl */
+            numadl?: number;
+            /** @description Get numchd */
+            numchd?: number;
+            /** @description Get origen */
+            origen?: string;
+            /** @description Get destino */
+            destino?: string;
+            /** @description Get nota */
+            nota?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        TransporteServiciocontable: {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio"];
+            comprobante?: components["schemas"]["ComprobanteComprobante"];
+            /** @description Get descripcion */
+            descripcion?: string;
+            /** @description Get total */
+            total?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteServiciocontable.html": {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio.html"];
+            comprobante?: components["schemas"]["ComprobanteComprobante.html"];
+            /** @description Get descripcion */
+            descripcion?: string;
+            /** @description Get total */
+            total?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteServiciocontable.jsonld": {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio.jsonld"];
+            comprobante?: components["schemas"]["ComprobanteComprobante.jsonld"];
+            /** @description Get descripcion */
+            descripcion?: string;
+            /** @description Get total */
+            total?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteServiciocontable.multipart": {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio.multipart"];
+            comprobante?: components["schemas"]["ComprobanteComprobante.multipart"];
+            /** @description Get descripcion */
+            descripcion?: string;
+            /** @description Get total */
+            total?: string | null;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        TransporteServiciooperativo: {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio"];
+            tiposeroperativo?: components["schemas"]["TransporteTiposeroperativo"];
+            /** @description Get texto */
+            texto?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        "TransporteServiciooperativo.html": {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio.html"];
+            tiposeroperativo?: components["schemas"]["TransporteTiposeroperativo.html"];
+            /** @description Get texto */
+            texto?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        "TransporteServiciooperativo.jsonld": {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio.jsonld"];
+            tiposeroperativo?: components["schemas"]["TransporteTiposeroperativo.jsonld"];
+            /** @description Get texto */
+            texto?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        "TransporteServiciooperativo.multipart": {
+            /** @description Get id */
+            readonly id?: number;
+            servicio?: components["schemas"]["TransporteServicio.multipart"];
+            tiposeroperativo?: components["schemas"]["TransporteTiposeroperativo.multipart"];
+            /** @description Get texto */
+            texto?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            /** @description Get resumen */
+            readonly resumen?: string;
+        };
+        TransporteTiposeroperativo: {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteTiposeroperativo.html": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteTiposeroperativo.jsonld": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteTiposeroperativo.multipart": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get codigo */
+            codigo?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        TransporteTipounibit: {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteTipounibit.html": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteTipounibit.jsonld": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteTipounibit.multipart": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        TransporteUnidad: {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get placa */
+            placa?: string;
+            /** @description Get abreviatura */
+            abreviatura?: string;
+            /** @description Get color */
+            color?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            servicios?: components["schemas"]["TransporteServicio"][];
+            unidadbitacoras?: components["schemas"]["TransporteUnidadbitacora"][];
+            centro?: components["schemas"]["CuentaCentro"] | null;
+        };
+        "TransporteUnidad.html": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get placa */
+            placa?: string;
+            /** @description Get abreviatura */
+            abreviatura?: string;
+            /** @description Get color */
+            color?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            servicios?: components["schemas"]["TransporteServicio.html"][];
+            unidadbitacoras?: components["schemas"]["TransporteUnidadbitacora.html"][];
+            centro?: components["schemas"]["CuentaCentro.html"] | null;
+        };
+        "TransporteUnidad.jsonld": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get placa */
+            placa?: string;
+            /** @description Get abreviatura */
+            abreviatura?: string;
+            /** @description Get color */
+            color?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            servicios?: components["schemas"]["TransporteServicio.jsonld"][];
+            unidadbitacoras?: components["schemas"]["TransporteUnidadbitacora.jsonld"][];
+            centro?: components["schemas"]["CuentaCentro.jsonld"] | null;
+        };
+        "TransporteUnidad.multipart": {
+            /** @description Get id */
+            readonly id?: number;
+            /** @description Get nombre */
+            nombre?: string;
+            /** @description Get placa */
+            placa?: string;
+            /** @description Get abreviatura */
+            abreviatura?: string;
+            /** @description Get color */
+            color?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            servicios?: components["schemas"]["TransporteServicio.multipart"][];
+            unidadbitacoras?: components["schemas"]["TransporteUnidadbitacora.multipart"][];
+            centro?: components["schemas"]["CuentaCentro.multipart"] | null;
+        };
+        TransporteUnidadbitacora: {
+            /** @description Get id */
+            readonly id?: number;
+            unidad?: components["schemas"]["TransporteUnidad"];
+            tipounibit?: components["schemas"]["TransporteTipounibit"];
+            /** @description Get contenido */
+            contenido?: string;
+            kilometraje?: number;
+            /** Format: date-time */
+            fecha?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteUnidadbitacora.html": {
+            /** @description Get id */
+            readonly id?: number;
+            unidad?: components["schemas"]["TransporteUnidad.html"];
+            tipounibit?: components["schemas"]["TransporteTipounibit.html"];
+            /** @description Get contenido */
+            contenido?: string;
+            kilometraje?: number;
+            /** Format: date-time */
+            fecha?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteUnidadbitacora.jsonld": {
+            /** @description Get id */
+            readonly id?: number;
+            unidad?: components["schemas"]["TransporteUnidad.jsonld"];
+            tipounibit?: components["schemas"]["TransporteTipounibit.jsonld"];
+            /** @description Get contenido */
+            contenido?: string;
+            kilometraje?: number;
+            /** Format: date-time */
+            fecha?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+        };
+        "TransporteUnidadbitacora.multipart": {
+            /** @description Get id */
+            readonly id?: number;
+            unidad?: components["schemas"]["TransporteUnidad.multipart"];
+            tipounibit?: components["schemas"]["TransporteTipounibit.multipart"];
+            /** @description Get contenido */
+            contenido?: string;
+            kilometraje?: number;
+            /** Format: date-time */
+            fecha?: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
         };
         TravelComponenteItem: {
             /**
@@ -12240,6 +21761,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12289,6 +21820,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12338,6 +21879,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12387,6 +21938,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
         };
         "TravelSegmentoComponente-servicio.item.read": Record<string, never>;
         "TravelSegmentoComponente.html": {
@@ -12441,6 +22002,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12490,6 +22061,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12539,6 +22120,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12595,6 +22186,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12644,6 +22245,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12693,6 +22304,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12749,6 +22370,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12798,6 +22429,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -12847,6 +22488,16 @@ export interface components {
              * @default 1
              */
             orden: number;
+            /**
+             * @description Promueve la hora de este componente al nivel de "servicio completo": su
+             *     horario (hora / horaFin) representa el span de TODA la excursión (servicio /
+             *     itinerario), no sólo el del segmento al que está vinculado. Se usa cuando
+             *     la logística del tour se ancla en un único segmento (ej. el recojo) pero su
+             *     horario aplica a la experiencia entera. Debe haber a lo sumo UNO promovido
+             *     por itinerarioContexto (se garantiza al guardar) para no mostrar horarios
+             *     globales en conflicto.
+             */
+            horaServicioCompleto?: boolean;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -13133,6 +22784,435 @@ export interface components {
             /** @description Array de Objetos: [{"language": "es", "content": "..."}] */
             contenido?: string[];
         };
+        User: {
+            /** @description Identificador de usuario único para el login. */
+            username?: string;
+            /** @description Correo electrónico del usuario, utilizado como identificador principal en Symfony. */
+            email?: string;
+            /** @description Contraseña cifrada del usuario. */
+            password?: string;
+            /** @description Listado de roles asignados (JSON). */
+            roles?: string[];
+            /**
+             * @description Estado de activación del usuario.
+             * @default true
+             */
+            enabled: boolean;
+            /** @description ¿Es quien cobra por defecto? (recepción). */
+            esCobradorPrincipal?: boolean;
+            /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
+            telefono?: string | null;
+            /** @description Nombre(s) del usuario. */
+            firstname?: string | null;
+            /** @description Apellido(s) del usuario. */
+            lastname?: string | null;
+            /** @description Relación con la Dependencia (Oweb). */
+            dependencia?: components["schemas"]["UserDependencia"] | null;
+            /** @description Relación con el Área (Oweb). */
+            area?: components["schemas"]["UserArea"] | null;
+            /** @description Relación OneToMany con Cuentas de Usuario. */
+            cuentas?: components["schemas"]["UserCuenta"][];
+            /** @description Relación OneToMany con Movimientos de Cuenta. */
+            movimientos?: components["schemas"]["CuentaMovimiento"][];
+            /** @description Relación OneToOne con Conductor (Transporte). */
+            conductor?: components["schemas"]["TransporteConductor"] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly userIdentifier?: string;
+            /** @description Obtiene el nombre completo concatenado. */
+            readonly fullname?: string;
+            /** @description Alias semántico para el nombre completo. */
+            readonly nombre?: string;
+        };
+        "User.html": {
+            /** @description Identificador de usuario único para el login. */
+            username?: string;
+            /** @description Correo electrónico del usuario, utilizado como identificador principal en Symfony. */
+            email?: string;
+            /** @description Contraseña cifrada del usuario. */
+            password?: string;
+            /** @description Listado de roles asignados (JSON). */
+            roles?: string[];
+            /**
+             * @description Estado de activación del usuario.
+             * @default true
+             */
+            enabled: boolean;
+            /** @description ¿Es quien cobra por defecto? (recepción). */
+            esCobradorPrincipal?: boolean;
+            /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
+            telefono?: string | null;
+            /** @description Nombre(s) del usuario. */
+            firstname?: string | null;
+            /** @description Apellido(s) del usuario. */
+            lastname?: string | null;
+            /** @description Relación con la Dependencia (Oweb). */
+            dependencia?: components["schemas"]["UserDependencia.html"] | null;
+            /** @description Relación con el Área (Oweb). */
+            area?: components["schemas"]["UserArea.html"] | null;
+            /** @description Relación OneToMany con Cuentas de Usuario. */
+            cuentas?: components["schemas"]["UserCuenta.html"][];
+            /** @description Relación OneToMany con Movimientos de Cuenta. */
+            movimientos?: components["schemas"]["CuentaMovimiento.html"][];
+            /** @description Relación OneToOne con Conductor (Transporte). */
+            conductor?: components["schemas"]["TransporteConductor.html"] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly userIdentifier?: string;
+            /** @description Obtiene el nombre completo concatenado. */
+            readonly fullname?: string;
+            /** @description Alias semántico para el nombre completo. */
+            readonly nombre?: string;
+        };
+        "User.jsonld": {
+            /** @description Identificador de usuario único para el login. */
+            username?: string;
+            /** @description Correo electrónico del usuario, utilizado como identificador principal en Symfony. */
+            email?: string;
+            /** @description Contraseña cifrada del usuario. */
+            password?: string;
+            /** @description Listado de roles asignados (JSON). */
+            roles?: string[];
+            /**
+             * @description Estado de activación del usuario.
+             * @default true
+             */
+            enabled: boolean;
+            /** @description ¿Es quien cobra por defecto? (recepción). */
+            esCobradorPrincipal?: boolean;
+            /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
+            telefono?: string | null;
+            /** @description Nombre(s) del usuario. */
+            firstname?: string | null;
+            /** @description Apellido(s) del usuario. */
+            lastname?: string | null;
+            /** @description Relación con la Dependencia (Oweb). */
+            dependencia?: components["schemas"]["UserDependencia.jsonld"] | null;
+            /** @description Relación con el Área (Oweb). */
+            area?: components["schemas"]["UserArea.jsonld"] | null;
+            /** @description Relación OneToMany con Cuentas de Usuario. */
+            cuentas?: components["schemas"]["UserCuenta.jsonld"][];
+            /** @description Relación OneToMany con Movimientos de Cuenta. */
+            movimientos?: components["schemas"]["CuentaMovimiento.jsonld"][];
+            /** @description Relación OneToOne con Conductor (Transporte). */
+            conductor?: components["schemas"]["TransporteConductor.jsonld"] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly userIdentifier?: string;
+            /** @description Obtiene el nombre completo concatenado. */
+            readonly fullname?: string;
+            /** @description Alias semántico para el nombre completo. */
+            readonly nombre?: string;
+        };
+        "User.multipart": {
+            /** @description Identificador de usuario único para el login. */
+            username?: string;
+            /** @description Correo electrónico del usuario, utilizado como identificador principal en Symfony. */
+            email?: string;
+            /** @description Contraseña cifrada del usuario. */
+            password?: string;
+            /** @description Listado de roles asignados (JSON). */
+            roles?: string[];
+            /**
+             * @description Estado de activación del usuario.
+             * @default true
+             */
+            enabled: boolean;
+            /** @description ¿Es quien cobra por defecto? (recepción). */
+            esCobradorPrincipal?: boolean;
+            /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
+            telefono?: string | null;
+            /** @description Nombre(s) del usuario. */
+            firstname?: string | null;
+            /** @description Apellido(s) del usuario. */
+            lastname?: string | null;
+            /** @description Relación con la Dependencia (Oweb). */
+            dependencia?: components["schemas"]["UserDependencia.multipart"] | null;
+            /** @description Relación con el Área (Oweb). */
+            area?: components["schemas"]["UserArea.multipart"] | null;
+            /** @description Relación OneToMany con Cuentas de Usuario. */
+            cuentas?: components["schemas"]["UserCuenta.multipart"][];
+            /** @description Relación OneToMany con Movimientos de Cuenta. */
+            movimientos?: components["schemas"]["CuentaMovimiento.multipart"][];
+            /** @description Relación OneToOne con Conductor (Transporte). */
+            conductor?: components["schemas"]["TransporteConductor.multipart"] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly userIdentifier?: string;
+            /** @description Obtiene el nombre completo concatenado. */
+            readonly fullname?: string;
+            /** @description Alias semántico para el nombre completo. */
+            readonly nombre?: string;
+        };
+        UserArea: {
+            readonly id?: number;
+            nombre: string;
+            users?: components["schemas"]["User"][];
+        };
+        "UserArea.html": {
+            readonly id?: number;
+            nombre: string;
+            users?: components["schemas"]["User.html"][];
+        };
+        "UserArea.jsonld": {
+            readonly id?: number;
+            nombre: string;
+            users?: components["schemas"]["User.jsonld"][];
+        };
+        "UserArea.multipart": {
+            readonly id?: number;
+            nombre: string;
+            users?: components["schemas"]["User.multipart"][];
+        };
+        UserCuenta: {
+            /** @description Identificador autoincremental de la cuenta de usuario. */
+            readonly id?: number;
+            nombre: string;
+            password: string;
+            /**
+             * Format: date-time
+             * @description Fecha de creación del registro.
+             */
+            creado?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de la última modificación del registro.
+             */
+            modificado?: string;
+            /** @description Relación ManyToOne con la entidad User. */
+            user?: components["schemas"]["User"];
+            cuentatipo?: components["schemas"]["UserCuentatipo"];
+        };
+        "UserCuenta.html": {
+            /** @description Identificador autoincremental de la cuenta de usuario. */
+            readonly id?: number;
+            nombre: string;
+            password: string;
+            /**
+             * Format: date-time
+             * @description Fecha de creación del registro.
+             */
+            creado?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de la última modificación del registro.
+             */
+            modificado?: string;
+            /** @description Relación ManyToOne con la entidad User. */
+            user?: components["schemas"]["User.html"];
+            cuentatipo?: components["schemas"]["UserCuentatipo.html"];
+        };
+        "UserCuenta.jsonld": {
+            /** @description Identificador autoincremental de la cuenta de usuario. */
+            readonly id?: number;
+            nombre: string;
+            password: string;
+            /**
+             * Format: date-time
+             * @description Fecha de creación del registro.
+             */
+            creado?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de la última modificación del registro.
+             */
+            modificado?: string;
+            /** @description Relación ManyToOne con la entidad User. */
+            user?: components["schemas"]["User.jsonld"];
+            cuentatipo?: components["schemas"]["UserCuentatipo.jsonld"];
+        };
+        "UserCuenta.multipart": {
+            /** @description Identificador autoincremental de la cuenta de usuario. */
+            readonly id?: number;
+            nombre: string;
+            password: string;
+            /**
+             * Format: date-time
+             * @description Fecha de creación del registro.
+             */
+            creado?: string;
+            /**
+             * Format: date-time
+             * @description Fecha de la última modificación del registro.
+             */
+            modificado?: string;
+            /** @description Relación ManyToOne con la entidad User. */
+            user?: components["schemas"]["User.multipart"];
+            cuentatipo?: components["schemas"]["UserCuentatipo.multipart"];
+        };
+        UserCuentatipo: {
+            readonly id?: number;
+            nombre: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            cuentas?: components["schemas"]["UserCuenta"][];
+        };
+        "UserCuentatipo.html": {
+            readonly id?: number;
+            nombre: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            cuentas?: components["schemas"]["UserCuenta.html"][];
+        };
+        "UserCuentatipo.jsonld": {
+            readonly id?: number;
+            nombre: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            cuentas?: components["schemas"]["UserCuenta.jsonld"][];
+        };
+        "UserCuentatipo.multipart": {
+            readonly id?: number;
+            nombre: string;
+            /** Format: date-time */
+            creado?: string;
+            /** Format: date-time */
+            modificado?: string;
+            cuentas?: components["schemas"]["UserCuenta.multipart"][];
+        };
+        UserDependencia: {
+            readonly id?: number;
+            nombre: string;
+            email?: string | null;
+            direccion?: string | null;
+            /** @description Get color */
+            color?: string;
+            organizacion?: components["schemas"]["UserOrganizacion"];
+            users?: components["schemas"]["User"][];
+            readonly organizaciondependencia?: string;
+        };
+        "UserDependencia.html": {
+            readonly id?: number;
+            nombre: string;
+            email?: string | null;
+            direccion?: string | null;
+            /** @description Get color */
+            color?: string;
+            organizacion?: components["schemas"]["UserOrganizacion.html"];
+            users?: components["schemas"]["User.html"][];
+            readonly organizaciondependencia?: string;
+        };
+        "UserDependencia.jsonld": {
+            readonly id?: number;
+            nombre: string;
+            email?: string | null;
+            direccion?: string | null;
+            /** @description Get color */
+            color?: string;
+            organizacion?: components["schemas"]["UserOrganizacion.jsonld"];
+            users?: components["schemas"]["User.jsonld"][];
+            readonly organizaciondependencia?: string;
+        };
+        "UserDependencia.multipart": {
+            readonly id?: number;
+            nombre: string;
+            email?: string | null;
+            direccion?: string | null;
+            /** @description Get color */
+            color?: string;
+            organizacion?: components["schemas"]["UserOrganizacion.multipart"];
+            users?: components["schemas"]["User.multipart"][];
+            readonly organizaciondependencia?: string;
+        };
+        UserOrganizacion: {
+            readonly id?: number;
+            nombre: string;
+            razonsocial: string;
+            numerodocumento: string;
+            email: string;
+            direccion: string;
+            dependencias?: components["schemas"]["UserDependencia"][];
+        };
+        "UserOrganizacion.html": {
+            readonly id?: number;
+            nombre: string;
+            razonsocial: string;
+            numerodocumento: string;
+            email: string;
+            direccion: string;
+            dependencias?: components["schemas"]["UserDependencia.html"][];
+        };
+        "UserOrganizacion.jsonld": {
+            readonly id?: number;
+            nombre: string;
+            razonsocial: string;
+            numerodocumento: string;
+            email: string;
+            direccion: string;
+            dependencias?: components["schemas"]["UserDependencia.jsonld"][];
+        };
+        "UserOrganizacion.multipart": {
+            readonly id?: number;
+            nombre: string;
+            razonsocial: string;
+            numerodocumento: string;
+            email: string;
+            direccion: string;
+            dependencias?: components["schemas"]["UserDependencia.multipart"][];
+        };
+        WhatsappMetaSendQueue: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            message?: string;
+            config?: components["schemas"]["MetaConfig"];
+            endpoint?: components["schemas"]["ExchangeEndpoint"];
+            destinationPhone?: string | null;
+            /** @default unknown */
+            deliveryStatus: string;
+            /** Format: date-time */
+            deliveredAt?: string | null;
+            /** Format: date-time */
+            readAt?: string | null;
+            webhookHistory?: string[] | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
+            readonly channelId?: string;
+        };
         "WhatsappMetaSendQueue-message.read": {
             /** @default unknown */
             deliveryStatus: string;
@@ -13140,6 +23220,47 @@ export interface components {
             status: string;
             /** Format: date-time */
             runAt?: string | null;
+        };
+        "WhatsappMetaSendQueue.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            message?: string;
+            config?: components["schemas"]["MetaConfig.html"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.html"];
+            destinationPhone?: string | null;
+            /** @default unknown */
+            deliveryStatus: string;
+            /** Format: date-time */
+            deliveredAt?: string | null;
+            /** Format: date-time */
+            readAt?: string | null;
+            webhookHistory?: string[] | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "WhatsappMetaSendQueue.html-message.read": {
             /** @default unknown */
@@ -13149,6 +23270,47 @@ export interface components {
             /** Format: date-time */
             runAt?: string | null;
         };
+        "WhatsappMetaSendQueue.jsonld": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            message?: string;
+            config?: components["schemas"]["MetaConfig.jsonld"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.jsonld"];
+            destinationPhone?: string | null;
+            /** @default unknown */
+            deliveryStatus: string;
+            /** Format: date-time */
+            deliveredAt?: string | null;
+            /** Format: date-time */
+            readAt?: string | null;
+            webhookHistory?: string[] | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
+            readonly channelId?: string;
+        };
         "WhatsappMetaSendQueue.jsonld-message.read": {
             /** @default unknown */
             deliveryStatus: string;
@@ -13156,6 +23318,47 @@ export interface components {
             status: string;
             /** Format: date-time */
             runAt?: string | null;
+        };
+        "WhatsappMetaSendQueue.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            message?: string;
+            config?: components["schemas"]["MetaConfig.multipart"];
+            endpoint?: components["schemas"]["ExchangeEndpoint.multipart"];
+            destinationPhone?: string | null;
+            /** @default unknown */
+            deliveryStatus: string;
+            /** Format: date-time */
+            deliveredAt?: string | null;
+            /** Format: date-time */
+            readAt?: string | null;
+            webhookHistory?: string[] | null;
+            /** @default pending */
+            status: string;
+            /** Format: date-time */
+            runAt?: string | null;
+            /** Format: date-time */
+            lockedAt?: string | null;
+            lockedBy?: string | null;
+            failedReason?: string | null;
+            retryCount?: number;
+            /** @default 3 */
+            maxAttempts: number;
+            lastRequestRaw?: string | null;
+            lastResponseRaw?: string | null;
+            executionResult?: string[] | null;
+            lastHttpCode?: number | null;
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly relatedEntitiesToDetach?: string[];
+            /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
+            readonly channelId?: string;
         };
         "WhatsappMetaSendQueue.multipart-message.read": {
             /** @default unknown */
@@ -13481,6 +23684,10 @@ export interface operations {
                 page?: number;
                 "order[lastMessageAt]"?: "asc" | "desc";
                 "order[createdAt]"?: "asc" | "desc";
+                contextType?: string;
+                "contextType[]"?: string[];
+                contextId?: string;
+                "contextId[]"?: string[];
             };
             header?: never;
             path?: never;
@@ -13501,6 +23708,42 @@ export interface operations {
                     "text/html": components["schemas"]["Conversation.html-conversation.read"][];
                     "multipart/form-data": components["schemas"]["Conversation.multipart-conversation.read"][];
                 };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "api_messageconversationsunread-summary_get_collection": {
+        parameters: {
+            query?: {
+                "order[lastMessageAt]"?: "asc" | "desc";
+                "order[createdAt]"?: "asc" | "desc";
+                contextType?: string;
+                "contextType[]"?: string[];
+                contextId?: string;
+                "contextId[]"?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversation collection */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -13559,6 +23802,124 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversations_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversation resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversations_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Conversation resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["Conversation-conversation.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description Conversation resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Conversation.jsonld-conversation.read"];
+                    "application/json": components["schemas"]["Conversation-conversation.read"];
+                    "text/html": components["schemas"]["Conversation.html-conversation.read"];
+                    "multipart/form-data": components["schemas"]["Conversation.multipart-conversation.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };
@@ -14000,6 +24361,73 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_salescotizacions_idresincronizar-operacion_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "application/json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "text/html": components["schemas"]["Cotizacion-cotizacion.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion-cotizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.ResincronizacionResultado.jsonld-operacion.resync.read"];
+                    "application/json": components["schemas"]["Cotizacion.ResincronizacionResultado-operacion.resync.read"];
+                    "text/html": components["schemas"]["Cotizacion.ResincronizacionResultado.html-operacion.resync.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.ResincronizacionResultado.multipart-operacion.resync.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16618,6 +27046,8 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
+                ordenServicio?: string;
+                "ordenServicio[]"?: string[];
             };
             header?: never;
             path?: never;
@@ -17137,6 +27567,34 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
+                /** @description The number of items per page */
+                itemsPerPage?: number;
+                ordenServicio?: string;
+                "ordenServicio[]"?: string[];
+                file?: string;
+                "file[]"?: string[];
+                "cotizacionServicio.cotizacion"?: string;
+                "cotizacionServicio.cotizacion[]"?: string[];
+                estadoReserva?: string;
+                "estadoReserva[]"?: string[];
+                estadoOperacion?: string;
+                "estadoOperacion[]"?: string[];
+                proveedorMaestroId?: string;
+                "proveedorMaestroId[]"?: string[];
+                tipoComponente?: string;
+                "tipoComponente[]"?: string[];
+                modoComponente?: string;
+                "modoComponente[]"?: string[];
+                estadoComponente?: string;
+                "estadoComponente[]"?: string[];
+                "fechaServicio[before]"?: string;
+                "fechaServicio[strictly_before]"?: string;
+                "fechaServicio[after]"?: string;
+                "fechaServicio[strictly_after]"?: string;
+                "order[fechaServicio]"?: "asc" | "desc";
+                "order[horaRecojoReal]"?: "asc" | "desc";
+                "order[tipoComponente]"?: "asc" | "desc";
+                "order[descripcionServicio]"?: "asc" | "desc";
             };
             header?: never;
             path?: never;
@@ -17530,11 +27988,657 @@ export interface operations {
             };
         };
     };
-    api_publicpaxpmspms_guiapms_unidad_unidad_get: {
+    api_pmspms_cargo_financieros_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new PmsCargoFinanciero resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["PmsCargoFinanciero-pms_cargo.write"];
+                "application/json": components["schemas"]["PmsCargoFinanciero-pms_cargo.write"];
+                "text/html": components["schemas"]["PmsCargoFinanciero-pms_cargo.write"];
+                "multipart/form-data": components["schemas"]["PmsCargoFinanciero-pms_cargo.write"];
+            };
+        };
+        responses: {
+            /** @description PmsCargoFinanciero resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsCargoFinanciero.jsonld-pms_cargo.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsCargoFinanciero-pms_cargo.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsCargoFinanciero.html-pms_cargo.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsCargoFinanciero.multipart-pms_cargo.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_cargo_financieros_id_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
+                /** @description PmsCargoFinanciero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsCargoFinanciero resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsCargoFinanciero.jsonld-pms_cargo.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsCargoFinanciero-pms_cargo.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsCargoFinanciero.html-pms_cargo.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsCargoFinanciero.multipart-pms_cargo.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_cargo_financieros_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsCargoFinanciero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsCargoFinanciero resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_cargo_financieros_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsCargoFinanciero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated PmsCargoFinanciero resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["PmsCargoFinanciero-pms_cargo.patch.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description PmsCargoFinanciero resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsCargoFinanciero.jsonld-pms_cargo.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsCargoFinanciero-pms_cargo.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsCargoFinanciero.html-pms_cargo.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsCargoFinanciero.multipart-pms_cargo.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_publicpaxpmspms_guia_establecimiento_unidad_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsCatalogo identifier */
+                establecimiento: string;
+                /** @description PmsCatalogo identifier */
+                unidad: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsCatalogo resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsCatalogo.jsonld-pax_catalogo.read"];
+                    "application/json": components["schemas"]["PmsCatalogo-pax_catalogo.read"];
+                    "text/html": components["schemas"]["PmsCatalogo.html-pax_catalogo.read"];
+                    "multipart/form-data": components["schemas"]["PmsCatalogo.multipart-pax_catalogo.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_channels_get_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsChannel collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["PmsChannel.jsonld-pms_channel.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsChannel-pms_channel.read"][];
+                    "text/html": components["schemas"]["PmsChannel.html-pms_channel.read"][];
+                    "multipart/form-data": components["schemas"]["PmsChannel.multipart-pms_channel.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_calendarios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new PmsEventoCalendario resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["PmsEventoCalendario-pms_evento.write_pms_evento.write_create"];
+                "application/json": components["schemas"]["PmsEventoCalendario-pms_evento.write_pms_evento.write_create"];
+                "text/html": components["schemas"]["PmsEventoCalendario-pms_evento.write_pms_evento.write_create"];
+                "multipart/form-data": components["schemas"]["PmsEventoCalendario-pms_evento.write_pms_evento.write_create"];
+            };
+        };
+        responses: {
+            /** @description PmsEventoCalendario resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsEventoCalendario-pms_evento.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsEventoCalendario.html-pms_evento.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsEventoCalendario.multipart-pms_evento.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_calendarios_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsEventoCalendario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsEventoCalendario resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsEventoCalendario-pms_evento.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsEventoCalendario.html-pms_evento.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsEventoCalendario.multipart-pms_evento.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_calendarios_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsEventoCalendario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsEventoCalendario resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_calendarios_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsEventoCalendario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated PmsEventoCalendario resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["PmsEventoCalendario-pms_evento.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description PmsEventoCalendario resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsEventoCalendario-pms_evento.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsEventoCalendario.html-pms_evento.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsEventoCalendario.multipart-pms_evento.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_estados_get_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsEventoEstado collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["PmsEventoEstado.jsonld-pms_evento_estado.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsEventoEstado-pms_evento_estado.read"][];
+                    "text/html": components["schemas"]["PmsEventoEstado.html-pms_evento_estado.read"][];
+                    "multipart/form-data": components["schemas"]["PmsEventoEstado.multipart-pms_evento_estado.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_evento_estado_pagos_get_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsEventoEstadoPago collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["PmsEventoEstadoPago.jsonld-pms_evento_estado_pago.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsEventoEstadoPago-pms_evento_estado_pago.read"][];
+                    "text/html": components["schemas"]["PmsEventoEstadoPago.html-pms_evento_estado_pago.read"][];
+                    "multipart/form-data": components["schemas"]["PmsEventoEstadoPago.multipart-pms_evento_estado_pago.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_clientpaxpmspms_guia_localizador_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsGuia identifier */
+                localizador: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsGuia resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsGuia.jsonld-pax_guia.read"];
+                    "application/json": components["schemas"]["PmsGuia-pax_guia.read"];
+                    "text/html": components["schemas"]["PmsGuia.html-pax_guia.read"];
+                    "multipart/form-data": components["schemas"]["PmsGuia.multipart-pax_guia.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_clientpaxpmspms_guia_localizador_unidad_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsGuia identifier */
+                localizador: string;
                 /** @description PmsGuia identifier */
                 unidad: string;
             };
@@ -17548,10 +28652,21 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["PmsGuia.jsonld-pax_evento.read"];
-                    "application/json": components["schemas"]["PmsGuia-pax_evento.read"];
-                    "text/html": components["schemas"]["PmsGuia.html-pax_evento.read"];
-                    "multipart/form-data": components["schemas"]["PmsGuia.multipart-pax_evento.read"];
+                    "application/ld+json": components["schemas"]["PmsGuia.jsonld-pax_guia.read"];
+                    "application/json": components["schemas"]["PmsGuia-pax_guia.read"];
+                    "text/html": components["schemas"]["PmsGuia.html-pax_guia.read"];
+                    "multipart/form-data": components["schemas"]["PmsGuia.multipart-pax_guia.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Not found */
@@ -17563,6 +28678,541 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_informacion_financieras_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsInformacionFinanciera collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["PmsInformacionFinanciera.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+                    "text/html": components["schemas"]["PmsInformacionFinanciera.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+                    "multipart/form-data": components["schemas"]["PmsInformacionFinanciera.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "api_pmspms_informacion_financieraspor-reserva_reservaId_get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsInformacionFinanciera identifier */
+                reservaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsInformacionFinanciera resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsInformacionFinanciera.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsInformacionFinanciera.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsInformacionFinanciera.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_informacion_financieras_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsInformacionFinanciera identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsInformacionFinanciera resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsInformacionFinanciera.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsInformacionFinanciera.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsInformacionFinanciera.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_informacion_financieras_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsInformacionFinanciera identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated PmsInformacionFinanciera resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description PmsInformacionFinanciera resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsInformacionFinanciera.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsInformacionFinanciera.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsInformacionFinanciera.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_pmspms_informacion_financieras_idmoneda-base_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsInformacionFinanciera identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new PmsInformacionFinanciera resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.write"];
+                "application/json": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.write"];
+                "text/html": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.write"];
+                "multipart/form-data": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.write"];
+            };
+        };
+        responses: {
+            /** @description PmsInformacionFinanciera resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsInformacionFinanciera.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsInformacionFinanciera-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsInformacionFinanciera.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsInformacionFinanciera.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_pago_financieros_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsPagoFinanciero collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["PmsPagoFinanciero.jsonld-pms_pago.read_maestro.moneda.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsPagoFinanciero-pms_pago.read_maestro.moneda.read"][];
+                    "text/html": components["schemas"]["PmsPagoFinanciero.html-pms_pago.read_maestro.moneda.read"][];
+                    "multipart/form-data": components["schemas"]["PmsPagoFinanciero.multipart-pms_pago.read_maestro.moneda.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_pago_financieros_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new PmsPagoFinanciero resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["PmsPagoFinanciero-pms_pago.write"];
+                "application/json": components["schemas"]["PmsPagoFinanciero-pms_pago.write"];
+                "text/html": components["schemas"]["PmsPagoFinanciero-pms_pago.write"];
+                "multipart/form-data": components["schemas"]["PmsPagoFinanciero-pms_pago.write"];
+            };
+        };
+        responses: {
+            /** @description PmsPagoFinanciero resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsPagoFinanciero.jsonld-pms_pago.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsPagoFinanciero-pms_pago.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsPagoFinanciero.html-pms_pago.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsPagoFinanciero.multipart-pms_pago.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_pago_financieros_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsPagoFinanciero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsPagoFinanciero resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsPagoFinanciero.jsonld-pms_pago.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsPagoFinanciero-pms_pago.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsPagoFinanciero.html-pms_pago.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsPagoFinanciero.multipart-pms_pago.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_pago_financieros_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsPagoFinanciero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsPagoFinanciero resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_pago_financieros_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsPagoFinanciero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated PmsPagoFinanciero resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["PmsPagoFinanciero-pms_pago.patch.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description PmsPagoFinanciero resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsPagoFinanciero.jsonld-pms_pago.read_maestro.moneda.read"];
+                    "application/json": components["schemas"]["PmsPagoFinanciero-pms_pago.read_maestro.moneda.read"];
+                    "text/html": components["schemas"]["PmsPagoFinanciero.html-pms_pago.read_maestro.moneda.read"];
+                    "multipart/form-data": components["schemas"]["PmsPagoFinanciero.multipart-pms_pago.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };
@@ -17593,6 +29243,601 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_reservas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new PmsReserva resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["PmsReserva.PmsReservaCrearInput-pms_reserva_crear.write"];
+                "application/json": components["schemas"]["PmsReserva.PmsReservaCrearInput-pms_reserva_crear.write"];
+                "text/html": components["schemas"]["PmsReserva.PmsReservaCrearInput-pms_reserva_crear.write"];
+                "multipart/form-data": components["schemas"]["PmsReserva.PmsReservaCrearInput-pms_reserva_crear.write"];
+            };
+        };
+        responses: {
+            /** @description PmsReserva resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsReserva.jsonld-pms_reserva.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsReserva-pms_reserva.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsReserva.html-pms_reserva.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsReserva.multipart-pms_reserva.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_reservas_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsReserva identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsReserva resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsReserva.jsonld-pms_reserva.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsReserva-pms_reserva.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsReserva.html-pms_reserva.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsReserva.multipart-pms_reserva.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_reservas_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsReserva identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsReserva resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_reservas_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsReserva identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated PmsReserva resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["PmsReserva-pms_reserva.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description PmsReserva resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsReserva.jsonld-pms_reserva.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsReserva-pms_reserva.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsReserva.html-pms_reserva.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsReserva.multipart-pms_reserva.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_tarifa_rangos_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+                unidad?: string;
+                "unidad[]"?: string[];
+                moneda?: string;
+                "moneda[]"?: string[];
+                activo?: boolean;
+                importante?: boolean;
+                "fechaInicio[before]"?: string;
+                "fechaInicio[strictly_before]"?: string;
+                "fechaInicio[after]"?: string;
+                "fechaInicio[strictly_after]"?: string;
+                "fechaFin[before]"?: string;
+                "fechaFin[strictly_before]"?: string;
+                "fechaFin[after]"?: string;
+                "fechaFin[strictly_after]"?: string;
+                "order[fechaInicio]"?: "asc" | "desc";
+                "order[fechaFin]"?: "asc" | "desc";
+                "order[precio]"?: "asc" | "desc";
+                "order[prioridad]"?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsTarifaRango collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["PmsTarifaRango.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsTarifaRango-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
+                    "text/html": components["schemas"]["PmsTarifaRango.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
+                    "multipart/form-data": components["schemas"]["PmsTarifaRango.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_tarifa_rangos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new PmsTarifaRango resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["PmsTarifaRango-pms_tarifa.write"];
+                "application/json": components["schemas"]["PmsTarifaRango-pms_tarifa.write"];
+                "text/html": components["schemas"]["PmsTarifaRango-pms_tarifa.write"];
+                "multipart/form-data": components["schemas"]["PmsTarifaRango-pms_tarifa.write"];
+            };
+        };
+        responses: {
+            /** @description PmsTarifaRango resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsTarifaRango.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsTarifaRango-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsTarifaRango.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsTarifaRango.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_pmspms_tarifa_rangosgenerar-masivo_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new PmsTarifaRango resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["PmsTarifaRango.PmsTarifaMasivaInput-pms_tarifa_masiva.write"];
+                "application/json": components["schemas"]["PmsTarifaRango.PmsTarifaMasivaInput-pms_tarifa_masiva.write"];
+                "text/html": components["schemas"]["PmsTarifaRango.PmsTarifaMasivaInput-pms_tarifa_masiva.write"];
+                "multipart/form-data": components["schemas"]["PmsTarifaRango.PmsTarifaMasivaInput-pms_tarifa_masiva.write"];
+            };
+        };
+        responses: {
+            /** @description PmsTarifaRango resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsTarifaRango.PmsTarifaMasivaResult.jsonld-pms_tarifa_masiva.read"];
+                    "application/json": components["schemas"]["PmsTarifaRango.PmsTarifaMasivaResult-pms_tarifa_masiva.read"];
+                    "text/html": components["schemas"]["PmsTarifaRango.PmsTarifaMasivaResult.html-pms_tarifa_masiva.read"];
+                    "multipart/form-data": components["schemas"]["PmsTarifaRango.PmsTarifaMasivaResult.multipart-pms_tarifa_masiva.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_tarifa_rangos_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsTarifaRango identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsTarifaRango resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsTarifaRango.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsTarifaRango-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsTarifaRango.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsTarifaRango.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_tarifa_rangos_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsTarifaRango identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsTarifaRango resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspms_tarifa_rangos_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsTarifaRango identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated PmsTarifaRango resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["PmsTarifaRango-pms_tarifa.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description PmsTarifaRango resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsTarifaRango.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                    "application/json": components["schemas"]["PmsTarifaRango-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                    "text/html": components["schemas"]["PmsTarifaRango.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["PmsTarifaRango.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspms_unidads_get_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsUnidad collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["PmsUnidad.jsonld-pms_unidad.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsUnidad-pms_unidad.read"][];
+                    "text/html": components["schemas"]["PmsUnidad.html-pms_unidad.read"][];
+                    "multipart/form-data": components["schemas"]["PmsUnidad.multipart-pms_unidad.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

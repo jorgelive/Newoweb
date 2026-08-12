@@ -116,6 +116,22 @@ export interface PaxCotComponente {
     cotsegmento?: PaxCotSegmento | null;
     cottarifas: PaxCottarifa[];
     detallesParaCliente: PaxDetalleCliente[];
+
+    /**
+     * Prestador de referencia: quién presta el servicio que el cliente contrató por
+     * su cuenta (su hotel, su vuelo). Espejo de la cara PÚBLICA de
+     * `CotizacionCotcomponente` — el nombre comercial, el teléfono y la dirección
+     * son operativos y no salen del grupo interno, así que aquí no existen.
+     *
+     * ⚠️ Sólo llega en componentes `modo = no_incluido`:
+     * `CotizacionCotcomponentePrestadorPublicNormalizer` los borra en el resto. En
+     * un componente incluido revelar quién opera es justo lo que el anonimato
+     * white-label evita; en uno no incluido no hay margen que proteger y la
+     * referencia es lo que hace que la propuesta se lea completa.
+     */
+    prestadorTituloSnapshot?: I18n;
+    prestadorUrlSnapshot?: string | null;
+    prestadorImagenesSnapshot?: PaxImagenSnapshot[];
     /** Su hora representa el horario de toda la excursión (servicio completo), no
      *  la del segmento donde está anclado. Ver CotizacionCotcomponente. */
     horaServicioCompleto?: boolean;
@@ -165,6 +181,21 @@ export interface PaxInclusionItem {
     edadMax?: number | null;
     tarifaTitulo: I18n;
     cantidadComponente: number;
+    /**
+     * Prestador de referencia — sólo llega en líneas `no_incluido`.
+     *
+     * Es el hotel o el vuelo que el pasajero contrató por su cuenta. Convierte un
+     * «no incluye alojamiento» en «Alojamiento, por su cuenta — Casa Andina», que es
+     * la diferencia entre una lista de carencias y un itinerario completo.
+     *
+     * Espejo de `InclusionLinea` en `util/src/types/cotizacionEditorModel.ts`; lo
+     * llena `construirInclusiones()` y viaja dentro de
+     * `clasificacionFinancieraCliente`. Sólo la cara pública: nombre comercial,
+     * teléfono y dirección son operativos y no salen del backend.
+     */
+    prestadorTitulo?: I18n;
+    prestadorUrl?: string | null;
+    prestadorImagenes?: PaxImagenSnapshot[];
 }
 
 export interface PaxInclusionServicio {

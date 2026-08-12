@@ -7,6 +7,7 @@ namespace App\Cotizacion\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use App\Attribute\AutoTranslate;
+use App\Cotizacion\Dto\PrestadorResuelto;
 use App\Cotizacion\Enum\ComponenteEstadoEnum;
 use App\Cotizacion\Enum\DetalleOperativoTipoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
@@ -59,9 +60,16 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'integer', options: ['default' => 1])]
     private int $cantidad = 1;
 
+    /**
+     * ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+     * en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+     * acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+     * datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+     * siempre escribe la propiedad, pero la mina estaba puesta.
+     */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 30, enumType: ComponenteEstadoEnum::class, options: ['default' => 'Pendiente'])]
-    private ComponenteEstadoEnum $estado = ComponenteEstadoEnum::PENDIENTE;
+    #[ORM\Column(type: 'string', length: 30, enumType: ComponenteEstadoEnum::class, options: ['default' => 'activo'])]
+    private ComponenteEstadoEnum $estado = ComponenteEstadoEnum::ACTIVO;
 
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 30, enumType: ComponenteModoEnum::class, options: ['default' => 'incluido'])]
@@ -111,6 +119,66 @@ class CotizacionCotcomponente
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $horaServicioCompleto = false;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRESTADOR — quién presta el servicio, no a quién se le compra
+    //
+    // El proveedor vive en la tarifa y responde «¿a quién le compro y a cuánto?»:
+    // es un hecho comercial que sólo existe si hay compra. El prestador responde
+    // «¿quién lo presta / dónde ocurre?», y existe siempre — el hotel que el
+    // pasajero reservó por su cuenta no se le compra a nadie, pero es el punto de
+    // recojo del transportista y la referencia que luce en la propuesta.
+    //
+    // Es OPCIONAL y blando: si está vacío se hereda (ver resolverPrestador*()), así
+    // que las cotizaciones existentes se comportan exactamente igual que antes.
+    //
+    // Dos caras, mismo patrón que CotizacionCottarifa:
+    //   · pública   → titulo (i18n), url, imágenes  ... el cliente las ve
+    //   · operativa → nombre comercial, teléfono, dirección ... nunca salen a pax
+    // Por eso los campos operativos NO llevan el grupo pax_cotizacion:read, y los
+    // públicos los filtra CotizacionCotcomponentePrestadorPublicNormalizer para
+    // que sólo se muestren en componentes `no_incluido`. Ver docs/Cotizaciones.md.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $prestadorMaestroId = null;
+
+    /** Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $prestadorNombreSnapshot = null;
+
+    /** Título de cara al cliente (I18nContent[]), traducible. */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $prestadorTituloSnapshot = [];
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $prestadorUrlSnapshot = null;
+
+    /** Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'json')]
+    private array $prestadorImagenesSnapshot = [];
+
+    /**
+     * Teléfono y dirección: lo que el transportista necesita para el recojo.
+     *
+     * Se congelan aquí y no se leen del maestro al operar porque La Biblia es un
+     * snapshot: el día del servicio tiene que decir el teléfono que valía cuando se
+     * vendió, no el que alguien cambió después en el catálogo.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $prestadorTelefonoSnapshot = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $prestadorDireccionSnapshot = null;
 
     public function __construct()
     {
@@ -407,4 +475,96 @@ class CotizacionCotcomponente
 
     public function isHoraServicioCompleto(): bool { return $this->horaServicioCompleto; }
     public function setHoraServicioCompleto(bool $horaServicioCompleto): self { $this->horaServicioCompleto = $horaServicioCompleto; return $this; }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRESTADOR
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getPrestadorMaestroId(): ?string { return $this->prestadorMaestroId; }
+    public function setPrestadorMaestroId(?string $v): self { $this->prestadorMaestroId = $v; return $this; }
+
+    public function getPrestadorNombreSnapshot(): ?string { return $this->prestadorNombreSnapshot; }
+    public function setPrestadorNombreSnapshot(?string $v): self { $this->prestadorNombreSnapshot = $v; return $this; }
+
+    public function getPrestadorTituloSnapshot(): array { return $this->prestadorTituloSnapshot; }
+    public function setPrestadorTituloSnapshot(array $v): self { $this->prestadorTituloSnapshot = $v; return $this; }
+
+    public function getPrestadorUrlSnapshot(): ?string { return $this->prestadorUrlSnapshot; }
+    public function setPrestadorUrlSnapshot(?string $v): self { $this->prestadorUrlSnapshot = $v; return $this; }
+
+    public function getPrestadorImagenesSnapshot(): array { return $this->prestadorImagenesSnapshot; }
+    public function setPrestadorImagenesSnapshot(array $v): self { $this->prestadorImagenesSnapshot = $v; return $this; }
+
+    public function getPrestadorTelefonoSnapshot(): ?string { return $this->prestadorTelefonoSnapshot; }
+    public function setPrestadorTelefonoSnapshot(?string $v): self { $this->prestadorTelefonoSnapshot = $v; return $this; }
+
+    public function getPrestadorDireccionSnapshot(): ?string { return $this->prestadorDireccionSnapshot; }
+    public function setPrestadorDireccionSnapshot(?string $v): self { $this->prestadorDireccionSnapshot = $v; return $this; }
+
+    /** ¿Este componente define prestador propio, o lo hereda? */
+    public function tienePrestadorPropio(): bool
+    {
+        return $this->prestadorMaestroId !== null
+            || trim($this->prestadorNombreSnapshot ?? '') !== '';
+    }
+
+    /**
+     * Resuelve QUÉ prestador aplica, con la cascada completa.
+     *
+     * `componente → día → proveedor de la tarifa`, y se toma la primera fuente que
+     * diga algo, **entera**. No se mezclan campos de fuentes distintas: ver el
+     * porqué en PrestadorResuelto.
+     *
+     * La tarifa llega por parámetro en vez de resolverse aquí porque elegir cuál de
+     * varias tarifas manda es una regla de operaciones que ya vive en
+     * BibliaSnapshotService::resolverTarifaPrimaria(); duplicarla aquí garantizaba
+     * que las dos copias se separaran. Quien no tenga una, pasa null y la cascada
+     * simplemente se queda en el día.
+     *
+     * ⚠️ Espejo en TypeScript: `resolverPrestador()` en
+     * `util/src/stores/cotizacion/cotizacionEditorStore.ts`. Si cambias el orden de
+     * la cascada, se tocan los dos.
+     */
+    public function resolverPrestador(?CotizacionCottarifa $tarifaPrimaria = null): ?PrestadorResuelto
+    {
+        if ($this->tienePrestadorPropio()) {
+            return new PrestadorResuelto(
+                origen: 'componente',
+                maestroId: $this->prestadorMaestroId,
+                nombre: $this->prestadorNombreSnapshot,
+                titulo: $this->prestadorTituloSnapshot,
+                url: $this->prestadorUrlSnapshot,
+                imagenes: $this->prestadorImagenesSnapshot,
+                telefono: $this->prestadorTelefonoSnapshot,
+                direccion: $this->prestadorDireccionSnapshot,
+            );
+        }
+
+        // El día sólo guarda id + nombre: es un default para el filtro de tarifas,
+        // no contenido que se muestre. Por eso no arrastra título ni imágenes.
+        $servicio = $this->cotservicio;
+        if ($servicio !== null && $servicio->tienePrestadorPropio()) {
+            return new PrestadorResuelto(
+                origen: 'servicio',
+                maestroId: $servicio->getPrestadorMaestroId(),
+                nombre: $servicio->getPrestadorNombreSnapshot(),
+            );
+        }
+
+        // Último recurso: a quien se le compra también es quien lo presta. Es el
+        // caso normal — por eso el campo puede quedarse vacío en el 90% de los
+        // componentes sin que nadie note nada.
+        if ($tarifaPrimaria !== null && $tarifaPrimaria->getProveedorNombreSnapshot() !== null) {
+            return new PrestadorResuelto(
+                origen: 'tarifa',
+                maestroId: $tarifaPrimaria->getProveedorMaestroId(),
+                nombre: $tarifaPrimaria->getProveedorNombreSnapshot(),
+                titulo: $tarifaPrimaria->getProveedorTituloSnapshot(),
+                url: $tarifaPrimaria->getProveedorUrlSnapshot(),
+                imagenes: $tarifaPrimaria->getProveedorImagenesSnapshot(),
+            );
+        }
+
+        return null;
+    }
 }

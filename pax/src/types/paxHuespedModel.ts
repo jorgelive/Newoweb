@@ -2,11 +2,23 @@
 // ============================================================================
 // Tipos del módulo PAX / Huésped.
 //
-// Los tipos con schema en api.d.ts se anclan con components['schemas'][...],
-// extendiéndolos donde el schema OpenAPI es incompleto:
-//  - PmsUnidad: api.d.ts solo expone `imageUrl`; en runtime también viene `id` y `nombre`.
-//  - PmsReserva.eventosActivosGuia: api.d.ts lo declara string[] pero
-//    el endpoint devuelve objetos PmsEventoCalendario embebidos.
+// Todo lo que tiene schema se ancla con components['schemas'][...]. Aquí sólo se
+// escriben a mano las estructuras que el backend NO describe: las columnas JSON
+// (PmsContenidoTraducible) y el estado de cuenta que arma un provider a mano
+// (PmsResumenFinanciero), y en esos casos el comentario cita quién las produce.
+//
+// 🔥 Antes había tres tipos a mano —PmsUnidad, PmsEventoEstado y
+// PmsEventoCalendario— por una causa que resultó ser un ASTERISCO. El docblock de
+// `PmsReserva::getEventosActivosGuia()` tenía `* * @return array<int, ...>`: con el
+// asterisco extra el tag se lee como texto suelto, así que API Platform no sabía qué
+// había dentro del `array` y publicaba `string[]`. Sin schema anidado, el front no
+// tenía más remedio que declarar el árbol entero a mano — y esos tipos a mano
+// envejecieron hasta apuntar a `PmsUnidad-pax_evento.read`, un grupo de
+// serialización que ya no existe en el backend.
+//
+// Corregido el docblock, el schema es real y los tres tipos se anclan. La lección
+// para la próxima: si un tipo del backend "no tiene schema", sospecha del docblock
+// antes de escribirlo a mano.
 //
 // Los tipos del árbol de la guía ya no viven aquí; ver la nota de más abajo.
 // ============================================================================
@@ -25,37 +37,14 @@ export interface PmsContenidoTraducible {
 
 export type PmsChannel = components['schemas']['PmsChannel-pax_reserva.read'];
 
-// --- PmsUnidad: extiende api.d.ts con campos que el endpoint devuelve en runtime ---
-// api.d.ts solo expone imageUrl en pax_evento.read; id y nombre también se serializan.
+// --- Eventos de la guía: anclados, sin overrides ---
+// `slug` es el segundo segmento del enlace a la guía: /huesped/reserva/{loc}/{slug}.
 
-export type PmsUnidad = components['schemas']['PmsUnidad-pax_evento.read'] & {
-    id?: string;
-    nombre?: string;
-    /** Segundo segmento del enlace a la guía: /huesped/reserva/{loc}/{slug}. */
-    slug?: string | null;
-};
+export type PmsUnidad = components['schemas']['PmsUnidad-pax_reserva.read'];
 
-// --- PmsEventoCalendario: no tiene schema en api.d.ts; el endpoint los embebe como objetos ---
+export type PmsEventoEstado = components['schemas']['PmsEventoEstado-pax_reserva.read'];
 
-export interface PmsEventoEstado {
-    nombre: string;
-}
-
-export interface PmsEventoCalendario {
-    '@type'?: string;
-    '@id'?: string;
-    id: string;
-    pmsUnidad: PmsUnidad;
-    estado?: PmsEventoEstado;
-    reserva?: string;
-    inicio: string;
-    fin: string;
-    cantidadAdultos: number;
-    cantidadNinos: number;
-}
-
-// --- PmsReserva: ancla al schema de api.d.ts pero sobreescribe eventosActivosGuia ---
-// api.d.ts declara eventosActivosGuia como string[]; en runtime son objetos embebidos.
+export type PmsEventoCalendario = components['schemas']['PmsEventoCalendario-pax_reserva.read'];
 
 /**
  * Estado de cuenta del huésped. Espejo del array que arma
@@ -170,8 +159,13 @@ export interface PmsPagoResumen {
     monto: string;
 }
 
-export type PmsReserva = Omit<components['schemas']['PmsReserva-pax_reserva.read'], 'eventosActivosGuia'> & {
-    eventosActivosGuia?: PmsEventoCalendario[];
+/**
+ * `eventosActivosGuia` ya NO se sobreescribe: el schema lo tipa correctamente desde
+ * que se arregló el docblock del getter (ver la cabecera). El único override que
+ * queda es `resumenFinanciero`, que no sale de una entidad sino de un array que
+ * arma `PmsReservaPaxProvider` a mano y del que no hay schema posible.
+ */
+export type PmsReserva = components['schemas']['PmsReserva-pax_reserva.read'] & {
     resumenFinanciero?: PmsResumenFinanciero | null;
 };
 

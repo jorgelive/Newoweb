@@ -25,6 +25,7 @@ use App\Operacion\Enum\EstadoOperacionEnum;
 use App\Operacion\Enum\EstadoReservaEnum;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
+use App\Travel\Enum\ComponenteModoEnum;
 use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -110,9 +111,18 @@ class OperacionServicio
     #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
     private ?CotizacionCotcomponente $cotizacionComponente = null;
 
+    /**
+     * Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+     * genera fila.
+     *
+     * Un hotel que el pasajero reserva por su cuenta no se le compra a nadie y no lleva
+     * tarifa, pero el transportista y el guía necesitan saber dónde recogerlo. Excluirlo
+     * dejaba el cuadro de tráfico sin la referencia más básica del día. Ver
+     * isSoloReferencia() y docs/Operacion.md §3.3.
+     */
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionCottarifa::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
     private ?CotizacionCottarifa $cotizacionTarifa = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
@@ -130,6 +140,37 @@ class OperacionServicio
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $proveedorNombreManual = null;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRESTADOR — quién opera, frente a proveedor* = a quién se le compra
+    //
+    // Los dos conviven porque en Operaciones hay dos consumidores con necesidades
+    // opuestas: la Orden de Servicio necesita al proveedor comercial (a quién le
+    // mando la solicitud y le pago) y el cuadro de tráfico necesita al prestador
+    // (dónde recojo, quién opera). Un solo campo haciendo los dos trabajos era lo
+    // que obligaba a escribir el hotel a mano como si fuera una observación.
+    //
+    // Viene resuelto de CotizacionCotcomponente::resolverPrestador() — componente →
+    // día → proveedor de la tarifa — así que en el caso normal coincide con
+    // proveedorNombreManual y nadie tiene que llenar nada.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $prestadorMaestroId = null;
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $prestadorNombre = null;
+
+    /** Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $prestadorTelefono = null;
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $prestadorDireccion = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 255)]
@@ -179,9 +220,10 @@ class OperacionServicio
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
     private string $costoCotizado = '0.00';
 
+    /** Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
-    #[ORM\JoinColumn(name: 'moneda_cotizada', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(name: 'moneda_cotizada', referencedColumnName: 'id', nullable: true)]
     private ?MaestroMoneda $monedaCotizada = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
@@ -190,7 +232,7 @@ class OperacionServicio
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
-    #[ORM\JoinColumn(name: 'moneda_real', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(name: 'moneda_real', referencedColumnName: 'id', nullable: true)]
     private ?MaestroMoneda $monedaReal = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
@@ -200,6 +242,24 @@ class OperacionServicio
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: EstadoOperacionEnum::class, options: ['default' => 'pendiente'])]
     private EstadoOperacionEnum $estadoOperacion = EstadoOperacionEnum::PENDIENTE;
+
+    /**
+     * Valores EXACTOS que escribió el snapshot la última vez, en forma escalar.
+     *
+     * Es lo que hace posible reconciliar en vez de borrar y recrear. Sin esta foto no
+     * se puede responder la única pregunta que importa al comparar una fila con la
+     * cotización: si difieren, **¿quién de los dos se movió?** Con ella:
+     *
+     *   actual == origen  →  el operador no lo tocó  → la cotización manda, se actualiza
+     *   actual != origen  →  el operador lo editó    → CONFLICTO, decide una persona
+     *
+     * No se serializa a la API: es memoria interna del reconciliador, no un dato
+     * operativo. Ver BibliaReconciliacionService y docs/Operacion.md §3.5.
+     *
+     * @var array<string, string|int|null>
+     */
+    #[ORM\Column(type: 'json')]
+    private array $snapshotOrigen = [];
 
     public function __construct()
     {
@@ -216,8 +276,49 @@ class OperacionServicio
         return $this;
     }
 
+    /**
+     * La fila está en el cuadro de tráfico como REFERENCIA, no como compra.
+     *
+     * Dos casos, y los dos comparten la misma consecuencia: no se le pide nada a ningún
+     * proveedor, así que no puede entrar en una Orden de Servicio.
+     *
+     *  - **Sin tarifa.** Nadie lo cotizó porque no se compra.
+     *  - **`no_incluido`.** El pasajero lo paga por su cuenta (el hotel que reservó él).
+     *
+     * Y sin embargo tienen que verse: el transportista necesita el hotel para el recojo y
+     * el guía necesita el vuelo para saber a qué hora deja de tener al grupo. Excluirlos
+     * dejaba el cuadro sin la referencia más básica del día. Ver docs/Operacion.md §3.3.
+     *
+     * Es un cálculo y no una columna a propósito: se deriva de datos que ya están en la
+     * fila, y duplicarlo en una columna abriría la puerta a que las dos se contradigan.
+     * El frontend lo consume desde la API — la regla no se reimplementa en TypeScript.
+     */
+    #[Groups(['operacion:item:read'])]
+    public function isSoloReferencia(): bool
+    {
+        return $this->cotizacionTarifa === null
+            || $this->modoComponente === ComponenteModoEnum::NO_INCLUIDO->value;
+    }
+
     public function getOrdenServicio(): ?OperacionOrdenServicio { return $this->ordenServicio; }
-    public function setOrdenServicio(?OperacionOrdenServicio $ordenServicio): self { $this->ordenServicio = $ordenServicio; return $this; }
+
+    public function setOrdenServicio(?OperacionOrdenServicio $ordenServicio): self
+    {
+        // La regla vive aquí y no sólo en la vista: una OS es una solicitud formal de
+        // compra a un proveedor, y meterle un servicio que nadie compra produce un
+        // documento con un importe que no se debe. API Platform mapea DomainException
+        // a 422 (config/packages/api_platform.yaml), así que el PATCH devuelve el motivo.
+        if ($ordenServicio !== null && $this->isSoloReferencia()) {
+            throw new \DomainException(sprintf(
+                '«%s» está en La Biblia sólo como referencia (no incluido o sin tarifa): no se le compra a ningún proveedor y no puede entrar en una Orden de Servicio.',
+                $this->descripcionServicio ?? 'El servicio'
+            ));
+        }
+
+        $this->ordenServicio = $ordenServicio;
+
+        return $this;
+    }
 
     public function getFile(): ?CotizacionFile { return $this->file; }
     public function setFile(?CotizacionFile $file): self { $this->file = $file; return $this; }
@@ -242,6 +343,18 @@ class OperacionServicio
 
     public function getProveedorNombreManual(): ?string { return $this->proveedorNombreManual; }
     public function setProveedorNombreManual(?string $proveedorNombreManual): self { $this->proveedorNombreManual = $proveedorNombreManual; return $this; }
+
+    public function getPrestadorMaestroId(): ?string { return $this->prestadorMaestroId; }
+    public function setPrestadorMaestroId(?string $v): self { $this->prestadorMaestroId = $v; return $this; }
+
+    public function getPrestadorNombre(): ?string { return $this->prestadorNombre; }
+    public function setPrestadorNombre(?string $v): self { $this->prestadorNombre = $v; return $this; }
+
+    public function getPrestadorTelefono(): ?string { return $this->prestadorTelefono; }
+    public function setPrestadorTelefono(?string $v): self { $this->prestadorTelefono = $v; return $this; }
+
+    public function getPrestadorDireccion(): ?string { return $this->prestadorDireccion; }
+    public function setPrestadorDireccion(?string $v): self { $this->prestadorDireccion = $v; return $this; }
 
     public function getDescripcionServicio(): string { return $this->descripcionServicio; }
     public function setDescripcionServicio(string $descripcionServicio): self { $this->descripcionServicio = $descripcionServicio; return $this; }
@@ -294,4 +407,10 @@ class OperacionServicio
 
     public function getEstadoOperacion(): EstadoOperacionEnum { return $this->estadoOperacion; }
     public function setEstadoOperacion(EstadoOperacionEnum $estadoOperacion): self { $this->estadoOperacion = $estadoOperacion; return $this; }
+
+    /** @return array<string, string|int|null> */
+    public function getSnapshotOrigen(): array { return $this->snapshotOrigen; }
+
+    /** @param array<string, string|int|null> $v */
+    public function setSnapshotOrigen(array $v): self { $this->snapshotOrigen = $v; return $this; }
 }

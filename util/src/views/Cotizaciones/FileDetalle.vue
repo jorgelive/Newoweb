@@ -3,6 +3,7 @@ import {ref, onMounted, onUnmounted, watch, computed} from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import MaskedDateInput from '@/components/MaskedDateInput.vue';   // ajusta ruta
 import SearchableSelect from '@/components/SearchableSelect.vue';
+import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
 import { apiClient } from '@/services/apiClient';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { getUrls } from '@/services/apiClient';
@@ -185,6 +186,24 @@ const clonarVersion = async (cot: ApiCotizacionVersion) => {
   }
 
   clonandoItem.value = null;
+};
+
+// ============================================================================
+// REVISAR CAMBIOS DE OPERACIÓN
+//
+// La generación automática sólo se dispara en la TRANSICIÓN a `confirmado`, y ocurre
+// una única vez: lo que se edite después no llega al Centro de Operaciones. El panel
+// compara y deja aplicar sólo lo aprobado, campo a campo. Ver docs/Operacion.md §3.5.
+// ============================================================================
+const planOperacionId = ref<string | null>(null);
+const planOperacionTitulo = ref<string>('');
+
+const abrirPlanOperacion = (cot: ApiCotizacionVersion) => {
+  const idStr = extractIdStr(cot.id || cot['@id']);
+  if (!idStr) return;
+
+  planOperacionTitulo.value = `Versión ${cot.version} · ${file.value.nombreGrupo ?? ''}`.trim();
+  planOperacionId.value = idStr;
 };
 
 const eliminarFile = async () => {
@@ -761,6 +780,15 @@ const eliminarDocumento = async (iri?: string) => {
                     <i class="fas fa-external-link-alt text-xs"></i>
                   </a>
 
+                  <!-- Sólo en la versión confirmada: es la única que genera operación.
+                       El backend lo vuelve a validar (422 si no está confirmada). -->
+                  <button v-if="cot.estado === 'confirmado'"
+                          @click="abrirPlanOperacion(cot)"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors"
+                          title="Revisar los cambios de esta versión en el Centro de Operaciones">
+                    <i class="fas fa-code-compare text-xs"></i>
+                  </button>
+
                   <button @click="clonarVersion(cot)" :disabled="clonandoItem === extractIdStr(cot.id || cot['@id'])"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-sky-500 hover:border-sky-200 hover:bg-sky-50 transition-colors disabled:opacity-50"
                           title="Clonar esta versión">
@@ -956,5 +984,12 @@ const eliminarDocumento = async (iri?: string) => {
       </div>
     </div>
   </Teleport>
+
+
+  <PlanOperacionModal
+      :cotizacion-id="planOperacionId"
+      :titulo="planOperacionTitulo"
+      @cerrar="planOperacionId = null"
+  />
 
 </template>

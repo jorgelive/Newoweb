@@ -1069,15 +1069,88 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // Recorre servicios→componentes directamente (no el voter): cubre componentes
     // sin tarifas y aplana los items con herencia condicional por flags.
     // ────────────────────────────────────────────────────────────────────────────
+    /**
+     * Resuelve QUÉ prestador aplica a un componente: componente → día → proveedor
+     * de la tarifa. Se toma la primera fuente que diga algo, ENTERA — mezclar el
+     * título de una con el teléfono de otra produce un prestador que no existe.
+     *
+     * ⚠️ ESPEJO de `CotizacionCotcomponente::resolverPrestador()` en PHP. La regla
+     * vive en los dos lados porque el editor necesita previsualizarla antes de
+     * guardar y el backend es quien la congela en los snapshots. Si cambias el
+     * orden de la cascada, se tocan los dos archivos. Ver docs/Cotizaciones.md.
+     *
+     * El día sólo aporta id + nombre (es un default para el filtro de tarifas, no
+     * contenido), así que hereda sin título ni imágenes: correcto, porque lo que se
+     * muestra al cliente se decide en el componente.
+     */
+    const resolverPrestador = (
+        componente: ComponenteCompleto,
+        servicio: CotServicio,
+        tarifaRef: TarifaSnapshot | null
+    ): { origen: 'componente' | 'servicio' | 'tarifa'; nombre: string | null; titulo: I18nContent[]; url: string | null; imagenes: ImagenProveedorSnapshot[] } | null => {
+        if (componente.prestadorMaestroId || (componente.prestadorNombreSnapshot || '').trim()) {
+            return {
+                origen: 'componente',
+                nombre: componente.prestadorNombreSnapshot ?? null,
+                titulo: componente.prestadorTituloSnapshot || [],
+                url: componente.prestadorUrlSnapshot ?? null,
+                imagenes: componente.prestadorImagenesSnapshot || []
+            };
+        }
+
+        if (servicio.prestadorMaestroId || (servicio.prestadorNombreSnapshot || '').trim()) {
+            return {
+                origen: 'servicio',
+                nombre: servicio.prestadorNombreSnapshot ?? null,
+                titulo: [],
+                url: null,
+                imagenes: []
+            };
+        }
+
+        if (tarifaRef?.proveedorNombreSnapshot) {
+            return {
+                origen: 'tarifa',
+                nombre: tarifaRef.proveedorNombreSnapshot,
+                titulo: tarifaRef.proveedorTituloSnapshot || [],
+                url: tarifaRef.proveedorUrlSnapshot ?? null,
+                imagenes: tarifaRef.proveedorImagenesSnapshot || []
+            };
+        }
+
+        return null;
+    };
+
     const construirInclusiones = (advertencias: string[]): InclusionServicio[] => {
         if (!cotizacion.value?.cotservicios) return [];
         const idiomaEdicion = cotizacion.value.idiomaEdicion || 'es';
         const resultado: InclusionServicio[] = [];
 
+        // `advertencias` es el MISMO array que alimenta `publicable`, así que todo lo
+        // que se empuje aquí bloquea guardar en enviado/confirmado/operado. Esta función
+        // recorre servicios→componentes directamente, sin pasar por el votante, y por eso
+        // ve cosas que el cálculo financiero no puede ver: componentes que se publican
+        // distinto de como se cotizaron, o que no se publican en absoluto.
+        //
+        // El listón para añadir una advertencia aquí es alto y es siempre el mismo:
+        // **el cliente vería una propuesta distinta de la que se quiso vender.** No sirve
+        // para avisos de estilo ni para recordatorios.
+        const avisar = (servicioLabel: string, compLabel: string, texto: string): void => {
+            advertencias.push(`"${servicioLabel} ➔ ${compLabel}": ${texto}`);
+        };
+
+        // Los cuatro que `destino()` sabe repartir. Cualquier otro cae en "Incluye".
+        const MODOS_ITEM_VALIDOS = ['incluido', 'no_incluido', 'cortesia', 'opcional'];
+
         const serviciosOrden = [...cotizacion.value.cotservicios]
             .sort((a, b) => getFechaLimpia(a.fechaInicioAbsoluta).localeCompare(getFechaLimpia(b.fechaInicioAbsoluta)));
 
         serviciosOrden.forEach((servicio) => {
+            const servicioLabel = getI18nText(
+                servicio.nombrePublicoSnapshot?.length ? servicio.nombrePublicoSnapshot : (servicio.nombreSnapshot || []),
+                idiomaEdicion
+            ) || 'Servicio';
+
             const bloque: InclusionServicio = {
                 servicioId: extractIdStr(servicio.id),
                 servicioNombre: servicio.nombrePublicoSnapshot?.length
@@ -1085,6 +1158,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 incluidos: [], noIncluidos: [], cortesias: [], opcionales: []
             };
 
+            // ⚠️ El `else` final es un cajón de sastre: cualquier modo que no reconozca
+            // acaba en "Incluye". Por eso existe MODOS_ITEM_VALIDOS — para que un modo
+            // inesperado avise en vez de colarse como incluido.
             const destino = (modo: string): InclusionLinea[] =>
                 modo === 'no_incluido' ? bloque.noIncluidos
                     : modo === 'cortesia' ? bloque.cortesias
@@ -1101,6 +1177,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const cCant = componente.cantidad || 1;
                 const tieneNombre = !!componente.nombreSnapshot?.length;
                 const items = componente.snapshotItems || [];
+                const compLabel = getI18nText(componente.nombreSnapshot, idiomaEdicion) || 'Insumo Logístico';
+
+                // Sin nombre propio y sin ítems no se genera ni una línea: el componente
+                // desaparece de la propuesta. Si además lleva tarifa, es costo que el
+                // cliente paga sin ver a cambio de qué.
+                if (!tieneNombre && items.length === 0) {
+                    avisar(servicioLabel, compLabel,
+                        'no tiene título público ni ítems, así que no aparece en la propuesta. '
+                        + 'Ponle un título o añádele ítems.');
+                }
 
                 // Tarifa estándar visible (fuente de herencia para items y línea propia)
                 const estandares = (componente.cottarifas || []).filter(
@@ -1133,6 +1219,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         const opcionables = (componente.cottarifas || []).filter(
                             (t: TarifaSnapshot) => (t.rolSnapshot || 'estandar') !== 'operativo'
                         );
+                        // Un componente marcado INCLUIDO sin tarifa estándar es una
+                        // contradicción: está en el paquete pero no tiene precio base. El
+                        // renderizado la resuelve con elegancia —lo publica como «Opción N»
+                        // en Opcional— y ahí está el peligro: el cliente recibe como
+                        // elegible algo que se le vendió como incluido, sin que nadie lo note.
+                        if (opcionables.length > 0) {
+                            avisar(servicioLabel, compLabel,
+                                'está marcado como Incluido pero no tiene tarifa estándar, '
+                                + 'así que el cliente lo verá como Opcional. Marca una tarifa como estándar '
+                                + 'o cambia el modo del componente.');
+                        } else {
+                            // Ni estándar ni alternativas: no se publica absolutamente nada.
+                            // "Publicable" y no "ninguna": `opcionables` descarta las de rol
+                            // operativo, que existen pero nunca se le enseñan al cliente.
+                            avisar(servicioLabel, compLabel,
+                                'está marcado como Incluido y no tiene ninguna tarifa publicable, '
+                                + 'así que no aparece en la propuesta.');
+                        }
+
                         const grupos = new Map<number, TarifaSnapshot[]>();
                         opcionables.forEach((t: TarifaSnapshot) => {
                             const g = t.grupoTarifa ?? 0;
@@ -1160,6 +1265,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 });
                             });
                     } else {
+                        // El prestador viaja SOLO en las líneas no incluidas. En una
+                        // incluida sería revelar quién opera lo que sí vendes, que es
+                        // justo lo que el anonimato evita; el backend lo vuelve a
+                        // filtrar en CotizacionCotcomponentePrestadorPublicNormalizer.
+                        const prestador = modo === 'no_incluido'
+                            ? resolverPrestador(componente, servicio, tarifaRef)
+                            : null;
+
                         destino(modo).push({
                             origen: 'componente',
                             modo: modo as ModoFinanciero,
@@ -1172,7 +1285,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             edadMin: tarifaRef?.edadMinimaSnapshot ?? null,
                             edadMax: tarifaRef?.edadMaximaSnapshot ?? null,
                             tarifaTitulo: [],
-                            tarifas: estandares.map(mapearTarifaInclusion)
+                            tarifas: estandares.map(mapearTarifaInclusion),
+                            prestadorTitulo: prestador?.titulo,
+                            prestadorUrl: prestador?.url,
+                            prestadorImagenes: prestador?.imagenes
                         });
                     }
                 }
@@ -1180,6 +1296,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // Líneas de ITEMS aplanadas (casos 1 y 3): cada item con su propio modo
                 items.forEach((item: SnapshotItem) => {
                     const modoItem = (item.modo || 'incluido').toLowerCase();
+
+                    // `destino()` manda a "Incluye" todo lo que no reconoce. Un modo con
+                    // una errata deja de ser opcional y pasa a estar incluido, en silencio
+                    // y a favor del cliente: acabas regalando lo que querías cobrar aparte.
+                    if (!MODOS_ITEM_VALIDOS.includes(modoItem)) {
+                        avisar(servicioLabel, compLabel,
+                            `el ítem "${getI18nText(item.nombreSnapshot, idiomaEdicion) || 'sin nombre'}" `
+                            + `tiene el modo desconocido "${modoItem}" y se publicará como Incluido.`);
+                    }
+
                     destino(modoItem).push({
                         origen: 'item',
                         modo: modoItem as InclusionLinea['modo'],
@@ -2347,7 +2473,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 tipo: 'extras',
                 sinHorario: true,
                 cantidad: 1,
-                estado: 'pendiente',
+                estado: 'activo',
                 modo: 'incluido',
                 fechaHoraInicio: fechaHoraInicio,
                 fechaHoraFin: fechaHoraInicio,
@@ -2500,7 +2626,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         tipo: compMaestro.tipo || 'extras',
                         sinHorario: sinHorarioDeTipo(compMaestro.tipo),
                         cantidad: componentePadre.cantidad,
-                        estado: 'pendiente',
+                        estado: 'activo',
                         modo: 'incluido',
                         fechaHoraInicio: componentePadre.fechaHoraInicio,
                         fechaHoraFin: componentePadre.fechaHoraFin,
@@ -3029,7 +3155,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     // componente representa el horario de toda la excursión.
                     horaServicioCompleto: !!segComp.horaServicioCompleto,
                     cantidad: calcularPernoctes(fHoraInicio, fHoraFin),
-                    estado: 'pendiente',
+                    estado: 'activo',
                     modo: segComp.modo || 'incluido',
                     fechaHoraInicio: fHoraInicio,
                     fechaHoraFin: fHoraFin,
@@ -3718,6 +3844,91 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         fetchProveedorServiciosDeProveedor(targetId);
     };
 
+    // ────────────────────────────────────────────────────────────────────────────
+    // PRESTADOR — quién presta, frente al proveedor de la tarifa (a quién se compra)
+    //
+    // Ambos apuntan al mismo catálogo maestro y se llenan igual; lo que cambia es la
+    // pregunta que responden. Ver resolverPrestador() y docs/Cotizaciones.md.
+    // ────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Asigna el prestador del COMPONENTE desde el catálogo maestro.
+     *
+     * Congela las dos caras de una vez: la pública (título, url, imágenes) para la
+     * propuesta del cliente y la operativa (nombre, teléfono, dirección) para el
+     * cuadro de tráfico. El teléfono y la dirección se copian aquí y no se leen del
+     * maestro al operar porque el día del servicio tiene que decir el teléfono que
+     * valía cuando se vendió, no el que alguien cambió después en el catálogo.
+     */
+    const onPrestadorComponenteChange = (val: string | null): void => {
+        const componente = componenteActivo.value;
+        if (!componente) return;
+
+        if (!val || val === 'null') {
+            componente.prestadorMaestroId = null;
+            componente.prestadorNombreSnapshot = null;
+            componente.prestadorTituloSnapshot = [];
+            componente.prestadorUrlSnapshot = null;
+            componente.prestadorImagenesSnapshot = [];
+            componente.prestadorTelefonoSnapshot = null;
+            componente.prestadorDireccionSnapshot = null;
+            return;
+        }
+
+        const targetId = extractIdStr(val);
+        const prov = catalogos.value.proveedores.find((p) => extractIdStr(p) === targetId);
+        if (!prov) return;
+
+        componente.prestadorMaestroId = targetId;
+        componente.prestadorNombreSnapshot = prov.nombreComercial ?? null;
+        componente.prestadorTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(prov)));
+        componente.prestadorUrlSnapshot = prov.url || null;
+        componente.prestadorImagenesSnapshot = mapearImagenesSnapshot(prov.proveedorImagenes);
+        componente.prestadorTelefonoSnapshot = prov.telefono || null;
+        componente.prestadorDireccionSnapshot = prov.direccion || null;
+    };
+
+    /**
+     * Asigna el prestador por defecto del DÍA. Sólo id + nombre: es una intención
+     * (default heredable y filtro del selector de tarifas), no contenido que se
+     * muestre. Lo que ve el cliente se decide en el componente.
+     */
+    const onPrestadorServicioChange = (val: string | null): void => {
+        const servicio = servicioActivo.value;
+        if (!servicio) return;
+
+        if (!val || val === 'null') {
+            servicio.prestadorMaestroId = null;
+            servicio.prestadorNombreSnapshot = null;
+            return;
+        }
+
+        const targetId = extractIdStr(val);
+        const prov = catalogos.value.proveedores.find((p) => extractIdStr(p) === targetId);
+        if (!prov) return;
+
+        servicio.prestadorMaestroId = targetId;
+        servicio.prestadorNombreSnapshot = prov.nombreComercial ?? null;
+    };
+
+    /**
+     * Prestador que aplica a la tarifa que se está editando, para filtrar el
+     * selector de proveedores. Devuelve null si nadie lo fijó — entonces no hay nada
+     * que filtrar y se ven todos.
+     */
+    const prestadorEsperadoDeTarifaActiva = computed<{ maestroId: string | null; nombre: string | null } | null>(() => {
+        const componente = componenteActualDeTarifa.value;
+        const servicio = componente ? findServicioByComponenteId(extractIdStr(componente.id)) : null;
+
+        if (componente && (componente.prestadorMaestroId || (componente.prestadorNombreSnapshot || '').trim())) {
+            return { maestroId: componente.prestadorMaestroId ?? null, nombre: componente.prestadorNombreSnapshot ?? null };
+        }
+        if (servicio && (servicio.prestadorMaestroId || (servicio.prestadorNombreSnapshot || '').trim())) {
+            return { maestroId: servicio.prestadorMaestroId ?? null, nombre: servicio.prestadorNombreSnapshot ?? null };
+        }
+        return null;
+    });
+
     const actualizarTextosSegmentos = async (): Promise<void> => {
         const servicio = servicioActivo.value;
         if (!servicio || !servicio.cotsegmentos || servicio.cotsegmentos.length === 0) return;
@@ -3840,6 +4051,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         componenteActualDeTarifa, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,
-        buscarServiciosAsincrono, buscarProveedoresAsincrono
+        buscarServiciosAsincrono, buscarProveedoresAsincrono,
+        onPrestadorComponenteChange, onPrestadorServicioChange, prestadorEsperadoDeTarifaActiva, resolverPrestador
     };
 });

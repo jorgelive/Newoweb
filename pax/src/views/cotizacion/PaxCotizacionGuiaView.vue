@@ -436,6 +436,31 @@ const proveedorPorTarifa = computed(() => {
 const modalProveedor = ref<ProveedorInfo | null>(null);
 const abrirProveedor = (p: ProveedorInfo) => { modalProveedor.value = p; };
 
+/**
+ * Prestador de referencia de una línea NO INCLUIDA: el hotel o el vuelo que el
+ * pasajero contrató por su cuenta.
+ *
+ * Se muestra en tono afirmativo y no como carencia — «Alojamiento · por su cuenta
+ * — Casa Andina» en vez de un simple «no incluye alojamiento». Es la diferencia
+ * entre una lista de lo que no compró y un itinerario completo donde algunas cosas
+ * las gestiona él.
+ *
+ * El backend ya garantiza que sólo viaja en no incluidos
+ * (CotizacionCotcomponentePrestadorPublicNormalizer y construirInclusiones); la
+ * comprobación de `modo` aquí es defensa en profundidad, no la regla.
+ */
+const prestadorDeLinea = (l: PaxInclusionItem): ProveedorInfo | null => {
+  if (l.modo !== 'no_incluido' || !l.prestadorTitulo?.length) return null;
+
+  return {
+    titulo: l.prestadorTitulo,
+    url: l.prestadorUrl ?? null,
+    imagenes: (l.prestadorImagenes ?? []).filter((i) => i.imageUrl) as { imageUrl: string }[],
+    servicioTitulo: [],
+    servicioImagenes: [],
+  };
+};
+
 const galeriaProveedor = (p: ProveedorInfo) => [...p.servicioImagenes, ...p.imagenes];
 
 // ── Badges de clasificación (modalidad · categoría · procedencia · edad) ─────
@@ -1417,6 +1442,21 @@ const adelantoVista = computed(() => {
                               <i class="fas fa-hotel text-[8px]"></i>
                               {{ store.traducir(chip.proveedor.titulo) }}
                               <i class="fas fa-circle-arrow-right text-[8px]"></i>
+                            </button>
+                          </div>
+
+                          <!-- Referencia del pasajero (no incluidos). Tono afirmativo
+                               y color propio: no es una carencia ni un proveedor
+                               nuestro, es lo que él ya tiene reservado. -->
+                          <div v-if="prestadorDeLinea(l)" class="ml-6 mt-1.5">
+                            <button
+                                @click="abrirProveedor(prestadorDeLinea(l)!)"
+                                class="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#376875] bg-[#376875]/6 hover:bg-[#376875]/12 border border-[#376875]/20 rounded-lg px-2 py-1 transition-colors"
+                            >
+                              <i class="fas fa-location-dot text-[9px] text-[#E07845]"></i>
+                              <span class="text-slate-500 font-semibold">{{ maestroStore.t('cot_su_reserva') || 'Su reserva:' }}</span>
+                              <b>{{ store.traducir(prestadorDeLinea(l)!.titulo) }}</b>
+                              <i class="fas fa-circle-arrow-right text-[8px] opacity-60"></i>
                             </button>
                           </div>
                         </li>

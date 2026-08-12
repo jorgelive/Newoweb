@@ -240,6 +240,46 @@ export interface paths {
         patch: operations["api_salescotizacions_id_patch"];
         trace?: never;
     };
+    "/platform/sales/cotizacions/{id}/operacion/aplicar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a Cotizacion resource.
+         * @description Creates a Cotizacion resource.
+         */
+        post: operations["api_salescotizacions_idoperacionaplicar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacions/{id}/operacion/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a Cotizacion resource.
+         * @description Creates a Cotizacion resource.
+         */
+        post: operations["api_salescotizacions_idoperacionplan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/sales/client/cotizacion/cotizacion_catalogo/{localizador}": {
         parameters: {
             query?: never;
@@ -2336,6 +2376,158 @@ export interface components {
             /** Format: date-time */
             runAt?: string | null;
         };
+        "CambioPropuesto-operacion.plan.read": {
+            /** @description UUID del componente de la cotización (o de la fila, si es huérfana). */
+            id?: string;
+            /** @description `crear` | `actualizar` | `huerfano` */
+            tipo?: string;
+            descripcion?: string;
+            /** @description El día del itinerario, para ubicar la fila sin salir del panel. */
+            contexto?: string | null;
+            fecha?: string | null;
+            /** @description Vacío en `crear` y en `huerfano`: no hay diff que mostrar. */
+            campos?: components["schemas"]["CampoPropuesto-operacion.plan.read"][];
+            /**
+             * @description Sin casilla: ni siquiera se ofrece. Hoy sólo para borrados de filas que ya
+             *     viajaron al proveedor o que tienen costo real registrado — perderlas rompería
+             *     la trazabilidad de lo que se pidió o borraría dinero que no está en ningún
+             *     otro sitio.
+             */
+            bloqueado?: boolean;
+            /** @description Por qué está bloqueado o por qué llega desmarcado. Se muestra tal cual. */
+            motivo?: string | null;
+            /** @description La fila pertenece a una Orden de Servicio ya emitida. */
+            enOrdenServicio?: boolean;
+            aprobadoPorDefecto?: boolean;
+        };
+        "CambioPropuesto.html-operacion.plan.read": {
+            /** @description UUID del componente de la cotización (o de la fila, si es huérfana). */
+            id?: string;
+            /** @description `crear` | `actualizar` | `huerfano` */
+            tipo?: string;
+            descripcion?: string;
+            /** @description El día del itinerario, para ubicar la fila sin salir del panel. */
+            contexto?: string | null;
+            fecha?: string | null;
+            /** @description Vacío en `crear` y en `huerfano`: no hay diff que mostrar. */
+            campos?: components["schemas"]["CampoPropuesto.html-operacion.plan.read"][];
+            /**
+             * @description Sin casilla: ni siquiera se ofrece. Hoy sólo para borrados de filas que ya
+             *     viajaron al proveedor o que tienen costo real registrado — perderlas rompería
+             *     la trazabilidad de lo que se pidió o borraría dinero que no está en ningún
+             *     otro sitio.
+             */
+            bloqueado?: boolean;
+            /** @description Por qué está bloqueado o por qué llega desmarcado. Se muestra tal cual. */
+            motivo?: string | null;
+            /** @description La fila pertenece a una Orden de Servicio ya emitida. */
+            enOrdenServicio?: boolean;
+            aprobadoPorDefecto?: boolean;
+        };
+        "CambioPropuesto.jsonld-operacion.plan.read": {
+            /** @description UUID del componente de la cotización (o de la fila, si es huérfana). */
+            id?: string;
+            /** @description `crear` | `actualizar` | `huerfano` */
+            tipo?: string;
+            descripcion?: string;
+            /** @description El día del itinerario, para ubicar la fila sin salir del panel. */
+            contexto?: string | null;
+            fecha?: string | null;
+            /** @description Vacío en `crear` y en `huerfano`: no hay diff que mostrar. */
+            campos?: components["schemas"]["CampoPropuesto.jsonld-operacion.plan.read"][];
+            /**
+             * @description Sin casilla: ni siquiera se ofrece. Hoy sólo para borrados de filas que ya
+             *     viajaron al proveedor o que tienen costo real registrado — perderlas rompería
+             *     la trazabilidad de lo que se pidió o borraría dinero que no está en ningún
+             *     otro sitio.
+             */
+            bloqueado?: boolean;
+            /** @description Por qué está bloqueado o por qué llega desmarcado. Se muestra tal cual. */
+            motivo?: string | null;
+            /** @description La fila pertenece a una Orden de Servicio ya emitida. */
+            enOrdenServicio?: boolean;
+            aprobadoPorDefecto?: boolean;
+        };
+        "CambioPropuesto.multipart-operacion.plan.read": {
+            /** @description UUID del componente de la cotización (o de la fila, si es huérfana). */
+            id?: string;
+            /** @description `crear` | `actualizar` | `huerfano` */
+            tipo?: string;
+            descripcion?: string;
+            /** @description El día del itinerario, para ubicar la fila sin salir del panel. */
+            contexto?: string | null;
+            fecha?: string | null;
+            /** @description Vacío en `crear` y en `huerfano`: no hay diff que mostrar. */
+            campos?: components["schemas"]["CampoPropuesto.multipart-operacion.plan.read"][];
+            /**
+             * @description Sin casilla: ni siquiera se ofrece. Hoy sólo para borrados de filas que ya
+             *     viajaron al proveedor o que tienen costo real registrado — perderlas rompería
+             *     la trazabilidad de lo que se pidió o borraría dinero que no está en ningún
+             *     otro sitio.
+             */
+            bloqueado?: boolean;
+            /** @description Por qué está bloqueado o por qué llega desmarcado. Se muestra tal cual. */
+            motivo?: string | null;
+            /** @description La fila pertenece a una Orden de Servicio ya emitida. */
+            enOrdenServicio?: boolean;
+            aprobadoPorDefecto?: boolean;
+        };
+        "CampoPropuesto-operacion.plan.read": {
+            /** @description Nombre técnico, el que viaja de vuelta en la aprobación. */
+            campo?: string;
+            /** @description Etiqueta legible para la columna del diff. */
+            etiqueta?: string;
+            valorActual?: string | null;
+            valorPropuesto?: string | null;
+            /**
+             * @description El operador había editado este campo a mano. Llega DESMARCADO: entre la
+             *     cotización y quien habló con el proveedor, gana quien habló con el proveedor
+             *     mientras nadie diga lo contrario.
+             */
+            enConflicto?: boolean;
+        };
+        "CampoPropuesto.html-operacion.plan.read": {
+            /** @description Nombre técnico, el que viaja de vuelta en la aprobación. */
+            campo?: string;
+            /** @description Etiqueta legible para la columna del diff. */
+            etiqueta?: string;
+            valorActual?: string | null;
+            valorPropuesto?: string | null;
+            /**
+             * @description El operador había editado este campo a mano. Llega DESMARCADO: entre la
+             *     cotización y quien habló con el proveedor, gana quien habló con el proveedor
+             *     mientras nadie diga lo contrario.
+             */
+            enConflicto?: boolean;
+        };
+        "CampoPropuesto.jsonld-operacion.plan.read": {
+            /** @description Nombre técnico, el que viaja de vuelta en la aprobación. */
+            campo?: string;
+            /** @description Etiqueta legible para la columna del diff. */
+            etiqueta?: string;
+            valorActual?: string | null;
+            valorPropuesto?: string | null;
+            /**
+             * @description El operador había editado este campo a mano. Llega DESMARCADO: entre la
+             *     cotización y quien habló con el proveedor, gana quien habló con el proveedor
+             *     mientras nadie diga lo contrario.
+             */
+            enConflicto?: boolean;
+        };
+        "CampoPropuesto.multipart-operacion.plan.read": {
+            /** @description Nombre técnico, el que viaja de vuelta en la aprobación. */
+            campo?: string;
+            /** @description Etiqueta legible para la columna del diff. */
+            etiqueta?: string;
+            valorActual?: string | null;
+            valorPropuesto?: string | null;
+            /**
+             * @description El operador había editado este campo a mano. Llega DESMARCADO: entre la
+             *     cotización y quien habló con el proveedor, gana quien habló con el proveedor
+             *     mientras nadie diga lo contrario.
+             */
+            enConflicto?: boolean;
+        };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         Componente: {
             /** @description Obtiene el nombre interno del componente. */
@@ -3990,6 +4182,74 @@ export interface components {
             /** @description Obtiene el resumen financiero apto para vistas de cliente. */
             clasificacionFinancieraCliente?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-pax_file.read_pax_cotizacion.read"][];
+        };
+        "Cotizacion.AplicarPlanInput-operacion.plan.write": {
+            /** @description Firma del plan que se revisó. Si el estado se movió, `aplicar` lo rechaza. */
+            firma: string;
+            /** @description idDelCambio → nombres de campo aprobados */
+            aprobados?: {
+                [key: string]: string[];
+            };
+        };
+        "Cotizacion.PlanReconciliacion-operacion.plan.read": {
+            firma?: string;
+            cambios?: components["schemas"]["CambioPropuesto-operacion.plan.read"][];
+            /** @description Filas que ya coinciden con la cotización. Se cuentan, no se listan. */
+            sinCambios?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.PlanReconciliacion.html-operacion.plan.read": {
+            firma?: string;
+            cambios?: components["schemas"]["CambioPropuesto.html-operacion.plan.read"][];
+            /** @description Filas que ya coinciden con la cotización. Se cuentan, no se listan. */
+            sinCambios?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.PlanReconciliacion.jsonld-operacion.plan.read": components["schemas"]["HydraItemBaseSchema"] & {
+            firma?: string;
+            cambios?: components["schemas"]["CambioPropuesto.jsonld-operacion.plan.read"][];
+            /** @description Filas que ya coinciden con la cotización. Se cuentan, no se listan. */
+            sinCambios?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.PlanReconciliacion.multipart-operacion.plan.read": {
+            firma?: string;
+            cambios?: components["schemas"]["CambioPropuesto.multipart-operacion.plan.read"][];
+            /** @description Filas que ya coinciden con la cotización. Se cuentan, no se listan. */
+            sinCambios?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.ResultadoAplicacion-operacion.plan.read": {
+            creados?: number;
+            actualizados?: number;
+            borrados?: number;
+            /** @description Cambios del plan que la persona no aprobó. Se cuentan para que quede constancia. */
+            omitidos?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.ResultadoAplicacion.html-operacion.plan.read": {
+            creados?: number;
+            actualizados?: number;
+            borrados?: number;
+            /** @description Cambios del plan que la persona no aprobó. Se cuentan para que quede constancia. */
+            omitidos?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.ResultadoAplicacion.jsonld-operacion.plan.read": components["schemas"]["HydraItemBaseSchema"] & {
+            creados?: number;
+            actualizados?: number;
+            borrados?: number;
+            /** @description Cambios del plan que la persona no aprobó. Se cuentan para que quede constancia. */
+            omitidos?: number;
+            mensaje?: string;
+        };
+        "Cotizacion.ResultadoAplicacion.multipart-operacion.plan.read": {
+            creados?: number;
+            actualizados?: number;
+            borrados?: number;
+            /** @description Cambios del plan que la persona no aprobó. Se cuentan para que quede constancia. */
+            omitidos?: number;
+            mensaje?: string;
         };
         "Cotizacion.html-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             /** @default 1 */
@@ -5695,11 +5955,15 @@ export interface components {
              */
             cantidad: number;
             /**
-             * @description Obtiene el estado del componente.
-             * @default pendiente
+             * @description ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+             *     en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+             *     acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+             *     datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+             *     siempre escribe la propiedad, pero la mina estaba puesta.
+             * @default activo
              * @enum {string}
              */
-            estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
+            estado: "activo" | "cancelado";
             /**
              * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
@@ -5731,6 +5995,18 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5757,11 +6033,15 @@ export interface components {
              */
             cantidad: number;
             /**
-             * @description Obtiene el estado del componente.
-             * @default pendiente
+             * @description ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+             *     en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+             *     acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+             *     datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+             *     siempre escribe la propiedad, pero la mina estaba puesta.
+             * @default activo
              * @enum {string}
              */
-            estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
+            estado: "activo" | "cancelado";
             /**
              * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
@@ -5793,6 +6073,18 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5814,11 +6106,15 @@ export interface components {
              */
             cantidad: number;
             /**
-             * @description Obtiene el estado del componente.
-             * @default pendiente
+             * @description ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+             *     en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+             *     acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+             *     datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+             *     siempre escribe la propiedad, pero la mina estaba puesta.
+             * @default activo
              * @enum {string}
              */
-            estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
+            estado: "activo" | "cancelado";
             /**
              * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
@@ -5850,6 +6146,18 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -5891,6 +6199,11 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -5923,6 +6236,11 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -5948,11 +6266,15 @@ export interface components {
              */
             cantidad: number;
             /**
-             * @description Obtiene el estado del componente.
-             * @default pendiente
+             * @description ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+             *     en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+             *     acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+             *     datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+             *     siempre escribe la propiedad, pero la mina estaba puesta.
+             * @default activo
              * @enum {string}
              */
-            estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
+            estado: "activo" | "cancelado";
             /**
              * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
@@ -5984,6 +6306,18 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6010,11 +6344,15 @@ export interface components {
              */
             cantidad: number;
             /**
-             * @description Obtiene el estado del componente.
-             * @default pendiente
+             * @description ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+             *     en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+             *     acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+             *     datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+             *     siempre escribe la propiedad, pero la mina estaba puesta.
+             * @default activo
              * @enum {string}
              */
-            estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
+            estado: "activo" | "cancelado";
             /**
              * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
@@ -6046,6 +6384,18 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6091,6 +6441,11 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -6123,6 +6478,11 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -6148,11 +6508,15 @@ export interface components {
              */
             cantidad: number;
             /**
-             * @description Obtiene el estado del componente.
-             * @default pendiente
+             * @description ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+             *     en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+             *     acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+             *     datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+             *     siempre escribe la propiedad, pero la mina estaba puesta.
+             * @default activo
              * @enum {string}
              */
-            estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
+            estado: "activo" | "cancelado";
             /**
              * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
@@ -6184,6 +6548,18 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6211,11 +6587,15 @@ export interface components {
              */
             cantidad: number;
             /**
-             * @description Obtiene el estado del componente.
-             * @default pendiente
+             * @description ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+             *     en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+             *     acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+             *     datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+             *     siempre escribe la propiedad, pero la mina estaba puesta.
+             * @default activo
              * @enum {string}
              */
-            estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
+            estado: "activo" | "cancelado";
             /**
              * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
@@ -6247,6 +6627,18 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6294,6 +6686,11 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -6327,6 +6724,11 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -6352,11 +6754,15 @@ export interface components {
              */
             cantidad: number;
             /**
-             * @description Obtiene el estado del componente.
-             * @default pendiente
+             * @description ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+             *     en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+             *     acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+             *     datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+             *     siempre escribe la propiedad, pero la mina estaba puesta.
+             * @default activo
              * @enum {string}
              */
-            estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
+            estado: "activo" | "cancelado";
             /**
              * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
@@ -6388,6 +6794,18 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6414,11 +6832,15 @@ export interface components {
              */
             cantidad: number;
             /**
-             * @description Obtiene el estado del componente.
-             * @default pendiente
+             * @description ⚠️ El default de la COLUMNA tiene que coincidir con un `case` del enum. Estuvo
+             *     en `'Pendiente'` con mayúscula, un valor que `ComponenteEstadoEnum::from()` no
+             *     acepta: cualquier fila insertada sin este campo —un INSERT crudo, una carga de
+             *     datos— reventaba la hidratación con un ValueError. No pasaba porque Doctrine
+             *     siempre escribe la propiedad, pero la mina estaba puesta.
+             * @default activo
              * @enum {string}
              */
-            estado: "pendiente" | "confirmado" | "reconfirmado" | "cancelado";
+            estado: "activo" | "cancelado";
             /**
              * @description Obtiene la modalidad del componente en la cotización.
              * @default incluido
@@ -6450,6 +6872,18 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            prestadorMaestroId?: string | null;
+            /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
+            prestadorNombreSnapshot?: string | null;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
+            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
+            prestadorTelefonoSnapshot?: string | null;
+            prestadorDireccionSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6495,6 +6929,11 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -6527,6 +6966,11 @@ export interface components {
              *     excursión (servicio/itinerario), no la del segmento donde está anclado.
              */
             horaServicioCompleto?: boolean;
+            /** @description Título de cara al cliente (I18nContent[]), traducible. */
+            prestadorTituloSnapshot?: string[];
+            prestadorUrlSnapshot?: string | null;
+            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+            prestadorImagenesSnapshot?: string[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: string[];
         };
@@ -6552,6 +6996,9 @@ export interface components {
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6582,6 +7029,9 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6607,6 +7057,9 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.write"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.write"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
@@ -6655,6 +7108,9 @@ export interface components {
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6685,6 +7141,9 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6737,6 +7196,9 @@ export interface components {
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6767,6 +7229,9 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6819,6 +7284,9 @@ export interface components {
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6849,6 +7317,9 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /** @description Prestador por defecto del día. OPCIONAL. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11990,12 +12461,21 @@ export interface components {
             file?: components["schemas"]["CotizacionFile-operacion.item.read_timestamp.read"];
             cotizacionServicio?: components["schemas"]["CotizacionCotservicio-operacion.item.read_timestamp.read"];
             cotizacionComponente?: components["schemas"]["CotizacionCotcomponente-operacion.item.read_timestamp.read"];
-            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa-operacion.item.read_timestamp.read"];
+            /**
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
+             */
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
@@ -12011,10 +12491,11 @@ export interface components {
             montoVenta: string;
             /** @default 0.00 */
             costoCotizado: string;
-            monedaCotizada?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"];
+            /** @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
+            monedaCotizada?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
             costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"];
+            monedaReal?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -12030,6 +12511,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -12048,14 +12531,21 @@ export interface components {
             file?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
              * @example https://example.com/
              */
-            cotizacionTarifa?: string;
+            cotizacionTarifa?: string | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
@@ -12073,16 +12563,17 @@ export interface components {
             costoCotizado: string;
             /**
              * Format: iri-reference
+             * @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda.
              * @example https://example.com/
              */
-            monedaCotizada?: string;
+            monedaCotizada?: string | null;
             /** @default 0.00 */
             costoRealOperativo: string;
             /**
              * Format: iri-reference
              * @example https://example.com/
              */
-            monedaReal?: string;
+            monedaReal?: string | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -12104,14 +12595,21 @@ export interface components {
             file?: string;
             /**
              * Format: iri-reference
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
              * @example https://example.com/
              */
-            cotizacionTarifa?: string;
+            cotizacionTarifa?: string | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
@@ -12129,16 +12627,17 @@ export interface components {
             costoCotizado: string;
             /**
              * Format: iri-reference
+             * @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda.
              * @example https://example.com/
              */
-            monedaCotizada?: string;
+            monedaCotizada?: string | null;
             /** @default 0.00 */
             costoRealOperativo: string;
             /**
              * Format: iri-reference
              * @example https://example.com/
              */
-            monedaReal?: string;
+            monedaReal?: string | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -12156,12 +12655,21 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.html-operacion.item.read_timestamp.read"];
             cotizacionServicio?: components["schemas"]["CotizacionCotservicio.html-operacion.item.read_timestamp.read"];
             cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.html-operacion.item.read_timestamp.read"];
-            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.html-operacion.item.read_timestamp.read"];
+            /**
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
+             */
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.html-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
@@ -12177,10 +12685,11 @@ export interface components {
             montoVenta: string;
             /** @default 0.00 */
             costoCotizado: string;
-            monedaCotizada?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"];
+            /** @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
+            monedaCotizada?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
             costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"];
+            monedaReal?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -12196,6 +12705,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -12210,12 +12721,21 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.jsonld-operacion.item.read_timestamp.read"];
             cotizacionServicio?: components["schemas"]["CotizacionCotservicio.jsonld-operacion.item.read_timestamp.read"];
             cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read"];
-            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read"];
+            /**
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
+             */
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
@@ -12231,10 +12751,11 @@ export interface components {
             montoVenta: string;
             /** @default 0.00 */
             costoCotizado: string;
-            monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"];
+            /** @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
+            monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
             costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"];
+            monedaReal?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -12250,6 +12771,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -12264,12 +12787,21 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.multipart-operacion.item.read_timestamp.read"];
             cotizacionServicio?: components["schemas"]["CotizacionCotservicio.multipart-operacion.item.read_timestamp.read"];
             cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read"];
-            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.multipart-operacion.item.read_timestamp.read"];
+            /**
+             * @description Tarifa de la que salió el costo. **Nullable**: un componente sin tarifa también
+             *     genera fila.
+             */
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.multipart-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
             proveedorMaestroId?: string | null;
             proveedorNombreManual?: string | null;
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
+            prestadorTelefono?: string | null;
+            prestadorDireccion?: string | null;
             descripcionServicio?: string;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
@@ -12285,10 +12817,11 @@ export interface components {
             montoVenta: string;
             /** @default 0.00 */
             costoCotizado: string;
-            monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"];
+            /** @description Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
+            monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
             costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"];
+            monedaReal?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
             /**
              * @default sin-solicitar
              * @enum {string}
@@ -12304,6 +12837,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -12778,6 +13313,8 @@ export interface components {
             descripcionCliente?: string[][];
             monto?: string | null;
             totalLinea?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
             descripcionClienteEs?: string | null;
         };
@@ -12835,6 +13372,8 @@ export interface components {
             fechaCreacionBeds24?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
@@ -12876,6 +13415,8 @@ export interface components {
             descripcionCliente?: string[][];
             monto?: string | null;
             totalLinea?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
             descripcionClienteEs?: string | null;
         };
@@ -12932,6 +13473,8 @@ export interface components {
             fechaCreacionBeds24?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
@@ -12991,6 +13534,8 @@ export interface components {
             fechaCreacionBeds24?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
@@ -13049,6 +13594,8 @@ export interface components {
             fechaCreacionBeds24?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
@@ -13108,6 +13655,8 @@ export interface components {
             fechaCreacionBeds24?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
@@ -13167,6 +13716,8 @@ export interface components {
             fechaCreacionBeds24?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
@@ -13226,6 +13777,8 @@ export interface components {
             fechaCreacionBeds24?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
@@ -13284,6 +13837,8 @@ export interface components {
             fechaCreacionBeds24?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
             /** @description ¿Lo creó un operador a mano (true) o llegó sincronizado desde Beds24 (false)? */
             readonly manual?: boolean;
             /** @description La descripción en ESPAÑOL, para editarla desde el panel con un campo de texto normal. */
@@ -13388,6 +13943,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "PmsChannel-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "PmsChannel.html-pax_reserva.read": {
             /** @description El ID es el código string. */
             id?: string;
@@ -13418,6 +13979,12 @@ export interface components {
             id?: string;
             nombre?: string;
             color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsChannel.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -13470,6 +14037,16 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        /**
+         * @description Entidad PmsChannel.
+         *     Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+         */
+        "PmsChannel.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "PmsChannel.multipart-pax_reserva.read": {
             /** @description El ID es el código string. */
             id?: string;
@@ -13500,6 +14077,12 @@ export interface components {
             id?: string;
             nombre?: string;
             color?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "PmsChannel.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14131,6 +14714,23 @@ export interface components {
             readonly trazabilidadLinks?: string | null;
             readonly noches?: number;
         };
+        "PmsEventoCalendario-pax_reserva.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad-pax_reserva.read"];
+            reserva?: components["schemas"]["PmsReserva-pax_reserva.read"] | null;
+            channel: components["schemas"]["PmsChannel-pax_reserva.read"] | null;
+            referenciaCanal?: string | null;
+            estado: components["schemas"]["PmsEventoEstado-pax_reserva.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         /**
          * @description Entidad PmsEventoCalendario.
          *     Gestiona bloqueos y reservas.
@@ -14367,6 +14967,23 @@ export interface components {
             readonly trazabilidadLinks?: string | null;
             readonly noches?: number;
         };
+        "PmsEventoCalendario.html-pax_reserva.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad.html-pax_reserva.read"];
+            reserva?: components["schemas"]["PmsReserva.html-pax_reserva.read"] | null;
+            channel: components["schemas"]["PmsChannel.html-pax_reserva.read"] | null;
+            referenciaCanal?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.html-pax_reserva.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         /**
          * @description Entidad PmsEventoCalendario.
          *     Gestiona bloqueos y reservas.
@@ -14509,6 +15126,29 @@ export interface components {
             readonly trazabilidadReserva?: string | null;
             readonly trazabilidadLinks?: string | null;
             readonly noches?: number;
+        };
+        /**
+         * @description Entidad PmsEventoCalendario.
+         *     Gestiona bloqueos y reservas.
+         *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+         *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
+         */
+        "PmsEventoCalendario.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+            pmsUnidad: components["schemas"]["PmsUnidad.jsonld-pax_reserva.read"];
+            reserva?: components["schemas"]["PmsReserva.jsonld-pax_reserva.read"] | null;
+            channel: components["schemas"]["PmsChannel.jsonld-pax_reserva.read"] | null;
+            referenciaCanal?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.jsonld-pax_reserva.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
         };
         /**
          * @description Entidad PmsEventoCalendario.
@@ -14660,6 +15300,23 @@ export interface components {
             readonly trazabilidadLinks?: string | null;
             readonly noches?: number;
         };
+        "PmsEventoCalendario.multipart-pax_reserva.read": {
+            pmsUnidad: components["schemas"]["PmsUnidad.multipart-pax_reserva.read"];
+            reserva?: components["schemas"]["PmsReserva.multipart-pax_reserva.read"] | null;
+            channel: components["schemas"]["PmsChannel.multipart-pax_reserva.read"] | null;
+            referenciaCanal?: string | null;
+            estado: components["schemas"]["PmsEventoEstado.multipart-pax_reserva.read"];
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            cantidadAdultos?: number;
+            cantidadNinos?: number;
+            /** @description Salida tardía pactada: el huésped se va por la tarde del día de salida. */
+            salidaTardia?: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         /**
          * @description Entidad PmsEventoCalendario.
          *     Gestiona bloqueos y reservas.
@@ -14713,6 +15370,10 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "PmsEventoEstado-pax_reserva.read": {
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
+        };
         "PmsEventoEstado-pms_evento.read_timestamp.read": {
             /** @description El ID es el código string del estado. */
             id?: string;
@@ -14720,6 +15381,8 @@ export interface components {
             nombre?: string;
             /** @description Color visual en formato hexadecimal (ej: #FF5733). */
             color?: string | null;
+            /** @description Icono FontAwesome del estado, con su prefijo (ej: `fas fa-circle-check`). */
+            icono?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14737,8 +15400,14 @@ export interface components {
             nombre?: string;
             /** @description Color visual en formato hexadecimal (ej: #FF5733). */
             color?: string | null;
+            /** @description Icono FontAwesome del estado, con su prefijo (ej: `fas fa-circle-check`). */
+            icono?: string | null;
             /** @description Orden para listados en la UI. */
             orden?: number | null;
+        };
+        "PmsEventoEstado.html-pax_reserva.read": {
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
         };
         "PmsEventoEstado.html-pms_evento.read_timestamp.read": {
             /** @description El ID es el código string del estado. */
@@ -14747,6 +15416,8 @@ export interface components {
             nombre?: string;
             /** @description Color visual en formato hexadecimal (ej: #FF5733). */
             color?: string | null;
+            /** @description Icono FontAwesome del estado, con su prefijo (ej: `fas fa-circle-check`). */
+            icono?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14764,8 +15435,19 @@ export interface components {
             nombre?: string;
             /** @description Color visual en formato hexadecimal (ej: #FF5733). */
             color?: string | null;
+            /** @description Icono FontAwesome del estado, con su prefijo (ej: `fas fa-circle-check`). */
+            icono?: string | null;
             /** @description Orden para listados en la UI. */
             orden?: number | null;
+        };
+        /**
+         * @description Entidad PmsEventoEstado.
+         *     Define los estados internos del PMS y su mapeo con Beds24.
+         *     IDs Naturales basados en los códigos originales.
+         */
+        "PmsEventoEstado.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
         };
         /**
          * @description Entidad PmsEventoEstado.
@@ -14779,6 +15461,8 @@ export interface components {
             nombre?: string;
             /** @description Color visual en formato hexadecimal (ej: #FF5733). */
             color?: string | null;
+            /** @description Icono FontAwesome del estado, con su prefijo (ej: `fas fa-circle-check`). */
+            icono?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14796,8 +15480,14 @@ export interface components {
             nombre?: string;
             /** @description Color visual en formato hexadecimal (ej: #FF5733). */
             color?: string | null;
+            /** @description Icono FontAwesome del estado, con su prefijo (ej: `fas fa-circle-check`). */
+            icono?: string | null;
             /** @description Orden para listados en la UI. */
             orden?: number | null;
+        };
+        "PmsEventoEstado.multipart-pax_reserva.read": {
+            /** @description Nombre de visualización para la interfaz. */
+            nombre?: string;
         };
         "PmsEventoEstado.multipart-pms_evento.read_timestamp.read": {
             /** @description El ID es el código string del estado. */
@@ -14806,6 +15496,8 @@ export interface components {
             nombre?: string;
             /** @description Color visual en formato hexadecimal (ej: #FF5733). */
             color?: string | null;
+            /** @description Icono FontAwesome del estado, con su prefijo (ej: `fas fa-circle-check`). */
+            icono?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14823,6 +15515,8 @@ export interface components {
             nombre?: string;
             /** @description Color visual en formato hexadecimal (ej: #FF5733). */
             color?: string | null;
+            /** @description Icono FontAwesome del estado, con su prefijo (ej: `fas fa-circle-check`). */
+            icono?: string | null;
             /** @description Orden para listados en la UI. */
             orden?: number | null;
         };
@@ -14973,6 +15667,13 @@ export interface components {
                 [key: string]: string;
             }[];
             /**
+             * @description Medios de cobro que aplican a ESTE huésped,
+             *     ya filtrados por procedencia.
+             */
+            mediosPago?: {
+                [key: string]: string;
+            }[];
+            /**
              * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
              *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
              */
@@ -14993,6 +15694,13 @@ export interface components {
             };
             /** @description Redes WiFi; vacío si la ventana no está abierta. */
             redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Medios de cobro que aplican a ESTE huésped,
+             *     ya filtrados por procedencia.
+             */
+            mediosPago?: {
                 [key: string]: string;
             }[];
             /**
@@ -15019,6 +15727,13 @@ export interface components {
                 [key: string]: string;
             }[];
             /**
+             * @description Medios de cobro que aplican a ESTE huésped,
+             *     ya filtrados por procedencia.
+             */
+            mediosPago?: {
+                [key: string]: string;
+            }[];
+            /**
              * @description Estado del acceso, solo para que la UI elija el aviso de cabecera. La
              *     decisión de qué se ve ya está tomada: lo que no se puede ver, no viene.
              */
@@ -15039,6 +15754,13 @@ export interface components {
             };
             /** @description Redes WiFi; vacío si la ventana no está abierta. */
             redesWifi?: {
+                [key: string]: string;
+            }[];
+            /**
+             * @description Medios de cobro que aplican a ESTE huésped,
+             *     ya filtrados por procedencia.
+             */
+            mediosPago?: {
                 [key: string]: string;
             }[];
             /**
@@ -15535,8 +16257,6 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15553,6 +16273,11 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
             /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
             readonly cobradorNombre?: string | null;
         };
@@ -15577,8 +16302,11 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User-pms_pago.patch"] | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero-pms_pago.read_maestro.moneda.read": {
@@ -15605,8 +16333,6 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User-pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15623,6 +16349,11 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
             /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
             readonly cobradorNombre?: string | null;
         };
@@ -15658,8 +16389,11 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User-pms_pago.write"] | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
         };
         "PmsPagoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
             /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
@@ -15685,8 +16419,6 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15703,6 +16435,11 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
             /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
             readonly cobradorNombre?: string | null;
         };
@@ -15731,8 +16468,6 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User.html-pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15749,6 +16484,11 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
             /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
             readonly cobradorNombre?: string | null;
         };
@@ -15777,8 +16517,6 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15795,6 +16533,11 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
             /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
             readonly cobradorNombre?: string | null;
         };
@@ -15823,8 +16566,6 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User.jsonld-pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15841,6 +16582,11 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
             /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
             readonly cobradorNombre?: string | null;
         };
@@ -15868,8 +16614,6 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15886,6 +16630,11 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
             /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
             readonly cobradorNombre?: string | null;
         };
@@ -15914,8 +16663,6 @@ export interface components {
             notas?: string | null;
             /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
             esAutomatico?: boolean;
-            /** @description Quién RECIBIÓ el dinero de manos del huésped. */
-            cobrador?: components["schemas"]["User.multipart-pms_pago.read_maestro.moneda.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -15932,6 +16679,11 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /**
+             * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
+             *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
+             */
+            cobradorId?: string | null;
             /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
             readonly cobradorNombre?: string | null;
         };
@@ -16303,7 +17055,7 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
-            readonly eventosActivosGuia?: string[];
+            readonly eventosActivosGuia?: components["schemas"]["PmsEventoCalendario-pax_reserva.read"][];
         };
         "PmsReserva-pms_evento.read_timestamp.read": {
             /** Format: date-time */
@@ -16583,7 +17335,7 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
-            readonly eventosActivosGuia?: string[];
+            readonly eventosActivosGuia?: components["schemas"]["PmsEventoCalendario.html-pax_reserva.read"][];
         };
         "PmsReserva.html-pms_evento.read_timestamp.read": {
             /** Format: date-time */
@@ -16763,7 +17515,10 @@ export interface components {
             /** @description Getter virtual para EasyAdmin (Trazabilidad) */
             readonly trazabilidadEventos?: string | null;
         };
-        "PmsReserva.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "PmsReserva.jsonld-pax_reserva.read": {
+            /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
+            readonly eventosActivosGuia?: components["schemas"]["PmsEventoCalendario.jsonld-pax_reserva.read"][];
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
             telefono?: string | null;
@@ -16803,9 +17558,7 @@ export interface components {
             readonly paxTotal?: number;
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
-            /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
-            readonly eventosActivosGuia?: string[];
-        };
+        });
         "PmsReserva.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             createdAt?: string;
@@ -17025,7 +17778,7 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
-            readonly eventosActivosGuia?: string[];
+            readonly eventosActivosGuia?: components["schemas"]["PmsEventoCalendario.multipart-pax_reserva.read"][];
         };
         "PmsReserva.multipart-pms_evento.read_timestamp.read": {
             /** Format: date-time */
@@ -17622,6 +18375,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: string[];
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue"][];
@@ -17693,6 +18472,18 @@ export interface components {
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
+        "PmsUnidad-pax_reserva.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         "PmsUnidad-pms_evento.read_timestamp.read": {
             nombre?: string | null;
             /** Format: uuid */
@@ -17724,6 +18515,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: components["schemas"]["PmsChannel-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -17760,6 +18577,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -17805,6 +18648,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: string[];
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.html"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue.html"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.html"][];
@@ -17876,6 +18745,18 @@ export interface components {
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
+        "PmsUnidad.html-pax_reserva.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         "PmsUnidad.html-pms_evento.read_timestamp.read": {
             nombre?: string | null;
             /** Format: uuid */
@@ -17907,6 +18788,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: components["schemas"]["PmsChannel.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -17943,6 +18850,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -17992,6 +18925,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: string[];
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.jsonld"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue.jsonld"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.jsonld"][];
@@ -18075,6 +19034,22 @@ export interface components {
          * @description Entidad PmsUnidad.
          *     Representa un apartamento o habitación específica.
          */
+        "PmsUnidad.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad PmsUnidad.
+         *     Representa un apartamento o habitación específica.
+         */
         "PmsUnidad.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string | null;
             /** Format: uuid */
@@ -18110,6 +19085,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: components["schemas"]["PmsChannel.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -18146,6 +19147,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -18191,6 +19218,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: string[];
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.multipart"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue.multipart"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.multipart"][];
@@ -18262,6 +19315,18 @@ export interface components {
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
+        "PmsUnidad.multipart-pax_reserva.read": {
+            nombre?: string | null;
+            /**
+             * @description Identificador legible para la URL pública del catálogo: `/casita/casita-1`,
+             *     donde el primer segmento es el slug del establecimiento.
+             */
+            slug?: string | null;
+            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         "PmsUnidad.multipart-pms_evento.read_timestamp.read": {
             nombre?: string | null;
             /** Format: uuid */
@@ -18293,6 +19358,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: components["schemas"]["PmsChannel.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -18329,6 +19420,32 @@ export interface components {
              * @default 0.00
              */
             precioPaxAdicional: string;
+            /**
+             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
+             *     y una semana no ensucia siete veces.
+             * @default 0.00
+             */
+            precioLimpieza: string;
+            /**
+             * @description Cuántas habitaciones tiene. **No es capacidad, es privacidad**: dos grupos de 8 caben
+             *     igual en la Casita 3 (2 habitaciones) y en la 6 (3), y no es lo mismo.
+             */
+            habitaciones?: number | null;
+            /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
+            camas?: string | null;
+            /**
+             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
+             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             */
+            banosPrivados?: number | null;
+            /**
+             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
+             *     la base.
+             * @default 0.00
+             */
+            porcentajeServicio: string;
+            /** @description En qué canales se aplica {@see $porcentajeServicio}. */
+            readonly serviciosCanales?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -22307,10 +23424,6 @@ export interface components {
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
         };
-        "User-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": Record<string, never>;
-        "User-pms_pago.patch": Record<string, never>;
-        "User-pms_pago.read_maestro.moneda.read": Record<string, never>;
-        "User-pms_pago.write": Record<string, never>;
         "User.html": {
             /** @description Identificador de usuario único para el login. */
             username?: string;
@@ -22355,8 +23468,6 @@ export interface components {
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
         };
-        "User.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": Record<string, never>;
-        "User.html-pms_pago.read_maestro.moneda.read": Record<string, never>;
         "User.jsonld": {
             /** @description Identificador de usuario único para el login. */
             username?: string;
@@ -22401,8 +23512,6 @@ export interface components {
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
         };
-        "User.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": Record<string, never>;
-        "User.jsonld-pms_pago.read_maestro.moneda.read": Record<string, never>;
         "User.multipart": {
             /** @description Identificador de usuario único para el login. */
             username?: string;
@@ -22447,8 +23556,6 @@ export interface components {
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
         };
-        "User.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": Record<string, never>;
-        "User.multipart-pms_pago.read_maestro.moneda.read": Record<string, never>;
         UserArea: {
             readonly id?: number;
             nombre: string;
@@ -23850,6 +24957,140 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_idoperacionaplicar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion.AplicarPlanInput-operacion.plan.write"];
+                "application/json": components["schemas"]["Cotizacion.AplicarPlanInput-operacion.plan.write"];
+                "text/html": components["schemas"]["Cotizacion.AplicarPlanInput-operacion.plan.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion.AplicarPlanInput-operacion.plan.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.ResultadoAplicacion.jsonld-operacion.plan.read"];
+                    "application/json": components["schemas"]["Cotizacion.ResultadoAplicacion-operacion.plan.read"];
+                    "text/html": components["schemas"]["Cotizacion.ResultadoAplicacion.html-operacion.plan.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.ResultadoAplicacion.multipart-operacion.plan.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_idoperacionplan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "application/json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "text/html": components["schemas"]["Cotizacion-cotizacion.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion-cotizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.PlanReconciliacion.jsonld-operacion.plan.read"];
+                    "application/json": components["schemas"]["Cotizacion.PlanReconciliacion-operacion.plan.read"];
+                    "text/html": components["schemas"]["Cotizacion.PlanReconciliacion.html-operacion.plan.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.PlanReconciliacion.multipart-operacion.plan.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

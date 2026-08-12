@@ -1,0 +1,524 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Operacion\Service;
+
+use App\Cotizacion\Entity\Cotizacion;
+use App\Cotizacion\Entity\CotizacionCotcomponente;
+use App\Operacion\ApiPlatform\Dto\AplicarPlanInput;
+use App\Operacion\ApiPlatform\Dto\CambioPropuesto;
+use App\Operacion\ApiPlatform\Dto\CampoPropuesto;
+use App\Operacion\ApiPlatform\Dto\PlanReconciliacion;
+use App\Operacion\ApiPlatform\Dto\ResultadoAplicacion;
+use App\Operacion\Entity\OperacionServicio;
+use DomainException;
+use Doctrine\ORM\EntityManagerInterface;
+
+/**
+ * Reconcilia La Biblia con la cotización SIN borrarla.
+ *
+ * Sustituye al «borrar y regenerar» del comando original, que era correcto mientras las
+ * filas no contenían nada propio: hoy contienen hora real pactada por teléfono,
+ * prestador, teléfono del recojo y —cuando se rellenen— costo real. Un merge automático,
+ * aunque sea conservador, es tan peligroso como un borrado: el daño simplemente tarda
+ * más en descubrirse.
+ *
+ * Por eso son DOS operaciones separadas:
+ *
+ *   planificar()  →  calcula el diff. NO escribe. Devuelve un plan firmado.
+ *        ↓  una persona revisa, marca y confirma
+ *   aplicar()     →  ejecuta SÓLO lo aprobado, y sólo si la firma sigue siendo válida.
+ *
+ * La pregunta que lo hace posible —«si la fila y la cotización difieren, ¿quién se
+ * movió?»— la responde `OperacionServicio::$snapshotOrigen`, la foto de lo que escribió
+ * el snapshot la última vez. Ver docs/Operacion.md §3.5.
+ */
+class BibliaReconciliacionService
+{
+    /**
+     * Campos que la cotización gobierna, con su etiqueta para el diff.
+     *
+     * Los que NO están aquí pertenecen al operador y la reconciliación no los toca
+     * jamás: `estadoReserva`, `estadoOperacion`, `costoRealOperativo`, `montoVenta`,
+     * `monedaReal` y `ordenServicio`. Esa lista corta es media razón de ser del módulo.
+     */
+    private const ETIQUETAS = [
+        'fechaServicio'         => 'Fecha',
+        'horaRecojoReal'        => 'Hora de recojo',
+        'descripcionServicio'   => 'Servicio',
+        'contextoServicio'      => 'Día del itinerario',
+        'prestadorNombre'       => 'Prestador',
+        'prestadorTelefono'     => 'Teléfono del prestador',
+        'prestadorDireccion'    => 'Dirección del prestador',
+        'proveedorNombreManual' => 'Proveedor (compra)',
+        'proveedorMaestroId'    => 'Proveedor (catálogo)',
+        'prestadorMaestroId'    => 'Prestador (catálogo)',
+        'tipoComponente'        => 'Tipo',
+        'modoComponente'        => 'Modo',
+        'estadoComponente'      => 'Estado en la cotización',
+        'cantidadPax'           => 'Pax',
+        'costoCotizado'         => 'Costo cotizado',
+        'monedaCotizadaId'      => 'Moneda',
+        'cotizacionTarifaId'    => 'Tarifa',
+    ];
+
+    /** Cambios en estos campos no se muestran como línea: son identificadores internos. */
+    private const CAMPOS_TECNICOS = [
+        'proveedorMaestroId',
+        'prestadorMaestroId',
+        'monedaCotizadaId',
+        'cotizacionTarifaId',
+    ];
+
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly BibliaSnapshotService $snapshot,
+    ) {
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PLANIFICAR — no escribe nada
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function planificar(Cotizacion $cotizacion): PlanReconciliacion
+    {
+        $cambios     = [];
+        $sinCambios  = 0;
+        $cantidadPax = $cotizacion->getNumPax();
+
+        $filasPorComponente = $this->filasPorComponente($cotizacion);
+        $componentesVivos   = [];
+
+        foreach ($cotizacion->getCotservicios() as $cotservicio) {
+            foreach ($cotservicio->getCotcomponentes() as $componente) {
+                $idComponente = (string) $componente->getId();
+                $valores      = $this->snapshot->calcularValores($componente, $cotservicio, $cantidadPax);
+
+                // El componente dejó de generar fila (le quitaron la fecha, se quedó
+                // sólo con alternativas...). Si tiene fila, saldrá como huérfana abajo.
+                if ($valores === null) {
+                    continue;
+                }
+
+                $componentesVivos[$idComponente] = true;
+                $fila = $filasPorComponente[$idComponente] ?? null;
+
+                if ($fila === null) {
+                    $cambios[] = new CambioPropuesto(
+                        id: $idComponente,
+                        tipo: CambioPropuesto::TIPO_CREAR,
+                        descripcion: (string) $valores['descripcionServicio'],
+                        contexto: $this->comoTexto($valores['contextoServicio']),
+                        fecha: $this->comoTexto($valores['fechaServicio']),
+                        // Crear no destruye nada: es el único caso que llega marcado.
+                        aprobadoPorDefecto: true,
+                    );
+                    continue;
+                }
+
+                $campos = $this->compararCampos($fila, $valores);
+                if ($campos === []) {
+                    ++$sinCambios;
+                    continue;
+                }
+
+                $hayConflicto = false;
+                foreach ($campos as $campo) {
+                    if ($campo->enConflicto) {
+                        $hayConflicto = true;
+                        break;
+                    }
+                }
+
+                $enOs = $fila->getOrdenServicio() !== null;
+
+                $cambios[] = new CambioPropuesto(
+                    id: $idComponente,
+                    tipo: CambioPropuesto::TIPO_ACTUALIZAR,
+                    descripcion: $fila->getDescripcionServicio(),
+                    contexto: $fila->getContextoServicio(),
+                    fecha: $fila->getFechaServicio()?->format('Y-m-d'),
+                    campos: $campos,
+                    motivo: $this->motivoActualizar($hayConflicto, $enOs),
+                    enOrdenServicio: $enOs,
+                    // Sólo se marca solo cuando nadie tocó la fila y no ha viajado al
+                    // proveedor. En cualquier otro caso lo decide una persona.
+                    aprobadoPorDefecto: !$hayConflicto && !$enOs,
+                );
+            }
+        }
+
+        // Filas cuyo componente ya no produce valores: sobran en el cuadro.
+        foreach ($filasPorComponente as $idComponente => $fila) {
+            if (isset($componentesVivos[$idComponente])) {
+                continue;
+            }
+
+            $bloqueo   = $this->motivoBloqueoBorrado($fila);
+            $cambios[] = new CambioPropuesto(
+                id: $idComponente,
+                tipo: CambioPropuesto::TIPO_HUERFANO,
+                descripcion: $fila->getDescripcionServicio(),
+                contexto: $fila->getContextoServicio(),
+                fecha: $fila->getFechaServicio()?->format('Y-m-d'),
+                bloqueado: $bloqueo !== null,
+                motivo: $bloqueo ?? 'El componente ya no existe en la cotización. Borrar siempre se confirma a mano.',
+                // Borrar NUNCA llega marcado.
+                aprobadoPorDefecto: false,
+            );
+        }
+
+        return new PlanReconciliacion(
+            firma: $this->firmar($cotizacion),
+            cambios: $cambios,
+            sinCambios: $sinCambios,
+            mensaje: $this->redactarPlan($cambios, $sinCambios),
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // APLICAR — sólo lo aprobado, y sólo si el plan sigue vigente
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function aplicar(Cotizacion $cotizacion, AplicarPlanInput $entrada): ResultadoAplicacion
+    {
+        // La vigilancia que hace real la aprobación: si el estado se movió entre
+        // calcular y aprobar, lo revisado ya no es lo que se aplicaría.
+        if ($entrada->firma !== $this->firmar($cotizacion)) {
+            throw new DomainException(
+                'La operación cambió mientras revisabas los cambios. Vuelve a calcular el plan para no aplicar decisiones sobre datos viejos.'
+            );
+        }
+
+        $plan = $this->planificar($cotizacion);
+
+        $creados = $actualizados = $borrados = $omitidos = 0;
+        $filasPorComponente = $this->filasPorComponente($cotizacion);
+        $componentes        = $this->componentesPorId($cotizacion);
+        $cantidadPax        = $cotizacion->getNumPax();
+
+        foreach ($plan->cambios as $cambio) {
+            $aprobado = $entrada->aprobados[$cambio->id] ?? null;
+
+            // Ausente = no aprobado. No hay «aplicar todo» implícito, y un cambio
+            // bloqueado no se aplica aunque venga marcado en el body.
+            if ($aprobado === null || $cambio->bloqueado) {
+                ++$omitidos;
+                continue;
+            }
+
+            switch ($cambio->tipo) {
+                case CambioPropuesto::TIPO_CREAR:
+                    $componente = $componentes[$cambio->id] ?? null;
+                    if ($componente === null) {
+                        ++$omitidos;
+                        break;
+                    }
+                    $valores = $this->snapshot->calcularValores($componente, $componente->getCotservicio(), $cantidadPax);
+                    if ($valores === null) {
+                        ++$omitidos;
+                        break;
+                    }
+                    $fila = new OperacionServicio();
+                    $fila->setFile($cotizacion->getFile());
+                    $fila->setCotizacionServicio($componente->getCotservicio());
+                    $fila->setCotizacionComponente($componente);
+                    $this->snapshot->aplicarValores($fila, $valores, $componente);
+                    $fila->setMontoVenta('0.00');
+                    $fila->setCostoRealOperativo('0.00');
+                    $fila->setMonedaReal($fila->getMonedaCotizada());
+                    $this->em->persist($fila);
+                    ++$creados;
+                    break;
+
+                case CambioPropuesto::TIPO_ACTUALIZAR:
+                    $componente = $componentes[$cambio->id] ?? null;
+                    $fila       = $filasPorComponente[$cambio->id] ?? null;
+                    if ($componente === null || $fila === null) {
+                        ++$omitidos;
+                        break;
+                    }
+                    $valores = $this->snapshot->calcularValores($componente, $componente->getCotservicio(), $cantidadPax);
+                    if ($valores === null) {
+                        ++$omitidos;
+                        break;
+                    }
+                    // Los campos técnicos viajan pegados al campo visible que los explica
+                    // (la moneda con el costo, la tarifa con el proveedor): sin esto se
+                    // aprobaría un costo nuevo dejando la moneda vieja.
+                    $campos = $this->expandirTecnicos($aprobado);
+                    if ($campos === []) {
+                        ++$omitidos;
+                        break;
+                    }
+                    $this->snapshot->aplicarValores($fila, $valores, $componente, $campos);
+                    ++$actualizados;
+                    break;
+
+                case CambioPropuesto::TIPO_HUERFANO:
+                    $fila = $filasPorComponente[$cambio->id] ?? null;
+                    if ($fila === null) {
+                        ++$omitidos;
+                        break;
+                    }
+                    $this->em->remove($fila);
+                    ++$borrados;
+                    break;
+            }
+        }
+
+        $this->em->flush();
+
+        return new ResultadoAplicacion(
+            creados: $creados,
+            actualizados: $actualizados,
+            borrados: $borrados,
+            omitidos: $omitidos,
+            mensaje: sprintf(
+                '%d creados, %d actualizados, %d borrados. %d cambio(s) del plan no se aprobaron.',
+                $creados,
+                $actualizados,
+                $borrados,
+                $omitidos
+            ),
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Interno
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Compara la fila con lo que la cotización dice hoy, y decide de quién es cada cambio.
+     *
+     * @param array<string, string|int|null> $valores
+     *
+     * @return CampoPropuesto[]
+     */
+    private function compararCampos(OperacionServicio $fila, array $valores): array
+    {
+        $origen = $fila->getSnapshotOrigen();
+        $actual = $this->valoresActuales($fila);
+        $campos = [];
+
+        foreach ($valores as $campo => $propuesto) {
+            if (\in_array($campo, self::CAMPOS_TECNICOS, true)) {
+                continue; // No se listan: viajan pegados al campo que los explica
+            }
+
+            $valorActual    = $this->normalizar($actual[$campo] ?? null);
+            $valorPropuesto = $this->normalizar($propuesto);
+
+            if ($valorActual === $valorPropuesto) {
+                continue;
+            }
+
+            // Sin foto de referencia (filas anteriores a snapshot_origen, o `{}`) todo
+            // se trata como conflicto. Es lo conservador: si no se sabe quién se movió,
+            // no se decide en automático.
+            $valorOrigen  = \array_key_exists($campo, $origen) ? $this->normalizar($origen[$campo]) : null;
+            $sinReferencia = $origen === [] || !\array_key_exists($campo, $origen);
+            $enConflicto  = $sinReferencia || $valorActual !== $valorOrigen;
+
+            $campos[] = new CampoPropuesto(
+                campo: $campo,
+                etiqueta: self::ETIQUETAS[$campo] ?? $campo,
+                valorActual: $valorActual,
+                valorPropuesto: $valorPropuesto,
+                enConflicto: $enConflicto,
+            );
+        }
+
+        return $campos;
+    }
+
+    /** Estado actual de la fila en el mismo formato escalar que calcularValores(). */
+    private function valoresActuales(OperacionServicio $fila): array
+    {
+        $tarifa = $fila->getCotizacionTarifa();
+
+        return [
+            'fechaServicio'         => $fila->getFechaServicio()?->format('Y-m-d'),
+            'horaRecojoReal'        => $fila->getHoraRecojoReal(),
+            'proveedorMaestroId'    => $fila->getProveedorMaestroId(),
+            'proveedorNombreManual' => $fila->getProveedorNombreManual(),
+            'prestadorMaestroId'    => $fila->getPrestadorMaestroId(),
+            'prestadorNombre'       => $fila->getPrestadorNombre(),
+            'prestadorTelefono'     => $fila->getPrestadorTelefono(),
+            'prestadorDireccion'    => $fila->getPrestadorDireccion(),
+            'descripcionServicio'   => $fila->getDescripcionServicio(),
+            'contextoServicio'      => $fila->getContextoServicio(),
+            'tipoComponente'        => $fila->getTipoComponente(),
+            'modoComponente'        => $fila->getModoComponente(),
+            'estadoComponente'      => $fila->getEstadoComponente(),
+            'cantidadPax'           => $fila->getCantidadPax(),
+            'costoCotizado'         => $fila->getCostoCotizado(),
+            'monedaCotizadaId'      => $fila->getMonedaCotizada()?->getId(),
+            'cotizacionTarifaId'    => $tarifa !== null ? (string) $tarifa->getId() : null,
+        ];
+    }
+
+    /**
+     * Añade los identificadores internos que acompañan a cada campo visible.
+     *
+     * @param string[] $aprobados
+     *
+     * @return string[]
+     */
+    private function expandirTecnicos(array $aprobados): array
+    {
+        $campos = $aprobados;
+
+        if (\in_array('costoCotizado', $campos, true)) {
+            $campos[] = 'monedaCotizadaId';
+            $campos[] = 'cotizacionTarifaId';
+        }
+        if (\in_array('proveedorNombreManual', $campos, true)) {
+            $campos[] = 'proveedorMaestroId';
+        }
+        if (\in_array('prestadorNombre', $campos, true)) {
+            $campos[] = 'prestadorMaestroId';
+        }
+
+        return array_values(array_unique($campos));
+    }
+
+    private function motivoActualizar(bool $hayConflicto, bool $enOs): ?string
+    {
+        if ($enOs && $hayConflicto) {
+            return 'Tiene ediciones manuales y además pertenece a una Orden de Servicio ya emitida.';
+        }
+        if ($enOs) {
+            return 'Pertenece a una Orden de Servicio: cambiarlo altera lo que ya se le pidió al proveedor.';
+        }
+        if ($hayConflicto) {
+            return 'Alguien editó estos campos en Operaciones. Gana lo que ya está, salvo que lo apruebes.';
+        }
+
+        return null;
+    }
+
+    private function motivoBloqueoBorrado(OperacionServicio $fila): ?string
+    {
+        if ($fila->getOrdenServicio() !== null) {
+            return 'No se puede borrar: pertenece a una Orden de Servicio y se perdería el rastro de lo que se pidió al proveedor.';
+        }
+        if ((float) $fila->getCostoRealOperativo() !== 0.0) {
+            return 'No se puede borrar: tiene costo real registrado y no está en ningún otro sitio.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Hash del estado que se leyó al planificar. Cubre las filas existentes (para
+     * detectar ediciones ajenas) y los componentes de la cotización (para detectar que
+     * alguien la editó en paralelo).
+     */
+    private function firmar(Cotizacion $cotizacion): string
+    {
+        $partes = [];
+
+        foreach ($this->filasPorComponente($cotizacion) as $id => $fila) {
+            $partes[] = $id . '|' . json_encode($this->valoresActuales($fila)) . '|' . ($fila->getOrdenServicio() !== null ? '1' : '0');
+        }
+
+        $cantidadPax = $cotizacion->getNumPax();
+        foreach ($cotizacion->getCotservicios() as $cotservicio) {
+            foreach ($cotservicio->getCotcomponentes() as $componente) {
+                $valores  = $this->snapshot->calcularValores($componente, $cotservicio, $cantidadPax);
+                $partes[] = $componente->getId() . '|' . json_encode($valores);
+            }
+        }
+
+        sort($partes);
+
+        return hash('sha256', implode("\n", $partes));
+    }
+
+    /** @return array<string, OperacionServicio> indexado por UUID de componente */
+    private function filasPorComponente(Cotizacion $cotizacion): array
+    {
+        $cotservicios = $cotizacion->getCotservicios()->toArray();
+        if ($cotservicios === []) {
+            return [];
+        }
+
+        // findBy() y no DQL: el id es un Uuid binario y la comparación en DQL no lo
+        // convierte, así que devolvería 0 filas en silencio (§8 de docs/Operacion.md).
+        /** @var OperacionServicio[] $filas */
+        $filas  = $this->em->getRepository(OperacionServicio::class)->findBy(['cotizacionServicio' => $cotservicios]);
+        $mapa   = [];
+
+        foreach ($filas as $fila) {
+            $componente = $fila->getCotizacionComponente();
+            if ($componente !== null) {
+                $mapa[(string) $componente->getId()] = $fila;
+            }
+        }
+
+        return $mapa;
+    }
+
+    /** @return array<string, CotizacionCotcomponente> */
+    private function componentesPorId(Cotizacion $cotizacion): array
+    {
+        $mapa = [];
+        foreach ($cotizacion->getCotservicios() as $cotservicio) {
+            foreach ($cotservicio->getCotcomponentes() as $componente) {
+                $mapa[(string) $componente->getId()] = $componente;
+            }
+        }
+
+        return $mapa;
+    }
+
+    private function normalizar(string|int|float|null $valor): ?string
+    {
+        if ($valor === null) {
+            return null;
+        }
+        $texto = trim((string) $valor);
+
+        return $texto === '' ? null : $texto;
+    }
+
+    private function comoTexto(string|int|null $valor): ?string
+    {
+        return $valor === null ? null : (string) $valor;
+    }
+
+    /** @param CambioPropuesto[] $cambios */
+    private function redactarPlan(array $cambios, int $sinCambios): string
+    {
+        if ($cambios === []) {
+            return sprintf('La Biblia ya coincide con la cotización (%d servicios). No hay nada que aplicar.', $sinCambios);
+        }
+
+        $conteo = [CambioPropuesto::TIPO_CREAR => 0, CambioPropuesto::TIPO_ACTUALIZAR => 0, CambioPropuesto::TIPO_HUERFANO => 0];
+        $conflictos = 0;
+        foreach ($cambios as $cambio) {
+            ++$conteo[$cambio->tipo];
+            foreach ($cambio->campos as $campo) {
+                if ($campo->enConflicto) {
+                    ++$conflictos;
+                }
+            }
+        }
+
+        $mensaje = sprintf(
+            '%d por crear, %d por actualizar, %d sobrantes. %d sin cambios.',
+            $conteo[CambioPropuesto::TIPO_CREAR],
+            $conteo[CambioPropuesto::TIPO_ACTUALIZAR],
+            $conteo[CambioPropuesto::TIPO_HUERFANO],
+            $sinCambios
+        );
+
+        if ($conflictos > 0) {
+            $mensaje .= sprintf(' %d campo(s) los editó alguien en Operaciones: llegan sin marcar.', $conflictos);
+        }
+
+        return $mensaje;
+    }
+}

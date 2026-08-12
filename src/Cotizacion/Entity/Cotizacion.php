@@ -17,6 +17,11 @@ use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Operacion\ApiPlatform\Dto\AplicarPlanInput;
+use App\Operacion\ApiPlatform\Dto\PlanReconciliacion;
+use App\Operacion\ApiPlatform\Dto\ResultadoAplicacion;
+use App\Operacion\ApiPlatform\State\AplicarPlanOperacionProcessor;
+use App\Operacion\ApiPlatform\State\PlanificarOperacionProcessor;
 use App\Security\Roles;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -46,6 +51,37 @@ use Symfony\Component\Uid\Uuid;
             deserialize: false,
             validate: false,
             processor: CloneCotizacionProcessor::class
+        ),
+        // Reconciliación en dos pasos: plan → revisión humana → aplicar sólo lo aprobado.
+        //
+        // Aquí hubo un `/resincronizar-operacion` que borraba y regeneraba de un golpe.
+        // Se retiró a propósito: en cuanto las filas de La Biblia pasaron a guardar cosas
+        // que no están en la cotización —hora pactada por teléfono, prestador, teléfono
+        // del recojo, costo real— un botón que las borra sin enseñar qué se pierde deja de
+        // ser una comodidad. Dejarlo al lado del panel de revisión sólo invitaría a usarlo.
+        // El primer volcado también pasa por aquí: sale como N cambios de tipo `crear`,
+        // todos aprobados por defecto. Ver docs/Operacion.md §3.5.
+        new Post(
+            uriTemplate: '/cotizacions/{id}/operacion/plan',
+            normalizationContext: ['groups' => ['operacion:plan:read']],
+            output: PlanReconciliacion::class,
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "') or is_granted('" . Roles::OPERACIONES_WRITE . "')",
+            securityMessage: 'No tienes permiso para revisar la operación de una cotización.',
+            read: true,
+            deserialize: false,
+            validate: false,
+            processor: PlanificarOperacionProcessor::class
+        ),
+        new Post(
+            uriTemplate: '/cotizacions/{id}/operacion/aplicar',
+            normalizationContext: ['groups' => ['operacion:plan:read']],
+            denormalizationContext: ['groups' => ['operacion:plan:write']],
+            input: AplicarPlanInput::class,
+            output: ResultadoAplicacion::class,
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "') or is_granted('" . Roles::OPERACIONES_WRITE . "')",
+            securityMessage: 'No tienes permiso para aplicar cambios a la operación.',
+            read: false,
+            processor: AplicarPlanOperacionProcessor::class
         ),
         new Put(
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
@@ -92,7 +128,10 @@ class Cotizacion
     private int $version = 1;
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 30, enumType: CotizacionEstadoEnum::class, options: ['default' => 'Pendiente'])]
+    // El default de la columna estaba en 'Pendiente' con mayúscula, que CotizacionEstadoEnum
+    // no acepta: una fila insertada sin este campo no se puede hidratar. Mismo caso que en
+    // CotizacionCotcomponente::$estado.
+    #[ORM\Column(type: 'string', length: 30, enumType: CotizacionEstadoEnum::class, options: ['default' => 'pendiente'])]
     private CotizacionEstadoEnum $estado = CotizacionEstadoEnum::PENDIENTE;
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]

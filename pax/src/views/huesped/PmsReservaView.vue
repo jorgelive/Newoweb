@@ -46,7 +46,11 @@ onMounted(cargar);
 // 🔥 Recarga al cambiar el localizador (el buscador hace push sobre la misma ruta)
 watch(() => props.localizador, cargar);
 
-const formatearOcupacion = (adultos: number, ninos: number) => {
+// Los dos llegan opcionales en el schema (no están en `required`), así que la firma
+// lo admite y normaliza aquí en vez de obligar a cada llamada a rellenarlo.
+const formatearOcupacion = (adultosRaw?: number | null, ninosRaw?: number | null) => {
+  const adultos = adultosRaw ?? 0;
+  const ninos = ninosRaw ?? 0;
   const labelAdultos = adultos === 1
       ? (maestroStore.t('res_adulto') || 'Adulto')
       : (maestroStore.t('res_adultos') || 'Adultos');
@@ -662,7 +666,9 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
         </div>
 
         <!-- 🔧 Añadimos índice + total para el contador "1 de N" -->
-        <div v-for="(evento, index) in pmsStore.reserva.eventosActivosGuia" :key="evento.id" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-300/40 ring-1 ring-slate-200/70 overflow-hidden border border-slate-200 mb-6 group hover:shadow-2xl hover:shadow-[#376875]/10 transition-all duration-500">
+        <!-- `id` es nullable en el schema (readOnly, aún sin persistir): se cae al
+             índice para que la key nunca sea null. -->
+        <div v-for="(evento, index) in pmsStore.reserva.eventosActivosGuia" :key="evento.id ?? index" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-300/40 ring-1 ring-slate-200/70 overflow-hidden border border-slate-200 mb-6 group hover:shadow-2xl hover:shadow-[#376875]/10 transition-all duration-500">
 
           <!-- 🔧 Altura de imagen reducida en móvil (h-44) para que quepa más de una unidad -->
           <div class="h-44 md:h-64 bg-slate-100 relative overflow-hidden">
@@ -678,7 +684,7 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
             <template v-if="evento.pmsUnidad?.imageUrl">
               <img
                   :src="evento.pmsUnidad.imageUrl"
-                  :alt="evento.pmsUnidad.nombre"
+                  :alt="evento.pmsUnidad.nombre ?? ''"
                   class="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105"
               >
               <div class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60"></div>

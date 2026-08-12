@@ -497,7 +497,13 @@ class PmsReserva
      * ¿Por qué existe?: Este método provee la colección exacta de eventos/reservaciones
      * que un huésped debe visualizar en su extranet (PAX), garantizando un formato de lista
      * ordenada y estructurada que la API y el frontend (Vue) puedan consumir directamente.
-     * * @return array<int, PmsEventoCalendario> Arreglo indexado secuencialmente de eventos activos.
+     *
+     * El `@return` tipado NO es decorativo: el tipo nativo es `array` a secas, así que es lo
+     * único de lo que API Platform puede deducir qué hay dentro. Cuando esta línea estuvo mal
+     * formada —con un asterisco extra delante, que convierte el tag en texto suelto— el schema
+     * salía como `string[]` y el frontend tenía que declarar los tipos a mano.
+     *
+     * @return array<int, PmsEventoCalendario> Arreglo indexado secuencialmente de eventos activos.
      */
     #[Groups(['pax_reserva:read'])]
     public function getEventosActivosGuia(): array

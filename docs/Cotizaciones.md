@@ -106,6 +106,62 @@ Sub-elementos del componente (ej. "Guía Profesional", "Transporte"). Campos rel
 - `nombreSnapshot`, `modo` (`incluido`/`no_incluido`/`opcional`/`cortesia`), `incluido`.
 - **Flags de visibilidad** (herencia tarifa→ítem hacia el cliente): `tituloTarifaVisible`, `modalidadTarifaVisible`, `categoriaTarifaVisible`. Controlan si el ítem muestra el título/modalidad/categoría **heredados de la tarifa** al cliente.
 
+
+## 3.b El estado del componente dice **una** cosa
+
+`CotizacionCotcomponente::$estado` (`ComponenteEstadoEnum`) responde sólo a *«¿este
+componente sigue en pie dentro de la cotización?»*:
+
+| Valor | Consecuencia |
+|---|---|
+| `activo` | cuenta en el cálculo y se publica |
+| `cancelado` | no suma costo, no llega al cliente, y en La Biblia sale con badge y atenuado |
+
+**No dice si el proveedor confirmó.** Eso es `App\Operacion\Enum\EstadoReservaEnum`
+sobre la fila de La Biblia (`sin-solicitar → solicitado → confirmado → reconfirmado`),
+que es donde se gestiona y donde se edita.
+
+### Por qué tenía cuatro valores y ahora tiene dos
+
+Venía de cuando cotización y operación eran lo mismo: `pendiente`, `confirmado`,
+`reconfirmado`, `cancelado`. Al rastrear sus lecturas, **sólo `cancelado` hacía algo** —
+los dos `if (estado === 'cancelado' || modo === 'reemplazado') return;` de
+`resumenFinanciero` y `construirInclusiones`, y el badge de la vista de tráfico. Los
+otros tres alimentaban un `<select>` y nada más.
+
+Y no era ruido inofensivo: **aparentaban hacer el trabajo de otro módulo**. El vendedor
+marcaba «Confirmado» en el editor y podía creer razonablemente que quedaba registrada la
+confirmación del proveedor. Había 2 componentes marcados así en la base, sin ningún
+efecto y sin que nadie se enterara.
+
+Un flag que no hace nada es ruido; uno que imita a otro que sí hace algo es una trampa.
+
+### 🔥 El default de columna tiene que ser un `case` válido
+
+`cotizacion_cotcomponente.estado` y `cotizacion_cotizacion.estado` tenían
+`options: ['default' => 'Pendiente']` — **con mayúscula**, un valor que ninguno de los
+dos enums acepta. Cualquier fila insertada sin ese campo (un `INSERT` crudo, una
+importación, un fixture) queda **inhidratable**: `ValueError` al leerla, no al
+escribirla. No se notaba porque Doctrine siempre escribe la propiedad desde el objeto,
+así que el default nunca llegaba a usarse — la mina estaba puesta y sin pisar.
+
+Al declarar una columna con `enumType`, comprueba que `options.default` coincide
+exactamente con el `value` de un case. `doctrine:schema:update --dump-sql` **no** lo
+detecta: para él es una cadena como cualquier otra.
+
+### Al cambiar el enum, los datos van primero
+
+`Version20260811230000` migra las filas **antes** de tocar el default, y usa
+`WHERE estado <> 'cancelado'` en vez de una lista de valores conocidos: así arrastra
+también cualquier resto inesperado en lugar de dejarlo fuera. Si sobreviviera un solo
+`pendiente`, el fallo no aparecería al desplegar sino al abrir una pantalla.
+
+Espejos que hay que tocar a la vez (son cuatro):
+`ComponenteEstadoEnum` (PHP) · `ComponenteEstadoValue` y `ESTADO_COMPONENTE_CONFIG` en
+`cotizacionEditorModel.ts` · el `ESTADO_COMPONENTE_CONFIG` de `operacionModel.ts` (el
+snapshot de La Biblia usa el mismo vocabulario) · y los literales `estado: 'activo'` con
+que el store crea componentes nuevos.
+
 ---
 
 ## 4. Cálculo financiero (el "votante") — solo en util
@@ -127,6 +183,56 @@ Getter derivado para las vistas: **`gruposUpgrade`** (agrupa `opcionesUpgrade` p
 `cotizacionEditorModel.ts`:
 - `OpcionUpgradeCliente` (base, **client-safe**): `componenteNombre`, `tarifaTitulo`, `modalidad`, `categoria`, `notaRol`, deltas, y la estándar reemplazada **pública**: `tieneEstandarEspejo`, `estandarTitulo`, `estandarModalidad`, `estandarCategoria`.
 - `OpcionUpgradeInterna extends Cliente`: agrega datos internos (`tarifaNombreInterno`, `componenteNombreInterno`, `estandarNombreInterno`, costos/comisiones) **y** los insumos para expurgar al cliente: `componenteNombreCliente`, `mostrarTituloCliente`, `mostrarModalidadCliente`, `mostrarCategoriaCliente`.
+
+
+### 4.b `publicable`: qué impide publicar una cotización
+
+`guardarCotizacion()` **aborta el guardado** si el estado es `enviado`, `confirmado` u
+`operado` y el resumen financiero no es publicable:
+
+```ts
+publicable = !tieneConflictos && advertencias.length === 0
+```
+
+Las dos mitades son distintas y las dos son legítimas:
+
+| Mitad | Qué detecta | Dónde nace |
+|---|---|---|
+| `tieneConflictos` | tarifas que no encajan en **ningún perfil real** de pasajero. Se crea una clase `⚠️ CONFLICTO` con `isReal: false` y se anota la ruta del origen | `asignar()`, cuando `bestIdx === -1` |
+| `advertencias` | situaciones en las que **el cliente vería una propuesta distinta de la que se quiso vender** | `resumenFinanciero` y `construirInclusiones()` |
+
+#### El listón para añadir una advertencia
+
+Siempre el mismo: *el cliente vería una propuesta distinta de la que se quiso vender*.
+No sirve para avisos de estilo ni recordatorios — **cada advertencia es un bloqueo de
+guardado**, así que una regla demasiado laxa deja la cotización inguardable.
+
+Antes de añadir una, **mídela contra los datos reales**. Si dispara sobre cotizaciones
+que hoy se guardan, o la regla está mal o hay un problema de datos que arreglar primero.
+
+#### Las que existen
+
+| Advertencia | Por qué no se puede publicar |
+|---|---|
+| Grupo alternativo cuyo nº de pax no cuadra con el global ni con la base | un upgrade que cubre 3 de 5 pasajeros no se puede vender: si lo aceptan, ¿qué pasa con los otros 2? |
+| Componente `incluido` **sin tarifa estándar** | el renderizado lo degrada a «Opción N» en Opcional: el cliente recibe como elegible algo vendido como incluido |
+| Componente `incluido` **sin ninguna tarifa publicable** | no genera ni una línea: desaparece de la propuesta |
+| Componente **sin título público y sin ítems** | invisible en la propuesta, y si lleva tarifa es costo sin contrapartida visible |
+| Ítem con **modo desconocido** | `destino()` manda a «Incluye» todo lo que no reconoce: una errata regala lo que se quería cobrar aparte |
+
+Las cuatro últimas viven en `construirInclusiones()`, que recorre servicios→componentes
+**sin pasar por el votante** y por eso ve lo que el cálculo financiero no ve.
+
+⚠️ Ese parámetro `advertencias` estuvo **declarado y sin usar**: la función lo recibía y
+no empujaba nada. El mecanismo estaba montado para varias reglas y sólo tenía una, la del
+grupo alternativo. Si añades una comprobación nueva ahí, usa el helper `avisar()` para que
+el rótulo `"Servicio ➔ Componente"` salga igual que en el resto.
+
+**Dato de contexto (agosto 2026):** en la base no hay ni una tarifa con rol `alternativa`
+—127 de 127 son `estandar`—, así que la advertencia del grupo alternativo **no puede
+dispararse hoy**. En la práctica `publicable` depende sólo de `tieneConflictos` y de las
+cuatro nuevas.
+
 
 ---
 
@@ -322,6 +428,137 @@ el "Num Pax (Base)" sí es el tamaño real que se vende y el total es una cifra 
 
 ---
 
+## 6.c Proveedor vs. prestador (dos niveles, a propósito)
+
+**No es el mismo dato repetido: son dos hechos distintos.**
+
+| | `cottarifa.proveedor*` | `cotcomponente.prestador*` |
+|---|---|---|
+| Responde | ¿a quién le compro y a cuánto? | ¿quién presta el servicio / dónde ocurre? |
+| Naturaleza | comercial | operativa |
+| Existe si… | hay compra | **siempre** |
+
+La prueba de que viven en niveles distintos es el hotel `no_incluido`: **existe como hecho
+operativo sin existir como hecho comercial**. Nadie te lo vende —el pasajero lo reservó él— pero
+es el punto de recojo del transportista y la referencia que hace que la propuesta se lea
+completa. Un dato que sobrevive a la desaparición del otro pertenece a otra entidad. El segundo
+caso es el consolidador: le compras la entrada a X pero la opera Y.
+
+Tener dos campos sólo es mala práctica si se llaman igual y no hay regla de precedencia. Por eso:
+nombres distintos (**proveedor** = a quién compro, **prestador** = quién presta) y **una sola
+cascada**, en un solo método.
+
+### La cascada
+
+```
+componente.prestador*   ─┐
+   ↓ si vacío            │  Se toma la primera fuente que diga algo, ENTERA.
+día.prestador*           ├─► PrestadorResuelto{ origen, maestroId, nombre,
+   ↓ si vacío            │                      titulo, url, imagenes,
+tarifa.proveedor*       ─┘                      telefono, direccion }
+   ↓ si vacío
+null
+```
+
+Nunca se mezclan campos de fuentes distintas —el título de una con el teléfono de otra— porque
+eso produce un prestador Frankenstein que no corresponde a ninguna empresa real. `origen` deja
+constancia de cuál ganó, y es lo que permite al editor decir «heredado» en vez de fingir que el
+campo está vacío.
+
+Por eso el campo es **opcional y blando**: en el caso normal se queda vacío, hereda del proveedor
+de la tarifa y nadie tiene que llenar nada. Las cotizaciones anteriores al campo se comportan
+exactamente igual que antes.
+
+⚠️ **Espejo PHP ↔ TypeScript.** `CotizacionCotcomponente::resolverPrestador()` y
+`resolverPrestador()` en `cotizacionEditorStore.ts`. La regla vive en los dos lados porque el
+editor la previsualiza antes de guardar y el backend la congela en los snapshots. Si cambias el
+orden de la cascada, **se tocan los dos archivos**.
+
+⚠️ La tarifa llega por parámetro en vez de resolverse dentro: elegir cuál de varias tarifas manda
+es una regla de operaciones que ya vive en `BibliaSnapshotService::resolverTarifaPrimaria()`, y
+duplicarla en la entidad garantizaba que las dos copias se separaran.
+
+### Qué guarda cada nivel, y por qué distinto
+
+| Nivel | Guarda | Motivo |
+|---|---|---|
+| **Componente** | todo: id, nombre, título i18n, url, imágenes, teléfono, dirección | es el **hecho**: lo que se muestra y lo que se opera |
+| **Día** (`CotizacionCotservicio`) | sólo id + nombre | es una **intención**: default heredable y filtro del selector de tarifas. Nunca sale a pax |
+
+Teléfono y dirección se congelan en el componente y **no se leen del maestro al operar**: el día
+del servicio, La Biblia tiene que decir el teléfono que valía cuando se vendió, no el que alguien
+cambió después en el catálogo.
+
+### Las dos caras, y el anonimato
+
+| Cara | Campos | Grupo |
+|---|---|---|
+| **Pública** | `prestadorTituloSnapshot` (i18n, `AutoTranslate`), `prestadorUrlSnapshot`, `prestadorImagenesSnapshot` | `pax_cotizacion:read` |
+| **Operativa** | `prestadorNombreSnapshot`, `prestadorTelefonoSnapshot`, `prestadorDireccionSnapshot` | **sin** grupo público: no llegan nunca a pax |
+
+Sobre la cara pública hay además una regla: **sólo se muestra en componentes `no_incluido`**,
+y la aplica `CotizacionCotcomponentePrestadorPublicNormalizer`.
+
+🔥 **Ese normalizer NO hereda el flag de anonimato de la tarifa**, y es deliberado.
+`CotizacionCottarifa::proveedorOculto` y el flag global protegen el **margen**: impiden que el
+cliente se salte tu intermediación y contrate directo. Un `no_incluido` no lo necesita porque no
+le estás vendiendo nada — ya lo contrató él y sabe cuál es. Encadenarlo al flag global tendría el
+efecto absurdo de que activar el modo anónimo borrase de la propuesta la referencia del hotel del
+propio pasajero.
+
+### Los filtros por prestador son BLANDOS
+
+Si el componente (o su día) fija prestador, **dos** selectores del editor se estrechan. Ambos con
+`SearchableSelect` y las mismas reglas:
+
+| Selector | Qué muestra | Dónde |
+|---|---|---|
+| **Tarifa maestra** | sólo tarifas cuyo `proveedor` es el prestador | `opcionesTarifasFiltradas` |
+| **Proveedor de la tarifa** | sólo ese proveedor | `opcionesProveedoresTarifa` |
+
+Las cuatro reglas que los mantienen como ayuda y no como trampa:
+
+- **Se desactivan con un clic** («ver todas» / «ver todos»), y el aviso dice por quién se está
+  filtrando. Prestador ≠ proveedor comercial: un filtro duro haría inseleccionable la tarifa del
+  consolidador.
+- **No tocan lo ya asignado.** Las tarifas existentes de un componente se muestran y se calculan
+  igual aunque su proveedor no case. Filtrar el catálogo es comodidad; filtrar lo guardado sería
+  pérdida de datos.
+- **Sin coincidencias no se filtra.** Si ninguna tarifa del catálogo es de ese prestador, se ven
+  todas: dejar la lista vacía sería dejar al operador sin salida.
+- 🔥 **La opción ya seleccionada nunca se esconde**, aunque no case con el filtro.
+  `SearchableSelect` deriva la etiqueta visible de `options.find(o => o.value === modelValue)`:
+  si la opción elegida desaparece de `options`, el campo pinta el **placeholder** como si no
+  hubiera nada asignado. El dato seguiría en su sitio, pero la pantalla estaría mintiendo — y el
+  operador volvería a elegir, machacándolo.
+
+⚠️ **Hoy el filtro de tarifas casi nunca se activa, y no es un fallo del filtro.** El vínculo que
+necesita es `travel_tarifa.proveedor_id`, y en el catálogo maestro está prácticamente vacío
+(**5 de 904**; `proveedor_servicio_id`, 0). En la práctica el proveedor se fija a mano sobre la
+tarifa de la cotización (`cotizacion_cottarifa.proveedor_maestro_id`, 20 de 132), y
+`onTarifaMaestraChange()` **no** lo copia desde la maestra al elegirla. Comprobación:
+
+```bash
+php bin/console doctrine:query:sql --force-fetch \
+  "SELECT COUNT(*) total, SUM(proveedor_id IS NOT NULL) con_proveedor FROM travel_tarifa"
+```
+
+Para que el filtro rinda hay que poblar el proveedor en el catálogo maestro. Mientras tanto
+degrada solo: sin coincidencias, no filtra.
+
+### Dónde acaba
+
+```
+cotcomponente.prestador*  ──┬──► cotización detallada / pax   «Su reserva: Casa Andina»
+                            ├──► La Biblia (OperacionServicio.prestador* + tel + dirección)
+                            └──► la Orden de Servicio sigue usando el proveedor comercial
+```
+
+Ver `docs/Operacion.md` §3.3 para el lado operativo. En pax la referencia viaja **dentro de
+`clasificacionFinancieraCliente.inclusiones`** (`construirInclusiones()` la añade a las líneas
+`no_incluido`), no sólo en la entidad — como todo lo que pasa por snapshot, **hay que re-guardar
+la cotización** para que aparezca en una propuesta antigua.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -408,6 +645,8 @@ Reglas al tocar esta zona:
 - **Que un tour de catálogo muestre (o no) el total de grupo** → flag `totalesOcultos`: default al crear en `crearCotizacionVacia()` (store), toggle "Ocultar Total de Grupo" en `CotizacionEditorView.vue`, consumo en `ocultarTotales` de `PaxCotizacionGuiaView.vue`. Ver §6.b.
 - **Precio "desde" del escaparate del catálogo** → `preciosDesde[]` (bloque "Precios de Exhibición" del editor) → `PaxCatalogoPortadaView.vue` / `CatalogoDashboard.vue`. No es lo mismo que el flag anterior (§6.b).
 - **En qué idioma ve el cliente la propuesta** → `idiomaCliente` (§6). Alta: `handleCreate` en `DashboardView.vue`. Cambio posterior: selector de `FileDetalle.vue` → propaga `CotizacionFileIdiomaClienteListener`. Por versión: selector del editor.
+- **Qué pasa al pasar una versión a `confirmado`** → dispara `CotizacionConfirmadaEventListener` y genera el cuadro de tráfico del Centro de Operaciones. Es un **snapshot y sólo en la transición**: lo que edites después no llega. El botón «Revisar cambios de operación» (editor, junto al selector de estado) y el icono de diff de `FileDetalle.vue` abren un panel que compara y aplica **sólo lo que apruebes, campo a campo**: `POST .../operacion/plan` y `POST .../operacion/aplicar`. Detalle completo en `docs/Operacion.md` §3.5 y §7.1. **Ojo:** para llegar a `confirmado` hay que pasar el guard de `publicable` — ver §4.b.
+- **Quién presta un servicio (hotel del pasajero, vuelo no incluido)** → `prestador*` en `CotizacionCotcomponente` (todo) y `CotizacionCotservicio` (sólo default). Cascada en `resolverPrestador()`, **espejo en PHP y TS**. Visibilidad al cliente: `CotizacionCotcomponentePrestadorPublicNormalizer` — sólo `no_incluido`, y **no** lo tapa el flag de anonimato. Filtros blandos: `opcionesTarifasFiltradas` (tarifa maestra) y `opcionesProveedoresTarifa` (proveedor) en `CotizacionEditorView.vue`. Ver §6.c — y ojo: el filtro de tarifas necesita `travel_tarifa.proveedor_id`, hoy casi vacío.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
 

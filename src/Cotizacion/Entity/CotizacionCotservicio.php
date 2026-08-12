@@ -89,6 +89,27 @@ class CotizacionCotservicio
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $servicioMaestroId = null;
 
+    /**
+     * Prestador por defecto del día. OPCIONAL.
+     *
+     * Guarda una INTENCIÓN («este día lo opera X»), no contenido: sirve para que los
+     * componentes lo hereden cuando no definen el suyo y para filtrar el selector de
+     * tarifas del editor. Por eso sólo lleva id + nombre y no el título público, la
+     * URL ni las imágenes — lo que se muestra al cliente se decide y se congela en
+     * el componente, que es donde vive el hecho.
+     *
+     * Nunca sale a pax: no tiene el grupo pax_cotizacion:read.
+     *
+     * Ver CotizacionCotcomponente::resolverPrestador() y docs/Cotizaciones.md.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $prestadorMaestroId = null;
+
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $prestadorNombreSnapshot = null;
+
     public function __construct()
     {
         $this->initializeId();
@@ -206,4 +227,17 @@ class CotizacionCotservicio
 
     public function getServicioMaestroId(): ?string { return $this->servicioMaestroId; }
     public function setServicioMaestroId(?string $servicioMaestroId): self { $this->servicioMaestroId = $servicioMaestroId; return $this; }
+
+    public function getPrestadorMaestroId(): ?string { return $this->prestadorMaestroId; }
+    public function setPrestadorMaestroId(?string $v): self { $this->prestadorMaestroId = $v; return $this; }
+
+    public function getPrestadorNombreSnapshot(): ?string { return $this->prestadorNombreSnapshot; }
+    public function setPrestadorNombreSnapshot(?string $v): self { $this->prestadorNombreSnapshot = $v; return $this; }
+
+    /** ¿El día fija un prestador por defecto para sus componentes? */
+    public function tienePrestadorPropio(): bool
+    {
+        return $this->prestadorMaestroId !== null
+            || trim($this->prestadorNombreSnapshot ?? '') !== '';
+    }
 }

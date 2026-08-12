@@ -54,8 +54,12 @@ const sumarDias = (iso: string, dias: number): string => {
     return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
 };
 
+// El rango de arranque es de 7 días y no de un solo día a propósito: con "hoy" la
+// primera pantalla salía vacía casi siempre —los servicios de un expediente confirmado
+// caen semanas después— y eso se leía como "el panel no funciona" en vez de como "no
+// hay nada hoy". El preset "Hoy" sigue a un clic para el tráfico del día.
 const desde = ref<string>(`${hoyIso()}T00:00`);
-const hasta = ref<string>(`${hoyIso()}T00:00`);
+const hasta = ref<string>(`${sumarDias(hoyIso(), 6)}T00:00`);
 const tiposSeleccionados = ref<string[]>([]);
 const filtroEstadoReserva = ref<string>('');
 const filtroEstadoOperacion = ref<string>('');
@@ -259,11 +263,89 @@ const editarHora = async (servicio: OperacionServicio, evento: Event) => {
     await guardarCampo(servicio, { horaRecojoReal: valor });
 };
 
+/**
+ * Proveedor COMERCIAL: a quién se le compra. Sólo importa para la Orden de Servicio
+ * —`conflictoSeleccion` agrupa por él— así que se edita en segundo plano.
+ */
 const editarProveedor = async (servicio: OperacionServicio, evento: Event) => {
     const valor = (evento.target as HTMLInputElement).value.trim();
     if (valor === (servicio.proveedorNombreManual ?? '')) return;
     await guardarCampo(servicio, { proveedorNombreManual: valor || null });
 };
+
+/**
+ * PRESTADOR: quién opera y dónde se recoge. Es el dato que el cuadro de tráfico lee
+ * de un vistazo, y por eso manda en la celda por encima del proveedor comercial.
+ *
+ * Viene resuelto del snapshot (componente → día → proveedor de la tarifa), así que en
+ * el caso normal ya trae el mismo nombre que el comercial y no hay nada que escribir.
+ * En una fila de referencia es el ÚNICO de los dos que existe: el hotel que reservó
+ * el pasajero. Ver docs/Operacion.md §3.3.b.
+ */
+const editarPrestador = async (servicio: OperacionServicio, evento: Event) => {
+    const valor = (evento.target as HTMLInputElement).value.trim();
+    if (valor === (servicio.prestadorNombre ?? '')) return;
+    await guardarCampo(servicio, { prestadorNombre: valor || null });
+};
+
+/**
+ * El proveedor comercial se oculta SÓLO cuando es redundante: cuando ya dice
+ * exactamente lo mismo que el prestador. En la mayoría de filas ambos heredan de la
+ * misma tarifa y repetirlo en cada línea convertiría el dato en ruido.
+ *
+ * ⚠️ Vacío NO es redundante, es pendiente. La primera versión de esta función pedía
+ * además que el comercial no estuviera vacío, y como los dos campos salen de la misma
+ * tarifa, cuando esa tarifa no tiene proveedor **los dos** nacen nulos: el input no se
+ * pintaba nunca y el campo quedaba fuera del alcance del operador. Justo el caso más
+ * común, y justo el que hace falta para poder agrupar una Orden de Servicio.
+ */
+const mostrarComercial = (s: OperacionServicio): boolean => {
+    if (s.soloReferencia) return false;   // no se compra: no hay proveedor que fijar
+
+    const comercial = (s.proveedorNombreManual ?? '').trim();
+    return comercial === '' || comercial !== (s.prestadorNombre ?? '').trim();
+};
+
+/** Teléfono en formato marcable: el operador llama desde el propio cuadro. */
+const telHref = (telefono?: string | null): string => `tel:${(telefono ?? '').replace(/[^\d+]/g, '')}`;
+
+// ============================================================================
+// COSTO REAL — lo que de verdad se pagó, frente a lo que decía la cotización
+//
+// `costoCotizado` viene del snapshot y lo gobierna la cotización: la reconciliación
+// puede cambiarlo. `costoRealOperativo` es del operador y **nadie más lo toca** —
+// ni el snapshot ni la reconciliación—, porque es el único sitio donde vive lo que
+// el proveedor acabó cobrando. El delta entre ambos es el margen operativo.
+//
+// La moneda no se edita aquí: nace igual a la cotizada y cambiarla desde una celda
+// de tabla, sin conversión ni tipo de cambio, sería invitar a mezclar divisas en la
+// misma columna. Si hay que cambiarla, es un caso raro que merece su propio flujo.
+// ============================================================================
+const PATRON_IMPORTE = /^\d{1,10}([.,]\d{1,2})?$/;
+
+const editarCostoReal = async (servicio: OperacionServicio, evento: Event) => {
+    const input = evento.target as HTMLInputElement;
+    const valor = input.value.trim().replace(',', '.');
+
+    if (valor === '') {
+        await guardarCampo(servicio, { costoRealOperativo: '0.00' });
+        return;
+    }
+    if (!PATRON_IMPORTE.test(input.value.trim())) {
+        input.value = servicio.costoRealOperativo ?? '';
+        return;
+    }
+    await guardarCampo(servicio, { costoRealOperativo: Number(valor).toFixed(2) });
+};
+
+/** Diferencia real − cotizado. Positiva = costó más de lo previsto. */
+const deltaOperativo = (s: OperacionServicio): number | null => {
+    const real = Number(s.costoRealOperativo ?? 0);
+    if (real === 0) return null;   // sin registrar: no hay delta que enseñar
+    return real - Number(s.costoCotizado ?? 0);
+};
+
+const importe = (v?: string | null): string => Number(v ?? 0).toFixed(2);
 
 // ============================================================================
 // SELECCIÓN Y GENERACIÓN DE ORDEN DE SERVICIO
@@ -288,6 +370,14 @@ const serviciosSeleccionados = computed(() =>
 const conflictoSeleccion = computed<string | null>(() => {
     const sel = serviciosSeleccionados.value;
     if (sel.length === 0) return null;
+
+    // Referencia = no incluido o sin tarifa: está en el cuadro para que el transportista
+    // sepa dónde recoger, pero no se le compra a nadie. La regla la calcula el backend
+    // (OperacionServicio::isSoloReferencia) y la vuelve a defender al asignar la OS; aquí
+    // sólo se evita que el operador llegue hasta el modal para recibir un 422.
+    if (sel.some(s => s.soloReferencia)) {
+        return 'Hay servicios de referencia (no incluidos o sin tarifa) en la selección: no se compran a ningún proveedor.';
+    }
 
     const files = new Set(sel.map(s => s.file?.id ?? ''));
     if (files.size > 1) return 'Los servicios seleccionados son de expedientes distintos.';
@@ -660,6 +750,24 @@ onMounted(cargarBiblia);
                         </div>
                         <p class="font-black text-slate-500 uppercase tracking-widest text-xs mb-1">Sin logística</p>
                         <p class="text-sm text-slate-400">No hay servicios programados con estos filtros.</p>
+                        <!-- Las dos causas reales de un panel vacío, en orden de frecuencia.
+                             Se enuncian aquí porque ninguna es visible desde esta pantalla:
+                             las filas nacen al confirmar una cotización, y sólo entonces. -->
+                        <div class="mt-4 mx-auto max-w-sm text-left bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Si esperabas ver algo</p>
+                            <ul class="text-xs text-slate-500 space-y-1.5 leading-snug">
+                                <li>
+                                    <i class="fas fa-calendar-day text-slate-300 mr-1.5"></i>
+                                    Amplía el rango: los servicios de un expediente suelen caer semanas después de venderlo.
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-signature text-slate-300 mr-1.5"></i>
+                                    Comprueba que la cotización esté en estado <strong class="text-slate-600">Confirmado</strong>.
+                                    Sólo esa transición genera operación; si la editaste después de confirmarla, usa
+                                    <strong class="text-slate-600">«Enviar a Operaciones»</strong> en la cotización.
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
@@ -684,7 +792,8 @@ onMounted(cargarBiblia);
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Servicio</th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden lg:table-cell">Expediente</th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:table-cell">Pax</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden md:table-cell">Proveedor</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden md:table-cell" title="Quién opera el servicio y dónde se recoge. Debajo, a quién se le compra cuando no es el mismo.">Prestador</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden xl:table-cell text-right" title="Cotizado (de la cotización) frente a real (lo que se pagó). El delta es el margen operativo.">Costo</th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Reserva</th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:table-cell">Operación</th>
                                         </tr>
@@ -699,14 +808,21 @@ onMounted(cargarBiblia);
                                             ]"
                                             class="hover:bg-slate-50/80 transition-colors"
                                         >
-                                            <!-- Selección -->
+                                            <!-- Selección: las filas de referencia no se
+                                                 marcan porque no pueden ir a una OS. -->
                                             <td class="px-3 py-3 align-top">
                                                 <input
+                                                    v-if="!servicio.soloReferencia"
                                                     type="checkbox"
                                                     :checked="seleccionados.includes(servicio.id ?? '')"
                                                     @change="alternarSeleccion(servicio.id)"
                                                     class="mt-1 w-4 h-4 accent-[#376875] cursor-pointer"
                                                 />
+                                                <i
+                                                    v-else
+                                                    class="fas fa-eye text-slate-300 text-xs mt-1.5 block"
+                                                    title="Sólo referencia: no se compra a ningún proveedor"
+                                                ></i>
                                             </td>
 
                                             <!-- Hora editable -->
@@ -737,6 +853,18 @@ onMounted(cargarBiblia);
 
                                                         <!-- Badges de clasificación: sólo cuando dicen algo -->
                                                         <div class="flex flex-wrap gap-1 mt-1">
+                                                            <!-- La fila está para informar al guía y al
+                                                                 transportista, no para comprarla. Se marca en
+                                                                 vez de atenuarse: atenuarla diría lo contrario
+                                                                 de lo que se quiere — el hotel del pasajero es
+                                                                 justo lo que hay que mirar para el recojo. -->
+                                                            <span
+                                                                v-if="servicio.soloReferencia"
+                                                                class="px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border bg-indigo-50 text-indigo-600 border-indigo-200"
+                                                                title="Referencia operativa: no se compra a ningún proveedor y no entra en Órdenes de Servicio"
+                                                            >
+                                                                <i class="fas fa-eye text-[8px]"></i> Referencia
+                                                            </span>
                                                             <span
                                                                 v-if="getModoComponenteConfig(servicio.modoComponente) && servicio.modoComponente !== 'incluido'"
                                                                 :class="['px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border', getModoComponenteConfig(servicio.modoComponente)!.bg, getModoComponenteConfig(servicio.modoComponente)!.text, getModoComponenteConfig(servicio.modoComponente)!.border]"
@@ -763,9 +891,20 @@ onMounted(cargarBiblia);
                                                         <p class="text-[10px] font-bold text-slate-400 mt-1 lg:hidden">
                                                             <i class="fas fa-folder-open mr-1"></i>{{ servicio.file?.nombreGrupo || 'Sin expediente' }}
                                                         </p>
+                                                        <!-- En móvil la columna del prestador está oculta, así
+                                                             que el nombre y el teléfono del recojo se repiten
+                                                             aquí: son el dato que se consulta a pie de calle. -->
                                                         <p class="text-[10px] font-bold text-slate-400 mt-0.5 md:hidden">
-                                                            <i class="fas fa-user mr-1"></i>{{ servicio.proveedorNombreManual || 'Por asignar' }}
+                                                            <i class="fas fa-user mr-1"></i>{{ servicio.prestadorNombre || (servicio.soloReferencia ? 'Referencia' : 'Por asignar') }}
                                                         </p>
+                                                        <a
+                                                            v-if="servicio.prestadorTelefono"
+                                                            :href="telHref(servicio.prestadorTelefono)"
+                                                            class="text-[10px] font-bold text-[#376875] mt-0.5 md:hidden flex items-center gap-1"
+                                                        >
+                                                            <i class="fas fa-phone text-[9px]"></i>
+                                                            <span class="tabular-nums">{{ servicio.prestadorTelefono }}</span>
+                                                        </a>
                                                     </div>
                                                 </div>
                                             </td>
@@ -787,14 +926,78 @@ onMounted(cargarBiblia);
                                                 </span>
                                             </td>
 
-                                            <!-- Proveedor editable -->
+                                            <!-- Prestador (quién opera / dónde se recoge) y, debajo, el
+                                                 proveedor comercial sólo si difiere. Ver docs/Operacion.md §3.3.b -->
                                             <td class="px-3 py-3 hidden md:table-cell align-top">
                                                 <input
-                                                    :value="servicio.proveedorNombreManual ?? ''"
-                                                    @change="editarProveedor(servicio, $event)"
-                                                    placeholder="Por asignar"
+                                                    :value="servicio.prestadorNombre ?? ''"
+                                                    @change="editarPrestador(servicio, $event)"
+                                                    :placeholder="servicio.soloReferencia ? 'Referencia' : 'Por asignar'"
                                                     class="w-full max-w-[11rem] text-sm font-bold text-slate-700 bg-transparent px-2 py-1 rounded-lg border border-transparent hover:border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
                                                 />
+
+                                                <!-- Los datos del recojo: es para lo que existe la fila
+                                                     de referencia. El teléfono se marca desde aquí. -->
+                                                <a
+                                                    v-if="servicio.prestadorTelefono"
+                                                    :href="telHref(servicio.prestadorTelefono)"
+                                                    class="mt-1 ml-2 flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-[#376875] transition-colors"
+                                                >
+                                                    <i class="fas fa-phone text-slate-300 text-[9px]"></i>
+                                                    <span class="tabular-nums">{{ servicio.prestadorTelefono }}</span>
+                                                </a>
+                                                <p
+                                                    v-if="servicio.prestadorDireccion"
+                                                    class="mt-0.5 ml-2 flex items-start gap-1.5 text-[10px] font-medium text-slate-400 max-w-[11rem]"
+                                                    :title="servicio.prestadorDireccion"
+                                                >
+                                                    <i class="fas fa-location-dot text-slate-300 text-[9px] mt-0.5 shrink-0"></i>
+                                                    <span class="truncate">{{ servicio.prestadorDireccion }}</span>
+                                                </p>
+
+                                                <!-- A quién se le compra. Se edita porque es lo que agrupa
+                                                     la OS: sin poder corregirlo aquí, dos filas del mismo
+                                                     proveedor escrito distinto no se pueden juntar nunca. -->
+                                                <label v-if="mostrarComercial(servicio)" class="mt-1.5 flex items-center gap-1.5">
+                                                    <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0" title="Proveedor comercial: a quién se le compra">
+                                                        Compra
+                                                    </span>
+                                                    <input
+                                                        :value="servicio.proveedorNombreManual ?? ''"
+                                                        @change="editarProveedor(servicio, $event)"
+                                                        placeholder="Sin definir"
+                                                        class="w-full max-w-[8rem] text-[10px] font-bold text-slate-400 bg-transparent px-1 py-0.5 rounded border border-transparent hover:border-slate-200 outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white focus:text-slate-700 placeholder:text-slate-300 placeholder:font-medium"
+                                                    />
+                                                </label>
+                                            </td>
+
+                                            <!-- Costo: cotizado (solo lectura) vs real (editable) -->
+                                            <td class="px-3 py-3 hidden xl:table-cell align-top text-right whitespace-nowrap">
+                                                <p class="text-[10px] font-bold text-slate-400 tabular-nums">
+                                                    <span class="text-slate-300 mr-1">{{ servicio.monedaCotizada?.id || '' }}</span>{{ importe(servicio.costoCotizado) }}
+                                                </p>
+
+                                                <!-- Una fila de referencia no se compra: no hay costo real que
+                                                     registrar, y ofrecer el campo invitaría a inventarlo. -->
+                                                <template v-if="!servicio.soloReferencia">
+                                                    <input
+                                                        :value="Number(servicio.costoRealOperativo ?? 0) === 0 ? '' : importe(servicio.costoRealOperativo)"
+                                                        @change="editarCostoReal(servicio, $event)"
+                                                        placeholder="real"
+                                                        inputmode="decimal"
+                                                        maxlength="13"
+                                                        class="mt-1 w-[5.5rem] text-sm font-black text-slate-800 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
+                                                    />
+                                                    <p
+                                                        v-if="deltaOperativo(servicio) !== null && deltaOperativo(servicio) !== 0"
+                                                        class="mt-0.5 text-[10px] font-black tabular-nums"
+                                                        :class="deltaOperativo(servicio)! > 0 ? 'text-rose-600' : 'text-emerald-600'"
+                                                        :title="deltaOperativo(servicio)! > 0 ? 'Costó más de lo cotizado' : 'Costó menos de lo cotizado'"
+                                                    >
+                                                        {{ deltaOperativo(servicio)! > 0 ? '+' : '−' }}{{ Math.abs(deltaOperativo(servicio)!).toFixed(2) }}
+                                                    </p>
+                                                </template>
+                                                <p v-else class="mt-1 text-[10px] font-bold text-slate-300">no se compra</p>
                                             </td>
 
                                             <!-- Estado reserva editable -->

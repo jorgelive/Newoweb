@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
 import {ApiCotizacionFile, ApiCotizacionFileWrite, I18nContent} from '@/types/fileDetalleModel.ts';
+import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion } from '@/types/operacionModel';
 
 // ============================================================================
 // TIPOS AUTOGENERADOS Y EXTENDIDOS (HÍBRIDOS)
@@ -135,6 +136,66 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'Error al clonar la versión de la cotización.');
             return false;
+        }
+    };
+
+    // ────────────────────────────────────────────────────────────────────────
+    // RECONCILIACIÓN CON OPERACIONES — dos pasos, nunca uno
+    //
+    // La generación automática sólo se dispara en la TRANSICIÓN a `confirmado`, y
+    // ocurre una única vez: lo que se edite después no llega a Operaciones. Pero
+    // regenerar a ciegas tampoco vale, porque las filas de La Biblia guardan cosas
+    // que no están en la cotización (hora pactada, prestador, teléfono del recojo).
+    // De ahí los dos pasos: se calcula el diff, lo revisa una persona, y sólo
+    // entonces se aplica lo aprobado. Ver docs/Operacion.md §3.5.
+    // ────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Calcula el plan de cambios. **No escribe nada.**
+     *
+     * El backend responde 422 si la cotización no está confirmada o es de catálogo;
+     * ese mensaje ya está escrito para el operador, así que se propaga tal cual.
+     */
+    const planificarOperacion = async (iriOrId: string): Promise<PlanReconciliacion | null> => {
+        error.value = null;
+        const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
+
+        try {
+            // Body vacío: la operación declara 'deserialize: false' y sólo usa el {id}.
+            const response = await apiClient.post<PlanReconciliacion>(
+                `/platform/sales/cotizacions/${id}/operacion/plan`,
+                {}
+            );
+            return response.data;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo calcular el plan de operación.');
+            return null;
+        }
+    };
+
+    /**
+     * Aplica ÚNICAMENTE lo aprobado, y sólo si la firma del plan sigue vigente.
+     *
+     * Si alguien tocó la operación mientras se revisaba, el backend responde 422 y
+     * hay que recalcular: aplicar decisiones tomadas sobre datos viejos es justo lo
+     * que la firma existe para impedir.
+     */
+    const aplicarPlanOperacion = async (
+        iriOrId: string,
+        payload: AplicarPlanPayload
+    ): Promise<ResultadoAplicacion | null> => {
+        error.value = null;
+        const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
+
+        try {
+            const response = await apiClient.post<ResultadoAplicacion>(
+                `/platform/sales/cotizacions/${id}/operacion/aplicar`,
+                payload
+            );
+            return response.data;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudieron aplicar los cambios de operación.');
+            return null;
         }
     };
 
@@ -315,6 +376,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         extraerResumenPreview,
         updatePassenger,
         updateDocument,
-        cloneCotizacion
+        cloneCotizacion,
+        planificarOperacion,
+        aplicarPlanOperacion
     };
 });

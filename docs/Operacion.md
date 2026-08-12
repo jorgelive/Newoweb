@@ -13,7 +13,8 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 
 1. [Vocabulario](#1-vocabulario)
 2. [Flujo: de cotización confirmada a La Biblia](#2-flujo-de-cotización-confirmada-a-la-biblia)
-3. [Reglas del snapshot](#3-reglas-del-snapshot)
+3. [Reglas del snapshot](#3-reglas-del-snapshot) — incluye [3.3 comprable vs. referencia](#33), [3.5 reconciliación](#35), [3.4 consola](#34)
+3.bis [Por qué La Biblia aparece vacía](#3bis-por-qué-la-biblia-aparece-vacía)
 4. [Los tres estados y por qué son tres](#4-los-tres-estados-y-por-qué-son-tres)
 5. [Órdenes de Servicio y bitácora](#5-órdenes-de-servicio-y-bitácora)
 6. [API: endpoints, grupos y filtros](#6-api-endpoints-grupos-y-filtros)
@@ -61,8 +62,9 @@ CotizacionEditorView.vue                          OperacionView.vue  (/operacion
         └─ PENDIENTE / ENVIADO / ARCHIVADO
                         └► propagarEstadoOperacion(PENDIENTE)
 
-           OperacionResincronizarCommand ──► el mismo BibliaSnapshotService
-           (borra y regenera; ver §3)
+           POST .../operacion/plan ──► BibliaReconciliacionService::planificar()
+                  ↓  revisión humana campo a campo (panel / consola)
+           POST .../operacion/aplicar ──► sólo lo aprobado, si la firma vive (§3.5)
 ```
 
 ### Por qué `onFlush` y no `postUpdate`
@@ -74,9 +76,9 @@ precio: hay que instruir a Doctrine a mano con `UnitOfWork::computeChangeSet()` 
 
 ### Por qué la generación vive en un servicio
 
-`BibliaSnapshotService` está fuera del listener porque la generación tiene dos entradas legítimas:
-el flujo automático al confirmar y la re-sincronización manual del comando. Tenerlo duplicado era
-garantía de que las dos copias se desincronizaran.
+`BibliaSnapshotService` está fuera del listener porque sus reglas tienen tres consumidores que no
+pueden divergir: el flujo automático al confirmar, la reconciliación (§3.5) y el comando de
+consola. Tenerlas duplicadas era garantía de que las copias se desincronizaran.
 
 ### Granularidad: componente, no servicio
 
@@ -94,13 +96,43 @@ porque cada una puede tener proveedor, hora y estado de reserva distintos.
 
 Editar la cotización después de confirmar **no actualiza** La Biblia. No hay re-sincronización
 automática. Si cambia una hora o un proveedor en el editor, la fila operativa conserva el valor
-viejo hasta que alguien corra el comando de §3.4.
+viejo hasta que alguien lo reconcilie a mano (§3.5).
 
 ### Idempotencia
 
 `findOneBy(['cotizacionComponente' => $cotcomponente])` corta la creación si ya existe fila para
 ese componente. Consecuencia deseada: re-confirmar no duplica. Consecuencia no deseada:
 **re-confirmar tampoco repara** una fila mal generada ni rellena campos añadidos después.
+
+### <a id="33"></a>3.3 Filas comprables y filas de referencia
+
+**No todo lo que se opera se compra.** Un hotel que el pasajero reservó por su cuenta no se le
+compra a nadie —no lleva tarifa, no tiene costo, no va en ninguna Orden de Servicio— y aun así
+es el dato más importante del día para el transportista: sin él no sabe dónde recoger. Lo mismo
+con un vuelo `no_incluido`: marca la hora a la que el guía deja de tener al grupo.
+
+Por eso hay dos clases de fila, y las distingue `OperacionServicio::isSoloReferencia()`:
+
+| | Fila **comprable** | Fila de **referencia** |
+|---|---|---|
+| Condición | tiene tarifa y `modo ≠ no_incluido` | **sin tarifa** o `modo = no_incluido` |
+| `cotizacionTarifa`, `monedaCotizada` | pobladas | **`null`** (por eso las columnas son nullable) |
+| `costoCotizado` | de la tarifa | `'0.00'` — es referencia, no una compra de importe desconocido |
+| Orden de Servicio | sí | **no** — `setOrdenServicio()` lanza `DomainException` → 422 |
+| En la vista | checkbox de selección | icono de ojo + badge «Referencia», **sin atenuar** |
+
+La regla vive en la entidad y **no se reimplementa en TypeScript**: viaja calculada en el campo
+`soloReferencia` del grupo `operacion:item:read`, igual que `prioridadOperativa`. Es un cálculo y
+no una columna a propósito — se deriva de datos que ya están en la fila, y duplicarlo abriría la
+puerta a que las dos versiones se contradigan.
+
+⚠️ La guarda de `setOrdenServicio()` es la fuente de verdad; el frontend sólo evita que el
+operador llegue al modal para recibir un 422. Doctrine hidrata por reflexión, así que cargar
+filas existentes nunca la dispara — sólo un `PATCH` que asigne la OS.
+
+⚠️ **No se atenúan.** `cancelado` y `reemplazado` van con `opacity-55`; una fila de referencia
+no, porque atenuarla diría lo contrario de lo que se quiere: el hotel del pasajero es justo lo
+que hay que mirar para programar el recojo.
 
 ### Exclusiones silenciosas
 
@@ -109,9 +141,16 @@ Un componente **no** llega a La Biblia, sin error ni aviso en ninguna UI, si:
 | Condición | Dónde |
 |---|---|
 | La cotización es de catálogo (`getCatalogo() !== null`) | `generarParaCotizacion()` — tours de exhibición con fechas nominales, sin expediente real |
-| Todas sus tarifas tienen rol `ALTERNATIVA` | `resolverTarifaPrimaria()` — las alternativas son venta opcional, no operación |
-| No hay tarifa, o la tarifa no tiene moneda | `generarParaCotizacion()` |
+| Tiene tarifas y **todas** son rol `ALTERNATIVA` | `generarParaCotizacion()` — venta opcional que nadie compró; programarla sería operar algo que quizá no se vendió |
 | No se puede resolver una fecha | `resolverFechaServicio()` |
+
+🔥 **No tener tarifa ya NO excluye.** Excluía, y era un descarte accidental: la regla decía «sin
+tarifa» cuando la intención era «no se compra». Coincidían porque en la práctica todo lo que no
+lleva tarifa es `no_incluido`… salvo el día en que a alguien se le olvide tarifar un guiado, que
+desaparecía del cuadro de tráfico sin un solo aviso. Hoy entra como referencia y se ve.
+
+Por eso «sin tarifa» y «sólo alternativas» se distinguen aunque `resolverTarifaPrimaria()`
+devuelva `null` en los dos casos: el guard mira `getCottarifas()->isEmpty()`.
 
 **No se excluye nada más.** Entran alojamientos, desayunos, cortesías, `no_incluido`,
 `reemplazado` y componentes cancelados en la cotización. Es deliberado por ahora: primero se ve
@@ -134,28 +173,166 @@ muestra y los deja filtrar.
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
 
-### <a id="34"></a>3.4 Re-sincronizar
+### <a id="35"></a>3.5 Reconciliación: plan → revisión → aplicar
+
+**Nada se escribe sin que una persona haya visto el diff.**
+
+Hubo un botón que borraba La Biblia y la regeneraba de un golpe. Era correcto mientras
+las filas no contenían nada propio; dejó de serlo en cuanto pasaron a guardar hora pactada
+por teléfono, prestador, teléfono del recojo y —cuando se rellene— costo real. Un merge
+automático, por conservador que sea, es tan peligroso como un borrado: el daño sólo tarda
+más en aparecer. Por eso son **dos operaciones**:
+
+```
+POST /platform/sales/cotizacions/{id}/operacion/plan      → diff firmado. NO escribe.
+        ↓  una persona revisa, marca campo a campo, confirma
+POST /platform/sales/cotizacions/{id}/operacion/aplicar   → sólo lo aprobado
+```
+
+#### La pregunta que lo hace posible
+
+Si la fila y la cotización difieren, **¿quién de los dos se movió?** Sin respuesta no se
+puede decidir nada en automático. La responde `OperacionServicio::$snapshotOrigen`, la
+foto escalar de lo que escribió el snapshot la última vez:
+
+```
+actual == origen  →  el operador no lo tocó  →  la cotización manda
+actual != origen  →  el operador lo editó    →  CONFLICTO, decide una persona
+```
+
+Filas anteriores a esa columna tienen `{}`: **todo se trata como conflicto**. Es lo
+conservador — si no se sabe quién se movió, no se decide solo.
+
+⚠️ `aplicarValores()` reescribe `snapshotOrigen` **entero**, incluso con los campos que se
+rechazaron. Guardar lo propuesto significa «esto ya te lo pregunté»; conservar lo viejo
+haría que el siguiente plan volviera a proponer lo mismo y el operador tuviera que
+rechazarlo una y otra vez.
+
+#### Las clases de cambio y su casilla por defecto
+
+El estado inicial de cada casilla **es** la política de seguridad:
+
+| Cambio | Por defecto | Por qué |
+|---|---|---|
+| `crear` | ✅ marcado | no destruye nada |
+| `actualizar` sin conflicto y fuera de OS | ✅ marcado | la cotización es la fuente |
+| Campo **en conflicto** | ⬜ desmarcado | gana quien habló con el proveedor |
+| Cualquier cambio en fila **con OS** | ⬜ desmarcado (nada premarcado) | altera lo que ya se pidió |
+| `huerfano` | ⬜ desmarcado | borrar se confirma siempre a mano |
+| `huerfano` en OS o con costo real | 🔒 **bloqueado**, sin casilla | rompería trazabilidad o borraría dinero |
+
+Si «actualizar» viniera marcado en un conflicto, esto sería una trampa con aspecto de
+asistente.
+
+#### Aprobación por CAMPO, no por fila
+
+Si la cotización movió la fecha y alguien ya había fijado la hora, aprobar «la fila» no
+significa nada: ¿acepta la fecha y conserva su hora, o se lleva todo por delante? El body
+de `aplicar` es un mapa `idDelCambio → campos`. **Lo que no aparece, no se aplica**: no
+hay «aplicar todo» implícito.
+
+Los identificadores internos viajan pegados al campo que los explica
+(`expandirTecnicos()`): la moneda con el costo, la tarifa con el proveedor. Sin eso se
+podría aprobar un costo nuevo dejando la moneda vieja.
+
+#### La firma: por qué la aprobación no es decorativa
+
+Entre ver el plan y aprobarlo pueden pasar minutos, y en ese hueco otro operador puede
+cambiar una hora. `firmar()` hashea el estado leído —filas existentes **y** valores
+calculados de la cotización— y `aplicar()` lo revalida. Si no coincide, **422**: *«la
+operación cambió mientras revisabas»*. Sin esto se estarían aplicando decisiones tomadas
+sobre una realidad que ya no existe.
+
+#### Lo que la reconciliación NUNCA toca
+
+`estadoReserva`, `estadoOperacion`, `costoRealOperativo`, `montoVenta`, `monedaReal` y
+`ordenServicio`. No salen de la cotización: son del operador. Esa lista corta es media
+razón de ser del módulo.
+
+#### Dónde vive cada regla
+
+| Pieza | Responsabilidad |
+|---|---|
+| `BibliaSnapshotService::calcularValores()` | QUÉ dice la cotización hoy (escalares) |
+| `BibliaSnapshotService::aplicarValores()` | cómo se vuelca sobre una fila, con `$soloCampos` |
+| `BibliaReconciliacionService::planificar()` | qué cambia, de quién es y quién lo autoriza |
+| `BibliaReconciliacionService::aplicar()` | ejecuta lo aprobado si la firma sigue viva |
+
+El generador y el reconciliador comparten `calcularValores()` a propósito: si el segundo
+reimplementara las reglas, propondría cambios que el primero nunca habría hecho.
+
+### <a id="34"></a>3.4 Desde la consola
 
 ```bash
 php bin/console operacion:resincronizar <uuid-cotizacion>
 php bin/console operacion:resincronizar --todas [--dry-run] [--force]
 ```
 
-Borra el snapshot anterior y lo regenera. Es la **única** forma de aplicar cambios de reglas a
-cotizaciones ya confirmadas, porque la idempotencia bloquea la regeneración normal.
+Usa el mismo `BibliaReconciliacionService` que el panel (§3.5), así que la consola y la
+pantalla no pueden proponer cosas distintas. Muestra el plan y **pregunta antes de
+aplicar**.
 
-Los servicios ya vinculados a una Orden de Servicio se conservan salvo `--force`: borrarlos
-rompería la trazabilidad de lo que ya se le pidió al proveedor.
+| | Qué aplica |
+|---|---|
+| sin flags | sólo lo aprobado por defecto: crear, y actualizar lo que nadie tocó |
+| `--force` | además los conflictos y los sobrantes. **Nunca lo bloqueado** |
+| `--dry-run` | nada: imprime el plan y sale |
 
-El comando hace un `flush()` intermedio entre el borrado y la regeneración. Es obligatorio: el
-guard de idempotencia consulta la base de datos, y sin vaciar los `remove` pendientes vería las
-filas viejas y no crearía nada.
+En consola no hay aprobación campo a campo — se aprueban los campos enteros del cambio.
+Quien necesite ese detalle usa el panel.
+
+⚠️ **El default de la pregunta depende del lote.** Crear y actualizar es reversible y no
+pierde nada, así que va a «sí» por defecto y `--no-interaction` sirve para un cron. Si el
+lote incluye **borrados**, el default es «no»: eso se teclea, aunque se haya pedido con
+`--force`.
+
+### Espejo PHP ↔ TypeScript de la referencia
+
+| PHP | TypeScript | Regla |
+|---|---|---|
+| `OperacionServicio::isSoloReferencia()` | campo `soloReferencia` de `api.d.ts` | **no se reimplementa**: viaja calculado. Si cambias la condición, sólo se toca el PHP y se regenera `api.d.ts` (§8) |
 
 ### Campos financieros al nacer
 
-`costoCotizado` = `tarifa.montoCosto`; `montoVenta` y `costoRealOperativo` arrancan en `'0.00'`;
-`monedaCotizada` = `monedaReal` = moneda de la tarifa. El delta cotizado ↔ real es el margen
-operativo, y hoy nada lo rellena automáticamente.
+`costoCotizado` = `tarifa.montoCosto`, o `'0.00'` en una fila de referencia (§3.3); `montoVenta` y
+`costoRealOperativo` arrancan en `'0.00'`; `monedaCotizada` = `monedaReal` = moneda de la tarifa,
+o `null` si no hay tarifa. El delta cotizado ↔ real es el margen operativo, y lo rellena el
+operador desde la columna «Costo» del cuadro (§7.3): nada lo calcula automáticamente, porque
+sólo quien pagó sabe cuánto se pagó.
+
+---
+
+## 3.bis Por qué La Biblia aparece vacía
+
+Diagnóstico verificado en agosto de 2026, con el panel vacío en local **y en producción**. Las
+causas, en orden de frecuencia:
+
+**1. No hay ninguna cotización en `confirmado`.** Era el caso real: cero filas en
+`operacion_servicio` porque no existía una sola cotización confirmada en toda la base. El
+listener y el snapshot funcionaban; simplemente nunca se les llamó. Comprobación:
+
+```bash
+php bin/console doctrine:query:sql --force-fetch \
+  "SELECT estado, COUNT(*) c FROM cotizacion_cotizacion GROUP BY estado"
+```
+
+Ojo con el guard del editor: `guardarCotizacion()` (`cotizacionEditorStore.ts`) **aborta el
+guardado** si el estado está en `['enviado','confirmado','operado']` y el resumen financiero no
+es `publicable` — y `publicable` exige **cero advertencias**, no sólo cero conflictos. Un aviso
+informativo basta para que «Confirmado» no llegue a guardarse nunca.
+
+**2. El rango de fechas.** Los servicios de un expediente caen semanas después de venderlo. El
+panel arrancaba filtrando por un solo día (`hoy`) y salía vacío casi siempre; hoy arranca con
+7 días. El preset «Hoy» sigue a un clic.
+
+**3. Se confirmó y después se editó.** La generación se dispara en la **transición** a
+`confirmado`, y sólo una vez. Añadir un día, corregir una hora o poner la tarifa que faltaba
+después no llega nunca a Operaciones. Para eso está §3.4.
+
+**4. Confirmar en el POST no genera nada.** El listener sólo mira
+`getScheduledEntityUpdates()`. Una cotización creada directamente con `estado = confirmado`
+—o clonada a un estado confirmado— no produce filas. `CloneCotizacionProcessor` pone
+`PENDIENTE`, así que hoy no se da en la práctica; si algún día se da, el botón de §3.4 lo cubre.
 
 ---
 
@@ -195,7 +372,7 @@ cotización confirmada por error deja filas que hay que limpiar con `operacion:r
 | `EstadoOrdenServicioEnum` | `ESTADO_OS_CONFIG` | ídem |
 | `ComponenteTipoEnum` | `TIPO_COMPONENTE_CONFIG` | ídem; la **prioridad NO se replica** |
 | `ComponenteModoEnum` | `MODO_COMPONENTE_CONFIG` | ídem |
-| `ComponenteEstadoEnum` | `ESTADO_COMPONENTE_CONFIG` | ídem |
+| `ComponenteEstadoEnum` | `ESTADO_COMPONENTE_CONFIG` | ídem — sólo `activo`/`cancelado`. **No** es el estado de reserva: ver `docs/Cotizaciones.md` §3.b |
 
 Los tres primeros están tipados contra `api.d.ts`, así que `vue-tsc` falla si falta una entrada —
 pero sólo después de **regenerar `api.d.ts`** (§8). Los tres últimos están tipados como
@@ -219,9 +396,10 @@ cada servicio para asignarle el IRI de la OS. **No es transaccional**: si falla 
 OS con sólo parte de los servicios asociados.
 
 La vista sólo deja generar una OS si los servicios seleccionados comparten **expediente,
-proveedor y moneda**, y ninguno pertenece ya a otra OS (`conflictoSeleccion` en
-`OperacionView.vue`). Una OS es una solicitud a un proveedor sobre un expediente; mezclarlos
-produciría un documento que nadie puede firmar.
+proveedor y moneda**, ninguno pertenece ya a otra OS y **ninguno es de referencia**
+(`conflictoSeleccion` en `OperacionView.vue`). Una OS es una solicitud a un proveedor sobre un
+expediente; mezclarlos produciría un documento que nadie puede firmar, y meterle una fila que
+nadie compra (§3.3) produciría un importe que no se debe.
 
 Notas:
 
@@ -247,6 +425,23 @@ Notas:
 
 Roles: `ROLE_OPERACIONES_SHOW` (GET), `_WRITE` (POST/PUT/PATCH), `_DELETE`
 (`src/Security/Roles.php`).
+
+**Fuera de `/ops`:** la regeneración manual cuelga del recurso `Cotizacion`, no de este módulo,
+porque su `{id}` es el de la cotización:
+
+| Operación | Endpoint | Salida |
+|---|---|---|
+| Calcular el diff (§3.5) | `POST /platform/sales/cotizacions/{id}/operacion/plan` | `PlanReconciliacion` |
+| Aplicar lo aprobado (§3.5) | `POST /platform/sales/cotizacions/{id}/operacion/aplicar` | `ResultadoAplicacion` |
+
+Las dos usan el grupo `operacion:plan:read`; `aplicar` recibe `AplicarPlanInput`
+(`operacion:plan:write`). **`plan` no escribe nada** y es POST y no GET a propósito: el
+cálculo recorre el árbol entero y ninguna caché HTTP debe servirlo viejo — un plan obsoleto
+es justo lo que la firma existe para impedir.
+
+Se declara con `read: true` (el provider trae la Cotizacion), `deserialize: false` (no hay
+cuerpo) y `output:` al DTO. El procesador vive en `src/Operacion/`, no en `src/Cotizacion/`: la
+regla es de operaciones aunque la URL sea de ventas.
 
 ### 🔥 Gotcha mayor: el directorio tiene que estar en `mapping.paths`
 
@@ -301,7 +496,8 @@ de serialización sobre el árbol de cotizaciones.
 
 `util/src/views/Operacion/OperacionView.vue`, ruta `/operacion`.
 
-**Filtros:** rango de fechas (con presets Hoy / Mañana / 7 días), expediente por autocompletado,
+**Filtros:** rango de fechas —arranca en **hoy → +6 días**, no en un solo día (§3.bis)— con
+presets Hoy / Mañana / 7 días, expediente por autocompletado,
 cotización (versiones del expediente elegido), chips de tipo de componente, y estados de reserva y
 operación. `construirParamsBiblia()` en `operacionModel.ts` es el único sitio donde viven los
 nombres de los parámetros de query.
@@ -310,13 +506,96 @@ nombres de los parámetros de query.
 ordenados por `prioridadOperativa` (guiado/transporte antes que tickets), porque un cuadro de
 tráfico se lee de arriba abajo y lo que no tiene hora estorba en medio.
 
-**Edición en línea:** hora, proveedor, estado de reserva y estado de operación se editan en la
-propia fila (`PATCH` por campo). No tocan la cotización: registran la realidad operativa.
+**Edición en línea:** hora, prestador, proveedor comercial, estado de reserva y estado de
+operación se editan en la propia fila (`PATCH` por campo). No tocan la cotización: registran la
+realidad operativa.
+
+### 7.1 El botón «Revisar cambios de operación»
+
+Las dos apps siguen sin conocerse (§2): el vínculo nuevo es un endpoint, no un import.
+
+| Dónde | Qué se ve | Condición |
+|---|---|---|
+| `CotizacionEditorView.vue`, junto al selector de estado | Botón ancho «Revisar cambios de operación» | `estado === 'confirmado'` y no es catálogo |
+| `FileDetalle.vue`, en la fila de acciones de cada versión | Icono de diff | `cot.estado === 'confirmado'` |
+
+Está en los dos sitios a propósito: el editor es donde se confirma, y el detalle del expediente
+es donde se ve **qué versión** está confirmada entre todas. Los dos abren el mismo componente,
+`util/src/components/operacion/PlanOperacionModal.vue`, que llama a
+`fileStore.planificarOperacion()` y `fileStore.aplicarPlanOperacion()`.
+
+Ya no hace falta advertir de nada antes de abrir: el panel **enseña** lo que va a cambiar, campo
+a campo, y no aplica nada que no se marque (§3.5). El único `confirm()` que queda es el de los
+borrados.
+
+La condición del frontend es comodidad, no seguridad: el procesador vuelve a validar el estado
+y responde 422. Y se envía **lo que hay en la base de datos**, no lo que se ve en pantalla: si
+el editor tiene cambios sin guardar, hay que guardar primero. El texto de ayuda bajo el botón
+lo dice.
+
+**Permisos:** la operación acepta `ROLE_RESERVAS_WRITE` **o** `ROLE_OPERACIONES_WRITE`. Quien
+vende es quien confirma, y exigirle sólo el rol de operaciones habría dejado el botón inservible
+para el perfil que más lo va a usar.
+
+### 7.2 La columna «Prestador»
+
+Es la que responde a *dónde recojo y quién opera*, así que manda sobre el proveedor comercial
+(§3.3.b). La celda tiene tres niveles:
+
+| Nivel | Qué | Cuándo |
+|---|---|---|
+| Principal, editable | `prestadorNombre` | siempre |
+| Teléfono (enlace `tel:`) y dirección | `prestadorTelefono`, `prestadorDireccion` | si el snapshot los trae |
+| «Compra», editable y atenuado | `proveedorNombreManual` | salvo que sea **redundante** (no vacío e idéntico al prestador) o la fila sea referencia |
+
+Tres decisiones que conviene no deshacer:
+
+- **El comercial se oculta sólo cuando es redundante**, no cuando está vacío. La primera versión
+  de `mostrarComercial()` exigía además que no estuviera vacío, y como los dos campos salen de la
+  misma tarifa, cuando esa tarifa no tiene proveedor **los dos nacen nulos**: el input no se
+  pintaba nunca y el campo quedaba fuera del alcance del operador. Justo el caso mayoritario
+  —34 de 42 filas en una cotización real— y justo el que hace falta para agrupar una OS.
+  **Vacío no es redundante, es pendiente.**
+- **Pero sigue siendo editable cuando aparece.** `conflictoSeleccion` agrupa la OS por
+  `proveedorNombreManual`: sin poder corregirlo aquí, dos filas del mismo proveedor escrito de
+  dos maneras no se podrían juntar nunca en una misma Orden de Servicio.
+- **En una fila de referencia no se muestra**, porque no se compra: ver §3.3.
+
+El teléfono se repite en la línea compacta de móvil, donde la columna está oculta. Es
+deliberado: es justo el dato que se consulta a pie de calle.
 
 **Generar OS:** selección múltiple → valida expediente/proveedor/moneda → modal → crea la cabecera
 y asocia los servicios. Conecta las dos pestañas, que antes estaban desconectadas.
 
+**Filas de referencia (§3.3):** en vez de checkbox llevan un icono de ojo y un badge
+«Referencia», y el campo de proveedor cambia el placeholder de «Por asignar» a «Referencia» —
+no hay nada que asignar. Se ven a plena opacidad: son el dato del recojo.
+
 **Bitácora:** el botón «Mensajes» de una OS abre el hilo y permite registrar un envío nuevo.
+
+**Estado vacío:** enumera las dos causas reales (rango corto, cotización sin confirmar) porque
+ninguna se ve desde esta pantalla. Sin ese texto, «no hay filas» se lee como «el panel está roto».
+
+
+### 7.3 La columna «Costo»: cotizado contra real
+
+Sólo desde `xl:`. Arriba el `costoCotizado` en gris (lo que decía la cotización), debajo el
+**`costoRealOperativo` editable** (lo que el proveedor acabó cobrando), y el delta en rojo si
+costó de más, en verde si de menos. Ese delta **es** el margen operativo por servicio.
+
+Dos decisiones deliberadas:
+
+- **La moneda no se edita en la celda.** `monedaReal` nace igual a `monedaCotizada` y ahí se
+  queda. Cambiarla desde un input de tabla, sin conversión ni tipo de cambio, mezclaría divisas
+  en la misma columna y las sumas dejarían de significar nada — el mismo error que cometí al
+  analizar una cotización real sumando USD y PEN en una sola cifra. Si hay que cambiarla, es un
+  caso raro que merece su propio flujo.
+- **Las filas de referencia no ofrecen el campo** (§3.3): no se compran, así que no hay costo
+  real que registrar, y dar el input invitaría a inventar una cifra.
+
+⚠️ `costoRealOperativo` es del operador y **la reconciliación no lo toca nunca** (§3.5). Es el
+único sitio donde vive lo que se pagó de verdad: si un merge automático lo pisara, ese dato no se
+podría recuperar de ninguna otra parte.
 
 ---
 
@@ -362,15 +641,21 @@ schemas que ya no existen en otros módulos. Es señal de deuda, no de que el ca
 
 ## 9. Pendiente de decidir
 
-**Qué componentes deberían generar fila.** Hoy entra todo. `ComponenteTipoEnum` ya distingue lo
-despachable (`transporte`, `guiado`, `pool`, `privada`, `tren`, `vuelo`, tickets) de lo que es
-sobre todo costo (`alojamiento`, `alimentacion_*`, `extras`), y `prioridad()` existe justamente
-para "manifiestos y reportes operativos". Los candidatos a filtrar en `BibliaSnapshotService` son:
+**Qué componentes deberían generar fila.** Hoy entra todo, y una parte del debate ya está
+resuelta: `no_incluido` **sí entra**, como referencia (§3.3). No es cuestión de ruido — es lo que
+el transportista necesita para el recojo. Filtrarlo por modo, como hace el editor en
+`cotizacionEditorStore.ts`, sería replicar una decisión comercial en un contexto operativo donde
+significa lo contrario.
 
-- por tipo, si se decide que alojamiento y alimentación no son tráfico;
-- por `modoComponente` (`no_incluido`, `reemplazado`), que el editor ya descarta en
-  `cotizacionEditorStore.ts`;
-- por `estadoComponente` (`cancelado`).
+Queda por decidir:
+
+- **por tipo**, si alojamiento y alimentación son tráfico o sólo costo. `ComponenteTipoEnum` ya
+  distingue lo despachable (`transporte`, `guiado`, `pool`, `privada`, `tren`, `vuelo`, tickets)
+  de lo demás, y `prioridad()` existe justamente para "manifiestos y reportes operativos";
+- **`reemplazado`**: un componente sustituido no se opera, y desde que la tarifa dejó de ser
+  requisito (§3.3) los que no la tenían empezaron a generar fila. Hoy aparecen atenuados y con
+  badge, así que se ven como lo que son, pero son candidatos claros a dejar de generarse;
+- **`estadoComponente = cancelado`**, por el mismo motivo.
 
 Mientras no se decida, los tres campos viajan en el snapshot y la vista los muestra y filtra.
 Cuando se decida: tocar `generarParaCotizacion()` y correr `operacion:resincronizar --todas`.
@@ -378,8 +663,9 @@ Cuando se decida: tocar `generarParaCotizacion()` y correr `operacion:resincroni
 **Sin generador de `numeroOs`.** La vista propone un número y el operador lo confirma; dos
 usuarios simultáneos pueden chocar contra el índice `unique`.
 
-**`montoVenta` y `costoRealOperativo` no se rellenan.** El margen operativo por servicio existe
-como columnas pero nadie las escribe todavía.
+**`montoVenta` no se rellena.** `costoRealOperativo` ya se edita en el cuadro (§7.3), pero su
+pareja de venta sigue sin escribirse: el margen por servicio se puede calcular contra el costo
+cotizado, no contra la venta real.
 
 ---
 
@@ -390,10 +676,24 @@ como columnas pero nadie las escribe todavía.
 | Cambiar qué dispara la generación | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `onFlush()` (el `match` de estados) |
 | Cambiar qué se copia al snapshot | `src/Operacion/Service/BibliaSnapshotService.php` | `generarParaCotizacion()` |
 | **Filtrar qué componentes entran** (§9) | mismo archivo | `generarParaCotizacion()`, guard del bucle |
+| **Cambiar qué fila es "sólo referencia"** (§3.3) | `src/Operacion/Entity/OperacionServicio.php` | `isSoloReferencia()` — y regenerar `api.d.ts` |
+| Cambiar de dónde sale el prestador (§3.3.b) | `src/Cotizacion/Entity/CotizacionCotcomponente.php` **y** `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `resolverPrestador()` (espejo, se tocan los dos) |
+| Qué puede entrar en una Orden de Servicio | mismo archivo | `setOrdenServicio()` (guarda de dominio) |
 | Cambiar el texto de la fila | mismo archivo | `resolverDescripcion()` |
 | Cambiar qué tarifa manda cuando hay varias | mismo archivo | `resolverTarifaPrimaria()` |
 | Cambiar cómo se ubica la fila en el calendario | mismo archivo | `resolverFechaServicio()`, `resolverHoraRecojo()` |
-| Aplicar cambios de reglas a lo ya confirmado | `src/Operacion/Command/OperacionResincronizarCommand.php` | `operacion:resincronizar` |
+| **Cambiar el borrado+regeneración** (las dos entradas) | `src/Operacion/Service/BibliaSnapshotService.php` | `resincronizarCotizacion()` |
+| Aplicar cambios de reglas a lo ya confirmado (consola) | `src/Operacion/Command/OperacionResincronizarCommand.php` | `operacion:resincronizar` |
+| Cambiar las guardas del plan (estado, catálogo) o su mensaje | `src/Operacion/ApiPlatform/State/PlanificarOperacionProcessor.php` | `process()` |
+| Añadir un dato al plan o al resultado | `src/Operacion/ApiPlatform/Dto/` **y** `util/src/types/operacionModel.ts` | `PlanReconciliacion` / `CambioPropuesto` / `CampoPropuesto` / `ResultadoAplicacion` (espejos) |
+| Cambiar el panel de revisión (diff, casillas, avisos) | `util/src/components/operacion/PlanOperacionModal.vue` | `marcadosPorDefecto()`, `alternarCampo()`, `aplicar()` |
+| Cambiar dónde aparece el botón | `util/src/views/Cotizaciones/CotizacionEditorView.vue`, `util/src/views/Cotizaciones/FileDetalle.vue` | `abrirPlanOperacion()` |
+| Cambiar la llamada HTTP del panel | `util/src/stores/cotizacion/fileStore.ts` | `planificarOperacion()`, `aplicarPlanOperacion()` |
+| **Cambiar qué se propone y quién lo autoriza** (§3.5) | `src/Operacion/Service/BibliaReconciliacionService.php` | `planificar()`, `aplicar()`, `compararCampos()` |
+| Cambiar el marcado por defecto de una casilla | mismo archivo **y** `PlanOperacionModal.vue` | `aprobadoPorDefecto` / `marcadosPorDefecto()` (espejo) |
+| Añadir un campo gobernado por la cotización | `BibliaSnapshotService::calcularValores()` + `aplicarValores()` + `ETIQUETAS` del reconciliador | los tres, o el campo no se ve en el diff |
+| Cambiar qué campos son intocables | `BibliaReconciliacionService` | la lista del docblock de `ETIQUETAS` |
+| Cambiar el rango de fechas de arranque del panel | `util/src/views/Operacion/OperacionView.vue` | refs `desde` / `hasta` |
 | Que cancelar borre filas en vez de marcarlas | `CotizacionConfirmadaEventListener.php` | `propagarEstadoOperacion()` |
 | Añadir un campo operativo (chofer, placa, nota) | `src/Operacion/Entity/OperacionServicio.php` | nueva propiedad + grupos + migración |
 | Añadir un dato de la cotización a La Biblia | `BibliaSnapshotService.php` + entidad | denormalizar en el snapshot, no abrir grupos |
@@ -406,4 +706,6 @@ como columnas pero nadie las escribe todavía.
 | Nombres de los parámetros de query | `util/src/types/operacionModel.ts` | `construirParamsBiblia()` |
 | Llamadas HTTP del módulo | `util/src/stores/operacion/operacionStore.ts` | `fetchServicios()`, `buscarExpedientes()`, `fetchCotizacionesDeExpediente()`, `actualizarServicio()`, `crearOrdenServicio()`, `fetchMensajesPorOrden()`, `registrarMensaje()` |
 | Filtros, agrupación y edición en línea | `util/src/views/Operacion/OperacionView.vue` | `filtrosActivos`, `serviciosPorDia`, `guardarCampo()`, `confirmarOs()` |
+| Qué muestra la columna Prestador (§7.2) | mismo archivo | `editarPrestador()`, `mostrarComercial()`, `telHref()` |
+| Cómo se registra el costo real (§7.3) | mismo archivo | `editarCostoReal()`, `deltaOperativo()`, `PATRON_IMPORTE` |
 | Colores/labels/iconos | `util/src/types/operacionModel.ts` | `ESTADO_*_CONFIG`, `TIPO_COMPONENTE_CONFIG` |

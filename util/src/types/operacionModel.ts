@@ -157,11 +157,14 @@ export const MODO_COMPONENTE_CONFIG: Record<string, EstadoUIConfig> = {
     reemplazado: { label: 'Reemplazado', bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    icon: 'fa-arrow-right-arrow-left' },
 };
 
+/**
+ * Espejo de `ComponenteEstadoEnum` — cómo estaba el componente EN LA COTIZACIÓN al
+ * confirmarla. Nada que ver con `ESTADO_RESERVA_CONFIG`, que es lo que el proveedor
+ * ha confirmado y sí se edita aquí. Ver docs/Cotizaciones.md §3.b.
+ */
 export const ESTADO_COMPONENTE_CONFIG: Record<string, EstadoUIConfig> = {
-    pendiente:    { label: 'Pendiente',    bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   icon: 'fa-clock' },
-    confirmado:   { label: 'Confirmado',   bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
-    reconfirmado: { label: 'Reconfirmado', bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200',    icon: 'fa-check-double' },
-    cancelado:    { label: 'Cancelado',    bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    icon: 'fa-times-circle' },
+    activo:    { label: 'Activo',    bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
+    cancelado: { label: 'Cancelado', bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    icon: 'fa-times-circle' },
 };
 
 export const getModoComponenteConfig = (v?: string | null): EstadoUIConfig | null =>
@@ -210,6 +213,64 @@ export const construirParamsBiblia = (f: FiltrosBiblia): Record<string, string |
 
     return params;
 };
+
+// ============================================================================
+// RECONCILIACIÓN — plan → revisión → aplicar
+//
+// Espejo de los DTO de `src/Operacion/ApiPlatform/Dto/` (grupo `operacion:plan:read`).
+// Se escriben a mano y no se anclan a api.d.ts porque los nombres que genera OpenAPI
+// para outputs de operaciones custom (`Cotizacion.PlanReconciliacion-operacion.plan.read`)
+// cambian en cuanto se toca la operación. Si añades un campo al DTO, añádelo aquí.
+// ============================================================================
+
+/** Un campo que la cotización quiere cambiar. La aprobación es por campo, no por fila. */
+export interface CampoPropuesto {
+    campo: string;
+    etiqueta: string;
+    valorActual: string | null;
+    valorPropuesto: string | null;
+    /** Lo editó alguien en Operaciones: llega desmarcado y decide una persona. */
+    enConflicto: boolean;
+}
+
+export type TipoCambio = 'crear' | 'actualizar' | 'huerfano';
+
+export interface CambioPropuesto {
+    id: string;
+    tipo: TipoCambio;
+    descripcion: string;
+    contexto: string | null;
+    fecha: string | null;
+    campos: CampoPropuesto[];
+    /** Sin casilla: en una OS emitida o con costo real. Ni se ofrece. */
+    bloqueado: boolean;
+    motivo: string | null;
+    aprobadoPorDefecto: boolean;
+    /** En una OS emitida: nada se premarca, ni los campos sin conflicto. */
+    enOrdenServicio: boolean;
+}
+
+export interface PlanReconciliacion {
+    /** Hash del estado leído. `aplicar` lo rechaza si la realidad se movió. */
+    firma: string;
+    cambios: CambioPropuesto[];
+    sinCambios: number;
+    mensaje: string;
+}
+
+export interface ResultadoAplicacion {
+    creados: number;
+    actualizados: number;
+    borrados: number;
+    omitidos: number;
+    mensaje: string;
+}
+
+/** Body de `aplicar`: `idDelCambio → campos aprobados`. Lo que no aparece, no se aplica. */
+export interface AplicarPlanPayload {
+    firma: string;
+    aprobados: Record<string, string[]>;
+}
 
 export const getEstadoOsConfig = (v?: string | null): EstadoUIConfig =>
     ESTADO_OS_CONFIG[(v as EstadoOsValue) || 'borrador'] ?? ESTADO_OS_CONFIG.borrador;
