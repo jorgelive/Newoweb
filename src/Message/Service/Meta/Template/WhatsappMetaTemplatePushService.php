@@ -67,6 +67,25 @@ final readonly class WhatsappMetaTemplatePushService
             throw new RuntimeException('La plantilla no tiene datos en el campo whatsappMetaTmpl.');
         }
 
+        // ⚠️ Sin nombre de Meta no se sube NADA, y se dice aquí en vez de dejar que reviente
+        // dentro del bucle.
+        //
+        // El nombre viaja como `name` en el payload (`buildSingleLanguagePayload()`) y es la
+        // clave por la que Meta identifica la plantilla; también es por lo que empareja
+        // `WhatsappMetaTemplateSyncService`. Con el campo vacío pasaban las dos cosas a la vez,
+        // sin una sola línea de error: la subida mandaba `name: null` y el sincronizador nunca
+        // la reconocía, así que la plantilla se quedaba con el `PENDING` que alguien escribió a
+        // mano en el panel — un estado que parece de Meta y no lo es. `menu_tours` estuvo así
+        // desde marzo: nadie podía aprobarla porque nunca llegó a enviarse.
+        if (!is_string($metaTmpl['meta_template_name'] ?? null) || trim($metaTmpl['meta_template_name']) === '') {
+            throw new RuntimeException(sprintf(
+                'La plantilla «%s» no tiene «Nombre en Meta». Sin ese campo no se puede subir ni '
+                . 'reconocer lo que Meta devuelva: rellénalo (suele ser el mismo código, «%s») y vuelve a intentarlo.',
+                $template->getName() ?? '?',
+                $template->getCode() ?? '?'
+            ));
+        }
+
         // Datos dummy del Resolver para los "examples" obligatorios de Meta
         $previewData = $this->previewResolver->getPreviewMessageVariables();
 

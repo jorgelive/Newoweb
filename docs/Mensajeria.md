@@ -5546,6 +5546,41 @@ que aquí no tenían dueño.
 > y el punto exacto del código donde encajaría la exclusión. Esta sección explica el mecanismo;
 > aquélla, qué falta por decidir.
 
+### 🔥 Sin `meta_template_name` la plantilla es invisible en las DOS direcciones
+
+Peor que apuntar al nombre equivocado es no tener ninguno, porque no produce un duplicado que se
+vea: no produce nada. `menu_tours` estuvo así desde marzo.
+
+Con el campo a `null`:
+
+- **Al subir**, `WhatsappMetaTemplatePushService` lo manda como `name` del payload. Con `null`
+  la plantilla nunca llega a Meta, así que **nunca entra en revisión**.
+- **Al bajar**, el sincronizador empareja por ese mismo nombre. No casa con nada, y pasa de largo
+  —aunque corra cada noche y toque las once restantes.
+
+Y el panel, mientras tanto, enseña `PENDING` en los siete idiomas. Ese `PENDING` **es texto
+local escrito a mano**, no un estado de Meta: parece una aprobación que tarda y es una plantilla
+que jamás se envió. Costó 9 envíos fallidos entre marzo y el 2026-08-02, todos huéspedes que
+pidieron el menú de tours con la ventana de 24 h cerrada.
+
+Cómo distinguirlo de una aprobación que de verdad está en curso, sin salir de la base de datos:
+
+```sql
+SELECT code,
+       JSON_EXTRACT(whatsapp_meta_tmpl, '$.meta_template_name') AS nombre_meta,
+       JSON_EXTRACT(whatsapp_meta_tmpl, '$.is_official_meta')   AS lo_vio_meta,
+       updated_at
+FROM msg_template;
+```
+
+`is_official_meta` lo pone el sincronizador en **todo** lo que toca. En `false` —con el nombre a
+`null` y un `updated_at` viejo pese al cron de las 03:15— significa que Meta no sabe que esa
+plantilla existe. Correr el comando a mano no cambia nada; se comprobó.
+
+Desde 2026-08-12 el push **se niega en voz alta** en vez de mandar `name: null`, y el sync
+**avisa** cuando crea una gemela `*_META`. El nombre que le faltaba a `menu_tours` lo pone
+`Version20260812190000`; subirla a Meta sigue siendo el botón del panel, a mano y a propósito.
+
 ### 🔁 Borrar el duplicado en el panel no sirve
 
 El servicio es **create-or-update puro**: no hay una sola línea de borrado ni de desactivación.
@@ -5603,3 +5638,4 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Adoptar una plantilla nueva de Meta | Repuntar `meta_template_name` **y** rehacer los `resolver_key` |
 | Subir a Meta la versión local | `WhatsappMetaTemplatePushService` (valida que no falte ningún `resolver_key`) |
 | Saber cuándo corre la sincronización | Cron de `www-data`: `app:whatsapp:sync-templates`, 03:15 |
+| Averiguar por qué una plantilla lleva meses en `PENDING` | Mirar `meta_template_name` y `is_official_meta`: si es `null`/`false`, nunca llegó a Meta |

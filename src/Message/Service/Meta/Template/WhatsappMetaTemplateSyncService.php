@@ -148,6 +148,22 @@ final readonly class WhatsappMetaTemplateSyncService
 
                 $this->em->persist($targetTemplate);
                 $isNew = true;
+
+                // 🔥 Crear una plantilla local NO es rutina: significa que Meta tiene una que aquí
+                // no reconocemos. A veces es legítimo —alguien la creó en la consola de Amazon—,
+                // pero también es como nacen los gemelos: si la plantilla que usan las reglas
+                // tiene otro «Nombre en Meta», el emparejamiento falla y esto crea una copia
+                // `<NOMBRE>_META` a la que van a parar todas las aprobaciones, mientras las
+                // reglas siguen apuntando a la original. Ya pasó con `welcome_booking`.
+                //
+                // No se puede decidir aquí cuál es el caso, así que se avisa y se sigue.
+                $this->logger->warning(sprintf(
+                    'Meta trae la plantilla «%s» y ninguna local la reconoce: se crea «%s». Si ya '
+                    . 'existía una para esto, revisa su campo «Nombre en Meta» — las aprobaciones '
+                    . 'se irán a la copia y las reglas seguirán usando la vieja.',
+                    $metaName,
+                    $generatedCode
+                ));
             }
 
             $templateCache[$metaName] = $targetTemplate;
