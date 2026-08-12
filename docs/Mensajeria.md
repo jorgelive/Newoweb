@@ -6141,3 +6141,27 @@ comprobar además si la lista viene vacía habría hecho que las dos superficies
 distintas cuando los extras se anulan entre sí.
 
 Afecta a 59 reservas de Airbnb en producción.
+
+#### El invariante que blinda la regla anterior
+
+Al comprobar la regla contra datos reales apareció el caso que la rompe. De los 16 cargos de
+reservas de Airbnb, 14 están marcados como espejo del canal y **2 no lo están**: un
+«Alojamiento» de 130.00 y un «Suplemento de limpieza» de 15.00, de una reserva que llega el
+2026-09-11 y por tanto está viva.
+
+Con el flag mal puesto, el filtro los toma por extras y el mensaje **los afirma**: dice que lo
+devuelto son «extras que se pagan a nosotros». Es decir, le reclamaría 145.00 a un huésped que
+ya se los pagó a Airbnb. Peor que no haber hecho nada, porque antes se daba una cifra y ahora
+se le pone una etiqueta que asegura de quién es el dinero.
+
+⚠️ **La web tiene exactamente el mismo fallo de datos** —usa el mismo flag— y hoy le enseña esos
+145.00 a ese huésped. Corregirlo allí, y corregir el dato, son tareas aparte.
+
+`ConsultarCuentaSkill` aplica ahora un invariante duro: **en un canal que ya cobró, el
+alojamiento nunca es nuestro**. Si un cargo de tipo `alojamiento` sobrevive al filtro, el dato
+se contradice con el canal, y ante la contradicción no se elige un lado: se cae al caso sin
+cifras —el único que no puede mentir— y se registra un `warning` con la reserva para que
+alguien arregle el flag.
+
+Es el mismo criterio de todo este capítulo: donde el coste de equivocarse lo paga el huésped,
+la salvaguarda va en código y falla hacia el lado callado.

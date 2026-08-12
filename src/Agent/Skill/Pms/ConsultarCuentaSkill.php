@@ -17,9 +17,11 @@ use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Enum\PmsPoliticaPrepago;
+use App\Pms\Enum\PmsTipoCargo;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -56,6 +58,7 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
     public function __construct(
         private EntityManagerInterface $em,
         private PmsPrepagoCalculador $prepagoCalculador,
+        private LoggerInterface $logger,
     ) {}
 
     public function nombre(): string
@@ -322,6 +325,33 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
             'canal_ya_cobro' => true,
             'idioma_huesped' => $idioma,
         ];
+
+        // 🛡️ INVARIANTE: en un canal que ya cobró, el ALOJAMIENTO nunca es nuestro.
+        //
+        // Si aparece aquí, el flag `esAutomatico` de ese cargo está mal puesto — pasa en
+        // producción: hay una reserva de Airbnb con «Alojamiento 130.00» y «Suplemento de
+        // limpieza 15.00» sin marcar. Y este método no puede limitarse a repetir el dato,
+        // porque lo AFIRMA: dice que lo que devuelve son extras «que se pagan a nosotros».
+        // Con el flag mal, eso es reclamarle a un huésped 145.00 que ya le pagó a Airbnb.
+        //
+        // Así que ante la contradicción no se elige un lado: se cae al caso sin cifras, que
+        // es el único que no puede mentir, y se deja constancia para que alguien arregle el
+        // dato. La web tiene el mismo fallo y sí le enseña el importe; corregirlo allí es
+        // otra tarea, pero el agente no va a ser quien lo diga en voz alta.
+        $sospechosos = array_filter(
+            $cargos,
+            static fn (array $fila): bool => ($fila['tipo'] ?? null) === PmsTipoCargo::ALOJAMIENTO->value
+        );
+
+        if ($sospechosos !== []) {
+            $this->logger->warning(
+                'consultar_cuenta: alojamiento sin marcar como espejo en un canal que ya cobró. '
+                . 'Revisar `es_automatico` de esos cargos.',
+                ['reserva' => $reservaId, 'cargos' => count($sospechosos)]
+            );
+
+            $totalExtras = 0.0;
+        }
 
         // Mismo corte que `PmsReservaPaxProvider::cifras()`: manda el TOTAL, no si la lista
         // viene vacía. Unos extras que suman cero —anulados, o un cargo de cortesía— no son
