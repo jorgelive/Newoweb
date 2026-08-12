@@ -39,10 +39,12 @@ use Doctrine\Migrations\AbstractMigration;
  *
  * Reejecutable: los `INSERT` van con `NOT EXISTS` y el `UPDATE` sólo toca lo que sigue en 0.
  *
- * ⚠️ María está hoy DESHABILITADA y sin móvil registrado. El agente reconoce a la gente por
- * `user.telefono`, así que hasta que se le arregle eso no verá nada por el chat — y el listener
- * no la asignará a estancias nuevas, porque exige `enabled = true`. La siembra de abajo sí la
- * escribe, para que el dato quede puesto. Lo que falta es de datos, no de código.
+ * ⚠️ María está hoy DESHABILITADA y sin móvil registrado. Lo primero dejó de importar: el
+ * listener EXIGÍA `enabled = true` cuando se escribió esto y se le quitó poco después —
+ * `enabled` dice si se entra al panel, y quien limpia no tiene login—, así que las estancias
+ * nuevas sí la cogen. Lo segundo sigue pendiente: el agente reconoce a la gente por
+ * `user.telefono`, y sin móvil registrado no verá nada por el chat. Es un dato que falta, no
+ * código.
  */
 final class Version20260811230000 extends AbstractMigration
 {

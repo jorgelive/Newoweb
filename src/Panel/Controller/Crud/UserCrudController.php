@@ -131,10 +131,14 @@ class UserCrudController extends BaseCrudController
         // el nombre de nadie dentro. El día que quien limpia hoy tome otro camino, se marca
         // aquí a otra persona y las estancias nuevas la cogen sin desplegar nada.
         yield BooleanField::new('esLimpiezaPorDefecto', 'Limpia por defecto')
+            // El texto decía «debe estar habilitada»: era verdad durante unas horas y dejó de
+            // serlo al quitar ese filtro del listener (quien limpia no tiene login, así que
+            // exigirlo dejaba la asignación automática sin hacer nada). Un help que miente
+            // hace perder más tiempo que uno que falta.
             ->setHelp('Cada estancia nueva se le asigna sola a esta persona. Es un punto de '
-                . 'partida: luego se le añaden o quitan personas en el propio evento, y una '
-                . 'casita grande puede llevar dos. <strong>Debe estar habilitada</strong> o no '
-                . 'se le asigna nada. Se espera UNA sola marcada.')
+                . 'partida: luego se le añaden o quitan personas en el propio evento —desde el '
+                . 'calendario de reservas—, y una casita grande puede llevar dos. No hace falta '
+                . 'que esté habilitada: quien limpia no entra al panel. Se espera UNA sola marcada.')
             ->renderAsSwitch(true);
 
         // --- DATOS PERSONALES ---

@@ -112,6 +112,27 @@ Dos trampas que ya costaron caro, porque **no fallan al compilar**:
   inservible (`string[] & I18nContent[]`), y el error aparece lejos, al usarlo. Ver el
   aviso de §2 en `docs/Cotizaciones.md`.
 
+### TypeScript: los tipos de la API se GENERAN
+
+`util/src/types/api.d.ts` sale de `npm run gen:api` (exporta el OpenAPI de API Platform y lo
+pasa por `openapi-typescript`). **Al añadir o cambiar un campo expuesto por la API, se
+regenera**, en la misma sesión. No se declara el campo a mano en un `*Model.ts`: un tipo
+escrito a mano que se queda corto **no falla al compilar**, miente — y el día que alguien sí
+regenere, la intersección de las dos formas revienta lejos de aquí.
+
+Los `*Model.ts` (`pmsReservaModel.ts`, `pmsFinanzasModel.ts`…) derivan del esquema
+(`components['schemas'][…]`, `Pick<>`, `[number]`) y añaden lo que el esquema no puede decir:
+
+- **Estrechamientos**: un `string` que en realidad es una unión cerrada, como `PmsSyncStatus`.
+  Vienen de un getter, y OpenAPI no ve ahí un enum.
+- **Endpoints que no son `ApiResource`**: controladores planos como `/tipo/user/enum/pms/*`,
+  que no entran en la introspección (`PmsLimpiadorOption`, `PmsCobradorOption`).
+- **Helpers y espejos de reglas de negocio**, que es a lo que de verdad vienen estos archivos.
+
+Si de un getter sale un tipo inservible (`array` a secas, `string[][]`), la forma se declara en
+**PHP** con `#[ApiProperty(openapiContext: […])]` —ver `PmsEventoCalendario::getLimpieza()`— y
+se regenera. Así el arreglo vale para todos los consumidores y no sólo para el que lo notó.
+
 Verificación: `cd util && npm run typecheck` (idem en `pax/`) — es `vue-tsc --noEmit`, la
 misma comprobación que corre el build. Sin errores, siempre. Ojo: la inspección propia de
 PhpStorm sobre `.vue` es menos fiable que `vue-tsc`; ante una discrepancia, manda el script.

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "vue-tsc --noEmit",
+    "gen:api": "php ../bin/console api:openapi:export -o .openapi.json && openapi-typescript .openapi.json -o src/types/api.d.ts && rm .openapi.json",
     "build": "vite build && node scripts/pwa-postbuild.mjs",
     "verify:deploy": "node scripts/pwa-verify-deploy.mjs",
     "preview": "vite preview"

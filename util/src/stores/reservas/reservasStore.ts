@@ -15,6 +15,7 @@ import type {
     PmsReservaCrearPayload,
     PmsReservaWhatsappLink,
     PmsReservaBusquedaItem,
+    PmsLimpiadorOption,
 } from '@/types/pmsReservaModel';
 
 export const useReservasStore = defineStore('reservasStore', () => {
@@ -31,6 +32,8 @@ export const useReservasStore = defineStore('reservasStore', () => {
     const estados = ref<PmsEventoEstadoOption[]>([]);
     const estadosPago = ref<PmsEventoEstadoPagoOption[]>([]);
     const channels = ref<PmsChannelOption[]>([]);
+    /** Quién puede limpiar (usuarios con ROLE_LIMPIEZA) — ver PmsEnumAjaxController::getLimpiadores(). */
+    const limpiadores = ref<PmsLimpiadorOption[]>([]);
     const mastersLoaded = ref<boolean>(false);
 
     // Evento/reserva actualmente abiertos en el drawer de edición.
@@ -52,17 +55,22 @@ export const useReservasStore = defineStore('reservasStore', () => {
         error.value = null;
 
         try {
-            const [uRes, eRes, epRes, cRes] = await Promise.all([
+            const [uRes, eRes, epRes, cRes, lRes] = await Promise.all([
                 apiClient.get('/platform/pms/pms_unidads'),
                 apiClient.get('/platform/pms/pms_evento_estados'),
                 apiClient.get('/platform/pms/pms_evento_estado_pagos'),
                 apiClient.get('/platform/pms/pms_channels'),
+                // No es un ApiResource sino un endpoint plano (`[{id, label}]`), y su fallo NO
+                // tumba al resto: sin unidades no hay calendario, pero sin esta lista sólo se
+                // queda gris el selector de limpieza — y el drawer ya avisa cuando llega vacía.
+                apiClient.get<PmsLimpiadorOption[]>('/tipo/user/enum/pms/limpiadores').catch(() => null),
             ]);
 
             unidades.value = uRes.data['hydra:member'] || uRes.data['member'] || [];
             estados.value = eRes.data['hydra:member'] || eRes.data['member'] || [];
             estadosPago.value = epRes.data['hydra:member'] || epRes.data['member'] || [];
             channels.value = cRes.data['hydra:member'] || cRes.data['member'] || [];
+            limpiadores.value = lRes?.data ?? [];
 
             mastersLoaded.value = true;
         } catch (err) {
@@ -240,6 +248,7 @@ export const useReservasStore = defineStore('reservasStore', () => {
         estados,
         estadosPago,
         channels,
+        limpiadores,
         eventoActivo,
         reservaActiva,
         fetchMasters,

@@ -603,6 +603,16 @@ recurso REST de API Platform propio para EDITAR. Ningún dato de edición pasa p
 
 Calendarios: `pms_eventos_no_cancelados_spa`, `pms_eventos_todos_spa`.
 
+#### 🧹 Quién limpia se asigna aquí
+
+El drawer lleva, en cada estancia, las casillas del equipo de limpieza (`muestraLimpieza`,
+`alternarLimpieza`). **No es sólo reparto de trabajo:** esa asignación es el filtro de
+privacidad que decide qué estancias —con el nombre y el teléfono del huésped— ve cada
+compañera al preguntar por el chat, así que una estancia sin asignar no le aparece a nadie de
+campo. El selector no sale al CREAR (la primera estancia nace por otro endpoint) ni en los
+bloqueos, y **omitir el campo no es lo mismo que mandarlo vacío**. El contrato entero y sus
+porqués están en `docs/Mensajeria.md` §«Cada quien ve sus limpiezas, y sólo las suyas».
+
 #### La barra de reserva es de DOS filas (y eso fija la altura de la fila)
 
 `eventContent` pinta icono de canal a la izquierda —centrado sobre el alto completo— y a su

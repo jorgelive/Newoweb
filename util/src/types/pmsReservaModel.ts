@@ -23,6 +23,13 @@
 //  - Las relaciones anidadas en lectura (pmsUnidad, estado, estadoPago, channel,
 //    pais, idioma) sí exponen id/nombre/color: se agregaron los grupos de
 //    serialización correspondientes en el backend para que vengan pobladas.
+//  - ⚠️ NADA se escribe a mano aquí si el esquema ya lo dice. Cuando falte un
+//    campo que el backend sí devuelve, la respuesta es REGENERAR api.d.ts
+//    (`npm run gen:api`), no declararlo aparte: un tipo a mano que se queda
+//    corto no falla al compilar, miente. Los únicos overrides admitidos son los
+//    que ESTRECHAN lo que OpenAPI no sabe expresar —un `string` que en realidad
+//    es una unión cerrada, como `PmsSyncStatus`— y los endpoints que no son
+//    ApiResource y por tanto no salen en el esquema (`PmsLimpiadorOption`).
 // ============================================================================
 
 import { components } from '@/types/api';
@@ -32,16 +39,18 @@ import { components } from '@/types/api';
 // ============================================================================
 
 /**
- * Reglas de borrado (`safeToDelete` / `motivoNoBorrable`): las expone el backend
- * en el grupo de lectura (PmsEventoCalendario::isSafeToDelete/getMotivoNoBorrable),
- * pero todavía no están en el api.d.ts generado — de ahí la extensión manual.
- * Son la misma verdad que aplica el listener de Doctrine en preRemove: si el
- * frontend deshabilita el botón, el backend habría respondido 403.
+ * Reglas de borrado (`safeToDelete` / `motivoNoBorrable`), tal cual las declara el esquema —
+ * `PmsEventoCalendario::isSafeToDelete()` / `getMotivoNoBorrable()`.
+ *
+ * Se deriva con `Pick<>` en vez de escribir los dos campos: es sólo un nombre para el
+ * parámetro de `puedeBorrarseYa()`, y el día que el backend cambie el tipo de uno, aquí falla
+ * al compilar en lugar de mentir. Son la misma verdad que aplica el listener de Doctrine en
+ * preRemove: si el frontend deshabilita el botón, el backend habría respondido 403.
  */
-export interface PmsBorrableInfo {
-    safeToDelete?: boolean;
-    motivoNoBorrable?: string | null;
-}
+export type PmsBorrableInfo = Pick<
+    components['schemas']['PmsEventoCalendario-pms_evento.read_timestamp.read'],
+    'safeToDelete' | 'motivoNoBorrable'
+>;
 
 /**
  * Estado consolidado de la cola de push hacia Beds24.
@@ -54,6 +63,14 @@ export interface PmsBorrableInfo {
  */
 export type PmsSyncStatus = 'local' | 'pending' | 'synced' | 'error';
 
+/**
+ * ⚠️ Los dos únicos overrides que quedan sobre el esquema, y son ESTRECHAMIENTOS, no campos
+ * inventados: el backend devuelve estos estados como `string` —son el valor de retorno de un
+ * método, no un enum que OpenAPI pueda leer— y así el compilador acepta cualquier cadena en un
+ * `if (sync === 'sincronizado')` escrito de memoria. Con la unión de arriba, ese error se ve al
+ * compilar. Si algún día el backend los declara con `#[ApiProperty(openapiContext: …)]`, esto
+ * sobra y se borra.
+ */
 export interface PmsSyncInfo {
     syncStatus?: PmsSyncStatus;
 }
@@ -83,32 +100,47 @@ export function puedeBorrarseYa(
     return sync === 'synced' || sync === 'local' || sync === undefined;
 }
 
-export type PmsEventoCalendario = components['schemas']['PmsEventoCalendario-pms_evento.read_timestamp.read']
-    & PmsBorrableInfo
-    & PmsSyncInfo;
 /**
- * Elección del número de contacto. Todavía no está en el api.d.ts generado
- * (ver PmsReserva::$telefono2EsPrincipal y getTelefonoContacto() en el backend),
- * de ahí la extensión manual. `telefonoContacto` llega YA RESUELTO: no hay que
- * volver a decidir cuál de los dos números es el bueno.
+ * Quién limpia esta estancia, **derivado del esquema**: `PmsEventoCalendario::getLimpieza()`
+ * declara su forma con `#[ApiProperty(openapiContext: …)]` justo para que salga de aquí y no
+ * haya que escribirla a mano.
+ *
+ * Llega como `[{id, nombre}]` y no como IRIs de usuario a propósito: `User` no es un recurso
+ * de la API —no tiene grupos de serialización—, así que exponer la colección tal cual devolvía
+ * una lista de objetos vacíos. Se escribe por otro camino, `limpiezaIds` (ver
+ * `PmsEventoCalendarioPatch`). Vacío = sin asignar, y entonces esa estancia no le aparece a
+ * NADIE de campo en el chat.
  */
-export interface PmsTelefonoContactoInfo {
-    telefono2EsPrincipal?: boolean;
-    telefonoContacto?: string | null;
+export type PmsLimpiezaAsignada = NonNullable<
+    components['schemas']['PmsEventoCalendario-pms_evento.read_timestamp.read']['limpieza']
+>[number];
+
+/**
+ * Item de `/tipo/user/enum/pms/limpiadores`: los usuarios con `ROLE_LIMPIEZA`.
+ *
+ * A mano porque no es un `ApiResource` sino un controlador plano (`PmsEnumAjaxController`),
+ * que no entra en la introspección de OpenAPI — igual que `PmsCobradorOption`, su gemelo.
+ */
+export interface PmsLimpiadorOption {
+    id: string;
+    label: string;
 }
 
+export type PmsEventoCalendario = components['schemas']['PmsEventoCalendario-pms_evento.read_timestamp.read']
+    & PmsSyncInfo;
+
+/**
+ * Elección del número de contacto: `telefono2EsPrincipal` y `telefonoContacto`, que ya vienen
+ * en el esquema (ver `PmsReserva::$telefono2EsPrincipal` y `getTelefonoContacto()`).
+ * `telefonoContacto` llega YA RESUELTO: no hay que volver a decidir cuál de los dos números es
+ * el bueno.
+ */
 export type PmsReserva = components['schemas']['PmsReserva-pms_reserva.read_timestamp.read']
-    & PmsBorrableInfo
-    & PmsTelefonoContactoInfo
     & PmsSyncAggregateInfo;
 
 export type PmsUnidadOption = components['schemas']['PmsUnidad-pms_unidad.read'];
 export type PmsEventoEstadoOption = components['schemas']['PmsEventoEstado-pms_evento_estado.read'];
-/**
- * `colorOverride` todavía no está en el schema generado (se agregó el grupo
- * de serialización en el backend pero falta regenerar api.d.ts).
- */
-export type PmsEventoEstadoPagoOption = components['schemas']['PmsEventoEstadoPago-pms_evento_estado_pago.read'] & { colorOverride?: boolean };
+export type PmsEventoEstadoPagoOption = components['schemas']['PmsEventoEstadoPago-pms_evento_estado_pago.read'];
 export type PmsChannelOption = components['schemas']['PmsChannel-pms_channel.read'];
 
 // ============================================================================
@@ -149,6 +181,16 @@ export function contrastText(hexColor: string): string {
  * PATCH /pms_evento_calendarios/{id} — todos los campos opcionales.
  * `Partial<>` porque el schema generado marca monto/comision como requeridos
  * (tienen @default en OpenAPI); en un merge-patch real cualquier subset es válido.
+ */
+/**
+ * ⚠️ Quién limpia (`limpiezaIds`) viaja aquí como **ids planos de usuario**, no como IRIs
+ * (`User` no es un recurso de la API). Los resuelve
+ * `PmsEventoCalendarioProcessor::aplicarLimpieza()`, que rechaza con 400 cualquier id sin
+ * `ROLE_LIMPIEZA`.
+ *
+ * Omitir el campo y mandarlo vacío NO son lo mismo, y de eso depende que no se borren
+ * asignaciones sin querer: ausente = «no lo toques», `[]` = «quítalos a todos». Cualquier
+ * PATCH que no vaya a cambiar la limpieza debe **omitirlo**.
  */
 export type PmsEventoCalendarioPatch = Partial<components['schemas']['PmsEventoCalendario-pms_evento.write.jsonMergePatch']>;
 

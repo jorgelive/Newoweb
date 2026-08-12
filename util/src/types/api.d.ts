@@ -11433,6 +11433,8 @@ export interface components {
             phoneId?: string | null;
             /** @description Retorna el token secreto para la validación del Webhook. */
             verifyToken?: string | null;
+            /** @description El «App Secret» de la app de Meta, con el que se firma cada webhook. */
+            appSecret?: string | null;
             readonly baseUrlRaw?: string | null;
         };
         "MetaConfig.html": {
@@ -11461,6 +11463,8 @@ export interface components {
             phoneId?: string | null;
             /** @description Retorna el token secreto para la validación del Webhook. */
             verifyToken?: string | null;
+            /** @description El «App Secret» de la app de Meta, con el que se firma cada webhook. */
+            appSecret?: string | null;
             readonly baseUrlRaw?: string | null;
         };
         "MetaConfig.jsonld": {
@@ -11489,6 +11493,8 @@ export interface components {
             phoneId?: string | null;
             /** @description Retorna el token secreto para la validación del Webhook. */
             verifyToken?: string | null;
+            /** @description El «App Secret» de la app de Meta, con el que se firma cada webhook. */
+            appSecret?: string | null;
             readonly baseUrlRaw?: string | null;
         };
         "MetaConfig.multipart": {
@@ -11517,6 +11523,8 @@ export interface components {
             phoneId?: string | null;
             /** @description Retorna el token secreto para la validación del Webhook. */
             verifyToken?: string | null;
+            /** @description El «App Secret» de la app de Meta, con el que se firma cada webhook. */
+            appSecret?: string | null;
             readonly baseUrlRaw?: string | null;
         };
         "Moneda-componente.item.read": {
@@ -12303,6 +12311,7 @@ export interface components {
             monedaOs?: components["schemas"]["Moneda-operacion.read_timestamp.read"];
             /** @default 0.00 */
             totalOs: string;
+            /** @description ⚠️ SIN `cascade: remove` ni `orphanRemoval`, y es deliberado. */
             operacionServicios?: components["schemas"]["OperacionServicio-operacion.read_timestamp.read"][];
             mensajes?: components["schemas"]["OperacionMensaje-operacion.read_timestamp.read"][];
             id?: string;
@@ -12382,6 +12391,7 @@ export interface components {
             monedaOs?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"];
             /** @default 0.00 */
             totalOs: string;
+            /** @description ⚠️ SIN `cascade: remove` ni `orphanRemoval`, y es deliberado. */
             operacionServicios?: components["schemas"]["OperacionServicio.html-operacion.read_timestamp.read"][];
             mensajes?: components["schemas"]["OperacionMensaje.html-operacion.read_timestamp.read"][];
             id?: string;
@@ -12415,6 +12425,7 @@ export interface components {
             monedaOs?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"];
             /** @default 0.00 */
             totalOs: string;
+            /** @description ⚠️ SIN `cascade: remove` ni `orphanRemoval`, y es deliberado. */
             operacionServicios?: components["schemas"]["OperacionServicio.jsonld-operacion.read_timestamp.read"][];
             mensajes?: components["schemas"]["OperacionMensaje.jsonld-operacion.read_timestamp.read"][];
             id?: string;
@@ -12448,6 +12459,7 @@ export interface components {
             monedaOs?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"];
             /** @default 0.00 */
             totalOs: string;
+            /** @description ⚠️ SIN `cascade: remove` ni `orphanRemoval`, y es deliberado. */
             operacionServicios?: components["schemas"]["OperacionServicio.multipart-operacion.read_timestamp.read"][];
             mensajes?: components["schemas"]["OperacionMensaje.multipart-operacion.read_timestamp.read"][];
             id?: string;
@@ -14641,6 +14653,10 @@ export interface components {
              * @example https://example.com/
              */
             reserva?: string | null;
+            /** @description Quién limpia esta estancia. Varias personas pueden compartirla. */
+            limpiezaAsignada?: components["schemas"]["User"][];
+            /** @description Buzón del payload: los ids de quien limpia, tal cual llegan del drawer. */
+            limpiezaIds?: string[] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -14708,6 +14724,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
+            readonly limpieza?: {
+                /** @example 018f... */
+                id: string;
+                /** @example María Apaza */
+                nombre: string;
+            }[];
             readonly ota?: boolean;
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
@@ -14717,7 +14740,6 @@ export interface components {
         "PmsEventoCalendario-pax_reserva.read": {
             pmsUnidad: components["schemas"]["PmsUnidad-pax_reserva.read"];
             reserva?: components["schemas"]["PmsReserva-pax_reserva.read"] | null;
-            channel: components["schemas"]["PmsChannel-pax_reserva.read"] | null;
             referenciaCanal?: string | null;
             estado: components["schemas"]["PmsEventoEstado-pax_reserva.read"];
             /** Format: date-time */
@@ -14774,6 +14796,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
+            readonly limpieza?: {
+                /** @example 018f... */
+                id: string;
+                /** @example María Apaza */
+                nombre: string;
+            }[];
             readonly ota?: boolean;
         };
         /**
@@ -14788,6 +14817,8 @@ export interface components {
              * @example https://example.com/
              */
             pmsUnidad?: string;
+            /** @description Buzón del payload: los ids de quien limpia, tal cual llegan del drawer. */
+            limpiezaIds?: string[] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -14837,6 +14868,8 @@ export interface components {
              * @example https://example.com/
              */
             reserva?: string | null;
+            /** @description Buzón del payload: los ids de quien limpia, tal cual llegan del drawer. */
+            limpiezaIds?: string[] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -14894,6 +14927,10 @@ export interface components {
              * @example https://example.com/
              */
             reserva?: string | null;
+            /** @description Quién limpia esta estancia. Varias personas pueden compartirla. */
+            limpiezaAsignada?: components["schemas"]["User.html"][];
+            /** @description Buzón del payload: los ids de quien limpia, tal cual llegan del drawer. */
+            limpiezaIds?: string[] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -14961,6 +14998,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
+            readonly limpieza?: {
+                /** @example 018f... */
+                id: string;
+                /** @example María Apaza */
+                nombre: string;
+            }[];
             readonly ota?: boolean;
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
@@ -14970,7 +15014,6 @@ export interface components {
         "PmsEventoCalendario.html-pax_reserva.read": {
             pmsUnidad: components["schemas"]["PmsUnidad.html-pax_reserva.read"];
             reserva?: components["schemas"]["PmsReserva.html-pax_reserva.read"] | null;
-            channel: components["schemas"]["PmsChannel.html-pax_reserva.read"] | null;
             referenciaCanal?: string | null;
             estado: components["schemas"]["PmsEventoEstado.html-pax_reserva.read"];
             /** Format: date-time */
@@ -15027,6 +15070,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
+            readonly limpieza?: {
+                /** @example 018f... */
+                id: string;
+                /** @example María Apaza */
+                nombre: string;
+            }[];
             readonly ota?: boolean;
         };
         "PmsEventoCalendario.html-pms_reserva.read_timestamp.read": {
@@ -15054,6 +15104,10 @@ export interface components {
              * @example https://example.com/
              */
             reserva?: string | null;
+            /** @description Quién limpia esta estancia. Varias personas pueden compartirla. */
+            limpiezaAsignada?: components["schemas"]["User.jsonld"][];
+            /** @description Buzón del payload: los ids de quien limpia, tal cual llegan del drawer. */
+            limpiezaIds?: string[] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -15121,6 +15175,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
+            readonly limpieza?: {
+                /** @example 018f... */
+                id: string;
+                /** @example María Apaza */
+                nombre: string;
+            }[];
             readonly ota?: boolean;
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
@@ -15136,7 +15197,6 @@ export interface components {
         "PmsEventoCalendario.jsonld-pax_reserva.read": components["schemas"]["HydraItemBaseSchema"] & {
             pmsUnidad: components["schemas"]["PmsUnidad.jsonld-pax_reserva.read"];
             reserva?: components["schemas"]["PmsReserva.jsonld-pax_reserva.read"] | null;
-            channel: components["schemas"]["PmsChannel.jsonld-pax_reserva.read"] | null;
             referenciaCanal?: string | null;
             estado: components["schemas"]["PmsEventoEstado.jsonld-pax_reserva.read"];
             /** Format: date-time */
@@ -15171,6 +15231,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
+            readonly limpieza?: {
+                /** @example 018f... */
+                id: string;
+                /** @example María Apaza */
+                nombre: string;
+            }[];
             readonly ota?: boolean;
         } & (components["schemas"]["HydraItemBaseSchema"] & {
             pmsUnidad: components["schemas"]["PmsUnidad.jsonld-pms_evento.read_timestamp.read"];
@@ -15227,6 +15294,10 @@ export interface components {
              * @example https://example.com/
              */
             reserva?: string | null;
+            /** @description Quién limpia esta estancia. Varias personas pueden compartirla. */
+            limpiezaAsignada?: components["schemas"]["User.multipart"][];
+            /** @description Buzón del payload: los ids de quien limpia, tal cual llegan del drawer. */
+            limpiezaIds?: string[] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -15294,6 +15365,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
+            readonly limpieza?: {
+                /** @example 018f... */
+                id: string;
+                /** @example María Apaza */
+                nombre: string;
+            }[];
             readonly ota?: boolean;
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
@@ -15303,7 +15381,6 @@ export interface components {
         "PmsEventoCalendario.multipart-pax_reserva.read": {
             pmsUnidad: components["schemas"]["PmsUnidad.multipart-pax_reserva.read"];
             reserva?: components["schemas"]["PmsReserva.multipart-pax_reserva.read"] | null;
-            channel: components["schemas"]["PmsChannel.multipart-pax_reserva.read"] | null;
             referenciaCanal?: string | null;
             estado: components["schemas"]["PmsEventoEstado.multipart-pax_reserva.read"];
             /** Format: date-time */
@@ -15360,6 +15437,13 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
+            readonly limpieza?: {
+                /** @example 018f... */
+                id: string;
+                /** @example María Apaza */
+                nombre: string;
+            }[];
             readonly ota?: boolean;
         };
         "PmsEventoCalendario.multipart-pms_reserva.read_timestamp.read": {
@@ -18376,8 +18460,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -18393,11 +18477,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: string[];
@@ -18516,8 +18598,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -18533,11 +18615,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: components["schemas"]["PmsChannel-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
@@ -18578,8 +18658,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -18595,11 +18675,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: string[];
@@ -18649,8 +18727,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -18666,11 +18744,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: string[];
@@ -18789,8 +18865,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -18806,11 +18882,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: components["schemas"]["PmsChannel.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
@@ -18851,8 +18925,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -18868,11 +18942,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: string[];
@@ -18926,8 +18998,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -18943,11 +19015,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: string[];
@@ -19086,8 +19156,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -19103,11 +19173,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: components["schemas"]["PmsChannel.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
@@ -19148,8 +19216,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -19165,11 +19233,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: string[];
@@ -19219,8 +19285,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -19236,11 +19302,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: string[];
@@ -19359,8 +19423,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -19376,11 +19440,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: components["schemas"]["PmsChannel.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
@@ -19421,8 +19483,8 @@ export interface components {
              */
             precioPaxAdicional: string;
             /**
-             * @description Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-             *     y una semana no ensucia siete veces.
+             * @description Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+             *     vez, y una semana no ensucia siete veces.
              * @default 0.00
              */
             precioLimpieza: string;
@@ -19438,11 +19500,9 @@ export interface components {
              *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
              */
             banosPrivados?: number | null;
-            /**
-             * @description Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
-             *     la base.
-             * @default 0.00
-             */
+            /** @description ¿El importe de arriba es un PORCENTAJE en vez de dinero? */
+            limpiezaEsPorcentaje?: boolean;
+            /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
             readonly serviciosCanales?: string[];
@@ -23398,6 +23458,8 @@ export interface components {
             esCobradorPrincipal?: boolean;
             /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
             telefono?: string | null;
+            /** @description Quién queda asignada por defecto a la limpieza de cada estancia nueva. */
+            esLimpiezaPorDefecto?: boolean;
             /** @description Nombre(s) del usuario. */
             firstname?: string | null;
             /** @description Apellido(s) del usuario. */
@@ -23442,6 +23504,8 @@ export interface components {
             esCobradorPrincipal?: boolean;
             /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
             telefono?: string | null;
+            /** @description Quién queda asignada por defecto a la limpieza de cada estancia nueva. */
+            esLimpiezaPorDefecto?: boolean;
             /** @description Nombre(s) del usuario. */
             firstname?: string | null;
             /** @description Apellido(s) del usuario. */
@@ -23486,6 +23550,8 @@ export interface components {
             esCobradorPrincipal?: boolean;
             /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
             telefono?: string | null;
+            /** @description Quién queda asignada por defecto a la limpieza de cada estancia nueva. */
+            esLimpiezaPorDefecto?: boolean;
             /** @description Nombre(s) del usuario. */
             firstname?: string | null;
             /** @description Apellido(s) del usuario. */
@@ -23530,6 +23596,8 @@ export interface components {
             esCobradorPrincipal?: boolean;
             /** @description Móvil desde el que escribe al sistema. **Es su identificador en el chat.** */
             telefono?: string | null;
+            /** @description Quién queda asignada por defecto a la limpieza de cada estancia nueva. */
+            esLimpiezaPorDefecto?: boolean;
             /** @description Nombre(s) del usuario. */
             firstname?: string | null;
             /** @description Apellido(s) del usuario. */

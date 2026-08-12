@@ -105,6 +105,14 @@ interface EventoFormData {
     entradaTemprana: boolean;
     /** Late check-out pactado: bloquea la noche en el canal y genera su cargo. */
     salidaTardia: boolean;
+    /**
+     * Quién limpia esta estancia (ids de usuario). Puede ser más de una persona.
+     *
+     * No es sólo reparto de trabajo: es lo que decide qué estancias ve cada compañera en el
+     * chat del asistente (`listar_entradas_salidas` filtra por esta asignación). Vacío
+     * significa que la estancia no le aparece a NADIE de campo.
+     */
+    limpiezaIds: string[];
 }
 
 interface EventoEntry {
@@ -202,6 +210,10 @@ function formVacio(overrides: Partial<EventoFormData> = {}): EventoFormData {
         entradaTemprana: false,
         salidaTardia: false,
         cantidadNinos: 0,
+        // Vacío a propósito: al crear, quien limpia lo pone solo el backend con la persona
+        // marcada como «Limpia por defecto» (PmsLimpiezaAsignacionListener). Aquí se cambia
+        // después, con la estancia ya guardada.
+        limpiezaIds: [],
         ...overrides,
     };
 }
@@ -232,6 +244,9 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
             entradaTemprana: evento.entradaTemprana ?? false,
             salidaTardia: evento.salidaTardia ?? false,
             cantidadNinos: evento.cantidadNinos ?? 0,
+            // `limpieza` llega como [{id, nombre}] (ver PmsEventoCalendario::getLimpieza):
+            // el formulario sólo necesita los ids, los nombres los pone el catálogo.
+            limpiezaIds: (evento.limpieza ?? []).map(l => l.id),
         },
     };
 }
@@ -350,6 +365,51 @@ function diaBloqueadoPara(entry: EventoEntry): boolean {
 
 function nombreUnidad(entry: EventoEntry): string {
     return reservasStore.unidades.find(u => u.id === entry.form.pmsUnidad)?.nombre || 'Sin unidad';
+}
+
+// ============================================================================
+// LIMPIEZA — quién prepara la casita
+//
+// Se edita por ESTANCIA y no por reserva: una reserva de dos casitas puede
+// repartirse entre dos personas, y quien lleva la Casita 3 esta semana puede no
+// llevarla la siguiente (ver PmsEventoCalendario::$limpiezaAsignada).
+// ============================================================================
+
+/**
+ * ¿Se puede asignar limpieza en este drawer?
+ *
+ * Sólo editando una reserva ya guardada. En la creación NO se ofrece, y no es por pereza: la
+ * primera estancia de una reserva nueva nace por `PmsReservaCrearProcessor`, que tiene su
+ * propio DTO y no acepta este campo. Un selector que funcionara en unas estancias y en otras
+ * no es peor que no tenerlo. Al guardar, el drawer se reabre en modo edición y ya está aquí —
+ * con la persona por defecto puesta por el backend.
+ *
+ * Un BLOQUEO tampoco lo lleva (no tiene `reservaId`): no hay huésped ni casita que preparar.
+ */
+const muestraLimpieza = computed(() => !isCreate.value && !!props.reservaId);
+
+function limpiezaAsignada(entry: EventoEntry, id: string): boolean {
+    return entry.form.limpiezaIds.includes(id);
+}
+
+function alternarLimpieza(entry: EventoEntry, id: string): void {
+    entry.form.limpiezaIds = limpiezaAsignada(entry, id)
+        ? entry.form.limpiezaIds.filter(x => x !== id)
+        : [...entry.form.limpiezaIds, id];
+}
+
+/**
+ * Los nombres de quien limpia, para la ficha de solo lectura.
+ *
+ * Se resuelven contra el catálogo y no contra lo que vino en el evento, para que al marcar y
+ * volver a «Ver» sin guardar se lea lo que hay en el formulario. Un id que ya no esté en el
+ * catálogo —a alguien le quitaron el rol— se muestra como «(sin identificar)» en vez de
+ * desaparecer: una asignación que no se ve no se puede corregir.
+ */
+function nombresLimpieza(entry: EventoEntry): string[] {
+    return entry.form.limpiezaIds.map(
+        id => reservasStore.limpiadores.find(l => l.id === id)?.label || '(sin identificar)',
+    );
 }
 
 function fechaCorta(datetimeLocal: string): string {
@@ -1013,6 +1073,11 @@ watch(
 // ============================================================================
 function payloadCreacion(entry: EventoEntry, estado: string): PmsEventoCalendarioCreate {
     return {
+        // Sólo si se eligió a alguien: mandar `[]` no es lo mismo que omitirlo. Omitido, el
+        // backend aplica la persona marcada por defecto; con la lista vacía por delante, la
+        // estancia nacería igual —el defecto sólo entra si nadie está asignado—, pero el día
+        // que esa regla cambie, el silencio de aquí sería una asignación borrada sin pedirlo.
+        ...(entry.form.limpiezaIds.length ? { limpiezaIds: entry.form.limpiezaIds } : {}),
         pmsUnidad: pmsUnidadIri(entry.form.pmsUnidad),
         channel: pmsChannelIri(PMS_CHANNEL.DIRECTO),
         estado: pmsEventoEstadoIri(estado),
@@ -1138,6 +1203,14 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
                         entradaTemprana: entry.form.entradaTemprana,
                         salidaTardia: entry.form.salidaTardia,
                     };
+
+                    // La limpieza SÍ viaja también en las OTA: el canal manda las fechas, no
+                    // quién prepara la casita. Se manda sólo cuando el selector está en
+                    // pantalla; en un bloqueo no aparece, y mandar `[]` desde ahí borraría una
+                    // asignación que nadie pidió tocar (ausente ≠ vacío, ver PmsLimpiezaWrite).
+                    if (muestraLimpieza.value) {
+                        payload.limpiezaIds = entry.form.limpiezaIds;
+                    }
 
                     // La HORA de check-in/out se manda SIEMPRE, también en las OTA:
                     // el canal vende noches y a Beds24 sólo le viajan los días, así
@@ -1662,6 +1735,27 @@ async function ejecutarBorrado(): Promise<void> {
                                         <!-- Monto y comisión no se muestran: el dinero se consulta en el
                                              panel de Finanzas, que es la única fuente. -->
                                     </div>
+                                    <!-- Quién limpia. En la ficha va en su propia fila y no en la
+                                         rejilla de arriba porque con dos personas asignadas las
+                                         etiquetas no caben en media columna. -->
+                                    <div v-if="muestraLimpieza" class="px-4 py-3">
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">
+                                            <i class="fas fa-broom mr-1"></i>Limpieza
+                                        </p>
+                                        <div v-if="nombresLimpieza(entry).length" class="mt-1 flex flex-wrap gap-1.5">
+                                            <span v-for="nombre in nombresLimpieza(entry)" :key="nombre"
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black bg-sky-50 text-sky-700 border border-sky-200">
+                                                <i class="fas fa-user text-[9px]"></i>{{ nombre }}
+                                            </span>
+                                        </div>
+                                        <!-- Sin asignar no es un hueco cosmético: esa estancia no le
+                                             aparece a nadie de campo cuando pregunta por el chat. -->
+                                        <p v-else class="mt-1 text-[11px] font-bold text-amber-700">
+                                            <i class="fas fa-triangle-exclamation mr-1"></i>
+                                            Sin asignar: no le aparece a nadie de campo.
+                                        </p>
+                                    </div>
+
                                     <div v-if="entry.form.descripcion" class="px-4 py-3">
                                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">{{ isCreate && !isCreateReserva ? 'Motivo del bloqueo' : 'Descripción' }}</p>
                                         <p class="text-sm text-slate-700 mt-0.5">{{ entry.form.descripcion }}</p>
@@ -1805,6 +1899,45 @@ async function ejecutarBorrado(): Promise<void> {
                                             </option>
                                         </select>
                                     </label>
+
+                                    <!-- ===== LIMPIEZA =====
+                                         Casillas y no un <select multiple>: son dos o tres
+                                         personas, y el multiple obliga a saber que hay que
+                                         mantener Ctrl pulsado para marcar la segunda — con el
+                                         resultado de que al elegir a la segunda se descarta la
+                                         primera sin que se note. En móvil, además, no se usa. -->
+                                    <div v-if="muestraLimpieza" class="col-span-2">
+                                        <span class="text-xs font-bold text-slate-500 inline-flex items-center gap-1.5">
+                                            <i class="fas fa-broom text-slate-400"></i>
+                                            Limpieza
+                                        </span>
+
+                                        <div v-if="reservasStore.limpiadores.length" class="mt-1 flex flex-wrap gap-2">
+                                            <label v-for="l in reservasStore.limpiadores" :key="l.id"
+                                                class="px-2.5 py-1.5 flex items-center gap-2 rounded-lg border cursor-pointer transition-colors text-[11px] font-black"
+                                                :class="limpiezaAsignada(entry, l.id)
+                                                    ? 'border-sky-300 bg-sky-50 text-sky-700'
+                                                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'">
+                                                <input type="checkbox" class="w-4 h-4 accent-[#0284C7]"
+                                                    :checked="limpiezaAsignada(entry, l.id)"
+                                                    @change="alternarLimpieza(entry, l.id)" />
+                                                {{ l.label }}
+                                            </label>
+                                        </div>
+
+                                        <!-- La lista vacía no es un fallo de carga necesariamente: puede
+                                             que nadie tenga el rol todavía. Se dice dónde se arregla. -->
+                                        <p v-else class="mt-1 text-[11px] font-bold text-amber-600">
+                                            <i class="fas fa-triangle-exclamation mr-1"></i>
+                                            Nadie tiene el rol de limpieza todavía. Se asigna desde el panel de usuarios.
+                                        </p>
+
+                                        <p v-if="reservasStore.limpiadores.length && !entry.form.limpiezaIds.length"
+                                            class="mt-1.5 text-[11px] font-bold text-amber-700 leading-snug">
+                                            <i class="fas fa-eye-slash mr-1"></i>
+                                            Sin asignar, esta estancia no le aparece a nadie de campo al preguntar por el chat.
+                                        </p>
+                                    </div>
 
                                     <!-- Canal (bloqueado) + pax caben en una sola fila incluso en móvil:
                                          son tres campos cortos, así que van a 3 columnas fijas.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -164,14 +165,34 @@ class PmsEventoCalendario
      * Vacía = sin asignar. Entonces esa estancia no le sale a NADIE de campo, que es el fallo
      * seguro: mejor que la oficina note el hueco a que un dato acabe donde no toca.
      *
+     * ⚠️ La colección NO lleva grupos de serialización, y no es un olvido: `User` no es un
+     * `ApiResource` ni tiene un solo `#[Groups]`, así que exponerla directamente daba
+     * `[{}, {}]` —un objeto vacío por persona— en lectura, y en escritura no había IRI que
+     * mandar. La API habla de esto por {@see self::getLimpieza()} (lectura, `[{id, nombre}]`)
+     * y {@see self::setLimpiezaIds()} (escritura, ids planos).
+     *
      * @var Collection<int, User>
      */
     #[ORM\ManyToMany(targetEntity: User::class)]
     #[ORM\JoinTable(name: 'pms_evento_limpieza')]
     #[ORM\JoinColumn(name: 'evento_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     #[ORM\InverseJoinColumn(name: 'user_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
-    #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private Collection $limpiezaAsignada;
+
+    /**
+     * Buzón del payload: los ids de quien limpia, tal cual llegan del drawer.
+     *
+     * No es una columna ni se persiste. Lo vacía {@see PmsEventoCalendarioProcessor}, que es
+     * quien resuelve los ids contra `user` y sincroniza la colección de arriba — la entidad no
+     * tiene repositorio con el que hacerlo, y meterle uno para esto sería peor.
+     *
+     * `null` significa **«el payload no lo trae»**, que en un merge-patch no es lo mismo que
+     * `[]`: sin esa distinción, cualquier PATCH del drawer —cambiar el estado, tocar el
+     * importe— habría borrado la asignación de la estancia sin que nadie lo pidiera.
+     *
+     * @var list<string>|null
+     */
+    private ?array $limpiezaIds = null;
 
     #[ORM\ManyToOne(targetEntity: PmsChannel::class, inversedBy: 'eventosCalendario')]
     #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
@@ -534,9 +555,81 @@ class PmsEventoCalendario
     public function getReserva(): ?PmsReserva { return $this->reserva; }
     public function setReserva(?PmsReserva $reserva): self { $this->reserva = $reserva; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
-    /** @return Collection<int, User> */
+    /**
+     * ⚠️ Sin grupos: al huésped (`pax_reserva:read`) no le importa quién limpia su casita, y a
+     * la API util se lo cuenta `getLimpieza()`. Los llevaba, y lo único que ponía en el JSON
+     * del huésped era una lista de objetos vacíos.
+     *
+     * @return Collection<int, User>
+     */
     public function getLimpiezaAsignada(): Collection { return $this->limpiezaAsignada; }
+
+    /**
+     * Quién limpia, en la forma que consume el drawer: `[{id, nombre}]`.
+     *
+     * Se sirve así —y no la colección de `User`— porque `User` no es un recurso de la API:
+     * serializarlo daría objetos vacíos. Con id y nombre le basta al frontend para pintar
+     * las etiquetas y marcar las casillas, y no se filtra nada más de la ficha de nadie.
+     *
+     * @return list<array{id: string, nombre: string}>
+     */
+    // La forma se declara a mano, mismo motivo que en PmsInformacionFinanciera::getPrepagoPendiente():
+    // del PHPDoc, API Platform deduce `string[][]` y el espejo que genera openapi-typescript para
+    // `util` sale inservible —`.nombre` no existe en un array de strings—. Con esto, el día que se
+    // regenere `api.d.ts` el tipo saldrá bien y no chocará con el declarado a mano en
+    // `pmsReservaModel.ts` (una intersección de formas incompatibles no falla al compilar: revienta
+    // al usarla, y lejos de aquí).
+    #[ApiProperty(openapiContext: [
+        'type' => 'array',
+        'description' => 'Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo).',
+        'items' => [
+            'type' => 'object',
+            'required' => ['id', 'nombre'],
+            'properties' => [
+                'id' => ['type' => 'string', 'example' => '018f...'],
+                'nombre' => ['type' => 'string', 'example' => 'María Apaza'],
+            ],
+        ],
+    ])]
+    #[Groups(['pms_evento:read'])]
+    public function getLimpieza(): array
+    {
+        return array_values(array_map(
+            static fn (User $u): array => [
+                'id' => (string) $u->getId(),
+                // Sin nombre y apellido cargados quedaría una etiqueta en blanco: el
+                // identificador de acceso es feo, pero se puede leer.
+                'nombre' => $u->getFullname() ?: $u->getUserIdentifier(),
+            ],
+            $this->limpiezaAsignada->toArray()
+        ));
+    }
+
+    /**
+     * Los ids de quien limpia, tal cual llegan del payload. **Los resuelve el processor**, no
+     * este setter: ver {@see self::$limpiezaIds}.
+     *
+     * @param list<string>|null $ids
+     */
+    #[Groups(['pms_evento:write'])]
+    public function setLimpiezaIds(?array $ids): self
+    {
+        $this->limpiezaIds = $ids;
+
+        return $this;
+    }
+
+    /**
+     * Lo que trajo el payload, para el processor. Sin prefijo `get` **a propósito**: con él,
+     * el serializador lo tomaría por un campo más del recurso y lo devolvería en cada lectura,
+     * duplicando `limpieza` con otra forma.
+     *
+     * @return list<string>|null
+     */
+    public function limpiezaIdsPendientes(): ?array
+    {
+        return $this->limpiezaIds;
+    }
 
     public function addLimpiezaAsignada(User $usuario): self
     {

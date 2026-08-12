@@ -1808,8 +1808,55 @@ cuatro veces. Los workers de messenger viven horas: con caché, cambiar la perso
 surtiría efecto hasta el siguiente reinicio, y el síntoma —«las estancias nuevas siguen saliendo
 a nombre de la anterior»— es de los que se investigan dos veces antes de sospechar de un caché.
 
-⚠️ El listener exige `enabled = true`: asignarle estancias a quien ya no trabaja aquí las deja en
-un limbo del que nadie se entera.
+⚠️ **El listener NO filtra por `enabled`**, y aquí decía lo contrario. `enabled` dice si la
+persona ENTRA AL PANEL, no si trabaja aquí: quien limpia no tiene login, así que está
+deshabilitada por norma. Con el filtro puesto, la asignación automática no hacía nada para
+exactamente la persona para la que se construyó, en silencio. Quien deje de trabajar aquí se
+retira marcando a otra persona por defecto y borrándole el móvil —que es su credencial en este
+canal—.
+
+#### 🧽 Asignarla desde el calendario
+
+La asignación se edita en el **drawer de Reservas de `util`**, en cada estancia: casillas con el
+equipo de limpieza, y debajo el aviso de que sin nadie marcado esa estancia no le aparece a
+nadie de campo. El panel (EasyAdmin) sigue teniendo el campo, pero ya no es el único sitio.
+
+Llegar hasta ahí obligó a arreglar el contrato de la API, que **no funcionaba**: `User` no es un
+`ApiResource` ni tiene un solo `#[Groups]`, así que exponer la colección `limpiezaAsignada` daba
+`[{}, {}]` —un objeto vacío por persona— en lectura, y en escritura no había IRI que mandar. De
+paso iba en `pax_reserva:read`: al huésped, que no pinta nada en esto.
+
+| Sentido | Campo | Forma |
+|---|---|---|
+| Lectura | `PmsEventoCalendario::getLimpieza()` | `[{id, nombre}]` |
+| Escritura | `PmsEventoCalendario::setLimpiezaIds()` | `["<uuid>", …]`, ids planos |
+| Desplegable | `GET /tipo/user/enum/pms/limpiadores` | `[{id, label}]`, los de `ROLE_LIMPIEZA` |
+
+Quien resuelve los ids es `PmsEventoCalendarioProcessor::aplicarLimpieza()` —la entidad no tiene
+repositorio con el que buscar usuarios—, y de ahí salen tres reglas que hay que conocer antes de
+tocar nada:
+
+- ⚠️ **Ausente ≠ vacío.** `limpiezaIds` fuera del payload significa «no lo toques»; `[]`
+  significa «quítalos a todos». Sin esa distinción, cualquier PATCH del drawer —cambiar el
+  estado, tocar el importe— habría borrado la asignación, y eso no se nota hasta el día de la
+  salida, cuando la estancia no le aparece a nadie. El drawer sólo manda el campo cuando el
+  selector está en pantalla.
+- **Un id sin `ROLE_LIMPIEZA` se rechaza con 400**, no se ignora: la etiqueta se pintaría igual
+  y la estancia no le llegaría nunca a esa persona, porque el filtro de la skill sólo se aplica
+  a quien tiene ese rol. La lista de candidatos sale de `UserRepository::findByRole()`, la misma
+  que llena el desplegable. 🪞 **Si cambia el criterio de uno, cambia el del otro.**
+- **En la creación no se ofrece.** La primera estancia de una reserva nueva nace por
+  `PmsReservaCrearProcessor`, con su propio DTO, que no acepta el campo; un selector que
+  funcionara en unas estancias y en otras no es peor que no tenerlo. Se asigna la persona por
+  defecto y el drawer se reabre en edición, ya con el selector.
+
+El espejo TS **no se escribe a mano**: sale de `api.d.ts`, que se regenera con `npm run gen:api`
+desde `util/`. Por eso `getLimpieza()` declara su forma con `#[ApiProperty(openapiContext: …)]`
+—sin eso, del PHPDoc salía un `string[][]` inservible—, y `pmsReservaModel.ts` sólo deriva:
+`PmsLimpiezaAsignada` es un `[number]` sobre el campo del esquema. El único tipo a mano es
+`PmsLimpiadorOption`, porque el desplegable lo sirve un controlador plano que OpenAPI no ve.
+
+Comprobación de todo esto contra la BD real, sin dejar rastro: `php var/probar-limpieza.php`.
 
 #### 🗣️ El triaje también tiene que saber con quién habla
 
@@ -4992,6 +5039,10 @@ arreglar** — ver el aviso al final de esta sección.
 | Cambiar quién puede figurar como cobrador de un pago | `PmsEnumAjaxController::getCobradores()` **y** `RegistrarPagoSkill::cobradoresPosibles()` | Filtro `ROLE_COBRADOR` sobre `u.roles` — los dos o el agente admite a quien el panel no ofrece |
 | Cambiar en qué medios de pago se pregunta por el cobrador | `PmsMedioPago` | `seCobraEnMano()` — fuente única |
 | Cambiar a quién se atribuye un pago si no se dice quién cobró | `User` | Flag `esCobradorPrincipal`, editable en el CRUD de usuarios |
+| **Asignar quién limpia una estancia** | drawer de Reservas de `util` | Casillas «Limpieza» en cada estancia; también en EasyAdmin. Vacío = no le sale a nadie de campo |
+| Cambiar quién puede figurar como limpieza | `PmsEnumAjaxController::getLimpiadores()` **y** `PmsEventoCalendarioProcessor::aplicarLimpieza()` | Filtro `ROLE_LIMPIEZA` vía `findByRole()` — los dos o habrá asignaciones que el desplegable no puede deshacer |
+| Cambiar a quién se asigna sola una estancia nueva | `User` | Flag `esLimpiezaPorDefecto`, en el CRUD de usuarios. **No** filtra por `enabled`: quien limpia no tiene login |
+| Cambiar la forma en que viaja la limpieza por la API | `PmsEventoCalendario` | `getLimpieza()` (lee `[{id,nombre}]`) / `setLimpiezaIds()` (escribe ids). Ausente ≠ `[]` |
 | Probar una skill como una persona real (sus roles, su identidad) | — | `app:agent:skill <skill> '{...}' --usuario=<username>` |
 | Construir un actor del agente (siempre por aquí) | `AgentActorFactory` | `delPanel()` / `delEquipoPorChat()` — expanden la jerarquía de roles. `AgentActor::` a secas se queda en los literales |
 | Registrar el móvil de alguien del equipo | `User::$telefono` + CRUD de usuarios | Se normaliza solo (`UserIntegrityListener`); §12.9.b del doc de sync |

@@ -35,8 +35,12 @@ Lo documenta ya el docblock de `PmsEspacioEstancia`, y aquí queda porque **bloq
 se quiere**: conceder entrada temprana cuando el huésped anterior se fue con margen.
 
 `PmsEventoCalendario` guarda el fin **previsto** y un booleano `salidaTardia`, pero nadie apunta
-a qué hora se fue de verdad. `pms_event_assignment` dice quién tiene asignada la limpieza, sin
-fecha ni estado.
+a qué hora se fue de verdad. `pms_evento_limpieza` dice **quién** limpia —se asigna desde el
+drawer de Reservas—, pero ni cuándo empezó ni cuándo terminó.
+
+(La tabla vieja `pms_event_assignment`, evento↔usuario↔actividad, ya no interviene en esto: no
+la lee ninguna consulta de limpieza, sólo la escribe un formulario embebido de EasyAdmin. Antes
+de construir nada encima, decidir si se retira.)
 
 Por eso hoy el agente sólo puede **descartar** («hoy sale alguien, ni lo plantees») y **matizar**
 («está libre, pero la limpieza puede seguir»), nunca conceder. La regla de «salió con 5 horas de

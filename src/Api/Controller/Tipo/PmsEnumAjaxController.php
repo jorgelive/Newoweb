@@ -111,6 +111,48 @@ class PmsEnumAjaxController extends AbstractController
     }
 
     /**
+     * Quién puede figurar como LIMPIEZA de una estancia: los usuarios con `ROLE_LIMPIEZA`.
+     *
+     * Alimenta el selector del drawer de Reservas. La asignación no es sólo reparto de
+     * trabajo: es el filtro de privacidad entre compañeras que aplica
+     * {@see \App\Agent\Skill\Pms\ListarSalidasSkill}, así que quien no salga aquí tampoco
+     * puede recibir una casita.
+     *
+     * ⚠️ **NO se filtra por `enabled`**, por el mismo motivo que en `getCobradores()` y con más
+     * razón todavía: quien limpia **no tiene login** —está en `enabled = 0` por norma—, y ese
+     * campo dice si se entra al panel, no si se trabaja aquí. Filtrarlo dejaba el desplegable
+     * vacío justo para el equipo al que va dirigido; es el mismo error que ya se corrigió en
+     * `PmsLimpiezaAsignacionListener`.
+     *
+     * 🪞 Misma fuente que usa `PmsEventoCalendarioProcessor::aplicarLimpieza()` para validar lo
+     * que llega por la API. **Si cambia el criterio, cambian los dos**: si el processor
+     * admitiera a alguien que aquí no sale, habría asignaciones que el operador no puede
+     * deshacer desde el desplegable.
+     */
+    #[Route('/limpiadores', name: '_limpiadores', methods: ['GET'])]
+    public function getLimpiadores(UserRepository $usuarios): JsonResponse
+    {
+        $personal = $usuarios->findByRole(Roles::LIMPIEZA);
+
+        usort(
+            $personal,
+            static fn (User $a, User $b): int => strcasecmp($a->getFullname(), $b->getFullname())
+        );
+
+        $data = [];
+
+        foreach ($personal as $usuario) {
+            $data[] = [
+                'id' => (string) $usuario->getId(),
+                'label' => $usuario->getFullname() ?: (string) $usuario->getUserIdentifier(),
+            ];
+        }
+
+        // Sin caché, igual que los cobradores: dar de alta a alguien tiene que verse en el acto.
+        return new JsonResponse($data);
+    }
+
+    /**
      * Cachea 1 hora en el navegador: la estructura de un Enum rara vez cambia
      * (mismo criterio que TravelEnumAjaxController).
      */
