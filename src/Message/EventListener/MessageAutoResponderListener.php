@@ -58,6 +58,19 @@ final readonly class MessageAutoResponderListener
             return;
         }
 
+        // ⚠️ NO basta con «¿cambió metadata?». Marcar como leído desde el panel TAMBIÉN escribe
+        // ahí —`setWhatsappMetaReadAt()` y `addWhatsappMetaMetadata('read_by_system')`, y cada
+        // `add*` apila además su `_debug_trace`—, y ése es justo el disparador medido del
+        // incidente del 10/08. Filtrar por la columna entera dejaba pasar exactamente el caso
+        // que se quería cortar.
+        //
+        // Lo que decide es si cambió EL INTENT, que es lo único que este listener atiende.
+        [$antes, $despues] = $cambios['metadata'];
+
+        if (($antes['inbound_intent'] ?? null) === ($despues['inbound_intent'] ?? null)) {
+            return;
+        }
+
         $this->processIntent($message);
     }
 

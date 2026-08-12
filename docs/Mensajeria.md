@@ -1531,7 +1531,7 @@ Se arregla en dos capas, y las dos hacen falta:
 
 | Capa | Qué hace | Qué NO cubre |
 |---|---|---|
-| Filtro en `postUpdate` | Sólo re-despacha si cambió `metadata`, que es donde vive el intent | Dos trabajos que entren por caminos distintos |
+| Filtro en `postUpdate` | Sólo re-despacha si cambió **el `inbound_intent`** dentro de `metadata` | Dos trabajos que entren por caminos distintos |
 | `GET_LOCK` por mensaje | Un solo worker atiende cada mensaje; el segundo se retira | Nada, es el suelo |
 
 El lock es de **MySQL y no del componente Lock de Symfony**: no está instalado y meterlo obligaría
@@ -1542,6 +1542,27 @@ muere: un proceso caído no deja el mensaje bloqueado para siempre.
 
 Con espera `0`: el segundo trabajo no hace cola, se retira. Si de verdad hubiera algo nuevo que
 contestar, ya vendrá su propio mensaje con su propio trabajo.
+
+⚠️ **No basta con preguntar «¿cambió `metadata`?».** La primera versión del filtro hacía eso, y
+el marcado-leído del panel —el disparador medido del incidente— **también escribe ahí**:
+`setWhatsappMetaReadAt()` y `addWhatsappMetaMetadata('read_by_system')`, más el `_debug_trace`
+que apila cada `add*`. El filtro dejaba pasar exactamente el caso que venía a cortar. Lo que
+decide es si cambió el `inbound_intent`, que es lo único que este listener atiende.
+
+⚠️ **Y comprobar → bloquear → VOLVER A COMPROBAR.** El `resolved` se lee antes del lock, y entre
+esa lectura y el turno pasa el pre-router: una petición de red de segundos. En ese hueco otro
+worker puede atender el mensaje entero y soltar el turno, y este entraría con un `resolved` de
+antes. En `free_text` se salvaba de rebote —`yaSeRespondio()` recarga la colección—, pero la ruta
+determinista **no tiene guardia**: sería una plantilla duplicada al huésped. El tercer paso
+faltaba.
+
+⚠️ **`GET_LOCK` devuelve `NULL` en error interno, sin lanzar.** Un `(int) null` es 0, o sea «lo
+tiene otro», y el trabajo se retiraba dejando el mensaje sin contestar — lo contrario de la
+política declarada. Se trata igual que la excepción: se deja pasar y se anota.
+
+Todo el sistema de fallos del lock **escribe log**, incluido el retiro normal. Es lo único que
+distingue «mi gemelo está trabajando» de «un worker lleva media hora colgado reteniendo el
+turno», que dejaría todos los trabajos siguientes de ese mensaje sin contestar y en silencio.
 
 #### 🕳️ Cinco sitios por donde un mensaje se quedaba sin respuesta
 

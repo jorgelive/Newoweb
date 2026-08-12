@@ -9,6 +9,7 @@ use App\Agent\Router\IntentRouter;
 use App\Agent\Triage\PreRouterRafaga;
 use App\Message\Entity\Message;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -23,6 +24,7 @@ final readonly class ProcessInboundIntentDispatchHandler
         private IntentRouter $intentRouter,
         private PreRouterRafaga $preRouter,
         private MessageBusInterface $bus,
+        private LoggerInterface $logger,
         #[Autowire('%env(int:AGENT_IA_ESPERA_RAFAGA)%')]
         private int $esperaRafaga,
     ) {}
@@ -82,6 +84,22 @@ final readonly class ProcessInboundIntentDispatchHandler
         }
 
         try {
+            // ⚠️ RE-LEER YA CON EL TURNO TOMADO. El `resolved` de arriba se comprobó sin el
+            // lock, y entre aquella lectura y esta línea ha pasado el pre-router: una petición
+            // de red que puede tardar segundos. En ese hueco otro worker ha podido atender el
+            // mensaje entero, contestar y soltar el turno — y este trabajo entraría con un
+            // `resolved` de antes, a hacerlo todo otra vez.
+            //
+            // En la ruta de texto libre se salvaba de rebote, porque el guardia
+            // `yaSeRespondio()` recarga la colección. En la determinista NO hay guardia: sería
+            // una plantilla duplicada al huésped. Comprobar → bloquear → VOLVER A COMPROBAR es
+            // la regla de cualquier lock, y aquí faltaba el tercer paso.
+            $this->em->refresh($msg);
+
+            if (($msg->getInboundIntent()['resolved'] ?? true) !== false) {
+                return;
+            }
+
             // 2. Le pasamos el control a tu nuevo Router Determinista/IA
             $this->intentRouter->routeIntent($msg);
         } finally {
@@ -104,11 +122,41 @@ final readonly class ProcessInboundIntentDispatchHandler
     private function tomarElTurno(string $messageId): bool
     {
         try {
-            return (int) $this->em->getConnection()
-                ->fetchOne('SELECT GET_LOCK(?, 0)', [$this->nombreDelLock($messageId)]) === 1;
-        } catch (Throwable) {
+            $resultado = $this->em->getConnection()
+                ->fetchOne('SELECT GET_LOCK(?, 0)', [$this->nombreDelLock($messageId)]);
+        } catch (Throwable $e) {
+            $this->logger->error(sprintf(
+                '[Turno] No se pudo pedir el lock de %s (%s); se deja pasar y se acepta el '
+                . 'riesgo de duplicado.',
+                $messageId,
+                $e->getMessage()
+            ));
+
             return true;
         }
+
+        // ⚠️ `GET_LOCK` devuelve NULL en error interno, SIN lanzar. Un `(int) null` es 0, o sea
+        // «lo tiene otro», y el trabajo se retiraba dejando el mensaje sin contestar — lo
+        // contrario de la política declarada. Se trata igual que la excepción: se deja pasar.
+        if ($resultado === null) {
+            $this->logger->error(sprintf(
+                '[Turno] GET_LOCK devolvió NULL para %s; se deja pasar.',
+                $messageId
+            ));
+
+            return true;
+        }
+
+        if ((int) $resultado !== 1) {
+            // Ruidoso a propósito: es lo único que distingue «mi gemelo está trabajando» —lo
+            // normal— de «un worker lleva media hora colgado reteniendo el turno», que deja
+            // todos los trabajos siguientes de ese mensaje sin contestar y en silencio.
+            $this->logger->info(sprintf('[Turno] %s lo tiene otro worker; me retiro.', $messageId));
+
+            return false;
+        }
+
+        return true;
     }
 
     private function soltarElTurno(string $messageId): void
@@ -116,15 +164,30 @@ final readonly class ProcessInboundIntentDispatchHandler
         try {
             $this->em->getConnection()
                 ->executeStatement('SELECT RELEASE_LOCK(?)', [$this->nombreDelLock($messageId)]);
-        } catch (Throwable) {
+        } catch (Throwable $e) {
             // Que no se pueda soltar no puede tumbar el turno: MySQL lo libera al cerrar la
-            // sesión, y el trabajo ya hizo lo suyo.
+            // sesión, y el trabajo ya hizo lo suyo. Pero se anota: si esto sale a menudo, hay
+            // algo raro con la conexión.
+            $this->logger->warning(sprintf(
+                '[Turno] No se pudo soltar el lock de %s (%s).',
+                $messageId,
+                $e->getMessage()
+            ));
         }
     }
 
-    /** MySQL corta los nombres de lock a 64 caracteres; «intent-» + UUID son 43. */
+    /**
+     * El nombre lleva la BASE DE DATOS delante.
+     *
+     * `GET_LOCK` no sabe de bases: su espacio de nombres es el SERVIDOR entero. Con un clon de
+     * la base en la misma máquina —un staging, una copia para pruebas— los UUID son los mismos,
+     * y un worker de pruebas atendiendo un mensaje bloquearía al de producción para ese mismo
+     * id. El síntoma sería un retiro silencioso, de los más difíciles de atribuir.
+     *
+     * MySQL corta a 64 caracteres: «intent-» + base + «-» + UUID cabe de sobra.
+     */
     private function nombreDelLock(string $messageId): string
     {
-        return 'intent-' . $messageId;
+        return substr('intent-' . $this->em->getConnection()->getDatabase() . '-' . $messageId, 0, 64);
     }
 }
