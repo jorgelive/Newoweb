@@ -147,6 +147,32 @@ class MetaConfig implements ChannelConfigInterface
     }
 
     /**
+     * El «App Secret» de la app de Meta, con el que se firma cada webhook.
+     *
+     * Meta manda en cada POST una cabecera `X-Hub-Signature-256` con el HMAC del cuerpo. Sin
+     * comprobarla, el endpoint se cree cualquier payload que le llegue: basta conocer la URL
+     * para hacerse pasar por el número de un operador y que el asistente conteste con sus
+     * permisos. «El teléfono identifica pero no autentica» se sostenía en que el número lo
+     * verificaba Meta — y eso sólo es cierto si se comprueba la firma.
+     *
+     * Se saca del panel de la app en developers.facebook.com → Configuración → Básica.
+     * Mientras esté vacío, {@see \App\Message\Controller\Webhook\MetaWebhookController}
+     * deja pasar y avisa por log en cada petición: rechazar sin secreto configurado dejaría el
+     * WhatsApp mudo de golpe.
+     */
+    public function getAppSecret(): ?string
+    {
+        $secreto = trim((string) $this->getCredential('appSecret'));
+
+        return $secreto !== '' ? $secreto : null;
+    }
+
+    public function setAppSecret(?string $appSecret): self
+    {
+        return $this->addCredential('appSecret', $appSecret);
+    }
+
+    /**
      * Obtiene un valor específico del array JSON de credenciales.
      */
     public function getCredential(string $key): mixed

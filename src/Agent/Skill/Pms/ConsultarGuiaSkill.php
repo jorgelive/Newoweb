@@ -16,6 +16,7 @@ use App\Pms\Entity\PmsGuiaSeccion;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Guia\PmsGuiaAcceso;
+use App\Pms\Guia\PmsGuiaMensajes;
 use App\Pms\Guia\PmsGuiaArbolFiltro;
 use App\Pms\Guia\PmsGuiaContexto;
 use App\Pms\Guia\PmsGuiaEstanciaResolver;
@@ -746,6 +747,18 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
         PmsGuiaContexto $contexto,
         PmsGuiaAcceso $acceso
     ): string {
+        // 🔒 UN ÍTEM BLOQUEADO NO ENTREGA SU CONTENIDO, y el override tampoco.
+        //
+        // Este método empezaba por el override y lo devolvía tal cual, así que un tema con
+        // candado —«Llaves», «Wifi»— soltaba su texto íntegro al modelo si tenía versión para
+        // el agente. El árbol podado ya sustituye el cuerpo del ítem bloqueado, pero
+        // `agente_contenido` es un campo aparte que el filtro no toca: se corta aquí.
+        //
+        // Se devuelve el MOTIVO del candado, que es lo que hay que contarle al huésped.
+        if ($item->isBloqueado()) {
+            return PmsGuiaMensajes::bloqueo($acceso, $idioma);
+        }
+
         $override = $item->getAgenteContenido();
 
         if ($override !== null) {

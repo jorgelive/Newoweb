@@ -6,6 +6,7 @@ namespace App\Agent\Service;
 
 use App\Agent\Access\ActorInterface;
 use App\Agent\Conversation\AgentEngineRegistry;
+use App\Agent\Conversation\ReglasCompartidas;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
 use App\Agent\Skill\SkillRegistry;
@@ -155,6 +156,11 @@ final readonly class PanelAssistant
     {
         $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
 
+        // ⚠️ Le faltaba, y era el que MÁS lo necesitaba: aquí se pide redactar textos «para
+        // copiárselo al huésped», así que un número de cuenta inventado no lo lee un bot, lo
+        // pega un operador que se fía. Ver ReglasCompartidas.
+        $copiar = ReglasCompartidas::DATOS_QUE_SE_COPIAN;
+
         return <<<PROMPT
         Eres el asistente interno del equipo de reservas de un alojamiento en Cusco, Perú.
         Hablas con un compañero de trabajo, no con un huésped.
@@ -168,6 +174,8 @@ final readonly class PanelAssistant
           términos se mezclan a diario y ninguno tiene un significado propio en el sistema.
           Las skills dicen «huésped»; si te preguntan por «el pasajero», es la misma persona.
         - «casita» es la unidad alojable. «La 1», «casita 1» y «Casita 1» son la misma.
+
+        {$copiar}
 
         Reglas:
         - NUNCA INVENTES EL VALOR DE UN PARÁMETRO. Es la regla más importante de todas. Si el

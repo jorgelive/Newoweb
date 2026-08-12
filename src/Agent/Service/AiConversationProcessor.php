@@ -11,6 +11,7 @@ use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Conversation\PotenciaRequerida;
+use App\Agent\Conversation\ReglasCompartidas;
 use App\Agent\Conversation\SelectorDePotencia;
 use App\Agent\Skill\SkillRegistry;
 use App\Agent\Triage\DecisionDeTriaje;
@@ -601,6 +602,10 @@ final readonly class AiConversationProcessor
         // skill.
         $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ_PERU));
 
+        // Compartidas con el asistente del panel y el de voz: ver ReglasCompartidas.
+        $copiar = ReglasCompartidas::DATOS_QUE_SE_COPIAN;
+        $parametros = ReglasCompartidas::NO_INVENTES_PARAMETROS;
+
         return <<<PROMPT
         Eres el asistente de un alojamiento en Cusco, Perú, que atiende por WhatsApp.
 
@@ -617,15 +622,9 @@ final readonly class AiConversationProcessor
           las herramientas. Tampoco expliques POR QUÉ se decide algo si nadie te lo ha dicho: si
           no sabes de qué depende, no lo supongas.
 
-        🔥 DATOS QUE SE COPIAN, NUNCA SE ESCRIBEN DE CABEZA:
-        un enlace o dirección web, un número de cuenta, un CCI, un número de Yape o Plin, el
-        nombre de un titular, un tipo de cambio. Estos SOLO pueden salir, carácter a carácter,
-        de lo que acaba de devolverte una herramienta en ESTE turno. No los recuerdes de otra
-        conversación, no los deduzcas, no los completes «con el formato de siempre» y no pongas
-        un ejemplo «para que se entienda»: quien lee va a mandar dinero a lo que tú escribas.
-        Si la herramienta no te lo dio, ESE DATO NO EXISTE — dilo y avisa al equipo.
-        En particular, NO ofrezcas un enlace de pago si «consultar_medios_pago» no te devolvió
-        «pago_con_tarjeta.disponible: true», y no prometas mandarlo luego.
+        {$copiar}
+
+        {$parametros}
 
         ⚠️ SIEMPRE que digas que alguien va a contestar, llama a «escalar_al_equipo» en ese
         mismo turno. Si lo prometes y no la llamas, no se entera nadie y se queda esperando: es

@@ -85,11 +85,47 @@ final class PmsGuiaArbolFiltro
                 // `liberaEn` es null salvo en Pendiente: el candado lo marca
                 // `setBloqueado()`, y la fecha es solo el "cuándo" opcional.
                 $item->setBloqueado(true)->setBloqueadoHasta($acceso->liberaEn);
-                $items[] = $this->interpolarItem($item, $acceso, $contexto);
+
+                // 🔒 EL CUERPO SE SUSTITUYE, no se interpola.
+                //
+                // Antes se llamaba al mismo `interpolarItem()` que para un ítem visible, y eso
+                // sólo enmascara los PLACEHOLDERS: el texto editorial salía entero en el JSON
+                // y el front lo pintaba con un badge de «aún no disponible». El comentario de
+                // aquí prometía justo lo contrario desde el principio.
+                //
+                // Hoy no se filtra nada —lo sensible de los ítems bloqueados vive en
+                // placeholders— pero el primer ítem que guarde un secreto en su TEXTO lo
+                // regalaría. El título sí se interpola: hace falta para nombrarlo.
+                $items[] = $item
+                    ->setTituloParaCliente($this->interpolador->interpolar($item->getTitulo(), $contexto, $acceso))
+                    ->setContenidoParaCliente($this->mensajeDeBloqueo($acceso));
             }
         }
 
         return $items;
+    }
+
+    /**
+     * El motivo del candado, en los siete idiomas, con la forma i18n que espera el front.
+     *
+     * Se generan todos y no sólo el del huésped porque `contenidoParaCliente` es un JSON por
+     * idioma: el consumidor elige. Es el mismo texto que ya se le enseñaba —«[Disponible al
+     * confirmar]», «[Disponible el 12/08 a las 15:00]»—, pero ahora es TODO lo que viaja.
+     *
+     * @return list<array{language: string, content: string}>
+     */
+    private function mensajeDeBloqueo(PmsGuiaAcceso $acceso): array
+    {
+        $salida = [];
+
+        foreach (PmsGuiaMensajes::IDIOMAS as $idioma) {
+            $salida[] = [
+                'language' => $idioma,
+                'content' => PmsGuiaMensajes::bloqueo($acceso, $idioma),
+            ];
+        }
+
+        return $salida;
     }
 
     private function interpolarItem(PmsGuiaItem $item, PmsGuiaAcceso $acceso, PmsGuiaContexto $contexto): PmsGuiaItem

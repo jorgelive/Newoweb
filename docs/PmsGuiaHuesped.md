@@ -237,6 +237,21 @@ guía privada.
 En todos los casos el valor real **nunca sale del servidor**: esto decide la visibilidad del
 ÍTEM, no la del dato. De eso se ocupa `permite()`, y su matriz no cambia.
 
+> ⚠️ **Esto no era verdad hasta agosto de 2026, aunque este doc y el comentario del filtro lo
+> afirmaban.** `podarItems()` llamaba al mismo `interpolarItem()` que para un ítem visible, y
+> eso sólo enmascara los PLACEHOLDERS: el texto editorial completo viajaba en el JSON y el
+> front lo pintaba con un badge de «aún no disponible». No filtró nada porque hoy los ítems
+> bloqueados guardan lo sensible en placeholders —medido: 0 ítems `cliente-confirmado` y 2
+> `solo-ventana`—, pero el primero que escribiera un secreto en el TEXTO lo habría regalado.
+>
+> Hoy el cuerpo de un ítem bloqueado **se sustituye** por el mensaje de bloqueo en los siete
+> idiomas (`PmsGuiaArbolFiltro::mensajeDeBloqueo()`); sólo el título se interpola, porque hace
+> falta para nombrarlo.
+>
+> Y había un agravante en el chat: `ConsultarGuiaSkill::cuerpoParaElAgente()` empezaba por
+> `agente_contenido` y lo devolvía **ignorando el bloqueo**, porque ese campo no lo toca el
+> filtro. Ahora corta antes: un ítem con candado devuelve su motivo, no su contenido.
+
 > **`bloqueado` es un campo propio, no `bloqueadoHasta !== null`.** Derivarlo de la fecha era
 > correcto mientras solo se anunciaba `Pendiente`, pero `SinPago` y `Expirada` no tienen fecha que
 > prometer: el ítem llegaba con `bloqueado: false`, sin candado, con pinta de ítem normal y un

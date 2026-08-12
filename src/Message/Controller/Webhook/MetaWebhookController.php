@@ -50,6 +50,41 @@ final class MetaWebhookController extends AbstractController
     }
 
     /**
+     * ¿Viene el cuerpo firmado con nuestro App Secret?
+     *
+     * `hash_equals()` y no `===`: la comparación de un HMAC se hace en tiempo constante o se
+     * filtra por dónde empieza a diferir.
+     *
+     * ⚠️ **Sin secreto configurado, DEJA PASAR y avisa.** Es la única concesión, y es
+     * deliberada: hoy `exchange_meta_config` no guarda `appSecret`, así que fallar cerrado
+     * dejaría el WhatsApp mudo en el mismo despliegue que introduce la comprobación. En cuanto
+     * se pegue el secreto en el panel, esto pasa a rechazar solo. El `error` del log está para
+     * que ese estado no se quede ahí para siempre.
+     */
+    private function firmaValida(Request $request, string $rawContent): bool
+    {
+        $config = $this->em->getRepository(MetaConfig::class)->findOneBy(['activo' => true]);
+        $secreto = $config?->getAppSecret();
+
+        if ($secreto === null) {
+            $this->logger->error(
+                '[MetaWebhook] SIN App Secret configurado: no se puede validar la firma y se '
+                . 'acepta cualquier payload. Pégalo en el panel (Meta → Configuración → Básica).'
+            );
+
+            return true;
+        }
+
+        $recibida = (string) $request->headers->get('X-Hub-Signature-256');
+
+        if ($recibida === '') {
+            return false;
+        }
+
+        return hash_equals('sha256=' . hash_hmac('sha256', $rawContent, $secreto), $recibida);
+    }
+
+    /**
      * Endpoint Principal (POST): Enrutador de eventos de Meta (WhatsApp, IG, Messenger).
      */
     #[Route('/endpoint', name: 'main_endpoint', methods: ['POST'])]
@@ -57,6 +92,25 @@ final class MetaWebhookController extends AbstractController
     {
         // 1. Captura absoluta del contenido crudo
         $rawContent = (string) $request->getContent();
+
+        // 🔒 ¿LO MANDA META DE VERDAD?
+        //
+        // Sin esta comprobación el endpoint se cree cualquier POST que le llegue. Y no es
+        // teórico: el actor del asistente se resuelve por el `wa_id` del remitente, así que
+        // quien conozca la URL puede mandarse un payload con el número de un operador y
+        // recibir de vuelta las salidas del día, saldos de reservas y ocupación. El comentario
+        // de `AiConversationProcessor` —«el teléfono identifica pero no autentica»— se
+        // sostenía en que el número lo verificaba Meta; sólo es verdad si se mira la firma.
+        //
+        // Se comprueba ANTES de auditar y de despachar nada, pero DESPUÉS de leer el cuerpo:
+        // el HMAC va sobre el raw exacto.
+        if (!$this->firmaValida($request, $rawContent)) {
+            $this->logger->error('[MetaWebhook] Firma inválida; petición rechazada.', [
+                'ip' => $request->getClientIp(),
+            ]);
+
+            return new JsonResponse(['ok' => false, 'error' => 'firma_invalida'], Response::HTTP_FORBIDDEN);
+        }
 
         // 2. Escritura a disco para diagnóstico
         file_put_contents(

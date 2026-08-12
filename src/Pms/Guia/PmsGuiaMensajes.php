@@ -21,6 +21,18 @@ final class PmsGuiaMensajes
     /** Idioma al que se cae si el contenido está en uno que no tenemos cubierto. */
     public const IDIOMA_FALLBACK = 'en';
 
+    /**
+     * Los idiomas que cubren estas tablas, en el orden en que están escritas.
+     *
+     * Se expone porque `PmsGuiaArbolFiltro` sustituye el cuerpo de un ítem bloqueado por este
+     * mensaje y tiene que generarlo en TODOS: `contenidoParaCliente` es un JSON por idioma y es
+     * el consumidor quien elige. Derivar la lista de aquí evita una segunda copia que un día
+     * se quede corta al añadir un idioma.
+     *
+     * @var list<string>
+     */
+    public const array IDIOMAS = ['es', 'en', 'pt', 'fr', 'it', 'de', 'nl'];
+
     private const PENDIENTE_CON_FECHA = [
         'es' => '[Disponible el %1$s a las %2$s]',
         'en' => '[Available on %1$s at %2$s]',

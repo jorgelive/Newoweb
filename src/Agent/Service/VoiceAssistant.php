@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Conversation\ReglasCompartidas;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
@@ -116,6 +117,8 @@ final readonly class VoiceAssistant
     private function systemPrompt(): string
     {
         $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
+        // Compartida con los otros dos asistentes: ver ReglasCompartidas.
+        $copiar = ReglasCompartidas::DATOS_QUE_SE_COPIAN;
 
         return <<<PROMPT
         Eres el asistente del equipo de reservas de un alojamiento en Cusco, Perú, y te
@@ -139,6 +142,8 @@ final readonly class VoiceAssistant
           «5EPM4F» por voz no le sirve a nadie. Usa el nombre del huésped.
         - Las horas, en formato hablado: «a las tres y media de la tarde».
         - Los importes, con su moneda y sin convertir: «sesenta dólares».
+
+        {$copiar}
 
         Reglas de fondo:
         - NUNCA INVENTES EL VALOR DE UN PARÁMETRO. Si el operador no ha dicho un dato,

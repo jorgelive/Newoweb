@@ -1497,6 +1497,47 @@ hay, y de paso se ahorran los tokens de su definición.
 **El huésped no es un caso sin permisos**: es un actor más. Lo que lo distingue es que sus
 skills están acotadas a su reserva por el contexto.
 
+#### 📥 Un fallo al importar de Beds24 NO es un éxito
+
+`Beds24ReceiveHandler::handleSuccess()` tenía un `catch` que llamaba a `markSuccess()` con un
+`status: failed` dentro del JSON del resultado. Un mensaje del huésped que fallara al importar
+se perdía **para siempre**: sin `Message`, sin conversación, sin no leídos. Sólo lo veía quien
+abriera el CRUD de la cola a leer el resultado.
+
+Y el caso que lo dispara es normal: `upsertMessages()` lanza si la reserva todavía no está
+sincronizada, y **el mensaje del huésped puede llegar antes que el webhook de su reserva**. Es
+una carrera, no una anomalía. Ocurrió dos veces en producción (23/03/2026, reservas 84146132 y
+84153241).
+
+Ahora se marca como fallo y se reintenta a los 5 minutos, igual que una caída de red: esa
+carrera se cura sola en el siguiente intento.
+
+#### 🔐 El webhook de Meta se comprueba firmado
+
+Meta manda `X-Hub-Signature-256` con el HMAC del cuerpo. No se miraba, y eso convertía la URL en
+la única barrera: quien la descubriera podía POSTear un payload con el `wa_id` de un operador y
+recibir de vuelta las salidas del día, saldos y ocupación. El «el teléfono identifica pero no
+autentica» de `AiConversationProcessor` se sostenía en que el número lo verificaba Meta — y eso
+sólo es cierto si se comprueba la firma.
+
+⚠️ **Sin `appSecret` configurado, deja pasar y escribe un `error` en cada petición.** Es la única
+concesión y es deliberada: `exchange_meta_config` no guardaba ese secreto, así que fallar cerrado
+habría dejado el WhatsApp mudo en el mismo despliegue. **Hay que pegarlo en el panel** (Meta →
+Configuración → Básica) para que la comprobación entre en vigor.
+
+#### 🧩 Lo que vale para los tres asistentes vive en un sitio
+
+Hay tres puntos de entrada al modelo y cada uno arma su prompt: WhatsApp, el chat del panel y el
+de voz. Escribir una regla en uno y olvidarla en los otros no falla en voz alta — falla el día
+que alguien entra por la puerta que no la tiene. Ya pasó con la fecha de hoy.
+
+`ReglasCompartidas` guarda las dos que no pueden faltarle a ninguno:
+
+| Regla | A quién le faltaba | Por qué importa |
+|---|---|---|
+| `DATOS_QUE_SE_COPIAN` | panel y voz | El del **panel** era el que más la necesitaba: ahí se pide redactar textos «para copiárselo al huésped», así que un número de cuenta inventado no lo lee un bot — lo pega un operador que se fía |
+| `NO_INVENTES_PARAMETROS` | WhatsApp | Es donde el modelo tiene un historial largo del que copiar un `pax` o unas fechas caducadas |
+
 #### 🎭 Cuatro perfiles, cuatro personas
 
 Por el mismo WhatsApp entran cuatro clases de persona, y durante mucho tiempo el prompt del

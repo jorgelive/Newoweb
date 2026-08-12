@@ -47,9 +47,20 @@ final readonly class Beds24ReceiveHandler implements ExchangeHandlerInterface
             return $result;
 
         } catch (Throwable $e) {
-            // Si la reserva no existe u ocurre un error en BD
+            // 🔥 FALLO ES FALLO. Antes esto llamaba a `markSuccess()` con un `status: failed`
+            // dentro del JSON, y el resultado era que un mensaje del huésped se PERDÍA para
+            // siempre sin que nadie se enterase: sin `Message`, sin conversación, sin no
+            // leídos. Sólo lo veía quien abriera el CRUD de la cola a leer el resultado.
+            //
+            // Y el caso que lo dispara es de lo más normal: `upsertMessages()` lanza si la
+            // reserva todavía no está sincronizada, y el mensaje del huésped puede llegar
+            // ANTES que el webhook de su reserva. Es una carrera, no una anomalía.
+            //
+            // Marcándolo como fallo se reintenta a los 5 minutos —igual que `handleFailure()`
+            // con una caída de red— y esa carrera se cura sola en el siguiente intento.
             $item->setExecutionResult(['status' => 'failed', 'error' => $e->getMessage()]);
-            $item->markSuccess(new DateTimeImmutable());
+            $item->markFailure($e->getMessage(), $e->getCode() ?: 500, new DateTimeImmutable('+5 minutes'));
+
             return ['status' => 'failed', 'error' => $e->getMessage()];
         }
     }
