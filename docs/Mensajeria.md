@@ -1560,6 +1560,26 @@ faltaba.
 tiene otro», y el trabajo se retiraba dejando el mensaje sin contestar — lo contrario de la
 política declarada. Se trata igual que la excepción: se deja pasar y se anota.
 
+#### ⏱️ Por qué NO hay un watchdog del lock
+
+La pregunta sale sola: si un turno se cuelga, el lock no expira y los trabajos siguientes de ese
+mensaje se retiran. ¿Hace falta un proceso que vigile y limpie?
+
+**No, y conviene saber por qué**, porque es una máquina que alguien propondrá otra vez:
+
+1. **El cuelgue infinito no existe: hay tope por llamada.** Google 120 s
+   (`GoogleAIClient::TIMEOUT`), Anthropic 120 s desde agosto de 2026 — antes usaba el defecto
+   del SDK, **600 s**, que con ocho vueltas de herramientas permitía un turno de *ochenta
+   minutos*. Igualar los dos era el arreglo real: una línea, no un proceso.
+2. **El radio de daño es UN mensaje.** El nombre del lock lleva su id, así que un turno largo no
+   bloquea nada más.
+3. **Los trabajos que se retiran durante ese rato son justo los duplicados** que el lock existe
+   para cortar. Saltárselos es lo correcto, no un efecto colateral.
+4. **Un watchdog que matara sesiones de MySQL mataría la conexión del worker a mitad de turno**,
+   que es peor que el problema: respuesta a medias en vez de respuesta tardía.
+
+Lo que sí hacía falta era **verlo**, y para eso está el log del retiro.
+
 Todo el sistema de fallos del lock **escribe log**, incluido el retiro normal. Es lo único que
 distingue «mi gemelo está trabajando» de «un worker lleva media hora colgado reteniendo el
 turno», que dejaría todos los trabajos siguientes de ese mensaje sin contestar y en silencio.

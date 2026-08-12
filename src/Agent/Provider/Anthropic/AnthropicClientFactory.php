@@ -22,6 +22,21 @@ final class AnthropicClientFactory
     /** Se usa si `ANTHROPIC_MODEL` viene vacía, para que el motor nunca quede sin modelo. */
     private const string MODELO_FALLBACK = 'claude-opus-5';
 
+    /**
+     * Segundos máximos por llamada. El SDK trae 600 —diez minutos— y eso es demasiado aquí.
+     *
+     * Un turno puede dar hasta ocho vueltas de herramientas, así que el defecto del SDK permite
+     * un turno de OCHENTA MINUTOS. Mientras tanto ese turno retiene el `GET_LOCK` de su mensaje
+     * y todos los trabajos siguientes del mismo se retiran; y al otro lado hay un huésped
+     * mirando el chat.
+     *
+     * 120 s es el mismo tope que ya usa el cliente de Google ({@see \App\Agent\Provider\Google\GoogleAIClient}),
+     * y con él el peor caso baja de 80 minutos a 16. Que los dos proveedores se comporten igual
+     * importa: el tramo de potencia se cambia con una variable de entorno, y nadie espera que
+     * cambiar de modelo cambie cuánto puede tardar.
+     */
+    private const float TIMEOUT = 120.0;
+
     private ?Client $cliente = null;
 
     private readonly string $modelo;
@@ -51,7 +66,10 @@ final class AnthropicClientFactory
             return null;
         }
 
-        return $this->cliente ??= new Client(apiKey: $this->apiKey);
+        return $this->cliente ??= new Client(
+            apiKey: $this->apiKey,
+            requestOptions: ['timeout' => self::TIMEOUT],
+        );
     }
 
     public function estaConfigurado(): bool
