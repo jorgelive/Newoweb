@@ -39,6 +39,27 @@ readonly class MessageDispatcher
      */
     public function dispatch(Message $message): array
     {
+        // 🔥 Un mensaje sin nada dentro no sale. Comprobado antes de tocar los canales.
+        //
+        // No es hipotético: hay cuatro en producción sin texto, sin adjunto y sin plantilla, y
+        // TRES llegaron a Beds24 con `sent_at` — o sea que Airbnb y Booking recibieron un
+        // mensaje en blanco de nuestra parte. Nada lo impedía: ni la entidad ni el controlador
+        // comprueban que haya contenido, y el encolador tampoco.
+        //
+        // Se admite el mensaje SIN texto cuando lleva plantilla —el cuerpo se hidrata al
+        // enviar— o cuando lleva adjunto, que es una foto y ya es contenido.
+        if ($this->estaVacio($message)) {
+            $message->setStatus(Message::STATUS_FAILED);
+            $message->addMetadata('dispatch_errors', ['El mensaje no tiene texto, ni plantilla, ni adjunto: no se envía nada vacío.']);
+
+            $this->logger->warning(sprintf(
+                'Mensaje %s descartado por vacío: sin texto, sin plantilla y sin adjuntos.',
+                $message->getId()?->toRfc4122() ?? 'N/A'
+            ));
+
+            return [];
+        }
+
         $queues = [];
         $errors = [];
         $channels = $this->resolveChannels($message);
@@ -106,6 +127,33 @@ readonly class MessageDispatcher
         }
 
         return $queues;
+    }
+
+    /**
+     * ¿Este mensaje no lleva absolutamente nada que enviar?
+     *
+     * Los tres contenidos posibles, y basta con uno:
+     *
+     * - **texto**, en local o en el externo ya traducido;
+     * - **plantilla**, porque el cuerpo se hidrata en el momento del envío y aquí todavía no
+     *   existe — es el caso normal de todo lo automático;
+     * - **adjunto**, que es una foto y se envía sin una sola palabra.
+     *
+     * `trim()` a propósito: un cuerpo con sólo espacios o saltos de línea es tan vacío como uno
+     * nulo, y llega igual desde un textarea al que se le dio a enviar sin querer.
+     */
+    private function estaVacio(Message $message): bool
+    {
+        if ($message->getTemplate() !== null) {
+            return false;
+        }
+
+        if (!$message->getAttachments()->isEmpty()) {
+            return false;
+        }
+
+        return trim((string) $message->getContentLocal()) === ''
+            && trim((string) $message->getContentExternal()) === '';
     }
 
     /**

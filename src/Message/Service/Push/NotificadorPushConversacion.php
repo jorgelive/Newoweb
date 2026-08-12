@@ -63,6 +63,65 @@ final readonly class NotificadorPushConversacion
     }
 
     /**
+     * Avisa de que un mensaje escrito por una persona se quedó sin salir.
+     *
+     * ── Por qué hace falta ──────────────────────────────────────────────────
+     * Un envío que falla no se lo dice a nadie. El mensaje se queda en `FAILED` en la base de
+     * datos y el operador, que lo escribió y le dio a enviar, se va convencido de que llegó.
+     * Pasó de verdad: el 2026-05-05 alguien le ofreció a Blandine un guía en francés, la reserva
+     * era directa —así que WhatsApp era el único canal— y la ventana de 24 h estaba cerrada. El
+     * mensaje no salió, nadie se enteró, y la huésped no recibió respuesta a lo que preguntó.
+     *
+     * Sólo para lo que escribe una PERSONA. Un automático que falla es cosa del motor de
+     * reglas y avisar de cada uno llenaría el móvil de todo el equipo sin que nadie pueda
+     * hacer nada distinto.
+     *
+     * El cuerpo lleva el motivo tal cual lo guardó el despachador —«la ventana de 24 h ha
+     * caducado», «no se permite enviar a reservas directas por Beds24»— porque es lo único que
+     * dice qué hacer a continuación.
+     */
+    public function avisarEnvioFallido(Message $mensaje): void
+    {
+        try {
+            $conversacion = $mensaje->getConversation();
+
+            if (!$conversacion instanceof MessageConversation) {
+                return;
+            }
+
+            foreach ($this->destinatarios() as $usuario) {
+                $this->push->sendToUser($usuario, [
+                    'title' => 'No salió tu mensaje a ' . ($conversacion->getGuestName() ?? 'el huésped'),
+                    'body' => $this->motivoDe($mensaje),
+                    'type' => 'error',
+                    'actionUrl' => "/chat?id={$conversacion->getId()}",
+                    'unreadTotal' => $this->resumenNoLeidos->total(),
+                ]);
+            }
+        } catch (Throwable $e) {
+            $this->logger->error('[PushConversacion] Fallo al avisar de un envío fallido: ' . $e->getMessage(), ['exception' => $e]);
+        }
+    }
+
+    /**
+     * El motivo que guardó `MessageDispatcher`, o una frase honesta si no hay ninguno.
+     *
+     * Se juntan todos los canales: si falló por dos sitios, saber sólo uno lleva a arreglar la
+     * mitad y volver a intentarlo para nada.
+     */
+    private function motivoDe(Message $mensaje): string
+    {
+        $metadata = $mensaje->getMetadata();
+        $motivos = $metadata['dispatch_errors'] ?? $metadata['dispatch_partial_errors'] ?? [];
+
+        if (!is_array($motivos) || $motivos === []) {
+            return 'Se quedó sin enviar y no hay motivo registrado. Ábrelo y vuelve a intentarlo.';
+        }
+
+        return implode(' · ', array_map(strval(...), $motivos));
+    }
+
+    /**
      * Quien puede ver el chat, expandiendo la jerarquía de roles de `security.yaml`.
      *
      * @return list<\App\Entity\User>

@@ -5593,6 +5593,43 @@ Se guardó copia de sus 7 idiomas con sus ids antes de tocar nada. Y ojo: borrar
 **bloquea reutilizar ese nombre unos 30 días**, cosa que aquí da igual porque la plantilla viva
 se llama `welcome_booking_command`.
 
+### 🔇 Dos silencios que se acabaron (2026-08-12)
+
+#### Un mensaje vacío no sale
+
+`MessageDispatcher::dispatch()` descarta el mensaje que no lleva **ni texto, ni plantilla, ni
+adjunto**, lo marca `FAILED` con el motivo escrito y no crea ninguna cola.
+
+No era hipotético: en producción hay **cuatro** mensajes así, y **tres llegaron a Beds24 con
+`sent_at`** — Airbnb y Booking recibieron un mensaje en blanco nuestro. Nada lo impedía: ni la
+entidad, ni el controlador, ni el encolador comprobaban que hubiera contenido.
+
+Las tres formas de tener contenido, y basta una: texto (local o externo), plantilla —el cuerpo
+se hidrata al enviar, así que aquí todavía no existe— o adjunto, que es una foto y se manda sin
+una palabra. El `MessageMultipartProcessor` engancha el adjunto **antes** de persistir, así que
+al llegar aquí la colección ya está poblada; una foto sin texto pasa.
+
+#### Un envío que falla se lo dice a quien lo escribió
+
+`AvisoEnvioFallidoListener` → `AvisarEnvioFallidoDispatch` →
+`NotificadorPushConversacion::avisarEnvioFallido()`.
+
+Antes, un mensaje que no salía se quedaba en `FAILED` en la base de datos y el operador se iba
+convencido de que había llegado. El 2026-05-05 alguien le ofreció a Blandine un guía en francés;
+reserva directa, así que WhatsApp era el único canal, y la ventana de 24 h estaba cerrada. No
+salió, nadie se enteró, y la huésped se quedó sin respuesta.
+
+| Detalle | Por qué |
+|---|---|
+| `postPersist` **y** `postUpdate` | hay dos caminos a `FAILED`: nacer fallido (el despachador no generó cola) o morir después (todas las colas fracasaron) |
+| En el update se mira el **changeset** | si se mirara el estado actual, marcar leído o guardar metadata sobre un mensaje ya fallido volvería a avisar. Es el fallo que ya se pagó en `MessageAutoResponderListener` |
+| Sólo `SENDER_HOST` | lo automático es cosa del motor de reglas; avisar de cada uno llena el móvil del equipo con algo que no puede arreglar |
+| Va por el bus | esto corre dentro de un flush y mandar push es I/O de red |
+
+El cuerpo del aviso lleva el motivo tal cual lo guardó el despachador —«la ventana de 24 h ha
+caducado», «no se permite enviar a reservas directas por Beds24»—, que es lo único que dice qué
+hacer a continuación.
+
 ### 🧭 El catálogo de tours: un enlace, no una lista
 
 `menu_tours` llevaba el catálogo entero pegado en el cuerpo —ocho tours con precios, horarios y
@@ -5779,3 +5816,6 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Impedir que se guarde una plantilla de Meta sin nombre | `MessageTemplate::validarNombreDeMeta()` |
 | Ajustar los topes de tamaño de Meta | `WhatsappMetaTemplatePushService::TOPE_BODY` / `TOPE_HEADER` / `TOPE_FOOTER` |
 | Cambiar a qué catálogo apuntan los botones de tours | `config/services/services_parameters.yaml` → `pax_catalogo_localizador` |
+| Cambiar qué cuenta como mensaje vacío | `MessageDispatcher::estaVacio()` |
+| Cambiar a quién avisa un envío fallido | `NotificadorPushConversacion::avisarEnvioFallido()` / `AvisoEnvioFallidoListener` |
+| Volver a encender el correo | `Version20260812220000` (`down`) **y** `email_tmpl.is_active` en cada plantilla |
