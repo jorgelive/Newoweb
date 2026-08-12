@@ -5593,6 +5593,43 @@ Se guardó copia de sus 7 idiomas con sus ids antes de tocar nada. Y ojo: borrar
 **bloquea reutilizar ese nombre unos 30 días**, cosa que aquí da igual porque la plantilla viva
 se llama `welcome_booking_command`.
 
+### 🚪 La ventana de 24 h cerrada: la plantilla que reabre la conversación
+
+Fuera de las 24 h siguientes al último mensaje del huésped, WhatsApp no acepta texto libre. El
+operador escribe, le da a enviar, y **no sale**. Y no hay forma de colar su texto en una
+plantilla: una plantilla oficial lleva texto fijo aprobado por Meta, no lo que él acaba de
+escribir.
+
+Lo único que se puede hacer es pedirle al huésped que conteste, porque **su respuesta reabre la
+ventana**. Eso es `ventana_cerrada` (`Version20260812230000`), y el flujo entero es éste:
+
+```
+mensaje del operador  →  FAILED («la ventana de 24 horas ha caducado»)
+        │
+        ├─ AvisoEnvioFallidoListener          (postPersist / postUpdate, mira el changeset)
+        │        └─ AvisarEnvioFallidoDispatch          [bus]
+        │                 ├─ push al operador: «No salió tu mensaje a X — …»
+        │                 └─ si el motivo es la ventana:
+        │                          plantilla `ventana_cerrada` al huésped
+        │
+        └─ el huésped contesta → ventana abierta → el operador reenvía lo suyo
+```
+
+Las decisiones que no se ven en el código:
+
+| Qué | Por qué |
+|---|---|
+| Sin botones | un `quick_reply` exige un `resolver_key` que el motor determinista sepa atender; inventar uno es cómo nació el botón roto de `WELCOME_BOOKING_META`. Cualquier respuesta reabre la ventana, el botón no aporta |
+| Sólo canal WhatsApp | en las OTA no existe la ventana de 24 h: ahí este aviso no significa nada |
+| Sale como `SENDER_SYSTEM` | además de ser verdad, `AvisoEnvioFallidoListener` sólo avisa de lo que escribe una persona — así que si este aviso tampoco pudiera salir, no se dispara un aviso del aviso |
+| Uno cada 12 h por conversación | tres mensajes del operador con la ventana cerrada mandarían tres avisos idénticos, y fuera de la ventana **Meta los cobra**. Con uno basta: al contestar se reabre para todo |
+| El anti-repetición consulta la BD | la colección en memoria del worker puede venir a medio hidratar; y el parámetro va con `UuidType::NAME` por lo de §7 |
+| Se comprueba `hasWhatsappMetaOfficialData()` antes | sin aprobación de Meta no puede salir fuera de la ventana, que es justo cuando hace falta. Se registra en el log en vez de encolar algo que va a fallar seguro |
+
+⚠️ **Nace sin aprobar.** Hay que subirla desde el panel («Push a Meta») y esperar. Mientras
+tanto el flujo la salta y deja un `warning`, así que desplegarla antes de que Meta conteste no
+rompe nada.
+
 ### 🔇 Dos silencios que se acabaron (2026-08-12)
 
 #### Un mensaje vacío no sale
@@ -5818,4 +5855,6 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Cambiar a qué catálogo apuntan los botones de tours | `config/services/services_parameters.yaml` → `pax_catalogo_localizador` |
 | Cambiar qué cuenta como mensaje vacío | `MessageDispatcher::estaVacio()` |
 | Cambiar a quién avisa un envío fallido | `NotificadorPushConversacion::avisarEnvioFallido()` / `AvisoEnvioFallidoListener` |
+| Cambiar el texto de «te hemos escrito» | plantilla `ventana_cerrada` en el panel (y volver a subirla a Meta) |
+| Cambiar cada cuánto se puede repetir ese aviso | `AvisarEnvioFallidoDispatchHandler::VENTANA_ANTI_REPETICION` |
 | Volver a encender el correo | `Version20260812220000` (`down`) **y** `email_tmpl.is_active` en cada plantilla |
