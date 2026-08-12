@@ -1505,6 +1505,38 @@ hay, y de paso se ahorran los tokens de su definición.
 **El huésped no es un caso sin permisos**: es un actor más. Lo que lo distingue es que sus
 skills están acotadas a su reserva por el contexto.
 
+#### 🕳️ Cinco sitios por donde un mensaje se quedaba sin respuesta
+
+Todos salieron de la revisión de arquitectura, y **cuatro de los cinco eran latentes**: el fallo
+estaba, pero aún no había mordido. Se anota cuál sí, porque distingue lo urgente de lo prudente.
+
+| Qué pasaba | ¿Mordió? |
+|---|---|
+| `ya_respondido` contaba plantillas PROGRAMADAS a futuro y el bot se callaba ante una pregunta real | **No** — las 3 veces que se activó fueron legítimas |
+| Un fallo del motor (`error_ia`) era silencio total: ni respuesta, ni acuse, ni reintento | No medido; ahora manda el acuse |
+| Audios, fotos fallidas y ubicaciones **no recibían intent**: no llegaban al router nunca | Sólo 2 casos, de abril |
+| Las notas internas del operador entraban en el historial que ve el modelo | **No** — 0 notas internas en producción |
+| El guardia de «humano al mando» no se re-comprobaba tras generar | No medido |
+
+⚠️ **El de las notas internas es el que más miedo da de los cinco.** Una nota del equipo
+—«disputó un cargo, no ofrecer descuento»— entraba como turno del *asistente*, lista para que el
+modelo se la citara al propio huésped. No ha pasado porque nadie ha escrito ninguna todavía.
+
+⚠️ **Y el del humano tiene una lección transversal**: el guardia iteraba
+`$conversacion->getMessages()`, una colección cargada al empezar el turno. Generar tarda
+segundos —con Gemini, hasta ocho vueltas de herramientas— y en ese hueco cabe de sobra que un
+operador conteste. Con la colección en memoria no se le veía. Ahora consulta a la TABLA, como ya
+hacía `hayMensajePosterior()`, y se repite **después** de generar. Cualquier guardia que decida
+sobre algo que pudo cambiar mientras se generaba tiene que preguntar a la base, no a la memoria.
+
+#### 📅 El historial va fechado
+
+Cada turno viaja como `[05/08] texto`. Sin la fecha, una cotización que el propio bot dio hace
+una semana entra en contexto como si fuera de ahora, y «responde SOLO con lo que devuelvan las
+herramientas» no lo frena: aquella cifra **sí** salió de una herramienta… en otro turno. Es el
+fallo que ya ocurrió con los precios. Con la fecha delante y el «hoy es» del prompt, el modelo
+puede ver que un dato es viejo — se le da hecho en vez de pedírselo.
+
 #### 📥 Un fallo al importar de Beds24 NO es un éxito
 
 `Beds24ReceiveHandler::handleSuccess()` tenía un `catch` que llamaba a `markSuccess()` con un

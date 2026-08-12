@@ -229,14 +229,43 @@ readonly class WhatsappMetaReceivePersister
             $message->setContentExternal($textoMedia);
             $message->setLanguageCode($currentConversationLang);
 
+            // 📨 EL INTENT VA SIEMPRE, también cuando la descarga falló.
+            //
+            // Estaba sólo dentro del `if` del adjunto creado, así que un audio expirado, una
+            // foto que no se pudo bajar o un mime raro entraban SIN intent: el router no los
+            // miraba nunca, el bot no contestaba y no quedaba ni un motivo de resolución. Sólo
+            // el no leído. Quien manda una nota de voz preguntando algo se quedaba sin
+            // respuesta y sin acuse.
+            //
+            // `setInboundIntent()` es idempotente aquí: si arriba ya se puso, esto lo reescribe
+            // con el mismo valor.
+            $message->setInboundIntent(array_merge($baseIntent, [
+                'category'    => 'free_text',
+                'action_code' => 'MULTIMEDIA'
+            ]));
+
         } elseif ($type === 'location') {
             $lat = $messageData['location']['latitude'] ?? '';
             $lng = $messageData['location']['longitude'] ?? '';
             $message->setContentExternal("📍 [Ubicación compartida]: https://maps.google.com/?q={$lat},{$lng}");
             $message->setLanguageCode($currentConversationLang);
+
+            // Una ubicación casi siempre acompaña a una pregunta —«¿es aquí?»— y sin intent
+            // moría igual que los adjuntos.
+            $message->setInboundIntent(array_merge($baseIntent, [
+                'category'    => 'free_text',
+                'action_code' => 'UBICACION'
+            ]));
         } else {
             $message->setContentExternal("🤖 [Tipo de mensaje no soportado: {$type}]");
             $message->setLanguageCode($currentConversationLang);
+
+            // Aunque no se sepa qué es, alguien escribió: que el agente pueda al menos
+            // disculparse y avisar al equipo, en vez de dejarlo en el vacío.
+            $message->setInboundIntent(array_merge($baseIntent, [
+                'category'    => 'free_text',
+                'action_code' => 'NO_SOPORTADO'
+            ]));
         }
 
         // =====================================================================

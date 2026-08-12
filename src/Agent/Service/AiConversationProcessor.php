@@ -112,6 +112,17 @@ final readonly class AiConversationProcessor
                 $e->getMessage()
             ));
 
+            // 🩹 Un fallo del motor no puede ser SILENCIO para el huésped.
+            //
+            // Antes se devolvía `error_ia` y no salía nada: ni respuesta, ni acuse, ni
+            // reintento. El huésped miraba el chat sin saber si alguien le había leído, y la
+            // única señal era un `error` en el log y el no leído en el panel.
+            //
+            // El acuse ya existía para el caso «el motor respondió sin texto»; una caída de red
+            // a mitad de turno deja al huésped exactamente igual de solo, así que se le trata
+            // igual. Es el suelo, no la política.
+            $this->encolarRespuesta($conversacion, $message, $this->acuseDeRecibo($conversacion));
+
             return 'error_ia';
         }
 
@@ -124,6 +135,18 @@ final readonly class AiConversationProcessor
         // Mandar ahora esta respuesta es contestar a destiempo; se tira, y el trabajo del
         // mensaje nuevo responderá a todo junto. Es lo único que cuesta dinero de la ráfaga:
         // el modelo ya se pagó. Preferible a que el huésped lea una respuesta desfasada.
+        // Y la misma pregunta para la persona: entre el guardia de arriba y este punto ha
+        // pasado la generación entera. Si un operador contestó en ese hueco, esta respuesta
+        // llega tarde y encima de la suya.
+        if ($this->hayHumanoAtendiendo($conversacion)) {
+            $this->logger->info(sprintf(
+                'IA: respuesta descartada en %s; un operador contestó mientras se generaba.',
+                $conversacion->getId()
+            ));
+
+            return 'humano_atendiendo_al_responder';
+        }
+
         if ($this->hayMensajePosterior($conversacion, $message)) {
             $this->logger->info(sprintf(
                 'IA: respuesta descartada en la conversación %s; el huésped escribió mientras se generaba.',
@@ -263,22 +286,37 @@ final readonly class AiConversationProcessor
         return null;
     }
 
+    /**
+     * ¿Ha escrito una PERSONA del alojamiento hace poco?
+     *
+     * ⚠️ Consulta a la TABLA, no a `$conversacion->getMessages()`. La colección se cargó al
+     * empezar el turno y generar tarda segundos —con Gemini, hasta ocho vueltas de
+     * herramientas—; en ese hueco cabe de sobra que un operador conteste desde el panel. Con la
+     * colección en memoria no se le veía, y el bot encolaba su respuesta encima: dos respuestas
+     * a la vez, y el bot pudiendo contradecir a la persona.
+     *
+     * Es el mismo motivo por el que `hayMensajePosterior()` consulta en fresco, y la misma
+     * trampa del `uuid` explícito: sin el tipo, el parámetro no convierte a binario y la
+     * consulta devuelve cero filas EN SILENCIO — que aquí significaría «no hay humano».
+     */
     private function hayHumanoAtendiendo(MessageConversation $conversacion): bool
     {
         $desde = new DateTimeImmutable(self::HUMANO_AL_MANDO);
 
-        foreach ($conversacion->getMessages() as $m) {
-            if ($m->getSenderType() !== Message::SENDER_HOST) {
-                continue;
-            }
+        $cuantos = (int) $this->em->getRepository(Message::class)->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->andWhere('m.conversation = :conversacion')
+            ->andWhere('m.senderType = :persona')
+            ->andWhere('m.status != :cancelado')
+            ->andWhere('COALESCE(m.scheduledAt, m.createdAt) >= :desde')
+            ->setParameter('conversacion', $conversacion->getId(), 'uuid')
+            ->setParameter('persona', Message::SENDER_HOST)
+            ->setParameter('cancelado', Message::STATUS_CANCELLED)
+            ->setParameter('desde', $desde)
+            ->getQuery()
+            ->getSingleScalarResult();
 
-            $cuando = $m->getScheduledAt() ?? $m->getCreatedAt();
-            if ($cuando !== null && $cuando >= $desde) {
-                return true;
-            }
-        }
-
-        return false;
+        return $cuantos > 0;
     }
 
     /**
@@ -370,6 +408,21 @@ final readonly class AiConversationProcessor
             }
 
             if ($m->getStatus() === Message::STATUS_CANCELLED) {
+                continue;
+            }
+
+            // 📅 UNA PLANTILLA PROGRAMADA A FUTURO NO ES UNA RESPUESTA.
+            //
+            // Este guardia existe para que el bot no conteste dos veces si su propio trabajo se
+            // reintenta. Pero contaba como «ya respondido» CUALQUIER mensaje de sistema con
+            // `createdAt` posterior al del huésped — y los del motor de reglas se crean con la
+            // hora de inserción aunque salgan dentro de tres días.
+            //
+            // Bastaba con que alguien tocase la reserva durante la espera de ráfaga, o con que
+            // el propio mensaje entrante disparase el resync de reglas, para que naciera un
+            // recordatorio programado y el bot se callase ante una pregunta real. El huésped no
+            // recibe nada y sólo queda el no leído.
+            if ($m->isScheduledForFuture()) {
                 continue;
             }
 
@@ -932,9 +985,13 @@ final readonly class AiConversationProcessor
      * en lo que acaba de fallar. Además debe ser idéntica siempre — es un acuse de recibo,
      * no una conversación.
      *
-     * ⚠️ Promete una persona y no avisa a ninguna: no llama a `escalar_al_equipo`. Se sostiene
-     * porque ahora sale poquísimo —sólo cuando el motor no devuelve texto—, pero mientras siga
-     * así es una promesa a medias. Ver docs/Mensajeria.md §11, «Te responderá una persona».
+     * ⚠️ Promete una persona y no avisa a ninguna: no llama a `escalar_al_equipo`. Sigue siendo
+     * una promesa a medias, y ahora sale en DOS sitios —cuando el motor no devuelve texto y
+     * cuando revienta a mitad de turno—, así que pesa más que antes.
+     *
+     * Lo que la sostiene hoy es que el mensaje entrante queda sin leer y el panel lo enseña. Lo
+     * que la cerraría del todo es llamar aquí a `escalar_al_equipo`, que ya es idempotente en
+     * su marca. Ver docs/Mensajeria.md §11, «Te responderá una persona».
      */
     private function acuseDeRecibo(MessageConversation $conversacion): string
     {
@@ -968,14 +1025,34 @@ final readonly class AiConversationProcessor
                 continue;
             }
 
+            // 🔒 Las NOTAS INTERNAS no son parte de la conversación: son lo que el equipo se
+            // apunta entre sí sobre este huésped —«disputó un cargo, no ofrecer descuento»— y
+            // entraban aquí como un turno del asistente, listas para que el modelo se las
+            // citara al propio huésped. Hoy no hay ninguna en producción; esto cierra la
+            // puerta antes de que alguien escriba la primera.
+            if ($m->getSenderType() === Message::SENDER_INTERNAL) {
+                continue;
+            }
+
             $texto = $m->getTextoEntrante();
             if ($texto === '') {
                 continue;
             }
 
+            // 📅 CADA TURNO CON SU FECHA. Sin ella, una cotización que el propio bot dio hace
+            // una semana entra en contexto como si fuera de ahora, y «responde SOLO con lo que
+            // devuelvan las herramientas» no lo frena: aquella cifra SÍ salió de una
+            // herramienta… en otro turno. Es el fallo que ya ocurrió con los precios.
+            //
+            // Con la fecha delante y el «hoy es» del prompt, el modelo puede ver que un dato
+            // es viejo. Se le da hecho en vez de pedírselo, que es la lección de esta noche.
+            $cuando = $m->getCreatedAt();
+
             $turnos[] = [
                 'rol' => $m->getDirection() === Message::DIRECTION_INCOMING ? 'usuario' : 'asistente',
-                'texto' => $texto,
+                'texto' => $cuando !== null
+                    ? sprintf('[%s] %s', $cuando->format('d/m'), $texto)
+                    : $texto,
             ];
         }
 

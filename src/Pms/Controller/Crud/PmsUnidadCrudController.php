@@ -169,22 +169,31 @@ final class PmsUnidadCrudController extends BaseCrudController
         // ---------------------------------------------------------------------
         yield FormField::addPanel('Códigos de Acceso y Seguridad')->setIcon('fa fa-key');
 
+        // ⚠️ La sintaxis es de llave DOBLE y las claves van en inglés. Estas ayudas decían
+        // `{codigo_puerta}` y `{codigo_caja}`, que no los resuelve NADIE: la regex del
+        // interpolador (`PmsGuiaInterpolador`) sólo entiende `{{ clave }}`. Quien siguiera la
+        // ayuda escribía un marcador muerto y el huésped lo veía en crudo en su guía.
         yield TextField::new('codigoPuerta', 'Smart Lock (Puerta)')
             ->hideOnIndex()
             ->setColumns(6)
-            ->setHelp('Variable guía: <b>{codigo_puerta}</b>');
+            ->setHelp('En la guía: <code>{{ door_code }}</code>. Sólo se muestra dentro de la '
+                . 'ventana de la estancia; fuera de ella sale el mensaje de bloqueo.');
 
         yield TextField::new('codigoCaja', 'Caja Fuerte')
             ->hideOnIndex()
             ->setColumns(6)
-            ->setHelp('Variable guía: <b>{codigo_caja}</b>');
+            ->setHelp('En la guía: <code>{{ safe_code }}</code>. Mismo trato que el de la '
+                . 'puerta: sólo dentro de la ventana.');
 
         // ---------------------------------------------------------------------
         // PANEL: WIFI & TRADUCCIONES (Oculto en Index)
         // ---------------------------------------------------------------------
         yield FormField::addPanel('Conectividad (WiFi)')
             ->setIcon('fa fa-wifi')
-            ->setHelp('Variable global: <b>{wifi-data}</b>');
+            // No es un dato del interpolador de PHP como los códigos: es un WIDGET que pinta
+            // la app del huésped (RichContentEngine.ts). Por eso no lleva la ventana de acceso.
+            ->setHelp('En la guía: <code>{{ wifi_data }}</code> — pinta la tarjeta con todas '
+                . 'las redes de abajo. En el chat, el asistente lo remite a «consultar_wifi».');
 
         // Switches de Traducción (Solo en Formularios)
         yield BooleanField::new('ejecutarTraduccion', 'Traducir automáticamente')
