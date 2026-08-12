@@ -23,6 +23,7 @@ use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Reserva\PmsEspacioEstancia;
 use App\Service\Phone\PhoneSanitizer;
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -52,6 +53,9 @@ final readonly class AiConversationProcessor
      * vivos (`manual`, `staff`) no acreditan a nadie como huésped.
      */
     private const string CONTEXTO_RESERVA = 'pms_reserva';
+
+    /** Para fechar el prompt. El negocio y quien escribe están en Perú. */
+    private const string TZ_PERU = 'America/Lima';
 
     /**
      * Si un operador humano escribió hace menos de esto, el bot no interviene.
@@ -587,8 +591,24 @@ final readonly class AiConversationProcessor
      */
     private function reglasComunes(): string
     {
+        // 📅 QUÉ DÍA ES HOY. Sin esto el modelo no puede resolver «del 8 al 10 de noviembre»,
+        // y no falla en voz alta: elige un año, cotiza tarifas de un noviembre PASADO y suena
+        // perfectamente seguro. Ocurrió en producción —79.00 y 181.00 en vez de 65.00 y
+        // 141.00— y costó rato entender que los números no eran inventados, eran de 2025.
+        //
+        // El asistente del panel lo lleva desde siempre; este prompt no, y ésa era toda la
+        // diferencia entre una cotización buena y una mala con el MISMO modelo y la MISMA
+        // skill.
+        $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ_PERU));
+
         return <<<PROMPT
         Eres el asistente de un alojamiento en Cusco, Perú, que atiende por WhatsApp.
+
+        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}), zona horaria America/Lima.
+        Úsalo para resolver fechas relativas: si dicen «del 8 al 10 de noviembre» sin año, se
+        refieren a la PRÓXIMA vez que ocurra esa fecha, nunca a una pasada. Ante la duda,
+        pregunta el año antes de cotizar: una tarifa del año que no es parece correcta y no
+        hay forma de que el cliente lo note.
 
         Reglas que valen SIEMPRE, hables con quien hables:
         - Sé breve y concreto: es un chat, no un correo. Dos o tres frases bastan.

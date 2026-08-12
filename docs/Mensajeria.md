@@ -4384,6 +4384,28 @@ suman las libres, y qué preguntar para poder cerrar.
 pasar los 20 a todas cobraría el grupo entero siete veces. Cada casita sale con `precio_desde`
 hasta que el cliente diga cómo se reparten.
 
+#### 📅 Qué día es hoy, y por qué faltaba
+
+El prompt de WhatsApp **no decía la fecha**; el del panel sí, desde siempre. Ésa era toda la
+diferencia entre una cotización buena y una mala, con el MISMO modelo y la MISMA skill.
+
+Preguntando «del 8 al 10 de noviembre» sin año, el modelo eligió **2025**. Y entonces todos sus
+números fueron correctos… para 2025: 32.00 y 65.00 por noche (tarifa base, porque no hay rango
+cargado en un noviembre pasado) en vez de 25.00 y 45.00. Cotizó 260.00 donde eran 206.00, y su
+nota «esas noches no tienen tarifa cargada» era **cierta** — para el año equivocado.
+
+Es el peor tipo de fallo: nada chirría. El precio sale de otra temporada, suena razonable, y ni
+el operador ni el cliente tienen forma de notarlo.
+
+Dos capas, porque una no basta:
+
+1. **El prompt lleva la fecha** y la regla de que una fecha sin año es la PRÓXIMA vez que
+   ocurre, nunca una pasada.
+2. **`consultar_disponibilidad` se niega a cotizar el pasado.** Si el rango terminó, devuelve un
+   error que dice el año probable y pide confirmarlo. Un aviso depende de que alguien lo lea; un
+   error no. Vender una noche que ya pasó no existe como caso de uso — para mirar atrás está
+   `consultar_ocupacion`.
+
 #### 🧮 El modelo no suma: `distribucion` y `total_combinado`
 
 Nació de un fallo real, medido en producción. Preguntando por la Casita 5 y la 2 para 9 personas

@@ -144,6 +144,27 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
 
             $pax = isset($entrada['pax']) ? (int) $entrada['pax'] : null;
 
+            // 📅 NO SE COTIZA EL PASADO, y esto no es una comodidad: es una red.
+            //
+            // El modelo resuelve «del 8 al 10 de noviembre» eligiendo un año, y si se
+            // equivoca cotiza tarifas de un noviembre que ya pasó sin que nada chirríe: el
+            // precio sale de otra temporada, suena razonable y el cliente no tiene forma de
+            // notarlo. Pasó en producción y costó rato ver que los números no eran inventados,
+            // eran del año anterior.
+            //
+            // Se corta aquí y no con un aviso en el prompt porque un aviso depende de que
+            // alguien lo lea. Vender una noche que ya pasó no existe como caso de uso: si de
+            // verdad quieren mirar atrás, para eso está consultar_ocupacion.
+            if ($hasta <= new DateTimeImmutable('today')) {
+                return SkillResult::error(sprintf(
+                    'Esas fechas ya pasaron (%s → %s). No cotizo el pasado: seguramente se '
+                    . 'refieren a %d. Confirma el AÑO con quien pregunta y vuelve a llamarme.',
+                    $desde->format('d/m/Y'),
+                    $hasta->format('d/m/Y'),
+                    (int) $desde->format('Y') + 1
+                ));
+            }
+
             $libres = $this->disponibilidad->buscar($desde, $hasta, $pax);
 
             // 🛒 «No hay» es una respuesta que cierra una venta, y casi nunca es verdad.
