@@ -5564,10 +5564,9 @@ nombre que llega, crea una fila nueva con el código generado
 Eso explica los códigos en mayúsculas del panel: no los escribió nadie, son plantillas de Meta
 que aquí no tenían dueño.
 
-> 📌 **Hay uno vivo ahora mismo y está sin resolver:** `WELCOME_BOOKING_META`. La decisión —y la
-> idea de dejar cosas fuera del sincronizador— está en `docs/Pendientes.md` §1, con los números
-> y el punto exacto del código donde encajaría la exclusión. Esta sección explica el mecanismo;
-> aquélla, qué falta por decidir.
+> 📌 Hubo uno vivo —`WELCOME_BOOKING_META`— y se cerró el 2026-08-12: ver «La gemela de Booking,
+> cerrada» más abajo. Esta sección explica el mecanismo por el que nacen; aquélla, cómo se mata
+> uno sin que vuelva a las 03:15.
 
 ### 🧹 La gemela de Booking, cerrada (2026-08-12)
 
