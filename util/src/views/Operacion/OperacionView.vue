@@ -364,6 +364,18 @@ const serviciosSeleccionados = computed(() =>
 );
 
 /**
+ * ¿Se le puede pedir a un proveedor? Espejo de `OperacionServicio::esComprable()`.
+ *
+ * Es más estrecho que `!soloReferencia`: excluye también lo cancelado y lo reemplazado,
+ * que conservan tarifa y por tanto pasaban todas las demás comprobaciones. La entidad
+ * lo vuelve a validar al asignar la OS; esto sólo evita ofrecer la casilla.
+ */
+const esComprable = (s: OperacionServicio): boolean =>
+    !s.soloReferencia
+    && s.estadoComponente !== 'cancelado'
+    && s.modoComponente !== 'reemplazado';
+
+/**
  * Una OS es una solicitud a UN proveedor sobre UN expediente: agrupar servicios de
  * expedientes o proveedores distintos produciría un documento que nadie puede firmar.
  */
@@ -371,12 +383,19 @@ const conflictoSeleccion = computed<string | null>(() => {
     const sel = serviciosSeleccionados.value;
     if (sel.length === 0) return null;
 
-    // Referencia = no incluido o sin tarifa: está en el cuadro para que el transportista
-    // sepa dónde recoger, pero no se le compra a nadie. La regla la calcula el backend
-    // (OperacionServicio::isSoloReferencia) y la vuelve a defender al asignar la OS; aquí
+    // Sólo se compra lo que se opera y se compra. Lo calcula el backend
+    // (OperacionServicio::esComprable) y lo vuelve a defender al asignar la OS; aquí
     // sólo se evita que el operador llegue hasta el modal para recibir un 422.
     if (sel.some(s => s.soloReferencia)) {
         return 'Hay servicios de referencia (no incluidos o sin tarifa) en la selección: no se compran a ningún proveedor.';
+    }
+    // Un componente cancelado o reemplazado conserva su tarifa, así que pasaba todas las
+    // demás comprobaciones: la fila sale atenuada, pero atenuar no impide marcarla.
+    if (sel.some(s => s.estadoComponente === 'cancelado')) {
+        return 'Hay servicios cancelados en la cotización: pedirlos sería comprar algo que el cliente no quiere.';
+    }
+    if (sel.some(s => s.modoComponente === 'reemplazado')) {
+        return 'Hay servicios reemplazados por otros en la cotización.';
     }
 
     const files = new Set(sel.map(s => s.file?.id ?? ''));
@@ -812,7 +831,7 @@ onMounted(cargarBiblia);
                                                  marcan porque no pueden ir a una OS. -->
                                             <td class="px-3 py-3 align-top">
                                                 <input
-                                                    v-if="!servicio.soloReferencia"
+                                                    v-if="esComprable(servicio)"
                                                     type="checkbox"
                                                     :checked="seleccionados.includes(servicio.id ?? '')"
                                                     @change="alternarSeleccion(servicio.id)"
@@ -820,8 +839,11 @@ onMounted(cargarBiblia);
                                                 />
                                                 <i
                                                     v-else
-                                                    class="fas fa-eye text-slate-300 text-xs mt-1.5 block"
-                                                    title="Sólo referencia: no se compra a ningún proveedor"
+                                                    class="fas text-slate-300 text-xs mt-1.5 block"
+                                                    :class="servicio.soloReferencia ? 'fa-eye' : 'fa-ban'"
+                                                    :title="servicio.soloReferencia
+                                                        ? 'Sólo referencia: no se compra a ningún proveedor'
+                                                        : 'Cancelado o reemplazado en la cotización: no se compra'"
                                                 ></i>
                                             </td>
 

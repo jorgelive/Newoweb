@@ -54,13 +54,11 @@ CotizacionEditorView.vue                          OperacionView.vue  (/operacion
   │ CotizacionConfirmadaEventListener::onFlush() │        │
   └──────────────────────────────────────────────┘        │
         │                                                 │
-        ├─ CONFIRMADO ─► BibliaSnapshotService            │
-        │                  ::generarParaCotizacion() ─────┘  1 fila por Cotcomponente
+        ├─ CONFIRMADO ─► reactiva las filas canceladas (→ pendiente)
+        │                  + generarParaCotizacion() ────┘  1 fila por Cotcomponente
         │
-        ├─ CANCELADO ───► propagarEstadoOperacion(CANCELADO)
-        │
-        └─ PENDIENTE / ENVIADO / ARCHIVADO
-                        └► propagarEstadoOperacion(PENDIENTE)
+        └─ CUALQUIER OTRO ─► propagarEstadoOperacion(CANCELADO)
+           (cancelado / pendiente / enviado / archivado)
 
            POST .../operacion/plan ──► BibliaReconciliacionService::planificar()
                   ↓  revisión humana campo a campo (panel / consola)
@@ -172,6 +170,31 @@ muestra y los deja filtrar.
 `"Americana Royal Class"`), pensado para negociar con el proveedor. Por sí solo no identifica el
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
+
+### <a id="36"></a>3.6 Las FK: por qué CASCADE y no RESTRICT
+
+Las tres referencias de `OperacionServicio` al árbol de la cotización eran `RESTRICT`, y eso
+hacía **imposible** el flujo que el módulo entero promete.
+
+El editor guarda con un **PUT del árbol completo**: lo que ya no viene en el payload se orfaniza
+y Doctrine lo borra. Así que en una cotización ya confirmada, quitar un día, borrar un componente
+o —lo más común de todo— **reemplazar una tarifa** terminaba en violación de clave ajena: un 500
+en mitad del guardado, sin ningún mensaje que explicara qué pasaba. No se notaba sólo porque La
+Biblia estaba vacía; el día que se confirmara la primera cotización, empezaba.
+
+| Referencia | Regla | Por qué |
+|---|---|---|
+| `file`, `cotizacionServicio`, `cotizacionComponente` | **CASCADE** | si desaparecen de la cotización, la fila se queda sin origen y no significa nada |
+| `cotizacionTarifa` | **SET NULL** | cambiar de tarifa es rutina de negociación: la fila debe sobrevivir para que la reconciliación le ponga la nueva |
+| `ordenServicio` | **SET NULL** | borrar una OS desasocia, no destruye (§5) |
+
+⚠️ Con CASCADE se pierde lo que el operador hubiera escrito en esa fila. Es aceptable —alguien
+decidió que ese servicio ya no va— y sigue siendo mucho mejor que un 500. Lo que **no** puede
+pasar es que se pierda por cambiar una tarifa, y por eso la tarifa es la excepción.
+
+⚠️ Consecuencia para el reconciliador: el caso `huerfano` **no** cubre «borraron el componente»
+—esas filas desaparecen solas con el CASCADE— sino «el componente sigue existiendo pero dejó de
+producir valores» (le quitaron la fecha, se quedó sólo con alternativas).
 
 ### <a id="35"></a>3.5 Reconciliación: plan → revisión → aplicar
 
@@ -353,15 +376,28 @@ describen cómo estaba el componente al confirmarse, no cómo va la operación.
 
 ### Asimetría del listener
 
-**Confirmar crea filas; ningún otro estado las borra.** `propagarEstadoOperacion()` sólo escribe
-`estadoOperacion`:
+**Ningún estado borra filas: sólo cambian `estadoOperacion`.** Una vez que se pidió al
+proveedor, el rastro no se borra.
 
-- `CANCELADO` → marca las filas como canceladas, **no las elimina**.
-- Volver a `PENDIENTE` / `ENVIADO` / `ARCHIVADO` → devuelve `estadoOperacion` a `pendiente`, pero
-  las filas creadas **siguen existiendo**. Des-confirmar no deshace la generación.
+| Transición | Efecto |
+|---|---|
+| → `CONFIRMADO` | reactiva las canceladas (`→ pendiente`) **y** genera las que falten |
+| → cualquier otro | `→ cancelado` |
 
-Es deliberado: una vez que se pidió al proveedor, el rastro no se borra. Implica que una
-cotización confirmada por error deja filas que hay que limpiar con `operacion:resincronizar`.
+🔥 **Salir de confirmado cancela, no deja en pendiente.** Antes des-confirmar dejaba las filas en
+`pendiente`: con aspecto de activas, sin atenuar y dentro de los filtros habituales. Como
+renegociar y confirmar la **versión siguiente** del mismo expediente es rutina, el cuadro
+acababa mostrando los mismos días **dos veces** — y la reconciliación no lo arreglaba, porque
+trabaja por cotización y nunca ve las filas de la otra versión. Riesgo de pedir y pagar dos veces
+lo mismo.
+
+🔥 **Confirmar reactiva.** Sin eso, cancelar por error una cotización y volver a confirmarla al
+minuto dejaba sus filas en `cancelado` **para siempre**: la idempotencia impide regenerarlas y la
+reconciliación no toca `estadoOperacion` porque es del operador.
+
+⚠️ **`completado` es intocable.** Un servicio que se operó el martes se operó, y que el viernes
+se archive la cotización no lo deshace. `propagarEstadoOperacion()` lo salta en ambos sentidos:
+pisarlo borraría el registro de lo que de verdad ocurrió, que es justo lo que ese campo guarda.
 
 ### Espejos PHP ↔ TypeScript
 
@@ -396,8 +432,21 @@ cada servicio para asignarle el IRI de la OS. **No es transaccional**: si falla 
 OS con sólo parte de los servicios asociados.
 
 La vista sólo deja generar una OS si los servicios seleccionados comparten **expediente,
-proveedor y moneda**, ninguno pertenece ya a otra OS y **ninguno es de referencia**
-(`conflictoSeleccion` en `OperacionView.vue`). Una OS es una solicitud a un proveedor sobre un
+proveedor y moneda**, ninguno pertenece ya a otra OS y **todos son comprables**
+(`conflictoSeleccion` en `OperacionView.vue`).
+
+**Comprable** (`OperacionServicio::esComprable()`) es más estrecho que «no es referencia»:
+excluye además lo `cancelado` en la cotización y lo `reemplazado`. Los dos conservan tarifa, así
+que pasaban todas las demás comprobaciones — la vista los atenúa, pero **atenuar no impide
+marcar la casilla**, y el resultado era pedirle y pagarle a un proveedor un servicio que nadie
+va a usar.
+
+⚠️ La guarda es doble y las dos hacen falta: `setOrdenServicio()` vigila la **entrada**, y
+`verificarCoherenciaConOrdenServicio()` (`prePersist`/`preUpdate`) vigila que una fila que **ya
+está** en una OS no deje de ser comprable. Sin la segunda, aprobar en el panel un
+`modoComponente → no_incluido`, o que la tarifa desapareciera del árbol, convertía la fila en
+referencia **dentro** de una orden ya emitida: la OS acababa conteniendo un importe que no se
+debe y `totalOs` seguía sumándolo. Una OS es una solicitud a un proveedor sobre un
 expediente; mezclarlos produciría un documento que nadie puede firmar, y meterle una fila que
 nadie compra (§3.3) produciría un importe que no se debe.
 
@@ -405,9 +454,12 @@ Notas:
 
 - `numeroOs` es `unique` y **no tiene generador**: hoy lo propone la vista
   (`OS-YYYYMMDD-NNN`) y lo confirma el operador. Si choca, el POST falla.
-- `OperacionServicio.ordenServicio` es `onDelete: 'SET NULL'` — borrar una OS desasocia sus
-  servicios. Pero la colección tiene `orphanRemoval: true`, así que quitarlos **por la colección
-  de la OS sí los borra**. Usa siempre el `PATCH` del servicio.
+- 🔥 **Borrar una OS desasocia sus servicios; NO los borra.** Y durante un tiempo hizo lo
+  contrario: la colección tenía `cascade: ['remove']` + `orphanRemoval: true`, así que borrar
+  una OS equivocada para rehacerla se llevaba por delante las filas del cuadro con la hora
+  pactada por teléfono, el prestador y el costo real. Una OS es un documento de compra que
+  **agrupa** filas; las filas existen antes y después de ella. Hoy la colección no cascadea
+  nada y el `onDelete: 'SET NULL'` del lado propietario es el único efecto.
 - `OperacionMensaje` guarda `cuerpoHtml` ya renderizado. Es bitácora inmutable para resolver
   disputas con el proveedor, no un borrador editable.
 
@@ -678,7 +730,10 @@ cotizado, no contra la venta real.
 | **Filtrar qué componentes entran** (§9) | mismo archivo | `generarParaCotizacion()`, guard del bucle |
 | **Cambiar qué fila es "sólo referencia"** (§3.3) | `src/Operacion/Entity/OperacionServicio.php` | `isSoloReferencia()` — y regenerar `api.d.ts` |
 | Cambiar de dónde sale el prestador (§3.3.b) | `src/Cotizacion/Entity/CotizacionCotcomponente.php` **y** `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `resolverPrestador()` (espejo, se tocan los dos) |
-| Qué puede entrar en una Orden de Servicio | mismo archivo | `setOrdenServicio()` (guarda de dominio) |
+| Qué puede entrar en una Orden de Servicio | mismo archivo | `esComprable()` / `motivoNoComprable()`, y las DOS guardas: `setOrdenServicio()` + `verificarCoherenciaConOrdenServicio()` |
+| Qué pasa al salir o entrar en `confirmado` (§4) | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `confirmar()`, `propagarEstadoOperacion()` |
+| Qué impide borrar una fila sobrante | `src/Operacion/Service/BibliaReconciliacionService.php` | `motivoBloqueoBorrado()` |
+| Comportamiento al borrar de la cotización (§3.6) | `src/Operacion/Entity/OperacionServicio.php` | los `onDelete` de los `JoinColumn` |
 | Cambiar el texto de la fila | mismo archivo | `resolverDescripcion()` |
 | Cambiar qué tarifa manda cuando hay varias | mismo archivo | `resolverTarifaPrimaria()` |
 | Cambiar cómo se ubica la fila en el calendario | mismo archivo | `resolverFechaServicio()`, `resolverHoraRecojo()` |

@@ -93,8 +93,20 @@ class OperacionOrdenServicio
     /**
      * @var Collection<int, OperacionServicio>
      */
+    /**
+     * ⚠️ SIN `cascade: remove` ni `orphanRemoval`, y es deliberado.
+     *
+     * Los tenía, y convertían un gesto reversible en destrucción: borrar una OS
+     * equivocada para rehacerla se llevaba por delante las filas del cuadro de tráfico
+     * con todo lo que el operador había escrito a mano —hora pactada por teléfono,
+     * prestador, costo real, estados de reserva—. Una OS es un documento de compra que
+     * agrupa filas; las filas no le pertenecen, existen antes y después de ella.
+     *
+     * Ahora borrar la OS sólo desasocia (`onDelete: 'SET NULL'` en el lado propietario),
+     * que es lo que la documentación decía desde el principio y el mapeo desmentía.
+     */
     #[Groups(['operacion:read'])]
-    #[ORM\OneToMany(mappedBy: 'ordenServicio', targetEntity: OperacionServicio::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'ordenServicio', targetEntity: OperacionServicio::class)]
     private Collection $operacionServicios;
 
     /**

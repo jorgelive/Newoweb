@@ -12,6 +12,7 @@ use App\Operacion\ApiPlatform\Dto\CampoPropuesto;
 use App\Operacion\ApiPlatform\Dto\PlanReconciliacion;
 use App\Operacion\ApiPlatform\Dto\ResultadoAplicacion;
 use App\Operacion\Entity\OperacionServicio;
+use App\Operacion\Enum\EstadoReservaEnum;
 use DomainException;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -406,6 +407,17 @@ class BibliaReconciliacionService
         }
         if ((float) $fila->getCostoRealOperativo() !== 0.0) {
             return 'No se puede borrar: tiene costo real registrado y no está en ningún otro sitio.';
+        }
+
+        // La OS no es la única forma de haber comprometido algo. En la práctica media
+        // agencia reserva por teléfono o WhatsApp y lo anota aquí sin emitir orden: si
+        // el estado de reserva ya salió de `sin-solicitar`, hay un proveedor esperando.
+        // Borrar la fila deja esa reserva viva y sin rastro — y el no-show se factura.
+        if ($fila->getEstadoReserva() !== EstadoReservaEnum::SIN_SOLICITAR) {
+            return sprintf(
+                'No se puede borrar: está «%s» con el proveedor. Cancélalo con él y pon el estado en Sin Solicitar antes de quitarlo.',
+                $fila->getEstadoReserva()->value
+            );
         }
 
         return null;

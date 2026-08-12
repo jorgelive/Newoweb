@@ -58,19 +58,38 @@ class CotizacionConfirmadaEventListener
                 $nuevoEstado = CotizacionEstadoEnum::tryFrom($nuevoEstado);
             }
 
+            // Salir de CONFIRMADO cancela la operación; volver a entrar la reactiva.
+            //
+            // Antes, des-confirmar dejaba las filas en `pendiente`: con aspecto de
+            // activas, sin atenuar y dentro de los filtros habituales. Al confirmar la
+            // versión siguiente del mismo expediente —renegociar es rutina— el cuadro
+            // mostraba los mismos días DOS veces, y la reconciliación no lo arreglaba
+            // porque trabaja por cotización y nunca ve las filas de la otra versión.
+            // Riesgo de pedirle y pagarle dos veces lo mismo al proveedor.
             match ($nuevoEstado) {
-                CotizacionEstadoEnum::CONFIRMADO => $this->generarSnapshotBiblia($entity, $em, $uow),
-                CotizacionEstadoEnum::CANCELADO  => $this->propagarEstadoOperacion($entity, $em, $uow, EstadoOperacionEnum::CANCELADO),
+                CotizacionEstadoEnum::CONFIRMADO => $this->confirmar($entity, $em, $uow),
+                CotizacionEstadoEnum::CANCELADO,
                 CotizacionEstadoEnum::PENDIENTE,
                 CotizacionEstadoEnum::ENVIADO,
-                CotizacionEstadoEnum::ARCHIVADO  => $this->propagarEstadoOperacion($entity, $em, $uow, EstadoOperacionEnum::PENDIENTE),
+                CotizacionEstadoEnum::ARCHIVADO  => $this->propagarEstadoOperacion($entity, $em, $uow, EstadoOperacionEnum::CANCELADO),
                 default                          => null,
             };
         }
     }
 
-    private function generarSnapshotBiblia(Cotizacion $cotizacion, EntityManagerInterface $em, UnitOfWork $uow): void
+    /**
+     * Confirmar hace DOS cosas: reactivar lo que existía y generar lo que falte.
+     *
+     * La reactivación no es un extra: sin ella, cancelar una cotización por error y
+     * volver a confirmarla al minuto dejaba las 42 filas en `cancelado` para siempre.
+     * La idempotencia del snapshot impide que se regeneren, y la reconciliación tampoco
+     * lo arregla — `estadoOperacion` está en la lista de campos que jamás toca, porque
+     * es del operador.
+     */
+    private function confirmar(Cotizacion $cotizacion, EntityManagerInterface $em, UnitOfWork $uow): void
     {
+        $this->propagarEstadoOperacion($cotizacion, $em, $uow, EstadoOperacionEnum::PENDIENTE);
+
         $metadata = $em->getClassMetadata(OperacionServicio::class);
 
         foreach ($this->snapshot->generarParaCotizacion($cotizacion) as $ops) {
@@ -102,6 +121,18 @@ class CotizacionConfirmadaEventListener
         }
 
         foreach ($servicios as $ops) {
+            // Lo ya COMPLETADO no se toca, en ningún sentido. Un servicio que se operó
+            // el martes se operó, y que el viernes se archive la cotización no lo
+            // deshace: pisarlo con `pendiente` o `cancelado` borraría el registro de lo
+            // que de verdad ocurrió, que es justo lo que este campo existe para guardar.
+            if ($ops->getEstadoOperacion() === EstadoOperacionEnum::COMPLETADO) {
+                continue;
+            }
+
+            if ($ops->getEstadoOperacion() === $estado) {
+                continue;   // ya está: no ensuciar el changeset
+            }
+
             $ops->setEstadoOperacion($estado);
 
             // Recalcular los cambios para la entidad actualizada dentro del proceso de flush en curso

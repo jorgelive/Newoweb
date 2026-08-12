@@ -19,6 +19,7 @@ use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCotservicio;
 use App\Cotizacion\Entity\CotizacionCottarifa;
 use App\Cotizacion\Entity\CotizacionFile;
+use App\Cotizacion\Enum\ComponenteEstadoEnum;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Operacion\Enum\EstadoOperacionEnum;
@@ -96,19 +97,30 @@ class OperacionServicio
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?OperacionOrdenServicio $ordenServicio = null;
 
+    // ⚠️ Las tres referencias al árbol de la cotización eran RESTRICT, y eso hacía
+    // IMPOSIBLE el flujo que el módulo promete. El editor guarda el árbol entero con un
+    // PUT: lo que ya no está en el payload se orfaniza y Doctrine lo borra. Así que
+    // quitar un día, borrar un componente o —lo más común de todo— reemplazar una
+    // tarifa en una cotización ya confirmada terminaba en violación de FK: un 500 en
+    // mitad del guardado, sin mensaje que explicara nada.
+    //
+    // CASCADE en las tres: si el componente, el día o el expediente desaparecen de la
+    // cotización, la fila de tráfico se queda sin origen y no significa nada. Se pierde
+    // lo que el operador hubiera escrito en ella, sí — pero es la consecuencia de que
+    // una persona decidiera que ese servicio ya no va, no un accidente del sistema.
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionFile::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
 
     #[Groups(['operacion:item:read'])]
     #[ORM\ManyToOne(targetEntity: CotizacionCotservicio::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionCotservicio $cotizacionServicio = null;
 
     #[Groups(['operacion:item:read'])]
     #[ORM\ManyToOne(targetEntity: CotizacionCotcomponente::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionCotcomponente $cotizacionComponente = null;
 
     /**
@@ -121,8 +133,11 @@ class OperacionServicio
      * isSoloReferencia() y docs/Operacion.md §3.3.
      */
     #[Groups(['operacion:item:read', 'operacion:write'])]
+    // SET NULL y no CASCADE: sustituir una tarifa por otra es rutina de negociación, y
+    // la fila tiene que sobrevivir para que la reconciliación le ponga la nueva. Con
+    // CASCADE, cambiar de proveedor borraría el servicio del cuadro de tráfico.
     #[ORM\ManyToOne(targetEntity: CotizacionCottarifa::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?CotizacionCottarifa $cotizacionTarifa = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
@@ -300,6 +315,39 @@ class OperacionServicio
             || $this->modoComponente === ComponenteModoEnum::NO_INCLUIDO->value;
     }
 
+    /**
+     * ¿Se le puede pedir formalmente a un proveedor?
+     *
+     * Es más estrecho que `!isSoloReferencia()`: además de lo que no se compra, quedan
+     * fuera los servicios que **ya no se operan**. Un componente cancelado por el
+     * cliente o sustituido por otro conserva su tarifa, así que pasaba todas las
+     * comprobaciones anteriores y podía colarse en una Orden de Servicio junto al resto
+     * del día — la vista los atenúa, pero atenuar no impide marcar la casilla. El
+     * resultado era pedirle y pagarle a un proveedor un servicio que nadie va a usar.
+     */
+    public function esComprable(): bool
+    {
+        return !$this->isSoloReferencia()
+            && $this->estadoComponente !== ComponenteEstadoEnum::CANCELADO->value
+            && $this->modoComponente !== ComponenteModoEnum::REEMPLAZADO->value;
+    }
+
+    /** Motivo por el que no se puede comprar, o null si sí se puede. Se muestra al operador. */
+    public function motivoNoComprable(): ?string
+    {
+        if ($this->isSoloReferencia()) {
+            return 'está en La Biblia sólo como referencia (no incluido o sin tarifa): no se le compra a ningún proveedor';
+        }
+        if ($this->estadoComponente === ComponenteEstadoEnum::CANCELADO->value) {
+            return 'está cancelado en la cotización: pedirlo sería comprar algo que el cliente no quiere';
+        }
+        if ($this->modoComponente === ComponenteModoEnum::REEMPLAZADO->value) {
+            return 'fue reemplazado por otro servicio en la cotización';
+        }
+
+        return null;
+    }
+
     public function getOrdenServicio(): ?OperacionOrdenServicio { return $this->ordenServicio; }
 
     public function setOrdenServicio(?OperacionOrdenServicio $ordenServicio): self
@@ -308,16 +356,48 @@ class OperacionServicio
         // compra a un proveedor, y meterle un servicio que nadie compra produce un
         // documento con un importe que no se debe. API Platform mapea DomainException
         // a 422 (config/packages/api_platform.yaml), así que el PATCH devuelve el motivo.
-        if ($ordenServicio !== null && $this->isSoloReferencia()) {
+        if ($ordenServicio !== null && ($motivo = $this->motivoNoComprable()) !== null) {
             throw new \DomainException(sprintf(
-                '«%s» está en La Biblia sólo como referencia (no incluido o sin tarifa): no se le compra a ningún proveedor y no puede entrar en una Orden de Servicio.',
-                $this->descripcionServicio ?? 'El servicio'
+                '«%s» %s, y no puede entrar en una Orden de Servicio.',
+                $this->descripcionServicio ?? 'El servicio',
+                $motivo
             ));
         }
 
         $this->ordenServicio = $ordenServicio;
 
         return $this;
+    }
+
+    /**
+     * Guarda simétrica de la anterior: una fila que YA está en una Orden de Servicio no
+     * puede dejar de ser comprable.
+     *
+     * `setOrdenServicio()` sólo vigila la entrada, y con eso no basta: la reconciliación
+     * puede aprobar un `modoComponente → no_incluido`, o dejar la tarifa en null al
+     * desaparecer del árbol, y la fila se convertía en referencia **dentro** de una OS ya
+     * emitida. La OS quedaba conteniendo un importe que no se debe, y `totalOs` seguía
+     * sumándolo.
+     *
+     * Se llama desde prePersist/preUpdate: cubre por igual la reconciliación, un PATCH
+     * suelto y el comando de consola, que es justo lo que la guarda de entrada no cubría.
+     */
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function verificarCoherenciaConOrdenServicio(): void
+    {
+        if ($this->ordenServicio === null) {
+            return;
+        }
+
+        if (($motivo = $this->motivoNoComprable()) !== null) {
+            throw new \DomainException(sprintf(
+                '«%s» pertenece a la Orden de Servicio %s y ahora %s. Sácalo de la orden antes de aplicar este cambio.',
+                $this->descripcionServicio ?? 'El servicio',
+                $this->ordenServicio->getNumeroOs() ?? '(sin número)',
+                $motivo
+            ));
+        }
     }
 
     public function getFile(): ?CotizacionFile { return $this->file; }
