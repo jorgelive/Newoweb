@@ -519,6 +519,14 @@ alguien ya abrió el chat (`unreadCount === 0`).
 
 ### 🔥 La espera de ráfaga ya no es un número fijo
 
+> **La ventana bajó de 40 a 15 s en agosto de 2026.** Remedidas las **1.950 continuaciones**
+> reales del histórico, la curva es plana y de cola larga —10s: 12 %, 20s: 23 %, 30s: 29 %,
+> 40s: 34 %, 60s: 43 %, 120s: 64 %—: no existe el punto donde «ya está». Cada 10 s compran unos
+> 5 puntos, y a cambio la latencia observada en esos mensajes era de **47-75 segundos**. Los 16
+> puntos que se pierden no quedan desprotegidos: la segunda mirada de ráfaga descarta la
+> respuesta si el huésped escribió mientras se generaba. La espera es el cinturón; esa
+> comprobación, los tirantes.
+
 Era `AGENT_IA_ESPERA_RAFAGA` para todos. Medido sobre 873 mensajes reales (mayo-agosto 2026),
 un número fijo fallaba por los dos lados: los 20 s solo capturaban el **37 %** de las
 continuaciones —al que escribe despacio se le contestaba a medias igual— y el **81 %** de los
@@ -1185,7 +1193,7 @@ respuesta del propio bot redefina el idioma del huésped es un bucle esperando a
 | `ANTHROPIC_MODEL` / `GOOGLE_AI_MODEL` | Modelo por defecto de cada proveedor |
 | `ANTHROPIC_MODELS` / `GOOGLE_AI_MODELS` | Lista blanca de modelos que el panel puede pedir — §12 |
 | `AGENT_IA_AUTORESPONDER` | Interruptor del bot del huésped. **Arranca en `0`** |
-| `AGENT_IA_ESPERA_RAFAGA` | Segundos de silencio antes de contestar a un `free_text`. `20`; `0` lo desactiva. Se suma a `check_delayed_interval` — sección anterior |
+| `AGENT_IA_ESPERA_RAFAGA` | Segundos de silencio antes de contestar a un `free_text`. **`15`**; `0` lo desactiva. Sólo se aplica cuando el pre-router dice que el huésped sigue escribiendo (~15 % del tráfico). Se suma a `check_delayed_interval` — sección anterior |
 | `AGENT_IA_TRIAJE` | Interruptor del clasificador de entrada. Con `0`, todo va por el camino largo con el catálogo entero, como antes — §13 |
 | `AGENT_IA_TRIAJE_POTENCIA` | Tramo del clasificador: `alta` \| `media`. Nunca `baja`: corre en TODOS los mensajes — §13.5 |
 | `AGENT_IA_POTENCIA_ALTA` / `_MEDIA` / `_BAJA` | Qué `proveedor:modelo` atiende cada paso. Pueden cruzar proveedores. Vacías = el de `AGENT_IA_PROVEEDOR` — §13.5 |
