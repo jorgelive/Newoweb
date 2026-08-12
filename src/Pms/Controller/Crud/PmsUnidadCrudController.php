@@ -307,8 +307,9 @@ final class PmsUnidadCrudController extends BaseCrudController
             ->renderAsSwitch(true)
             ->setHelp(
                 'Cambia cómo se lee el número de arriba: apagado, <code>15.00</code> son 15 '
-                . 'dólares; encendido, es un <strong>15% del ALOJAMIENTO</strong> — el '
-                . 'suplemento por persona no entra en esa base, al revés que el % de servicio. '
+                . 'dólares; encendido, es un <strong>15% sobre alojamiento + suplemento por '
+                . 'persona</strong> (la misma base que el % de servicio: más gente ensucia '
+                . 'más). La limpieza no entra en su propia base. '
                 . 'En 0.00 no se cobra limpieza y no aparece en la cotización, esté como esté '
                 . 'este interruptor.'
             );

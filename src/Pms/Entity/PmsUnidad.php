@@ -193,7 +193,7 @@ class PmsUnidad
      * vez, y una semana no ensucia siete veces.
      *
      * Se lee de dos formas según {@see $limpiezaEsPorcentaje}: `15.00` es «15.00 USD» o «15%
-     * del alojamiento». En `0.00` no se cobra —y entonces no aparece en la cotización ni como
+     * sobre alojamiento + suplemento». En `0.00` no se cobra —y entonces no aparece en la cotización ni como
      * línea de cero—, tenga el flag el valor que tenga.
      *
      * Se cobra en todos los canales, a diferencia de {@see $porcentajeServicio}. Antes vivía
@@ -269,11 +269,14 @@ class PmsUnidad
      * la pregunta «¿cuál manda si las dos tienen valor?» no tiene respuesta escrita en el dato
      * —sólo en el código— y basta olvidarse de poner una a cero para cobrar lo que no era.
      *
-     * ⚠️ La base es el ALOJAMIENTO SOLO: el suplemento por persona NO entra. Es distinta de la
-     * base de {@see $porcentajeServicio}, que sí lo incluye, y la diferencia es deliberada —se
-     * eligió que la limpieza se explique como «el 15% de la tarifa» y no como un número que
-     * sube con cada acompañante—. Las dos reglas viven cada una en su método y no se derivan
-     * una de otra.
+     * La base es **alojamiento + suplemento por persona**, la misma que {@see $porcentajeServicio}:
+     * más gente ensucia más, así que la limpieza sube con el grupo.
+     *
+     * ⚠️ Que hoy coincidan NO las hace la misma regla. Cada una vive en su método
+     * ({@see self::costoLimpieza()} y {@see self::servicioSobre()}) y **no se deriva de la
+     * otra**, por el mismo motivo por el que `IMPIDEN_VENTA` y `OCUPAN_UNIDAD` se declaran
+     * aparte aunque coincidan: responden preguntas distintas. El día que la limpieza deje de
+     * contar los acompañantes, se cambia aquí sin tocar lo que cobra Booking.
      */
     #[ORM\Column(name: 'limpieza_es_porcentaje', type: 'boolean', options: ['default' => false])]
     #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
@@ -521,19 +524,18 @@ class PmsUnidad
     /**
      * La limpieza de toda la estancia. **No se multiplica por noches**: se limpia al salir.
      *
-     * Dos formas de cobrarla y un orden claro: si hay PORCENTAJE puesto, manda; si no, el
-     * importe fijo; y si los dos están en 0, no se cobra —y entonces la cotización no la
+     * Un importe y un interruptor: `15.00` son 15.00 de dinero o el 15% de `$base` según
+     * {@see $limpiezaEsPorcentaje}. En `0.00` no se cobra —y entonces la cotización no la
      * menciona siquiera, ni como línea de cero—.
      *
-     * El porcentaje va sobre el ALOJAMIENTO SOLO, sin el suplemento por persona: se eligió
-     * poder explicarlo como «el 15% de la tarifa» en vez de como un número que sube con cada
-     * acompañante. Ojo: NO es la misma base que `servicioSobre()`, y no se derivan una de otra
-     * a propósito.
+     * `$base` es **alojamiento + suplemento por persona**: más gente ensucia más. Coincide hoy
+     * con la de `servicioSobre()` y aun así se pasa por separado, porque son dos reglas
+     * distintas que hoy dan lo mismo (ver la nota de `$limpiezaEsPorcentaje`).
      *
      * Recibe las noches sólo para no cobrarla en un tramo vacío, que es un error de llamada,
      * no una estancia de cero noches.
      */
-    public function costoLimpieza(int $noches, float $alojamiento = 0.0): float
+    public function costoLimpieza(int $noches, float $base = 0.0): float
     {
         if ($noches < 1) {
             return 0.0;
@@ -545,7 +547,7 @@ class PmsUnidad
             return 0.0;
         }
 
-        return $this->limpiezaEsPorcentaje ? $alojamiento * $valor / 100.0 : $valor;
+        return $this->limpiezaEsPorcentaje ? $base * $valor / 100.0 : $valor;
     }
 
     /** ¿La limpieza de esta casita se cobra a porcentaje? */

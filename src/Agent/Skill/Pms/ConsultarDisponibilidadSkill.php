@@ -679,7 +679,10 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                     $resumen['limpieza'],
                     $moneda,
                     $resumen['limpieza_porcentaje'] > 0.0
-                        ? sprintf('%s%% del alojamiento', $this->pct($resumen['limpieza_porcentaje']))
+                        ? sprintf(
+                            '%s%% sobre alojamiento + suplemento',
+                            $this->pct($resumen['limpieza_porcentaje'])
+                        )
                         : 'importe fijo'
                 )
                 : null,

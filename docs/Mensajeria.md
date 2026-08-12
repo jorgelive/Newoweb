@@ -4486,15 +4486,21 @@ teclear el número.
 El parque pasará a porcentaje casita por casita, no de golpe: por eso es configurable por unidad
 y no un ajuste global.
 
-⚠️ **La base del porcentaje es el ALOJAMIENTO SOLO**, sin el suplemento por persona — al revés
-que `porcentaje_servicio`, que sí lo incluye. La diferencia está elegida: la limpieza se explica
-como «el 15% de la tarifa» y no como un número que sube con cada acompañante. Cada regla vive en
-su método (`costoLimpieza()` y `servicioSobre()`) y **no se derivan una de otra**, aunque hoy se
-parezcan.
+**La base del porcentaje es alojamiento + suplemento por persona**, la misma que
+`porcentaje_servicio`: más gente ensucia más, así que la limpieza sube con el grupo. Lo que no
+entra en ninguna de las dos bases es la limpieza misma — el servicio no se cobra sobre ella, y
+ella no se cobra sobre sí misma.
+
+⚠️ **Que las dos bases coincidan no las hace la misma regla.** Cada una vive en su método
+(`costoLimpieza()` y `servicioSobre()`) y **no se deriva de la otra**, por el mismo motivo por el
+que `IMPIDEN_VENTA` y `OCUPAN_UNIDAD` se declaran aparte aunque coincidan: responden preguntas
+distintas. El día que la limpieza deje de contar los acompañantes, se cambia en su método sin
+tocar lo que cobra Booking.
 
 ```
 Casita 2 · 7 personas · 2 noches · limpieza 15%
-  45.00 × 2 = 90.00 + 3 personas adicionales = 36.00 + limpieza 15% = 13.50 → TOTAL 139.50
+  45.00 × 2 = 90.00 + 3 personas adicionales = 36.00 + limpieza 15% = 18.90 → TOTAL 144.90
+                                                      └─ 15% de (90.00 + 36.00)
 ```
 
 Antes no existía como concepto: se tecleaba a mano en `pms_cargo_financiero` como «suplemento de

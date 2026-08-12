@@ -95,9 +95,9 @@ final readonly class PmsTarifaCalculadora
      * Va **por estancia y no por noche** ({@see PmsUnidad::costoLimpieza()}): se limpia al
      * salir, una vez. Se cobra en todos los canales y entra en el total siempre.
      *
-     * El mismo campo se lee como importe o como PORCENTAJE del alojamiento —sin el suplemento
-     * por persona— según el flag de la unidad. En 0 no se cobra, y entonces no aparece ni como
-     * línea de cero.
+     * El mismo campo se lee como importe o como PORCENTAJE sobre alojamiento + suplemento,
+     * según el flag de la unidad. En 0 no se cobra, y entonces no aparece ni como línea de
+     * cero.
      *
      * ### 🏷️ El servicio de la OTA
      *
@@ -106,7 +106,8 @@ final readonly class PmsTarifaCalculadora
      * huésped acaba pagando allí con lo que se cotiza aquí.
      *
      * ⚠️ Su base es alojamiento + suplemento, **sin la limpieza** — la regla vive en
-     * {@see PmsUnidad::servicioSobre()} y no se reescribe aquí.
+     * {@see PmsUnidad::servicioSobre()} y no se reescribe aquí. Es la misma base que usa el
+     * porcentaje de limpieza, y aun así son dos reglas separadas: coinciden, no son una.
      *
      * Sin `$canalId` no se aplica: una cotización sin canal es un directo o un tanteo, y
      * ninguno de los dos paga servicio. El porcentaje y los canales viajan igualmente en la
@@ -156,14 +157,16 @@ final readonly class PmsTarifaCalculadora
         )));
         sort($precios);
 
-        // La base del PORCENTAJE de limpieza es el alojamiento SOLO —sin el suplemento por
-        // persona—, a diferencia de la del servicio. La decide `costoLimpieza()`; aquí sólo se
-        // le entrega lo que necesita.
-        $limpieza = $unidad->costoLimpieza($noches, $alojamiento);
+        // Las dos bases son hoy la MISMA —alojamiento + suplemento— y aun así se calculan por
+        // separado: son dos reglas distintas que coinciden, no una sola. Cada `%` decide en su
+        // método; aquí sólo se les entrega lo que cuenta.
+        //
+        // Lo que NO entra en ninguna de las dos es la limpieza: el servicio no se cobra sobre
+        // ella, y ella no se cobra sobre sí misma.
+        $base = $alojamiento + $suplemento;
 
-        // La base del servicio NO incluye la limpieza. Quién lo decide es `servicioSobre()`;
-        // aquí sólo se le entrega lo que sí cuenta.
-        $servicio = $unidad->servicioSobre($alojamiento + $suplemento, $canalId);
+        $limpieza = $unidad->costoLimpieza($noches, $base);
+        $servicio = $unidad->servicioSobre($base, $canalId);
 
         return [
             'total' => $noches > 0 ? $alojamiento + $suplemento + $limpieza + $servicio : null,
