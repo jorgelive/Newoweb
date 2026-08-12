@@ -108,8 +108,35 @@ final class Beds24WebhookController extends AbstractController
             }
 
             // =================================================================
-            // 🔥 EVALUACIÓN DE LA VENTANA DE 10 MINUTOS 🔥
+            // ⏳ EL COLCHÓN DE 15 SEGUNDOS
             // =================================================================
+            //
+            // Qué hace, exactamente: un evento RECIENTE espera 15 s antes de procesarse; uno
+            // viejo —o un reenvío desde el CRUD de auditoría— entra directo. La frontera son
+            // 10 minutos sobre `modifiedTime`/`bookingTime` del propio payload, y se compara
+            // en valor ABSOLUTO: también entra directo un evento con fecha futura, que es lo
+            // que pasa cuando el reloj de Beds24 va adelantado.
+            //
+            // ⚠️ POR QUÉ 15 Y NO OTRO NÚMERO: **no está registrado.** Llegó con el refactor a
+            // webhook asíncrono (d780814, 19/03/2026) sin explicación ni prueba, y no se
+            // deduce del código. Lo que sí se ha comprobado al revisarlo:
+            //
+            //  · NO es para esperar a la API de Beds24. El payload trae la reserva y el
+            //    handler la procesa él mismo; quien consulta la API es el cron
+            //    `Beds24MessageReceiveJob`, por otra cola y sin relación con esto.
+            //  · NO evitó la carrera que perdió dos mensajes el 23/03 —«Reserva no
+            //    encontrada»—: aquélla ocurría en la cola del pull, no aquí, y se arregló
+            //    reintentando en vez de marcar éxito (ver Beds24ReceiveHandler).
+            //  · La hipótesis que queda en pie es el ECO de nuestros propios push: mandamos un
+            //    cambio a Beds24, Beds24 nos lo devuelve como webhook, y procesarlo al
+            //    instante se cruza con nuestra propia escritura. Encaja con que sólo se
+            //    aplique a eventos recientes y con que el handler entre en
+            //    `SyncContext::MODE_PULL`. **Es una hipótesis, no una certeza.**
+            //
+            // Antes de tocarlo: mide. Son 15 s en la latencia de CADA mensaje que entra por
+            // Beds24 —el canal de las OTA—, así que quitarlo es tentador; pero si la hipótesis
+            // del eco es cierta, quitarlo devuelve un bucle de sincronización que no se ve
+            // hasta que descuadra una reserva.
             $applyDelay = true; // Por defecto aplicamos seguridad
 
             if ($eventTimestamp !== null) {

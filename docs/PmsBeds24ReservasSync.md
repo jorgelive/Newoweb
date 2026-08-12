@@ -116,6 +116,38 @@ PmsEventoBeds24Link  (Puente técnico Evento ↔ Beds24)
 - `src/Pms/DispatchHandler/ProcessBeds24WebhookDispatchHandler.php`
 - `src/Pms/Service/Beds24/Webhook/Beds24WebhookBookingFastTrackService.php`
 
+### 3.0 ⏳ El colchón de 15 segundos (y por qué no se toca sin medir)
+
+Antes de encolar nada, el controlador decide si el trabajo espera:
+
+```
+evento RECIENTE (≤10 min)   →  DelayStamp(15 s)
+evento VIEJO o reenviado    →  entra directo
+```
+
+La frontera son 10 minutos sobre `modifiedTime` —o `bookingTime` si falta— del propio payload,
+comparados en valor **absoluto**: también entra directo un evento con fecha futura, que es lo que
+ocurre cuando el reloj de Beds24 va adelantado.
+
+**Consecuencia medida:** los mensajes que entran por Beds24 tardan ~15 s más que los de WhatsApp
+en empezar a procesarse. En una traza del 12/08 se ven tres `Sending → Received` separados por 15
+segundos clavados; no era contención de workers, era esto.
+
+⚠️ **Por qué 15 y no otro número: no está registrado.** Llegó con el refactor a webhook asíncrono
+(`d780814`, 19/03/2026) sin explicación ni prueba. Al revisarlo en agosto de 2026 se descartaron
+dos motivos plausibles y quedó uno en pie:
+
+| Hipótesis | Veredicto |
+|---|---|
+| Esperar a que la API de Beds24 tenga el dato | **No.** El payload trae la reserva y el handler la procesa él mismo; quien consulta la API es el cron `Beds24MessageReceiveJob`, por otra cola |
+| Evitar la carrera que perdió dos mensajes el 23/03 | **No.** Aquélla ocurría en la cola del pull, no aquí, y se arregló reintentando en vez de marcar éxito (§10) |
+| Evitar el ECO de nuestro propio push | **Es la que queda.** Mandamos un cambio, Beds24 nos lo devuelve como webhook, y procesarlo al instante se cruza con nuestra propia escritura. Encaja con que sólo se aplique a eventos recientes y con que el handler entre en `SyncContext::MODE_PULL` — pero es una hipótesis, no una certeza |
+
+**Antes de tocarlo, mide.** Son 15 s en la latencia de cada mensaje del canal de las OTA, así que
+quitarlo es tentador. Pero si la hipótesis del eco es cierta, quitarlo devuelve un bucle de
+sincronización que no se ve hasta que descuadra una reserva — y ése es justo el tipo de fallo que
+este proyecto considera el peor: silencioso y tardío.
+
 ### 3.1 Recepción (Síncrona, < 5ms)
 
 ```
