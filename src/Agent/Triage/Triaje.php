@@ -110,7 +110,7 @@ final readonly class Triaje
     public function __construct(
         private SelectorDePotencia $potencias,
         private SkillRegistry $skills,
-        private IndiceDeGuia $indiceDeGuia,
+        private IndiceDeTemasRegistry $indices,
         private LoggerInterface $logger,
         private bool $habilitado,
         private string $potencia,
@@ -161,19 +161,21 @@ final readonly class Triaje
         $indice = '';
         $nombres = array_map(static fn (SkillInterface $s): string => $s->nombre(), $skills);
 
-        if (in_array('consultar_guia', $nombres, true)) {
-            $guia = $this->indiceDeGuia->construir();
-            $indice = $guia['bloque'];
+        // Qué temas hay y cuáles le tocan lo sabe el DOMINIO. Aquí antes se cruzaba a mano el
+        // mapa `porUnidad`, se hablaba de «su casita» y se comprobaba el nombre literal de una
+        // skill del PMS: cuatro conceptos de alojamiento dentro del clasificador de mensajes,
+        // que no tiene por qué saber de qué negocio se habla.
+        $indiceDeTemas = $this->indices->para($actor->contextoTipo(), $nombres);
 
-            $unidades = $this->indiceDeGuia->unidadesDelActor($actor);
-            foreach (array_keys($unidades) as $unidadId) {
-                $temasPermitidos = [...$temasPermitidos, ...($guia['porUnidad'][$unidadId] ?? [])];
-            }
+        if ($indiceDeTemas !== null) {
+            $indice = $indiceDeTemas->bloqueParaElPrompt();
+            $temasPermitidos = $indiceDeTemas->temasPermitidos($actor);
 
-            // La casita va en lo volátil, nunca en el bloque cacheado: es lo único del índice
-            // que cambia por conversación.
-            if ($unidades !== []) {
-                $contexto = trim($contexto . "\n" . 'Su casita: ' . implode(' y ', $unidades) . '.');
+            // Lo que cambia por conversación va en lo volátil, nunca en el bloque cacheado.
+            $linea = $indiceDeTemas->lineaVolatil($actor);
+
+            if ($linea !== '') {
+                $contexto = trim($contexto . "\n" . $linea);
             }
         }
 
@@ -294,7 +296,7 @@ final readonly class Triaje
      * triaje sola.
      *
      * @param list<SkillInterface> $skills
-     * @param string $indiceGuia Bloque global de temas de la guía ({@see IndiceDeGuia}). Es
+     * @param string $indiceGuia Bloque global de temas de la guía ({@see \App\Message\Contract\IndiceDeTemasInterface}). Es
      *        estable entre conversaciones, así que puede vivir dentro del bloque cacheado.
      */
     private function reglas(array $skills, string $indiceGuia = ''): string

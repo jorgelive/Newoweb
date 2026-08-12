@@ -4230,7 +4230,7 @@ que el de avisar de más — y por eso el propio prompt del triaje le dice que a
 #### El índice global de la guía: el triaje elige el tema exacto
 
 El triaje lleva en su bloque cacheado un **índice global** de temas de la guía
-(`IndiceDeGuia::construir()`): una línea por ítem con su uuid, su etiqueta y en qué casitas
+(`PmsIndiceDeTemas::bloqueParaElPrompt()`): una línea por ítem con su uuid, su etiqueta y en qué casitas
 aplica. Con él, el JSON del triaje puede traer `tema_id`, y el camino largo llama a
 `consultar_guia(tema_id)` **directo al contenido**: se ahorra la vuelta entera de pedir el
 catálogo (segundo pase del prefijo de 2 596 tokens + el catálogo como resultado de
@@ -4256,7 +4256,7 @@ huésped es la línea volátil «Su casita: X» y la validación:
 El índice pesa **~787 tokens cacheados** (39 temas, 7 unidades) y se reescribe el caché solo
 cuando alguien edita la guía, que es lo correcto. 🚧 Crece O(casitas × ítems propios): si el
 parque crece hasta que pese miles de tokens, la compresión prevista es sustituir el uuid por
-un ordinal y mapear ordinal→uuid en `IndiceDeGuia` al interpretar — el mapa se reconstruye en
+un ordinal y mapear ordinal→uuid en `PmsIndiceDeTemas` al interpretar — el mapa se reconstruye en
 la misma petición con la misma consulta, así que no puede desincronizarse del prompt.
 
 La **pista** sigue existiendo como red: si el triaje no pudo fijar el ítem, la palabra alimenta
@@ -5106,9 +5106,9 @@ arreglar** — ver el aviso al final de esta sección.
 | Cambiar qué cuenta como emergencia | `Triaje::reglas()` | El prompt, no un regex. Ante la duda elige `emergencia` a propósito, §13.2 |
 | Que el triaje ofrezca otra clase de mensaje | `TipoDeMensaje` | El `case` **y** `opciones()`, que es lo que ve el modelo — `Indeterminado` se omite a propósito, §13.2 |
 | Que la sugerencia del triaje mande de verdad | `AiConversationProcessor::pistaDelTriaje()` | Está redactada como sugerencia a propósito: §13.8. Piénsalo antes |
-| Cambiar qué temas de la guía ve el triaje | `IndiceDeGuia::construir()` | Índice GLOBAL (uuid + etiqueta + casitas), determinista para no romper el caché. Lee `getTitulo()`, no `getTituloParaCliente()` (transitorio, llega vacío), §13.8 |
+| Cambiar qué temas de la guía ve el triaje | `PmsIndiceDeTemas::bloqueParaElPrompt()` | Índice GLOBAL (uuid + etiqueta + casitas), determinista para no romper el caché. Lee `getTitulo()`, no `getTituloParaCliente()` (transitorio, llega vacío), §13.8 |
 | Cambiar cómo se valida el tema que propuso el triaje | `Triaje::interpretar()` | Contra los temas de LA CASITA (`porUnidad`), no contra el índice entero, §13.8 |
-| Comprimir el índice de guía cuando el parque crezca | `IndiceDeGuia` | 🚧 uuid → ordinal con mapa reconstruido por petición; el umbral y el porqué, en su docblock y §13.8 |
+| Comprimir el índice de guía cuando el parque crezca | `PmsIndiceDeTemas` | 🚧 uuid → ordinal con mapa reconstruido por petición; el umbral y el porqué, en su docblock y §13.8 |
 | Ajustar qué puede decir el bot en la charla (y cuándo ofrece ayuda) | `Triaje::reglas()` | Las reglas de la «respuesta» viven en el prompt del clasificador. La seguridad viene de que NO hay herramientas, §13.7 |
 | Añadir una llamada sin herramientas a un motor nuevo | `AgentEngineInterface` | `turnoDirecto()` — con esquema, la salida la fuerza el proveedor, §13.6 |
 | Que un esquema JSON funcione también en Gemini | `GoogleAIEngine::esquemaGemini()` | Gemini rechaza `additionalProperties` y los `type` en lista con un 400, §13.6 |
@@ -6234,7 +6234,41 @@ escribe.
 
 Resultado: `grep 'App\Pms\' src/Agent/Service/AiConversationProcessor.php` devuelve **cero**.
 
-Lo que sigue acoplado al PMS dentro de `src/Agent/`: `Triage/IndiceDeGuia.php` (usa `PmsGuia` y
-`PmsReserva`) y `Command/AgentReplayCommand.php`. Y las 30 skills, que siguen en `Skill/Pms/`
-— pero ésas son PMS por definición; lo que falta ahí es que `SkillRegistry::paraActor()` filtre
-por dominio además de por roles, para que un pasajero de tour no reciba `consultar_mi_reserva`.
+Lo que sigue acoplado al PMS dentro de `src/Agent/`: sólo las 30 skills de `Skill/Pms/` —que
+son PMS por definición— y `Command/AgentReplayCommand.php`, una herramienta de depuración.
+Ver §19.13.
+
+### 19.13 El índice de temas del triaje también lo pone el dominio
+
+Tercer y último corte al núcleo, después de los prompts de perfil (§19.6) y del contexto
+volátil (§19.12).
+
+`Triaje` construía la lista blanca de temas cruzando a mano el mapa `porUnidad` que le devolvía
+`IndiceDeGuia`, añadía «Su casita: …» al contexto y comprobaba con un literal si el actor tenía
+`consultar_guia`. Cuatro conceptos de alojamiento —unidades, casitas, el nombre de una skill del
+PMS y la forma del mapa— dentro del clasificador de mensajes, que no debería saber de qué
+negocio se habla.
+
+`IndiceDeTemasInterface` los esconde todos detrás de cuatro métodos:
+
+| Método | Qué devuelve |
+|---|---|
+| `skillQueLoHabilita()` | el nombre de la skill; el triaje ya no escribe ninguno |
+| `bloqueParaElPrompt()` | texto **estable entre conversaciones**: va en el prefijo cacheado |
+| `temasPermitidos(actor)` | la lista blanca ya cruzada; `porUnidad` no sale del dominio |
+| `lineaVolatil(actor)` | «Su casita: …», lo único que cambia por conversación |
+
+`IndiceDeGuia` pasó a ser `App\Pms\Service\Agent\PmsIndiceDeTemas`. La lógica del índice no
+se tocó: sigue siendo global y determinista, con su orden estable por etiqueta y uuid, porque de
+eso depende que el caché del prompt acierte.
+
+⚠️ El registro de índices **no tiene dominio por defecto**, al contrario que el de
+instrucciones. Un prospecto sin contexto necesita el prompt de venta de algún negocio —de ahí
+aquel default—, pero no tiene temas que consultar: sin índice, el triaje no ofrece elegir tema,
+que es lo correcto y no una degradación.
+
+**Resultado del conjunto:** `Service`, `Conversation`, `Triage` y `Access` no importan una sola
+clase de `App\Pms\`. Lo único que queda dentro de `src/Agent/` son las 30 skills de
+`Skill/Pms/` —PMS por definición, y lo que les falta es que `SkillRegistry::paraActor()` filtre
+por dominio además de por roles, para que un pasajero de tour no reciba `consultar_mi_reserva`—
+y `AgentReplayCommand`, una herramienta de depuración.

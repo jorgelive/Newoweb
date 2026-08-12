@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Agent\Triage;
+namespace App\Pms\Service\Agent;
 
 use App\Agent\Access\ActorInterface;
+use App\Message\Contract\IndiceDeTemasInterface;
 use App\Pms\Entity\PmsGuia;
 use App\Pms\Entity\PmsReserva;
 use Doctrine\ORM\EntityManagerInterface;
@@ -41,8 +42,55 @@ use Symfony\Component\Uid\Uuid;
  *
  * Ver docs/Mensajeria.md §13.8.
  */
-final readonly class IndiceDeGuia
+final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
 {
+    private const string CONTEXTO_RESERVA = 'pms_reserva';
+
+    public function supports(?string $contextType): bool
+    {
+        return self::CONTEXTO_RESERVA === $contextType;
+    }
+
+    /**
+     * Sin `consultar_guia` el índice sobra: sería ofrecerle elegir un tema que luego no puede
+     * consultar. Antes esta comprobación estaba en `Triaje` con el nombre escrito a mano.
+     */
+    public function skillQueLoHabilita(): string
+    {
+        return 'consultar_guia';
+    }
+
+    public function bloqueParaElPrompt(): string
+    {
+        return $this->construir()['bloque'];
+    }
+
+    /**
+     * Los temas de las casitas del huésped. El cruce con `porUnidad` vivía en `Triaje`, que
+     * para hacerlo tenía que conocer la forma del mapa y hablar de unidades.
+     *
+     * @return list<string>
+     */
+    public function temasPermitidos(ActorInterface $actor): array
+    {
+        $guia = $this->construir();
+        $permitidos = [];
+
+        foreach (array_keys($this->unidadesDelActor($actor)) as $unidadId) {
+            $permitidos = [...$permitidos, ...($guia['porUnidad'][$unidadId] ?? [])];
+        }
+
+        return array_values(array_unique($permitidos));
+    }
+
+    /** La casita, que es lo único del índice que cambia por conversación. */
+    public function lineaVolatil(ActorInterface $actor): string
+    {
+        $unidades = $this->unidadesDelActor($actor);
+
+        return $unidades === [] ? '' : 'Su casita: ' . implode(' y ', $unidades) . '.';
+    }
+
     public function __construct(
         private EntityManagerInterface $em,
     ) {}
