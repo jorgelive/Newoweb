@@ -5593,6 +5593,48 @@ Se guardó copia de sus 7 idiomas con sus ids antes de tocar nada. Y ojo: borrar
 **bloquea reutilizar ese nombre unos 30 días**, cosa que aquí da igual porque la plantilla viva
 se llama `welcome_booking_command`.
 
+### 🧭 El catálogo de tours: un enlace, no una lista
+
+`menu_tours` llevaba el catálogo entero pegado en el cuerpo —ocho tours con precios, horarios y
+entradas— y por eso no se podía subir a Meta: **3701-4228 caracteres frente a un tope de 1024**.
+
+Desde `Version20260812210000` el cuerpo es corto (209-252 caracteres según idioma) y el detalle
+vive en el catálogo de pax. Los tres canales cambian a la vez, porque los tres enseñaban la
+misma lista:
+
+| Columna | Qué lleva |
+|---|---|
+| `whatsapp_meta_tmpl` | cuerpo corto + botón `url` «Ver tours y precios» (`resolver_key: tours_catalog_path`) |
+| `beds24_tmpl` | el mismo texto con `{{ tours_catalog_url }}` escrito en el cuerpo |
+| `whatsapp_link_tmpl` | ídem, para el enlace manual desde la reserva |
+
+En Beds24 va con `disable_meta_buttons = true` y el enlace dentro del texto, igual que
+`welcome_airbnb` y `enviar_guia`: con la emulación de botones encendida el enlace saldría dos
+veces.
+
+Los `status: PENDING` de los siete idiomas se borraron. Eran texto local de una plantilla que
+**nunca se envió**; sin ese campo el panel dice «SIN ENVIAR», que es la verdad, y
+`hasWhatsappMetaOfficialData()` sigue en `false` hasta que Meta la apruebe de verdad.
+
+#### 🔥 `/catalog/tours` no existía en pax
+
+El parámetro `pax_catalog_url` apuntaba a `%env(PAX_HOST_URL)%/catalog/tours`. Las rutas de pax
+son `/catalogo/:localizador` (`pax/src/router/index.ts`): esa URL caía en el comodín
+`:pathMatch(.*)` y el huésped veía un «no encontrado». Iba en `tours_catalog_url` y
+`tours_catalog_path`, o sea **en el botón «Ver Tours» de `welcome_airbnb`**, que lleva tiempo
+mandando gente a una página muerta sin que fallara nada visible.
+
+Ahora apunta al catálogo real, «Oferta Cusco»:
+
+```yaml
+pax_catalogo_localizador: '2W883T'
+pax_catalog_url: '%env(PAX_HOST_URL)%/catalogo/%pax_catalogo_localizador%'
+```
+
+El localizador está en el parámetro porque hoy hay **un** catálogo. Cuando haya varios —«Oferta
+Lima-Paracas», «Paquetes completos»— esto tiene que pasar a ser un campo de la plantilla, y el
+parámetro se queda como el catálogo por defecto.
+
 ### 📏 Los topes de Meta, y por qué el menú de tours no cabe
 
 Meta corta por componente, y no lo dice en ninguna respuesta de la API: lo descubres cuando te
@@ -5736,3 +5778,4 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Que una plantilla de Meta deje de recrearse cada noche | `WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS` (y borrarla en Meta, que es lo definitivo) |
 | Impedir que se guarde una plantilla de Meta sin nombre | `MessageTemplate::validarNombreDeMeta()` |
 | Ajustar los topes de tamaño de Meta | `WhatsappMetaTemplatePushService::TOPE_BODY` / `TOPE_HEADER` / `TOPE_FOOTER` |
+| Cambiar a qué catálogo apuntan los botones de tours | `config/services/services_parameters.yaml` → `pax_catalogo_localizador` |

@@ -35,8 +35,18 @@ parameters:
 
     pax_book_guide_url: '%env(PAX_HOST_URL)%/huesped/reserva'
     pax_book_guide_url_nd: 'huesped/reserva'
-    pax_catalog_url: '%env(PAX_HOST_URL)%/catalog/tours'
-    pax_catalog_url_nd: 'catalog/tours'
+    # ⚠️ El catálogo de tours vive en `/catalogo/{localizador}` — ver `pax/src/router/index.ts`.
+    # Antes esto apuntaba a `/catalog/tours`, una ruta que NO EXISTE en pax: caía en el
+    # comodín `:pathMatch(.*)` y el huésped veía un «no encontrado». Iba en el botón «Ver Tours»
+    # de `welcome_airbnb` y en `tours_catalog_url` de cualquier plantilla, así que llevaba
+    # tiempo mandando gente a una página muerta sin que fallara nada de forma visible.
+    #
+    # El localizador está aquí y no en cada plantilla porque hoy hay un solo catálogo. Cuando
+    # haya varios —«Oferta Lima-Paracas», «Paquetes completos»— esto pasa a ser un campo de la
+    # plantilla y este parámetro se queda como el catálogo por defecto.
+    pax_catalogo_localizador: '2W883T'
+    pax_catalog_url: '%env(PAX_HOST_URL)%/catalogo/%pax_catalogo_localizador%'
+    pax_catalog_url_nd: 'catalogo/%pax_catalogo_localizador%'
     pax_book_unidad_url: '%env(PAX_HOST_URL)%/huesped/unidad'
 
 
