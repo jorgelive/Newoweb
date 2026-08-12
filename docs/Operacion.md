@@ -266,6 +266,31 @@ calculados de la cotización— y `aplicar()` lo revalida. Si no coincide, **422
 operación cambió mientras revisabas»*. Sin esto se estarían aplicando decisiones tomadas
 sobre una realidad que ya no existe.
 
+#### Los identificadores internos no se listan, pero SÍ se comparan
+
+`proveedorMaestroId`, `prestadorMaestroId` y `cotizacionTarifaId` son UUID: enseñar su
+valor no le dice nada a nadie. Pero durante un tiempo se **descartaban** en
+`compararCampos()`, y eso abría un punto ciego permanente: sustituir una tarifa por otra
+del mismo importe, o corregir la divisa manteniendo la cifra, dejaba el plan diciendo
+«sin cambios» mientras la fila seguía apuntando a la tarifa vieja **para siempre** — con
+la agrupación de OS por moneda equivocada y sin que nada pudiera detectarlo nunca.
+
+Ahora se comparan igual, y salen como línea **sólo cuando cambian sin que cambie su campo
+visible** (`TECNICO_ACOMPANA_A`), con texto legible en vez del UUID. Si el campo visible
+también cambió, viajan pegados a él en `expandirTecnicos()` y no se repiten.
+
+`monedaCotizadaId` dejó de ser técnico: sus valores (`USD`, `PEN`) son legibles y sale
+como línea propia. Sigue viajando con el costo, porque aceptar un importe nuevo dejando
+la moneda vieja convierte 150 soles en 150 dólares sin que nadie lo note.
+
+#### Un componente, una fila — también en la base
+
+`UNIQUE (cotizacion_componente_id)`. La idempotencia del snapshot lo garantizaba con un
+`findOneBy()`, que es una **comprobación y no una restricción**: dos `aplicar`
+concurrentes con la misma firma pasan los dos y crean la fila los dos, porque entre leer
+y escribir no hay lock. Con filas duplicadas se le pide y se le paga dos veces al
+proveedor.
+
 #### Lo que la reconciliación NUNCA toca
 
 `estadoReserva`, `estadoOperacion`, `costoRealOperativo`, `montoVenta`, `monedaReal` y
@@ -434,6 +459,12 @@ OS con sólo parte de los servicios asociados.
 La vista sólo deja generar una OS si los servicios seleccionados comparten **expediente,
 proveedor y moneda**, ninguno pertenece ya a otra OS y **todos son comprables**
 (`conflictoSeleccion` en `OperacionView.vue`).
+
+⚠️ Esa comprobación vive en el navegador y por tanto **no es la garantía**. La garantía
+está en `setOrdenServicio()`, que compara el expediente y la moneda de la fila con los de
+la cabecera de la OS. Sin ella, dos pestañas abiertas o cualquier consumidor de la API
+distinto de la vista podían armar una orden con filas de dos expedientes o de dos
+monedas: un documento que el proveedor no puede firmar y un total que no suma sus líneas.
 
 **Comprable** (`OperacionServicio::esComprable()`) es más estrecho que «no es referencia»:
 excluye además lo `cancelado` en la cotización y lo `reemplazado`. Los dos conservan tarifa, así
@@ -624,6 +655,11 @@ y asocia los servicios. Conecta las dos pestañas, que antes estaban desconectad
 no hay nada que asignar. Se ven a plena opacidad: son el dato del recojo.
 
 **Bitácora:** el botón «Mensajes» de una OS abre el hilo y permite registrar un envío nuevo.
+
+⚠️ **Aviso de truncado.** La colección se pide con `itemsPerPage: 200` y la vista **no
+pagina**. Un rango amplio con más servicios recortaba el cuadro en silencio: el operador
+leía el día creyendo que estaba entero. Ahora el store guarda `totalServicios`
+(`hydra:totalItems`) y la cabecera pinta «N sin mostrar» cuando falta algo.
 
 **Estado vacío:** enumera las dos causas reales (rango corto, cotización sin confirmar) porque
 ninguna se ve desde esta pantalla. Sin ese texto, «no hay filas» se lee como «el panel está roto».

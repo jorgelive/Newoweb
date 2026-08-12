@@ -37,6 +37,16 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     // La Biblia: listado plano de servicios para el equipo de tráfico
     const servicios = ref<OperacionServicio[]>([]);
 
+    /**
+     * Cuántos servicios hay DE VERDAD en el rango, frente a los que caben en la página.
+     *
+     * `construirParamsBiblia()` pide 200 por página y la vista no pagina. Sin este dato,
+     * un rango amplio con más de 200 servicios pintaba un cuadro incompleto **sin ningún
+     * síntoma**: el operador leía el día y se le quedaban servicios fuera de la pantalla
+     * y de la cabeza. Ahora la vista avisa cuando falta algo. Ver docs/Operacion.md §7.
+     */
+    const totalServicios = ref<number>(0);
+
     // Panel de Reservas: listado de órdenes agrupadas
     const ordenesServicio = ref<OperacionOrdenServicio[]>([]);
 
@@ -68,6 +78,10 @@ export const useOperacionStore = defineStore('operacionStore', () => {
                 params: construirParamsBiblia(filtros),
             });
             servicios.value = response.data['hydra:member'] || response.data['member'] || [];
+            // Hydra devuelve el total real bajo dos nombres según la versión del formato.
+            totalServicios.value = Number(
+                response.data['hydra:totalItems'] ?? response.data['totalItems'] ?? servicios.value.length
+            );
         } catch (error) {
             console.error('Error al cargar la Biblia de operaciones:', error);
             throw error;
@@ -261,6 +275,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     return {
         isLoading,
         servicios,
+        totalServicios,
         ordenesServicio,
         mensajesActivos,
         fetchServicios,

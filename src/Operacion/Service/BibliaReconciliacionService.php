@@ -64,12 +64,28 @@ class BibliaReconciliacionService
         'cotizacionTarifaId'    => 'Tarifa',
     ];
 
-    /** Cambios en estos campos no se muestran como línea: son identificadores internos. */
+    /**
+     * Identificadores internos: no se listan con su valor porque son UUID ilegibles.
+     *
+     * ⚠️ Que no se listen NO significa que se ignoren. Antes se descartaban en
+     * `compararCampos()` y eso abría un punto ciego permanente: sustituir una tarifa por
+     * otra del mismo importe, o corregir la divisa manteniendo la cifra, dejaba el plan
+     * diciendo «sin cambios» mientras la fila seguía apuntando a la tarifa y la moneda
+     * viejas **para siempre** — con la agrupación de OS por moneda equivocada y sin que
+     * nada pudiera detectarlo nunca. Ahora se comparan igual y salen como una línea con
+     * texto legible: ver `describirTecnico()`.
+     */
     private const CAMPOS_TECNICOS = [
         'proveedorMaestroId',
         'prestadorMaestroId',
-        'monedaCotizadaId',
         'cotizacionTarifaId',
+    ];
+
+    /** Campo técnico → campo visible que lo explica; si ese ya salió, no se repite. */
+    private const TECNICO_ACOMPANA_A = [
+        'proveedorMaestroId'  => 'proveedorNombreManual',
+        'prestadorMaestroId'  => 'prestadorNombre',
+        'cotizacionTarifaId'  => 'costoCotizado',
     ];
 
     public function __construct(
@@ -303,9 +319,12 @@ class BibliaReconciliacionService
         $actual = $this->valoresActuales($fila);
         $campos = [];
 
+        // Primera pasada: los campos visibles.
+        $visiblesCambiados = [];
+
         foreach ($valores as $campo => $propuesto) {
             if (\in_array($campo, self::CAMPOS_TECNICOS, true)) {
-                continue; // No se listan: viajan pegados al campo que los explica
+                continue; // Segunda pasada
             }
 
             $valorActual    = $this->normalizar($actual[$campo] ?? null);
@@ -314,6 +333,8 @@ class BibliaReconciliacionService
             if ($valorActual === $valorPropuesto) {
                 continue;
             }
+
+            $visiblesCambiados[$campo] = true;
 
             // Sin foto de referencia (filas anteriores a snapshot_origen, o `{}`) todo
             // se trata como conflicto. Es lo conservador: si no se sabe quién se movió,
@@ -331,7 +352,58 @@ class BibliaReconciliacionService
             );
         }
 
+        // Segunda pasada: los identificadores internos. Sólo salen cuando cambian SIN
+        // que su campo visible haya cambiado — que es justo el caso invisible: misma
+        // cifra, mismo nombre, otra tarifa u otro proveedor por debajo.
+        foreach (self::CAMPOS_TECNICOS as $campo) {
+            if (!\array_key_exists($campo, $valores)) {
+                continue;
+            }
+
+            $valorActual    = $this->normalizar($actual[$campo] ?? null);
+            $valorPropuesto = $this->normalizar($valores[$campo]);
+
+            if ($valorActual === $valorPropuesto) {
+                continue;
+            }
+
+            $acompana = self::TECNICO_ACOMPANA_A[$campo] ?? null;
+            if ($acompana !== null && isset($visiblesCambiados[$acompana])) {
+                continue;   // ya se ve, viajará pegado a él en expandirTecnicos()
+            }
+
+            $origen       = $fila->getSnapshotOrigen();
+            $sinReferencia = $origen === [] || !\array_key_exists($campo, $origen);
+
+            $campos[] = new CampoPropuesto(
+                campo: $campo,
+                etiqueta: self::ETIQUETAS[$campo] ?? $campo,
+                // El UUID no dice nada a nadie; lo que importa es que cambió por debajo.
+                valorActual: $this->describirTecnico($campo, $valorActual),
+                valorPropuesto: $this->describirTecnico($campo, $valorPropuesto),
+                enConflicto: $sinReferencia || $valorActual !== $this->normalizar($origen[$campo] ?? null),
+            );
+        }
+
         return $campos;
+    }
+
+    /**
+     * Texto para un identificador interno. Se evita enseñar el UUID: al operador no le
+     * dice nada y lo único que necesita saber es que la pieza de debajo es otra.
+     */
+    private function describirTecnico(string $campo, ?string $valor): string
+    {
+        if ($valor === null) {
+            return 'sin asignar';
+        }
+
+        return match ($campo) {
+            'cotizacionTarifaId' => 'tarifa ' . substr($valor, 0, 8),
+            'proveedorMaestroId' => 'proveedor ' . substr($valor, 0, 8),
+            'prestadorMaestroId' => 'prestador ' . substr($valor, 0, 8),
+            default              => $valor,
+        };
     }
 
     /** Estado actual de la fila en el mismo formato escalar que calcularValores(). */
@@ -371,6 +443,10 @@ class BibliaReconciliacionService
     {
         $campos = $aprobados;
 
+        // `monedaCotizadaId` ya NO es técnico: sus valores ('USD', 'PEN') son legibles y
+        // sale como línea propia, así que se aprueba por sí mismo. Pero sigue viajando
+        // con el costo: aceptar un importe nuevo dejando la moneda vieja convierte 150
+        // soles en 150 dólares sin que nadie lo note.
         if (\in_array('costoCotizado', $campos, true)) {
             $campos[] = 'monedaCotizadaId';
             $campos[] = 'cotizacionTarifaId';

@@ -83,6 +83,11 @@ const filtrosActivos = computed<FiltrosBiblia>(() => ({
     estadoOperacion: filtroEstadoOperacion.value || undefined,
 }));
 
+/** El backend tiene más servicios en este rango de los que cabe pintar. */
+const hayServiciosOcultos = computed(() =>
+    operacionStore.totalServicios > operacionStore.servicios.length
+);
+
 const hayFiltrosExtra = computed(() =>
     tiposSeleccionados.value.length > 0
     || !!filtroEstadoReserva.value
@@ -726,6 +731,18 @@ onMounted(cargarBiblia);
                     <div class="mt-2 flex items-center gap-3">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             {{ operacionStore.servicios.length }} servicio{{ operacionStore.servicios.length !== 1 ? 's' : '' }}
+                        </span>
+
+                        <!-- La página trae 200 como mucho y aquí no se pagina. Sin este
+                             aviso, un rango amplio recortaba el cuadro en silencio: el
+                             operador leía el día entero creyendo que estaba entero. -->
+                        <span
+                            v-if="hayServiciosOcultos"
+                            class="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5 uppercase tracking-widest"
+                            :title="`Hay ${operacionStore.totalServicios} servicios en este rango y sólo caben 200 por página. Acota las fechas o usa los filtros.`"
+                        >
+                            <i class="fas fa-triangle-exclamation mr-1"></i>
+                            {{ operacionStore.totalServicios - operacionStore.servicios.length }} sin mostrar
                         </span>
 
                         <template v-if="seleccionados.length">

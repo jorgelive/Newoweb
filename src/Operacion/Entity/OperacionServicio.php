@@ -86,6 +86,11 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'operacion_servicio')]
 #[ORM\Index(columns: ['fecha_servicio'], name: 'idx_ops_servicio_fecha')]
 #[ORM\Index(columns: ['tipo_componente'], name: 'idx_ops_servicio_tipo')]
+// Un componente, una fila. La idempotencia del snapshot lo garantizaba con un
+// findOneBy(), que es una comprobación y no una restricción: dos `aplicar` a la vez
+// —doble clic con latencia, dos operadores sobre el mismo plan— pasaban los dos y
+// creaban la fila los dos. Con filas duplicadas en el cuadro se compra dos veces.
+#[ORM\UniqueConstraint(name: 'uniq_ops_servicio_componente', columns: ['cotizacion_componente_id'])]
 #[ORM\HasLifecycleCallbacks]
 class OperacionServicio
 {
@@ -362,6 +367,33 @@ class OperacionServicio
                 $this->descripcionServicio ?? 'El servicio',
                 $motivo
             ));
+        }
+
+        // Coherencia con la cabecera. Vivía SÓLO en `conflictoSeleccion` del navegador,
+        // así que dos pestañas abiertas o cualquier otro consumidor de la API podían
+        // armar una OS con filas de dos expedientes o de dos monedas — un documento que
+        // el proveedor no puede firmar y un importe que no cuadra con sus líneas.
+        if ($ordenServicio !== null) {
+            $fileOs = $ordenServicio->getFile();
+            if ($fileOs !== null && $this->file !== null && $fileOs->getId() != $this->file->getId()) {
+                throw new \DomainException(sprintf(
+                    'La Orden de Servicio %s es del expediente «%s» y «%s» pertenece a otro. Una OS es una solicitud sobre un solo expediente.',
+                    $ordenServicio->getNumeroOs() ?? '(sin número)',
+                    $fileOs->getNombreGrupo() ?? '—',
+                    $this->descripcionServicio ?? 'este servicio'
+                ));
+            }
+
+            $monedaOs = $ordenServicio->getMonedaOs();
+            if ($monedaOs !== null && $this->monedaCotizada !== null && $monedaOs->getId() !== $this->monedaCotizada->getId()) {
+                throw new \DomainException(sprintf(
+                    'La Orden de Servicio %s está en %s y «%s» está cotizado en %s. Mezclar monedas en una misma orden deja un total que no suma.',
+                    $ordenServicio->getNumeroOs() ?? '(sin número)',
+                    $monedaOs->getId(),
+                    $this->descripcionServicio ?? 'este servicio',
+                    $this->monedaCotizada->getId()
+                ));
+            }
         }
 
         $this->ordenServicio = $ordenServicio;
