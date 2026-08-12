@@ -112,6 +112,22 @@ final readonly class WhatsappMetaTemplatePushService
         $results = [];
 
         foreach ($localLanguages as $localLang) {
+            // ⚠️ Los topes de Meta se comprueban AQUÍ, antes de la llamada.
+            //
+            // Meta contesta «Invalid parameter | El campo Body no puede superar los 1024
+            // caracteres» sin decir cuánto mide el tuyo ni cuánto te pasas, y lo repite una vez
+            // por idioma: siete líneas idénticas que no dicen nada accionable. Medido en local
+            // se sabe de un vistazo si es cuestión de recortar dos frases o de que el contenido
+            // no cabe en una plantilla —el menú de tours mide 3701-4228 caracteres, cuatro veces
+            // el tope, y eso no se arregla podando: se arregla con un botón al catálogo.
+            $exceso = $this->medirExcesos($metaTmpl, $localLang);
+
+            if ($exceso !== null) {
+                $results[$localLang] = ['status' => 'error', 'message' => $exceso];
+
+                continue;
+            }
+
             $metaLangCode = $this->mapLanguageToMeta($localLang);
             $templateName = $metaTmpl['meta_template_name'];
 
@@ -315,5 +331,60 @@ final readonly class WhatsappMetaTemplatePushService
         }
 
         return $namedExamples;
+    }
+
+    /**
+     * Los topes de Meta por componente, en caracteres.
+     *
+     * No están en ninguna respuesta de la API: se descubren cuando te los saltas. Se dejan aquí
+     * escritos para que el aviso llegue antes de gastar una llamada, y con el número medido.
+     *
+     * @see https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates
+     */
+    private const int TOPE_BODY = 1024;
+
+    private const int TOPE_HEADER = 60;
+
+    private const int TOPE_FOOTER = 60;
+
+    /**
+     * ¿Se pasa algún componente de este idioma? Devuelve el aviso, o `null` si todo cabe.
+     *
+     * Se mide con `mb_strlen`: Meta cuenta caracteres, no bytes, y estos textos van llenos de
+     * emojis y tildes. Contar bytes daría un falso positivo en cuanto haya un 🌄.
+     */
+    private function medirExcesos(array $metaTmpl, string $idioma): ?string
+    {
+        $componentes = [
+            'Body' => [self::TOPE_BODY, $this->contenidoDe($metaTmpl['body'] ?? [], $idioma)],
+            'Header' => [self::TOPE_HEADER, $this->contenidoDe($metaTmpl['header'] ?? [], $idioma)],
+            'Footer' => [self::TOPE_FOOTER, $this->contenidoDe($metaTmpl['footer'] ?? [], $idioma)],
+        ];
+
+        $problemas = [];
+
+        foreach ($componentes as $nombre => [$tope, $texto]) {
+            $largo = mb_strlen($texto);
+
+            if ($largo > $tope) {
+                $problemas[] = sprintf('%s mide %d caracteres y el tope de Meta son %d: sobran %d.', $nombre, $largo, $tope, $largo - $tope);
+            }
+        }
+
+        return $problemas === [] ? null : implode(' ', $problemas);
+    }
+
+    /**
+     * @param array<int, array{language?: string, content?: string}> $bloques
+     */
+    private function contenidoDe(array $bloques, string $idioma): string
+    {
+        foreach ($bloques as $bloque) {
+            if (($bloque['language'] ?? '') === $idioma) {
+                return (string) ($bloque['content'] ?? '');
+            }
+        }
+
+        return '';
     }
 }

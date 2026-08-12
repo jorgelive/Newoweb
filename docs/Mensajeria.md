@@ -5593,6 +5593,32 @@ Se guardó copia de sus 7 idiomas con sus ids antes de tocar nada. Y ojo: borrar
 **bloquea reutilizar ese nombre unos 30 días**, cosa que aquí da igual porque la plantilla viva
 se llama `welcome_booking_command`.
 
+### 📏 Los topes de Meta, y por qué el menú de tours no cabe
+
+Meta corta por componente, y no lo dice en ninguna respuesta de la API: lo descubres cuando te
+lo saltas, con un «Invalid parameter | El campo Body no puede superar los 1024 caracteres»
+repetido una vez por idioma y sin decir cuánto mide el tuyo.
+
+| Componente | Tope |
+|---|---|
+| Body | 1024 |
+| Header | 60 |
+| Footer | 60 |
+
+`WhatsappMetaTemplatePushService::medirExcesos()` lo comprueba **antes** de llamar, y dice el
+número: «Body mide 3701 caracteres y el tope de Meta son 1024: sobran 2677». Se mide con
+`mb_strlen` porque Meta cuenta caracteres y estos textos van llenos de emojis: contar bytes
+daría un falso positivo en cuanto aparezca un 🌄.
+
+**El caso real:** `menu_tours` mide entre **3701 y 4228** caracteres según el idioma — cuatro
+veces el tope. Eso no se arregla podando frases: un catálogo de tours con precios, horarios y
+entradas no cabe en una plantilla de WhatsApp y no va a caber nunca.
+
+La salida es la que ya usa `welcome_airbnb`: **cuerpo corto + botón `url` al catálogo de pax**
+(`resolver_key: tours_catalog_path`). El catálogo largo se queda donde sí cabe, en
+`beds24_tmpl`, que es texto plano de OTA y no tiene ese límite — para eso las columnas están
+separadas. Hoy `menu_tours` no tiene ningún botón en su JSON de Meta (`buttons_map: []`).
+
 ### 👁️ «Ver plantillas en Meta»: la pantalla que no escribe
 
 `MessageTemplateCrudController::executeInventarioMeta()` (botón del listado de plantillas)
@@ -5709,3 +5735,4 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Averiguar por qué una plantilla lleva meses en `PENDING` | Mirar `meta_template_name` y `is_official_meta`: si es `null`/`false`, nunca llegó a Meta |
 | Que una plantilla de Meta deje de recrearse cada noche | `WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS` (y borrarla en Meta, que es lo definitivo) |
 | Impedir que se guarde una plantilla de Meta sin nombre | `MessageTemplate::validarNombreDeMeta()` |
+| Ajustar los topes de tamaño de Meta | `WhatsappMetaTemplatePushService::TOPE_BODY` / `TOPE_HEADER` / `TOPE_FOOTER` |
