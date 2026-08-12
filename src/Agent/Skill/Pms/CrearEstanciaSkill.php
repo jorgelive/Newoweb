@@ -231,7 +231,15 @@ final readonly class CrearEstanciaSkill implements SkillInterface
 
         $horario = $this->estancias->conHorario($unidad, $desde, $hasta);
         $alojamiento = $this->cargos->estimarAlojamiento($unidad, $horario['entrada'], $horario['salida']) ?? 0.0;
-        $limpieza = (float) PmsCargosAutomaticosService::TARIFA_LIMPIEZA;
+
+        // 👥🧹 El suplemento por persona y la limpieza salen de la UNIDAD, igual que al cobrar.
+        // El suplemento no se enseñaba y sí se cobra; la limpieza era una constante fija de
+        // 15.00 que dejó de valer en cuanto la limpieza pasó a ser configurable por casita.
+        // A DÍA, por lo mismo que en `CrearReservaSkill`: con las horas dentro, dos noches
+        // cuentan como una y el suplemento sale a la mitad de lo que se cobra.
+        $noches = (int) $desde->setTime(0, 0)->diff($hasta->setTime(0, 0))->days;
+        $suplemento = $unidad->suplementoPorPax($adultos + $ninos, $noches);
+        $limpieza = $unidad->costoLimpieza($noches, $alojamiento + $suplemento);
 
         $resumen = array_filter([
             'reserva_id' => (string) $reserva->getId(),
@@ -245,7 +253,7 @@ final readonly class CrearEstanciaSkill implements SkillInterface
             'ninos' => $ninos ?: null,
             'estado' => $estadoId,
             'estancias_actuales' => $this->estanciasActuales($reserva),
-            'cargos_previstos' => [
+            'cargos_previstos' => array_values(array_filter([
                 [
                     'concepto' => 'Alojamiento',
                     'importe' => sprintf('%.2f', $alojamiento),
@@ -253,15 +261,26 @@ final readonly class CrearEstanciaSkill implements SkillInterface
                         ? 'tarifario, noche a noche'
                         : '⚠️ el tarifario no cubre estas noches: quedará en 0.00 y habrá que ponerlo a mano',
                 ],
-                [
+                $suplemento > 0.0 ? [
+                    'concepto' => sprintf(
+                        'Persona adicional (%d × %s por noche)',
+                        max(0, ($adultos + $ninos) - $unidad->getPaxIncluidos()),
+                        $unidad->getPrecioPaxAdicional()
+                    ),
+                    'importe' => sprintf('%.2f', $suplemento),
+                    'origen' => 'regla de la unidad',
+                ] : null,
+                $limpieza > 0.0 ? [
                     'concepto' => 'Suplemento de limpieza',
                     'importe' => sprintf('%.2f', $limpieza),
-                    'origen' => 'tarifa fija',
-                ],
-            ],
+                    'origen' => $unidad->limpiezaEsPorcentaje()
+                        ? sprintf('%s%% sobre alojamiento + suplemento', rtrim(rtrim($unidad->getPrecioLimpieza(), '0'), '.'))
+                        : 'importe fijo de la unidad',
+                ] : null,
+            ], static fn ($v) => $v !== null)),
             'total_previsto' => sprintf(
                 '%.2f %s',
-                $alojamiento + $limpieza,
+                $alojamiento + $suplemento + $limpieza,
                 $unidad->getTarifaBaseMonedaId() ?? 'USD'
             ),
         ], static fn ($v) => $v !== null);

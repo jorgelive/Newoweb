@@ -44,8 +44,8 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         private EntityManagerInterface $em,
     ) {}
 
-    /** Moneda en la que ya no hay nada que convertir. */
-    private const string MONEDA_SOLES = 'PEN';
+    /** La única moneda desde la que se sabe convertir: el maestro publica USD→PEN. */
+    private const string MONEDA_DOLARES = 'USD';
 
     public function nombre(): string
     {
@@ -199,10 +199,19 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         // añadir el suplemento por su cuenta — calculó 2 personas adicionales donde había 3 y
         // cotizó 248 USD en vez de 260. Los números de la skill eran correctos; lo que
         // fallaba era la aritmética que le tocaba hacer a él.
-        $reparto = $this->parsearDistribucion((string) ($entrada['distribucion'] ?? ''));
+        $leido = $this->parsearDistribucion((string) ($entrada['distribucion'] ?? ''));
 
-        if ($reparto !== []) {
-            return $this->cotizarDistribucion($reparto, $desde, $hasta, $noches);
+        if ($leido['ilegibles'] !== []) {
+            return SkillResult::error(sprintf(
+                'No entendí este trozo de la distribución: «%s». El formato es casita:personas '
+                . 'separado por comas, por ejemplo «2:7, 5:2». Corrígelo y vuelve a llamarme; '
+                . 'no cotizo con la mitad del reparto.',
+                implode('», «', $leido['ilegibles'])
+            ));
+        }
+
+        if ($leido['reparto'] !== []) {
+            return $this->cotizarDistribucion($leido['reparto'], $desde, $hasta, $noches);
         }
 
         // En un reparto NO se sabe cuántos van en cada casita, así que el suplemento por
@@ -237,7 +246,12 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
      * `-` o `=` en vez de `:`— porque el formato exacto es lo primero que se le olvida. Lo que
      * no encaje se descarta en silencio: mejor cotizar de menos que inventar un reparto.
      *
-     * @return list<array{0: string, 1: int}>
+     * ⚠️ Lo que no encaja YA NO se descarta en silencio: vuelve en `ilegibles` y quien llama
+     * corta con un error. El descarte callado convertía «2:7 y 5:2» —sin coma— en un reparto
+     * de una sola casita, y «Casita 2: 7 personas» en ninguna, cotizando por un camino
+     * distinto sin que nadie lo notara.
+     *
+     * @return array{reparto: list<array{0: string, 1: int}>, ilegibles: list<string>}
      */
     private function parsearDistribucion(string $texto): array
     {
@@ -248,21 +262,35 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         }
 
         $salida = [];
+        $ilegibles = [];
 
         foreach (preg_split('/[,;]+/', $texto) ?: [] as $par) {
-            if (preg_match('/([\w\s]*?)\s*[:=-]\s*(\d{1,3})\s*$/u', trim($par), $m) !== 1) {
+            $par = trim($par);
+
+            if ($par === '') {
+                continue;
+            }
+
+            // El separador es `:` o `=`. El guion NO: «Casitas 2-7: 10» es «de la 2 a la 7»
+            // para un humano, y aceptándolo se cotizaba SOLO la 7 con las 10 personas y la
+            // cotización salía marcada como completa.
+            if (preg_match('/^([\w\s]*?)\s*[:=]\s*(\d{1,3})$/u', $par, $m) !== 1) {
+                $ilegibles[] = $par;
                 continue;
             }
 
             $casita = trim(preg_replace('/casitas?/iu', '', $m[1]) ?? '');
             $pax = (int) $m[2];
 
-            if ($casita !== '' && $pax > 0) {
-                $salida[] = [$casita, $pax];
+            if ($casita === '' || $pax < 1) {
+                $ilegibles[] = $par;
+                continue;
             }
+
+            $salida[] = [$casita, $pax];
         }
 
-        return $salida;
+        return ['reparto' => $salida, 'ilegibles' => $ilegibles];
     }
 
     /**
@@ -289,11 +317,39 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         $moneda = '';
         $completo = true;
 
+        $vistas = [];
+
         foreach ($reparto as [$nombre, $pax]) {
             $dto = $this->emparejar($libres, $nombre);
 
             if ($dto === null) {
                 $noDisponibles[] = $nombre;
+                $completo = false;
+                continue;
+            }
+
+            // 🚫 La misma casita dos veces («2:7, 2:3») cotizaba alojamiento y limpieza por
+            // duplicado, calculaba el suplemento sobre 7 y sobre 3 por separado en vez de sobre
+            // 10, y el texto decía «por las 2 casitas juntas». Parecía legítimo.
+            if (isset($vistas[$dto->id])) {
+                return SkillResult::error(sprintf(
+                    'La casita «%s» aparece dos veces en la distribución. Si van varios grupos '
+                    . 'a la misma casita, súmalos en una sola entrada.',
+                    $nombre
+                ));
+            }
+
+            $vistas[$dto->id] = true;
+
+            // No se cotiza a más gente de la que cabe: un total para 20 personas en una casita
+            // de 8 se puede leer como cerrable, y no lo es.
+            if ($dto->capacidad !== null && $pax > $dto->capacidad) {
+                $noDisponibles[] = sprintf(
+                    '%s (caben %d, pedían %d)',
+                    $dto->nombre,
+                    $dto->capacidad,
+                    $pax
+                );
                 $completo = false;
                 continue;
             }
@@ -308,7 +364,24 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 continue;
             }
 
-            $totalUsd += $cotizado['total'];
+            // 💱 Sumar dos monedas distintas da peras con manzanas etiquetadas con la última
+            // que se vio. Antes de que exista un caso real de tarifas en monedas distintas,
+            // esto corta el total conjunto en vez de inventarse una conversión.
+            if ($moneda !== '' && $cotizado['moneda'] !== $moneda) {
+                $noDisponibles[] = sprintf(
+                    '%s (tarifa en %s, no se puede sumar con %s sin tipo de cambio)',
+                    $dto->nombre,
+                    $cotizado['moneda'],
+                    $moneda
+                );
+                $completo = false;
+                continue;
+            }
+
+            // Redondeado a lo que se ENSEÑA: sumar los floats crudos hacía que el total
+            // conjunto se desviara un céntimo de la suma de sus propias líneas, que es justo
+            // lo que un cliente rehace a mano.
+            $totalUsd += round($cotizado['total'], 2);
             $moneda = $cotizado['moneda'];
         }
 
@@ -318,8 +391,9 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
             'casitas' => $casitas,
             'no_disponibles' => $noDisponibles !== []
                 ? sprintf(
-                    'Estas casitas NO están libres en esas fechas y no se han cotizado: %s. '
-                    . 'Dilo claramente en vez de dar el total como si estuvieran.',
+                    'Estas NO se han podido cotizar (o no están libres, o no cabe la gente que '
+                    . 'dijiste, o su tarifa está en otra moneda): %s. Dilo claramente en vez de '
+                    . 'dar un total como si estuvieran incluidas.',
                     implode(', ', $noDisponibles)
                 )
                 : null,
@@ -387,8 +461,8 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         $soles = $this->enSoles($total, $moneda);
 
         $lineas[] = sprintf(
-            'TOTAL %s: %.2f %s%s',
-            count($casitas) > 1 ? sprintf('por las %d casitas juntas (%d personas)', count($casitas), $pax) : '',
+            'TOTAL%s: %.2f %s%s',
+            count($casitas) > 1 ? sprintf(' por las %d casitas juntas (%d personas)', count($casitas), $pax) : '',
             $total,
             $moneda,
             $soles !== null ? ' · ' . $soles : ''
@@ -506,7 +580,9 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
      */
     private function enSoles(float $total, string $moneda): ?string
     {
-        if ($moneda === self::MONEDA_SOLES || $moneda === '') {
+        // `TipoCambioDelDia` es explícitamente USD→PEN: aplicárselo a una tarifa en euros
+        // daría un número inventado con pinta de correcto.
+        if ($moneda !== self::MONEDA_DOLARES) {
             return null;
         }
 

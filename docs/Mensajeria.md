@@ -4406,6 +4406,60 @@ Dos capas, porque una no basta:
    error no. Vender una noche que ya pasó no existe como caso de uso — para mirar atrás está
    `consultar_ocupacion`.
 
+#### 💸 Lo cotizado ES lo cobrado (y no lo era)
+
+Durante un día entero la cotización usó la limpieza configurable de la unidad mientras el CARGO
+real seguía con una constante `TARIFA_LIMPIEZA = '15.00'`, fija e incondicional. Coincidían de
+casualidad, porque todas las casitas tenían 15.00 puestos. En cuanto una pasara a porcentaje, o
+a otro importe, o a cero, se cotizaba una cosa y se cobraba otra — y el cargo se creaba incluso
+en las casitas que no cobran limpieza.
+
+Hoy los dos lados llaman a **los mismos métodos de la entidad**: `costoLimpieza()` y
+`suplementoPorPax()`. Si cambia la regla, cambia en un sitio.
+
+También se arreglaron las dos PREVISUALIZACIONES (`crear_reserva`, `crear_estancia`), que
+enseñaban un total por debajo del que luego aparecía en la cuenta: no incluían el suplemento por
+persona —que sí se cobra— y calculaban el servicio sobre una base que incluía la limpieza.
+
+⚠️ **La trampa de contar noches.** `$inicio->diff($fin)->days` con las horas dentro devuelve 1
+para dos noches: la estancia va de las 14:00 a las 10:00 y eso es «1 día y 20 horas». Hay que
+normalizar a día (`setTime(0,0)`) antes de restar. Se cayó en ella al escribir el arreglo y el
+suplemento salió a la mitad —18.00 donde eran 36.00—; el propio `PmsCargosAutomaticosService` ya
+lo documentaba.
+
+#### 🔒 Quien va a la casita no recibe el contacto del huésped
+
+El filtro por asignación acota QUÉ estancias ve una persona de campo, pero las filas seguían
+llevando `localizador`, `url_whatsapp` —que contiene el teléfono— y `url_chat`. Ahora esos
+campos no salen del equipo de oficina.
+
+Se recorta en el SQL y no confiando en que el prompt lo prohíba: **lo que no debe salir, no se
+manda**.
+
+⚠️ Y el filtro por asignación es **sólo para quien limpia**, que es quien tiene filas en
+`pms_evento_limpieza`. Atado a todo el perfil de campo dejaba a MANTENIMIENTO —que también tiene
+esta skill— con la lista vacía para siempre.
+
+#### 🧹 `enabled = false` NO significa «ya no trabaja aquí»
+
+Significa «no entra al panel», y es el estado **normal** de quien limpia. Las dos personas de
+limpieza que hay están deshabilitadas y son plantilla activa.
+
+Esto tiene dos consecuencias que ya mordieron:
+
+1. `PmsLimpiezaAsignacionListener` exigía `enabled = true` para elegir a la persona por defecto,
+   así que la asignación automática **no hacía nada** para exactamente la persona para la que se
+   construyó, en silencio.
+2. `UserRepository::findByTelefono()` **no filtra por `enabled` a propósito** (está documentado
+   en el propio método). Ponerle el filtro «por seguridad» convertiría a quien limpia en una
+   desconocida en cuanto escriba.
+
+⚠️ **Queda un riesgo abierto y consciente**: un ex-empleado con el móvil aún en `user.telefono`
+conserva acceso de lectura por WhatsApp con sus roles, incluidos los códigos de puerta y de la
+caja de llaves. El control hoy es **borrarle el teléfono** al darle de baja, porque el teléfono
+ES la credencial de este canal. Si hiciera falta algo más fuerte, sería un campo propio para eso
+—nunca reutilizar `enabled`, que significa otra cosa—.
+
 #### 🧮 El modelo no suma: `distribucion` y `total_combinado`
 
 Nació de un fallo real, medido en producción. Preguntando por la Casita 5 y la 2 para 9 personas

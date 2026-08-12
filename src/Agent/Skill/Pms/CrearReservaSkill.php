@@ -291,7 +291,7 @@ final readonly class CrearReservaSkill implements SkillInterface
         $inicio = $desde->setTime($hIn, $mIn);
         $fin = $hasta->setTime($hOut, $mOut);
 
-        $cargos = $this->cargosPrevistos($entrada, $unidad, $inicio, $fin);
+        $cargos = $this->cargosPrevistos($entrada, $unidad, $inicio, $fin, $adultos + $ninos);
 
         $resumen = array_filter([
             'casita' => $unidad->getNombre(),
@@ -343,7 +343,8 @@ final readonly class CrearReservaSkill implements SkillInterface
         array $entrada,
         PmsUnidad $unidad,
         DateTimeImmutable $inicio,
-        DateTimeImmutable $fin
+        DateTimeImmutable $fin,
+        int $pax = 0
     ): array {
         $moneda = $unidad->getTarifaBaseMonedaId() ?? 'USD';
         $lineas = [];
@@ -368,16 +369,48 @@ final readonly class CrearReservaSkill implements SkillInterface
             ];
         }
 
-        $total = $alojamiento;
+        // 👥 EL SUPLEMENTO POR PERSONA, que SÍ se cobra y aquí no se enseñaba.
+        //
+        // `PmsCargosAutomaticosService::generarParaEvento()` crea este cargo, así que la
+        // previsualización que el operador aprueba salía por debajo de lo que luego aparecía
+        // en la cuenta. Con 7 personas donde la tarifa cubre 5 y 3 noches, eran 36.00 que
+        // nadie había visto antes de confirmar.
+        // ⚠️ A DÍA, no con las horas dentro. La estancia va de las 14:00 a las 10:00 y un
+        // `diff()` crudo de dos noches devuelve «1 día y 20 horas» → 1. Es la misma trampa que
+        // documenta `PmsCargosAutomaticosService`, y caer en ella aquí cotizaba la mitad del
+        // suplemento que luego se cobra: 18.00 donde eran 36.00.
+        $noches = (int) $inicio->setTime(0, 0)->diff($fin->setTime(0, 0))->days;
+        $suplemento = $unidad->suplementoPorPax($pax, $noches);
+
+        if ($suplemento > 0.0) {
+            $lineas[] = [
+                'concepto' => sprintf(
+                    'Persona adicional (%d × %s por noche)',
+                    max(0, $pax - $unidad->getPaxIncluidos()),
+                    $unidad->getPrecioPaxAdicional()
+                ),
+                'importe' => sprintf('%.2f', $suplemento),
+                'origen' => 'regla de la unidad',
+            ];
+        }
+
+        $total = $alojamiento + $suplemento;
 
         if (strtolower(trim((string) ($entrada['cobrar_limpieza'] ?? 'si'))) !== 'no') {
-            $limpieza = (float) PmsCargosAutomaticosService::TARIFA_LIMPIEZA;
-            $lineas[] = [
-                'concepto' => 'Suplemento de limpieza',
-                'importe' => sprintf('%.2f', $limpieza),
-                'origen' => 'tarifa fija',
-            ];
-            $total += $limpieza;
+            // 🧹 De la unidad, no de una constante: puede ser importe fijo o porcentaje. La
+            // base del porcentaje es alojamiento + suplemento, y la decide `costoLimpieza()`.
+            $limpieza = $unidad->costoLimpieza($noches, $total);
+
+            if ($limpieza > 0.0) {
+                $lineas[] = [
+                    'concepto' => 'Suplemento de limpieza',
+                    'importe' => sprintf('%.2f', $limpieza),
+                    'origen' => $unidad->limpiezaEsPorcentaje()
+                        ? sprintf('%s%% sobre alojamiento + suplemento', rtrim(rtrim($unidad->getPrecioLimpieza(), '0'), '.'))
+                        : 'importe fijo de la unidad',
+                ];
+                $total += $limpieza;
+            }
         } else {
             $lineas[] = [
                 'concepto' => 'Suplemento de limpieza',
@@ -389,7 +422,10 @@ final readonly class CrearReservaSkill implements SkillInterface
         $pct = (float) str_replace(',', '.', (string) ($entrada['servicio_porcentaje'] ?? '0'));
 
         if ($pct > 0) {
-            $servicio = round($total * $pct / 100, 2);
+            // ⚠️ Sobre alojamiento + suplemento, NO sobre `$total`: la limpieza no entra en la
+            // base del servicio. Es la regla de `PmsUnidad::servicioSobre()`, y calcularla
+            // aquí sobre el total cobraba servicio sobre la limpieza.
+            $servicio = round(($alojamiento + $suplemento) * $pct / 100, 2);
             $lineas[] = [
                 'concepto' => sprintf('Cargo por servicio (%s%%)', rtrim(rtrim(sprintf('%.2f', $pct), '0'), '.')),
                 'importe' => sprintf('%.2f', $servicio),

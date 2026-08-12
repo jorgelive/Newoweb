@@ -88,9 +88,17 @@ final class PmsLimpiezaAsignacionListener
         return $this->em->getRepository(User::class)
             ->createQueryBuilder('u')
             ->where('u.esLimpiezaPorDefecto = true')
-            // Deshabilitada no cuenta: asignarle estancias a quien ya no trabaja aquí las deja
-            // en un limbo del que nadie se entera.
-            ->andWhere('u.enabled = true')
+            // 🚫 NO se filtra por `enabled`, y cuesta un párrafo explicar por qué.
+            //
+            // `enabled` dice si la persona ENTRA AL PANEL, no si trabaja aquí: quien limpia no
+            // tiene login, así que está deshabilitada por norma —las dos que hay hoy lo están—.
+            // La primera versión de este método exigía `enabled = true` «para no asignarle
+            // estancias a quien ya no trabaja aquí», y el resultado era que la asignación
+            // automática no hacía NADA para exactamente la persona para la que se construyó,
+            // en silencio y sin error.
+            //
+            // Quien deje de trabajar aquí se quita marcando a otra persona por defecto, o
+            // borrándole el móvil —que es lo que el agente usa para reconocerla—.
             ->orderBy('u.username', 'ASC')
             ->setMaxResults(1)
             ->getQuery()

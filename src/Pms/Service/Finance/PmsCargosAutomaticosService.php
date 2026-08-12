@@ -27,7 +27,8 @@ use Throwable;
  *   · ALOJAMIENTO — suma del precio de CADA DÍA del tarifario, no una tarifa plana. Se usa el
  *     mismo motor que pinta el calendario de tarifas (TarifaPricingEngine), así que respeta
  *     temporadas, prioridades y solapamientos exactamente igual que lo que ve el operador.
- *   · LIMPIEZA — importe fijo (`TARIFA_LIMPIEZA`).
+ *   · LIMPIEZA — lo que diga la unidad (`PmsUnidad::costoLimpieza()`): importe fijo o
+ *     porcentaje, según su flag. En 0 no se genera el cargo.
  *   · SERVICIO — **no se genera**: en las reservas directas se exonera.
  *
  * Todo queda como cargo MANUAL (sin `beds24ItemId`), así que el operador puede corregirlo o
@@ -35,9 +36,6 @@ use Throwable;
  */
 final class PmsCargosAutomaticosService
 {
-    /** Importe fijo de limpieza para reservas directas, en la moneda de la cabecera. */
-    public const string TARIFA_LIMPIEZA = '15.00';
-
     /**
      * Descripciones canónicas de los cargos de horario extra. Son la MARCA por la
      * que se reconocen después para retirarlos: no se tocan sin migrar los cargos
@@ -94,14 +92,17 @@ final class PmsCargosAutomaticosService
 
         $moneda = $info->getMoneda() ?? $this->monedaResolver->resolve(null);
 
-        $noches = $this->calcularAlojamiento($evento);
-        if ($noches !== null && $noches > 0) {
+        // Es el IMPORTE del alojamiento, no un número de noches. Se llamaba `$noches`, que es
+        // exactamente el nombre que hace que alguien lo multiplique por una tarifa.
+        $alojamiento = $this->calcularAlojamiento($evento);
+
+        if ($alojamiento !== null && $alojamiento > 0) {
             $this->crearCargo(
                 info: $info,
                 evento: $evento,
                 tipo: PmsTipoCargo::ALOJAMIENTO,
                 descripcion: 'Alojamiento',
-                importe: number_format($noches, 2, '.', ''),
+                importe: number_format($alojamiento, 2, '.', ''),
                 moneda: $moneda,
             );
         }
@@ -128,14 +129,32 @@ final class PmsCargosAutomaticosService
             );
         }
 
-        $this->crearCargo(
-            info: $info,
-            evento: $evento,
-            tipo: PmsTipoCargo::LIMPIEZA,
-            descripcion: 'Suplemento de limpieza',
-            importe: self::TARIFA_LIMPIEZA,
-            moneda: $moneda,
-        );
+        // 🧹 LA LIMPIEZA SALE DE LA UNIDAD, no de una constante.
+        //
+        // Era `TARIFA_LIMPIEZA = '15.00'`, fija e incondicional, y coincidía con lo cotizado
+        // sólo porque todas las casitas tenían 15.00 puestos. En cuanto una pasara a
+        // porcentaje, o a otro importe, o a cero, se cotizaba una cosa y se cobraba otra —y
+        // el cargo se creaba hasta en las que no cobran limpieza—.
+        //
+        // ⚠️ `$alojamiento` es el IMPORTE del alojamiento; la variable de arriba se llamaba
+        // `$noches` y contenía esto mismo, que es una trampa para quien lea rápido. Se le pasa
+        // junto con el suplemento porque la base del porcentaje es alojamiento + suplemento
+        // (regla en `PmsUnidad::costoLimpieza()`, que es quien la decide).
+        $limpieza = $evento->getPmsUnidad()?->costoLimpieza(
+            $this->nochesDe($evento),
+            ($alojamiento ?? 0.0) + ($suplemento ?? 0.0)
+        ) ?? 0.0;
+
+        if ($limpieza > 0.0) {
+            $this->crearCargo(
+                info: $info,
+                evento: $evento,
+                tipo: PmsTipoCargo::LIMPIEZA,
+                descripcion: 'Suplemento de limpieza',
+                importe: number_format($limpieza, 2, '.', ''),
+                moneda: $moneda,
+            );
+        }
 
         // SERVICIO: intencionadamente ausente — se exonera en las reservas directas.
     }
@@ -363,6 +382,24 @@ final class PmsCargosAutomaticosService
     }
 
     /** Trunca a medianoche conservando la fecha de pared (mismo criterio que el flattener). */
+    /**
+     * Las noches de la estancia, contadas A DÍA.
+     *
+     * Mismo criterio que el alojamiento y el suplemento: la estancia va de las 14:00 a las
+     * 10:00 y un `diff()` crudo de dos noches devuelve «1 día y 20 horas» → 1 (§12.5.5).
+     */
+    private function nochesDe(PmsEventoCalendario $evento): int
+    {
+        $inicio = $evento->getInicio();
+        $fin = $evento->getFin();
+
+        if ($inicio === null || $fin === null || $fin <= $inicio) {
+            return 0;
+        }
+
+        return (int) $this->aDia($inicio)->diff($this->aDia($fin))->days;
+    }
+
     private function aDia(DateTimeInterface $dt): DateTimeImmutable
     {
         return new DateTimeImmutable($dt->format('Y-m-d') . ' 00:00:00');

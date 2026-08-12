@@ -138,15 +138,23 @@ final readonly class ListarSalidasSkill implements SkillInterface
         // El perfil se pregunta a `PerfilConversacion`, la misma pieza que decide el tono del
         // prompt, para que no haya dos definiciones de «es de campo» que se separen con el
         // tiempo. Y se filtra por el ID del usuario, no por su nombre.
-        $soloSuyas = PerfilConversacion::Colaborador === PerfilConversacion::deActor($actor);
+        $esCampo = PerfilConversacion::Colaborador === PerfilConversacion::deActor($actor);
+
+        // 🧹 El filtro por asignación es SOLO para quien limpia, que es quien tiene filas en
+        // `pms_evento_limpieza`. Atarlo a todo el perfil de campo dejaba a MANTENIMIENTO —que
+        // sí tiene esta skill— con la lista vacía para siempre: nunca aparece en esa tabla, así
+        // que el EXISTS no le casaba nada. Ve el día entero, como antes; lo que no ve, por el
+        // recorte de más abajo, son los datos de contacto.
+        $porAsignacion = $esCampo && $actor->tieneRol(Roles::LIMPIEZA);
+
         // A texto: `getId()` devuelve un `Uuid` y `UUID_TO_BIN()` espera la forma canónica.
         // Pasar el objeto por `setParameter` lo serializa mal y la consulta devolvería CERO
         // filas sin fallar — el mismo fallo mudo que ya documenta PmsDisponibilidadService.
-        $asignadoA = $soloSuyas ? $actor->usuario()?->getId()?->toRfc4122() : null;
+        $asignadoA = $porAsignacion ? $actor->usuario()?->getId()?->toRfc4122() : null;
 
-        // Un colaborador sin usuario resoluble no puede tener nada asignado: se le devuelve
-        // vacío en vez de todo. El fallo seguro es no enseñar.
-        if ($soloSuyas && $asignadoA === null) {
+        // Quien limpia y no tiene usuario resoluble no puede tener nada asignado: se le
+        // devuelve vacío en vez de todo. El fallo seguro es no enseñar.
+        if ($porAsignacion && $asignadoA === null) {
             return SkillResult::ok([
                 'desde' => $desde,
                 'hasta' => $hasta,
@@ -160,11 +168,11 @@ final readonly class ListarSalidasSkill implements SkillInterface
         $filas = [];
 
         if ($tipo === 'salidas' || $tipo === 'ambas') {
-            $filas = array_merge($filas, $this->consultar('fin', $desde, $hasta, 'sale', $asignadoA));
+            $filas = array_merge($filas, $this->consultar('fin', $desde, $hasta, 'sale', $asignadoA, $esCampo));
         }
 
         if ($tipo === 'entradas' || $tipo === 'ambas') {
-            $filas = array_merge($filas, $this->consultar('inicio', $desde, $hasta, 'entra', $asignadoA));
+            $filas = array_merge($filas, $this->consultar('inicio', $desde, $hasta, 'entra', $asignadoA, $esCampo));
         }
 
         usort($filas, static fn (array $a, array $b) => [$a['fecha'], $a['hora']] <=> [$b['fecha'], $b['hora']]);
@@ -188,7 +196,8 @@ final readonly class ListarSalidasSkill implements SkillInterface
         string $desde,
         string $hasta,
         string $movimiento,
-        ?string $asignadoA = null
+        ?string $asignadoA = null,
+        bool $esCampo = false
     ): array {
         // El filtro se compone aparte porque va DENTRO del heredoc: el parámetro se sigue
         // pasando por `setParameter`, aquí sólo se decide si la condición existe.
@@ -249,20 +258,30 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 'hora' => substr((string) $f['hora'], 0, 5),
                 'huesped' => $f['huesped'] !== '' ? $f['huesped'] : 'Sin nombre',
                 'casita' => $f['casita'] ?? '—',
-                'localizador' => $f['localizador'],
+                // 🔒 CONTACTO Y LOCALIZADOR: no salen del equipo de oficina. Quien va a la
+                // casita necesita saber a qué hora sale quién, y nada más. El teléfono del
+                // huésped —que es lo que hay dentro de `url_whatsapp`—, el enlace a su chat y
+                // su localizador no le hacen falta para limpiar ni para arreglar una avería.
+                //
+                // Se recorta AQUÍ y no confiando en que el prompt lo prohíba: esta noche ya se
+                // vio tres veces que una instrucción en mayúsculas se ignora. Lo que no debe
+                // salir, no se manda.
+                'localizador' => $esCampo ? null : $f['localizador'],
                 'es_ota' => (bool) $f['es_ota'],
                 // Quién limpia. A una persona de campo no se le repite —ya sabe que es
                 // suya, la lista viene filtrada—, pero a la oficina le ahorra abrir la ficha
                 // para saber a quién avisar.
-                'limpieza' => $asignadoA === null ? ($f['limpieza'] ?: 'sin asignar') : null,
+                'limpieza' => $esCampo ? null : ($f['limpieza'] ?: 'sin asignar'),
                 'evento_id' => $f['evento_id'],
                 'reserva_id' => $f['reserva_id'],
-                'url' => $this->fichaDe($f['evento_id'], $f['reserva_id']),
+                'url' => $esCampo ? null : $this->fichaDe($f['evento_id'], $f['reserva_id']),
                 // Los dos caminos para hablar con esta persona. `null` cuando no se puede:
                 // sin teléfono no hay WhatsApp, y sin conversación abierta no hay chat que
                 // enlazar. El modelo omite el icono en vez de pintar un enlace muerto.
-                'url_whatsapp' => $f['telefono'] !== null ? 'https://wa.me/' . $f['telefono'] : null,
-                'url_chat' => $f['conversacion_id'] !== null
+                'url_whatsapp' => !$esCampo && $f['telefono'] !== null
+                    ? 'https://wa.me/' . $f['telefono']
+                    : null,
+                'url_chat' => !$esCampo && $f['conversacion_id'] !== null
                     ? rtrim($this->urlPanel, '/') . '/chat/' . $f['conversacion_id']
                     : null,
             ], static fn ($v) => $v !== null),
