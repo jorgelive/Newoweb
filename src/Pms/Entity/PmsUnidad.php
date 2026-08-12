@@ -189,8 +189,12 @@ class PmsUnidad
     private string $precioPaxAdicional = '0.00';
 
     /**
-     * Limpieza de la estancia. **Por estancia y no por noche**: se limpia al salir, una vez,
-     * y una semana no ensucia siete veces.
+     * Cuánto se cobra por limpieza. **Por estancia y no por noche**: se limpia al salir, una
+     * vez, y una semana no ensucia siete veces.
+     *
+     * Se lee de dos formas según {@see $limpiezaEsPorcentaje}: `15.00` es «15.00 USD» o «15%
+     * del alojamiento». En `0.00` no se cobra —y entonces no aparece en la cotización ni como
+     * línea de cero—, tenga el flag el valor que tenga.
      *
      * Se cobra en todos los canales, a diferencia de {@see $porcentajeServicio}. Antes vivía
      * como texto libre en `pms_cargo_financiero` —«suplemento de limpieza», siempre 15.00 USD,
@@ -258,22 +262,22 @@ class PmsUnidad
      * {@see $serviciosCanales}, y a los directos no se les aplica ninguno.
      */
     /**
-     * Limpieza como PORCENTAJE del alojamiento, en vez de un importe fijo.
+     * ¿El importe de arriba es un PORCENTAJE en vez de dinero?
      *
-     * Manda sobre {@see $precioLimpieza} cuando es mayor que 0: algunas casitas se cobran a
-     * tanto alzado y otras a porcentaje, y tener los dos campos permite convivir sin migrar
-     * todo el parque de golpe. Con los dos en 0 no se cobra limpieza y **no aparece en la
-     * cotización** — ni como línea de cero.
+     * Con el flag puesto, `precio_limpieza = 15.00` significa «15% del alojamiento»; sin él,
+     * «15.00 USD». Un solo valor y un interruptor, en vez de dos columnas de importe: con dos,
+     * la pregunta «¿cuál manda si las dos tienen valor?» no tiene respuesta escrita en el dato
+     * —sólo en el código— y basta olvidarse de poner una a cero para cobrar lo que no era.
      *
-     * ⚠️ Su base es el ALOJAMIENTO SOLO: el suplemento por persona NO entra. Es distinta de la
+     * ⚠️ La base es el ALOJAMIENTO SOLO: el suplemento por persona NO entra. Es distinta de la
      * base de {@see $porcentajeServicio}, que sí lo incluye, y la diferencia es deliberada —se
      * eligió que la limpieza se explique como «el 15% de la tarifa» y no como un número que
      * sube con cada acompañante—. Las dos reglas viven cada una en su método y no se derivan
      * una de otra.
      */
-    #[ORM\Column(name: 'porcentaje_limpieza', type: 'decimal', precision: 5, scale: 2, options: ['default' => '0.00'])]
+    #[ORM\Column(name: 'limpieza_es_porcentaje', type: 'boolean', options: ['default' => false])]
     #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
-    private string $porcentajeLimpieza = '0.00';
+    private bool $limpiezaEsPorcentaje = false;
 
     #[ORM\Column(name: 'porcentaje_servicio', type: 'decimal', precision: 5, scale: 2, options: ['default' => '0.00'])]
     #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
@@ -535,17 +539,19 @@ class PmsUnidad
             return 0.0;
         }
 
-        if ((float) $this->porcentajeLimpieza > 0.0) {
-            return $alojamiento * (float) $this->porcentajeLimpieza / 100.0;
+        $valor = (float) $this->precioLimpieza;
+
+        if ($valor <= 0.0) {
+            return 0.0;
         }
 
-        return (float) $this->precioLimpieza;
+        return $this->limpiezaEsPorcentaje ? $alojamiento * $valor / 100.0 : $valor;
     }
 
     /** ¿La limpieza de esta casita se cobra a porcentaje? */
     public function limpiezaEsPorcentaje(): bool
     {
-        return (float) $this->porcentajeLimpieza > 0.0;
+        return $this->limpiezaEsPorcentaje && (float) $this->precioLimpieza > 0.0;
     }
 
     /** ¿Aplica el porcentaje de servicio en este canal? */
@@ -608,8 +614,8 @@ class PmsUnidad
     public function getPrecioLimpieza(): string { return $this->precioLimpieza; }
     public function setPrecioLimpieza(string $val): self { $this->precioLimpieza = $val; return $this; }
 
-    public function getPorcentajeLimpieza(): string { return $this->porcentajeLimpieza; }
-    public function setPorcentajeLimpieza(string $val): self { $this->porcentajeLimpieza = $val; return $this; }
+    public function isLimpiezaEsPorcentaje(): bool { return $this->limpiezaEsPorcentaje; }
+    public function setLimpiezaEsPorcentaje(bool $val): self { $this->limpiezaEsPorcentaje = $val; return $this; }
 
     public function getPorcentajeServicio(): string { return $this->porcentajeServicio; }
     public function setPorcentajeServicio(string $val): self { $this->porcentajeServicio = $val; return $this; }

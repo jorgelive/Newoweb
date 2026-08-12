@@ -4471,13 +4471,20 @@ nombrarlo al vender. Cuando haya que filtrar por «cama doble», se migra con el
 `PmsUnidad::precioLimpieza`, **por estancia y no por noche** — se limpia al salir, una vez, y una
 semana no ensucia siete veces. Se cobra en TODOS los canales y entra en el total.
 
-**Dos formas de cobrarla, y un orden claro.** `porcentaje_limpieza` manda si es mayor que 0; si
-no, el `precio_limpieza` fijo; y con los dos en 0 **no se cobra ni se menciona** — la línea
-desaparece del desglose y el campo no viaja. Un «limpieza 0.00» en una cotización sólo invita a
-preguntar por algo que no existe.
+**Un importe y un interruptor.** `precio_limpieza = 15.00` son 15 dólares o un 15% del
+alojamiento según `limpieza_es_porcentaje`. En `0.00` **no se cobra ni se menciona** —la línea
+desaparece del desglose y el campo no viaja—, tenga el flag el valor que tenga. Un «limpieza
+0.00» en una cotización sólo invita a preguntar por algo que no existe.
 
-Las dos columnas conviven a propósito: el parque va a pasar a porcentaje casita por casita, no
-de golpe.
+⚠️ **Por qué un flag y no dos columnas de importe.** El primer intento fue `precio_limpieza` +
+`porcentaje_limpieza` con la regla «si hay porcentaje, manda». Funcionaba, pero esa regla vivía
+sólo en el código: mirando la fila no se sabe cuál se cobra. Bastaba olvidarse de poner una a
+cero al cambiar de criterio para cobrar lo que no era, sin que nada chirriara. Con un valor y un
+flag, el dato dice por sí solo lo que significa, y cambiar de criterio es un clic sin volver a
+teclear el número.
+
+El parque pasará a porcentaje casita por casita, no de golpe: por eso es configurable por unidad
+y no un ajuste global.
 
 ⚠️ **La base del porcentaje es el ALOJAMIENTO SOLO**, sin el suplemento por persona — al revés
 que `porcentaje_servicio`, que sí lo incluye. La diferencia está elegida: la limpieza se explica

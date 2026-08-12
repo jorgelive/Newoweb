@@ -297,18 +297,20 @@ final class PmsUnidadCrudController extends BaseCrudController
             ->setNumDecimals(2)
             ->hideOnIndex()
             ->setHelp(
-                '<strong>Por estancia, no por noche</strong>: se limpia al salir, una vez. En la '
-                . 'moneda de la tarifa base. En 0.00 no se cobra.'
+                '<strong>Por estancia, no por noche</strong>: se limpia al salir, una vez. '
+                . 'Según el interruptor de abajo, <code>15.00</code> son 15 dólares o un 15%. '
+                . 'En 0.00 no se cobra.'
             );
 
-        yield NumberField::new('porcentajeLimpieza', 'Limpieza (%)')
-            ->setNumDecimals(2)
+        yield BooleanField::new('limpiezaEsPorcentaje', 'La limpieza es %')
             ->hideOnIndex()
+            ->renderAsSwitch(true)
             ->setHelp(
-                'Alternativa al importe fijo de arriba: <strong>si pones un porcentaje aquí, '
-                . 'manda sobre el importe</strong>. Se calcula sobre el ALOJAMIENTO solo — el '
-                . 'suplemento por persona NO entra, al revés que el % de servicio. '
-                . 'Con los dos en 0 no se cobra limpieza y no aparece en la cotización.'
+                'Cambia cómo se lee el número de arriba: apagado, <code>15.00</code> son 15 '
+                . 'dólares; encendido, es un <strong>15% del ALOJAMIENTO</strong> — el '
+                . 'suplemento por persona no entra en esa base, al revés que el % de servicio. '
+                . 'En 0.00 no se cobra limpieza y no aparece en la cotización, esté como esté '
+                . 'este interruptor.'
             );
 
         yield NumberField::new('porcentajeServicio', '% de servicio')
@@ -339,7 +341,7 @@ final class PmsUnidadCrudController extends BaseCrudController
                 }
 
                 $limpieza = match (true) {
-                    $entity->limpiezaEsPorcentaje() => rtrim(rtrim($entity->getPorcentajeLimpieza(), '0'), '.') . '%',
+                    $entity->limpiezaEsPorcentaje() => rtrim(rtrim($entity->getPrecioLimpieza(), '0'), '.') . '%',
                     (float) $entity->getPrecioLimpieza() > 0.0 => $entity->getPrecioLimpieza(),
                     default => '—',
                 };

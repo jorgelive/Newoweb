@@ -95,8 +95,9 @@ final readonly class PmsTarifaCalculadora
      * Va **por estancia y no por noche** ({@see PmsUnidad::costoLimpieza()}): se limpia al
      * salir, una vez. Se cobra en todos los canales y entra en el total siempre.
      *
-     * Puede ser un importe fijo o un PORCENTAJE del alojamiento —sin el suplemento por
-     * persona—. Con los dos en 0 no se cobra, y entonces no aparece ni como línea de cero.
+     * El mismo campo se lee como importe o como PORCENTAJE del alojamiento —sin el suplemento
+     * por persona— según el flag de la unidad. En 0 no se cobra, y entonces no aparece ni como
+     * línea de cero.
      *
      * ### 🏷️ El servicio de la OTA
      *
@@ -173,7 +174,7 @@ final readonly class PmsTarifaCalculadora
             // Para poder decir «limpieza 15%» y no sólo el importe: al cliente le cambia cómo
             // lo entiende. `0.0` = importe fijo.
             'limpieza_porcentaje' => $unidad->limpiezaEsPorcentaje()
-                ? (float) $unidad->getPorcentajeLimpieza()
+                ? (float) $unidad->getPrecioLimpieza()
                 : 0.0,
             'servicio' => $servicio,
             // De referencia, viajen o no aplicados: sirven para decir en cuánto sale por
