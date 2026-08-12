@@ -35,8 +35,25 @@ class MetaCredentialsType extends AbstractType
             ->add('verifyToken', TextType::class, [
                 'label' => 'Webhook Verify Token',
                 'label_attr' => ['style' => 'display: block !important;'],
-                'help' => 'String aleatorio para validar el handshake del Webhook.',
+                'help' => 'String aleatorio que TE INVENTAS TÚ. Sólo se usa una vez, en el '
+                    . 'handshake al dar de alta el webhook en Meta: tiene que coincidir con el '
+                    . 'que escribiste allí. No protege los mensajes.',
                 'attr' => ['placeholder' => 'Cusco_Secure_2026'],
+            ])
+            ->add('appSecret', TextType::class, [
+                'label' => 'App Secret (firma de los webhooks)',
+                'label_attr' => ['style' => 'display: block !important;'],
+                // ⚠️ Se confunde con el Verify Token y NO tienen nada que ver. Aquél te lo
+                // inventas y sólo vale para el alta; éste lo genera Meta y es el que firma
+                // CADA mensaje entrante. Sin él, cualquiera que conozca la URL del webhook
+                // puede hacerse pasar por el número de un operador.
+                'help' => 'NO te lo inventas: lo genera Meta. developers.facebook.com → tu app '
+                    . '→ Configuración → Básica → «Clave secreta de la aplicación» → Mostrar. '
+                    . 'Son 32 caracteres hexadecimales. Con él se comprueba la firma de cada '
+                    . 'webhook entrante; <strong>mientras esté vacío se acepta cualquier '
+                    . 'payload</strong> y el log lo avisa en cada petición.',
+                'attr' => ['placeholder' => 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'],
+                'required' => false,
             ]);
     }
 
