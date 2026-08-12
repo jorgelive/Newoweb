@@ -11,6 +11,7 @@ use Doctrine\Persistence\ObjectManager;
 use ReflectionClass;
 use ReflectionProperty;
 use RuntimeException;
+use Psr\Log\LoggerInterface;
 
 /**
  * Servicio encargado de procesar la autotraducción de entidades.
@@ -54,7 +55,9 @@ class AutoTranslationService
 
     public function __construct(
         private readonly GoogleTranslateService $translator,
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly ProtectorDeMarcadores $marcadores = new ProtectorDeMarcadores(),
+        private readonly ?LoggerInterface $logger = null
     ) {}
 
     /**
@@ -345,13 +348,33 @@ class AutoTranslationService
             }
 
             try {
-                $res = $this->translator->translate($sourceText, $targetCode, $sourceLangNorm, $mimeType);
+                // 🛡️ Los `{{ marcadores }}` van enmascarados: Google no los deja quietos, les
+                // TRADUCE el nombre de dentro —`{{ medios_pago }}` vuelve como
+                // `{{ payment_methods }}`— y entonces el interpolador ya no los reconoce. El
+                // huésped ve la llave en crudo en su guía. Ver ProtectorDeMarcadores.
+                [$textoSeguro, $marcadores] = $this->marcadores->enmascarar($sourceText);
+
+                $res = $this->translator->translate($textoSeguro, $targetCode, $sourceLangNorm, $mimeType);
 
                 if (!empty($res[0]) && is_string($res[0])) {
+                    // Si el traductor se comió un centinela, esta traducción NO se guarda: un
+                    // texto al que le falta el widget de medios de pago se publica igual de
+                    // callado que uno bueno, y nadie lo nota hasta que alguien pregunta cómo
+                    // pagar. Mejor quedarse con la traducción anterior, o sin ninguna.
+                    if (!$this->marcadores->estaIntacto($res[0], $marcadores)) {
+                        $this->logger?->warning(sprintf(
+                            '[AutoTranslate] %s → %s: el traductor perdió un marcador; no se guarda.',
+                            $sourceLangNorm,
+                            $targetCode
+                        ));
+
+                        continue;
+                    }
+
                     $baseRow = $existingRow !== null ? $existingRow : $sourceRow;
                     $valuesMap[$targetCode] = array_merge($baseRow, [
                         'language' => $targetCode,
-                        'content'  => $res[0],
+                        'content'  => $this->marcadores->restaurar($res[0], $marcadores),
                     ]);
                 }
             } catch (\Throwable) {

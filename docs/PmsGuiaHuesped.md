@@ -244,6 +244,12 @@ En todos los casos el valor real **nunca sale del servidor**: esto decide la vis
 > bloqueados guardan lo sensible en placeholders —medido: 0 ítems `cliente-confirmado` y 2
 > `solo-ventana`—, pero el primero que escribiera un secreto en el TEXTO lo habría regalado.
 >
+> **Los `{{ marcadores }}` ya no se pierden al traducir.** Google no los dejaba quietos: les
+> traducía el NOMBRE de dentro (`{{ medios_pago }}` → `{{ payment_methods }}`), y entonces el
+> interpolador dejaba de reconocerlos y el huésped veía la llave en crudo. `ProtectorDeMarcadores`
+> los enmascara antes de mandar el texto y los restaura al volver; si el traductor se come uno,
+> esa traducción NO se guarda. Ver `docs/Mensajeria.md`.
+
 > Hoy el cuerpo de un ítem bloqueado **se sustituye** por el mensaje de bloqueo en los siete
 > idiomas (`PmsGuiaArbolFiltro::mensajeDeBloqueo()`); sólo el título se interpola, porque hace
 > falta para nombrarlo.
