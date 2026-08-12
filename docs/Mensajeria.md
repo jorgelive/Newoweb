@@ -4426,8 +4426,17 @@ Ocurrió porque en un reparto cada casita sale con `precio_desde` —sin supleme
 sabe cuántos van en cada una— y el modelo rellenó el hueco calculando.
 
 La solución no es un aviso más, es **quitarle la operación**. Con `distribucion` («2:7, 5:2») se
-cotiza cada casita con SU número de personas y se devuelve `total_combinado` ya sumado, en su
-moneda y en soles.
+cotiza cada casita con SU número de personas y se devuelve **`cotizacion`**: un texto ya armado,
+listo para copiar, con la cuenta de cada casita y el total.
+
+⚠️ **El total y el desglose van en el MISMO campo, y eso es deliberado.** Al principio eran dos
+—`total_combinado` por un lado, `desglose` por casita por otro— y el modelo cogía el total,
+resumía y mandaba el suplemento y la limpieza a una nota al pie: «Casita 2: $181.00 *(incluye
+$36.00 de suplemento)*». Quien recibe una cotización tiene que ver de dónde sale cada cifra.
+Yendo juntos, no puede dar uno sin el otro.
+
+La cotización dice además, en su última línea, que el precio es **directo** y no lleva el
+porcentaje de las OTA — porque quien pregunta por este canal reserva directo.
 
 | Regla | Por qué |
 |---|---|

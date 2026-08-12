@@ -83,7 +83,10 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 . 'vuelve a llamarme con «pax» y entonces sí tendrás el total. '
                 . '🧮 EN CUANTO TE DIGAN QUIÉN VA EN CADA CASITA, vuelve a llamarme con '
                 . '«distribucion» («2:7, 5:2»). Te devuelvo el total exacto de cada una y el '
-                . '«total_combinado» YA SUMADO. ⛔ NO sumes casitas tú, NO calcules el '
+                . '«cotizacion»: un texto ya armado con la cuenta de CADA casita y el total. '
+                . 'CÓPIALO TAL CUAL, entero, sin resumirlo a los totales y sin mover el '
+                . 'suplemento ni la limpieza a una nota al pie: quien lo recibe tiene que ver '
+                . 'de dónde sale cada cifra. ⛔ NO sumes casitas tú, NO calcules el '
                 . 'suplemento por persona a partir del precio base, y NO conviertas importes a '
                 . 'soles a mano: todo eso viene hecho. Si te falta un dato para pedirlo, '
                 . 'pregúntalo antes; equivocarse en una cifra cuesta más que una repregunta. '
@@ -320,11 +323,18 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                     implode(', ', $noDisponibles)
                 )
                 : null,
-            // 🧾 EL TOTAL CONJUNTO, SUMADO AQUÍ. Es la razón de ser de este camino: el modelo
-            // no suma. Sólo se da si TODAS las casitas se pudieron cotizar — un total al que le
-            // falta una casita es peor que no dar total, porque parece completo.
-            'total_combinado' => $completo && $casitas !== []
-                ? $this->totalCombinado($totalUsd, $totalPax, count($casitas), $moneda)
+            // 🧾 LA COTIZACIÓN ENTERA, LISTA PARA COPIAR. Es la razón de ser de este camino.
+            //
+            // No es sólo el total sumado: lleva DENTRO el desglose de cada casita. Con el
+            // total en un campo y el desglose en otro, el modelo cogía el total y resumía el
+            // resto en una nota al pie —«incluye 36.00 de suplemento»—, que es justo lo que no
+            // se quería: quien recibe la cotización tiene que ver de dónde sale cada cifra.
+            // Yendo en el MISMO campo, no puede dar uno sin el otro.
+            //
+            // Sólo se da si TODAS las casitas se pudieron cotizar: una cotización a la que le
+            // falta una casita parece completa, y eso es peor que no darla.
+            'cotizacion' => $completo && $casitas !== []
+                ? $this->cotizacionCompleta($casitas, $totalUsd, $totalPax, $moneda)
                 : null,
         ], static fn ($v) => $v !== null));
     }
@@ -349,20 +359,46 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         return null;
     }
 
-    /** El total de todas las casitas junto, en su moneda y en soles, ya sumado. */
-    private function totalCombinado(float $total, int $pax, int $cuantas, string $moneda): string
+    /**
+     * La cotización completa en un solo texto: casita por casita con su cuenta, y el total.
+     *
+     * Se entrega ARMADA para que se lea tal cual. Todo lo que aquí se separa en líneas es algo
+     * que el modelo, si se lo damos suelto, resume o se salta: el precio por noche, el
+     * suplemento por persona y la limpieza acabaron en una nota al pie la primera vez.
+     *
+     * Sin markdown de tablas: esto sale por WhatsApp.
+     *
+     * @param list<array<string, mixed>> $casitas
+     */
+    private function cotizacionCompleta(array $casitas, float $total, int $pax, string $moneda): string
     {
+        $lineas = [];
+
+        foreach ($casitas as $c) {
+            $lineas[] = sprintf(
+                '%s · %d persona(s): %s',
+                $c['nombre'] ?? 'Casita',
+                (int) ($c['pax'] ?? 0),
+                // El desglose ya trae «tarifa × noches + extras + limpieza → TOTAL».
+                $c['desglose'] ?? ($c['precio'] ?? '')
+            );
+        }
+
         $soles = $this->enSoles($total, $moneda);
 
-        return sprintf(
-            '%.2f %s por las %d casitas juntas, %d persona(s), %s. %s',
+        $lineas[] = sprintf(
+            'TOTAL %s: %.2f %s%s',
+            count($casitas) > 1 ? sprintf('por las %d casitas juntas (%d personas)', count($casitas), $pax) : '',
             $total,
             $moneda,
-            $cuantas,
-            $pax,
-            'todo incluido salvo el servicio de las OTA, que aquí no se cobra',
-            $soles !== null ? 'Total ' . $soles : ''
+            $soles !== null ? ' · ' . $soles : ''
         );
+
+        // Se dice en la propia cotización, no sólo en la descripción de la skill: quien
+        // pregunta por aquí reserva DIRECTO y no paga el porcentaje de las OTA.
+        $lineas[] = 'Precio DIRECTO: no incluye ni paga el porcentaje de servicio de las OTA.';
+
+        return implode("\n", $lineas);
     }
 
     /**
