@@ -60,6 +60,7 @@ readonly class MessageConversationFactory
         $conversation->setContextOrigin($context->getOrigin());
         $conversation->setContextAgency($context->getAgencyId());
         $conversation->setContextStatusTag($context->getStatusTag());
+        $conversation->setContextVinculo($context->getVinculo());
         $conversation->setContextMilestones($context->getMilestones());
         $conversation->setContextItems($context->getItems());
         $conversation->setContextFinancials($context->getFinancialTotal(), $context->isFinancialCleared());

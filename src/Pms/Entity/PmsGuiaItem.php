@@ -9,6 +9,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Entity\Trait\AutoTranslateControlTrait;
+use App\Message\Contract\CategoriaConocimiento;
 use App\Pms\Enum\PmsGuiaVisibilidad;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -62,6 +63,33 @@ class PmsGuiaItem
     #[ORM\Column(type: 'string', length: 20, enumType: PmsGuiaVisibilidad::class, options: ['default' => 'cliente'])]
     #[Assert\NotNull]
     private PmsGuiaVisibilidad $visibilidad = PmsGuiaVisibilidad::Cliente;
+
+    /**
+     * DE QUÉ trata el ítem, para poder restarlo según el canal por el que se responde.
+     *
+     * Es un eje distinto de `visibilidad` y no lo sustituye. Aquélla dice CUÁNTA confianza
+     * hace falta —la escalera público → cliente → confirmado → ventana—; ésta dice DE QUÉ
+     * HABLA. Son independientes: la dirección del alojamiento y el número de camas están las
+     * dos en el escalón `Publico`, y sin embargo por una OTA sin confirmar una se puede dar y
+     * la otra no.
+     *
+     * Sin este campo, la única forma de tapar la dirección ante el partner era subirla de
+     * escalón —y eso la habría escondido también en el catálogo público de la web, que es
+     * justo donde debe estar—.
+     *
+     * El default es `General`, es decir «siempre se puede contar». Al revés dejaría mudo al
+     * agente en cuanto alguien olvidara clasificar un ítem, y lo que se restringe es la
+     * excepción, no la norma.
+     */
+    #[ORM\Column(
+        name: 'categoria',
+        type: 'string',
+        length: 30,
+        enumType: CategoriaConocimiento::class,
+        options: ['default' => 'general']
+    )]
+    #[Assert\NotNull]
+    private CategoriaConocimiento $categoria = CategoriaConocimiento::General;
 
     #[ORM\Column(type: 'json')]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
@@ -256,6 +284,17 @@ class PmsGuiaItem
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     #[SerializedName('visibilidad')]
     public function getVisibilidadApi(): string { return $this->visibilidad->value; }
+
+    public function getCategoria(): CategoriaConocimiento { return $this->categoria; }
+
+    public function setCategoria(CategoriaConocimiento|string|null $categoria): self
+    {
+        $this->categoria = is_string($categoria)
+            ? (CategoriaConocimiento::tryFrom($categoria) ?? CategoriaConocimiento::General)
+            : ($categoria ?? CategoriaConocimiento::General);
+
+        return $this;
+    }
 
     /* ======================================================
      * VISTA PÚBLICA (pax) — las llena PmsGuiaArbolFiltro

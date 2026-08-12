@@ -57,6 +57,7 @@ final class AgentSkillCommand extends Command
             ->addOption('contexto', null, InputOption::VALUE_REQUIRED, 'UUID de reserva, para las skills acotadas al contexto')
             ->addOption('como-huesped', null, InputOption::VALUE_NONE, 'Ejecutar con ROLE_HUESPED en vez de SUPER_ADMIN')
             ->addOption('como-prospecto', null, InputOption::VALUE_NONE, 'Ejecutar con ROLE_PROSPECTO: quien pregunta sin reserva ninguna')
+            ->addOption('conversacion', null, InputOption::VALUE_REQUIRED, 'UUID del HILO en curso. No es el contexto: no autoriza a leer nada, solo dice en qué conversación se está. Es lo que necesita escalar_al_equipo')
             ->addOption('usuario', null, InputOption::VALUE_REQUIRED, 'Username de un usuario REAL: ejecuta con su identidad y sus roles');
     }
 
@@ -83,6 +84,10 @@ final class AgentSkillCommand extends Command
         $contexto = $input->getOption('contexto');
         $username = $input->getOption('usuario');
 
+        $conversacion = $input->getOption('conversacion');
+        $conversacion = $conversacion !== null ? trim((string) $conversacion) : null;
+        $conversacion = $conversacion === '' ? null : $conversacion;
+
         if ($username !== null) {
             $usuario = $this->usuarios->findOneBy(['username' => (string) $username]);
 
@@ -98,10 +103,12 @@ final class AgentSkillCommand extends Command
                 : $this->actores->delPanel($usuario);
         } elseif ($input->getOption('como-prospecto')) {
             // Sin contexto ni aunque se pase `--contexto`: un prospecto sin contexto es la
-            // definición, no una limitación de la prueba.
-            $actor = AgentActor::prospecto('cli');
+            // definición, no una limitación de la prueba. El HILO sí se le pasa: es lo único
+            // que le permite escalar, y sin él esta prueba no podía reproducir el camino real
+            // —que es justo donde estaba el bug—.
+            $actor = AgentActor::prospecto('cli', $conversacion);
         } elseif ($input->getOption('como-huesped')) {
-            $actor = AgentActor::huesped('cli', 'pms_reserva', $contexto !== null ? (string) $contexto : null);
+            $actor = AgentActor::huesped('cli', 'pms_reserva', $contexto !== null ? (string) $contexto : null, $conversacion);
         } else {
             $actor = $this->actorAdmin($contexto !== null ? (string) $contexto : null);
         }

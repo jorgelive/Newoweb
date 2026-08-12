@@ -179,7 +179,11 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
         // operador ítem a ítem en el campo `visibilidad`, y lo aplica el mismo filtro que
         // protege la guía del huésped.
         if ($reservaId === '' && ($actor->esProspecto() || $actor->esDelEquipo())) {
-            return $this->guiaPublica($entrada, trim((string) ($entrada['casita'] ?? '')));
+            return $this->guiaPublica(
+                $entrada,
+                trim((string) ($entrada['casita'] ?? '')),
+                $actor->restriccion()->categoriasBloqueadas()
+            );
         }
 
         if ($actor->contextoId() === null && !$actor->esDelEquipo()) {
@@ -244,7 +248,17 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
 
         // 🔒 El árbol llega podado y con los placeholders resueltos —o sustituidos por el
         // mensaje de bloqueo—. A partir de aquí ya no hay nada sensible que decidir.
-        $secciones = $this->filtro->podar($guia, $acceso, $contexto);
+        //
+        // La restricción del canal se aplica AQUÍ, en la fuente, y no como una instrucción en
+        // el prompt: pedirle al modelo que se calle un dato que ya tiene delante es una
+        // petición, no un cierre. Lo que no puede salir por este tubo no llega a existir en el
+        // turno. El aviso que sí viaja en el prompt sólo sirve para que sepa explicarlo.
+        $secciones = $this->filtro->podar(
+            $guia,
+            $acceso,
+            $contexto,
+            $actor->restriccion()->categoriasBloqueadas()
+        );
 
         // 🇪🇸 Al modelo se le da SIEMPRE el español, no el idioma del huésped. Redactar en su
         // lengua ya se lo pide el contexto de la conversación, y traducir es lo que mejor hace.
@@ -303,7 +317,12 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
      * Sin evento: `PmsGuiaContexto::construir()` lo acepta nulo, y sin estancia no hay horas ni
      * códigos que resolver — que es exactamente lo que se quiere.
      */
-    private function guiaPublica(array $entrada, string $casita): SkillResult
+    /**
+     * @param list<string> $categoriasBloqueadas Hoy siempre vacío —un prospecto llega por
+     *        canal propio—, pero se pasa igual: dejar una puerta al árbol sin la resta es
+     *        cómo se cuela la fuga el día que exista un prospecto de canal restringido.
+     */
+    private function guiaPublica(array $entrada, string $casita, array $categoriasBloqueadas = []): SkillResult
     {
         if ($casita === '') {
             return SkillResult::ok([
@@ -340,7 +359,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
 
         $acceso = PmsGuiaAcceso::publico();
         $contexto = PmsGuiaContexto::construir($unidad, null);
-        $secciones = $this->filtro->podar($guia, $acceso, $contexto);
+        $secciones = $this->filtro->podar($guia, $acceso, $contexto, $categoriasBloqueadas);
 
         if ($secciones === []) {
             return SkillResult::error(sprintf(

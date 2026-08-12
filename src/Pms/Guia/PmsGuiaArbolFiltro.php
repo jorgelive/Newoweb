@@ -38,14 +38,23 @@ final class PmsGuiaArbolFiltro
      *
      * @return array<int, PmsGuiaSeccion>
      */
-    public function podar(PmsGuia $guia, PmsGuiaAcceso $acceso, PmsGuiaContexto $contexto): array
-    {
+    /**
+     * @param list<string> $categoriasBloqueadas Categorías que no pueden salir por el canal
+     *        que va a responder. Vacío —el default— deja el comportamiento de siempre, que es
+     *        el de la web y el catálogo: ahí no hay partner que restrinja nada.
+     */
+    public function podar(
+        PmsGuia $guia,
+        PmsGuiaAcceso $acceso,
+        PmsGuiaContexto $contexto,
+        array $categoriasBloqueadas = []
+    ): array {
         $visibles = [];
 
         foreach ($guia->getSeccionesApi() as $seccion) {
             \assert($seccion instanceof PmsGuiaSeccion);
 
-            $items = $this->podarItems($seccion, $acceso, $contexto);
+            $items = $this->podarItems($seccion, $acceso, $contexto, $categoriasBloqueadas);
 
             if ([] === $items) {
                 continue;
@@ -61,12 +70,36 @@ final class PmsGuiaArbolFiltro
     /**
      * @return array<int, PmsGuiaItem>
      */
-    private function podarItems(PmsGuiaSeccion $seccion, PmsGuiaAcceso $acceso, PmsGuiaContexto $contexto): array
-    {
+    /**
+     * @param list<string> $categoriasBloqueadas
+     *
+     * @return array<int, PmsGuiaItem>
+     */
+    private function podarItems(
+        PmsGuiaSeccion $seccion,
+        PmsGuiaAcceso $acceso,
+        PmsGuiaContexto $contexto,
+        array $categoriasBloqueadas = []
+    ): array {
         $items = [];
 
         foreach ($seccion->getItemsApi() as $item) {
             \assert($item instanceof PmsGuiaItem);
+
+            // 🚧 RESTA POR CANAL, antes que nada.
+            //
+            // Va primero y DESAPARECE el ítem, sin candado ni anuncio. El candado de más abajo
+            // dice «esto existe y lo verás cuando confirmes», que es información útil para
+            // quien espera. Aquí no: anunciar «hay una dirección que no puedo darte» es
+            // invitar al modelo a hablar de ella, y lo que el partner prohíbe no es el valor
+            // sino la conversación entera. Si no puede salir, no existe.
+            //
+            // Y es un eje distinto de la visibilidad: se aplica encima, no en su lugar. Un
+            // ítem `Publico` puede caer aquí —la dirección lo es— sin que eso cambie lo que se
+            // sirve en la web.
+            if (!$item->getCategoria()->permitidaCon($categoriasBloqueadas)) {
+                continue;
+            }
 
             $visibilidad = $item->getVisibilidad();
 

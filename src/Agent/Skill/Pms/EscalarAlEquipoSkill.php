@@ -281,6 +281,16 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
             ]);
         }
 
+        // Sin contexto pero dentro de un hilo: es el prospecto. Se le localiza por la
+        // conversación en curso y no por el parámetro, que sólo sirve al equipo desde el
+        // panel — un prospecto no conoce ningún UUID, y la salida que le ofrecía el error
+        // (`localizar_conversacion`) exige roles de equipo y ni le aparece en la lista.
+        $delHilo = $actor->conversacionId();
+
+        if ($delHilo !== null && Uuid::isValid($delHilo)) {
+            return $repo->find($delHilo);
+        }
+
         $id = trim((string) ($entrada['conversacion_id'] ?? ''));
 
         return $id !== '' && Uuid::isValid($id) ? $repo->find($id) : null;

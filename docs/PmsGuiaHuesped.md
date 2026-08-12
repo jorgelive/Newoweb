@@ -1397,3 +1397,68 @@ y reescribe todas las posiciones de la sección.
 | Fijar el precio de guardar equipaje | Ítem «Early check in Late Check Out», cuerpo y campo del agente |
 | Cambiar el mínimo de noches del texto | «Cancelación (general)»; el dato real vive en Beds24 |
 | Añadir un tema nuevo a las 7 casitas | Copiar el patrón de `Version20260811160000` |
+
+---
+
+## 10. `categoria`: el segundo eje de cada ítem
+
+Desde 2026-08-12 cada `PmsGuiaItem` tiene **dos** campos que deciden si sale, y no son lo mismo:
+
+| Campo | Pregunta | Forma |
+|---|---|---|
+| `visibilidad` (`PmsGuiaVisibilidad`) | ¿cuánta confianza hace falta? | escalera: público → cliente → confirmado → ventana |
+| `categoria` (`CategoriaConocimiento`) | ¿de qué habla el ítem? | resta que se aplica encima |
+
+### 10.1 Por qué hicieron falta los dos
+
+A una interesada que llegó por Airbnb sin confirmar se le dio la dirección exacta del
+alojamiento. **El sistema no falló:** `Ubicación (general)` está marcada `Publico`, así que
+entregarla era lo correcto según el modelo de entonces. Lo que faltaba era poder decir que la
+dirección, siendo pública en la web, no puede salir por el canal de una OTA antes de confirmar.
+
+No se podía resolver subiéndola de escalón: eso la habría escondido también en el catálogo
+público, que es justo donde debe estar. Ni bajando el escalón del interesado: a esa misma
+persona hay que contestarle cuántas habitaciones hay y cuántas camas, o se pierde la reserva —
+que fue lo que pasó.
+
+De ahí que sea un eje **ortogonal y sustractivo**: la escalera dice cuánto se abre, la categoría
+dice qué no pasa por este canal.
+
+### 10.2 Los valores
+
+- **`General`** — el default, «siempre se puede contar»: distribución, camas, equipamiento,
+  normas, check-in. La inmensa mayoría del contenido.
+- **`DireccionExacta`** — calle, número, referencias para llegar a la puerta.
+- **`Contacto`** — teléfonos, correos, redes.
+- **`CanalAlternativo`** — WhatsApp, web propia, invitar a reservar directo.
+- **`Credenciales`** — códigos de puerta, caja, WiFi. Ya protegidos por la escalera; se etiquetan
+  por claridad.
+
+El default es «se puede contar» a propósito: al revés, un ítem sin clasificar dejaría mudo al
+agente, y lo que se restringe es la excepción.
+
+### 10.3 Dónde se aplica
+
+`PmsGuiaArbolFiltro::podarItems()` descarta por categoría **antes** que nada, y los ítems
+bloqueados **desaparecen sin candado** — al contrario que los de `visibilidad`, que se anuncian
+con «esto lo verás cuando confirmes». Anunciar «hay una dirección que no puedo darte» es invitar
+a hablar de ella.
+
+`podar()` recibe `$categoriasBloqueadas` con default `[]`, así que la web y el catálogo
+(`PmsGuiaHuespedProvider`) siguen exactamente igual: ahí no hay partner que restrinja nada. Sólo
+`ConsultarGuiaSkill` pasa las categorías, sacadas de `ActorInterface::restriccion()`.
+
+Ver `docs/Mensajeria.md` §19 para el eje de canal completo.
+
+### 10.4 Pendiente
+
+La migración `Version20260812250000` crea la columna con **todo en `general`**. Mientras nadie
+clasifique, la resta no tapa nada. Como mínimo:
+
+- `Ubicación (general)` → `DireccionExacta`
+- `Horario solicitudes (general)` → `Contacto` — contiene dos teléfonos y el número de Yape, y
+  es alcanzable **hoy** por una consulta de OTA sin confirmar (nivel `cliente`, y `PmsGuiaAcceso`
+  permite `Cliente` a cualquier huésped identificado)
+- `Wifi`, `Llaves` y los `Puerta (casa N)` → `Credenciales`
+
+Se clasifica desde el panel: ítem de guía → **«De qué habla»**.

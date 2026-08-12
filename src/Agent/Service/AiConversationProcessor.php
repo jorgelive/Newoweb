@@ -6,6 +6,9 @@ namespace App\Agent\Service;
 
 use App\Agent\Access\AgentActor;
 use App\Agent\Access\AgentActorFactory;
+use App\Agent\Conversation\InstruccionesDominioRegistry;
+use App\Agent\Access\RestriccionCanal;
+use App\Message\Contract\VinculoComercial;
 use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Access\ActorInterface;
@@ -46,15 +49,6 @@ final readonly class AiConversationProcessor
     /** Mensajes de historial que se mandan al modelo. Acota coste y latencia. */
     private const int HISTORIAL_MAX = 20;
 
-    /**
-     * El `contextType` de una conversación que cuelga de una reserva.
-     *
-     * Es la frontera entre huésped y prospecto: con reserva detrás hay algo que consultar y
-     * alguien a quien acreditar; sin ella, quien escribe es un desconocido. Los otros valores
-     * vivos (`manual`, `staff`) no acreditan a nadie como huésped.
-     */
-    private const string CONTEXTO_RESERVA = 'pms_reserva';
-
     /** Para fechar el prompt. El negocio y quien escribe están en Perú. */
     private const string TZ_PERU = 'America/Lima';
 
@@ -75,6 +69,7 @@ final readonly class AiConversationProcessor
         private Triaje $triaje,
         private UserRepository $usuarios,
         private AgentActorFactory $actores,
+        private InstruccionesDominioRegistry $dominios,
         private PhoneSanitizer $telefonos,
         private PmsEspacioEstancia $espacio,
         private bool $habilitado,
@@ -125,6 +120,8 @@ final readonly class AiConversationProcessor
 
             return 'error_ia';
         }
+
+        $respuesta = $this->limpiarMarcasDeHistorial($respuesta);
 
         if ($respuesta === null || trim($respuesta) === '') {
             return 'ia_sin_respuesta';
@@ -476,14 +473,50 @@ final readonly class AiConversationProcessor
         // `ROLE_PROSPECTO` invierte eso: menos acceso a lo privado —no hay reserva que
         // consultar— y a cambio lo que un desconocido sí puede saber, que es justo lo que hay
         // que contestarle para venderle algo.
-        $esProspecto = $delEquipo === null
-            && self::CONTEXTO_RESERVA !== $conversacion->getContextType();
+        // El hilo va a los tres por igual: es enrutado, no permiso. Al prospecto le importa
+        // especialmente —nace sin contexto a propósito, y sin el hilo `escalar_al_equipo` no
+        // encontraba la conversación y todo lead que pedía hablar con alguien moría ahí.
+        $conversacionId = $conversacion->getId()?->toRfc4122();
+
+        // Tener contexto NO significa ser cliente: una consulta de OTA cuelga de una reserva
+        // igual que una estancia confirmada, y distinguirlas es justo lo que faltaba.
+        //
+        // Se lee del snapshot y no de la entidad viva porque para esta ruta es lo mismo:
+        // `Beds24ReceivePersister` llama a `upsertFromContext()` al recibir cada mensaje, así
+        // que acaba de reescribirse cuando llegamos aquí. El fallback a `deStatusTag()` cubre
+        // las conversaciones anteriores al campo, cuyo upsert todavía no ha vuelto a correr.
+        $vinculo = $conversacion->getContextVinculo()
+            ?? VinculoComercial::deStatusTag($conversacion->getContextStatusTag());
+
+        $restriccion = RestriccionCanal::deOrigenYVinculo($conversacion->getContextOrigin(), $vinculo);
+
+        // 🌍 Prospecto es «no hay vínculo», NO «su contexto no es una reserva del PMS».
+        //
+        // La versión anterior comparaba contra `CONTEXTO_RESERVA`, y con eso el primer módulo
+        // que creara conversaciones con otro `context_type` —tours, soporte— habría visto a
+        // sus clientes tratados como desconocidos: sin contexto, sin skills acotadas y con el
+        // prompt de venta. El fallo habría sido silencioso, porque nada de eso revienta.
+        //
+        // Preguntándoselo al vínculo, cada dominio decide por su cuenta y esto deja de tener
+        // opinión sobre qué módulos existen. Para lo que hay hoy el resultado es idéntico:
+        // las conversaciones `manual` y `staff` no traen vínculo y siguen siendo prospectos.
+        $esProspecto = $delEquipo === null && VinculoComercial::Ninguno === $vinculo;
 
         $actor = match (true) {
-            $delEquipo !== null => $this->actores->delEquipoPorChat($delEquipo, $origen, $conversacion->getContextType(), $conversacion->getContextId(), tambienHuesped: true),
-            $esProspecto => $this->actores->prospecto($origen),
-            default => $this->actores->huesped($origen, $conversacion->getContextType(), $conversacion->getContextId()),
+            $delEquipo !== null => $this->actores->delEquipoPorChat($delEquipo, $origen, $conversacion->getContextType(), $conversacion->getContextId(), tambienHuesped: true, conversacionId: $conversacionId),
+            $esProspecto => $this->actores->prospecto($origen, $conversacionId),
+            default => $this->actores->huesped($origen, $conversacion->getContextType(), $conversacion->getContextId(), $conversacionId, $vinculo, $restriccion),
         };
+
+        if (!$esProspecto && $delEquipo === null && VinculoComercial::Cliente !== $vinculo) {
+            $this->logger->info(sprintf(
+                'IA: %s tiene contexto %s pero vínculo «%s»%s; se le atiende como INTERESADO.',
+                $conversacion->getGuestPhone() ?? '(sin número)',
+                $conversacion->getContextType(),
+                $vinculo->etiqueta(),
+                $restriccion->restringe() ? ' y canal restringido' : ''
+            ));
+        }
 
         if ($esProspecto) {
             $this->logger->info(sprintf(
@@ -636,13 +669,52 @@ final readonly class AiConversationProcessor
     {
         $perfil = PerfilConversacion::deActor($actor);
 
-        return $this->reglasComunes() . "\n\n" . $perfil->instrucciones();
+        // El perfil dice QUIÉN escribe; el dominio, DE QUÉ va el negocio. Estaban juntos en el
+        // enum y por eso cada perfil nuevo nacía hotelero. Se resuelve por `context_type` con
+        // el mismo patrón de tag iterator que ya usa `MessageDataResolverRegistry`.
+        $dominio = $this->dominios->para($actor->contextoTipo(), $perfil);
+
+        return $dominio === ''
+            ? $this->reglasComunes()
+            : $this->reglasComunes() . "\n\n" . $dominio;
     }
 
     /**
      * Lo que vale para los cuatro perfiles. Aquí sólo entra lo que sería un error grave en
      * cualquiera de las cuatro conversaciones.
      */
+    /**
+     * Quita del texto generado la marca de fecha del historial.
+     *
+     * ### Por qué existe
+     *
+     * El historial se le da al modelo con la fecha DENTRO del texto de cada turno —`[12/08]
+     * …`, ver {@see self::historial()}— y eso resolvió un fallo real: sin fecha, una cotización
+     * que el propio bot dio hace una semana volvía a contexto como si fuera de hoy.
+     *
+     * Pero el precio fue otro fallo. Al ir dentro del texto, la marca es contenido a imitar y
+     * no metadato: el modelo aprendió el patrón y, en vez de responder, **continuó la
+     * transcripción escribiendo el siguiente turno DEL HUÉSPED**. Salió por el canal, en 2ª
+     * persona y con su voz, un «Un favor, si le podría comentar al equipo para que me envíen
+     * foto del baño… Muchas gracias!» que la huésped leyó como si se lo mandáramos a ella.
+     * Entendible: no sabía a quién le hablaba el sistema.
+     *
+     * El prompt ya se lo pide, pero **un prompt es una petición**. Esto es el cierre: si la
+     * marca aparece, se quita antes de encolar. Barato, determinista y no depende de que
+     * ningún modelo obedezca.
+     *
+     * Sólo se toca el PRINCIPIO. Un `[12/08]` a mitad de frase puede ser una fecha legítima que
+     * el huésped preguntó, y ahí el bot está citando, no imitando.
+     */
+    private function limpiarMarcasDeHistorial(?string $texto): ?string
+    {
+        if ($texto === null) {
+            return null;
+        }
+
+        return preg_replace('/^\s*\[\d{1,2}\/\d{1,2}\]\s*/u', '', $texto) ?? $texto;
+    }
+
     private function reglasComunes(): string
     {
         // 📅 QUÉ DÍA ES HOY. Sin esto el modelo no puede resolver «del 8 al 10 de noviembre»,
@@ -667,6 +739,11 @@ final readonly class AiConversationProcessor
         refieren a la PRÓXIMA vez que ocurra esa fecha, nunca a una pasada. Ante la duda,
         pregunta el año antes de cotizar: una tarifa del año que no es parece correcta y no
         hay forma de que el cliente lo note.
+
+        En el historial cada turno viene con su fecha delante, así: «[12/08] texto». Esa marca
+        es NUESTRA, para que sepas cuándo se dijo cada cosa. NO la escribas nunca en tu
+        respuesta, y no continúes la transcripción: tú contestas al huésped, no redactas su
+        siguiente mensaje.
 
         Reglas que valen SIEMPRE, hables con quien hables:
         - Sé breve y concreto: es un chat, no un correo. Dos o tres frases bastan.
@@ -917,8 +994,18 @@ final readonly class AiConversationProcessor
         $quien = PerfilConversacion::deActor($actor)->enUnaLinea();
         $quien = $quien === '' ? '' : "\n" . $quien;
 
+        // 🚧 Qué NO puede salir por este tubo. Va también en lo volátil y por el mismo motivo:
+        // depende de la conversación, no del prompt común.
+        //
+        // ⚠️ Esto NO es lo que impide la fuga —el filtro de verdad está en la fuente, que
+        // descarta el contenido antes de que exista el turno—. Esto es para que el modelo
+        // sepa EXPLICARLO: sin el aviso, al no encontrar la dirección se la inventa o promete
+        // que «el equipo te la envía», que es exactamente lo que hizo cinco veces seguidas.
+        $limites = $actor->restriccion()->avisoParaElPrompt();
+        $limites = $limites === '' ? '' : "\n" . $limites;
+
         $contexto = <<<CONTEXTO
-        Hablas con {$huesped}.{$fase}{$espacio}{$quien}
+        Hablas con {$huesped}.{$fase}{$espacio}{$quien}{$limites}
         Responde SIEMPRE en el idioma con código "{$idioma}".
         CONTEXTO;
 

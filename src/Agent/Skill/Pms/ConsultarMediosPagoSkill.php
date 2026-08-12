@@ -117,6 +117,23 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // 🚧 Por un canal restringido esto no sale, y se corta AQUÍ y no en el prompt.
+        //
+        // Esta skill devuelve titulares, números de Yape y cuentas bancarias: es exactamente
+        // lo que una OTA prohíbe entregar antes de que la reserva se cierre, porque es lo que
+        // permite cobrar por fuera. El filtro por categorías protege la guía, pero esta skill
+        // no pasa por la guía — se saltaba la resta entera.
+        //
+        // Y no es que falte permiso: quien pregunta tiene ROLE_HUESPED como cualquier otro. Lo
+        // que no encaja es el TUBO, así que el corte va por el tubo.
+        if ($actor->restriccion()->restringe()) {
+            return SkillResult::error(
+                'Por este canal no se pueden dar medios de pago: la reserva aún no está '
+                . 'confirmada y la plataforma lo prohíbe. Dile que el pago se gestiona en la '
+                . 'propia plataforma donde reservó, y no le ofrezcas ninguna otra forma.'
+            );
+        }
+
         $reservaId = $this->reservaDelContexto($actor)
             ?? trim((string) ($entrada['reserva_id'] ?? ''));
 

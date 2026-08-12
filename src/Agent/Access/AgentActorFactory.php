@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Access;
 
 use App\Entity\User;
+use App\Message\Contract\VinculoComercial;
 use App\Security\Roles;
 use Symfony\Component\Security\Core\Authorization\Voter\RoleHierarchyVoter;
 use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
@@ -71,7 +72,8 @@ final readonly class AgentActorFactory
         string $origen,
         ?string $tipo = null,
         ?string $id = null,
-        bool $tambienHuesped = false
+        bool $tambienHuesped = false,
+        ?string $conversacionId = null
     ): AgentActor {
         $roles = $this->rolesEfectivos($usuario);
 
@@ -80,7 +82,7 @@ final readonly class AgentActorFactory
             $roles = array_values(array_unique($roles));
         }
 
-        return AgentActor::delEquipoPorChat($usuario, $origen, $tipo, $id, $roles);
+        return AgentActor::delEquipoPorChat($usuario, $origen, $tipo, $id, $roles, $conversacionId);
     }
 
     /**
@@ -88,18 +90,24 @@ final readonly class AgentActorFactory
      * `User` lo tiene—, así que no hay jerarquía que aplicarle. Se ofrece aquí para que quien
      * construye actores no tenga que alternar entre la factoría y la clase.
      */
-    public function huesped(string $origen, ?string $contextoTipo, ?string $contextoId): AgentActor
-    {
-        return AgentActor::huesped($origen, $contextoTipo, $contextoId);
+    public function huesped(
+        string $origen,
+        ?string $contextoTipo,
+        ?string $contextoId,
+        ?string $conversacionId = null,
+        VinculoComercial $vinculo = VinculoComercial::Cliente,
+        RestriccionCanal $restriccion = RestriccionCanal::Ninguna
+    ): AgentActor {
+        return AgentActor::huesped($origen, $contextoTipo, $contextoId, $conversacionId, $vinculo, $restriccion);
     }
 
     /**
      * Quien pregunta sin reserva ninguna. `ROLE_PROSPECTO` es sintético y plano, igual que
      * `ROLE_HUESPED`: tampoco hay jerarquía que expandirle.
      */
-    public function prospecto(string $origen): AgentActor
+    public function prospecto(string $origen, ?string $conversacionId = null): AgentActor
     {
-        return AgentActor::prospecto($origen);
+        return AgentActor::prospecto($origen, $conversacionId);
     }
 
     /**

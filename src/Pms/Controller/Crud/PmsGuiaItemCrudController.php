@@ -8,6 +8,7 @@ use App\Panel\Form\Type\TranslationHtmlType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Entity\PmsGuiaItemGaleria;
+use App\Message\Contract\CategoriaConocimiento;
 use App\Pms\Enum\PmsGuiaVisibilidad;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -175,6 +176,39 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 . '(úsalo para códigos de puerta, caja fuerte y WiFi). '
                 . 'Los dos últimos, si no se cumplen, NO desaparecen: el huésped ve el título con un candado '
                 . 'y qué le falta para abrirlo.'
+            );
+
+        // Eje DISTINTO del de arriba, y por eso va justo al lado: "quién lo ve" es una
+        // escalera de confianza, esto es de qué habla el ítem. Se cruzan, no se sustituyen.
+        //
+        // Nace de una fuga real: a una interesada de Airbnb sin confirmar se le dio la calle y
+        // el número. No fue un fallo del sistema — la ubicación está marcada "Público", así que
+        // darla era lo correcto según el modelo. Faltaba poder decir que la dirección, aun
+        // siendo pública en la web, no puede salir por el canal de una OTA antes de confirmar.
+        yield ChoiceField::new('categoria', 'De qué habla')
+            ->setChoices([
+                CategoriaConocimiento::General->getLabel()          => CategoriaConocimiento::General,
+                CategoriaConocimiento::DireccionExacta->getLabel()  => CategoriaConocimiento::DireccionExacta,
+                CategoriaConocimiento::Contacto->getLabel()         => CategoriaConocimiento::Contacto,
+                CategoriaConocimiento::CanalAlternativo->getLabel() => CategoriaConocimiento::CanalAlternativo,
+                CategoriaConocimiento::Credenciales->getLabel()     => CategoriaConocimiento::Credenciales,
+            ])
+            ->renderExpanded(false)
+            ->setRequired(true)
+            ->setColumns(6)
+            ->setHelp(
+                'No es lo mismo que «Quién lo ve»: eso es CUÁNTA confianza hace falta, esto es DE QUÉ trata. '
+                . 'Sirve para callar ciertos temas según el canal por el que se responda, sin tocar lo que se '
+                . 'publica en la web. '
+                . '<strong>General</strong> es lo normal y significa «siempre se puede contar»: distribución, '
+                . 'camas, equipamiento, normas, check-in. Déjalo así salvo que el ítem sea una de las excepciones. '
+                . '<strong>Dirección exacta</strong>: calle, número o referencias para plantarse en la puerta. '
+                . '<strong>Datos de contacto</strong>: teléfonos, correos, redes. '
+                . '<strong>Canal alternativo</strong>: WhatsApp, la web propia, invitar a reservar directo. '
+                . '<strong>Credenciales</strong>: códigos de puerta, caja fuerte, WiFi. '
+                . '⚠️ Cuando alguien escribe desde una OTA y aún NO ha confirmado, los tres del medio '
+                . 'DESAPARECEN de lo que ve el agente — la plataforma nos penaliza por darlos. Todo lo marcado '
+                . 'como General se contesta con normalidad, que es lo que hay que hacer para no perder la reserva.'
             );
 
         // Va aquí, junto a «Quién lo ve», y no abajo con el icono: es una decisión sobre el

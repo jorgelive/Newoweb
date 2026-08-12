@@ -5908,3 +5908,193 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Cambiar a quién avisa un envío fallido | `NotificadorPushConversacion::avisarEnvioFallido()` / `AvisoEnvioFallidoListener` |
 | Cambiar la frase que sugiere qué hacer con la ventana cerrada | `NotificadorPushConversacion::avisarEnvioFallido()` |
 | Volver a encender el correo | `Version20260812220000` (`down`) **y** `email_tmpl.is_active` en cada plantilla |
+
+---
+
+## 19. Con quién se habla: vínculo, restricción de canal y categoría de conocimiento
+
+Nace de una fuga real (2026-08-12). Una interesada llegó por Airbnb, aún sin confirmar, y el
+agente le habló de «su reserva», le dio la dirección exacta —calle, número y referencia— y le
+prometió cinco veces unas fotos que ese canal no puede enviar. Ninguna de las tres cosas fue un
+error de código: el sistema creía, con la información que tenía, que estaba haciendo lo correcto.
+
+### 19.1 Por qué falló: un solo eje para tres preguntas
+
+`AiConversationProcessor::generar()` decidía el trato mirando **sólo** el `context_type`:
+
+```php
+$esProspecto = $delEquipo === null && 'pms_reserva' !== $conversacion->getContextType();
+```
+
+Una consulta de OTA **es** `pms_reserva`, con `status_tag = 'inquiry'`. Así que caía en el
+perfil `Huesped`, que asume estancia confirmada. El dato para distinguirla se venía guardando
+en `context_data.status_tag` desde hacía meses y **no lo leía nadie**.
+
+Hoy hay tres ejes, y son independientes:
+
+| Eje | Pregunta | Dónde vive |
+|---|---|---|
+| `VinculoComercial` | ¿qué relación tiene conmigo? | `Message/Contract` |
+| `RestriccionCanal` | ¿qué NO sale por este tubo? | `Agent/Access` |
+| `CategoriaConocimiento` | ¿de qué trata este contenido? | `Message/Contract` |
+
+**El pago no está en el vínculo, y es a propósito.** Un cliente con saldo pendiente sigue
+siendo cliente: el dinero condiciona QUÉ se le entrega (los códigos), no CON QUIÉN se habla.
+Ese eje ya vive en `NivelRiesgo` y en `PmsGuiaVisibilidad`.
+
+### 19.2 El vínculo lo declara el dominio, no el agente
+
+`MessageContextInterface::getVinculo()` es parte del contrato. Al principio el agente traducía
+`inquiry`/`confirmed`/`cancelled` por su cuenta, pero esos strings son vocabulario del PMS y
+`getStatusTag()` los declara como `?string` libre: dos módulos acordando valores mágicos sin
+que ningún contrato lo dijera. Un tour que emitiera `pagado` habría caído en el default
+conservador y su cliente pagado sería tratado como interesado — **sin error y sin log**.
+
+Qué convierte a alguien en cliente es conocimiento del dominio: en alojamiento lo decide el
+estado de la reserva (`PmsReservaMessageContext::getVinculo()`); en un tour podría decidirlo el
+pago. `VinculoComercial::deStatusTag()` sobrevive sólo como fallback para conversaciones
+anteriores al campo, cuyo upsert aún no ha vuelto a correr.
+
+`esProspecto` ya no compara contra ningún `context_type`: es «no hay vínculo».
+
+### 19.3 La restricción es una RESTA, no un escalón
+
+`PmsGuiaVisibilidad` es una escalera: a más confianza, más contenido. `RestriccionCanal` se
+aplica **encima** y quita, sea cual sea el escalón.
+
+Se ve con el caso real: la interesada merece MÁS que el escaparate público —cuántas
+habitaciones, cuántas camas, cómo es el check-in, o se pierde la venta— y a la vez MENOS en una
+dimensión concreta: la dirección, que la plataforma prohíbe antes de confirmar. Modelarlo como
+un peldaño intermedio obligaba a cerrarle las camas para poder cerrarle la calle.
+
+Por eso `PmsGuiaItem` tiene ahora **dos** campos ortogonales: `visibilidad` (cuánta confianza)
+y `categoria` (de qué habla). La dirección puede seguir siendo `Publico` en la web y no salir
+por una OTA sin confirmar.
+
+### 19.4 Se corta en la fuente, no en el prompt
+
+**Un prompt es una petición; si el dato llega al modelo, puede acabar escrito.**
+`PmsGuiaArbolFiltro::podar()` recibe las categorías bloqueadas y descarta esos ítems antes de
+que exista el turno. Desaparecen **sin candado**: anunciar «hay una dirección que no puedo
+darte» es invitar al modelo a hablar de ella.
+
+El aviso que sí viaja en el prompt (`RestriccionCanal::avisoParaElPrompt()`, en el bloque
+volátil junto a `PerfilConversacion::enUnaLinea()`) sólo sirve para que sepa EXPLICARLO — sin
+él, al no encontrar el dato, se lo inventa o promete que «el equipo te lo envía».
+
+Cuatro skills tienen guarda de canal, y tres se descubrieron auditando las 30:
+
+| Skill | Qué se cortó |
+|---|---|
+| `consultar_guia` | filtra ítems por categoría |
+| `consultar_medios_pago` | **bloqueada**: devolvía titulares, Yape y cuentas |
+| `consultar_mi_reserva` | elimina `guide_url`, `guide_path`, `tours_catalog_url`, `tours_catalog_path` |
+| `enviarme_plantilla` | **bloqueada**: las plantillas llevan `guide_url` dentro |
+
+Los enlaces son lo más grave: sacan la venta de la plataforma **y** la guía al otro lado lleva
+dentro la dirección, el wifi y los teléfonos — un solo enlace se salta toda la resta.
+
+`consultar_wifi` y `consultar_codigos` ya estaban a salvo (exigen ventana abierta o estancia
+activa, que una inquiry nunca alcanza).
+
+### 19.5 El hilo no es el contexto
+
+`ActorInterface` gana `conversacionId()`, que **no** es `contextoId()` y no lo sustituye. El
+contexto es la FRONTERA: lo que acota a un huésped a su propia reserva, y lo que un prospecto
+no tiene a propósito. El hilo es sólo QUÉ CONVERSACIÓN está abierta.
+
+Confundirlos dejaba a los prospectos sin escalada: `EscalarAlEquipoSkill` localizaba la
+conversación por el contexto, el prospecto nace sin él, y la skill —que declara `ROLE_PROSPECTO`
+justo para que un lead pueda pedir ayuda— fallaba siempre con «No sé de qué conversación
+hablas», remitiendo a `localizar_conversacion`, que exige roles de equipo y ni le aparece.
+**Todo lead que pidió hablar con alguien murió ahí.** Darle contexto habría arreglado el síntoma
+abriéndole de paso las siete skills acotadas.
+
+### 19.6 Quién escribe vs. de qué se habla
+
+`PerfilConversacion` mezclaba los dos: sus prompts nombraban «casita» y «check out», así que
+cada perfil nuevo nacía hotelero. Ahora el enum sólo tiene el eje de relación (los cinco casos,
+`etiqueta()` y `enUnaLinea()`), y el bloque de negocio lo sirve
+`InstruccionesDeDominioInterface` por `context_type`, con el mismo tag iterator que
+`MessageDataResolverRegistry`. `PmsInstruccionesDominio` es hoy el único y el marcado por
+defecto — quien pregunta sin contexto pregunta, por fuerza, por alojamiento.
+
+Un módulo de tours implementa esa interfaz y hereda los cinco perfiles sin tocar el agente.
+
+### 19.7 Lo que NO está resuelto
+
+- **La clasificación del contenido está vacía.** La migración crea `categoria` con todo en
+  `general`; hasta que se marquen los ítems, la resta no tapa nada. Pendientes al menos
+  `Ubicación (general)` → `DireccionExacta` y `Horario solicitudes (general)` → `Contacto`
+  (este último tiene dos teléfonos y el número de Yape, y hoy es alcanzable por una inquiry).
+- **No hay guarda léxica de salida.** Todo lo anterior impide que el dato LLEGUE al modelo;
+  nada impide que el modelo escriba un teléfono de su cosecha. Esa capa va en el envío.
+- **`consultar_cuenta` devuelve `prepago_pendiente`** también en canal restringido. Es decisión
+  de negocio: para Booking.com de pago en destino puede ser legítimo; para Airbnb la propia
+  guía dice que no se pide depósito.
+- **`getAgencyId()` sigue devolviendo `null`**: el B2B no está modelado, así que «cliente de
+  agencia que no ve precios» todavía no se puede expresar.
+- **`RestriccionCanal::deOrigenYVinculo()` asume que todo lo que no es `directo` es una OTA**, y
+  `variablesBloqueadas()` nombra variables del resolver del PMS. Ambas cosas habrá que rehacerlas
+  con el segundo dominio.
+
+### 19.8 Dónde tocar para cambiar X
+
+| Necesidad | Archivo / método |
+|---|---|
+| Qué hace cliente a alguien en alojamiento | `PmsReservaMessageContext::getVinculo()` |
+| Añadir un vínculo nuevo | `VinculoComercial` + el `match` de `PerfilConversacion::deActor()` |
+| Qué canales restringen | `RestriccionCanal::deOrigenYVinculo()` |
+| Qué categorías bloquea un canal | `RestriccionCanal::categoriasBloqueadas()` |
+| Qué variables del resolver no salen | `RestriccionCanal::variablesBloqueadas()` |
+| El texto que lee el modelo sobre sus límites | `RestriccionCanal::avisoParaElPrompt()` |
+| Clasificar un ítem de guía | Panel → ítem de guía → «De qué habla» (`PmsGuiaItemCrudController`) |
+| Dónde se aplica la resta al árbol | `PmsGuiaArbolFiltro::podarItems()` |
+| Los prompts de negocio de alojamiento | `PmsInstruccionesDominio` |
+| Añadir un dominio nuevo (tours) | Implementar `InstruccionesDeDominioInterface` + `MessageContextInterface` |
+| Probar una skill como prospecto con hilo | `app:agent:skill <skill> --como-prospecto --conversacion=<uuid>` |
+
+### 19.9 La nota en voz del huésped: por qué el bot escribió su siguiente mensaje
+
+Tercer fallo del mismo incidente, y el que más desconcertó. El 12-08 a las 10:59 salió por el
+canal, hacia la huésped, este texto:
+
+> `[12/08] Un favor, si le podría comentar al equipo para que me envíen foto del lavadero y de
+> la ducha del baño, ya que no se logra ver esas zonas en las fotos de la plataforma. Muchas
+> gracias!`
+
+Está escrito **en su voz**, pidiéndole a ella que hable con el equipo. Un minuto después
+preguntaba «¿Por qué medio me comunico con el equipo? No entendí».
+
+**No fue el escalado ni el resumen.** El aviso de `EscalarAlEquipoSkill::redactar()` lleva 🔔 y
+un enlace; el `resumen_ia` está limitado a una frase de 12 palabras sin saludos. El mensaje
+llevaba `generado_por: ia`, es decir, salió del camino de respuesta normal: **lo escribió el
+modelo como su turno**.
+
+La causa está en `historial()`. Cada turno se le entrega con la fecha **dentro del texto**:
+
+```php
+'texto' => sprintf('[%s] %s', $cuando->format('d/m'), $texto)
+```
+
+Eso resolvió un fallo real y anterior —sin fecha, una cotización que el propio bot dio hace una
+semana volvía a contexto como si fuera de hoy— pero tuvo un precio: al ir dentro del texto, la
+marca deja de ser metadato y pasa a ser **contenido a imitar**, y va en los turnos de los dos
+roles. El modelo aprendió el patrón y continuó la transcripción en vez de responderla,
+redactando el siguiente turno del huésped.
+
+El arreglo son dos capas, y sólo la segunda es una garantía:
+
+1. Una regla en `reglasComunes()` explicando que la marca es nuestra y que no debe reproducirla
+   ni continuar la transcripción.
+2. `AiConversationProcessor::limpiarMarcasDeHistorial()`, que quita un `[dd/mm]` **al principio**
+   del texto generado antes de encolarlo. Sólo al principio: a mitad de frase puede ser una
+   fecha legítima que el huésped preguntó, y ahí el bot cita en vez de imitar.
+
+La lección se repite en todo este capítulo: **un prompt es una petición; el cierre va en
+código.** Igual que la resta por categorías no se le pide al modelo sino que se aplica en la
+fuente.
+
+Queda anotado que la raíz —fecha como contenido en lugar de como metadato— sigue ahí. Cambiar
+el formato del historial arriesga el fallo de las cotizaciones viejas, así que se optó por la
+guarda determinista en la salida.

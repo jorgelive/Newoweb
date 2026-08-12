@@ -6,6 +6,7 @@ namespace App\Pms\Service\Message;
 
 use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\MessageContextInterface;
+use App\Message\Contract\VinculoComercial;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
@@ -109,6 +110,25 @@ class PmsReservaMessageContext implements MessageContextInterface
         }
 
         return 'confirmed';
+    }
+
+    /**
+     * Qué hace cliente a alguien EN ALOJAMIENTO: que su reserva esté en firme.
+     *
+     * Una solicitud abierta o un bloqueo todavía no lo son —es el caso de las consultas de
+     * OTA, donde nadie ha reservado nada— y una cancelada dejó de serlo. Otro dominio puede
+     * medirlo por otra cosa: en un tour, lo natural sería el pago. Ese es justamente el motivo
+     * de que la pregunta la responda cada contexto y no el agente.
+     */
+    public function getVinculo(): VinculoComercial
+    {
+        if ($this->isCancelled()) {
+            return VinculoComercial::Terminado;
+        }
+
+        return $this->isAbiertoOrBloqueo()
+            ? VinculoComercial::Interesado
+            : VinculoComercial::Cliente;
     }
 
     /**

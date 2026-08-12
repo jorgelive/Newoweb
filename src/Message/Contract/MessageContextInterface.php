@@ -22,6 +22,29 @@ interface MessageContextInterface
     public function getStatusTag(): ?string;
 
     /**
+     * Qué vínculo tiene con nosotros quien escribe por esta conversación.
+     *
+     * ### Por qué está en el contrato y no se deduce de `getStatusTag()`
+     *
+     * Se dedujo así al principio: el agente traducía `inquiry`/`confirmed`/`cancelled` a un
+     * vínculo. Pero esos strings son vocabulario del PMS, y `getStatusTag()` los declara como
+     * un `?string` libre — de modo que agente y PMS estaban acordando valores mágicos sin que
+     * ningún contrato lo dijera.
+     *
+     * El problema no era estético. Un módulo de tours que emitiera `pagado` o `en_curso` caía
+     * en el default conservador y su cliente pagado era tratado como un simple interesado: sin
+     * error, sin log, sólo un cliente maltratado.
+     *
+     * **Qué convierte a alguien en cliente es conocimiento del dominio.** En alojamiento lo
+     * decide el estado de la reserva; en un tour puede decidirlo el pago. Por eso lo responde
+     * quien lo sabe, y el agente sólo consume el enum.
+     *
+     * `getStatusTag()` sigue existiendo, pero para lo que nació: una etiqueta corta para
+     * pintar el chat y filtrar reglas. No es el oráculo del que cuelga el trato al cliente.
+     */
+    public function getVinculo(): VinculoComercial;
+
+    /**
      * Agencia mayorista (B2B) dueña del contexto, o null si es venta directa/OTA.
      *
      * Alimenta el filtro `allowedAgencies` de MessageRule. Mientras un contexto

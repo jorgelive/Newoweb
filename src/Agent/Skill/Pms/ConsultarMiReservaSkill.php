@@ -90,6 +90,20 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface
             static fn ($valor) => is_scalar($valor) && (string) $valor !== ''
         );
 
+        // 🚧 Y por un canal restringido, fuera los enlaces a sitio propio.
+        //
+        // La definición de esta skill le dice al modelo que `guide_url` y `tours_catalog_url`
+        // «puede darlos directamente», y por un canal propio está bien. Por una OTA sin
+        // confirmar es lo contrario de lo que toca: mandar a alguien a nuestra web es sacar la
+        // venta de la plataforma, que es justo lo que penalizan — y la guía al otro lado del
+        // enlace lleva dentro la dirección, el wifi y los teléfonos, de modo que un enlace se
+        // salta de una vez toda la resta por categorías de `consultar_guia`.
+        $bloqueadas = $actor->restriccion()->variablesBloqueadas();
+
+        if ($bloqueadas !== []) {
+            $datos = array_diff_key($datos, array_flip($bloqueadas));
+        }
+
         // 🔗 El id es lo que permite ENCADENAR: sin él, el modelo no puede pasar esta
         // reserva a la siguiente skill y cada consulta muere en sí misma. `getMessageVariables()`
         // no lo trae porque nació para rellenar plantillas, donde un UUID no pinta nada.

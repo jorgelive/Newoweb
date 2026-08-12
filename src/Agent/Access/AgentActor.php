@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Access;
 
 use App\Entity\User;
+use App\Message\Contract\VinculoComercial;
 use App\Security\Roles;
 
 /**
@@ -30,6 +31,9 @@ final readonly class AgentActor implements ActorInterface
         private array $roles,
         private ?string $contextoTipo = null,
         private ?string $contextoId = null,
+        private ?string $conversacionId = null,
+        private VinculoComercial $vinculo = VinculoComercial::Ninguno,
+        private RestriccionCanal $restriccion = RestriccionCanal::Ninguna,
     ) {}
 
     /**
@@ -61,15 +65,31 @@ final readonly class AgentActor implements ActorInterface
         string $origen,
         ?string $tipo = null,
         ?string $id = null,
-        ?array $rolesEfectivos = null
+        ?array $rolesEfectivos = null,
+        ?string $conversacionId = null
     ): self {
-        return new self($usuario, $origen, $rolesEfectivos ?? $usuario->getRoles(), $tipo, $id);
+        return new self($usuario, $origen, $rolesEfectivos ?? $usuario->getRoles(), $tipo, $id, $conversacionId);
     }
 
     /** Quien escribe por el chat sin ser del equipo. Acotado a su propia reserva. */
-    public static function huesped(string $origen, ?string $contextoTipo, ?string $contextoId): self
-    {
-        return new self(null, $origen, [Roles::HUESPED], $contextoTipo, $contextoId);
+    public static function huesped(
+        string $origen,
+        ?string $contextoTipo,
+        ?string $contextoId,
+        ?string $conversacionId = null,
+        VinculoComercial $vinculo = VinculoComercial::Cliente,
+        RestriccionCanal $restriccion = RestriccionCanal::Ninguna
+    ): self {
+        return new self(
+            null,
+            $origen,
+            [Roles::HUESPED],
+            $contextoTipo,
+            $contextoId,
+            $conversacionId,
+            $vinculo,
+            $restriccion
+        );
     }
 
     /**
@@ -81,10 +101,15 @@ final readonly class AgentActor implements ActorInterface
      *
      * Es siempre DIRECTO: quien escribe a nuestro número no viene por una OTA, así que a su
      * cotización no se le aplica ningún porcentaje de servicio.
+     *
+     * Sigue naciendo sin contexto. Lo que sí recibe es el HILO
+     * ({@see ActorInterface::conversacionId()}), que no es lo mismo: sin él no podía escalar
+     * —su único camino para no ser un callejón sin salida— y con él no se le abre ninguna
+     * skill acotada, porque todas miran el contexto y ese sigue en `null`.
      */
-    public static function prospecto(string $origen): self
+    public static function prospecto(string $origen, ?string $conversacionId = null): self
     {
-        return new self(null, $origen, [Roles::PROSPECTO]);
+        return new self(null, $origen, [Roles::PROSPECTO], null, null, $conversacionId);
     }
 
     public function roles(): array
@@ -105,6 +130,21 @@ final readonly class AgentActor implements ActorInterface
     public function contextoId(): ?string
     {
         return $this->contextoId;
+    }
+
+    public function conversacionId(): ?string
+    {
+        return $this->conversacionId;
+    }
+
+    public function vinculo(): VinculoComercial
+    {
+        return $this->vinculo;
+    }
+
+    public function restriccion(): RestriccionCanal
+    {
+        return $this->restriccion;
     }
 
     public function esDelEquipo(): bool

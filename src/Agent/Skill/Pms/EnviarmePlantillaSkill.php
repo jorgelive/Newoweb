@@ -95,6 +95,24 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface
     {
         $codigo = trim((string) ($entrada['plantilla'] ?? ''));
 
+        // 🚧 Cuarto candado: el canal.
+        //
+        // Los otros tres miran QUÉ plantilla y HACIA DÓNDE; ninguno mira si la reserva está
+        // confirmada. Y las plantillas de autoenvío llevan dentro `guide_url` —la guía, con la
+        // dirección, el wifi y los teléfonos—, así que por una OTA sin confirmar esta skill
+        // entrega de una vez todo lo que la resta por categorías acaba de tapar.
+        //
+        // Se bloquea entera en vez de filtrar sus variables: una plantilla es texto aprobado
+        // de antemano, y ese texto se aprobó pensando en un huésped confirmado. Vaciarle las
+        // URLs dejaría un mensaje cojo que nadie ha revisado; no mandarlo no rompe nada.
+        if ($actor->restriccion()->restringe()) {
+            return SkillResult::error(
+                'Por este canal no se pueden enviar plantillas: la reserva aún no está '
+                . 'confirmada y llevan enlaces a nuestra web, que la plataforma no permite. '
+                . 'Responde tú con la información que sí puedas dar.'
+            );
+        }
+
         $conversacion = $this->conversacionDelActor($actor);
         if ($conversacion === null) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');

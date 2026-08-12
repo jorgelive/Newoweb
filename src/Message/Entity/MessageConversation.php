@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Entity;
 
+use App\Message\Contract\VinculoComercial;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
@@ -376,6 +377,28 @@ class MessageConversation
 
     #[Groups(['conversation:read'])]
     public function getContextStatusTag(): ?string { return $this->contextData['status_tag'] ?? null; }
+
+    /**
+     * El vínculo que declaró el contexto, o `null` en conversaciones anteriores al campo.
+     *
+     * Quien lo consuma debe tratar el `null` como «no lo sé» y no como «ninguno»: hasta que el
+     * upsert vuelva a correr sobre una conversación vieja, aquí no hay nada. El agente resuelve
+     * ese hueco cayendo a `VinculoComercial::deStatusTag()`, que es de donde salía antes.
+     */
+    public function getContextVinculo(): ?VinculoComercial
+    {
+        $valor = $this->contextData['vinculo'] ?? null;
+
+        return is_string($valor) ? VinculoComercial::tryFrom($valor) : null;
+    }
+
+    public function setContextVinculo(?VinculoComercial $vinculo): self
+    {
+        $this->initContextData();
+        $this->contextData['vinculo'] = $vinculo?->value;
+
+        return $this;
+    }
     public function setContextStatusTag(?string $statusTag): self {
         $this->initContextData();
         $this->contextData['status_tag'] = $statusTag;
