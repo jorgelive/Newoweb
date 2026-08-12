@@ -1505,6 +1505,44 @@ hay, y de paso se ahorran los tokens de su definición.
 **El huésped no es un caso sin permisos**: es un actor más. Lo que lo distingue es que sus
 skills están acotadas a su reserva por el contexto.
 
+#### 👥 Dos workers contestando lo mismo: pasó de verdad
+
+**10/08/2026, 14:21:28.** El huésped preguntó por Netflix y salieron DOS respuestas casi
+idénticas *en el mismo segundo*, más una tercera tres segundos después:
+
+```
+14:21:17  huésped: «Dijeron que había Netflix en su plataforma»
+14:21:28  bot: «Sí, la TV cuenta con Roku, donde tienes acceso…»
+14:21:28  bot: «Sí, la televisión cuenta con un dispositivo Roku…»
+14:21:30  huésped: «Pero no se puede ver por falta de pago me aparece»
+14:21:31  bot: «Sí, la televisión cuenta con dispositivo Roku…»      ← y otra vez
+```
+
+**Los guardias no podían pararlo.** Preguntan «¿ya hay respuesta?» y contra dos trabajos
+simultáneos pierden siempre: ninguno ha escrito nada cuando el otro mira.
+
+⚠️ **La causa era el re-despacho por `postUpdate`.** El listener volvía a encolar el trabajo ante
+CUALQUIER actualización del mensaje, y la más frecuente no tiene nada que ver con contestar:
+**marcar como leído**. Basta con que un operador abra la conversación en el panel al ver el aviso
+—justo lo que hace— para duplicar el trabajo del bot. Medido: 46 de 378 mensajes se actualizaron
+dentro del primer minuto, y los guardias mataron 27 trabajos duplicados. Uno se escapó.
+
+Se arregla en dos capas, y las dos hacen falta:
+
+| Capa | Qué hace | Qué NO cubre |
+|---|---|---|
+| Filtro en `postUpdate` | Sólo re-despacha si cambió `metadata`, que es donde vive el intent | Dos trabajos que entren por caminos distintos |
+| `GET_LOCK` por mensaje | Un solo worker atiende cada mensaje; el segundo se retira | Nada, es el suelo |
+
+El lock es de **MySQL y no del componente Lock de Symfony**: no está instalado y meterlo obligaría
+a un `composer` en producción para algo que la base ya hace. Es consultivo —ni bloquea filas ni
+abre transacción—, así que no retiene nada durante los 20-60 s que puede tardar el modelo. Vive
+en la SESIÓN, así que sobrevive a los commits internos del turno y se suelta solo si el worker
+muere: un proceso caído no deja el mensaje bloqueado para siempre.
+
+Con espera `0`: el segundo trabajo no hace cola, se retira. Si de verdad hubiera algo nuevo que
+contestar, ya vendrá su propio mensaje con su propio trabajo.
+
 #### 🕳️ Cinco sitios por donde un mensaje se quedaba sin respuesta
 
 Todos salieron de la revisión de arquitectura, y **cuatro de los cinco eran latentes**: el fallo

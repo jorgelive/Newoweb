@@ -32,9 +32,32 @@ final readonly class MessageAutoResponderListener
         $this->processIntent($message);
     }
 
+    /**
+     * Red de seguridad: un intent que aparece en un flush POSTERIOR al de creación.
+     *
+     * ⚠️ Sólo si cambió `metadata`, que es donde vive el intent. Antes se re-despachaba ante
+     * CUALQUIER actualización, y la más frecuente de todas no tiene nada que ver con contestar:
+     * **marcar el mensaje como leído**. Basta con que un operador abra la conversación en el
+     * panel mientras el bot espera —que es justo lo que hace al ver el aviso— para que salga un
+     * segundo trabajo del mismo mensaje.
+     *
+     * Y eso no es teórico: el 10/08/2026 a las 14:21:28 salieron DOS respuestas casi idénticas
+     * en el mismo segundo, y una tercera tres segundos después. Los guardias de
+     * `AiConversationProcessor` no lo pararon porque preguntan «¿ya hay respuesta?» y ninguno
+     * de los dos trabajos la había escrito todavía.
+     *
+     * Este filtro ataca la causa —el trabajo de más— y el bloqueo del handler cubre lo que se
+     * cuele igual. Las dos capas hacen falta: ésta no puede evitar que dos entren a la vez por
+     * caminos distintos.
+     */
     public function postUpdate(Message $message, PostUpdateEventArgs $event): void
     {
-        // En PostUpdate no tenemos hasChangedField, pero evaluamos la regla de negocio directamente.
+        $cambios = $event->getObjectManager()->getUnitOfWork()->getEntityChangeSet($message);
+
+        if (!array_key_exists('metadata', $cambios)) {
+            return;
+        }
+
         $this->processIntent($message);
     }
 
