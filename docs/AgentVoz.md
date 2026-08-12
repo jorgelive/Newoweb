@@ -14,6 +14,7 @@ permisos, triaje— manda `docs/Mensajeria.md` §11–§12; aquí sólo está lo
 3. [Seguridad: qué autentica realmente este endpoint](#3-seguridad-qué-autentica-realmente-este-endpoint)
 4. [La respuesta: por qué casi todo es 200](#4-la-respuesta-por-qué-casi-todo-es-200)
 5. [Quién habla: el mapa de dispositivos](#5-quién-habla-el-mapa-de-dispositivos)
+    · [5.1 Qué queda registrado de una consulta por voz](#51-qué-queda-registrado-de-una-consulta-por-voz)
 6. [Los 8 segundos](#6-los-8-segundos)
 7. [Solo lectura, y por qué](#7-solo-lectura-y-por-qué)
 8. [Configuración y despliegue](#8-configuración-y-despliegue)
@@ -203,6 +204,39 @@ que se busca al mapear identidades.
 El actor se construye con `AgentActorFactory::delEquipoPorChat($usuario, 'alexa')` — no hizo
 falta un constructor nuevo, el origen ya era un parámetro. Los roles van **efectivos**, con la
 jerarquía de `security.yaml` expandida, igual que en el panel.
+
+### 5.1 Qué queda registrado de una consulta por voz
+
+Alexa es el único canal **sin base de datos detrás**: el cuerpo crudo del POST se lee una vez
+para comprobar la firma y se tira, no hay tabla de auditoría como la `msg_meta_webhook_audit`
+de Meta, y el historial de la conversación viaja en los `sessionAttributes`, o sea que vive en
+Amazon, no aquí. Todo lo que sobrevive a un turno son líneas de log:
+
+| Qué | Quién lo escribe | Nivel |
+|---|---|---|
+| Quién preguntó y cómo se le reconoció | `AlexaUsuarios::resolver()` | INFO |
+| Qué skill se ejecutó | el adaptador del motor | INFO |
+| **Qué se preguntó y qué se contestó** | `AlexaController::registrar()` | INFO |
+| Alexa oyó algo que su modelo no encajó | `AlexaController::resolver()` | WARNING |
+| Petición no autorizada, con los tres ids | `AlexaUsuarios::resolver()` | WARNING |
+
+```
+INFO  Alexa: «susan.acuna» preguntó «cuántas salidas hay hoy» → «Hay tres salidas: …»
+```
+
+Hasta 2026-08-12 faltaba justo la fila en negrita: se sabía **quién** habló y **qué skill**
+corrió, pero no qué se dijo. En un canal que consulta cuentas de huéspedes y códigos de acceso
+eso no basta para auditar nada.
+
+⚠️ **Los códigos van tachados.** `AlexaController::sinSecretos()` sustituye toda tirada de 4 o
+más dígitos por `····` antes de escribir la línea. `ConsultarCodigosSkill` devuelve códigos de
+puerta y de caja fuerte y el asistente los dicta —para eso está—, pero un código hablado se
+olvida y uno escrito en `info-2026-08-12.log` se queda ahí meses después de que el huésped se
+haya ido. El log dice que se consultó el código; el código no es asunto suyo. El precio de la
+regla es que un importe de cuatro cifras también sale tachado.
+
+⚠️ Es un registro de **uso**, no un archivo: vive en el log `info-…` y rota a diario. Si algún
+día hace falta conservarlo, eso ya es una tabla, no una línea.
 
 ## 6. Los 8 segundos
 
@@ -422,6 +456,8 @@ de la consola de desarrollo.
 |---|---|---|
 | Dar de alta una persona, un Echo o la casa entera | `.env.local` del servidor | `ALEXA_USUARIOS` (los tres ids salen del log, §5) |
 | Saber quién preguntó, o pescar un `personId` con la red ya puesta | `AlexaUsuarios::resolver()` | la línea `INFO Alexa: consulta de …`, §5 |
+| Saber qué se preguntó y qué se contestó (§5.1) | `AlexaController` | `registrar()` |
+| Cambiar qué se tacha del log (§5.1) | `AlexaController` | `sinSecretos()` |
 | Cambiar la prioridad persona → sitio → cuenta | `PeticionAlexa` | `identidades()` |
 | Cambiar qué dice al abrir o al no entender | `AlexaController` | `BIENVENIDA`, `REINTENTO`, `AYUDA` |
 | Cambiar cómo habla el asistente | `VoiceAssistant` | `systemPrompt()` |

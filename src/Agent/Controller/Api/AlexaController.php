@@ -145,6 +145,16 @@ final class AlexaController extends AbstractController
         if ($consulta === null) {
             // `AMAZON.FallbackIntent` y cualquier intent sin slot acaban aquí: Alexa oyó algo
             // que su modelo no supo encajar. Se repregunta en vez de cerrar.
+            //
+            // Se registra como AVISO y no como info: es lo único que delata un modelo de
+            // interacción que se queda corto, y sin esta línea el síntoma («me contesta que no
+            // me entiende») no deja ni rastro de qué se le dijo.
+            $this->logger->warning(sprintf(
+                'Alexa: intent sin consulta de «%s» (%s). No se entendió lo que se dijo.',
+                $usuario->getUserIdentifier(),
+                $alexa->intent ?? 'sin intent'
+            ));
+
             return RespuestaAlexa::sigueEscuchando(
                 'No te he entendido. ¿Me lo repites?',
                 $alexa->historial(self::MAX_TURNOS_RECORDADOS),
@@ -173,6 +183,8 @@ final class AlexaController extends AbstractController
             );
         }
 
+        $this->registrar($usuario->getUserIdentifier(), $consulta, $texto);
+
         $historial[] = ['rol' => 'usuario', 'texto' => $consulta];
         $historial[] = ['rol' => 'asistente', 'texto' => $texto];
 
@@ -181,5 +193,47 @@ final class AlexaController extends AbstractController
             array_slice($historial, -self::MAX_TURNOS_RECORDADOS),
             self::REINTENTO
         );
+    }
+
+    /**
+     * Deja constancia del turno: quién preguntó, qué preguntó y qué se le contestó.
+     *
+     * Es la ÚNICA huella que queda de una consulta por voz. El cuerpo crudo del POST se lee una
+     * vez para comprobar la firma y se tira; no hay tabla de auditoría como la de Meta, y el
+     * historial de la conversación viaja en los `sessionAttributes`, o sea que vive en Amazon.
+     * Sin esta línea, del canal de voz sólo se sabía QUIÉN habló y QUÉ skill corrió — nunca qué
+     * se dijo. Con un canal que consulta cuentas de huéspedes y códigos de acceso, eso no basta.
+     *
+     * Va en `info`, junto al resto del rastro de Alexa, y por tanto rota a diario: es un
+     * registro de uso, no un archivo.
+     */
+    private function registrar(string $usuario, string $consulta, string $respuesta): void
+    {
+        $this->logger->info(sprintf(
+            'Alexa: «%s» preguntó «%s» → «%s»',
+            $usuario,
+            self::sinSecretos($consulta),
+            self::sinSecretos($respuesta)
+        ));
+    }
+
+    /**
+     * Tacha lo que no puede acabar en un fichero de log.
+     *
+     * `ConsultarCodigosSkill` devuelve códigos de puerta y de caja fuerte, y el asistente los
+     * dicta tal cual — para eso está. Pero un código hablado se olvida y uno escrito en
+     * `info-2026-08-12.log` se queda ahí, legible por cualquiera que lea logs, mucho después de
+     * que el huésped se haya ido. El log responde «se consultó el código de la casita 3», que es
+     * lo que hace falta para auditar; el código en sí no es asunto suyo.
+     *
+     * Se tachan las tiradas de 4 o más dígitos: deja pasar horas, importes de dos y tres cifras
+     * y los localizadores —alfanuméricos— y se lleva por delante códigos y teléfonos. También
+     * tacha un importe de cuatro cifras («1200 soles»), y se acepta: ninguna regla que mire sólo
+     * el número sabe distinguir un precio de un código, y equivocarse hacia el lado de tachar de
+     * más sólo cuesta un log menos legible.
+     */
+    private static function sinSecretos(string $texto): string
+    {
+        return preg_replace('/\d{4,}/u', '····', $texto) ?? $texto;
     }
 }
