@@ -12,15 +12,25 @@ use App\Security\Roles;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * Controlador AJAX para exponer metadatos de los Enums del PMS al frontend.
- * Espejo de TravelEnumAjaxController: se agrupa bajo el prefijo 'user' para
- * heredar las reglas del firewall.
  *
  * Objetivo: que las etiquetas, colores e iconos de los enums vivan SOLO en PHP.
  * El frontend (util/) los consume desde aquí en vez de duplicar diccionarios en
  * TypeScript, que era la fuente habitual de desincronización.
+ *
+ * ⚠️ **EL PREFIJO `/tipo/user/` NO PROTEGE NADA.** Aquí decía que se agrupaba bajo `user`
+ * «para heredar las reglas del firewall», y es falso: en `security.yaml` el acceso se decide
+ * por HOST —panel, util y oweb piden `ROLE_USER`— y el host de la API cae en el
+ * `PUBLIC_ACCESS` del final. Todo lo que se cuelgue de aquí queda ABIERTO A INTERNET salvo que
+ * lleve su propio `#[IsGranted]`, exactamente como avisa
+ * {@see \App\Finanzas\Controller\Api\FinEnlacePagoApiController}.
+ *
+ * Costó un dato real: `/limpiadores` salió a producción sin candado y devolvía los nombres del
+ * personal de limpieza a cualquiera que pidiera la URL. Antes de añadir un endpoint aquí,
+ * pregúntate qué pasa si lo abre un desconocido — y si la respuesta no es «nada», ponle rol.
  */
 #[Route('/tipo/user/enum/pms', name: 'tipo_user_enum_pms')]
 class PmsEnumAjaxController extends AbstractController
@@ -85,7 +95,12 @@ class PmsEnumAjaxController extends AbstractController
      * registra el agente. **Si cambia uno, cambia el otro**: si el agente admitiera a alguien
      * que aquí no sale, registraría pagos a nombre de quien el operador no puede elegir a mano.
      */
+    // Mismo candado que `/limpiadores`, y por el mismo motivo: son nombres de personas del
+    // equipo. Hoy devolvía `[]` en producción sólo porque nadie tiene todavía `ROLE_COBRADOR`
+    // ahí — el día que se marque a alguien, empezaba a publicarlo. Lo consume el panel
+    // financiero del drawer, que ya exige este permiso para lo demás.
     #[Route('/cobradores', name: '_cobradores', methods: ['GET'])]
+    #[IsGranted(Roles::RESERVAS_SHOW, message: 'No tienes permiso para ver a los cobradores.')]
     public function getCobradores(UserRepository $usuarios): JsonResponse
     {
         $cobradores = $usuarios->findByRole(Roles::COBRADOR);
@@ -130,6 +145,7 @@ class PmsEnumAjaxController extends AbstractController
      * deshacer desde el desplegable.
      */
     #[Route('/limpiadores', name: '_limpiadores', methods: ['GET'])]
+    #[IsGranted(Roles::RESERVAS_SHOW, message: 'No tienes permiso para ver el equipo de limpieza.')]
     public function getLimpiadores(UserRepository $usuarios): JsonResponse
     {
         $personal = $usuarios->findByRole(Roles::LIMPIEZA);

@@ -1830,7 +1830,16 @@ paso iba en `pax_reserva:read`: al huésped, que no pinta nada en esto.
 |---|---|---|
 | Lectura | `PmsEventoCalendario::getLimpieza()` | `[{id, nombre}]` |
 | Escritura | `PmsEventoCalendario::setLimpiezaIds()` | `["<uuid>", …]`, ids planos |
-| Desplegable | `GET /tipo/user/enum/pms/limpiadores` | `[{id, label}]`, los de `ROLE_LIMPIEZA` |
+| Desplegable | `GET /tipo/user/enum/pms/limpiadores` | `[{id, label}]`, los de `ROLE_LIMPIEZA`. Exige `RESERVAS_SHOW` |
+
+⚠️ **El prefijo `/tipo/user/` no protege nada, y esto ya costó un dato real.** El docblock de
+`PmsEnumAjaxController` decía que se agrupaba bajo `user` «para heredar las reglas del
+firewall»; es falso. En `security.yaml` el acceso se decide **por host** —panel, util y oweb
+piden `ROLE_USER`— y el host de la API cae en el `PUBLIC_ACCESS` del final. `/limpiadores`
+salió a producción sin candado y devolvió los nombres del personal de limpieza a cualquiera que
+pidiera la URL, hasta que se le puso `#[IsGranted]`. Lo mismo se le añadió a `/cobradores`, que
+sólo se libró porque en producción todavía no hay nadie con `ROLE_COBRADOR`. Todo endpoint
+colgado de ahí necesita su propio rol, como ya avisaba `FinEnlacePagoApiController`.
 
 Quien resuelve los ids es `PmsEventoCalendarioProcessor::aplicarLimpieza()` —la entidad no tiene
 repositorio con el que buscar usuarios—, y de ahí salen tres reglas que hay que conocer antes de
