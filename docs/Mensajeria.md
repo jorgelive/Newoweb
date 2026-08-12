@@ -4384,6 +4384,41 @@ suman las libres, y qué preguntar para poder cerrar.
 pasar los 20 a todas cobraría el grupo entero siete veces. Cada casita sale con `precio_desde`
 hasta que el cliente diga cómo se reparten.
 
+#### 🧮 El modelo no suma: `distribucion` y `total_combinado`
+
+Nació de un fallo real, medido en producción. Preguntando por la Casita 5 y la 2 para 9 personas
+(8–10 nov), el agente devolvió:
+
+```
+Casita 5    $79.00   ✅ correcto
+Casita 2   $145.00 base, «sube a $169 si van 7»   ❌ son $181
+Total      $248.00   ❌ son $260
+En soles   S/ 826    ❌ no cuadra con ninguna de las dos cifras
+```
+
+**Los números de la skill eran correctos.** Lo que falló fue la aritmética que le quedaba al
+modelo: cogió el precio base de la Casita 2 y le sumó el suplemento por su cuenta, contando 2
+personas adicionales donde había 3 (`pax_incluidos` es 4, no 5).
+
+Ocurrió porque en un reparto cada casita sale con `precio_desde` —sin suplemento, porque no se
+sabe cuántos van en cada una— y el modelo rellenó el hueco calculando.
+
+La solución no es un aviso más, es **quitarle la operación**. Con `distribucion` («2:7, 5:2») se
+cotiza cada casita con SU número de personas y se devuelve `total_combinado` ya sumado, en su
+moneda y en soles.
+
+| Regla | Por qué |
+|---|---|
+| Sólo cotiza casitas **libres** | Pedir el precio de una ocupada debe fallar, no devolver una cifra invendible |
+| `total_combinado` sólo si **todas** se cotizaron | Un total al que le falta una casita parece completo, y es peor que no darlo |
+| El parseo es **tolerante** («2:7», «Casita 2 = 7») | El formato exacto es lo primero que se le olvida al modelo |
+| Lo que no encaja se **descarta** | Mejor cotizar de menos que inventar un reparto |
+
+⚠️ **Hay tres prompts de sistema, no uno**: `AiConversationProcessor::reglas()` (WhatsApp),
+`PanelAssistant::systemPrompt()` (chat del panel) y `VoiceAssistant`. Una instrucción sobre cómo
+cotizar añadida sólo en uno **no la ven los otros dos**. Por eso lo que no puede fallar va en la
+DESCRIPCIÓN DE LA SKILL, que es lo único que los tres comparten.
+
 #### 🛏️ Comodidad no es aforo
 
 `capacidad` dice cuántos caben y con eso no se contesta «quiero estar más cómodo»: en la Casita 3

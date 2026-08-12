@@ -81,6 +81,12 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 . 'total ni como precio cerrado: es un mínimo al que le falta el suplemento '
                 . 'por persona. Di «desde X» y PREGUNTA cuántas personas son; con ese dato '
                 . 'vuelve a llamarme con «pax» y entonces sí tendrás el total. '
+                . '🧮 EN CUANTO TE DIGAN QUIÉN VA EN CADA CASITA, vuelve a llamarme con '
+                . '«distribucion» («2:7, 5:2»). Te devuelvo el total exacto de cada una y el '
+                . '«total_combinado» YA SUMADO. ⛔ NO sumes casitas tú, NO calcules el '
+                . 'suplemento por persona a partir del precio base, y NO conviertas importes a '
+                . 'soles a mano: todo eso viene hecho. Si te falta un dato para pedirlo, '
+                . 'pregúntalo antes; equivocarse en una cifra cuesta más que una repregunta. '
                 . '🛏️ SI PREGUNTAN POR COMODIDAD, ESPACIO, PRIVACIDAD O CAMAS —«quiero algo '
                 . 'más cómodo», «vamos en familia», «somos dos parejas»— usa «habitaciones», '
                 . '«camas» y «banos_privados». CAPACIDAD NO ES COMODIDAD: en dos casitas de '
@@ -96,6 +102,15 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 SkillParameter::texto('hasta', 'Fecha de salida en formato YYYY-MM-DD. '
                     . 'Es el día en que la casita queda libre: del 12 al 15 son 3 noches.'),
                 SkillParameter::entero('pax', 'Número de personas, si lo indican.'),
+                SkillParameter::texto(
+                    'distribucion',
+                    'CÓMO SE REPARTEN entre varias casitas, cuando ya lo han dicho. Formato '
+                    . '«casita:personas» separado por comas: «2:7, 5:2» o «Casita 7:10, '
+                    . 'Casita 5:2». Úsalo SIEMPRE que te digan quién va en cada casita: '
+                    . 'devuelve el total exacto de cada una Y el total conjunto ya sumado. '
+                    . 'Con esto no tienes que sumar ni calcular suplementos por tu cuenta.',
+                    requerido: false
+                ),
             ],
         );
     }
@@ -153,6 +168,19 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
 
         $noches = (int) $desde->diff($hasta)->days;
 
+        // ── Camino del REPARTO YA DECIDIDO ──────────────────────────────────
+        // Cuando ya han dicho quién va en cada casita, se cotiza exactamente eso y se
+        // devuelve el total conjunto SUMADO AQUÍ. Nació de un fallo real: preguntando por la
+        // 5 y la 2 para 9 personas, el modelo cogió el precio base de cada una y se puso a
+        // añadir el suplemento por su cuenta — calculó 2 personas adicionales donde había 3 y
+        // cotizó 248 USD en vez de 260. Los números de la skill eran correctos; lo que
+        // fallaba era la aritmética que le tocaba hacer a él.
+        $reparto = $this->parsearDistribucion((string) ($entrada['distribucion'] ?? ''));
+
+        if ($reparto !== []) {
+            return $this->cotizarDistribucion($reparto, $desde, $hasta, $noches);
+        }
+
         // En un reparto NO se sabe cuántos van en cada casita, así que el suplemento por
         // persona no se puede calcular: pasar los 20 a cada una cobraría el grupo entero siete
         // veces. Se cotiza como si no supiéramos el pax —que es la verdad— y cada casita sale
@@ -176,6 +204,144 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 $libres
             ),
         ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * «2:7, Casita 5:2» → `[['2', 7], ['5', 2]]`.
+     *
+     * Tolerante con lo que escriba el modelo —con o sin la palabra «Casita», con espacios, con
+     * `-` o `=` en vez de `:`— porque el formato exacto es lo primero que se le olvida. Lo que
+     * no encaje se descarta en silencio: mejor cotizar de menos que inventar un reparto.
+     *
+     * @return list<array{0: string, 1: int}>
+     */
+    private function parsearDistribucion(string $texto): array
+    {
+        $texto = trim($texto);
+
+        if ($texto === '') {
+            return [];
+        }
+
+        $salida = [];
+
+        foreach (preg_split('/[,;]+/', $texto) ?: [] as $par) {
+            if (preg_match('/([\w\s]*?)\s*[:=-]\s*(\d{1,3})\s*$/u', trim($par), $m) !== 1) {
+                continue;
+            }
+
+            $casita = trim(preg_replace('/casitas?/iu', '', $m[1]) ?? '');
+            $pax = (int) $m[2];
+
+            if ($casita !== '' && $pax > 0) {
+                $salida[] = [$casita, $pax];
+            }
+        }
+
+        return $salida;
+    }
+
+    /**
+     * Cotiza un reparto ya decidido: cada casita con SU número de personas, y el total conjunto.
+     *
+     * 🔒 Sólo cotiza casitas LIBRES en ese rango. Se parte de `buscar()` sin filtro de pax y se
+     * cruza por nombre: pedir el precio de una casita ocupada tiene que fallar, no devolver una
+     * cifra que nadie va a poder vender.
+     *
+     * @param list<array{0: string, 1: int}> $reparto
+     */
+    private function cotizarDistribucion(
+        array $reparto,
+        DateTimeImmutable $desde,
+        DateTimeImmutable $hasta,
+        int $noches
+    ): SkillResult {
+        $libres = $this->disponibilidad->buscar($desde, $hasta);
+
+        $casitas = [];
+        $noDisponibles = [];
+        $totalUsd = 0.0;
+        $totalPax = 0;
+        $moneda = '';
+        $completo = true;
+
+        foreach ($reparto as [$nombre, $pax]) {
+            $dto = $this->emparejar($libres, $nombre);
+
+            if ($dto === null) {
+                $noDisponibles[] = $nombre;
+                $completo = false;
+                continue;
+            }
+
+            $cotizado = $this->conPrecioYTotal($dto, $desde, $hasta, $noches, $pax);
+
+            $casitas[] = ['pax' => $pax] + $cotizado['fila'];
+            $totalPax += $pax;
+
+            if ($cotizado['total'] === null) {
+                $completo = false;
+                continue;
+            }
+
+            $totalUsd += $cotizado['total'];
+            $moneda = $cotizado['moneda'];
+        }
+
+        return SkillResult::ok(array_filter([
+            'noches' => $noches,
+            'pax_total' => $totalPax,
+            'casitas' => $casitas,
+            'no_disponibles' => $noDisponibles !== []
+                ? sprintf(
+                    'Estas casitas NO están libres en esas fechas y no se han cotizado: %s. '
+                    . 'Dilo claramente en vez de dar el total como si estuvieran.',
+                    implode(', ', $noDisponibles)
+                )
+                : null,
+            // 🧾 EL TOTAL CONJUNTO, SUMADO AQUÍ. Es la razón de ser de este camino: el modelo
+            // no suma. Sólo se da si TODAS las casitas se pudieron cotizar — un total al que le
+            // falta una casita es peor que no dar total, porque parece completo.
+            'total_combinado' => $completo && $casitas !== []
+                ? $this->totalCombinado($totalUsd, $totalPax, count($casitas), $moneda)
+                : null,
+        ], static fn ($v) => $v !== null));
+    }
+
+    /** La casita libre que corresponde a «2», «casita 2» o «Casita 2». */
+    private function emparejar(array $libres, string $nombre): ?object
+    {
+        $aguja = mb_strtolower(trim($nombre));
+
+        foreach ($libres as $u) {
+            $suyo = mb_strtolower((string) $u->nombre);
+
+            // Un número suelto se ancla al FINAL para que «1» no traiga la 11 ni la 21, igual
+            // que en `ConsultarOcupacionSkill::resolverCasita()`.
+            if ($suyo === $aguja
+                || (preg_match('/^\d+$/', $aguja) === 1 && str_ends_with($suyo, ' ' . $aguja))
+                || (preg_match('/^\d+$/', $aguja) !== 1 && str_contains($suyo, $aguja))) {
+                return $u;
+            }
+        }
+
+        return null;
+    }
+
+    /** El total de todas las casitas junto, en su moneda y en soles, ya sumado. */
+    private function totalCombinado(float $total, int $pax, int $cuantas, string $moneda): string
+    {
+        $soles = $this->enSoles($total, $moneda);
+
+        return sprintf(
+            '%.2f %s por las %d casitas juntas, %d persona(s), %s. %s',
+            $total,
+            $moneda,
+            $cuantas,
+            $pax,
+            'todo incluido salvo el servicio de las OTA, que aquí no se cobra',
+            $soles !== null ? 'Total ' . $soles : ''
+        );
     }
 
     /**
@@ -338,6 +504,24 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         int $noches,
         ?int $pax
     ): array {
+        return $this->conPrecioYTotal($dto, $desde, $hasta, $noches, $pax)['fila'];
+    }
+
+    /**
+     * Lo mismo, pero devolviendo además el total EN NÚMERO y la moneda.
+     *
+     * Existe para que `cotizarDistribucion()` pueda sumar sin volver a consultar ni —peor—
+     * reparsear los importes de las cadenas que ya se formatearon para el modelo.
+     *
+     * @return array{fila: array<string, mixed>, total: ?float, moneda: string}
+     */
+    private function conPrecioYTotal(
+        object $dto,
+        DateTimeImmutable $desde,
+        DateTimeImmutable $hasta,
+        int $noches,
+        ?int $pax
+    ): array {
         // 🚫 La tarifa base NO viaja en la respuesta. La llevaba, y el modelo la repetía junto
         // al precio real como «tarifa base ref: 70.00» — dos números para lo mismo, y el que
         // no se cobra el más llamativo. Quien necesite revisarlas tiene `consultar_tarifas_base`.
@@ -347,16 +531,20 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         $unidad = $this->em->getRepository(PmsUnidad::class)->find($dto->id);
 
         if ($unidad === null) {
-            return $fila;
+            return ['fila' => $fila, 'total' => null, 'moneda' => ''];
         }
 
         $resumen = $this->tarifas->resumen($unidad, $desde, $hasta, $pax);
 
         if ($resumen['total'] === null) {
-            return $fila + [
-                'precio' => null,
-                'sin_tarifa' => 'Esta casita no tiene tarifa cargada ni tarifa base activa para '
-                    . 'esas fechas: no se puede cotizar sin ponerle precio antes.',
+            return [
+                'fila' => $fila + [
+                    'precio' => null,
+                    'sin_tarifa' => 'Esta casita no tiene tarifa cargada ni tarifa base activa '
+                        . 'para esas fechas: no se puede cotizar sin ponerle precio antes.',
+                ],
+                'total' => null,
+                'moneda' => '',
             ];
         }
 
@@ -378,7 +566,7 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
         // El orden importa: el precio primero porque es lo que hay que decir. El suplemento va
         // desglosado —no escondido dentro del total— para que el operador pueda explicar de
         // dónde sale la diferencia en vez de soltar una cifra mayor sin motivo aparente.
-        return array_filter([
+        $filaFinal = array_filter([
             $claveP => sprintf('%.2f %s', $resumen['total'], $moneda),
             // 🧾 La cuenta HECHA, para leerla tal cual al cliente. Es lo que hace un vendedor:
             // no suelta un total, enseña de dónde sale. Y al venir armada desde aquí, el modelo
@@ -429,5 +617,7 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
                 ? $resumen['noches_sin_tarifa']
                 : null,
         ], static fn ($v) => $v !== null) + $fila;
+
+        return ['fila' => $filaFinal, 'total' => $resumen['total'], 'moneda' => $moneda];
     }
 }
