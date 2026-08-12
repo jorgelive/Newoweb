@@ -16,6 +16,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_template')]
@@ -520,6 +521,47 @@ class MessageTemplate
     public function getWhatsappMetaName(): ?string
     {
         return $this->whatsappMetaTmpl['meta_template_name'] ?? null;
+    }
+
+    /**
+     * Si la plantilla sale por WhatsApp, tiene que tener «Nombre en Meta». Sin excepciones.
+     *
+     * Es la clave por la que Meta identifica la plantilla, y sin ella no falla nada de forma
+     * visible — falla TODO de forma invisible:
+     *
+     * - `WhatsappMetaTemplatePushService` la manda como `name` del payload: con `null` la
+     *   plantilla nunca llega a Meta, así que nunca entra en revisión y nadie puede aprobarla.
+     * - `WhatsappMetaTemplateSyncService` empareja por ese mismo nombre: sin él, el
+     *   sincronizador de las 03:15 pasa de largo cada noche.
+     *
+     * Y mientras tanto el panel enseña el `status` que alguien escribió a mano, que parece una
+     * revisión en curso y no lo es. `menu_tours` estuvo así cinco meses: 9 huéspedes pidieron
+     * el menú de tours y no recibieron nada.
+     *
+     * Se valida aquí y no en el CRUD porque la entidad se toca desde el panel, desde el
+     * sincronizador y desde las migraciones: la regla tiene que ser la misma en las tres.
+     */
+    #[Assert\Callback]
+    public function validarNombreDeMeta(ExecutionContextInterface $contexto): void
+    {
+        if (!$this->isWhatsappMetaActive()) {
+            return;
+        }
+
+        $nombre = $this->getWhatsappMetaName();
+
+        if (is_string($nombre) && trim($nombre) !== '') {
+            return;
+        }
+
+        $contexto->buildViolation(
+            'Esta plantilla está activa para WhatsApp Meta, así que necesita un «Nombre en Meta» '
+            . '(«meta_template_name» dentro del JSON). Sin él no se puede subir a Meta ni reconocer '
+            . 'lo que Meta devuelva, y el estado que verías aquí sería falso. Suele ser el mismo código: «%code%».'
+        )
+            ->setParameter('%code%', (string) $this->code)
+            ->atPath('whatsappMetaTmpl')
+            ->addViolation();
     }
 
     public function getWhatsappMetaCategory(): ?string

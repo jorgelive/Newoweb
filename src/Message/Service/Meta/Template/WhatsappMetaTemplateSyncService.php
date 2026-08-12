@@ -33,6 +33,28 @@ final readonly class WhatsappMetaTemplateSyncService
     ) {}
 
     /**
+     * Nombres de Meta que este sincronizador NO trae, pase lo que pase.
+     *
+     * Existe porque el servicio es create-or-update puro: mientras Meta devuelva un nombre que
+     * ninguna plantilla local reclama, **cada pasada le fabrica una fila** `<NOMBRE>_META`.
+     * Borrarla en el panel no sirve de nada: vuelve esa misma noche a las 03:15.
+     *
+     * - `hello_world` es la plantilla de ejemplo de Meta. Nunca fue nuestra.
+     * - `welcome_booking` es la generación ANTERIOR de la bienvenida de Booking, con botones
+     *   `url`. Se sustituyó por `welcome_booking_command` —botones de comando, que dejan rastro
+     *   en la conversación de quién pulsó— y la vieja se quedó viva en Meta. De ahí salió
+     *   `WELCOME_BOOKING_META` el 2026-04-05: 0 envíos en toda su vida y tres botones rotos
+     *   (dos `url` y un `quick_reply`, los tres sin `resolver_key`), de los cuales el
+     *   `quick_reply` hace saltar una excepción que tumba el envío entero. Estaba activa y era
+     *   seleccionable en el chat, con un nombre casi idéntico al de la buena.
+     *
+     * ⚠️ Esta lista es la red, no la solución: lo definitivo es borrar la plantilla en la
+     * consola de Meta. Cuando eso pase, `welcome_booking` puede salir de aquí — y si no sale,
+     * tampoco estorba: sólo impide adoptar un nombre que ya nadie usa.
+     */
+    private const array NOMBRES_IGNORADOS = ['hello_world', 'welcome_booking'];
+
+    /**
      * Ejecuta la sincronización de plantillas utilizando el cliente de Exchange.
      *
      * @return array<string, int> Resumen de la operación con contadores.
@@ -76,7 +98,8 @@ final readonly class WhatsappMetaTemplateSyncService
             foreach ($templates as $templateData) {
                 $status = strtoupper((string)($templateData['status'] ?? ''));
 
-                if (in_array($status, ['APPROVED', 'PENDING', 'REJECTED']) && ($templateData['name'] ?? '') !== 'hello_world') {
+                if (in_array($status, ['APPROVED', 'PENDING', 'REJECTED'], true)
+                    && !in_array((string) ($templateData['name'] ?? ''), self::NOMBRES_IGNORADOS, true)) {
                     $isNew = $this->processTemplateRecord($templateData, $templateCache, $allowedLanguages);
 
                     if ($isNew === true) {

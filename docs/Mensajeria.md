@@ -5569,6 +5569,31 @@ que aquí no tenían dueño.
 > y el punto exacto del código donde encajaría la exclusión. Esta sección explica el mecanismo;
 > aquélla, qué falta por decidir.
 
+### 🧹 La gemela de Booking, cerrada (2026-08-12)
+
+`WELCOME_BOOKING_META` era el caso vivo de todo lo anterior, y se cerró así:
+
+| Pieza | Dónde | Qué hace |
+|---|---|---|
+| Validación | `MessageTemplate::validarNombreDeMeta()` | si la plantilla está **activa para Meta**, el «Nombre en Meta» pasa a ser obligatorio. Es lo que habría impedido lo de `menu_tours` |
+| Filtro | `WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS` | el sincronizador ya no trae `welcome_booking` (ni `hello_world`), así que no puede volver a fabricarla a las 03:15 |
+| Migración | `Version20260812200000` | repunta a la buena lo que la referenciara y borra la fila |
+
+El repunte no movió nada —tenía **0 envíos** frente a los 210 de la buena— pero va de todas
+formas: borrar una fila referenciada deja el mensaje sin plantilla o revienta por la clave
+foránea, y son dos `UPDATE`.
+
+⚠️ **El filtro es la red, no la solución.** Mientras `welcome_booking` siga existiendo en Meta,
+lo único que impide que vuelva es esa lista. Lo definitivo es borrarla en la consola de Meta:
+
+```
+DELETE /{wabaId}/message_templates?name=welcome_booking
+```
+
+Se guardó copia de sus 7 idiomas con sus ids antes de tocar nada. Y ojo: borrar en Meta
+**bloquea reutilizar ese nombre unos 30 días**, cosa que aquí da igual porque la plantilla viva
+se llama `welcome_booking_command`.
+
 ### 👁️ «Ver plantillas en Meta»: la pantalla que no escribe
 
 `MessageTemplateCrudController::executeInventarioMeta()` (botón del listado de plantillas)
@@ -5683,3 +5708,5 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Saber cuándo corre la sincronización | Cron de `www-data`: `app:whatsapp:sync-templates`, 03:15 |
 | Ver qué tiene Meta sin escribir nada | Botón «Ver plantillas en Meta» → `WhatsappMetaTemplateInventario::listar()` |
 | Averiguar por qué una plantilla lleva meses en `PENDING` | Mirar `meta_template_name` y `is_official_meta`: si es `null`/`false`, nunca llegó a Meta |
+| Que una plantilla de Meta deje de recrearse cada noche | `WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS` (y borrarla en Meta, que es lo definitivo) |
+| Impedir que se guarde una plantilla de Meta sin nombre | `MessageTemplate::validarNombreDeMeta()` |
