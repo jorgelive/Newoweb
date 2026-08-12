@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Attribute\AutoTranslate;
 use App\Entity\Maestro\MaestroMoneda;
+use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\Enum\PmsTipoCargo;
@@ -69,6 +70,19 @@ class PmsCargoFinanciero
 {
     use IdTrait;
     use TimestampTrait;
+
+    /**
+     * Sin este trait, `$descripcionCliente` NUNCA se traduce.
+     *
+     * No es decorativo: `AutoTranslationService::processEntity()` arranca preguntando por
+     * `getEjecutarTraduccion()` —que llega justamente de aquí— y si el método no existe se
+     * va sin mirar una sola propiedad. El atributo `#[AutoTranslate]` de abajo queda inerte,
+     * y el fallo es silencioso: se guarda el español y no aparece ningún otro idioma.
+     *
+     * Esta entidad estuvo un tiempo así, siendo la única del proyecto con `#[AutoTranslate]`
+     * sin el trait. Si añades el atributo a una entidad nueva, añade también el trait.
+     */
+    use AutoTranslateControlTrait;
 
     public const string TIPO_CARGO = 'charge';
     public const string TIPO_PAGO  = 'payment';
@@ -359,13 +373,41 @@ class PmsCargoFinanciero
         }
 
         // Se conservan las traducciones de los demás idiomas y solo se reemplaza el español.
-        // Si el texto origen cambió, el traductor automático las regenerará al guardar.
+        //
+        // ⚠️ Corregir el español NO las regenera solo: el traductor trabaja en «modo seguro»
+        // (rellena los idiomas vacíos, respeta los que ya tienen texto). Para rehacerlas hay
+        // que pedirlo con `sobreescribirTraduccion` —el botón del panel financiero de la SPA—,
+        // igual que en el editor de cotizaciones.
         $otros = array_values(array_filter(
             $this->getDescripcionCliente(),
             static fn (array $c): bool => ($c['language'] ?? null) !== 'es'
         ));
 
         $this->descripcionCliente = array_merge([['content' => $texto, 'language' => 'es']], $otros);
+
+        return $this;
+    }
+
+    /**
+     * El flag de sobrescritura del trait, expuesto a la API.
+     *
+     * Se redeclara aquí —en vez de anotar el trait— porque los grupos de serialización son
+     * de cada entidad: el trait lo comparten media docena y cada una tiene los suyos. Mismo
+     * patrón que `CotizacionCottarifa::getSobreescribirTraduccion()`.
+     *
+     * Va también en `pms_cargo:read` para que la SPA pueda pintar el botón en su estado real;
+     * el servicio lo apaga solo tras traducir, así que al recargar vuelve a false.
+     */
+    #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
+    public function getSobreescribirTraduccion(): bool
+    {
+        return $this->sobreescribirTraduccion;
+    }
+
+    #[Groups(['pms_cargo:write', 'pms_cargo:patch'])]
+    public function setSobreescribirTraduccion(bool $sobreescribirTraduccion): self
+    {
+        $this->sobreescribirTraduccion = $sobreescribirTraduccion;
 
         return $this;
     }

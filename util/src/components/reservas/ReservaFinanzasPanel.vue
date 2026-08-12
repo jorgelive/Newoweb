@@ -88,7 +88,13 @@ async function cargar(): Promise<void> {
     // La vista siempre arranca en la moneda contable: es la que da fe.
     monedaVista.value = null;
     try {
-        await Promise.all([finanzas.fetchEnums(), finanzas.fetchPorReserva(props.reservaId)]);
+        await Promise.all([
+            finanzas.fetchEnums(),
+            // Aparte de los enums y sin caché: es una lista de personas y un alta reciente
+            // tiene que aparecer ya (ver `fetchCobradores` en el store).
+            finanzas.fetchCobradores(),
+            finanzas.fetchPorReserva(props.reservaId),
+        ]);
     } catch (err) {
         error.value = extractApiErrorMessage(err, 'No se pudo cargar la información financiera.');
     }
@@ -453,7 +459,28 @@ async function enfocarFormPago(): Promise<void> {
 const cargoEditandoId = ref<string | null>(null);
 /** 'nuevo' mientras se está dando de alta un cargo manual. */
 const cargoNuevoAbierto = ref(false);
-const cargoForm = ref({ tipoCargo: '', descripcion: '', descripcionClienteEs: '', totalLinea: '', tipoCambio: '', moneda: '', evento: '' });
+const cargoForm = ref({
+    tipoCargo: '', descripcion: '', descripcionClienteEs: '', totalLinea: '',
+    tipoCambio: '', moneda: '', evento: '',
+    // Fuerza la RE-traducción de `descripcionClienteEs` al guardar. Ver `toggleTraduccion`.
+    sobreescribirTraduccion: false,
+});
+
+/**
+ * Botón "forzar traducción" de la descripción para el huésped, espejo del que tiene el
+ * editor de cotizaciones (CotizacionEditorView, sobre los mismos campos `#[AutoTranslate]`).
+ *
+ * Hace falta porque el traductor automático trabaja en MODO SEGURO: rellena los idiomas que
+ * están vacíos y respeta los que ya tienen texto. Eso está bien la primera vez, pero al
+ * CORREGIR el español de un cargo ya traducido el inglés se quedaba con la versión vieja, en
+ * silencio — y es la que acaba viendo el huésped en su estado de cuenta.
+ *
+ * El flag se apaga solo en el backend en cuanto traduce (`AutoTranslationService`), así que
+ * no se queda pegado: hay que volver a pulsarlo la próxima vez que haga falta.
+ */
+function toggleTraduccion(): void {
+    cargoForm.value.sobreescribirTraduccion = !cargoForm.value.sobreescribirTraduccion;
+}
 
 function puedeEditarCargo(c: PmsCargoFinanciero): boolean {
     if (props.readOnly) return false;
@@ -475,6 +502,9 @@ function empezarEdicionCargo(c: PmsCargoFinanciero): void {
         tipoCambio: c.tipoCambio ?? '',
         moneda: c.moneda?.id ?? monedaCabecera.value?.id ?? 'USD',
         evento: idDeIri(c.evento) ?? '',
+        // Arranca apagado siempre: forzar la traducción es una decisión de ESTE guardado,
+        // no un ajuste del cargo. El backend lo devuelve en false tras usarlo.
+        sobreescribirTraduccion: false,
     };
 
     // Al abrir un cargo que se guardó sin TC, se ofrece ya el del día: es el caso
@@ -497,6 +527,8 @@ function abrirNuevoCargo(): void {
         moneda: monedaCabecera.value?.id ?? 'USD',
         // Con una sola casita no hay nada que elegir: se preselecciona.
         evento: estancias.length === 1 ? estancias[0].eventoId : '',
+        // En un cargo NUEVO no hay traducciones que pisar: el modo seguro ya las crea todas.
+        sobreescribirTraduccion: false,
     };
     // El TC se consulta de entrada, coincida o no la moneda (ver `tcSiempre`).
     void autocompletarTipoCambioCargo();
@@ -603,6 +635,9 @@ async function guardarCargoOrThrow(): Promise<void> {
             // Lo que ve el huésped. Se manda el texto en español; el backend arma el
             // I18nContent[] y el traductor automático rellena los demás idiomas.
             descripcionClienteEs: cargoForm.value.descripcionClienteEs || null,
+            // Sólo en el PATCH: es el caso en que ya existen traducciones que pisar. El
+            // backend lo apaga en cuanto traduce, así que no se queda encendido.
+            sobreescribirTraduccion: cargoForm.value.sobreescribirTraduccion,
             totalLinea: cargoForm.value.totalLinea || null,
             evento: cargoForm.value.evento ? pmsEventoIri(cargoForm.value.evento) : null,
             ...(original && !original.tipoCambio && cargoForm.value.tipoCambio
@@ -650,6 +685,16 @@ function pagoVacio() {
         comisionPorcentaje: '',
         referencia: '',
         notas: '',
+        /**
+         * Quién RECIBIÓ el dinero (UUID de un usuario con ROLE_COBRADOR), no quién lo apunta.
+         *
+         * Arranca VACÍO a propósito, sin preseleccionar al operador que tiene la sesión
+         * abierta: el efectivo lo cobra quien está en la casita —la limpiadora, el de
+         * mantenimiento— y lo registra después otra persona. Preseleccionar al de recepción
+         * haría que toda la caja figurase a su nombre, que es justo lo que impide cuadrarla
+         * (ver la nota de `PmsPagoFinanciero::$cobrador`).
+         */
+        cobrador: '',
     };
 }
 const pagoForm = ref(pagoVacio());
@@ -706,6 +751,7 @@ function editarPago(p: PmsPagoFinanciero): void {
         comisionPorcentaje: p.comisionPorcentaje ?? '',
         referencia: p.referencia ?? '',
         notas: p.notas ?? '',
+        cobrador: p.cobradorId ?? '',
     };
     refrescarTotalDesdeMonto();
     pagoFormAbierto.value = true;
@@ -811,6 +857,9 @@ async function guardarPagoOrThrow(): Promise<void> {
             comisionPorcentaje: pagoForm.value.comisionPorcentaje || null,
             referencia: pagoForm.value.referencia || null,
             notas: pagoForm.value.notas || null,
+            // UUID plano, NO una IRI: `User` no es un recurso de API Platform y lo resuelve
+            // PmsPagoFinancieroProcessor. Cadena vacía = desasignar.
+            cobradorId: pagoForm.value.cobrador || null,
         });
     } else {
         const payload: PmsPagoFinancieroCreate = {
@@ -826,6 +875,8 @@ async function guardarPagoOrThrow(): Promise<void> {
             comisionPorcentaje: pagoForm.value.comisionPorcentaje || null,
             referencia: pagoForm.value.referencia || null,
             notas: pagoForm.value.notas || null,
+            // Ver la nota del PATCH: UUID plano, lo resuelve el processor.
+            cobradorId: pagoForm.value.cobrador || null,
         };
         await finanzas.createPago(payload);
     }
@@ -1243,10 +1294,31 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                  explican con su tipo. -->
                             <label class="col-span-2">
                                 <span class="text-[11px] font-bold text-slate-500">Descripción para el huésped</span>
-                                <input type="text" v-model="cargoForm.descripcionClienteEs"
-                                    placeholder="Ej. Ajuste de redondeo para el cuadre"
-                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                                <span class="text-[10px] text-slate-400">Aparece en su estado de cuenta. Se traduce sola.</span>
+                                <!-- El botón de forzar traducción va SÓLO aquí, en la edición:
+                                     en un cargo nuevo no hay traducciones que pisar y sería un
+                                     control que no hace nada. Mismo botón que el editor de
+                                     cotizaciones (fa-language, ámbar cuando está activo). -->
+                                <span class="mt-1 flex items-stretch gap-1.5">
+                                    <input type="text" v-model="cargoForm.descripcionClienteEs"
+                                        placeholder="Ej. Ajuste de redondeo para el cuadre"
+                                        class="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                                    <button type="button" @click="toggleTraduccion"
+                                        :class="cargoForm.sobreescribirTraduccion
+                                            ? 'bg-orange-100 text-orange-600 border-orange-300'
+                                            : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                                        class="px-3 border rounded-lg transition-colors shadow-sm shrink-0"
+                                        title="Rehacer las traducciones a partir de este texto al guardar">
+                                        <i class="fas fa-language"></i>
+                                    </button>
+                                </span>
+                                <span v-if="cargoForm.sobreescribirTraduccion"
+                                    class="mt-1 block text-[10px] font-bold text-orange-600">
+                                    Al guardar se rehacen las traducciones desde este texto.
+                                </span>
+                                <span v-else class="text-[10px] text-slate-400">
+                                    Aparece en su estado de cuenta. Se traduce sola la primera vez;
+                                    si la corriges, pulsa <i class="fas fa-language"></i> para rehacer los demás idiomas.
+                                </span>
                             </label>
 
                             <label>
@@ -1456,6 +1528,11 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     +{{ p.comisionPorcentaje }}% · cobrado {{ importeConMoneda(p.montoTotalCobrado, p.moneda) }}
                                 </span>
                                 <span v-if="p.referencia">#{{ p.referencia }}</span>
+                                <!-- Quién lo cobró: es el dato que permite cuadrar la caja de
+                                     cada persona, así que se ve sin abrir el formulario. -->
+                                <span v-if="p.cobradorNombre" class="text-slate-500">
+                                    <i class="fas fa-user text-[9px] mr-0.5"></i>{{ p.cobradorNombre }}
+                                </span>
                             </p>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
@@ -1570,6 +1647,26 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             <span v-else-if="!pagoForm.tipoCambio" class="mt-1 block text-[10px] font-bold text-slate-400">
                                 Guárdalo aunque coincida la moneda: si mañana se cambia la moneda base
                                 de la reserva, sin él este pago dejaría de sumar.
+                            </span>
+                        </label>
+                        <!-- Quién RECIBIÓ el dinero, que NO es quien lo está registrando.
+                             La lista son los usuarios con ROLE_COBRADOR y llega del backend
+                             (PmsEnumAjaxController::getCobradores), sin filtrar por `enabled`:
+                             la limpiadora que cobra en la casita no tiene login y aun así
+                             tiene que poder elegirse. -->
+                        <label class="col-span-2">
+                            <span class="text-[11px] font-bold text-slate-500">Lo cobró</span>
+                            <select v-model="pagoForm.cobrador"
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
+                                <option value="">— Sin especificar —</option>
+                                <option v-for="c in finanzas.cobradores" :key="c.id" :value="c.id">{{ c.label }}</option>
+                            </select>
+                            <span v-if="!finanzas.cobradores.length" class="mt-1 block text-[10px] font-bold text-amber-600">
+                                <i class="fas fa-triangle-exclamation text-[9px] mr-1"></i>
+                                Nadie tiene el rol de cobrador todavía. Se asigna desde el panel de usuarios.
+                            </span>
+                            <span v-else class="mt-1 block text-[10px] font-bold text-slate-400">
+                                Quién recibió el dinero de manos del huésped, no quién lo apunta aquí.
                             </span>
                         </label>
                         <label class="col-span-2">

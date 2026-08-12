@@ -2201,6 +2201,147 @@
                 }
             }
         },
+        "/platform/sales/cotizacions/{id}/resincronizar-operacion": {
+            "post": {
+                "operationId": "api_salescotizacions_idresincronizar-operacion_post",
+                "tags": [
+                    "Cotizacion"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Cotizacion resource created",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.ResincronizacionResultado.jsonld-operacion.resync.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.ResincronizacionResultado-operacion.resync.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.ResincronizacionResultado.html-operacion.resync.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.ResincronizacionResultado.multipart-operacion.resync.read"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Creates a Cotizacion resource.",
+                "description": "Creates a Cotizacion resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Cotizacion identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ],
+                "requestBody": {
+                    "description": "The new Cotizacion resource",
+                    "content": {
+                        "application/ld+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "text/html": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            }
+        },
         "/platform/sales/client/cotizacion/cotizacion_catalogo/{localizador}": {
             "get": {
                 "operationId": "api_salesclientcotizacioncotizacion_catalogo_localizador_get",
@@ -21865,6 +22006,101 @@
                     }
                 }
             },
+            "Cotizacion.ResincronizacionResultado-operacion.resync.read": {
+                "type": "object",
+                "properties": {
+                    "creados": {
+                        "type": "integer"
+                    },
+                    "borrados": {
+                        "type": "integer"
+                    },
+                    "conservados": {
+                        "description": "Filas que ya pertenec\u00edan a una Orden de Servicio y no se tocaron.",
+                        "type": "integer"
+                    },
+                    "componentes": {
+                        "description": "Total de componentes de la cotizaci\u00f3n, generen fila o no.",
+                        "type": "integer"
+                    },
+                    "mensaje": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Cotizacion.ResincronizacionResultado.html-operacion.resync.read": {
+                "type": "object",
+                "properties": {
+                    "creados": {
+                        "type": "integer"
+                    },
+                    "borrados": {
+                        "type": "integer"
+                    },
+                    "conservados": {
+                        "description": "Filas que ya pertenec\u00edan a una Orden de Servicio y no se tocaron.",
+                        "type": "integer"
+                    },
+                    "componentes": {
+                        "description": "Total de componentes de la cotizaci\u00f3n, generen fila o no.",
+                        "type": "integer"
+                    },
+                    "mensaje": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Cotizacion.ResincronizacionResultado.jsonld-operacion.resync.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "creados": {
+                                "type": "integer"
+                            },
+                            "borrados": {
+                                "type": "integer"
+                            },
+                            "conservados": {
+                                "description": "Filas que ya pertenec\u00edan a una Orden de Servicio y no se tocaron.",
+                                "type": "integer"
+                            },
+                            "componentes": {
+                                "description": "Total de componentes de la cotizaci\u00f3n, generen fila o no.",
+                                "type": "integer"
+                            },
+                            "mensaje": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ]
+            },
+            "Cotizacion.ResincronizacionResultado.multipart-operacion.resync.read": {
+                "type": "object",
+                "properties": {
+                    "creados": {
+                        "type": "integer"
+                    },
+                    "borrados": {
+                        "type": "integer"
+                    },
+                    "conservados": {
+                        "description": "Filas que ya pertenec\u00edan a una Orden de Servicio y no se tocaron.",
+                        "type": "integer"
+                    },
+                    "componentes": {
+                        "description": "Total de componentes de la cotizaci\u00f3n, generen fila o no.",
+                        "type": "integer"
+                    },
+                    "mensaje": {
+                        "type": "string"
+                    }
+                }
+            },
             "Cotizacion.html-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
                 "type": "object",
                 "properties": {
@@ -25619,6 +25855,53 @@
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
                     },
+                    "prestadorMaestroId": {
+                        "description": "SOFT-LINK al cat\u00e1logo maestro (App\\Travel\\Entity\\Proveedor).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "description": "Nombre comercial. Operativo: identifica al prestador en La Biblia.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorTelefonoSnapshot": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n: lo que el transportista necesita para el recojo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccionSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -25765,6 +26048,53 @@
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
                     },
+                    "prestadorMaestroId": {
+                        "description": "SOFT-LINK al cat\u00e1logo maestro (App\\Travel\\Entity\\Proveedor).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "description": "Nombre comercial. Operativo: identifica al prestador en La Biblia.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorTelefonoSnapshot": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n: lo que el transportista necesita para el recojo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccionSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -25906,6 +26236,53 @@
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
                     },
+                    "prestadorMaestroId": {
+                        "description": "SOFT-LINK al cat\u00e1logo maestro (App\\Travel\\Entity\\Proveedor).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "description": "Nombre comercial. Operativo: identifica al prestador en La Biblia.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorTelefonoSnapshot": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n: lo que el transportista necesita para el recojo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccionSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -26009,6 +26386,26 @@
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
                     },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "detallesParaCliente": {
                         "readOnly": true,
                         "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
@@ -26080,6 +26477,26 @@
                     "horaServicioCompleto": {
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
+                    },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "detallesParaCliente": {
                         "readOnly": true,
@@ -26202,6 +26619,53 @@
                     "horaServicioCompleto": {
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
+                    },
+                    "prestadorMaestroId": {
+                        "description": "SOFT-LINK al cat\u00e1logo maestro (App\\Travel\\Entity\\Proveedor).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "description": "Nombre comercial. Operativo: identifica al prestador en La Biblia.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorTelefonoSnapshot": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n: lo que el transportista necesita para el recojo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccionSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "id": {
                         "allOf": [
@@ -26349,6 +26813,53 @@
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
                     },
+                    "prestadorMaestroId": {
+                        "description": "SOFT-LINK al cat\u00e1logo maestro (App\\Travel\\Entity\\Proveedor).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "description": "Nombre comercial. Operativo: identifica al prestador en La Biblia.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorTelefonoSnapshot": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n: lo que el transportista necesita para el recojo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccionSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -26463,6 +26974,26 @@
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
                     },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "detallesParaCliente": {
                         "readOnly": true,
                         "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
@@ -26534,6 +27065,26 @@
                     "horaServicioCompleto": {
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
+                    },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "detallesParaCliente": {
                         "readOnly": true,
@@ -26660,6 +27211,53 @@
                             "horaServicioCompleto": {
                                 "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                                 "type": "boolean"
+                            },
+                            "prestadorMaestroId": {
+                                "description": "SOFT-LINK al cat\u00e1logo maestro (App\\Travel\\Entity\\Proveedor).",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorNombreSnapshot": {
+                                "description": "Nombre comercial. Operativo: identifica al prestador en La Biblia.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorTituloSnapshot": {
+                                "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "prestadorUrlSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorImagenesSnapshot": {
+                                "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "prestadorTelefonoSnapshot": {
+                                "description": "Tel\u00e9fono y direcci\u00f3n: lo que el transportista necesita para el recojo.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorDireccionSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             },
                             "id": {
                                 "allOf": [
@@ -26815,6 +27413,53 @@
                                 "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                                 "type": "boolean"
                             },
+                            "prestadorMaestroId": {
+                                "description": "SOFT-LINK al cat\u00e1logo maestro (App\\Travel\\Entity\\Proveedor).",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorNombreSnapshot": {
+                                "description": "Nombre comercial. Operativo: identifica al prestador en La Biblia.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorTituloSnapshot": {
+                                "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "prestadorUrlSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorImagenesSnapshot": {
+                                "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "prestadorTelefonoSnapshot": {
+                                "description": "Tel\u00e9fono y direcci\u00f3n: lo que el transportista necesita para el recojo.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorDireccionSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "id": {
                                 "allOf": [
                                     {
@@ -26945,6 +27590,26 @@
                                 "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                                 "type": "boolean"
                             },
+                            "prestadorTituloSnapshot": {
+                                "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "prestadorUrlSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorImagenesSnapshot": {
+                                "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
                             "detallesParaCliente": {
                                 "readOnly": true,
                                 "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
@@ -27024,6 +27689,26 @@
                             "horaServicioCompleto": {
                                 "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                                 "type": "boolean"
+                            },
+                            "prestadorTituloSnapshot": {
+                                "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "prestadorUrlSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorImagenesSnapshot": {
+                                "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
                             },
                             "detallesParaCliente": {
                                 "readOnly": true,
@@ -27149,6 +27834,53 @@
                     "horaServicioCompleto": {
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
+                    },
+                    "prestadorMaestroId": {
+                        "description": "SOFT-LINK al cat\u00e1logo maestro (App\\Travel\\Entity\\Proveedor).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "description": "Nombre comercial. Operativo: identifica al prestador en La Biblia.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorTelefonoSnapshot": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n: lo que el transportista necesita para el recojo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccionSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "id": {
                         "allOf": [
@@ -27296,6 +28028,53 @@
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
                     },
+                    "prestadorMaestroId": {
+                        "description": "SOFT-LINK al cat\u00e1logo maestro (App\\Travel\\Entity\\Proveedor).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "description": "Nombre comercial. Operativo: identifica al prestador en La Biblia.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorTelefonoSnapshot": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n: lo que el transportista necesita para el recojo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccionSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -27410,6 +28189,26 @@
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
                     },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "detallesParaCliente": {
                         "readOnly": true,
                         "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
@@ -27482,6 +28281,26 @@
                         "description": "La hora de este componente representa el horario global de toda la\nexcursi\u00f3n (servicio/itinerario), no la del segmento donde est\u00e1 anclado.",
                         "type": "boolean"
                     },
+                    "prestadorTituloSnapshot": {
+                        "description": "T\u00edtulo de cara al cliente (I18nContent[]), traducible.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "prestadorUrlSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorImagenesSnapshot": {
+                        "description": "Galer\u00eda del prestador (snapshot), para la tarjeta de referencia en pax.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "detallesParaCliente": {
                         "readOnly": true,
                         "description": "Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.",
@@ -27549,6 +28368,19 @@
                         }
                     },
                     "servicioMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorMaestroId": {
+                        "description": "Prestador por defecto del d\u00eda. OPCIONAL.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
                         "type": [
                             "string",
                             "null"
@@ -27640,6 +28472,19 @@
                             "null"
                         ]
                     },
+                    "prestadorMaestroId": {
+                        "description": "Prestador por defecto del d\u00eda. OPCIONAL.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -27716,6 +28561,19 @@
                         }
                     },
                     "servicioMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorMaestroId": {
+                        "description": "Prestador por defecto del d\u00eda. OPCIONAL.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
                         "type": [
                             "string",
                             "null"
@@ -27898,6 +28756,19 @@
                             "null"
                         ]
                     },
+                    "prestadorMaestroId": {
+                        "description": "Prestador por defecto del d\u00eda. OPCIONAL.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -27979,6 +28850,19 @@
                         }
                     },
                     "servicioMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorMaestroId": {
+                        "description": "Prestador por defecto del d\u00eda. OPCIONAL.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
                         "type": [
                             "string",
                             "null"
@@ -28177,6 +29061,19 @@
                                     "null"
                                 ]
                             },
+                            "prestadorMaestroId": {
+                                "description": "Prestador por defecto del d\u00eda. OPCIONAL.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorNombreSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "id": {
                                 "allOf": [
                                     {
@@ -28265,6 +29162,19 @@
                                 }
                             },
                             "servicioMaestroId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorMaestroId": {
+                                "description": "Prestador por defecto del d\u00eda. OPCIONAL.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorNombreSnapshot": {
                                 "type": [
                                     "string",
                                     "null"
@@ -28481,6 +29391,19 @@
                             "null"
                         ]
                     },
+                    "prestadorMaestroId": {
+                        "description": "Prestador por defecto del d\u00eda. OPCIONAL.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
                         "allOf": [
                             {
@@ -28562,6 +29485,19 @@
                         }
                     },
                     "servicioMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorMaestroId": {
+                        "description": "Prestador por defecto del d\u00eda. OPCIONAL.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombreSnapshot": {
                         "type": [
                             "string",
                             "null"
@@ -44585,7 +45521,15 @@
                         "$ref": "#/components/schemas/CotizacionCotcomponente-operacion.item.read_timestamp.read"
                     },
                     "cotizacionTarifa": {
-                        "$ref": "#/components/schemas/CotizacionCottarifa-operacion.item.read_timestamp.read"
+                        "description": "Tarifa de la que sali\u00f3 el costo. **Nullable**: un componente sin tarifa tambi\u00e9n\ngenera fila.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/CotizacionCottarifa-operacion.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "fechaServicio": {
                         "type": "string",
@@ -44604,6 +45548,31 @@
                         ]
                     },
                     "proveedorNombreManual": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombre": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTelefono": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n congelados: es lo que el transportista necesita al operar.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccion": {
                         "type": [
                             "string",
                             "null"
@@ -44653,14 +45622,29 @@
                         "type": "string"
                     },
                     "monedaCotizada": {
-                        "$ref": "#/components/schemas/Moneda-operacion.item.read_timestamp.read"
+                        "description": "Nullable por la misma raz\u00f3n que $cotizacionTarifa: sin tarifa no hay moneda.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Moneda-operacion.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "costoRealOperativo": {
                         "default": "0.00",
                         "type": "string"
                     },
                     "monedaReal": {
-                        "$ref": "#/components/schemas/Moneda-operacion.item.read_timestamp.read"
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Moneda-operacion.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "estadoReserva": {
                         "default": "sin-solicitar",
@@ -44705,6 +45689,11 @@
                         ],
                         "format": "date-time"
                     },
+                    "soloReferencia": {
+                        "readOnly": true,
+                        "description": "La fila est\u00e1 en el cuadro de tr\u00e1fico como REFERENCIA, no como compra.",
+                        "type": "boolean"
+                    },
                     "prioridadOperativa": {
                         "readOnly": true,
                         "description": "Prioridad de despacho heredada de ComponenteTipoEnum::prioridad().",
@@ -44747,7 +45736,11 @@
                         "example": "https://example.com/"
                     },
                     "cotizacionTarifa": {
-                        "type": "string",
+                        "description": "Tarifa de la que sali\u00f3 el costo. **Nullable**: un componente sin tarifa tambi\u00e9n\ngenera fila.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
@@ -44768,6 +45761,31 @@
                         ]
                     },
                     "proveedorNombreManual": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombre": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTelefono": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n congelados: es lo que el transportista necesita al operar.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccion": {
                         "type": [
                             "string",
                             "null"
@@ -44817,7 +45835,11 @@
                         "type": "string"
                     },
                     "monedaCotizada": {
-                        "type": "string",
+                        "description": "Nullable por la misma raz\u00f3n que $cotizacionTarifa: sin tarifa no hay moneda.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
@@ -44826,7 +45848,10 @@
                         "type": "string"
                     },
                     "monedaReal": {
-                        "type": "string",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
@@ -44883,7 +45908,11 @@
                         "example": "https://example.com/"
                     },
                     "cotizacionTarifa": {
-                        "type": "string",
+                        "description": "Tarifa de la que sali\u00f3 el costo. **Nullable**: un componente sin tarifa tambi\u00e9n\ngenera fila.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
@@ -44904,6 +45933,31 @@
                         ]
                     },
                     "proveedorNombreManual": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombre": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTelefono": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n congelados: es lo que el transportista necesita al operar.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccion": {
                         "type": [
                             "string",
                             "null"
@@ -44953,7 +46007,11 @@
                         "type": "string"
                     },
                     "monedaCotizada": {
-                        "type": "string",
+                        "description": "Nullable por la misma raz\u00f3n que $cotizacionTarifa: sin tarifa no hay moneda.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
@@ -44962,7 +46020,10 @@
                         "type": "string"
                     },
                     "monedaReal": {
-                        "type": "string",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
@@ -45023,7 +46084,15 @@
                         "$ref": "#/components/schemas/CotizacionCotcomponente.html-operacion.item.read_timestamp.read"
                     },
                     "cotizacionTarifa": {
-                        "$ref": "#/components/schemas/CotizacionCottarifa.html-operacion.item.read_timestamp.read"
+                        "description": "Tarifa de la que sali\u00f3 el costo. **Nullable**: un componente sin tarifa tambi\u00e9n\ngenera fila.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/CotizacionCottarifa.html-operacion.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "fechaServicio": {
                         "type": "string",
@@ -45042,6 +46111,31 @@
                         ]
                     },
                     "proveedorNombreManual": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombre": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTelefono": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n congelados: es lo que el transportista necesita al operar.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccion": {
                         "type": [
                             "string",
                             "null"
@@ -45091,14 +46185,29 @@
                         "type": "string"
                     },
                     "monedaCotizada": {
-                        "$ref": "#/components/schemas/Moneda.html-operacion.item.read_timestamp.read"
+                        "description": "Nullable por la misma raz\u00f3n que $cotizacionTarifa: sin tarifa no hay moneda.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Moneda.html-operacion.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "costoRealOperativo": {
                         "default": "0.00",
                         "type": "string"
                     },
                     "monedaReal": {
-                        "$ref": "#/components/schemas/Moneda.html-operacion.item.read_timestamp.read"
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Moneda.html-operacion.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "estadoReserva": {
                         "default": "sin-solicitar",
@@ -45142,6 +46251,11 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "soloReferencia": {
+                        "readOnly": true,
+                        "description": "La fila est\u00e1 en el cuadro de tr\u00e1fico como REFERENCIA, no como compra.",
+                        "type": "boolean"
                     },
                     "prioridadOperativa": {
                         "readOnly": true,
@@ -45194,7 +46308,15 @@
                                 "$ref": "#/components/schemas/CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read"
                             },
                             "cotizacionTarifa": {
-                                "$ref": "#/components/schemas/CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read"
+                                "description": "Tarifa de la que sali\u00f3 el costo. **Nullable**: un componente sin tarifa tambi\u00e9n\ngenera fila.",
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
                             },
                             "fechaServicio": {
                                 "type": "string",
@@ -45213,6 +46335,31 @@
                                 ]
                             },
                             "proveedorNombreManual": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorMaestroId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorNombre": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorTelefono": {
+                                "description": "Tel\u00e9fono y direcci\u00f3n congelados: es lo que el transportista necesita al operar.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prestadorDireccion": {
                                 "type": [
                                     "string",
                                     "null"
@@ -45262,14 +46409,29 @@
                                 "type": "string"
                             },
                             "monedaCotizada": {
-                                "$ref": "#/components/schemas/Moneda.jsonld-operacion.item.read_timestamp.read"
+                                "description": "Nullable por la misma raz\u00f3n que $cotizacionTarifa: sin tarifa no hay moneda.",
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/Moneda.jsonld-operacion.item.read_timestamp.read"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
                             },
                             "costoRealOperativo": {
                                 "default": "0.00",
                                 "type": "string"
                             },
                             "monedaReal": {
-                                "$ref": "#/components/schemas/Moneda.jsonld-operacion.item.read_timestamp.read"
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/Moneda.jsonld-operacion.item.read_timestamp.read"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
                             },
                             "estadoReserva": {
                                 "default": "sin-solicitar",
@@ -45313,6 +46475,11 @@
                                     "null"
                                 ],
                                 "format": "date-time"
+                            },
+                            "soloReferencia": {
+                                "readOnly": true,
+                                "description": "La fila est\u00e1 en el cuadro de tr\u00e1fico como REFERENCIA, no como compra.",
+                                "type": "boolean"
                             },
                             "prioridadOperativa": {
                                 "readOnly": true,
@@ -45369,7 +46536,15 @@
                         "$ref": "#/components/schemas/CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read"
                     },
                     "cotizacionTarifa": {
-                        "$ref": "#/components/schemas/CotizacionCottarifa.multipart-operacion.item.read_timestamp.read"
+                        "description": "Tarifa de la que sali\u00f3 el costo. **Nullable**: un componente sin tarifa tambi\u00e9n\ngenera fila.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/CotizacionCottarifa.multipart-operacion.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "fechaServicio": {
                         "type": "string",
@@ -45388,6 +46563,31 @@
                         ]
                     },
                     "proveedorNombreManual": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorNombre": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorTelefono": {
+                        "description": "Tel\u00e9fono y direcci\u00f3n congelados: es lo que el transportista necesita al operar.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prestadorDireccion": {
                         "type": [
                             "string",
                             "null"
@@ -45437,14 +46637,29 @@
                         "type": "string"
                     },
                     "monedaCotizada": {
-                        "$ref": "#/components/schemas/Moneda.multipart-operacion.item.read_timestamp.read"
+                        "description": "Nullable por la misma raz\u00f3n que $cotizacionTarifa: sin tarifa no hay moneda.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Moneda.multipart-operacion.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "costoRealOperativo": {
                         "default": "0.00",
                         "type": "string"
                     },
                     "monedaReal": {
-                        "$ref": "#/components/schemas/Moneda.multipart-operacion.item.read_timestamp.read"
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Moneda.multipart-operacion.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "estadoReserva": {
                         "default": "sin-solicitar",
@@ -45488,6 +46703,11 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "soloReferencia": {
+                        "readOnly": true,
+                        "description": "La fila est\u00e1 en el cuadro de tr\u00e1fico como REFERENCIA, no como compra.",
+                        "type": "boolean"
                     },
                     "prioridadOperativa": {
                         "readOnly": true,
@@ -47044,6 +48264,10 @@
                             "null"
                         ]
                     },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    },
                     "descripcionClienteEs": {
                         "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
                         "type": [
@@ -47201,6 +48425,10 @@
                         ],
                         "format": "uuid"
                     },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    },
                     "manual": {
                         "readOnly": true,
                         "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
@@ -47292,6 +48520,10 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     },
                     "descripcionClienteEs": {
                         "description": "La descripci\u00f3n en ESPA\u00d1OL, para editarla desde el panel con un campo de texto normal.",
@@ -47448,6 +48680,10 @@
                             "null"
                         ],
                         "format": "uuid"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     },
                     "manual": {
                         "readOnly": true,
@@ -47611,6 +48847,10 @@
                         ],
                         "format": "uuid"
                     },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    },
                     "manual": {
                         "readOnly": true,
                         "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
@@ -47771,6 +49011,10 @@
                             "null"
                         ],
                         "format": "uuid"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     },
                     "manual": {
                         "readOnly": true,
@@ -47937,6 +49181,10 @@
                                     "null"
                                 ],
                                 "format": "uuid"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
                             },
                             "manual": {
                                 "readOnly": true,
@@ -48107,6 +49355,10 @@
                                 ],
                                 "format": "uuid"
                             },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
+                            },
                             "manual": {
                                 "readOnly": true,
                                 "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
@@ -48272,6 +49524,10 @@
                         ],
                         "format": "uuid"
                     },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    },
                     "manual": {
                         "readOnly": true,
                         "description": "\u00bfLo cre\u00f3 un operador a mano (true) o lleg\u00f3 sincronizado desde Beds24 (false)?",
@@ -48432,6 +49688,10 @@
                             "null"
                         ],
                         "format": "uuid"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     },
                     "manual": {
                         "readOnly": true,
@@ -49844,6 +51104,18 @@
             "PmsEstablecimientoVirtual": {
                 "type": "object",
                 "properties": {
+                    "politicaPrepago": {
+                        "description": "Cu\u00e1nto se le pide por adelantado al hu\u00e9sped al reservar en ESTE establecimiento.",
+                        "default": "sin_prepago",
+                        "type": "string",
+                        "enum": [
+                            "sin_prepago",
+                            "primera_noche_total",
+                            "primera_noche_alojamiento",
+                            "mitad_total",
+                            "mitad_alojamiento"
+                        ]
+                    },
                     "establecimiento": {
                         "description": "El establecimiento f\u00edsico (Hotel/Edificio) al que pertenece este listing virtual.",
                         "$ref": "#/components/schemas/PmsEstablecimiento"
@@ -49899,6 +51171,18 @@
             "PmsEstablecimientoVirtual.html": {
                 "type": "object",
                 "properties": {
+                    "politicaPrepago": {
+                        "description": "Cu\u00e1nto se le pide por adelantado al hu\u00e9sped al reservar en ESTE establecimiento.",
+                        "default": "sin_prepago",
+                        "type": "string",
+                        "enum": [
+                            "sin_prepago",
+                            "primera_noche_total",
+                            "primera_noche_alojamiento",
+                            "mitad_total",
+                            "mitad_alojamiento"
+                        ]
+                    },
                     "establecimiento": {
                         "description": "El establecimiento f\u00edsico (Hotel/Edificio) al que pertenece este listing virtual.",
                         "$ref": "#/components/schemas/PmsEstablecimiento.html"
@@ -49954,6 +51238,18 @@
             "PmsEstablecimientoVirtual.jsonld": {
                 "type": "object",
                 "properties": {
+                    "politicaPrepago": {
+                        "description": "Cu\u00e1nto se le pide por adelantado al hu\u00e9sped al reservar en ESTE establecimiento.",
+                        "default": "sin_prepago",
+                        "type": "string",
+                        "enum": [
+                            "sin_prepago",
+                            "primera_noche_total",
+                            "primera_noche_alojamiento",
+                            "mitad_total",
+                            "mitad_alojamiento"
+                        ]
+                    },
                     "establecimiento": {
                         "description": "El establecimiento f\u00edsico (Hotel/Edificio) al que pertenece este listing virtual.",
                         "$ref": "#/components/schemas/PmsEstablecimiento.jsonld"
@@ -50009,6 +51305,18 @@
             "PmsEstablecimientoVirtual.multipart": {
                 "type": "object",
                 "properties": {
+                    "politicaPrepago": {
+                        "description": "Cu\u00e1nto se le pide por adelantado al hu\u00e9sped al reservar en ESTE establecimiento.",
+                        "default": "sin_prepago",
+                        "type": "string",
+                        "enum": [
+                            "sin_prepago",
+                            "primera_noche_total",
+                            "primera_noche_alojamiento",
+                            "mitad_total",
+                            "mitad_alojamiento"
+                        ]
+                    },
                     "establecimiento": {
                         "description": "El establecimiento f\u00edsico (Hotel/Edificio) al que pertenece este listing virtual.",
                         "$ref": "#/components/schemas/PmsEstablecimiento.multipart"
@@ -51007,6 +52315,77 @@
                     }
                 }
             },
+            "PmsEventoCalendario-pax_reserva.read": {
+                "type": "object",
+                "required": [
+                    "pmsUnidad",
+                    "channel",
+                    "estado",
+                    "inicio",
+                    "fin"
+                ],
+                "properties": {
+                    "pmsUnidad": {
+                        "$ref": "#/components/schemas/PmsUnidad-pax_reserva.read"
+                    },
+                    "reserva": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/PmsReserva-pax_reserva.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "channel": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/PmsChannel-pax_reserva.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "referenciaCanal": {
+                        "maxLength": 100,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "estado": {
+                        "$ref": "#/components/schemas/PmsEventoEstado-pax_reserva.read"
+                    },
+                    "inicio": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "fin": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "cantidadAdultos": {
+                        "type": "integer"
+                    },
+                    "cantidadNinos": {
+                        "type": "integer"
+                    },
+                    "salidaTardia": {
+                        "description": "Salida tard\u00eda pactada: el hu\u00e9sped se va por la tarde del d\u00eda de salida.",
+                        "type": "boolean"
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                }
+            },
             "PmsEventoCalendario-pms_evento.read_timestamp.read": {
                 "type": "object",
                 "description": "Entidad PmsEventoCalendario.\nGestiona bloqueos y reservas.\n\u2705 Entidad limpia de hacks temporales. La protecci\u00f3n de estados OTA\nse delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).",
@@ -51580,6 +52959,77 @@
                     }
                 }
             },
+            "PmsEventoCalendario.html-pax_reserva.read": {
+                "type": "object",
+                "required": [
+                    "pmsUnidad",
+                    "channel",
+                    "estado",
+                    "inicio",
+                    "fin"
+                ],
+                "properties": {
+                    "pmsUnidad": {
+                        "$ref": "#/components/schemas/PmsUnidad.html-pax_reserva.read"
+                    },
+                    "reserva": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/PmsReserva.html-pax_reserva.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "channel": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/PmsChannel.html-pax_reserva.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "referenciaCanal": {
+                        "maxLength": 100,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "estado": {
+                        "$ref": "#/components/schemas/PmsEventoEstado.html-pax_reserva.read"
+                    },
+                    "inicio": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "fin": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "cantidadAdultos": {
+                        "type": "integer"
+                    },
+                    "cantidadNinos": {
+                        "type": "integer"
+                    },
+                    "salidaTardia": {
+                        "description": "Salida tard\u00eda pactada: el hu\u00e9sped se va por la tarde del d\u00eda de salida.",
+                        "type": "boolean"
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                }
+            },
             "PmsEventoCalendario.html-pms_evento.read_timestamp.read": {
                 "type": "object",
                 "description": "Entidad PmsEventoCalendario.\nGestiona bloqueos y reservas.\n\u2705 Entidad limpia de hacks temporales. La protecci\u00f3n de estados OTA\nse delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).",
@@ -51990,6 +53440,85 @@
                             "noches": {
                                 "readOnly": true,
                                 "type": "integer"
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad PmsEventoCalendario.\nGestiona bloqueos y reservas.\n\u2705 Entidad limpia de hacks temporales. La protecci\u00f3n de estados OTA\nse delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork)."
+            },
+            "PmsEventoCalendario.jsonld-pax_reserva.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "required": [
+                            "pmsUnidad",
+                            "channel",
+                            "estado",
+                            "inicio",
+                            "fin"
+                        ],
+                        "properties": {
+                            "pmsUnidad": {
+                                "$ref": "#/components/schemas/PmsUnidad.jsonld-pax_reserva.read"
+                            },
+                            "reserva": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/PmsReserva.jsonld-pax_reserva.read"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "channel": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/PmsChannel.jsonld-pax_reserva.read"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "referenciaCanal": {
+                                "maxLength": 100,
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "estado": {
+                                "$ref": "#/components/schemas/PmsEventoEstado.jsonld-pax_reserva.read"
+                            },
+                            "inicio": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "fin": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "cantidadAdultos": {
+                                "type": "integer"
+                            },
+                            "cantidadNinos": {
+                                "type": "integer"
+                            },
+                            "salidaTardia": {
+                                "description": "Salida tard\u00eda pactada: el hu\u00e9sped se va por la tarde del d\u00eda de salida.",
+                                "type": "boolean"
+                            },
+                            "id": {
+                                "readOnly": true,
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "uuid"
                             }
                         }
                     }
@@ -52422,6 +53951,77 @@
                     }
                 }
             },
+            "PmsEventoCalendario.multipart-pax_reserva.read": {
+                "type": "object",
+                "required": [
+                    "pmsUnidad",
+                    "channel",
+                    "estado",
+                    "inicio",
+                    "fin"
+                ],
+                "properties": {
+                    "pmsUnidad": {
+                        "$ref": "#/components/schemas/PmsUnidad.multipart-pax_reserva.read"
+                    },
+                    "reserva": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/PmsReserva.multipart-pax_reserva.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "channel": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/PmsChannel.multipart-pax_reserva.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "referenciaCanal": {
+                        "maxLength": 100,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "estado": {
+                        "$ref": "#/components/schemas/PmsEventoEstado.multipart-pax_reserva.read"
+                    },
+                    "inicio": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "fin": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "cantidadAdultos": {
+                        "type": "integer"
+                    },
+                    "cantidadNinos": {
+                        "type": "integer"
+                    },
+                    "salidaTardia": {
+                        "description": "Salida tard\u00eda pactada: el hu\u00e9sped se va por la tarde del d\u00eda de salida.",
+                        "type": "boolean"
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                }
+            },
             "PmsEventoCalendario.multipart-pms_evento.read_timestamp.read": {
                 "type": "object",
                 "description": "Entidad PmsEventoCalendario.\nGestiona bloqueos y reservas.\n\u2705 Entidad limpia de hacks temporales. La protecci\u00f3n de estados OTA\nse delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).",
@@ -52593,6 +54193,15 @@
                     }
                 }
             },
+            "PmsEventoEstado-pax_reserva.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "description": "Nombre de visualizaci\u00f3n para la interfaz.",
+                        "type": "string"
+                    }
+                }
+            },
             "PmsEventoEstado-pms_evento.read_timestamp.read": {
                 "type": "object",
                 "properties": {
@@ -52649,6 +54258,15 @@
                             "integer",
                             "null"
                         ]
+                    }
+                }
+            },
+            "PmsEventoEstado.html-pax_reserva.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "description": "Nombre de visualizaci\u00f3n para la interfaz.",
+                        "type": "string"
                     }
                 }
             },
@@ -52710,6 +54328,23 @@
                         ]
                     }
                 }
+            },
+            "PmsEventoEstado.jsonld-pax_reserva.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombre": {
+                                "description": "Nombre de visualizaci\u00f3n para la interfaz.",
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad PmsEventoEstado.\nDefine los estados internos del PMS y su mapeo con Beds24.\nIDs Naturales basados en los c\u00f3digos originales."
             },
             "PmsEventoEstado.jsonld-pms_evento.read_timestamp.read": {
                 "allOf": [
@@ -52784,6 +54419,15 @@
                     }
                 ],
                 "description": "Entidad PmsEventoEstado.\nDefine los estados internos del PMS y su mapeo con Beds24.\nIDs Naturales basados en los c\u00f3digos originales."
+            },
+            "PmsEventoEstado.multipart-pax_reserva.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "description": "Nombre de visualizaci\u00f3n para la interfaz.",
+                        "type": "string"
+                    }
+                }
             },
             "PmsEventoEstado.multipart-pms_evento.read_timestamp.read": {
                 "type": "object",
@@ -53164,6 +54808,16 @@
                             }
                         }
                     },
+                    "mediosPago": {
+                        "description": "Medios de cobro que aplican a ESTE hu\u00e9sped,\nya filtrados por procedencia.",
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "acceso": {
                         "description": "Estado del acceso, solo para que la UI elija el aviso de cabecera. La\ndecisi\u00f3n de qu\u00e9 se ve ya est\u00e1 tomada: lo que no se puede ver, no viene.",
                         "type": "array",
@@ -53205,6 +54859,16 @@
                     },
                     "redesWifi": {
                         "description": "Redes WiFi; vac\u00edo si la ventana no est\u00e1 abierta.",
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "mediosPago": {
+                        "description": "Medios de cobro que aplican a ESTE hu\u00e9sped,\nya filtrados por procedencia.",
                         "type": "array",
                         "items": {
                             "type": "object",
@@ -53266,6 +54930,16 @@
                                     }
                                 }
                             },
+                            "mediosPago": {
+                                "description": "Medios de cobro que aplican a ESTE hu\u00e9sped,\nya filtrados por procedencia.",
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
                             "acceso": {
                                 "description": "Estado del acceso, solo para que la UI elija el aviso de cabecera. La\ndecisi\u00f3n de qu\u00e9 se ve ya est\u00e1 tomada: lo que no se puede ver, no viene.",
                                 "type": "array",
@@ -53310,6 +54984,16 @@
                     },
                     "redesWifi": {
                         "description": "Redes WiFi; vac\u00edo si la ventana no est\u00e1 abierta.",
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "mediosPago": {
+                        "description": "Medios de cobro que aplican a ESTE hu\u00e9sped,\nya filtrados por procedencia.",
                         "type": "array",
                         "items": {
                             "type": "object",
@@ -54024,6 +55708,37 @@
                             "$ref": "#/components/schemas/PmsPagoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"
                         }
                     },
+                    "prepagoPendiente": {
+                        "description": "Prepago que todav\u00eda hay que pedir, o null si no procede.",
+                        "type": "object",
+                        "nullable": true,
+                        "required": [
+                            "monto",
+                            "politica"
+                        ],
+                        "properties": {
+                            "monto": {
+                                "type": "string",
+                                "example": "45.00"
+                            },
+                            "politica": {
+                                "type": "string",
+                                "example": "primera_noche_total"
+                            },
+                            "politicaEtiqueta": {
+                                "type": "string",
+                                "example": "Primera noche (sobre el total)"
+                            },
+                            "politicaCorta": {
+                                "type": "string",
+                                "example": "Primera noche"
+                            },
+                            "concepto": {
+                                "type": "string",
+                                "example": "Adelanto de reserva AB12CD \u2014 Casita 4"
+                            }
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -54139,6 +55854,37 @@
                             "$ref": "#/components/schemas/PmsPagoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"
                         }
                     },
+                    "prepagoPendiente": {
+                        "description": "Prepago que todav\u00eda hay que pedir, o null si no procede.",
+                        "type": "object",
+                        "nullable": true,
+                        "required": [
+                            "monto",
+                            "politica"
+                        ],
+                        "properties": {
+                            "monto": {
+                                "type": "string",
+                                "example": "45.00"
+                            },
+                            "politica": {
+                                "type": "string",
+                                "example": "primera_noche_total"
+                            },
+                            "politicaEtiqueta": {
+                                "type": "string",
+                                "example": "Primera noche (sobre el total)"
+                            },
+                            "politicaCorta": {
+                                "type": "string",
+                                "example": "Primera noche"
+                            },
+                            "concepto": {
+                                "type": "string",
+                                "example": "Adelanto de reserva AB12CD \u2014 Casita 4"
+                            }
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -54236,6 +55982,37 @@
                                     "$ref": "#/components/schemas/PmsPagoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"
                                 }
                             },
+                            "prepagoPendiente": {
+                                "description": "Prepago que todav\u00eda hay que pedir, o null si no procede.",
+                                "type": "object",
+                                "nullable": true,
+                                "required": [
+                                    "monto",
+                                    "politica"
+                                ],
+                                "properties": {
+                                    "monto": {
+                                        "type": "string",
+                                        "example": "45.00"
+                                    },
+                                    "politica": {
+                                        "type": "string",
+                                        "example": "primera_noche_total"
+                                    },
+                                    "politicaEtiqueta": {
+                                        "type": "string",
+                                        "example": "Primera noche (sobre el total)"
+                                    },
+                                    "politicaCorta": {
+                                        "type": "string",
+                                        "example": "Primera noche"
+                                    },
+                                    "concepto": {
+                                        "type": "string",
+                                        "example": "Adelanto de reserva AB12CD \u2014 Casita 4"
+                                    }
+                                }
+                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -54330,6 +56107,37 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/PmsPagoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"
+                        }
+                    },
+                    "prepagoPendiente": {
+                        "description": "Prepago que todav\u00eda hay que pedir, o null si no procede.",
+                        "type": "object",
+                        "nullable": true,
+                        "required": [
+                            "monto",
+                            "politica"
+                        ],
+                        "properties": {
+                            "monto": {
+                                "type": "string",
+                                "example": "45.00"
+                            },
+                            "politica": {
+                                "type": "string",
+                                "example": "primera_noche_total"
+                            },
+                            "politicaEtiqueta": {
+                                "type": "string",
+                                "example": "Primera noche (sobre el total)"
+                            },
+                            "politicaCorta": {
+                                "type": "string",
+                                "example": "Primera noche"
+                            },
+                            "concepto": {
+                                "type": "string",
+                                "example": "Adelanto de reserva AB12CD \u2014 Casita 4"
+                            }
                         }
                     },
                     "id": {
@@ -54441,17 +56249,6 @@
                         "description": "\u00bfEs el dep\u00f3sito que genera el sistema para las OTA de pago total (\u00a712.8)?",
                         "type": "boolean"
                     },
-                    "cobrador": {
-                        "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/User-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ]
-                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -54478,6 +56275,13 @@
                     "motivoNoBorrableTexto": {
                         "readOnly": true,
                         "description": "El motivo viaja al frontend para poder explicarlo en el tooltip, no s\u00f3lo ocultarlo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cobradorId": {
+                        "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
                         "type": [
                             "string",
                             "null"
@@ -54545,15 +56349,11 @@
                             "null"
                         ]
                     },
-                    "cobrador": {
-                        "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/User-pms_pago.patch"
-                            },
-                            {
-                                "type": "null"
-                            }
+                    "cobradorId": {
+                        "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
+                        "type": [
+                            "string",
+                            "null"
                         ]
                     }
                 }
@@ -54625,17 +56425,6 @@
                         "description": "\u00bfEs el dep\u00f3sito que genera el sistema para las OTA de pago total (\u00a712.8)?",
                         "type": "boolean"
                     },
-                    "cobrador": {
-                        "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/User-pms_pago.read_maestro.moneda.read"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ]
-                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -54662,6 +56451,13 @@
                     "motivoNoBorrableTexto": {
                         "readOnly": true,
                         "description": "El motivo viaja al frontend para poder explicarlo en el tooltip, no s\u00f3lo ocultarlo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cobradorId": {
+                        "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
                         "type": [
                             "string",
                             "null"
@@ -54743,15 +56539,11 @@
                             "null"
                         ]
                     },
-                    "cobrador": {
-                        "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/User-pms_pago.write"
-                            },
-                            {
-                                "type": "null"
-                            }
+                    "cobradorId": {
+                        "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
+                        "type": [
+                            "string",
+                            "null"
                         ]
                     }
                 }
@@ -54822,17 +56614,6 @@
                         "description": "\u00bfEs el dep\u00f3sito que genera el sistema para las OTA de pago total (\u00a712.8)?",
                         "type": "boolean"
                     },
-                    "cobrador": {
-                        "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/User.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ]
-                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -54859,6 +56640,13 @@
                     "motivoNoBorrableTexto": {
                         "readOnly": true,
                         "description": "El motivo viaja al frontend para poder explicarlo en el tooltip, no s\u00f3lo ocultarlo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cobradorId": {
+                        "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
                         "type": [
                             "string",
                             "null"
@@ -54941,17 +56729,6 @@
                         "description": "\u00bfEs el dep\u00f3sito que genera el sistema para las OTA de pago total (\u00a712.8)?",
                         "type": "boolean"
                     },
-                    "cobrador": {
-                        "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/User.html-pms_pago.read_maestro.moneda.read"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ]
-                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -54978,6 +56755,13 @@
                     "motivoNoBorrableTexto": {
                         "readOnly": true,
                         "description": "El motivo viaja al frontend para poder explicarlo en el tooltip, no s\u00f3lo ocultarlo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cobradorId": {
+                        "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
                         "type": [
                             "string",
                             "null"
@@ -55064,17 +56848,6 @@
                                 "description": "\u00bfEs el dep\u00f3sito que genera el sistema para las OTA de pago total (\u00a712.8)?",
                                 "type": "boolean"
                             },
-                            "cobrador": {
-                                "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                                "anyOf": [
-                                    {
-                                        "$ref": "#/components/schemas/User.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"
-                                    },
-                                    {
-                                        "type": "null"
-                                    }
-                                ]
-                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -55101,6 +56874,13 @@
                             "motivoNoBorrableTexto": {
                                 "readOnly": true,
                                 "description": "El motivo viaja al frontend para poder explicarlo en el tooltip, no s\u00f3lo ocultarlo.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "cobradorId": {
+                                "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
                                 "type": [
                                     "string",
                                     "null"
@@ -55190,17 +56970,6 @@
                                 "description": "\u00bfEs el dep\u00f3sito que genera el sistema para las OTA de pago total (\u00a712.8)?",
                                 "type": "boolean"
                             },
-                            "cobrador": {
-                                "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                                "anyOf": [
-                                    {
-                                        "$ref": "#/components/schemas/User.jsonld-pms_pago.read_maestro.moneda.read"
-                                    },
-                                    {
-                                        "type": "null"
-                                    }
-                                ]
-                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -55227,6 +56996,13 @@
                             "motivoNoBorrableTexto": {
                                 "readOnly": true,
                                 "description": "El motivo viaja al frontend para poder explicarlo en el tooltip, no s\u00f3lo ocultarlo.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "cobradorId": {
+                                "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
                                 "type": [
                                     "string",
                                     "null"
@@ -55311,17 +57087,6 @@
                         "description": "\u00bfEs el dep\u00f3sito que genera el sistema para las OTA de pago total (\u00a712.8)?",
                         "type": "boolean"
                     },
-                    "cobrador": {
-                        "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/User.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ]
-                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -55348,6 +57113,13 @@
                     "motivoNoBorrableTexto": {
                         "readOnly": true,
                         "description": "El motivo viaja al frontend para poder explicarlo en el tooltip, no s\u00f3lo ocultarlo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cobradorId": {
+                        "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
                         "type": [
                             "string",
                             "null"
@@ -55430,17 +57202,6 @@
                         "description": "\u00bfEs el dep\u00f3sito que genera el sistema para las OTA de pago total (\u00a712.8)?",
                         "type": "boolean"
                     },
-                    "cobrador": {
-                        "description": "Qui\u00e9n RECIBI\u00d3 el dinero de manos del hu\u00e9sped.",
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/User.multipart-pms_pago.read_maestro.moneda.read"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ]
-                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -55467,6 +57228,13 @@
                     "motivoNoBorrableTexto": {
                         "readOnly": true,
                         "description": "El motivo viaja al frontend para poder explicarlo en el tooltip, no s\u00f3lo ocultarlo.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cobradorId": {
+                        "description": "El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo\nque manda al guardar. Ver la nota de `$cobrador` sobre por qu\u00e9 no viaja la relaci\u00f3n.",
                         "type": [
                             "string",
                             "null"
@@ -56403,7 +58171,9 @@
                         "description": "Devuelve solo los eventos que deben ser visibles en la Gu\u00eda del Hu\u00e9sped (PAX).",
                         "type": "array",
                         "items": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "cancelada": {
@@ -56606,7 +58376,7 @@
                         "description": "Devuelve solo los eventos que deben ser visibles en la Gu\u00eda del Hu\u00e9sped (PAX).",
                         "type": "array",
                         "items": {
-                            "type": "string"
+                            "$ref": "#/components/schemas/PmsEventoCalendario-pax_reserva.read"
                         }
                     }
                 }
@@ -57323,7 +59093,9 @@
                         "description": "Devuelve solo los eventos que deben ser visibles en la Gu\u00eda del Hu\u00e9sped (PAX).",
                         "type": "array",
                         "items": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "cancelada": {
@@ -57526,7 +59298,7 @@
                         "description": "Devuelve solo los eventos que deben ser visibles en la Gu\u00eda del Hu\u00e9sped (PAX).",
                         "type": "array",
                         "items": {
-                            "type": "string"
+                            "$ref": "#/components/schemas/PmsEventoCalendario.html-pax_reserva.read"
                         }
                     }
                 }
@@ -58059,7 +59831,9 @@
                                 "description": "Devuelve solo los eventos que deben ser visibles en la Gu\u00eda del Hu\u00e9sped (PAX).",
                                 "type": "array",
                                 "items": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
                                 }
                             },
                             "cancelada": {
@@ -58263,18 +60037,20 @@
                             "nombreHabitacion": {
                                 "readOnly": true,
                                 "type": "string"
-                            },
-                            "eventosActivosGuia": {
-                                "readOnly": true,
-                                "description": "Devuelve solo los eventos que deben ser visibles en la Gu\u00eda del Hu\u00e9sped (PAX).",
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
                             }
                         }
                     }
-                ]
+                ],
+                "properties": {
+                    "eventosActivosGuia": {
+                        "readOnly": true,
+                        "description": "Devuelve solo los eventos que deben ser visibles en la Gu\u00eda del Hu\u00e9sped (PAX).",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PmsEventoCalendario.jsonld-pax_reserva.read"
+                        }
+                    }
+                }
             },
             "PmsReserva.jsonld-pms_evento.read_timestamp.read": {
                 "allOf": [
@@ -58813,7 +60589,9 @@
                         "description": "Devuelve solo los eventos que deben ser visibles en la Gu\u00eda del Hu\u00e9sped (PAX).",
                         "type": "array",
                         "items": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "cancelada": {
@@ -59016,7 +60794,7 @@
                         "description": "Devuelve solo los eventos que deben ser visibles en la Gu\u00eda del Hu\u00e9sped (PAX).",
                         "type": "array",
                         "items": {
-                            "type": "string"
+                            "$ref": "#/components/schemas/PmsEventoCalendario.multipart-pax_reserva.read"
                         }
                     }
                 }
@@ -60613,6 +62391,11 @@
                         "description": "Helper: Obtiene el Password de la primera red (Principal).",
                         "type": "string"
                     },
+                    "virtualPaxExtra": {
+                        "readOnly": true,
+                        "description": "Stub para la columna \u00abPax extra\u00bb del listado, que resume `paxIncluidos` y\n`precioPaxAdicional` en una celda.",
+                        "type": "string"
+                    },
                     "tarifaBaseMonedaOrFail": {
                         "readOnly": true,
                         "type": "string",
@@ -60712,6 +62495,41 @@
                             "string",
                             "null"
                         ]
+                    }
+                }
+            },
+            "PmsUnidad-pax_reserva.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "slug": {
+                        "pattern": "^([a-z0-9]+(?:-[a-z0-9]+)*)$",
+                        "maxLength": 150,
+                        "description": "Identificador legible para la URL p\u00fablica del cat\u00e1logo: `/casita/casita-1`,\ndonde el primer segmento es el slug del establecimiento.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "PROPIEDAD VIRTUAL (No es columna de DB).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
                     }
                 }
             },
@@ -61081,6 +62899,11 @@
                         "description": "Helper: Obtiene el Password de la primera red (Principal).",
                         "type": "string"
                     },
+                    "virtualPaxExtra": {
+                        "readOnly": true,
+                        "description": "Stub para la columna \u00abPax extra\u00bb del listado, que resume `paxIncluidos` y\n`precioPaxAdicional` en una celda.",
+                        "type": "string"
+                    },
                     "tarifaBaseMonedaOrFail": {
                         "readOnly": true,
                         "type": "string",
@@ -61180,6 +63003,41 @@
                             "string",
                             "null"
                         ]
+                    }
+                }
+            },
+            "PmsUnidad.html-pax_reserva.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "slug": {
+                        "pattern": "^([a-z0-9]+(?:-[a-z0-9]+)*)$",
+                        "maxLength": 150,
+                        "description": "Identificador legible para la URL p\u00fablica del cat\u00e1logo: `/casita/casita-1`,\ndonde el primer segmento es el slug del establecimiento.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "PROPIEDAD VIRTUAL (No es columna de DB).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
                     }
                 }
             },
@@ -61554,6 +63412,11 @@
                                 "description": "Helper: Obtiene el Password de la primera red (Principal).",
                                 "type": "string"
                             },
+                            "virtualPaxExtra": {
+                                "readOnly": true,
+                                "description": "Stub para la columna \u00abPax extra\u00bb del listado, que resume `paxIncluidos` y\n`precioPaxAdicional` en una celda.",
+                                "type": "string"
+                            },
                             "tarifaBaseMonedaOrFail": {
                                 "readOnly": true,
                                 "type": "string",
@@ -61669,6 +63532,49 @@
                                     "string",
                                     "null"
                                 ]
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad PmsUnidad.\nRepresenta un apartamento o habitaci\u00f3n espec\u00edfica."
+            },
+            "PmsUnidad.jsonld-pax_reserva.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombre": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "slug": {
+                                "pattern": "^([a-z0-9]+(?:-[a-z0-9]+)*)$",
+                                "maxLength": 150,
+                                "description": "Identificador legible para la URL p\u00fablica del cat\u00e1logo: `/casita/casita-1`,\ndonde el primer segmento es el slug del establecimiento.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "imageUrl": {
+                                "description": "PROPIEDAD VIRTUAL (No es columna de DB).",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "id": {
+                                "readOnly": true,
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "uuid"
                             }
                         }
                     }
@@ -62064,6 +63970,11 @@
                         "description": "Helper: Obtiene el Password de la primera red (Principal).",
                         "type": "string"
                     },
+                    "virtualPaxExtra": {
+                        "readOnly": true,
+                        "description": "Stub para la columna \u00abPax extra\u00bb del listado, que resume `paxIncluidos` y\n`precioPaxAdicional` en una celda.",
+                        "type": "string"
+                    },
                     "tarifaBaseMonedaOrFail": {
                         "readOnly": true,
                         "type": "string",
@@ -62163,6 +64074,41 @@
                             "string",
                             "null"
                         ]
+                    }
+                }
+            },
+            "PmsUnidad.multipart-pax_reserva.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "slug": {
+                        "pattern": "^([a-z0-9]+(?:-[a-z0-9]+)*)$",
+                        "maxLength": 150,
+                        "description": "Identificador legible para la URL p\u00fablica del cat\u00e1logo: `/casita/casita-1`,\ndonde el primer segmento es el slug del establecimiento.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "PROPIEDAD VIRTUAL (No es columna de DB).",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
                     }
                 }
             },
@@ -72097,18 +74043,6 @@
                     }
                 }
             },
-            "User-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
-                "type": "object"
-            },
-            "User-pms_pago.patch": {
-                "type": "object"
-            },
-            "User-pms_pago.read_maestro.moneda.read": {
-                "type": "object"
-            },
-            "User-pms_pago.write": {
-                "type": "object"
-            },
             "User.html": {
                 "type": "object",
                 "properties": {
@@ -72243,12 +74177,6 @@
                         "type": "string"
                     }
                 }
-            },
-            "User.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
-                "type": "object"
-            },
-            "User.html-pms_pago.read_maestro.moneda.read": {
-                "type": "object"
             },
             "User.jsonld": {
                 "type": "object",
@@ -72385,12 +74313,6 @@
                     }
                 }
             },
-            "User.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
-                "type": "object"
-            },
-            "User.jsonld-pms_pago.read_maestro.moneda.read": {
-                "type": "object"
-            },
             "User.multipart": {
                 "type": "object",
                 "properties": {
@@ -72525,12 +74447,6 @@
                         "type": "string"
                     }
                 }
-            },
-            "User.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
-                "type": "object"
-            },
-            "User.multipart-pms_pago.read_maestro.moneda.read": {
-                "type": "object"
             },
             "UserArea": {
                 "type": "object",

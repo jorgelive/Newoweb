@@ -42,6 +42,19 @@ export interface PmsMedioPagoOption {
     comisionPorcentaje: string;
 }
 
+/**
+ * Item de `/tipo/user/enum/pms/cobradores`: quién puede figurar como quien RECIBIÓ el dinero.
+ *
+ * No es un enum —son filas de `user` con `ROLE_COBRADOR`— pero llega por el mismo controlador
+ * y se consume igual. El `id` es el UUID plano, NO una IRI: `User` no es un recurso de API
+ * Platform, así que el pago lo escribe por `cobradorId`
+ * (ver `PmsPagoFinanciero::setCobradorId()` y su processor).
+ */
+export interface PmsCobradorOption {
+    id: string;
+    label: string;
+}
+
 // ============================================================================
 // LECTURA
 // ============================================================================

@@ -17,6 +17,7 @@ import type {
     PmsPagoFinancieroPatch,
     PmsTipoCargoOption,
     PmsMedioPagoOption,
+    PmsCobradorOption,
     PmsFinanzasMonedaRef,
 } from '@/types/pmsFinanzasModel';
 
@@ -32,6 +33,9 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
     const mediosPago = ref<PmsMedioPagoOption[]>([]);
     const monedas = ref<PmsFinanzasMonedaRef[]>([]);
     const enumsLoaded = ref<boolean>(false);
+
+    /** Usuarios con ROLE_COBRADOR, para el desplegable "lo cobró" del formulario de pago. */
+    const cobradores = ref<PmsCobradorOption[]>([]);
 
     /**
      * Carga los enums del PMS (y el maestro de monedas) una sola vez por sesión.
@@ -50,6 +54,26 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
         mediosPago.value = mpRes.data || [];
         monedas.value = monRes.data['hydra:member'] || monRes.data['member'] || [];
         enumsLoaded.value = true;
+    };
+
+    /**
+     * Carga la lista de cobradores.
+     *
+     * A propósito FUERA de `fetchEnums()` y sin el guardia de `enumsLoaded`: no es un enum,
+     * son personas. Dar de alta a alguien tiene que verse en el acto, y cachearla por sesión
+     * haría que el operador no encontrase a quien acaban de registrar —el backend tampoco la
+     * cachea, al contrario que los enums (ver `PmsEnumAjaxController::getCobradores()`)—.
+     *
+     * Silenciosa ante fallo: sin lista el desplegable queda vacío, que es un incordio, pero
+     * no debe impedir registrar el pago.
+     */
+    const fetchCobradores = async (): Promise<void> => {
+        try {
+            const res = await apiClient.get('/tipo/user/enum/pms/cobradores');
+            cobradores.value = res.data || [];
+        } catch {
+            cobradores.value = [];
+        }
     };
 
     /**
@@ -199,7 +223,9 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
         tiposCargo,
         mediosPago,
         monedas,
+        cobradores,
         fetchEnums,
+        fetchCobradores,
         fetchPorReserva,
         recargar,
         patchCargo,

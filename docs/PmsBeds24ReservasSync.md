@@ -22,6 +22,8 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 12. [Coherencia Financiera — Rollup Multi-moneda y Candado](#12-coherencia-financiera--rollup-multi-moneda-y-candado)
     · [12.0.1 Cargos automáticos de una estancia directa](#1201-cargos-automáticos-de-una-estancia-directa)
     · [12.4.3 Vista dual soles / dólares](#1243-vista-dual-soles--dólares)
+    · [12.5.6 Descripción del cargo para el huésped: autotraducción y flag de sobrescritura](#1256-la-descripción-del-cargo-para-el-huésped-traducción-automática-y-cómo-rehacerla)
+    · [12.5.7 Asignar el cobrador desde la SPA](#1257-asignar-el-cobrador-desde-la-spa-cobradorid-no-una-iri)
     · [12.6 Gotcha: SearchFilter y UUID binario](#126--gotcha-searchfilter-no-funciona-sobre-relaciones-con-uuid-binario)
     · [12.11.b El link ya borrado (2ª causa del «new entity»)](#1211b-la-segunda-causa-del-mismo-error-el-link-ya-borrado)
     · [12.12 Borrado de una reserva o de una estancia](#1212-borrado-de-una-reserva-o-de-una-estancia)
@@ -2158,6 +2160,129 @@ lo invoca **al final**, después de la estancia y el titular:
   con un error de validación.
 - Los botones propios de cada formulario siguen ahí, para guardar sin cerrar el drawer.
 
+### 12.5.6 La descripción del cargo para el huésped: traducción automática y cómo rehacerla
+
+`PmsCargoFinanciero::$descripcionCliente` es el único texto del módulo financiero que ve el
+huésped redactado por nosotros (`$descripcion` viene de Beds24 y no es presentable). Es un
+`I18nContent[]` con `#[AutoTranslate(sourceLanguage: 'es')]`: se escribe en español y el
+traductor rellena los demás idiomas.
+
+**⚠️ El atributo `#[AutoTranslate]` NO basta.** El campo estuvo sin traducirse nunca, en
+silencio, por esto:
+
+```
+AutoTranslationEventListener::preUpdate()
+    └── AutoTranslationService::processEntity($entidad)
+            └── $execute = method_exists($entidad, 'getEjecutarTraduccion')
+                           && $entidad->getEjecutarTraduccion();
+                if (!$execute) return;   ← salía AQUÍ, sin mirar una sola propiedad
+```
+
+`getEjecutarTraduccion()` lo aporta `AutoTranslateControlTrait`, y `PmsCargoFinanciero` era la
+**única** entidad del proyecto con `#[AutoTranslate]` que no lo usaba. Sin el trait el atributo
+es decorativo y no hay error, ni log, ni excepción: se guarda el español y no aparece ningún
+otro idioma. **Si añades `#[AutoTranslate]` a una entidad, añade también el trait.** Para
+verificar que no vuelve a pasar:
+
+```bash
+for f in $(grep -rln "AutoTranslate(" src/ | grep Entity); do
+  grep -q "use AutoTranslateControlTrait;" $f || echo "SIN TRAIT: $f"; done
+```
+
+**El flag de sobrescritura, y por qué hace falta un botón en la SPA.** El trait aporta dos
+flags; el relevante aquí es `$sobreescribirTraduccion` (columna real, `Version20260810300000`):
+
+| Valor | Comportamiento de `AutoTranslationService::translateAndCloneRows()` |
+|---|---|
+| `false` (defecto) | **Modo seguro**: traduce sólo los idiomas VACÍOS, respeta los que ya tienen texto |
+| `true` | **Modo forzado**: retraduce desde el español, pisando lo que hubiera |
+
+La consecuencia asimétrica: la primera vez que se redacta la descripción funciona sola, pero al
+**corregir** el español de un cargo ya traducido el modo seguro hace `continue` sobre el inglés
+—que no está vacío— y el huésped se queda viendo la versión vieja. `setDescripcionClienteEs()`
+conserva a propósito las traducciones de los demás idiomas, así que no se auto-reparan.
+
+Por eso el panel financiero tiene el botón <i>fa-language</i> junto al campo "Descripción para
+el huésped", **espejo del que ya tenía el editor de cotizaciones** (`CotizacionEditorView.vue`,
+sobre los mismos campos `#[AutoTranslate]`): pulsarlo manda `sobreescribirTraduccion: true` en
+el PATCH y rehace los idiomas. El servicio lo **apaga solo** tras traducir
+(`processEntity()`, bloque de auto-apagado), así que no se queda pegado ni obliga a traducir en
+cada edición posterior.
+
+Detalles de la implementación en la SPA (`ReservaFinanzasPanel.vue`):
+
+- El botón sólo aparece en la **edición** de un cargo, no en el alta: en un cargo nuevo no hay
+  traducciones que pisar y el modo seguro ya las crea todas. Un control que no hace nada es ruido.
+- `cargoForm.sobreescribirTraduccion` arranca en `false` en `empezarEdicionCargo()` aunque el
+  cargo venga con otro valor: forzar es una decisión de **este** guardado, no un ajuste del cargo.
+- El campo viaja **sólo en el PATCH**, no en el POST.
+
+Los grupos de serialización se declaran redeclarando el getter/setter en la entidad
+(`#[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]`), no en el trait: el trait
+lo comparten media docena de entidades y cada una tiene sus propios grupos. Mismo patrón que
+`CotizacionCottarifa::getSobreescribirTraduccion()`.
+
+### 12.5.7 Asignar el cobrador desde la SPA: `cobradorId`, no una IRI
+
+`PmsPagoFinanciero::$cobrador` es **quién recibió el dinero de manos del huésped** — no quién
+registró el pago (ver la nota del campo: el efectivo lo cobra quien está en la casita y lo apunta
+después otra persona). El panel lo expone como el desplegable "Lo cobró".
+
+**⚠️ La relación `$cobrador` NO se serializa.** `User` no es un `ApiResource`, así que API
+Platform no sabe convertirlo ni a IRI al leer ni desde IRI al escribir. Con los grupos puestos
+sobre la relación —como estaba— el resultado era:
+
+- **Al leer:** `cobrador: {}`, un objeto vacío (`User-pms_pago.write: Record<string, never>` en
+  `api.d.ts`), porque `User` no tiene ninguna propiedad en esos grupos.
+- **Al escribir:** imposible. No hay forma de nombrar a un usuario en el payload.
+
+La solución es un par de accesores que hablan en **UUID plano**, el mismo que ya servía
+`/tipo/user/enum/pms/cobradores` para el desplegable:
+
+```
+GET  /tipo/user/enum/pms/cobradores   →  [{ id: "<uuid>", label: "María Pérez" }, …]
+                                              │
+SPA: pagoForm.cobrador ────────────────────────┘
+                                              ▼
+POST/PATCH /platform/pms/pms_pago_financieros   { cobradorId: "<uuid>" }
+                                              ▼
+PmsPagoFinanciero::setCobradorId()   (buzón virtual, no mapeado)
+                                              ▼
+PmsPagoFinancieroProcessor::process()  →  UserRepository::find() → setCobrador(User)
+                                              ▼
+                        persist processor de Doctrine (decorado, no reemplazado)
+```
+
+Por qué cada pieza es como es:
+
+- **Un processor y no un listener de Doctrine:** la entidad no tiene acceso al EntityManager, y
+  el processor es el punto natural de API Platform. **Decora** el
+  `api_platform.doctrine.orm.state.persist_processor` en vez de hacer el `flush()` a mano, para
+  que los listeners de coherencia y el recálculo del saldo corran igual que en cualquier otra
+  escritura (mismo patrón que `MessageMultipartProcessor`).
+- **Se valida el ROL, no sólo que el usuario exista.** El desplegable ya viene filtrado, pero el
+  endpoint lo puede llamar cualquiera con `RESERVAS_WRITE`, y un pago atribuido a quien no maneja
+  caja rompe el cuadre sin dejar rastro. Responde `422` con el nombre de la persona.
+- **`cobradorIdRecibido`** distingue "el PATCH no menciona el campo" (no se toca) de "lo manda
+  vacío" (desasignar). Sin esa marca, cualquier PATCH parcial borraría el cobrador.
+- **El `<select>` arranca vacío**, sin preseleccionar al operador con la sesión abierta: es
+  justamente la confusión que el campo viene a evitar.
+- **La lista NO se cachea** en el store, al contrario que los enums: son personas, y un alta
+  reciente tiene que aparecer en el acto. Por eso `fetchCobradores()` vive fuera de `fetchEnums()`
+  y sin el guardia de `enumsLoaded` — el backend tampoco le pone `setSharedMaxAge`.
+- **Tampoco se filtra por `enabled`**, ni aquí ni en el backend: la limpiadora que cobra el
+  efectivo en la casita no necesita login, y habilitarla sólo para poder nombrarla en un
+  desplegable le daría acceso al panel. Ver `Roles::COBRADOR`.
+
+🪞 **Tres sitios con el mismo criterio de "quién puede cobrar"**, y si cambia uno cambian los
+tres: `PmsEnumAjaxController::getCobradores()` (el desplegable),
+`PmsPagoFinancieroProcessor::resolverCobrador()` (la validación al escribir) y
+`RegistrarPagoSkill::cobradoresPosibles()` (por donde lo registra el agente). Los tres miran el
+rol **literal** de la columna `user.roles`, sin la jerarquía de `security.yaml`.
+
+En la lista de pagos el nombre se pinta desde `cobradorNombre` (propiedad derivada, ya existente),
+que expone sólo el nombre en vez de arrastrar el `User` entero con su email y sus roles.
+
 ## 12.6 ⚠️ Gotcha: `SearchFilter` no funciona sobre relaciones con UUID binario
 
 **Síntoma:** `GET /pms_informacion_financieras?reserva=<uuid>` devuelve `totalItems: 0` aunque la
@@ -2312,6 +2437,51 @@ Dos decisiones de implementación:
   OTA (§12.8): lee `total_cargos`/`total_pagos`, así que todo lo que los mueva tiene que haber
   terminado antes. En una reserva de Airbnb, el depósito automático deja el saldo en cero y por
   tanto sus estancias quedan en `pago-total` solas.
+
+### 12.9.a ⚠️ La invariante: no puede haber una estancia `pendiente` con el dinero cobrado
+
+**Nunca debe existir un `PmsEventoCalendario` en `pendiente` con `pago-parcial` o
+`pago-total`.** No es cosmética: un estado de pago confiable es lo que abre los códigos de
+acceso de la guía, así que la contradicción significa que el huésped tiene sus códigos mientras
+el calendario dice que su estancia está sin confirmar.
+
+En producción llegó a haber **18 estancias así**, 16 de ellas de OTA.
+
+#### La causa: el canal decía `new` y nosotros no podíamos contradecirle
+
+Beds24 deja las reservas de **Booking en `new` indefinidamente** —no las asciende a `confirmed`
+como sí hace con Airbnb—, y `BookingPullPersister::resolveEstado()` mapea `new` → `pendiente` en
+cada ciclo del pull. El operador cobraba, la estancia pasaba a `confirmada`, y la siguiente
+tanda la devolvía a `pendiente`.
+
+Se vio en los datos: un pago registrado a las 15:18 y tres filas con el **`updated_at`
+idéntico** de las 19:15:04 — la marca de una tanda del pull.
+
+Y no se recuperaba sola, porque el canal nunca se enteraba de la confirmación: el push la
+descartaba (§12.13). El bucle se cerraba sobre sí mismo.
+
+#### El arreglo: dejar que el `confirmed` viaje al canal
+
+La raíz no estaba en el pull sino en el **push**: el bloqueo de §12.13 estaba escrito como
+«nunca confirmar» cuando su motivo era sólo «nunca confirmar **encima de una cancelación**».
+
+Desde entonces `BookingsPushMappingStrategy` manda `status` también cuando la reserva pasa a
+`confirmada` **y el canal todavía la tiene en `new`**. Beds24 se entera, el siguiente pull lee
+`confirmed` y la estancia se queda confirmada sin que nadie vuelva a tocarla.
+
+⚠️ **La guarda mira lo que dice el CANAL, no lo que decimos nosotros**: se compara contra
+`PmsEventoCalendario::$estadoBeds24`, el último `status` que reportó Beds24. Si el canal ya la
+canceló, el push no lleva `status` y la cancelación sobrevive.
+
+#### Consecuencia práctica al sanear a mano
+
+Un `UPDATE` directo en SQL **no sirve para arreglar estas filas**: no pasa por el UnitOfWork,
+así que `Beds24BookingsPushQueueListener` no encola nada, el canal sigue en `new` y el siguiente
+pull deshace el arreglo. Hay que confirmarlas **por el panel**, que es lo que dispara el push.
+
+> Las 18 filas se pasaron a `confirmada` con SQL directo el 2026-08-10 y por eso hubo que
+> repasarlas después por el panel. Si vuelve a aparecer alguna, la consulta está en la tabla
+> de §13.
 
 ## 12.9.b El móvil del EQUIPO: `User::$telefono`
 
@@ -2635,11 +2805,21 @@ viejo del PMS — la reserva reviviría en Airbnb y volveríamos a vender una no
 **Excepción, deliberadamente asimétrica: la cancelación sí viaja.**
 
 ```
-PMS → canal:   cancelada   ✔ siempre
-               confirmada  ✘
-               pendiente   ✘   sólo si NO es OTA, o es espejo
-               abierto     ✘
+                        ┌──────────── lo que dice el CANAL (estadoBeds24) ────────────┐
+PMS → canal:            new/request/confirmed      inquiry        cancelled    otro
+  a pendiente                   ✔                     ✘               ✘          ✘
+  a confirmada                  ✔                     ✘               ✘          ✘
+  a requerimiento               ✔                     ✘               ✘          ✘
+  a cancelada                   ✘                     ✔               —          ✘
+  a abierto / bloqueo           ✘                     ✘               ✘          ✘
 ```
+
+Los tres estados de una reserva **viva** —`pendiente`, `confirmada`, `requerimiento`— son
+intercambiables entre sí: moverse entre ellos no le quita ni le da la habitación a nadie. Del
+par `abierto`/`cancelada` no entra ni sale nada, salvo la flecha de limpiar consultas.
+
+La regla la declara `PmsEventoEstado::transicionOtaPermitida()` y la aplican los tres sitios que
+antes decidían por su cuenta (§12.13.b).
 
 El fallo que motiva el bloqueo no puede darse en ese sentido: cancelar algo ya cancelado es
 un no-op. Y sin la excepción, PMS y canal divergen **en silencio**: una consulta de Airbnb en
@@ -2658,11 +2838,68 @@ Regla mental: **el PMS puede CERRAR en el canal, nunca abrir ni confirmar.**
 El literal vive en `BookingsPushMappingStrategy::BEDS24_CANCELLED`, espejo de
 `pms_evento_estado.codigo_beds24` para `cancelada` (`abierto` → `inquiry`).
 
+### 12.13.b Una sola regla para los tres sitios que la aplicaban por su cuenta
+
+El bloqueo estaba escrito como «nunca confirmar», y era **más ancho que su motivo**. El daño
+concreto es confirmar *encima de una cancelación*; entre los tres estados vivos no hay nada que
+revivir.
+
+Mientras estuvo cerrado, una estancia cobrada no podía decírselo al canal: Beds24 seguía en
+`new`, el pull la devolvía a `pendiente` en el ciclo siguiente y quedaba `pendiente` con
+`pago-total` — el huésped con los códigos de la guía abiertos y el calendario diciendo que su
+estancia no estaba confirmada. Llegó a haber 18 así (§12.9.a).
+
+La regla vive ahora en **`PmsEventoEstado::transicionOtaPermitida()`**, y la consultan:
+
+| Quién | Para qué |
+|---|---|
+| `PmsEventoCalendarioSecurityListener` (REGLA 4) | bloquear la mutación local |
+| `BookingsPushMappingStrategy` | decidir si el `status` viaja al canal |
+| `pmsReservaModel.ts::filtrarEstadosDisponibles()` | qué ofrece el desplegable de `util` |
+
+#### 🔥 Lo que destapó cruzarlos
+
+Los tres decidían por separado y **no coincidían**. La comprobación cruzada
+(`var/verificar_transiciones_ota.php`, una matriz 6×6) encontró tres agujeros:
+
+| Transición | Regla | Listener | Desplegable |
+|---|---|---|---|
+| `abierto` → confirmada/pendiente/requerimiento | ✘ | **permitía** | ✘ |
+| `bloqueo` → los tres vivos | ✘ | **permitía** | **ofrecía** |
+| `cancelada` → los tres vivos | ✘ | ✘ | ✘ *(ya estaba bien)* |
+
+El del listener venía de que **sus tres reglas miran el estado DESTINO**, y en `abierto →
+confirmada` el destino es inocente: el culpable es el origen. No se veía por el panel —el
+desplegable sí lo bloqueaba— pero la API y la consola llegaban.
+
+Y un cuarto, en el push: `desdeCodigoBeds24('black')` devuelve `null`, y con el defecto
+permisivo un `black → confirmed` viajaba al canal. **En una regla de seguridad el defecto tiene
+que negar**, así que `transicionOtaPermitida(null, …)` es `false` — lo que además cubre
+cualquier literal que Beds24 añada mañana.
+
+#### El «desde» es el canal, no nosotros
+
+🔑 El push compara contra `PmsEventoCalendario::$estadoBeds24`, el último `status` que reportó
+Beds24. Si el canal ya la canceló, ninguna transición sale permitida, el `status` no viaja y la
+cancelación sobrevive — que es exactamente lo que el bloqueo original protegía.
+
+Queda la ventana entre el último pull y este push (~20 min): si el canal cancela justo ahí,
+nuestro «desde» está caduco. Se acepta a sabiendas, con el mismo criterio con el que se aceptó
+que la cancelación viajara.
+
+⚠️ **Consecuencia: cancelar una reserva de OTA en firme ya NO viaja al canal.** El listener
+tampoco deja hacerlo (`confirmada → cancelada` está bloqueado desde siempre en OTA). Las
+cancelaciones de reservas en firme se hacen en el canal; lo único que se cancela desde aquí son
+las consultas (`abierto → cancelada`), y un `DELETE`, que manda `cancelled` por definición y no
+pasa por la regla.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
 | Cómo se coloca la noche que bloquea un horario extra | `PmsExtensionEstanciaService` | `sincronizar()` — §7.1.b |
+| Qué estados puede imponerle el PMS a una OTA | `BookingsPushMappingStrategy` | bloque «4. ESTADO» — §12.13 y §12.13.b |
+| Buscar estancias `pendiente` con pago cobrado | — | `WHERE estado_id='pendiente' AND estado_pago_id IN ('pago-parcial','pago-total')` |
 | Que las extensiones dejen de ser invisibles en una vista nueva | — | la tabla de filtros de §7.1.b |
 | Cambiar cómo nacen los cargos de horario extra (hoy en 0.00) | `PmsCargosAutomaticosService` | `sincronizarExtras()` |
 | Cambiar ventana anti-dup | `Beds24WebhookController` | `600` (seg) y `15000` (ms) |
@@ -2703,6 +2940,10 @@ El literal vive en `BookingsPushMappingStrategy::BEDS24_CANCELLED`, espejo de
 | Saber a qué estancia pertenece un cargo de un grupo (§11.6) | `PmsCargoFinanciero` + `PmsInformacionFinanciera` | `beds24BookingId` / `getEstancias()` |
 | Cambiar la agrupación de cargos por casita en la UI (§11.6) | `ReservaFinanzasPanel.vue` | `gruposCargos` / `claveEstancia()` |
 | Imputar un cargo manual a una estancia (§11.5) | `PmsCargoFinanciero` | FK `evento` (`NULL` = toda la reserva) |
+| Que un campo `#[AutoTranslate]` se traduzca de verdad (§12.5.6) | la entidad | `use AutoTranslateControlTrait;` — sin él el atributo es decorativo y falla en silencio |
+| Cambiar cuándo se rehacen las traducciones de un cargo (§12.5.6) | `ReservaFinanzasPanel.vue` + `AutoTranslationService` | botón `toggleTraduccion()` → `sobreescribirTraduccion` → `translateAndCloneRows()` |
+| Cambiar quién puede figurar como cobrador (§12.5.7) | `PmsEnumAjaxController` **y** `PmsPagoFinancieroProcessor` **y** `RegistrarPagoSkill` | `getCobradores()` / `resolverCobrador()` / `cobradoresPosibles()` — son espejo, hay que tocar **los tres** |
+| Escribir una relación a `User` desde la API (§12.5.7) | la entidad + un processor | accesor `*Id` en UUID plano; `User` no es `ApiResource`, la IRI no funciona |
 | Cambiar el hito que decide si una hora es «horario extra» | `PmsEstablecimiento` | `horaCheckIn` / `horaCheckOut` — se editan en el panel, no en código |
 | Cambiar la alerta de noche ocupada al marcar horario extra | `AplicarCambioHorarioSkill` **y** `EvaluarCambioHorarioSkill` | `alertaDeOcupacion()` en las dos — si cambia una, cambia la otra |
 | Cambiar qué pasa tras crear una reserva directa (§12.5.2) | `ReservasView.vue` | `onGuardado()` → `payload.reservaIdCreada` |
