@@ -6165,3 +6165,41 @@ alguien arregle el flag.
 
 Es el mismo criterio de todo este capítulo: donde el coste de equivocarse lo paga el huésped,
 la salvaguarda va en código y falla hacia el lado callado.
+
+### 19.11 Corregir el teléfono levanta el bloqueo de WhatsApp
+
+`whatsappDisabled` lo pone `WhatsappMetaReceivePersister` cuando Meta rechaza un envío —típico
+`Meta Error 131026: Message undeliverable`, un número que no tiene WhatsApp o está mal escrito—
+y hasta ahora **nadie lo quitaba nunca**: no había un solo `setWhatsappDisabled(false)` en todo
+el proyecto. La conversación quedaba muerta para WhatsApp de forma permanente, y corregir el
+número no servía porque `WhatsappMetaSendEnqueuer` mira el flag y aborta antes de intentarlo.
+
+Lo que despistaba del síntoma es que **la re-evaluación de reglas sí funcionaba**. `guestPhone`
+está en los campos críticos de `MessageRuleEngineListener` desde que se documentó que «rellenar
+el teléfono que faltaba tiene que poder resucitar los mensajes que se cancelaron por no
+tenerlo», y la cadena entera está bien montada:
+
+```
+editar telefono_contacto en la reserva
+  → PmsReservaRecalculoListener (caso 1: PmsReserva)
+  → PmsReservaRecalculoService → upsertFromContext()
+  → MessageConversation::setGuestPhone()
+  → MessageRuleEngineListener ve `guestPhone` en el changeset
+  → re-evaluacion de reglas ✅
+```
+
+Las reglas se recalculaban bien. Lo que no se levantaba era el veto, y el veto gana.
+
+El arreglo va en `MessageConversation::setGuestPhone()` y no en un listener nuevo, para que
+cubra cualquier ruta que toque el teléfono —panel, sync de Beds24, edición manual— sin depender
+del orden de los listeners. El bloqueo era sobre el número ANTIGUO; con uno nuevo hay que
+volver a intentarlo, y si también es malo Meta lo rechazará otra vez y el flag se repondrá solo.
+
+⚠️ **Sólo cuando el valor cambia de verdad.** `upsertFromContext()` corre en cada mensaje
+entrante de Beds24 y reescribe el teléfono con el mismo valor: sin esa comparación, cualquier
+mensaje entrante desbloquearía un número legítimamente vetado.
+
+Como `whatsappDisabled` también está en los campos críticos del motor de reglas, levantarlo
+dispara por sí solo una re-evaluación en el mismo flush.
+
+En producción hay 2 conversaciones bloqueadas, una de ellas abierta.

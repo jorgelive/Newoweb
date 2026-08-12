@@ -246,7 +246,39 @@ class MessageConversation
     public function setGuestName(?string $guestName): self { $this->guestName = $guestName; return $this; }
 
     public function getGuestPhone(): ?string { return $this->guestPhone; }
-    public function setGuestPhone(?string $guestPhone): self { $this->guestPhone = $guestPhone; return $this; }
+
+    /**
+     * Cambiar el teléfono LEVANTA el bloqueo de WhatsApp.
+     *
+     * `whatsappDisabled` lo pone `WhatsappMetaReceivePersister` cuando Meta rechaza un envío
+     * —«número inválido»— y hasta ahora **nadie lo quitaba nunca**: no había un solo
+     * `setWhatsappDisabled(false)` en todo el proyecto. Corregir el número no servía de nada,
+     * porque `WhatsappMetaSendEnqueuer` sigue mirando el flag y aborta antes de intentarlo.
+     * La conversación quedaba muerta para WhatsApp de forma permanente.
+     *
+     * Lo que despistaba es que la re-evaluación de reglas SÍ funciona: `guestPhone` está en
+     * los campos críticos de `MessageRuleEngineListener`, y editar el teléfono en la reserva
+     * dispara `PmsReservaRecalculoListener` → `upsertFromContext()` → este setter. Las reglas
+     * se recalculaban bien; lo que no se levantaba era el veto.
+     *
+     * El bloqueo era sobre el número ANTIGUO. Con uno nuevo hay que volver a intentarlo: si
+     * también es malo, Meta lo rechazará otra vez y el flag se pondrá solo.
+     *
+     * ⚠️ Sólo cuando el valor CAMBIA de verdad. `upsertFromContext()` corre en cada mensaje
+     * entrante de Beds24 y reescribe el teléfono con el mismo valor: sin esta comparación,
+     * cualquier mensaje entrante desbloquearía un número legítimamente vetado.
+     */
+    public function setGuestPhone(?string $guestPhone): self
+    {
+        if ($this->guestPhone !== $guestPhone && $this->whatsappDisabled) {
+            $this->whatsappDisabled = false;
+            $this->whatsappDisabledReason = null;
+        }
+
+        $this->guestPhone = $guestPhone;
+
+        return $this;
+    }
 
     // Getters y Setters
     public function isWhatsappDisabled(): bool { return $this->whatsappDisabled; }
