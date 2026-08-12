@@ -79,8 +79,14 @@ final readonly class NotificadorPushConversacion
      * El cuerpo lleva el motivo tal cual lo guardó el despachador —«la ventana de 24 h ha
      * caducado», «no se permite enviar a reservas directas por Beds24»— porque es lo único que
      * dice qué hacer a continuación.
+     *
+     * `$esPorLaVentana` añade la salida concreta a ese caso: mandar una plantilla, que es lo
+     * único que WhatsApp acepta con la ventana cerrada. **Cuál, lo elige la persona**: se probó
+     * a mandar una automática de «le hemos escrito» y se descartó, porque si hay que gastar una
+     * plantilla —Meta las cobra— más vale que sea la guía o el menú de tours, que abren
+     * conversación igual y además le sirven de algo al huésped.
      */
-    public function avisarEnvioFallido(Message $mensaje): void
+    public function avisarEnvioFallido(Message $mensaje, bool $esPorLaVentana = false): void
     {
         try {
             $conversacion = $mensaje->getConversation();
@@ -92,7 +98,9 @@ final readonly class NotificadorPushConversacion
             foreach ($this->destinatarios() as $usuario) {
                 $this->push->sendToUser($usuario, [
                     'title' => 'No salió tu mensaje a ' . ($conversacion->getGuestName() ?? 'el huésped'),
-                    'body' => $this->motivoDe($mensaje),
+                    'body' => $this->motivoDe($mensaje) . ($esPorLaVentana
+                        ? ' → Mándale una plantilla (guía, tours, llegada): en cuanto conteste, podrás escribirle normal.'
+                        : ''),
                     'type' => 'error',
                     'actionUrl' => "/chat?id={$conversacion->getId()}",
                     'unreadTotal' => $this->resumenNoLeidos->total(),
