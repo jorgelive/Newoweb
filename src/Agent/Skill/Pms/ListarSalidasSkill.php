@@ -6,6 +6,7 @@ namespace App\Agent\Skill\Pms;
 
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
+use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Skill\SkillDefinition;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
@@ -127,14 +128,43 @@ final readonly class ListarSalidasSkill implements SkillInterface
         $desde = $inicio->format('Y-m-d');
         $hasta = $inicio->modify(sprintf('+%d days', $dias - 1))->format('Y-m-d');
 
+        // 🔒 QUIÉN VE QUÉ. A una persona de CAMPO se le acota a lo que tiene asignado; la
+        // oficina lo ve todo.
+        //
+        // La lista lleva el nombre del huésped, su teléfono y el enlace a su chat, y hasta
+        // ahora se entregaba entera a cualquiera con ROLE_LIMPIEZA: quien iba a la Casita 3
+        // tenía también el contacto del huésped de la 6. No hay motivo para eso.
+        //
+        // El perfil se pregunta a `PerfilConversacion`, la misma pieza que decide el tono del
+        // prompt, para que no haya dos definiciones de «es de campo» que se separen con el
+        // tiempo. Y se filtra por el ID del usuario, no por su nombre.
+        $soloSuyas = PerfilConversacion::Colaborador === PerfilConversacion::deActor($actor);
+        // A texto: `getId()` devuelve un `Uuid` y `UUID_TO_BIN()` espera la forma canónica.
+        // Pasar el objeto por `setParameter` lo serializa mal y la consulta devolvería CERO
+        // filas sin fallar — el mismo fallo mudo que ya documenta PmsDisponibilidadService.
+        $asignadoA = $soloSuyas ? $actor->usuario()?->getId()?->toRfc4122() : null;
+
+        // Un colaborador sin usuario resoluble no puede tener nada asignado: se le devuelve
+        // vacío en vez de todo. El fallo seguro es no enseñar.
+        if ($soloSuyas && $asignadoA === null) {
+            return SkillResult::ok([
+                'desde' => $desde,
+                'hasta' => $hasta,
+                'total' => 0,
+                'estancias' => [],
+                'aviso' => 'No tienes ninguna casita asignada en esas fechas. Si crees que es un '
+                    . 'error, escríbele a la oficina.',
+            ]);
+        }
+
         $filas = [];
 
         if ($tipo === 'salidas' || $tipo === 'ambas') {
-            $filas = array_merge($filas, $this->consultar('fin', $desde, $hasta, 'sale'));
+            $filas = array_merge($filas, $this->consultar('fin', $desde, $hasta, 'sale', $asignadoA));
         }
 
         if ($tipo === 'entradas' || $tipo === 'ambas') {
-            $filas = array_merge($filas, $this->consultar('inicio', $desde, $hasta, 'entra'));
+            $filas = array_merge($filas, $this->consultar('inicio', $desde, $hasta, 'entra', $asignadoA));
         }
 
         usort($filas, static fn (array $a, array $b) => [$a['fecha'], $a['hora']] <=> [$b['fecha'], $b['hora']]);
@@ -153,8 +183,20 @@ final readonly class ListarSalidasSkill implements SkillInterface
      *
      * @return list<array<string, mixed>>
      */
-    private function consultar(string $columna, string $desde, string $hasta, string $movimiento): array
-    {
+    private function consultar(
+        string $columna,
+        string $desde,
+        string $hasta,
+        string $movimiento,
+        ?string $asignadoA = null
+    ): array {
+        // El filtro se compone aparte porque va DENTRO del heredoc: el parámetro se sigue
+        // pasando por `setParameter`, aquí sólo se decide si la condición existe.
+        $filtroAsignada = $asignadoA !== null
+            ? 'AND EXISTS (SELECT 1 FROM pms_evento_limpieza le
+                            WHERE le.evento_id = e.id AND le.user_id = UUID_TO_BIN(:asignada))'
+            : '';
+
         // El teléfono sale ya en dígitos (`PmsReservaIntegrityListener` lo normaliza al
         // guardar), así que vale tal cual para wa.me sin limpiarlo aquí. Y se respeta
         // `telefono2_es_principal`: escribir al número que el huésped NO usa es no escribir.
@@ -169,7 +211,12 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 r.localizador             AS localizador,
                 e.is_ota                  AS es_ota,
                 NULLIF(IF(r.telefono2_es_principal, r.telefono2, r.telefono), '') AS telefono,
-                BIN_TO_UUID(c.id)         AS conversacion_id
+                BIN_TO_UUID(c.id)         AS conversacion_id,
+                (SELECT GROUP_CONCAT(TRIM(CONCAT(COALESCE(lu.firstname,''),' ',COALESCE(lu.lastname,'')))
+                          ORDER BY lu.username SEPARATOR ', ')
+                   FROM pms_evento_limpieza le
+                   JOIN user lu ON lu.id = le.user_id
+                  WHERE le.evento_id = e.id)  AS limpieza
             FROM pms_evento_calendario e
             LEFT JOIN pms_unidad u  ON u.id = e.pms_unidad_id
             LEFT JOIN pms_reserva r ON r.id = e.reserva_id
@@ -179,6 +226,7 @@ final readonly class ListarSalidasSkill implements SkillInterface
             WHERE e.estado_id IN (:estados)
               AND e.evento_origen_id IS NULL
               AND DATE(e.$columna) BETWEEN :desde AND :hasta
+              $filtroAsignada
             ORDER BY e.$columna
         SQL;
 
@@ -190,12 +238,12 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 'estados' => PmsEventoEstado::OCUPAN_UNIDAD,
                 'desde' => $desde,
                 'hasta' => $hasta,
-            ],
+            ] + ($asignadoA !== null ? ['asignada' => $asignadoA] : []),
             ['estados' => ArrayParameterType::STRING]
         )->fetchAllAssociative();
 
         return array_map(
-            fn (array $f) => [
+            fn (array $f) => array_filter([
                 'movimiento' => $movimiento,
                 'fecha' => $f['fecha'],
                 'hora' => substr((string) $f['hora'], 0, 5),
@@ -203,6 +251,10 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 'casita' => $f['casita'] ?? '—',
                 'localizador' => $f['localizador'],
                 'es_ota' => (bool) $f['es_ota'],
+                // Quién limpia. A una persona de campo no se le repite —ya sabe que es
+                // suya, la lista viene filtrada—, pero a la oficina le ahorra abrir la ficha
+                // para saber a quién avisar.
+                'limpieza' => $asignadoA === null ? ($f['limpieza'] ?: 'sin asignar') : null,
                 'evento_id' => $f['evento_id'],
                 'reserva_id' => $f['reserva_id'],
                 'url' => $this->fichaDe($f['evento_id'], $f['reserva_id']),
@@ -213,7 +265,7 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 'url_chat' => $f['conversacion_id'] !== null
                     ? rtrim($this->urlPanel, '/') . '/chat/' . $f['conversacion_id']
                     : null,
-            ],
+            ], static fn ($v) => $v !== null),
             $filas
         );
     }

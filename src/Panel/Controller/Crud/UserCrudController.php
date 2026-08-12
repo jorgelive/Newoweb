@@ -127,6 +127,16 @@ class UserCrudController extends BaseCrudController
             ->setHelp('Al registrar un pago sin decir quién lo recibió, se le atribuye a esta persona. Requiere el rol «Puede cobrar al huésped».')
             ->renderAsSwitch(true);
 
+        // Mismo patrón que el cobrador principal: el defecto es un DATO, no una constante con
+        // el nombre de nadie dentro. El día que quien limpia hoy tome otro camino, se marca
+        // aquí a otra persona y las estancias nuevas la cogen sin desplegar nada.
+        yield BooleanField::new('esLimpiezaPorDefecto', 'Limpia por defecto')
+            ->setHelp('Cada estancia nueva se le asigna sola a esta persona. Es un punto de '
+                . 'partida: luego se le añaden o quitan personas en el propio evento, y una '
+                . 'casita grande puede llevar dos. <strong>Debe estar habilitada</strong> o no '
+                . 'se le asigna nada. Se espera UNA sola marcada.')
+            ->renderAsSwitch(true);
+
         // --- DATOS PERSONALES ---
         yield FormField::addPanel('Información Personal')->setIcon('fa fa-user');
 

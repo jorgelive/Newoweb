@@ -34,6 +34,15 @@ interface ActorInterface
     public function esDelEquipo(): bool;
 
     /**
+     * ¿Pregunta sin ser todavía cliente de nada?
+     *
+     * En la interfaz y no sólo en `AgentActor` por el mismo motivo que {@see self::usuario()}:
+     * `PerfilConversacion::deActor()` recibe el contrato, no la clase concreta, y sin esto una
+     * segunda implementación reventaría con un método indefinido.
+     */
+    public function esProspecto(): bool;
+
+    /**
      * El usuario del equipo que está detrás, o `null` si quien pregunta es un huésped.
      *
      * Lo necesitan las skills que registran QUIÉN hizo algo, no sólo qué se hizo:

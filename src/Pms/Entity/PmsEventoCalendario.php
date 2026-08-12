@@ -18,6 +18,7 @@ use DateTimeInterface;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use App\Entity\User;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
@@ -141,6 +142,36 @@ class PmsEventoCalendario
     // (ver también PmsEventoCalendarioSecurityListener::preUpdate).
     #[Groups(['pms_evento:read', 'pms_evento:write_create'])]
     private ?PmsReserva $reserva = null;
+
+    /**
+     * Quién limpia esta estancia. Varias personas pueden compartirla.
+     *
+     * Se asigna por EVENTO y no por casita porque quien limpia cambia por día: quien tenga la
+     * Casita 3 esta semana puede no tenerla la siguiente. Y es una COLECCIÓN porque una casita
+     * grande se limpia entre dos, y un turno se cubre entre varias.
+     *
+     * Al crear el evento se asigna sola la persona marcada como
+     * {@see \App\Entity\User::$esLimpiezaPorDefecto} — ver `PmsLimpiezaAsignacionListener`.
+     * Ese defecto es un DATO configurable y no una constante con el nombre de nadie:
+     * el día que quien limpia hoy tome otro camino, se marca a otra persona en el panel y no
+     * se toca código.
+     *
+     * 🔒 Es además el filtro de privacidad entre compañeras. `listar_entradas_salidas` se lo
+     * aplica a quien entra con perfil de CAMPO: cada una ve las suyas y sólo las suyas. La
+     * lista lleva el nombre del huésped, su teléfono y el enlace a su chat, y no hay motivo
+     * para que quien limpia la 3 tenga el contacto del huésped de la 6.
+     *
+     * Vacía = sin asignar. Entonces esa estancia no le sale a NADIE de campo, que es el fallo
+     * seguro: mejor que la oficina note el hueco a que un dato acabe donde no toca.
+     *
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class)]
+    #[ORM\JoinTable(name: 'pms_evento_limpieza')]
+    #[ORM\JoinColumn(name: 'evento_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(name: 'user_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[Groups(['pms_evento:read', 'pms_evento:write'])]
+    private Collection $limpiezaAsignada;
 
     #[ORM\ManyToOne(targetEntity: PmsChannel::class, inversedBy: 'eventosCalendario')]
     #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
@@ -316,6 +347,7 @@ class PmsEventoCalendario
     {
         $this->beds24Links = new ArrayCollection();
         $this->assignments = new ArrayCollection();
+        $this->limpiezaAsignada = new ArrayCollection();
 
         $this->id = Uuid::v7();
         $this->initializeLocator();
@@ -503,6 +535,25 @@ class PmsEventoCalendario
     public function setReserva(?PmsReserva $reserva): self { $this->reserva = $reserva; return $this; }
 
     #[Groups(['pax_reserva:read'])]
+    /** @return Collection<int, User> */
+    public function getLimpiezaAsignada(): Collection { return $this->limpiezaAsignada; }
+
+    public function addLimpiezaAsignada(User $usuario): self
+    {
+        if (!$this->limpiezaAsignada->contains($usuario)) {
+            $this->limpiezaAsignada->add($usuario);
+        }
+
+        return $this;
+    }
+
+    public function removeLimpiezaAsignada(User $usuario): self
+    {
+        $this->limpiezaAsignada->removeElement($usuario);
+
+        return $this;
+    }
+
     public function getChannel(): ?PmsChannel { return $this->channel; }
     public function setChannel(?PmsChannel $val): self { $this->channel = $val; return $this; }
 

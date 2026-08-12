@@ -120,6 +120,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $telefono = null;
 
     /**
+     * Quién queda asignada por defecto a la limpieza de cada estancia nueva.
+     *
+     * Mismo patrón que {@see self::$esCobradorPrincipal}, y por el mismo motivo: el defecto es
+     * un DATO y no una constante con el nombre de una persona dentro. El día que quien limpia
+     * hoy tome otro camino se marca a otra en el panel, sin tocar código ni migrar nada.
+     *
+     * Lo aplica `PmsLimpiezaAsignacionListener` al crear el evento. Es un DEFECTO, no una
+     * regla: después se le añaden o se le quitan personas a mano, y una casita grande puede
+     * acabar con dos.
+     *
+     * Se espera **una sola** marcada. Con varias se toma la primera por nombre, que es
+     * determinista pero arbitrario: es un dato mal puesto, no un caso a soportar. Con NINGUNA,
+     * las estancias nuevas nacen sin asignar — y entonces no le salen a nadie de campo, que es
+     * el fallo seguro.
+     */
+    #[ORM\Column(name: 'es_limpieza_por_defecto', type: 'boolean', options: ['default' => false])]
+    private bool $esLimpiezaPorDefecto = false;
+
+    public function isEsLimpiezaPorDefecto(): bool { return $this->esLimpiezaPorDefecto; }
+    public function setEsLimpiezaPorDefecto(bool $val): self { $this->esLimpiezaPorDefecto = $val; return $this; }
+
+    /**
      * Nombre(s) del usuario.
      * @var string|null
      */

@@ -1534,6 +1534,43 @@ El tronco común va primero y el bloque del perfil después, para que éste pued
 no aflojarlo: no inventar datos y no escribir de memoria un número de cuenta valen para los
 cuatro.
 
+#### 🧹 Cada quien ve sus limpiezas, y sólo las suyas
+
+`listar_entradas_salidas` devuelve el nombre del huésped, su teléfono y el enlace a su chat, y
+se entregaba **entera** a cualquiera con `ROLE_LIMPIEZA`: quien iba a la Casita 3 tenía también
+el contacto del huésped de la 6.
+
+Ahora cada estancia dice de quién es, en `pms_evento_limpieza`, y la skill filtra por ella
+cuando el perfil es `Colaborador`. La oficina sigue viéndolo todo, y de propina la columna
+`limpieza` con quién la lleva — para saber a quién avisar sin abrir la ficha.
+
+| Decisión | Por qué |
+|---|---|
+| Por **evento**, no por casita | Quien limpia cambia por día; colgarlo de la unidad sería falso a la semana |
+| Una **tabla**, no una columna | Una casita grande se limpia entre dos; con un FK simple habría que migrar datos el día que hagan falta |
+| Sin asignar ⇒ **no le sale a nadie** | Fallo seguro: que la oficina note el hueco es un incordio; que un teléfono acabe donde no toca, no se deshace |
+| El perfil se pregunta a `PerfilConversacion` | Para no tener dos definiciones de «es de campo» que se separen con el tiempo |
+
+**El defecto es un dato, no una constante.** `user.es_limpieza_por_defecto` marca a quién se
+asigna sola cada estancia nueva; lo aplica `PmsLimpiezaAsignacionListener` en `prePersist`. Es el
+mismo patrón que `es_cobrador_principal`, y por el mismo motivo: **no hay ningún nombre escrito
+en el código**. El día que quien limpia hoy tome otro camino, se marca a otra persona en el panel
+y las estancias nuevas la cogen sin desplegar nada.
+
+Va en un **listener y no en la fábrica** porque los eventos se crean desde cinco sitios (drawer
+de `util`, API, `crear_estancia`, pull de Beds24 y `PmsEventoCalendarioFactory`); poner el
+defecto en uno solo habría dejado los otros cuatro sin asignar, y ese hueco no se ve hasta que
+alguien se queja de que no le avisaron. Se salta extensiones, bloqueos y canceladas: ninguna da
+trabajo.
+
+⚠️ **La consulta del defecto NO se cachea**, aunque crear una reserva de cuatro casitas la repita
+cuatro veces. Los workers de messenger viven horas: con caché, cambiar la persona por defecto no
+surtiría efecto hasta el siguiente reinicio, y el síntoma —«las estancias nuevas siguen saliendo
+a nombre de la anterior»— es de los que se investigan dos veces antes de sospechar de un caché.
+
+⚠️ El listener exige `enabled = true`: asignarle estancias a quien ya no trabaja aquí las deja en
+un limbo del que nadie se entera.
+
 #### 🛒 El prospecto: quien pregunta sin ser todavía nadie
 
 Un número desconocido que escribe a preguntar precios **no es un huésped con menos permisos: es

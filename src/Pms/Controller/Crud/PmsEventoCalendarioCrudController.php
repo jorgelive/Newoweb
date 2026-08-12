@@ -238,6 +238,17 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
                 'data-controller' => $ctrlLockOta
             ]);
 
+        // 🔒 Esto NO es sólo reparto de trabajo: es el filtro de privacidad entre compañeras.
+        // «listar_entradas_salidas» se lo aplica a quien entra con perfil de CAMPO, así que
+        // cada persona ve las estancias que tiene asignadas y sólo ésas. Sin asignar, la
+        // estancia no le sale a NADIE de campo.
+        yield AssociationField::new('limpiezaAsignada', 'Limpieza')
+            ->setFormTypeOption('by_reference', false)
+            ->setHelp('Quién limpia esta estancia. Pueden ser varias personas. Se rellena sola '
+                . 'con la marcada como «Limpia por defecto» al crear el evento; aquí se cambia '
+                . 'cuando ese día lo lleve otra. <strong>Vacío = no le sale a nadie.</strong>')
+            ->hideOnIndex();
+
         yield AssociationField::new('channel', 'Canal')
             ->setColumns(6)
             ->setFormTypeOption('disabled', true)
