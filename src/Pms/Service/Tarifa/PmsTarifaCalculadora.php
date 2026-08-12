@@ -95,6 +95,9 @@ final readonly class PmsTarifaCalculadora
      * Va **por estancia y no por noche** ({@see PmsUnidad::costoLimpieza()}): se limpia al
      * salir, una vez. Se cobra en todos los canales y entra en el total siempre.
      *
+     * Puede ser un importe fijo o un PORCENTAJE del alojamiento —sin el suplemento por
+     * persona—. Con los dos en 0 no se cobra, y entonces no aparece ni como línea de cero.
+     *
      * ### 🏷️ El servicio de la OTA
      *
      * Sólo si `$canalId` es uno de los canales marcados en la unidad. **No lo cobra el PMS**:
@@ -109,7 +112,7 @@ final readonly class PmsTarifaCalculadora
      * respuesta, como REFERENCIA, para poder decir «en Booking se le añade un 16%» sin
      * inflar un total que nadie va a cobrar.
      *
-     * @return array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, limpieza: float, servicio: float, porcentaje_servicio: float, servicio_canales: list<string>, moneda: ?string, min_stay: int, noches: int, noches_sin_tarifa: int, precios_por_noche: list<float>}
+     * @return array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, limpieza: float, limpieza_porcentaje: float, servicio: float, porcentaje_servicio: float, servicio_canales: list<string>, moneda: ?string, min_stay: int, noches: int, noches_sin_tarifa: int, precios_por_noche: list<float>}
      */
     public function resumen(
         PmsUnidad $unidad,
@@ -152,7 +155,10 @@ final readonly class PmsTarifaCalculadora
         )));
         sort($precios);
 
-        $limpieza = $unidad->costoLimpieza($noches);
+        // La base del PORCENTAJE de limpieza es el alojamiento SOLO —sin el suplemento por
+        // persona—, a diferencia de la del servicio. La decide `costoLimpieza()`; aquí sólo se
+        // le entrega lo que necesita.
+        $limpieza = $unidad->costoLimpieza($noches, $alojamiento);
 
         // La base del servicio NO incluye la limpieza. Quién lo decide es `servicioSobre()`;
         // aquí sólo se le entrega lo que sí cuenta.
@@ -164,6 +170,11 @@ final readonly class PmsTarifaCalculadora
             'suplemento_pax' => $suplemento,
             'pax_adicionales' => $adicionales,
             'limpieza' => $limpieza,
+            // Para poder decir «limpieza 15%» y no sólo el importe: al cliente le cambia cómo
+            // lo entiende. `0.0` = importe fijo.
+            'limpieza_porcentaje' => $unidad->limpiezaEsPorcentaje()
+                ? (float) $unidad->getPorcentajeLimpieza()
+                : 0.0,
             'servicio' => $servicio,
             // De referencia, viajen o no aplicados: sirven para decir en cuánto sale por
             // Booking sin tener que cotizar dos veces.

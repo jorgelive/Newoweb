@@ -301,6 +301,16 @@ final class PmsUnidadCrudController extends BaseCrudController
                 . 'moneda de la tarifa base. En 0.00 no se cobra.'
             );
 
+        yield NumberField::new('porcentajeLimpieza', 'Limpieza (%)')
+            ->setNumDecimals(2)
+            ->hideOnIndex()
+            ->setHelp(
+                'Alternativa al importe fijo de arriba: <strong>si pones un porcentaje aquí, '
+                . 'manda sobre el importe</strong>. Se calcula sobre el ALOJAMIENTO solo — el '
+                . 'suplemento por persona NO entra, al revés que el % de servicio. '
+                . 'Con los dos en 0 no se cobra limpieza y no aparece en la cotización.'
+            );
+
         yield NumberField::new('porcentajeServicio', '% de servicio')
             ->setNumDecimals(2)
             ->hideOnIndex()
@@ -328,9 +338,11 @@ final class PmsUnidadCrudController extends BaseCrudController
                     return '—';
                 }
 
-                $limpieza = (float) $entity->getPrecioLimpieza() > 0.0
-                    ? $entity->getPrecioLimpieza()
-                    : '—';
+                $limpieza = match (true) {
+                    $entity->limpiezaEsPorcentaje() => rtrim(rtrim($entity->getPorcentajeLimpieza(), '0'), '.') . '%',
+                    (float) $entity->getPrecioLimpieza() > 0.0 => $entity->getPrecioLimpieza(),
+                    default => '—',
+                };
 
                 $canales = $entity->idsCanalesServicio();
                 $servicio = (float) $entity->getPorcentajeServicio() > 0.0 && $canales !== []

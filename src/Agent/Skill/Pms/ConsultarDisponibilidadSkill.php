@@ -448,7 +448,7 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
      * cobra ninguna noche— y se dice el subtotal del alojamiento sin desglosarlo: el detalle
      * noche a noche es de `consultar_tarifas`.
      *
-     * @param array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, limpieza: float, precios_por_noche: list<float>} $resumen
+     * @param array{total: ?float, alojamiento: ?float, suplemento_pax: float, pax_adicionales: int, limpieza: float, limpieza_porcentaje: float, precios_por_noche: list<float>} $resumen
      */
     private function desglose(array $resumen, int $noches, string $moneda): ?string
     {
@@ -475,11 +475,25 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
             );
         }
 
+        // Con la limpieza en 0 —ni importe ni porcentaje— la línea NO se pinta. Un «limpieza
+        // 0.00» en una cotización invita a preguntar por algo que no existe.
         if ($resumen['limpieza'] > 0.0) {
-            $partes[] = sprintf('limpieza %.2f', $resumen['limpieza']);
+            $partes[] = $resumen['limpieza_porcentaje'] > 0.0
+                ? sprintf(
+                    'limpieza %s%% = %.2f',
+                    $this->pct($resumen['limpieza_porcentaje']),
+                    $resumen['limpieza']
+                )
+                : sprintf('limpieza %.2f', $resumen['limpieza']);
         }
 
         return sprintf('%s → TOTAL %.2f %s', implode(' + ', $partes), $resumen['total'], $moneda);
+    }
+
+    /** Un porcentaje sin ceros de relleno: 15.00 → «15», 12.50 → «12.5». */
+    private function pct(float $valor): string
+    {
+        return rtrim(rtrim(sprintf('%.2f', $valor), '0'), '.');
     }
 
     /**
@@ -660,7 +674,14 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
             // Desglosada y no escondida en el total, igual que el suplemento: es un concepto
             // que el huésped pregunta («¿y eso qué es?») y que hay que poder nombrar.
             'limpieza' => $resumen['limpieza'] > 0.0
-                ? sprintf('%.2f %s (por estancia, no por noche)', $resumen['limpieza'], $moneda)
+                ? sprintf(
+                    '%.2f %s (%s, por estancia y no por noche)',
+                    $resumen['limpieza'],
+                    $moneda,
+                    $resumen['limpieza_porcentaje'] > 0.0
+                        ? sprintf('%s%% del alojamiento', $this->pct($resumen['limpieza_porcentaje']))
+                        : 'importe fijo'
+                )
                 : null,
             // 📌 REFERENCIA, no cobro. Va fuera del total a propósito: esta cotización es
             // directa, y el servicio lo aplicaría la OTA por su cuenta. Sirve para responder

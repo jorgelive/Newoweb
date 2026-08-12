@@ -4471,6 +4471,25 @@ nombrarlo al vender. Cuando haya que filtrar por «cama doble», se migra con el
 `PmsUnidad::precioLimpieza`, **por estancia y no por noche** — se limpia al salir, una vez, y una
 semana no ensucia siete veces. Se cobra en TODOS los canales y entra en el total.
 
+**Dos formas de cobrarla, y un orden claro.** `porcentaje_limpieza` manda si es mayor que 0; si
+no, el `precio_limpieza` fijo; y con los dos en 0 **no se cobra ni se menciona** — la línea
+desaparece del desglose y el campo no viaja. Un «limpieza 0.00» en una cotización sólo invita a
+preguntar por algo que no existe.
+
+Las dos columnas conviven a propósito: el parque va a pasar a porcentaje casita por casita, no
+de golpe.
+
+⚠️ **La base del porcentaje es el ALOJAMIENTO SOLO**, sin el suplemento por persona — al revés
+que `porcentaje_servicio`, que sí lo incluye. La diferencia está elegida: la limpieza se explica
+como «el 15% de la tarifa» y no como un número que sube con cada acompañante. Cada regla vive en
+su método (`costoLimpieza()` y `servicioSobre()`) y **no se derivan una de otra**, aunque hoy se
+parezcan.
+
+```
+Casita 2 · 7 personas · 2 noches · limpieza 15%
+  45.00 × 2 = 90.00 + 3 personas adicionales = 36.00 + limpieza 15% = 13.50 → TOTAL 139.50
+```
+
 Antes no existía como concepto: se tecleaba a mano en `pms_cargo_financiero` como «suplemento de
 limpieza», siempre 15.00 USD. Se encontraron **tres grafías distintas conviviendo**
 (`suplemento de limpieza`, `Suplemento de limpieza`, y la variante con el tipo de cambio), que es

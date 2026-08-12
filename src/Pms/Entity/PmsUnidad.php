@@ -257,6 +257,24 @@ class PmsUnidad
      * De ahí que no baste un booleano: a qué canales aplica lo dice
      * {@see $serviciosCanales}, y a los directos no se les aplica ninguno.
      */
+    /**
+     * Limpieza como PORCENTAJE del alojamiento, en vez de un importe fijo.
+     *
+     * Manda sobre {@see $precioLimpieza} cuando es mayor que 0: algunas casitas se cobran a
+     * tanto alzado y otras a porcentaje, y tener los dos campos permite convivir sin migrar
+     * todo el parque de golpe. Con los dos en 0 no se cobra limpieza y **no aparece en la
+     * cotización** — ni como línea de cero.
+     *
+     * ⚠️ Su base es el ALOJAMIENTO SOLO: el suplemento por persona NO entra. Es distinta de la
+     * base de {@see $porcentajeServicio}, que sí lo incluye, y la diferencia es deliberada —se
+     * eligió que la limpieza se explique como «el 15% de la tarifa» y no como un número que
+     * sube con cada acompañante—. Las dos reglas viven cada una en su método y no se derivan
+     * una de otra.
+     */
+    #[ORM\Column(name: 'porcentaje_limpieza', type: 'decimal', precision: 5, scale: 2, options: ['default' => '0.00'])]
+    #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
+    private string $porcentajeLimpieza = '0.00';
+
     #[ORM\Column(name: 'porcentaje_servicio', type: 'decimal', precision: 5, scale: 2, options: ['default' => '0.00'])]
     #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
     private string $porcentajeServicio = '0.00';
@@ -499,12 +517,35 @@ class PmsUnidad
     /**
      * La limpieza de toda la estancia. **No se multiplica por noches**: se limpia al salir.
      *
+     * Dos formas de cobrarla y un orden claro: si hay PORCENTAJE puesto, manda; si no, el
+     * importe fijo; y si los dos están en 0, no se cobra —y entonces la cotización no la
+     * menciona siquiera, ni como línea de cero—.
+     *
+     * El porcentaje va sobre el ALOJAMIENTO SOLO, sin el suplemento por persona: se eligió
+     * poder explicarlo como «el 15% de la tarifa» en vez de como un número que sube con cada
+     * acompañante. Ojo: NO es la misma base que `servicioSobre()`, y no se derivan una de otra
+     * a propósito.
+     *
      * Recibe las noches sólo para no cobrarla en un tramo vacío, que es un error de llamada,
      * no una estancia de cero noches.
      */
-    public function costoLimpieza(int $noches): float
+    public function costoLimpieza(int $noches, float $alojamiento = 0.0): float
     {
-        return $noches >= 1 ? (float) $this->precioLimpieza : 0.0;
+        if ($noches < 1) {
+            return 0.0;
+        }
+
+        if ((float) $this->porcentajeLimpieza > 0.0) {
+            return $alojamiento * (float) $this->porcentajeLimpieza / 100.0;
+        }
+
+        return (float) $this->precioLimpieza;
+    }
+
+    /** ¿La limpieza de esta casita se cobra a porcentaje? */
+    public function limpiezaEsPorcentaje(): bool
+    {
+        return (float) $this->porcentajeLimpieza > 0.0;
     }
 
     /** ¿Aplica el porcentaje de servicio en este canal? */
@@ -566,6 +607,9 @@ class PmsUnidad
 
     public function getPrecioLimpieza(): string { return $this->precioLimpieza; }
     public function setPrecioLimpieza(string $val): self { $this->precioLimpieza = $val; return $this; }
+
+    public function getPorcentajeLimpieza(): string { return $this->porcentajeLimpieza; }
+    public function setPorcentajeLimpieza(string $val): self { $this->porcentajeLimpieza = $val; return $this; }
 
     public function getPorcentajeServicio(): string { return $this->porcentajeServicio; }
     public function setPorcentajeServicio(string $val): self { $this->porcentajeServicio = $val; return $this; }
