@@ -2933,6 +2933,52 @@ cancelaciones de reservas en firme se hacen en el canal; lo único que se cancel
 las consultas (`abierto → cancelada`), y un `DELETE`, que manda `cancelled` por definición y no
 pasa por la regla.
 
+## 12.14 Una estancia que se borra se lleva sus cargos
+
+`pms_cargo_financiero.evento_id` es `ON DELETE SET NULL`. Hasta 2026-08-12, retirar una
+ampliación de estadía borraba su estancia y **los cargos del tarifario que
+`PmsCargosAutomaticosService` le había generado sobrevivían sin dueño**, sumando al total para
+siempre y sin forma de saber de dónde salían.
+
+En producción quedaron dos así: «Alojamiento» 130.00 y «Suplemento de limpieza» 15.00, del
+2026-08-03, en una reserva de **Airbnb** que llega el 2026-09-11. Esa estancia ya tenía su
+cargo real de Beds24 (163.42, ítem `154407400`), así que el alojamiento estaba cobrado **dos
+veces** y la cabecera decía 308.42.
+
+### Por qué nadie lo vio en cuatro meses
+
+Porque el saldo salía a cero. `PmsPagoOtaAutomaticoService::sincronizar()` deja siempre el
+depósito espejo igual a `getTotalCargos()`, de modo que cuando los huérfanos inflaron el total
+el depósito los siguió hasta 308.42. Dos errores que se compensan y un saldo aparentemente
+correcto — la peor combinación para detectar nada.
+
+### Cómo se descubrió
+
+Tirando del hilo equivocado. La pregunta era si el agente debía callar `prepago_pendiente` en
+un canal restringido; resultó que eso ya estaba bien (`PmsPrepagoCalculador` corta en
+`CANAL_PAGO_TOTAL`), pero al comprobar la regla nueva de `ConsultarCuentaSkill` contra datos
+reales aparecieron dos cargos de Airbnb sin marcar como espejo del canal.
+
+El RAW de `pms_beds24_invoice_receive_queue` fue decisivo: Beds24 mandó **un solo ítem** y el
+pull registró `imported: 1` y luego `skipped: 1` en cada corrida. El pull financiero nunca los
+creó. Las descripciones literales («Alojamiento», «Suplemento de limpieza») sólo las produce
+`PmsCargosAutomaticosService`, y el `ON DELETE SET NULL` explicó el `evento_id` vacío.
+
+### El arreglo
+
+- **`PmsInformacionFinancieraCoherenciaListener`** anota en `onFlush` los cargos MANUALES de
+  cada `PmsEventoCalendario` que se está borrando, y los retira en `postFlush`. Se anota antes
+  del borrado a propósito: después, el FK ya puso `evento_id` a NULL y la pista se perdió.
+  Sólo los manuales — los de Beds24 los gobierna el sync, y `assertCargoBorrable()` tampoco
+  deja borrarlos a mano.
+- **`Version20260812260000`** limpia los dos que quedaron y cuadra cabecera y depósito espejo.
+  Va en SQL crudo porque una migración no dispara listeners: borrar sólo los cargos habría
+  dejado `total_cargos` en 308.42 y el saldo mintiendo en el otro sentido.
+
+⚠️ Lo que NO se toca: los cargos locales **con estancia viva**. Son los ajustes que teclea el
+operador —un «Descuento tipo de cambio» de −0.20 en una reserva de Booking, por ejemplo— y sí
+deben verse.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |

@@ -63,6 +63,18 @@ final class PmsInformacionFinancieraCoherenciaListener
     private array $eventosParaCargos = [];
 
     /**
+     * Cargos manuales que hay que llevarse porque su estancia se está borrando.
+     *
+     * Se anotan en `onFlush` y se retiran en `postFlush`, como todo lo demás en este listener:
+     * localizarlos exige una consulta, y hacerla en mitad del flush es lo que Doctrine
+     * desaconseja. Hay que anotarlos ANTES de que el borrado llegue a la base, porque el FK
+     * `evento_id` es `ON DELETE SET NULL` y después ya no hay forma de saber de quién eran.
+     *
+     * @var array<string, true> id del cargo => true
+     */
+    private array $cargosDeEstanciasBorradas = [];
+
+    /**
      * Estancias cuya casilla de horario extra (entrada temprana / salida tardía)
      * cambió en este flush, indexadas por `spl_object_id`.
      *
@@ -114,6 +126,27 @@ final class PmsInformacionFinancieraCoherenciaListener
         foreach ($uow->getScheduledEntityDeletions() as $entity) {
             if ($entity instanceof PmsCargoFinanciero) {
                 $this->assertCargoBorrable($entity);
+            }
+
+            // 🧹 UNA ESTANCIA QUE SE VA SE LLEVA SUS CARGOS.
+            //
+            // El FK `evento_id` es `ON DELETE SET NULL`, así que hasta ahora los cargos del
+            // tarifario de una ampliación retirada sobrevivían sin dueño y seguían sumando al
+            // total para siempre. En producción quedaron dos así —«Alojamiento» 130.00 y
+            // «Suplemento de limpieza» 15.00 de una reserva de Airbnb— duplicando un cargo que
+            // ya había mandado Beds24, y nadie lo vio en cuatro meses porque el depósito
+            // espejo persigue al total y el saldo salía a cero por compensación.
+            //
+            // Se anota AQUÍ y no en postFlush porque después del borrado el FK ya ha puesto
+            // `evento_id` a NULL y no hay forma de saber de qué estancia eran.
+            //
+            // Sólo los MANUALES: los de Beds24 los gobierna el sync y `assertCargoBorrable()`
+            // tampoco deja borrarlos: si un cargo del canal cuelga de la estancia que se
+            // borra, es el sync quien debe retirarlo, no nosotros.
+            if ($entity instanceof PmsEventoCalendario) {
+                foreach ($this->cargosManualesDe($entity, $args->getObjectManager()) as $cargo) {
+                    $this->cargosDeEstanciasBorradas[(string) $cargo->getId()] = true;
+                }
             }
             // Borrar el depósito automático no sirve de nada: el siguiente recálculo lo
             // recrearía. Se bloquea para que el operador no pelee contra el sistema.
@@ -265,6 +298,30 @@ final class PmsInformacionFinancieraCoherenciaListener
      * Un cargo sincronizado desde Beds24 no se puede borrar a mano: el siguiente pull
      * lo recrearía y, mientras tanto, el saldo quedaría desfasado. Los manuales sí.
      */
+    /**
+     * Los cargos MANUALES que cuelgan de esta estancia.
+     *
+     * Consulta directa y no `$evento->getCargos()`: la entidad no expone esa colección
+     * inversa, y añadirla sólo para esto cargaría cargos en cada estancia que se toque.
+     *
+     * @return list<PmsCargoFinanciero>
+     */
+    private function cargosManualesDe(PmsEventoCalendario $evento, EntityManagerInterface $em): array
+    {
+        if ($evento->getId() === null) {
+            return [];
+        }
+
+        /** @var list<PmsCargoFinanciero> $cargos */
+        $cargos = $em->getRepository(PmsCargoFinanciero::class)
+            ->findBy(['evento' => $evento]);
+
+        return array_values(array_filter(
+            $cargos,
+            static fn (PmsCargoFinanciero $c): bool => $c->isManual()
+        ));
+    }
+
     private function assertCargoBorrable(PmsCargoFinanciero $cargo): void
     {
         if ($cargo->isManual()) {
@@ -281,7 +338,10 @@ final class PmsInformacionFinancieraCoherenciaListener
     public function postFlush(PostFlushEventArgs $args): void
     {
         if ($this->isFlushing
-            || ($this->informacionIds === [] && $this->eventosParaCargos === [] && $this->eventosHorarioExtra === [])
+            || ($this->informacionIds === []
+                && $this->eventosParaCargos === []
+                && $this->eventosHorarioExtra === []
+                && $this->cargosDeEstanciasBorradas === [])
         ) {
             return;
         }
@@ -289,9 +349,43 @@ final class PmsInformacionFinancieraCoherenciaListener
         $ids = array_keys($this->informacionIds);
         $eventoIds = array_keys($this->eventosParaCargos);
         $horarioExtraEventos = array_values($this->eventosHorarioExtra);
+        $cargosHuerfanos = array_keys($this->cargosDeEstanciasBorradas);
         $this->informacionIds = [];
         $this->eventosParaCargos = [];
         $this->eventosHorarioExtra = [];
+        $this->cargosDeEstanciasBorradas = [];
+
+        // 🧹 Los cargos de las estancias que acaban de borrarse. Van los primeros: el
+        // recálculo de cabeceras de más abajo tiene que ver el total YA sin ellos, o dejaría
+        // el depósito espejo cuadrado contra un importe que incluye lo que se va.
+        if ($cargosHuerfanos !== []) {
+            $em = $args->getObjectManager();
+            $repo = $em->getRepository(PmsCargoFinanciero::class);
+            $retirados = 0;
+
+            $this->isFlushing = true;
+            try {
+                foreach ($cargosHuerfanos as $cargoId) {
+                    $cargo = $repo->find($cargoId);
+
+                    // Puede haber desaparecido ya: si el operador borró a la vez la estancia y
+                    // sus cargos, el UnitOfWork se los llevó en el mismo flush.
+                    if ($cargo instanceof PmsCargoFinanciero) {
+                        $ids[] = (string) $cargo->getInformacionFinanciera()?->getId();
+                        $em->remove($cargo);
+                        $retirados++;
+                    }
+                }
+
+                if ($retirados > 0) {
+                    $em->flush();
+                }
+            } finally {
+                $this->isFlushing = false;
+            }
+
+            $ids = array_values(array_unique(array_filter($ids)));
+        }
 
         $this->isFlushing = true;
         try {
