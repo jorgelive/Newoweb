@@ -1612,6 +1612,25 @@ a nombre de la anterior»— es de los que se investigan dos veces antes de sosp
 ⚠️ El listener exige `enabled = true`: asignarle estancias a quien ya no trabaja aquí las deja en
 un limbo del que nadie se entera.
 
+#### 🗣️ El triaje también tiene que saber con quién habla
+
+El triaje **resuelve él mismo las charlas** —«hola», «gracias», «prueba»— sin llamar al modelo
+grande. Y su prompt es idéntico byte a byte en todas las conversaciones **a propósito**: es el
+bloque con marca de caché, y ahí no puede entrar nada de quien escribe sin perder ese ahorro.
+
+Consecuencia vista en producción: un compañero del equipo escribió «Prueba» y recibió
+«¿en qué te puedo ayudar con **tu reserva o tu estancia**?». La voz del huésped, a alguien del
+equipo. Todo el trabajo de los cuatro perfiles se lo saltaba ese camino.
+
+El arreglo no toca el bloque cacheado: `PerfilConversacion::enUnaLinea()` viaja en el **contexto
+volátil** —el mismo que ya lleva el idioma y el nombre—, que va fuera de la caché por diseño.
+Una línea, y sólo cuando hace falta: para el huésped devuelve cadena vacía, porque es el caso
+que el prompt ya asume y decir lo obvio sólo gasta contexto.
+
+⚠️ Es un recordatorio general de dónde vive cada cosa: **lo que depende de quién escribe va en el
+contexto, no en las reglas.** Si algún día hay que enseñarle algo más al triaje sobre el
+interlocutor, ese es el sitio.
+
 #### 🛒 El prospecto: quien pregunta sin ser todavía nadie
 
 Un número desconocido que escribe a preguntar precios **no es un huésped con menos permisos: es

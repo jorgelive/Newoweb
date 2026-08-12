@@ -452,7 +452,7 @@ final readonly class AiConversationProcessor
         // PASO 1 — TRIAJE. Barato, sin herramientas, y con un desenlace («indeterminado») que
         // deja todo exactamente como estaba antes de que existiera. Se le pasa el contexto
         // (idioma, nombre) porque la charla la contesta él mismo. Ver App\Agent\Triage\Triaje.
-        $decision = $this->triaje->clasificar($actor, $mensaje, $historial, $this->contexto($conversacion));
+        $decision = $this->triaje->clasificar($actor, $mensaje, $historial, $this->contexto($conversacion, $actor));
 
         // El triaje ya leyó estos mensajes para clasificarlos, así que su resumen sale sin
         // pagar una llamada extra. Se persiste AQUÍ para que el trabajo de
@@ -489,7 +489,7 @@ final readonly class AiConversationProcessor
         $respuesta = $elegido->motor->conversar(new ConversationRequest(
             actor: $actor,
             systemPrompt: $this->reglas($actor),
-            contexto: $this->contexto($conversacion, $decision),
+            contexto: $this->contexto($conversacion, $actor, $decision),
             mensaje: $mensaje,
             historial: $historial,
             // Sólo lectura hacia fuera: una escritura disparada por un huésped tendría que
@@ -846,16 +846,26 @@ final readonly class AiConversationProcessor
      * Lo que añade el triaje ({@see self::pistaDelTriaje()}) son otras dos líneas como mucho, y
      * también van aquí, sin caché: cambian con cada mensaje por definición.
      */
-    private function contexto(MessageConversation $conversacion, ?DecisionDeTriaje $decision = null): string
-    {
+    private function contexto(
+        MessageConversation $conversacion,
+        ActorInterface $actor,
+        ?DecisionDeTriaje $decision = null
+    ): string {
         $idioma = $conversacion->getIdioma()?->getId() ?? 'es';
         $huesped = $conversacion->getGuestName() ?? 'el huésped';
 
         $fase = $this->faseDeLaEstancia($conversacion);
         $espacio = $this->espacioAlrededor($conversacion, $fase);
 
+        // 🎭 Quién escribe. Va aquí y no en las reglas porque el prompt del triaje es idéntico
+        // byte a byte en todas las conversaciones —es el bloque cacheado— y esto es lo volátil.
+        // Sin ello, el triaje resolvía una charla de un compañero del equipo con la voz del
+        // huésped: «¿en qué te puedo ayudar con tu reserva?». Visto en producción.
+        $quien = PerfilConversacion::deActor($actor)->enUnaLinea();
+        $quien = $quien === '' ? '' : "\n" . $quien;
+
         $contexto = <<<CONTEXTO
-        Hablas con {$huesped}.{$fase}{$espacio}
+        Hablas con {$huesped}.{$fase}{$espacio}{$quien}
         Responde SIEMPRE en el idioma con código "{$idioma}".
         CONTEXTO;
 

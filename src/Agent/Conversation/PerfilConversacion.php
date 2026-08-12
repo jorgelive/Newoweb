@@ -90,6 +90,35 @@ enum PerfilConversacion: string
     }
 
     /**
+     * Quién escribe, en una línea, para el bloque VOLÁTIL del contexto.
+     *
+     * Existe porque el triaje resuelve él mismo las charlas —«hola», «gracias»— y su prompt es
+     * idéntico byte a byte en todas las conversaciones a propósito: es el bloque cacheado, y
+     * ahí no puede entrar nada de quien escribe. Consecuencia observada en producción: a un
+     * compañero del equipo que escribió «Prueba» se le contestó «¿en qué te puedo ayudar con
+     * tu reserva o tu estancia?», que es la voz del huésped.
+     *
+     * Esta línea viaja en el contexto volátil, que va FUERA del bloque cacheado: corrige el
+     * tono sin tocar el ahorro.
+     *
+     * Vacío para el huésped: es el caso por defecto que ya asume el prompt, y añadir una línea
+     * para decir lo obvio sólo gasta contexto.
+     */
+    public function enUnaLinea(): string
+    {
+        return match ($this) {
+            self::Huesped => '',
+            self::Prospecto => 'OJO: quien escribe NO es huésped todavía —pregunta precios y no '
+                . 'ha reservado nada—. No le hables de «tu reserva» ni de «tu estancia».',
+            self::Personal => 'OJO: quien escribe es un COMPAÑERO del equipo, no un huésped. '
+                . 'Tutéalo, ve al grano y no le hables de «tu reserva» ni de «tu estancia».',
+            self::Colaborador => 'OJO: quien escribe es del equipo de CAMPO (limpieza, '
+                . 'mantenimiento, traslados), no un huésped. Tutéalo, sé muy breve y no le '
+                . 'hables de «tu reserva» ni le des datos de ningún huésped.',
+        };
+    }
+
+    /**
      * El bloque de prompt propio de este perfil: quién es, qué herramientas le sirven y qué NO
      * hace nunca.
      *
