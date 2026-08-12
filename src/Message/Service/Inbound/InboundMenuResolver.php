@@ -7,6 +7,7 @@ namespace App\Message\Service\Inbound;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * Traduce la respuesta numérica de un huésped ("2", "opción 3") al payload del botón
@@ -112,7 +113,10 @@ final readonly class InboundMenuResolver
      * mensaje automático se CREA cuando el motor de reglas lo programa y se ENVÍA mucho después
      * —en producción hay desfases de meses—, así que `createdAt DESC` devolvía como «último»
      * un recordatorio programado para dentro de medio año que el huésped todavía no ha recibido.
-     * Ése era el motivo real de que los menús numéricos casi nunca funcionaran en las OTA.
+     *
+     * Ese orden era necesario pero NO era el motivo de que los menús numéricos no funcionaran
+     * en las OTA: el parámetro mal ligado de abajo hacía que esta consulta no devolviera nada
+     * en absoluto. Se arreglaron los dos.
      *
      * Es el mismo criterio de fecha efectiva que usa `RebuildConversationContextCommand`.
      */
@@ -125,7 +129,10 @@ final readonly class InboundMenuResolver
             ->andWhere('m.status IN (:estados)')
             // Nada del futuro: un programado que aún no ha salido no es «lo último que vio».
             ->andWhere('COALESCE(m.scheduledAt, m.createdAt) <= :ahora')
-            ->setParameter('conv', $conversation)
+            // ⚠️ El id con tipo `uuid`, no la entidad: ligada a secas la consulta devuelve
+            // CERO filas sin fallar, y entonces «el último mensaje» era siempre null y ningún
+            // menú numérico resolvía. Misma trampa que en `Beds24SendEnqueuer`.
+            ->setParameter('conv', $conversation->getId(), UuidType::NAME)
             ->setParameter('estados', self::ESTADOS_REALES)
             ->setParameter('ahora', new \DateTimeImmutable())
             ->orderBy('efectiva', 'DESC')

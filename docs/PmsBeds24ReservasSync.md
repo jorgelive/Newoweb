@@ -2334,6 +2334,14 @@ Comprobado en DQL sobre la misma fila:
 Que el objeto `Uuid` *sin tipo* también falle es lo importante: significa que **pasar la IRI
 tampoco arregla nada** (la IRI se resuelve justo a ese objeto). El filtro es inservible aquí.
 
+> 🔥 Esto no es una rareza de API Platform: es la misma trampa en cualquier `setParameter()` del
+> QueryBuilder, y no estar barrida costó caro. La barrera de idempotencia de las colas de
+> mensajería la tenía dentro, contaba **0** colas existentes siempre, y fabricaba una cola nueva
+> en cada `preUpdate`: 23 huéspedes recibieron el mismo mensaje entre 2 y 6 veces durante cinco
+> meses. El barrido completo —qué estaba roto y con qué síntoma— está en **docs/Mensajeria.md
+> §7, «En DQL, pasar la ENTIDAD como parámetro…»**. Si escribes una consulta nueva por
+> asociación, el tipo `UuidType::NAME` no es opcional.
+
 **Solución adoptada:** operación dedicada en vez de filtro.
 
 ```

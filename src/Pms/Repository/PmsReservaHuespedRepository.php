@@ -6,6 +6,8 @@ namespace App\Pms\Repository;
 use App\Pms\Entity\PmsReservaHuesped;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Repositorio para la gestión de la entidad PmsReservaHuesped.
@@ -69,14 +71,18 @@ class PmsReservaHuespedRepository extends ServiceEntityRepository
     /**
      * Busca todos los huéspedes asociados a una reserva específica.
      *
-     * @param int $reservaId El ID de la reserva padre.
+     * ⚠️ El id va con el tipo `uuid` explícito. La firma decía `int` —herencia de otra época—
+     * y el parámetro se ligaba sin tipo: contra una columna `BINARY(16)` eso no falla, devuelve
+     * CERO filas. Misma trampa que en `Beds24SendEnqueuer::isAlreadyEnqueued()`.
+     *
+     * @param string|Uuid $reservaId El ID de la reserva padre.
      * @return PmsReservaHuesped[] Lista de huéspedes ordenados por si son principales primero.
      */
-    public function findByReservaId(int $reservaId): array
+    public function findByReservaId(string|Uuid $reservaId): array
     {
         return $this->createQueryBuilder('h')
             ->andWhere('h.reserva = :reservaId')
-            ->setParameter('reservaId', $reservaId)
+            ->setParameter('reservaId', $reservaId, UuidType::NAME)
             ->orderBy('h.esPrincipal', 'DESC') // Titulares primero
             ->addOrderBy('h.apellido', 'ASC')  // Luego alfabéticamente
             ->getQuery()

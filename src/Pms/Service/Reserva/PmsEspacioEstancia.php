@@ -9,6 +9,7 @@ use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * Qué hay ANTES y DESPUÉS de una estancia en su misma casita.
@@ -80,8 +81,12 @@ final readonly class PmsEspacioEstancia
             ->andWhere('es.id IN (:ocupan)')
             ->andWhere('e.fin >= :desde')
             ->andWhere('e.inicio <= :hasta')
-            ->setParameter('unidad', $unidad)
-            ->setParameter('propio', $propio->getId())
+            // ⚠️ Los ids con tipo `uuid`, no la entidad ni el objeto `Uuid` a secas: en DQL
+            // se serializan como cadena RFC contra una columna BINARY(16) y la consulta
+            // devuelve CERO filas sin fallar — aquí eso significa «no hay vecinos», y el
+            // early check-in / late check-out se ofrecería sobre una casita ocupada.
+            ->setParameter('unidad', $unidad->getId(), UuidType::NAME)
+            ->setParameter('propio', $propio->getId(), UuidType::NAME)
             ->setParameter('ocupan', PmsEventoEstado::IMPIDEN_VENTA)
             // Una noche por cada lado basta: sólo interesa quién pega con su estancia.
             ->setParameter('desde', (new DateTimeImmutable($inicio->format('Y-m-d')))->modify('-1 day'))

@@ -16,6 +16,7 @@ use App\Pms\Entity\PmsChannel;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
 {
@@ -123,6 +124,13 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         // CAPA 2: BASE DE DATOS FÍSICA
         // Previene duplicados contra colas que se crearon en requests anteriores
         // o por otros workers/procesos.
+        //
+        // ⚠️ `$message->getId()` con el tipo `uuid` EXPLÍCITO, nunca la entidad a secas.
+        // Ligar la entidad —`setParameter('message', $message)`— no falla: DQL la serializa
+        // como cadena RFC contra una columna `BINARY(16)` y el COUNT sale SIEMPRE 0. Con esa
+        // barrera muerta, cada `preUpdate` del mensaje fabricaba OTRA cola: 54 mensajes de
+        // producción llegaron a tener hasta 6, y el huésped recibió el mismo recordatorio
+        // seis veces (K56AAV, 27-03-2026). Ver docs/Mensajeria.md §5.1.
         // =====================================================================
         $qb = $this->em->createQueryBuilder();
         $count = (int) $qb->select('COUNT(q.id)')
@@ -130,7 +138,7 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
             ->where('q.message = :message')
             // Opcional: ignoramos las que fueron explícitamente canceladas, permitiendo que se regeneren si es necesario.
             ->andWhere('q.status != :status_cancelled')
-            ->setParameter('message', $message)
+            ->setParameter('message', $message->getId(), UuidType::NAME)
             ->setParameter('status_cancelled', Beds24SendQueue::STATUS_CANCELLED)
             ->getQuery()
             ->getSingleScalarResult();

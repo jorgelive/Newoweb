@@ -636,6 +636,56 @@ Lo correcto es pasar el id **con su tipo**:
 > que el SQL. `findBy(['conversation' => $entidad])` **sí** funciona —ahí Doctrine conoce el
 > tipo de la asociación—, así que el fallo solo aparece en el QueryBuilder.
 
+Lo mismo vale para un objeto `Uuid` suelto (`setParameter('x', $e->getId())`) y para las
+listas: una lista de entidades en un `IN (:ids)` hay que pasarla como binario crudo
+(`array_map(fn ($e) => $e->getId()->toBinary(), $lista)` + `ArrayParameterType::BINARY`).
+
+#### El destrozo que causó: el mismo mensaje enviado hasta 6 veces
+
+Esta trampa estaba documentada aquí y en dos sitios del PMS, pero **nadie barrió el resto del
+código**, y la barrera de idempotencia de las colas la tenía dentro:
+
+```php
+// Beds24SendEnqueuer::isAlreadyEnqueued() — roto hasta 2026-08-12
+->where('q.message = :message')
+->setParameter('message', $message)        // ❌ COUNT siempre 0
+```
+
+Con esa barrera muerta, **cada** `preUpdate` del mensaje —y `MessageEnqueuerEntityListener`
+llama a `fabricarColas()` en todos ellos— fabricaba otra cola para el mismo mensaje. Todas con
+el mismo `run_at`, todas `success`, todas POSTeadas de verdad a Beds24. Medido en producción:
+
+| Qué | Cuánto |
+|---|---|
+| Mensajes con más de una cola beds24 viva | 54 |
+| Mensajes con más de una cola whatsapp viva | 49 |
+| Copias del mismo recordatorio a un huésped | hasta **6** (Yael, 27-03-2026) |
+| Huéspedes afectados | 23, entre 2026-03-09 y 2026-08-05 |
+
+Se distingue de un reintento porque los ids de Beds24 son **distintos y consecutivos** con un
+segundo de diferencia (`155989144`, `…45`, `…46` a las 08:00:05/06/07): son POSTs de verdad, no
+un reenvío del mismo. Y siempre a la hora en punto, que es cuando el motor de reglas pasa.
+
+#### El barrido (2026-08-12)
+
+Se auditaron todos los `setParameter()` del código moderno. Estaban rotos, y se arreglaron con
+el tipo `UuidType::NAME`:
+
+| Sitio | Qué hacía mal en silencio |
+|---|---|
+| `Beds24SendEnqueuer::isAlreadyEnqueued()` | duplicaba envíos a las OTA |
+| `WhatsappMetaSendEnqueuer::isAlreadyEnqueued()` | lo mismo en WhatsApp |
+| `InboundMenuResolver::ultimoMensajeReal()` | ningún menú numérico resolvía **nunca** |
+| `PmsEspacioEstancia` | no veía vecinos: early check-in sobre casita ocupada |
+| `PmsUnidadBeds24MapRepository` (4 consultas) | pull sin roomIds; el filtro por unidades no filtraba |
+| `PushSubscriptionRepository::findByUser()` | cero suscripciones → ninguna push (método sin uso vivo) |
+| `PmsRatesPushQueueRepository::findPendingForUnit()` | cola de tarifas por unidad, siempre vacía |
+| `PmsDisponibilidadService` (filtro por establecimiento) | cero unidades disponibles al filtrar |
+| `PmsReservaHuespedRepository::findByReservaId()` | cero huéspedes (método sin uso vivo) |
+
+Ya estaban bien —y sirven de ejemplo— `ResumenConversacionService`, `AiConversationProcessor`,
+`NotificadorPushConversacion`, `PmsInformacionFinancieraRepository` y `FinEnlacePagoRepository`.
+
 ### 🔥 Con `read: false`, API Platform NO aplica `security`
 
 Una operación custom que no lee de Doctrine se declara así:
@@ -772,6 +822,13 @@ El criterio correcto es la **fecha efectiva**, `COALESCE(scheduledAt, createdAt)
 además los estados que no llegaron al huésped y descartando el futuro. Es el mismo criterio que
 ya usaba `RebuildConversationContextCommand`. Al cambiarlo, las conversaciones en las que el
 menú puede resolverse pasaron de **82 a 151** de 284.
+
+> ⚠️ Corrección (2026-08-12): ese orden era necesario, pero **no era el motivo** de que los
+> menús no funcionaran. La consulta ligaba la conversación como entidad y por tanto devolvía
+> cero filas *siempre* (§7, el gotcha del `binary(16)`): `ultimoMensajeReal()` era `null` pasara
+> lo que pasara y ningún número resolvía jamás. Las 151 conversaciones eran candidatas
+> teóricas, no resoluciones reales. Arreglados los dos, el criterio de arriba sigue siendo el
+> correcto.
 
 **Por qué WhatsApp no sufría esto:** allí los botones son pulsables y llegan como
 `button`/`interactive` **con su payload**, sin pasar por el resolutor. El interceptor numérico

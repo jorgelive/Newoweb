@@ -8,6 +8,7 @@ use App\Entity\PushSubscription;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * Repositorio dedicado a la gestión en base de datos de la entidad PushSubscription.
@@ -95,7 +96,9 @@ class PushSubscriptionRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('p')
             ->andWhere('p.user = :val')
-            ->setParameter('val', $user)
+            // ⚠️ El id con tipo `uuid`: ligar la entidad devuelve CERO suscripciones sin
+            // fallar, y entonces no le llega ninguna notificación push a nadie.
+            ->setParameter('val', $user->getId(), UuidType::NAME)
             ->getQuery()
             ->getResult();
     }

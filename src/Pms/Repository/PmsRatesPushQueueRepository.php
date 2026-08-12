@@ -8,6 +8,7 @@ use App\Exchange\Repository\AbstractExchangeRepository;
 use App\Pms\Entity\PmsRatesPushQueue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * @extends AbstractExchangeRepository<PmsRatesPushQueue>
@@ -56,7 +57,8 @@ final class PmsRatesPushQueueRepository extends AbstractExchangeRepository
             ->andWhere('q.status = :status')
             ->andWhere('q.fechaInicio < :end')
             ->andWhere('q.fechaFin > :start')
-            ->setParameter('unidadId', $unidadId) // UUID String
+            // ⚠️ Con tipo `uuid`: la columna es BINARY(16) y la cadena cruda no casa nunca.
+            ->setParameter('unidadId', $unidadId, UuidType::NAME)
             ->setParameter('status', PmsRatesPushQueue::STATUS_PENDING)
             ->setParameter('start', $start)
             ->setParameter('end', $end)

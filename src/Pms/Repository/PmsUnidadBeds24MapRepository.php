@@ -7,7 +7,9 @@ use App\Exchange\Entity\Beds24Config;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Entity\PmsUnidadBeds24Map;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * @extends ServiceEntityRepository<PmsUnidadBeds24Map>
@@ -23,7 +25,8 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('m')
             ->andWhere('m.pmsUnidad = :u')
-            ->setParameter('u', $unidad)
+            // ⚠️ El id con tipo `uuid`, no la entidad: ver la nota de `findRoomIdsForPull()`.
+            ->setParameter('u', $unidad->getId(), UuidType::NAME)
             ->addOrderBy('m.activo', 'DESC')
             ->addOrderBy('m.esPrincipal', 'DESC')
             ->addOrderBy('m.id', 'ASC')
@@ -39,7 +42,8 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('m')
             ->andWhere('m.pmsUnidad = :u')
-            ->setParameter('u', $unidad)
+            // ⚠️ El id con tipo `uuid`, no la entidad: ver la nota de `findRoomIdsForPull()`.
+            ->setParameter('u', $unidad->getId(), UuidType::NAME)
             ->addOrderBy('m.activo', 'DESC')
             ->addOrderBy('m.esPrincipal', 'DESC')
             ->addOrderBy('m.id', 'ASC')
@@ -52,6 +56,13 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
      *
      * Si $unidades es null o vacío => usa TODAS las unidades activas del config.
      *
+     * ⚠️ TODOS los parámetros de UUID van con el tipo `uuid` explícito, y las listas como
+     * binario crudo con `ArrayParameterType::BINARY`. Ligar la entidad —o la lista de
+     * entidades— NO falla: DQL la serializa como cadena RFC contra una columna `BINARY(16)`
+     * y la consulta devuelve CERO filas. Aquí eso significaba pull sin roomIds, y el filtro
+     * por unidades sencillamente no filtraba nada. Misma trampa que costó los envíos
+     * duplicados de `Beds24SendEnqueuer::isAlreadyEnqueued()`.
+     *
      * @param PmsUnidad[]|null $unidades
      * @return int[] roomIds únicos ordenados
      */
@@ -62,13 +73,17 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
             ->andWhere('m.config = :config')
             ->andWhere('m.activo = :activo')
             ->andWhere('m.beds24RoomId IS NOT NULL')
-            ->setParameter('config', $config)
+            ->setParameter('config', $config->getId(), UuidType::NAME)
             ->setParameter('activo', true)
             ->addOrderBy('m.beds24RoomId', 'ASC');
 
         if (is_array($unidades) && count($unidades) > 0) {
             $qb->andWhere('m.pmsUnidad IN (:unidades)')
-                ->setParameter('unidades', $unidades);
+                ->setParameter(
+                    'unidades',
+                    array_map(static fn (PmsUnidad $u) => $u->getId()->toBinary(), $unidades),
+                    ArrayParameterType::BINARY
+                );
         }
 
         $rows = $qb->getQuery()->getArrayResult();
@@ -96,13 +111,17 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
             ->andWhere('m.config = :config')
             ->andWhere('m.activo = :activo')
             ->andWhere('m.beds24PropertyId IS NOT NULL')
-            ->setParameter('config', $config)
+            ->setParameter('config', $config->getId(), UuidType::NAME)
             ->setParameter('activo', true)
             ->addOrderBy('m.beds24PropertyId', 'ASC');
 
         if (is_array($unidades) && count($unidades) > 0) {
             $qb->andWhere('m.pmsUnidad IN (:unidades)')
-                ->setParameter('unidades', $unidades);
+                ->setParameter(
+                    'unidades',
+                    array_map(static fn (PmsUnidad $u) => $u->getId()->toBinary(), $unidades),
+                    ArrayParameterType::BINARY
+                );
         }
 
         $rows = $qb->getQuery()->getArrayResult();

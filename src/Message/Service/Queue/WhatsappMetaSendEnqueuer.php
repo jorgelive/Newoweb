@@ -16,6 +16,7 @@ use App\Message\Service\MessageDataResolverRegistry;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * Encolador para WhatsApp Meta.
@@ -189,13 +190,16 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
         // CAPA 2: BASE DE DATOS FÍSICA
         // Previene duplicados contra colas que se crearon en requests anteriores
         // o por otros workers/procesos.
+        //
+        // ⚠️ El id con el tipo `uuid` explícito, NO la entidad: ver el porqué —y el destrozo
+        // que causó en Beds24— en `Beds24SendEnqueuer::isAlreadyEnqueued()`.
         // =====================================================================
         $qb = $this->em->createQueryBuilder();
         $count = (int) $qb->select('COUNT(q.id)')
             ->from(WhatsappMetaSendQueue::class, 'q')
             ->where('q.message = :message')
             ->andWhere('q.status != :status_cancelled')
-            ->setParameter('message', $message)
+            ->setParameter('message', $message->getId(), UuidType::NAME)
             ->setParameter('status_cancelled', WhatsappMetaSendQueue::STATUS_CANCELLED)
             ->getQuery()
             ->getSingleScalarResult();

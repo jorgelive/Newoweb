@@ -14,6 +14,7 @@ use DateTimeInterface;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -99,7 +100,10 @@ final readonly class PmsDisponibilidadService
         }
 
         if ($establecimientoId !== null && $establecimientoId !== '') {
-            $qb->andWhere('e.id = :establecimiento')->setParameter('establecimiento', $establecimientoId);
+            // ⚠️ Con tipo `uuid`: sin él la cadena no casa con el BINARY(16) y el filtro por
+            // establecimiento devolvía SIEMPRE cero unidades disponibles.
+            $qb->andWhere('e.id = :establecimiento')
+               ->setParameter('establecimiento', $establecimientoId, UuidType::NAME);
         }
 
         return array_map(
