@@ -3,8 +3,20 @@
 ## Stack
 
 - **Backend:** Symfony (PHP >= 8.4), API Platform, Doctrine ORM, EasyAdmin (panel legacy).
-  Comandos: `php bin/console ...`. Sin suite de tests (`tests/` está vacío): la verificación
-  es `php -l`, `lint:container` y, cuando aplica, ejecutar el flujo real.
+  Comandos: `php bin/console ...`. Verificación: `php bin/phpunit`, `php -l`,
+  `lint:container` y, cuando aplica, ejecutar el flujo real.
+
+  **Tests:** PHPUnit 13 (`phpunit.dist.xml`), suite en `tests/` espejando `src/`. Hoy sólo hay
+  tests **unitarios puros** —sin contenedor ni base de datos— sobre las piezas de decisión del
+  agente: vínculo comercial, restricción de canal, perfil de conversación, actor y desbloqueo
+  de WhatsApp. Corren en centésimas y no necesitan nada montado.
+
+  Lo que NO está cubierto y hay que probar a mano: todo lo que toca base de datos
+  (`PmsGuiaArbolFiltro`, `ConsultarCuentaSkill`, los listeners de coherencia financiera). Para
+  eso haría falta base de test y `dama/doctrine-test-bundle`; hasta entonces, ese código se
+  verifica ejecutando el flujo real. Y ojo: los dos fallos más caros de agosto de 2026 fueron
+  de **datos**, no de código —cargos huérfanos y flags mal puestos—, y eso no lo pesca ningún
+  test unitario: se pesca auditando datos reales.
 - **Frontend:** dos apps Vue 3 + TypeScript independientes.
   - `util/` — app interna de operación (calendario de reservas, tarifas, cotizaciones, chat).
   - `pax/` — app pública del huésped (guía, vista cliente de cotizaciones).

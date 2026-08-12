@@ -71,3 +71,8 @@ mercure.Caddyfile
 
 ###< Vite ###
 
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
