@@ -6212,3 +6212,29 @@ Como `whatsappDisabled` también está en los campos críticos del motor de regl
 dispara por sí solo una re-evaluación en el mismo flush.
 
 En producción hay 2 conversaciones bloqueadas, una de ellas abierta.
+
+### 19.12 El contexto volátil también lo pone el dominio
+
+Segundo paso de la deshardcodización, después de sacar los prompts de perfil del enum (§19.6).
+
+`AiConversationProcessor` construía él mismo el bloque volátil del prompt —«SE VA HOY a las
+10:00», «ANTES: ese día sale otro huésped»— y para ello importaba `PmsReserva`, inyectaba
+`PmsEspacioEstancia` y comparaba `context_type` contra `'pms_reserva'` a pelo. Tres
+acoplamientos al PMS en el corazón del agente, justo donde peor sientan: el primer módulo de
+tours habría tenido que tocar esta clase para decir «el tour sale mañana a las 6:00».
+
+`InstruccionesDeDominioInterface` gana `contextoVolatil(MessageConversation)`, y
+`PmsInstruccionesDominio` se queda con `faseDeLaEstancia()`, `espacioAlrededor()` y su helper
+de fechas. **El texto se movió tal cual**, sin reescribir: son prompts en producción.
+
+Detalle de la resolución: se hace por el `context_type` de la CONVERSACIÓN y no por el del
+actor. Son el mismo valor en el chat, pero el actor de un prospecto nace sin contexto a
+propósito, y aquí lo que se pregunta es de qué negocio va el hilo, no a qué está atado quien
+escribe.
+
+Resultado: `grep 'App\Pms\' src/Agent/Service/AiConversationProcessor.php` devuelve **cero**.
+
+Lo que sigue acoplado al PMS dentro de `src/Agent/`: `Triage/IndiceDeGuia.php` (usa `PmsGuia` y
+`PmsReserva`) y `Command/AgentReplayCommand.php`. Y las 30 skills, que siguen en `Skill/Pms/`
+— pero ésas son PMS por definición; lo que falta ahí es que `SkillRegistry::paraActor()` filtre
+por dominio además de por roles, para que un pasajero de tour no reciba `consultar_mi_reserva`.

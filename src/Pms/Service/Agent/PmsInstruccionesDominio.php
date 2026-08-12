@@ -6,6 +6,12 @@ namespace App\Pms\Service\Agent;
 
 use App\Agent\Conversation\PerfilConversacion;
 use App\Message\Contract\InstruccionesDeDominioInterface;
+use App\Message\Entity\MessageConversation;
+use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Reserva\PmsEspacioEstancia;
+use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
+use Throwable;
 
 /**
  * Cómo se habla del NEGOCIO DE ALOJAMIENTO en cada perfil.
@@ -29,6 +35,11 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
 {
     private const string CONTEXTO_RESERVA = 'pms_reserva';
 
+    public function __construct(
+        private EntityManagerInterface $em,
+        private PmsEspacioEstancia $espacio,
+    ) {}
+
     public function supports(?string $contextType): bool
     {
         return self::CONTEXTO_RESERVA === $contextType;
@@ -48,6 +59,184 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
             PerfilConversacion::Personal => $this->personal(),
             PerfilConversacion::Colaborador => $this->colaborador(),
         };
+    }
+
+    /**
+     * En qué punto va la estancia y qué pasa alrededor de sus fechas.
+     *
+     * Las dos piezas van juntas porque la segunda depende de la primera: `espacioAlrededor()`
+     * sólo tiene sentido si la fase menciona una llegada o una salida, y usa la cadena ya
+     * calculada como filtro para no consultar de más.
+     */
+    public function contextoVolatil(MessageConversation $conversacion): string
+    {
+        $fase = $this->faseDeLaEstancia($conversacion);
+
+        return $fase . $this->espacioAlrededor($conversacion, $fase);
+    }
+
+    /**
+     * En qué momento de su estancia está el huésped, en una línea.
+     *
+     * 🕐 **El agente no tenía ninguna noción del tiempo.** El contexto eran dos líneas —nombre e
+     * idioma— y con eso da igual que falten tres semanas para el check-in o que se fuera ayer.
+     *
+     * Se vio en la reserva de César Hiroyasu: se marchó el 09/08 tras un late check-out con
+     * cargo, al día siguiente escribió disculpándose, y el agente cerró con «quedo a su
+     * disposición si necesita cualquier otra cosa **durante su estancia**». La respuesta era
+     * buena —una disculpa al día siguiente se acepta y punto, que es lo que toca antes de los
+     * comentarios— salvo por el detalle de que ya no había estancia.
+     *
+     * Y en la de Alejandra Rodríguez: avisó de que llegaba a Cusco «aproximadamente 12» y el
+     * agente contestó «te esperamos a esa hora», con el check-in a las 14:00. Acertó de
+     * casualidad —la salida de ese día estaba cancelada y la casita llevaba dos días libre—,
+     * pero no lo sabía ni podía saberlo.
+     *
+     * ### Por qué aquí y no en una skill
+     *
+     * Porque **el triaje también lo necesita**, y el triaje no llama a herramientas: contesta
+     * la charla él solo ({@see \App\Agent\Triage\Triaje}), y es justo por ahí por donde salió
+     * la respuesta de César. Una skill habría dejado ciego el único camino que la necesitaba.
+     *
+     * Sale de `contextData.milestones`, que la conversación ya trae cargado: cero consultas.
+     * Son ~25 tokens en la parte NO cacheada, y compran que el agente no le hable a un huésped
+     * que se fue como si siguiera dentro.
+     *
+     * ⚠️ Esto es la fase de SU estancia. Si hay salidas o entradas de OTROS huéspedes ese día
+     * —lo que decide de verdad un early check-in— eso son datos de otras reservas y necesita
+     * su propia skill. Aquí no se inventa: se dice lo que se sabe.
+     */
+    private function faseDeLaEstancia(MessageConversation $conversacion): string
+    {
+        $hitos = $conversacion->getContextMilestones();
+        $inicio = $this->comoFecha($hitos['start'] ?? null);
+        $fin = $this->comoFecha($hitos['end'] ?? null);
+
+        if ($inicio === null || $fin === null) {
+            return '';
+        }
+
+        $hoy = new DateTimeImmutable('today');
+        $diasParaEntrar = (int) $hoy->diff($inicio->setTime(0, 0))->format('%r%a');
+        $diasDesdeSalir = (int) $fin->setTime(0, 0)->diff($hoy)->format('%r%a');
+
+        // El orden importa: se comprueba primero lo que ya pasó. Un huésped que se fue tiene
+        // `diasParaEntrar` negativo y también encajaría en «está alojado» si se mirara al revés.
+        $fase = match (true) {
+            $diasDesdeSalir === 1 => 'SE FUE AYER. Su estancia terminó; no le hables como si siguiera alojado.',
+            $diasDesdeSalir > 1 => sprintf('YA SE FUE, hace %d días. Su estancia terminó; no le hables como si siguiera alojado.', $diasDesdeSalir),
+            $diasDesdeSalir === 0 => sprintf('SE VA HOY, a las %s. Puede estar recogiendo o ya fuera.', $fin->format('H:i')),
+            $diasParaEntrar === 0 => sprintf('LLEGA HOY, a partir de las %s. Antes de esa hora la casita puede no estar lista.', $inicio->format('H:i')),
+            $diasParaEntrar === 1 => sprintf('LLEGA MAÑANA, a partir de las %s.', $inicio->format('H:i')),
+            $diasParaEntrar > 1 => sprintf('Todavía no ha llegado: entra en %d días, el %s.', $diasParaEntrar, $inicio->format('d/m')),
+            default => sprintf('ESTÁ ALOJADO ahora. Se va el %s a las %s.', $fin->format('d/m'), $fin->format('H:i')),
+        };
+
+        // Un día antes de salir es cuando preguntan por la salida tarde, así que se marca
+        // aparte: la fase «está alojado» a secas no lo distingue y es el aviso que evita que
+        // el agente conteste en genérico justo cuando la pregunta es concreta.
+        if ($diasDesdeSalir === -1) {
+            $fase .= ' MAÑANA ES SU ÚLTIMO DÍA.';
+        }
+
+        return "\n" . $fase;
+    }
+
+    /**
+     * Qué hay ANTES y DESPUÉS de su estancia en la misma casita.
+     *
+     * 🚪 Es la otra mitad de la conciencia que le faltaba al agente. La fase (§17) dice en qué
+     * momento de SU estancia está; esto dice si la casita está libre alrededor, que es lo que
+     * de verdad decide si cabe adelantar una entrada o estirar una salida.
+     *
+     * ### Sólo cuando puede cambiar la respuesta
+     *
+     * Va en la parte NO cacheada del prompt, así que se paga en cada mensaje. Preguntar por los
+     * vecinos de una estancia que empieza dentro de tres semanas es gastar en un dato que nadie
+     * va a usar, así que se calcula únicamente en los bordes: el día de llegada, la víspera, el
+     * último día y el de salida. Fuera de ahí devuelve cadena vacía y no hay ni consulta.
+     *
+     * ### Hechos, nunca política
+     *
+     * Aquí sólo se dice qué hay. **Cuánta flexibilidad cabe con eso es política, y vive en el
+     * campo de IA del ítem de horarios** ({@see \App\Pms\Entity\PmsGuiaItem::$agenteContenido}).
+     * Mezclarlo sería el problema que se quería evitar: dos fuentes —contexto y guía— diciendo
+     * cosas distintas sobre lo mismo, sin nadie que arbitre. El contexto es el marco; la guía,
+     * la norma; las skills, los datos que se piden. Cada uno de su clase y no se pisan.
+     */
+    private function espacioAlrededor(MessageConversation $conversacion, string $fase): string
+    {
+        // La fase ya calculada hace de filtro: si no menciona llegada ni salida, no toca.
+        if (!preg_match('/LLEGA (HOY|MAÑANA)|SE VA HOY|ÚLTIMO DÍA/u', $fase)) {
+            return '';
+        }
+
+        if ($conversacion->getContextType() !== 'pms_reserva' || $conversacion->getContextId() === null) {
+            return '';
+        }
+
+        $reserva = $this->em->getRepository(PmsReserva::class)->find($conversacion->getContextId());
+
+        if ($reserva === null) {
+            return '';
+        }
+
+        $espacio = $this->espacio->alrededorDe($reserva);
+
+        if ($espacio === null) {
+            return '';
+        }
+
+        $lineas = [];
+
+        if ($espacio['sale_alguien_el_dia_que_llega'] !== null) {
+            $lineas[] = sprintf(
+                'ANTES: ese día sale otro huésped a las %s, así que la casita NO está libre por la mañana.',
+                $espacio['sale_alguien_el_dia_que_llega']
+            );
+        } elseif ($espacio['libre_la_vispera']) {
+            $lineas[] = $espacio['desde_cuando_libre'] !== null
+                ? sprintf('ANTES: la casita está libre desde el %s; nadie sale ese día.', $espacio['desde_cuando_libre'])
+                : 'ANTES: la casita está libre; nadie sale ese día.';
+        }
+
+        if ($espacio['entra_alguien_el_dia_que_se_va'] !== null) {
+            $lineas[] = sprintf(
+                'DESPUÉS: el día que se va entra otro huésped a las %s.',
+                $espacio['entra_alguien_el_dia_que_se_va']
+            );
+        }
+
+        if ($lineas === []) {
+            return '';
+        }
+
+        // 🔒 El huésped no tiene por qué enterarse de los movimientos de otro.
+        //
+        // Esto es para DECIDIR, no para contar: la conclusión sí es suya («veo posible que
+        // entres a las 12», «esa mañana no va a poder ser»), el motivo no. Decirle «sale otro
+        // huésped a las 17:00» es contarle a quién tenemos dentro y a qué hora se va, que
+        // además es justo lo que no querríamos que supiera nadie de nuestra propia estancia.
+        //
+        // Va pegado a los datos y no como regla general del prompt por lo de siempre: la orden
+        // que viaja con el dato se cumple; la que hay que recordar, no.
+        return "\n" . implode("\n", $lineas)
+            . "\nESTO ES INTERNO: úsalo para decidir qué le ofreces, pero NO le cuentes que hay"
+            . ' otro huésped ni sus horas. Dale la conclusión, nunca el motivo.';
+    }
+
+    /** Un hito de `contextData` como fecha, o null si no se puede leer. */
+    private function comoFecha(mixed $valor): ?DateTimeImmutable
+    {
+        if (!is_string($valor) || trim($valor) === '') {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable($valor);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function prospecto(): string

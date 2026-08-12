@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Contract;
 
 use App\Agent\Conversation\PerfilConversacion;
+use App\Message\Entity\MessageConversation;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
@@ -47,4 +48,25 @@ interface InstruccionesDeDominioInterface
 
     /** El bloque para este perfil. Cadena vacía si al dominio no le aplica. */
     public function para(PerfilConversacion $perfil): string;
+
+    /**
+     * Lo que hay que saber de ESTA conversación ahora mismo, para el bloque volátil.
+     *
+     * En alojamiento es en qué punto va la estancia —«SE VA HOY a las 10:00», «SE FUE AYER»— y
+     * qué pasa alrededor de sus fechas. Un tour diría otra cosa: si sale mañana, si ya volvió.
+     *
+     * Vive aquí y no en el agente porque calcularlo exige conocer el negocio: el agente sólo
+     * sabe pegar la cadena en el sitio correcto. Antes estaba dentro de
+     * `AiConversationProcessor`, que para ello importaba `PmsReserva` y `PmsEspacioEstancia` y
+     * comparaba `context_type` contra `'pms_reserva'` a pelo — tres acoplamientos al PMS en el
+     * corazón del agente, justo donde peor sientan.
+     *
+     * ⚠️ Va FUERA del bloque cacheado del prompt: cambia en cada conversación y a veces en cada
+     * turno. Devuelve cadena vacía cuando no hay nada que decir, y las líneas empiezan por
+     * salto de línea porque se concatenan a un contexto que ya viene empezado.
+     *
+     * Lo que aquí se dice son HECHOS. Cuánta flexibilidad cabe con ellos es política, y vive
+     * en la guía; mezclarlos deja dos fuentes diciendo cosas distintas sin nadie que arbitre.
+     */
+    public function contextoVolatil(MessageConversation $conversacion): string;
 }

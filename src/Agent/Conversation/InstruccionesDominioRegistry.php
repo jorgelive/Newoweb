@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Conversation;
 
 use App\Message\Contract\InstruccionesDeDominioInterface;
+use App\Message\Entity\MessageConversation;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 /**
@@ -27,11 +28,34 @@ final readonly class InstruccionesDominioRegistry
 
     public function para(?string $contextType, PerfilConversacion $perfil): string
     {
+        return $this->resolver($contextType)?->para($perfil) ?? '';
+    }
+
+    /**
+     * El contexto volátil del dominio para esta conversación.
+     *
+     * Se resuelve por el `context_type` de la CONVERSACIÓN y no por el del actor: son el mismo
+     * valor en el chat, pero el actor de un prospecto nace sin contexto a propósito y aquí lo
+     * que se pregunta es de qué negocio va el hilo, no a qué está atado quien escribe.
+     */
+    public function contextoVolatil(MessageConversation $conversacion): string
+    {
+        return $this->resolver($conversacion->getContextType())?->contextoVolatil($conversacion) ?? '';
+    }
+
+    /**
+     * Gana el primero que dice soportar el tipo; si ninguno, el marcado por defecto.
+     *
+     * Ese último caso no es un remiendo: es el prospecto, que por definición no trae contexto
+     * y aun así necesita que alguien le venda algo.
+     */
+    private function resolver(?string $contextType): ?InstruccionesDeDominioInterface
+    {
         $porDefecto = null;
 
         foreach ($this->dominios as $dominio) {
             if ($dominio->supports($contextType)) {
-                return $dominio->para($perfil);
+                return $dominio;
             }
 
             if ($porDefecto === null && $dominio->esPorDefecto()) {
@@ -39,6 +63,6 @@ final readonly class InstruccionesDominioRegistry
             }
         }
 
-        return $porDefecto?->para($perfil) ?? '';
+        return $porDefecto;
     }
 }
