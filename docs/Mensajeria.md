@@ -6289,6 +6289,69 @@ que es lo correcto y no una degradación.
 
 **Resultado del conjunto:** `Service`, `Conversation`, `Triage` y `Access` no importan una sola
 clase de `App\Pms\`. Lo único que queda dentro de `src/Agent/` son las 30 skills de
-`Skill/Pms/` —PMS por definición, y lo que les falta es que `SkillRegistry::paraActor()` filtre
-por dominio además de por roles, para que un pasajero de tour no reciba `consultar_mi_reserva`—
-y `AgentReplayCommand`, una herramienta de depuración.
+`Skill/Pms/` —PMS por definición— y `AgentReplayCommand`, una herramienta de depuración.
+
+### 19.14 Frentes: de qué asunto se está hablando
+
+`InstruccionesDeDominioInterface` e `IndiceDeTemasInterface` resuelven **de qué NEGOCIO** va un
+hilo, mirando el `context_type` de la conversación. No basta, y el caso que lo demuestra no es
+exótico:
+
+> Un huésped alojado escribe preguntando si puede quedarse dos noches más. Tiene una estancia en
+> curso (operación) y está comprando (venta), **las dos cosas en alojamiento y a la vez**.
+
+Con dos asuntos vivos del mismo negocio, `VinculoComercial` dice «cliente» y no distingue nada:
+alguien tiene que decidir de cuál se habla, y ese alguien sólo puede ser quien lee el mensaje.
+El **frente** es esa unidad.
+
+| Concepto | Cuántos | Quién lo decide | Para qué sirve |
+|---|---|---|---|
+| `ActorInterface::dominios()` | varios | los datos (anclas vivas ∪ negocios vendibles) | qué skills se le enseñan |
+| `Frente` | uno por turno | el triaje, leyendo el mensaje | la voz, los hitos, de qué se habla |
+
+**El frente responde «¿de qué me hablas?»; el rol responde «¿qué te dejo hacer?».** Son
+preguntas distintas, y por eso conviven las dos respuestas.
+
+#### La venta es una puerta que nunca se cierra
+
+Además de los asuntos con entidad detrás, cada negocio vendible aporta un frente de venta
+**sintético**, sin entidad, presente en la lista de todo el mundo. Con eso, dos casos que
+parecían excepciones pasan a ser la misma regla:
+
+- un cliente de tours que escribe «no tengo alojamiento, ¿qué ofreces?»
+- un huésped alojado que quiere ampliar
+
+Los dos eligen el frente de venta del negocio por el que preguntan. Y el prospecto sin nada deja
+de ser un caso aparte: simplemente ve sólo las puertas.
+
+#### Dos vacíos que dicen «no acotes»
+
+⚠️ La regla más importante del andamiaje, y es contraintuitiva a propósito:
+
+- una skill **sin** `SkillDominioInterface` es transversal;
+- un actor con `dominios()` **vacío** es uno que todavía nadie ha poblado, y se comporta como
+  antes de que existieran los dominios.
+
+La alternativa —vacío = ningún negocio— convierte cualquier olvido en un actor mudo: sin una
+sola skill de negocio, el agente contesta que no puede ayudar y **no hay error en ningún log que
+lo delate**. Se acepta que un olvido quede permisivo porque el dominio **no es un permiso**: lo
+que se puede hacer lo siguen decidiendo los roles, y una herramienta de más en un catálogo no
+abre datos de nadie.
+
+#### Qué hay construido y qué no
+
+| Pieza | Estado |
+|---|---|
+| `Frente`, `MomentoDeFrente`, `FrentesPorDominioInterface` | hechos, en `src/Message/Contract/` |
+| `EnumeradorDeFrentes` (lista, defecto, bloque del prompt, lista blanca de ids) | hecho, `src/Message/Service/` |
+| `PmsFrentes` — envuelve `findVivasByTelefono()`, no reinventa su desempate | hecho |
+| `SkillDominioInterface` + filtro en `SkillRegistry::paraActor()` | hecho, **no-op**: ninguna skill lo implementa todavía |
+| `ActorInterface::dominios()` | hecho, devuelve vacío: nadie lo puebla todavía |
+| Que el triaje elija frente (`tipo: aclaracion`, campo `frente`) | **pendiente** |
+| `resolveConversation()` sobre `frentesVivos()` | **pendiente** |
+| Frentes de turismo | **pendiente**: `CotizacionFile` no tiene repositorio con búsqueda por teléfono |
+
+Hoy **no cambia ningún comportamiento**: el andamiaje está en verde y desconectado, que es como
+tenía que entrar. El id de un frente es un hash opaco de negocio+momento+entidad —estable entre
+turnos, para que una pregunta de desambiguación de ayer siga siendo mapeable hoy, y sin uuids
+dentro para que enseñárselo al modelo no filtre nada—.

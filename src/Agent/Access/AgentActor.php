@@ -34,7 +34,29 @@ final readonly class AgentActor implements ActorInterface
         private ?string $conversacionId = null,
         private VinculoComercial $vinculo = VinculoComercial::Ninguno,
         private RestriccionCanal $restriccion = RestriccionCanal::Ninguna,
+        private array $dominios = [],
     ) {}
+
+    /**
+     * {@inheritDoc}
+     *
+     * ⚠️ **Vacío significa SIN ACOTAR, no «sin acceso a nada».** Es deliberado y es lo contrario
+     * de lo que pide la intuición.
+     *
+     * La alternativa —vacío = ningún negocio— convierte cualquier olvido en un actor mudo: se
+     * queda sin una sola skill de negocio, el agente contesta que no puede ayudar, y no hay
+     * error en ningún log que lo delate. Con esta semántica, un actor todavía sin poblar se
+     * comporta **exactamente como antes de que existieran los dominios**, que es el fallo seguro
+     * mientras el modelo se termina de enchufar.
+     *
+     * El precio es que un olvido queda permisivo en vez de restrictivo. Se acepta porque el
+     * dominio **no es un permiso**: lo que se puede hacer lo siguen decidiendo los roles, y un
+     * actor de más en un catálogo no abre ningún dato de nadie.
+     */
+    public function dominios(): array
+    {
+        return $this->dominios;
+    }
 
     /**
      * Un miembro del equipo con sesión en el panel.

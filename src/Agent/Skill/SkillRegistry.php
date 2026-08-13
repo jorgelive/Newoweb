@@ -42,6 +42,17 @@ final readonly class SkillRegistry
                 continue;
             }
 
+            // De otro NEGOCIO: no existe para este actor. Va antes que los roles por el mismo
+            // motivo que el interruptor de arriba — «esta herramienta no es de lo tuyo» es
+            // previo a «no tienes permiso», y así el motivo que quede en el log es el de verdad.
+            //
+            // El equipo se lo salta entero: quien atiende alojamiento y tours por el mismo
+            // WhatsApp interno necesita las dos cajas a la vez, y qué puede tocar de cada una
+            // ya lo deciden sus roles.
+            if (!$actor->esDelEquipo() && !$this->esDelDominioDe($skill, $actor)) {
+                continue;
+            }
+
             if (!$actor->tieneAlguno($skill->rolesRequeridos())) {
                 continue;
             }
@@ -58,6 +69,35 @@ final readonly class SkillRegistry
         }
 
         return $permitidas;
+    }
+
+    /**
+     * ¿Esta skill es de algún negocio al que llegue el actor?
+     *
+     * **Los dos vacíos dicen «no acotes», y ninguno dice «no».** Una skill sin
+     * {@see SkillDominioInterface} es transversal —escalar al equipo, el tipo de cambio— y vale
+     * para todos; un actor con `dominios()` vacío es uno que todavía nadie ha poblado, y se
+     * comporta como antes de que existieran los dominios.
+     *
+     * Esa doble permisividad es deliberada: mientras el modelo de frentes se termina de
+     * enchufar, un olvido deja de más en el catálogo —inofensivo, porque el dominio no autoriza
+     * nada— en vez de dejar a alguien sin herramientas en silencio, que es el fallo que no se
+     * ve hasta que un cliente se queja de que el bot no sabe nada.
+     */
+    private function esDelDominioDe(SkillInterface $skill, ActorInterface $actor): bool
+    {
+        if (!$skill instanceof SkillDominioInterface) {
+            return true;
+        }
+
+        $deLaSkill = $skill->dominios();
+        $delActor = $actor->dominios();
+
+        if ($deLaSkill === [] || $delActor === []) {
+            return true;
+        }
+
+        return array_intersect($deLaSkill, $delActor) !== [];
     }
 
     public function buscar(string $nombre): ?SkillInterface

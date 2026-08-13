@@ -70,6 +70,31 @@ interface ActorInterface
      */
     public function restriccion(): RestriccionCanal;
 
+    /**
+     * A qué NEGOCIOS tiene acceso: `hotelero`, `turistico`…
+     *
+     * ── No es «de qué se está hablando» ─────────────────────────────────────
+     * Eso es el {@see \App\Message\Contract\Frente}, es UNO, lo elige el triaje leyendo el
+     * mensaje y puede cambiar en cada turno. Esto es plural, objetivo y estable: **qué catálogo
+     * de skills se le puede enseñar sin preguntarle nada**. Separarlos es lo que evita tener
+     * que re-preguntar cuando alguien cambia de tema a mitad de chat — si un huésped con un
+     * tour contratado pregunta de pronto por el tour, la herramienta ya estaba en su catálogo.
+     *
+     * ── Incluye SIEMPRE los negocios vendibles ──────────────────────────────
+     * No es sólo «donde tengo algo comprado». La venta está abierta a cualquiera, así que un
+     * prospecto —que por definición no tiene nada— recibe igualmente las skills de venta de
+     * todos los negocios. Sin eso, el filtro de dominio dejaría con el catálogo vacío justo a
+     * quien más interesa atender.
+     *
+     * ── Nunca vacío ─────────────────────────────────────────────────────────
+     * ⚠️ Devolver `[]` deja al actor sin ninguna skill de negocio, y eso no se ve: el agente
+     * responde que no puede ayudar y nadie sabe por qué. Ante la duda se devuelve la unión de
+     * todo, que es el comportamiento previo a que existieran los dominios.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array;
+
     public function esDelEquipo(): bool;
 
     /**
