@@ -22,7 +22,11 @@ npm-debug.log
 ###< PERSONALIZADO PMS ###
 
 ###> HERRAMIENTAS ###
-/composer.lock
+# composer.lock SÍ se versiona: es lo que garantiza que producción instale las
+# mismas versiones exactas que local. Ignorarlo dejó al servidor resolviendo
+# dependencias por su cuenta, con el resultado de árboles distintos (agosto 2026:
+# local 215 paquetes con api-platform/core, producción 194 con los 13 paquetes
+# split). En producción se hace `composer install`, nunca `update`.
 phpstan.neon
 .idea/
 .vscode/
@@ -76,3 +80,7 @@ mercure.Caddyfile
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+
+###> autogenerado por symfony/flex ###
+/config/reference.php
+###< autogenerado por symfony/flex ###

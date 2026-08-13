@@ -656,3 +656,29 @@ Reglas al tocar esta zona:
 3. Ajustar vistas: `ResumenClasificacion.vue` / `CotizacionEditorView.vue` (interno) y `PaxCotizacionGuiaView.vue` (cliente).
 4. `npx vue-tsc --noEmit` en `util/` y `pax/`.
 5. **Re-guardar** una cotización de prueba en el editor y recargar pax (limpiar localStorage del pax si hace falta).
+
+---
+
+## 7. Gotcha de framework: los normalizers públicos y Symfony 7
+
+Los tres normalizers de `src/Cotizacion/Serializer/` —`CotizacionPublicNormalizer`,
+`CotizacionCottarifaProveedorPublicNormalizer` y
+`CotizacionCotcomponentePrestadorPublicNormalizer`— implementaban
+`CacheableSupportsMethodInterface`. **Symfony 7 la eliminó** (estaba deprecada desde 6.3).
+
+El reemplazo es `getSupportedTypes(?string $format): array`, que los tres ya tenían. Al
+subir a 7.4 sólo hubo que quitar la interfaz del `implements`, su `use`, y el método
+`hasCacheableSupportsMethod()` que delegaba al normalizer decorado.
+
+**Qué NO cambia:** `getSupportedTypes()` devuelve `['*' => false]` en los tres. Ese `'*'`
+es deliberado y hay que dejarlo así — es la misma razón que ya explica §5 sobre
+`supportsNormalization()`: estos servicios decoran
+`api_platform.jsonld.normalizer.item`, el normalizer general de **toda** la API. Si el
+gate de entrada se restringiera a los tipos de cotización, se rompería la serialización
+del resto de entidades del sistema. El `false` significa «no cachear la decisión», que
+es lo que hacía el método eliminado.
+
+**De regalo:** la baseline de PHPStan tenía tres entradas ocultando que
+`supportsNormalization()` se invocaba con 3 parámetros cuando la interfaz de Symfony 6
+declaraba 2. En Symfony 7 el `$context` es parte oficial de la firma, así que el error
+desapareció solo y esas entradas se eliminaron.

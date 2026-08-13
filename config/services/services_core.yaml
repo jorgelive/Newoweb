@@ -40,3 +40,20 @@ services:
 
 
 
+
+    # ------------------------------------------------------------------
+    # Logging de deprecaciones (ver docs/Logging.md)
+    #
+    # El handler real es un `stream` de nombre fijo: la rotación la hace
+    # logrotate en el servidor, no Monolog. Tener los dos rotando el mismo
+    # fichero fue lo que generó 109 ficheros y 862 MB en agosto de 2026.
+    # ------------------------------------------------------------------
+    app.logging.deprecaciones_stream:
+        class: Monolog\Handler\StreamHandler
+        arguments:
+            $stream: '%kernel.logs_dir%/deprecations-prod.log'
+            $level: !php/const Monolog\Level::Info
+
+    App\Logging\FiltroDeprecacionesVendor:
+        arguments:
+            $interno: '@app.logging.deprecaciones_stream'

@@ -8,7 +8,6 @@ use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Travel\Enum\ComponenteModoEnum;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\SerializerAwareInterface;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -36,7 +35,7 @@ use Symfony\Component\Serializer\SerializerInterface;
  * CRÍTICA sobre supportsNormalization() en CotizacionPublicNormalizer.
  */
 #[AsDecorator(decorates: 'api_platform.jsonld.normalizer.item', priority: 9)]
-final class CotizacionCotcomponentePrestadorPublicNormalizer implements NormalizerInterface, CacheableSupportsMethodInterface, SerializerAwareInterface
+final class CotizacionCotcomponentePrestadorPublicNormalizer implements NormalizerInterface, SerializerAwareInterface
 {
     private const GRUPO_PUBLICO = 'pax_cotizacion:read';
 
@@ -81,11 +80,6 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
         return ['*' => false];
     }
 
-    public function hasCacheableSupportsMethod(): bool
-    {
-        return $this->decorated instanceof CacheableSupportsMethodInterface
-            && $this->decorated->hasCacheableSupportsMethod();
-    }
 
     /**
      * CRÍTICO: mismo motivo documentado en CotizacionPublicNormalizer. Sin reenviar

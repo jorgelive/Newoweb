@@ -5,6 +5,16 @@ framework:
     http_method_override: false
     translator: { fallbacks: ['%locale%'] }
 
+    # Preparación para Symfony 7: las anotaciones de Doctrine están deprecadas y
+    # el proyecto ya no las usa —el mapeo es 100% atributos PHP—. Dejarlas activas
+    # generaba la mayor parte de los avisos de deprecación de symfony/* en prod
+    # (servicios `annotations.*`, ValidatorBuilder, AttributeClassLoader).
+    annotations: false
+
+    # En 7.0 pasa a ser `true` por defecto; se fija ahora para que el cambio de
+    # comportamiento ocurra aquí y no durante el upgrade.
+    handle_all_throwables: true
+
     # Configuración de la sesión de la aplicación.
     # Nota: La sesión SOLO se iniciará si se lee o escribe en ella.
     # Elimina o comenta esta sección para deshabilitar explícitamente el soporte de sesión.

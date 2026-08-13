@@ -7,7 +7,6 @@ namespace App\Cotizacion\Serializer;
 use App\Cotizacion\Entity\Cotizacion;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\SerializerAwareInterface;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -39,7 +38,7 @@ use Symfony\Component\Serializer\SerializerInterface;
  * Registrado por atributo: no requiere ninguna entrada en services.yaml.
  */
 #[AsDecorator(decorates: 'api_platform.jsonld.normalizer.item', priority: 20)]
-final class CotizacionPublicNormalizer implements NormalizerInterface, CacheableSupportsMethodInterface, SerializerAwareInterface
+final class CotizacionPublicNormalizer implements NormalizerInterface, SerializerAwareInterface
 {
     private const GRUPO_PUBLICO = 'pax_cotizacion:read';
 
@@ -112,11 +111,6 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Cacheable
         return ['*' => false];
     }
 
-    public function hasCacheableSupportsMethod(): bool
-    {
-        return $this->decorated instanceof CacheableSupportsMethodInterface
-            && $this->decorated->hasCacheableSupportsMethod();
-    }
 
     /**
      * CRÍTICO: sin este método, ApiPlatform\Serializer\AbstractItemNormalizer
