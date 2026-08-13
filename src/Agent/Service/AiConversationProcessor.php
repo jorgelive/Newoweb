@@ -576,6 +576,35 @@ final readonly class AiConversationProcessor
             return $decision->respuesta;
         }
 
+        // PASO 2a-bis — DOS HERRAMIENTAS PODRÍAN RESPONDER: se pregunta, no se adivina.
+        //
+        // Cuando convivan dos negocios, «quiénes salen mañana» dejará de tener una sola lectura:
+        // hay salidas de alojamiento y hay tours que parten. Sin esto, el modelo elegiría una de
+        // las dos descripciones parecidas y **acertaría o no en silencio** — y para una acción,
+        // adivinar el dominio equivocado no se deshace.
+        //
+        // ⚠️ EL CIERRE ES CÓDIGO. El triaje sólo LISTA los candidatos —y ya vienen recortados por
+        // los roles del actor, así que a un limpiador nunca le quedan dos: la skill de tours no
+        // está en su catálogo—. La decisión de preguntar se toma aquí, contando. Pedírselo al
+        // prompt («si dudas, pregunta») es lo que este proyecto lleva demostrando que no funciona.
+        //
+        // Se pregunta SIN llamar al modelo: la aclaración se compone de los nombres que el propio
+        // catálogo ya trae, así que además sale gratis y es instantánea.
+        if (count($decision->candidatos) > 1) {
+            $pregunta = $this->pedirAclaracion($decision, $actor);
+
+            if ($pregunta !== null) {
+                $this->logger->info(sprintf(
+                    'IA: %d herramientas podrían responder en %s (%s); se pide aclaración.',
+                    count($decision->candidatos),
+                    $conversacion->getId(),
+                    implode(', ', $decision->candidatos)
+                ));
+
+                return $pregunta;
+            }
+        }
+
         // PASO 2b — CAMINO LARGO, con el catálogo entero. El tramo de potencia lo pone lo que
         // decidió el triaje; el proveedor sale de las claves de potencia, con caída al de
         // `AGENT_IA_PROVEEDOR` si están sin configurar. El chat del huésped nunca ha elegido
@@ -805,6 +834,56 @@ final readonly class AiConversationProcessor
      * - **Todo lo demás → Media**, que es lo que hace hoy el agente entero. Incluye el
      *   `indeterminado`: si el triaje no supo, no se toca nada.
      */
+    /**
+     * La pregunta de aclaración, compuesta con lo que las skills dicen de sí mismas.
+     *
+     * Se usa la primera frase de cada descripción, que es la que el triaje ya lee para elegir y
+     * está escrita para entenderse de un vistazo. Así no hace falta un campo nuevo de etiqueta
+     * —uno más que mantener y que se queda viejo— ni una llamada al modelo para redactar.
+     *
+     * Devuelve `null` si los candidatos no se resuelven contra el catálogo: entonces no hay nada
+     * que preguntar y se sigue por el camino largo, que es el comportamiento de siempre.
+     *
+     */
+    private function pedirAclaracion(DecisionDeTriaje $decision, ActorInterface $actor): ?string
+    {
+        $porNombre = [];
+
+        // Se vuelve a pedir el catálogo del actor —y no una lista suelta— para que la aclaración
+        // se componga con lo mismo que el triaje tenía delante: si una skill desapareció por
+        // roles entre medias, aquí tampoco aparece.
+        foreach ($this->skills->paraActor($actor) as $skill) {
+            $porNombre[$skill->nombre()] = $skill;
+        }
+
+        $opciones = [];
+
+        foreach ($decision->candidatos as $nombre) {
+            if (!isset($porNombre[$nombre])) {
+                continue;
+            }
+
+            $opciones[] = '· ' . $this->primeraFrase($porNombre[$nombre]->definicion()->descripcion);
+        }
+
+        if (count($opciones) < 2) {
+            return null;
+        }
+
+        return "Puedo mirarlo por dos lados y no quiero darte el que no es:\n\n"
+            . implode("\n", $opciones)
+            . "\n\n¿Cuál de los dos?";
+    }
+
+    /** La primera frase de la descripción de una skill, recortada para que quepa en un chat. */
+    private function primeraFrase(string $descripcion): string
+    {
+        $corte = strcspn($descripcion, '.');
+        $frase = trim(mb_substr($descripcion, 0, $corte));
+
+        return mb_strlen($frase) > 120 ? mb_substr($frase, 0, 117) . '…' : $frase;
+    }
+
     private function tramoPara(DecisionDeTriaje $decision, ActorInterface $actor): PotenciaRequerida
     {
         if ($decision->tipo === TipoDeMensaje::Emergencia) {

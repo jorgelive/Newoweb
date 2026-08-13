@@ -54,6 +54,32 @@ final readonly class DecisionDeTriaje
          * corrió porque el autoresponder está apagado— ese servicio lo genera por su cuenta.
          */
         public ?string $resumen = null,
+        /**
+         * Las herramientas que PODRÍAN responder, ya validadas contra las que este actor tiene.
+         *
+         * ── Para qué ────────────────────────────────────────────────────────────
+         * Cuando existan dos negocios, «quiénes salen mañana» dejará de tener una sola respuesta:
+         * hay salidas de alojamiento y hay tours que parten. Hoy el modelo elegiría una de las dos
+         * descripciones parecidas **y acertaría o no en silencio**.
+         *
+         * ── Por qué una lista y no una familia declarada por la skill ───────────
+         * Una taxonomía hay que decidirla a priori y se rompe en los bordes —«salidas del día»
+         * contra «operaciones del día»—, y una etiqueta mal puesta no la nota nadie. Preguntarle
+         * al clasificador cuáles podrían responder no necesita mantenimiento: cuando aparezca una
+         * skill nueva, entra en el juego sola.
+         *
+         * Y sale casi gratis: el triaje ya ha leído el catálogo entero para elegir `skill`. Es
+         * además una pregunta **cerrada** —nombres de una lista—, que es donde mejor se porta.
+         *
+         * ⚠️ **Él sólo lista; decide el código.** La lista viene filtrada por los roles del actor,
+         * así que a un limpiador nunca le quedan dos: la skill de tours no está en su catálogo.
+         * Con dos o más, quien fuerza la pregunta de aclaración es el procesador — si esto fuera
+         * una instrucción de prompt («si dudas, pregunta»), el modelo elegiría una con toda la
+         * seguridad del mundo.
+         *
+         * @var list<string>
+         */
+        public array $candidatos = [],
     ) {}
 
     /** El triaje no pudo decidir. Lleva al camino largo, que es el de siempre. */

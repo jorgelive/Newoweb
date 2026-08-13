@@ -248,6 +248,26 @@ final readonly class Triaje
             $skill = '';
         }
 
+        // Los candidatos pasan por la MISMA lista blanca, y por el mismo motivo: un nombre
+        // inventado que se colara aquí convertiría una pregunta clara en una aclaración absurda
+        // —«¿te refieres a X o a algo que no existe?»—.
+        //
+        // `$permitidas` ya viene recortado por los roles del actor, así que a un limpiador que
+        // pregunta por salidas no le puede quedar más de un candidato aunque el modelo liste dos:
+        // la skill de tours no está en su catálogo. Ése es justo el motivo de filtrar aquí y no
+        // después.
+        $candidatos = [];
+
+        foreach ((array) ($datos['candidatos'] ?? []) as $nombre) {
+            $nombre = trim((string) $nombre);
+
+            if ($nombre !== '' && in_array($nombre, $permitidas, true)) {
+                $candidatos[$nombre] = true;
+            }
+        }
+
+        $candidatos = array_values(array_keys($candidatos));
+
         // La pista es un TEMA, no una frase. Si viene larga es que el modelo pegó el mensaje
         // del huésped, y eso es justo lo que hace que la guía responda por casualidad: ver
         // ConsultarGuiaSkill::MAX_PALABRAS_BUSQUEDA.
@@ -285,6 +305,7 @@ final readonly class Triaje
             motivo: trim((string) ($datos['motivo'] ?? '')),
             respuesta: $respuesta !== '' ? $respuesta : null,
             resumen: trim((string) ($datos['resumen'] ?? '')) ?: null,
+            candidatos: $candidatos,
         );
     }
 
@@ -428,6 +449,24 @@ final readonly class Triaje
                 // qué van. Pedirle además una frase de resumen no añade una llamada; sin
                 // esto, ResumenConversacionService hace una segunda pasada sobre el MISMO
                 // texto. Ver docs/Mensajeria.md §7.
+                // Preguntar «cuáles PODRÍAN» sale casi gratis: el clasificador ya ha leído el
+                // catálogo entero para elegir `skill`. Y es una pregunta CERRADA —nombres de una
+                // lista— que es donde mejor se porta.
+                //
+                // ⚠️ Él sólo LISTA. Quien decide qué hacer con eso es el código: cuenta los
+                // candidatos que sobreviven al filtro de roles del actor y, si quedan dos o más,
+                // fuerza la pregunta de aclaración. Sin esto sería otra instrucción de prompt
+                // —«si dudas, pregunta»— y el modelo elegiría una con toda la seguridad del mundo.
+                'candidatos' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string'],
+                    'description' => 'Nombres EXACTOS de las herramientas que podrían responder '
+                        . 'esta pregunta, incluida la que elegiste. Normalmente será una sola, o '
+                        . 'ninguna. Pon dos sólo si de verdad la pregunta no distingue entre '
+                        . 'ellas —«quiénes salen mañana» cuando hay salidas de alojamiento y de '
+                        . 'tours—, no porque ambas suenen parecidas. Lista vacía si el tipo no es '
+                        . '«peticion».',
+                ],
                 'resumen' => [
                     'type' => 'string',
                     'description' => 'UNA frase en español, 12 palabras máximo, diciendo QUÉ '
@@ -436,7 +475,7 @@ final readonly class Triaje
                         . 'equipo sepa de un vistazo qué hay pendiente.',
                 ],
             ],
-            'required' => ['tipo', 'skill', 'tema_id', 'pista', 'motivo', 'respuesta', 'resumen'],
+            'required' => ['tipo', 'skill', 'tema_id', 'pista', 'motivo', 'respuesta', 'candidatos', 'resumen'],
             'additionalProperties' => false,
         ];
     }

@@ -7476,3 +7476,32 @@ la lista—, no una lista blanca de perfiles concretos.
 `reserva_id` tampoco llega a los ítems `(general)` de la guía —`consultar_guia` le pide una casita—.
 Por eso contestó de memoria en vez de leer «Estacionamiento (general)», que existe desde hace
 meses. Abrir la puerta pública a los ítems generales sigue pendiente.
+
+### 22.20 Dos herramientas podrían responder: se pregunta, no se adivina
+
+Hoy «quiénes salen mañana» se resuelve bien, pero **no porque el agente lo haya decidido**: la
+traza real dice `peticion → listar_entradas_salidas`, y la eligió porque su descripción lo dice
+—«úsala para "quién sale mañana"»— y **era la única candidata**. No hubo desambiguación porque no
+había nada que desambiguar.
+
+Cuando exista Turismo aparecerá una skill con una descripción casi idéntica —«qué tours salen
+mañana»— en el mismo catálogo, y el filtro por dominio **no las separa**: `dominios()` devuelve
+siempre la unión de lo vendible, así que un colaborador lleva los dos. Los frentes tampoco sirven:
+son «¿de cuál de TUS asuntos me hablas?», y quien pregunta por mañana no habla de un asunto suyo.
+
+#### El mecanismo
+
+El triaje devuelve `candidatos`: los nombres de las herramientas que **podrían** responder,
+validados contra la misma lista blanca que `skill`. Si al cerrar quedan **dos o más**, el
+procesador compone una pregunta de aclaración con la primera frase de cada descripción y la
+devuelve **sin llamar al modelo** — instantánea y gratis.
+
+| Decisión | Por qué |
+|---|---|
+| Lo lista el triaje, no una taxonomía en cada skill | Una familia (`salidas_del_dia` vs `operaciones_del_dia`) hay que decidirla a priori, se rompe en los bordes y una etiqueta mal puesta no la nota nadie. Preguntar no necesita mantenimiento: una skill nueva entra en el juego sola |
+| Sale casi gratis | El triaje ya lee el catálogo entero para elegir `skill`; y es una pregunta **cerrada** —nombres de una lista—, que es donde mejor se porta |
+| Los candidatos se filtran por **roles** | Al personal de limpieza la skill de tours no le llega al catálogo, así que nunca le quedan dos: no se le pregunta nada. La ambigüedad sólo existe para quien de verdad tiene las dos funciones |
+| **El cierre es código** | El modelo sólo LISTA; quien decide preguntar es el procesador, contando. «Si dudas, pregunta» en el prompt es exactamente lo que este módulo lleva demostrando que no funciona |
+
+⚠️ Preguntar y no responder ambas cosas es deliberado: **listar de más es ruido, pero ejecutar
+sobre el dominio equivocado no se deshace.**
