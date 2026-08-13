@@ -1470,3 +1470,66 @@ clasifique, la resta no tapa nada. Como mínimo:
 - `Wifi`, `Llaves` y los `Puerta (casa N)` → `Credenciales`
 
 Se clasifica desde el panel: ítem de guía → **«De qué habla»**.
+
+
+## La sección «Servicios», y por qué faltaba
+
+El huésped llega a la guía con cinco preguntas, y hasta agosto de 2026 sólo cuatro tenían dónde
+mirar:
+
+| Se pregunta | Sección |
+|---|---|
+| ¿Cómo entro? | Ingreso |
+| ¿Cómo funciona esto? | Manual |
+| **¿Qué puedo pedir?** | **Servicios** ← no existía |
+| ¿Qué se espera de mí? | Reglas (dentro de Pagos) |
+| ¿Cómo pago? | Pagos |
+
+Sin esa sección, los servicios acabaron **repartidos donde cupieron**: la lavandería dentro de una
+prohibición («NO usar agua del grifo para lavar ropa»), las toallas dentro de la descripción
+comercial, y el calefactor en el Manual **y** en las siete descripciones a la vez.
+
+⚠️ El bloque «Servicios y detalles» estaba **byte a byte idéntico** en las siete descripciones —
+mismo MD5, 434 caracteres—. Siete copias que se separan en cuanto alguien corrige una, que es
+exactamente lo que pasó con las duchas.
+
+Hoy: `Ingreso · Descripción · Manual · Servicios · Wifi · Pagos y Reglamento`, y el Manual se queda
+con lo que de verdad explica cómo funciona algo — ducha, cocina y televisor.
+
+### Cómo se metió: migración para la estructura, comando para los textos
+
+Es el patrón para cualquier reorganización de la guía, y viene de una restricción real: los ítems
+se publican **en siete idiomas** y las traducciones las genera un listener en `prePersist`, que
+una migración SQL se salta.
+
+```
+MIGRACIÓN (Version20260813220000)     COMANDO (app:pms:guia:tanda-servicios)
+─────────────────────────────────     ──────────────────────────────────────
+crea la sección                       escribe títulos y cuerpos → se traducen
+crea las fichas VACÍAS                recorta el bloque de las 7 descripciones
+crea los enlaces APAGADOS             enciende los enlaces
+mueve lo que ya existía
+```
+
+⚠️ **Los enlaces nacen apagados**, y no es un detalle: `PmsGuiaSeccion::getItemsApi()` filtra por
+enlace activo, así que entre la migración y el comando **nadie ve fichas a medio hacer**. Si el
+comando falla, lo único que queda son filas invisibles.
+
+⚠️ **Los UUID van escritos a mano en la migración**, no generados. Así la misma ficha tiene el
+mismo id en local y en producción, y una migración futura puede apuntarle por id en vez de por
+`nombre_interno` — que es frágil: en esta misma semana se renombraron ítems.
+
+⚠️ **Colapsar antes de mover.** «Servicios» es una sección común compartida por las siete guías, y
+Calefactor y Limpieza tenían un enlace por casita: reapuntarlos sin más produce siete filas
+idénticas y choca con `uniq_seccion_item`.
+
+### La cocina, y el «hornito»
+
+Va por casita porque **la casa 5 es la excepción**: inducción de una sola hornilla, sin olla
+arrocera, y por tanto **sin gas compartido con la ducha**. Las demás son de 4 hornillas a gas, y
+las casas 2, 3, 4 y 7 comparten balón con la ducha — de ahí el paso 1 con el diagnóstico cruzado.
+
+El contenido nombra el **microondas** de forma explícita. Sale de un mensaje real: *«he intentado
+usarlo para cocinar huevos y no funciona»* y *«¿es posible usar el horno pequeño para cocinar?»*.
+No hay horno: es el microondas, y quien no lo reconoce no lo va a deducir de una lista de
+electrodomésticos.
