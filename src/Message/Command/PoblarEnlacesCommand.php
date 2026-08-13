@@ -95,6 +95,10 @@ final class PoblarEnlacesCommand extends Command
                         $reservaExistente = $existente->getReserva();
 
                         if ($reservaExistente !== null) {
+                            // Se repone también el mapa del contexto: los enlaces poblados por la
+                            // primera versión de este comando tienen `start` sacado del agregado,
+                            // y sólo reponiéndolo antes puede `setHitos()` corregirlo.
+                            $existente->setMilestones($conversacion->getContextMilestones());
                             $existente->setHitos($this->hitos->para($reservaExistente));
                             $refrescados++;
                         }
@@ -145,6 +149,9 @@ final class PoblarEnlacesCommand extends Command
             // habría heredado el defecto que este trabajo persigue: una estancia partida
             // aplastada en una sola ventana. `setHitos()` mantiene además el mapa plano en
             // sintonía, para que las reglas de hoy sigan encontrando `start` y `end`.
+            // El mapa del contexto primero —trae `created_at` y `expected_arrival`, que no salen
+            // de los tramos— y los hitos derivados encima, que reescriben `start` y `end` con las
+            // fechas reales de la estancia en vez del mínimo y el máximo agregados.
             $enlace->setMilestones($conversacion->getContextMilestones());
             $enlace->setHitos($this->hitos->para($reserva));
 

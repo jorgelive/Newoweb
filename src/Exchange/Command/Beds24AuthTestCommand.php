@@ -5,16 +5,18 @@ namespace App\Exchange\Command;
 use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Service\Auth\Beds24AuthService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+#[AsCommand(
+    name: 'pms:beds24:auth:test',
+    description: 'Prueba la autenticación contra Beds24 usando refresh token',
+)]
 class Beds24AuthTestCommand extends Command
 {
-    protected static $defaultName = 'pms:beds24:auth:test';
-    protected static $defaultDescription = 'Prueba la autenticación contra Beds24 usando refresh token';
-
     private EntityManagerInterface $em;
     private Beds24AuthService $authService;
 

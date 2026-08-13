@@ -89,6 +89,69 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
     }
 
     /**
+     * ⚠️ El fallo que se coló: `start` se escribía una sola vez en la vida del enlace.
+     *
+     * La guarda era `!isset($plano['start'])` sobre el mapa **existente**, así que mover la
+     * llegada dejaba la lista diciendo la fecha nueva y el mapa la vieja. Como el motor programa
+     * con el mapa, el check-in salía calculado contra la fecha vieja: exactamente el síntoma que
+     * este trabajo venía a matar, reintroducido por una guarda de más.
+     */
+    #[Test]
+    public function mover_la_llegada_actualiza_el_mapa_y_no_solo_la_lista(): void
+    {
+        $enlace = $this->enlaceCon([
+            $this->hito(Hito::START, '2026-03-10 14:00'),
+            $this->hito(Hito::END, '2026-03-15 10:00'),
+        ]);
+
+        $enlace->setHitos([
+            $this->hito(Hito::START, '2026-03-12 14:00'),
+            $this->hito(Hito::END, '2026-03-15 10:00'),
+        ]);
+
+        self::assertSame('2026-03-12 14:00:00', $enlace->getMilestones()[Hito::START]);
+    }
+
+    /** Y si se queda sin tramos vivos, no puede sobrevivir un `start` de cuando los tenía. */
+    #[Test]
+    public function quedarse_sin_hitos_borra_el_start_anterior(): void
+    {
+        $enlace = $this->enlaceCon([
+            $this->hito(Hito::START, '2026-03-10 14:00'),
+            $this->hito(Hito::END, '2026-03-15 10:00'),
+        ]);
+
+        $enlace->setHitos([]);
+
+        self::assertArrayNotHasKey(Hito::START, $enlace->getMilestones());
+        self::assertArrayNotHasKey(Hito::END, $enlace->getMilestones());
+    }
+
+    /**
+     * Las claves que NO salen de los tramos se respetan.
+     *
+     * `created_at` y `expected_arrival` los pone el contexto, y hay reglas colgadas de los dos
+     * —la bienvenida y el aviso previo a la llegada—. Si `setHitos()` los borrase, toda reserva
+     * nueva se quedaría sin bienvenida y sin que nada lo delatara.
+     */
+    #[Test]
+    public function los_hitos_que_no_salen_de_los_tramos_sobreviven(): void
+    {
+        $enlace = (new PmsConversacionEnlace())
+            ->setMilestones([Hito::CREATED => '2026-03-01 09:00:00', Hito::EXPECTED_ARRIVAL => '2026-03-10 18:00:00'])
+            ->setHitos([
+                $this->hito(Hito::START, '2026-03-10 14:00'),
+                $this->hito(Hito::END, '2026-03-15 10:00'),
+            ]);
+
+        $plano = $enlace->getMilestones();
+
+        self::assertSame('2026-03-01 09:00:00', $plano[Hito::CREATED]);
+        self::assertSame('2026-03-10 18:00:00', $plano[Hito::EXPECTED_ARRIVAL]);
+        self::assertSame('2026-03-10 14:00:00', $plano[Hito::START]);
+    }
+
+    /**
      * Sin tramos vivos —todo cancelado— no hay hitos, y el mapa no se inventa fechas.
      *
      * Importa porque un mapa con un `start` fantasma es un mensaje de bienvenida a alguien que

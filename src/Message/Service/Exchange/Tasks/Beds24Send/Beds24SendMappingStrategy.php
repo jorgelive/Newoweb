@@ -71,8 +71,8 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             // conversación. Mismo motivo que en la estrategia de WhatsApp: con varios asuntos por
             // hilo, redactar siempre con el de la conversación manda un mensaje impecable con los
             // datos de otra reserva, y sin error que lo delate.
-            $asuntoType = $message->getAsuntoType() ?? $conversation->getContextType();
-            $asuntoId = $message->getAsuntoId() ?? $conversation->getContextId();
+            $asuntoType = $msg->getAsuntoType() ?? $conversation->getContextType();
+            $asuntoId = $msg->getAsuntoId() ?? $conversation->getContextId();
 
             $resolver = $this->resolverRegistry->getResolver($asuntoType);
 

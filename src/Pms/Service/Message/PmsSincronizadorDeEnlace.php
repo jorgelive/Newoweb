@@ -74,6 +74,19 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
         $enlace->setOrigen($contexto->getOrigin());
         $enlace->setAgencia($contexto->getAgencyId());
         $enlace->setStatusTag($contexto->getStatusTag());
+
+        // ⚠️ El mapa COMPLETO primero, y los hitos derivados encima.
+        //
+        // El contexto trae hitos que no salen de los tramos —`created_at` (cuándo se reservó) y
+        // `expected_arrival` (a qué hora dijo el huésped que llega)— y hay reglas colgadas de los
+        // dos: la bienvenida y el aviso previo a la llegada. Poner sólo los derivados dejaba
+        // esas dos claves ausentes, y una regla sin su hito **no se programa y no avisa de
+        // nada**: toda reserva nueva se habría quedado sin bienvenida, en silencio.
+        //
+        // Después `setHitos()` reescribe `start` y `end` con los derivados de los tramos, que
+        // son mejores que los del contexto: éstos son el mínimo y el máximo de la reserva, y
+        // aquéllos distinguen la estancia partida.
+        $enlace->setMilestones($contexto->getMilestones());
         $enlace->setHitos($this->hitos->para($reserva));
     }
 

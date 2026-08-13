@@ -227,17 +227,29 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
             $hitos
         ));
 
+        // ⚠️ Se RECONSTRUYEN las dos claves que le pertenecen a esta derivación, no se fusionan.
+        //
+        // Fusionar con `!isset` parecía prudente y era el bug: `start` sólo se escribía si el
+        // mapa no lo tenía ya, o sea **una vez en la vida del enlace**. Mover la llegada del 10
+        // al 12 dejaba la lista diciendo 12 y el mapa diciendo 10 — y como el motor programa con
+        // el mapa, el check-in salía calculado contra la fecha vieja. Justo el síntoma que este
+        // trabajo venía a matar, reintroducido por una guarda de más.
+        //
+        // Se borran antes del bucle para que una estancia que se queda sin tramos vivos no
+        // conserve un `start` fantasma de cuando los tenía. Las claves ajenas a esta derivación
+        // —`created_at`, `expected_arrival`— se respetan: las pone quien sabe de ellas.
         $plano = $this->milestones ?? [];
+        unset($plano[ConversationMilestoneInterface::START], $plano[ConversationMilestoneInterface::END]);
 
         foreach ($hitos as $hito) {
-            // El primero de cada tipo manda para `start` (la llegada) y el último para `end` (la
-            // salida final); los intermedios no tienen sitio en un mapa y por eso existe la lista.
-            if ($hito->tipo === ConversationMilestoneInterface::START && !isset($plano[$hito->tipo])) {
-                $plano[$hito->tipo] = $hito->fecha->format('Y-m-d H:i:s');
+            // El PRIMER `start` de esta derivación es la llegada; el ÚLTIMO `end`, la salida
+            // final. Los intermedios no caben en un mapa, y por eso existe la lista.
+            if ($hito->tipo === ConversationMilestoneInterface::START && !isset($plano[ConversationMilestoneInterface::START])) {
+                $plano[ConversationMilestoneInterface::START] = $hito->fecha->format('Y-m-d H:i:s');
             }
 
             if ($hito->tipo === ConversationMilestoneInterface::END) {
-                $plano[$hito->tipo] = $hito->fecha->format('Y-m-d H:i:s');
+                $plano[ConversationMilestoneInterface::END] = $hito->fecha->format('Y-m-d H:i:s');
             }
         }
 

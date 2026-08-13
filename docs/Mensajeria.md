@@ -6780,3 +6780,62 @@ la conversación si el mensaje no lo lleva.
 `WhatsappMetaSendEnqueuer` manda a `$conversation->getGuestPhone()`. Eso es **la persona**, que
 bajo el modelo nuevo es justo lo que la conversación representa: correcto tal cual, y de hecho
 confirma el diseño.
+
+### 20.9 Lo que se rompió al arreglar, y cómo se pescó
+
+La revisión de los tres arreglos de §20.8 encontró que **dos de los tres estaban mal**, y uno
+habría tumbado el envío entero. Se anota aquí porque el patrón se repite y conviene reconocerlo.
+
+#### El fatal: una variable mal escrita, y ninguna red debajo
+
+Las dos estrategias de envío usan `$msg` para el mensaje del lote. El arreglo escribió
+`$message`, que no existe en ese ámbito: `Error: Call to a member function getAsuntoType() on
+null` **en el primer mensaje saliente**, por WhatsApp y por Beds24.
+
+⚠️ **Lo que no lo pescó, y por qué:** `php -l` no ve variables indefinidas; los tests no tocan
+las estrategias —no existe nada bajo `tests/Message/Service/Exchange/`—; y las dos
+comprobaciones contra la base real (`sync-rules --dry-run`, `probar-regeneracion.php`) ejercitan
+el **motor de reglas**, nunca el mapeo de envío. El agujero de verificación era exacto: el único
+código que se tocó sin una red debajo fue el que quedó roto.
+
+#### El silencioso: `start` con memoria
+
+`setHitos()` fusionaba sobre el mapa existente con `!isset($plano['start'])`. Como la derivación
+emite un solo `START`, esa guarda no significaba «el primero de esta derivación» sino **«sólo si
+nunca hubo start»**: se escribía una vez en la vida del enlace y ya nunca se actualizaba.
+
+Mover la llegada del 10 al 12 dejaba la lista diciendo 12 y el mapa diciendo 10 — y el motor
+programa con el mapa. **El check-in salía calculado contra la fecha vieja**, que es exactamente
+el síntoma que §20.8 decía cerrar, reintroducido por una guarda de más. `end` sí se actualizaba:
+asimetría invisible.
+
+Ahora `setHitos()` **reconstruye** `start`/`end` (los borra antes del bucle) y respeta las claves
+que no son suyas.
+
+#### El apagón: enlaces nuevos sin `created_at`
+
+El sincronizador ponía sólo los hitos derivados de los tramos. `created_at` y
+`expected_arrival` **no salen de los tramos** —los pone el contexto— y hay reglas colgadas de los
+dos: la bienvenida y el aviso previo a la llegada. Una regla sin su hito no se programa y no
+avisa: **toda reserva nueva se habría quedado sin bienvenida**, en silencio, y encima al pasar a
+modo enlace podría cancelar la que ya estuviera encolada.
+
+Ahora se pone el mapa completo del contexto **primero** y los derivados **encima**: `created_at`
+y `expected_arrival` sobreviven, y `start`/`end` quedan con las fechas reales de la estancia en
+vez del mínimo y el máximo agregados.
+
+#### Auditoría después del arreglo
+
+De los 204 enlaces, 202 con hitos: **202 con el `start` del mapa igual al del primer hito**, y
+**202 con `created_at`**. Cero discrepancias. Esa consulta es el canario si algo vuelve a torcerse.
+
+#### Lo que sigue pendiente y no es de este trabajo
+
+- **`Beds24SendEnqueuer`** resuelve el `beds24_book_id` por el contexto de la CONVERSACIÓN. Eso
+  decide **en qué hilo de Beds24 aterriza el mensaje**, y es del asunto: tras fusionar hilos, el
+  recordatorio de la reserva B se publicaría en el hilo de la A. Mismo fallo que se acaba de
+  cerrar en las estrategias, un paso antes en la tubería.
+- **El auto-archivado sigue siendo por hilo**: cancelar una reserva cierra la conversación entera
+  y silenciaría las agendas vivas de las demás cuando los hilos se fusionen.
+- **No hay ni un test bajo `tests/Message/Service/Exchange/`**, que es justo donde vive el código
+  que se envía al huésped.

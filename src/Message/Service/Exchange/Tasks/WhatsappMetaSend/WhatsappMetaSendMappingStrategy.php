@@ -100,8 +100,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             //
             // Hoy coinciden siempre —una conversación, un asunto— y por eso no se nota; deja de
             // coincidir en cuanto se fusionen los hilos duplicados por persona.
-            $asuntoType = $message->getAsuntoType() ?? $conversation->getContextType();
-            $asuntoId = $message->getAsuntoId() ?? $conversation->getContextId();
+            $asuntoType = $msg->getAsuntoType() ?? $conversation->getContextType();
+            $asuntoId = $msg->getAsuntoId() ?? $conversation->getContextId();
 
             $resolver = $this->resolverRegistry->getResolver($asuntoType);
 
