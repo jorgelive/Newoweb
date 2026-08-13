@@ -61,7 +61,7 @@ final class AgentSembrarConocimientoCommand extends Command
         'pagos' => ['Pagos y comprobantes', 'formas de pago, moneda, tipo de cambio, boletas', 20],
         'la-casa' => ['Cómo es la casa', 'agua caliente, calefacción, cocina, wifi, espacios', 30],
         'servicios' => ['Servicios y alrededores', 'lavandería, estacionamiento, limpieza extra', 40],
-        'reservar' => ['Reservar y disponibilidad', 'capacidad, mínimo de noches, cómo reservar', 50],
+        'reservar' => ['Reservar y disponibilidad', 'capacidad, mínimo de noches, mascotas, cómo reservar', 50],
     ];
 
     /**
@@ -223,6 +223,21 @@ final class AgentSembrarConocimientoCommand extends Command
             // El tipo de cambio y las frazadas no están en ningún ítem de guía, y quien pregunta
             // suele ser el huésped ya alojado —de noche y con frío, en el caso de las mantas—.
             // Acotarlas a prospecto las dejaría mudas justo para quien las necesita.
+            [
+                'tema' => 'reservar',
+                'nombre' => 'Mascotas',
+                'etiquetas' => 'mascotas, mascota, perro, perros, gato, gatos, puedo llevar mi '
+                    . 'perro, viajo con mi mascota, pet friendly, pets, dog, animales',
+                'contenido' => 'No se aceptan mascotas.'
+                    . "\n\n"
+                    . 'Dilo claro y sin rodeos, sin dar explicaciones ni prometer que lo consultas: '
+                    . 'no hay excepción que ofrecer. Si la persona todavía no ha reservado, es '
+                    . 'mejor que lo sepa ahora que al llegar con el animal a la puerta.',
+                // Va acotada como las demás duplicadas: el huésped ya lo tiene en «Reglas», y
+                // quien de verdad necesita esta respuesta es el que aún está decidiendo si
+                // reserva — y ése no llega a la guía.
+                'perfiles' => self::PUBLICO,
+            ],
             [
                 'tema' => 'pagos',
                 'nombre' => 'Tipo de cambio',
