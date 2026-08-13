@@ -94,6 +94,16 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
      */
     private const string PLANTILLA_AVISO = 'aviso_escalado_interno';
 
+    /**
+     * Cuánto se espera antes de volver a hacer sonar los teléfonos por la misma conversación.
+     *
+     * Media hora, la misma ventana que `HUMANO_AL_MANDO` en el procesador y por el mismo motivo:
+     * es el tiempo en el que se da por hecho que quien está de guardia ya lo tiene delante. Más
+     * corto no ahorra nada —el huésped insiste en minutos—; más largo se come el aviso de un
+     * problema distinto que aparece en la misma conversación.
+     */
+    private const string ENFRIAMIENTO = '-30 minutes';
+
     public function __construct(
         private EntityManagerInterface $em,
         private UserRepository $usuarios,
@@ -131,6 +141,11 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
             parametros: [
                 SkillParameter::texto('motivo', 'En una frase: qué necesita el huésped, concreto. '
                     . 'Lo lee un operador en el móvil.'),
+                SkillParameter::booleano('emergencia', 'SÓLO para lo que no puede esperar: fuego, '
+                    . 'fuga de gas o de agua, alguien encerrado o herido, un problema de '
+                    . 'seguridad. Con esto el aviso sale aunque ya se haya avisado hace un rato. '
+                    . 'Un huésped enfadado NO es una emergencia; que algo lleve días sin '
+                    . 'resolverse, tampoco.'),
                 SkillParameter::texto('conversacion_id', 'Sólo si hablas desde el panel sobre el '
                     . 'chat de otro. En la conversación con el huésped no hace falta.',
                     requerido: false),
@@ -189,6 +204,11 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
 
         $motivo = mb_substr($motivo, 0, self::MAX_MOTIVO);
 
+        // ⚠️ Lo decide el modelo, y eso es una decisión consciente: aquí la asimetría manda. Un
+        // falso positivo cuesta un WhatsApp de más; un falso negativo silencia una emergencia de
+        // verdad. Ante la duda, que suene.
+        $emergencia = (bool) ($entrada['emergencia'] ?? false);
+
         // ── La última red: ¿esto ya está contestado? ─────────────────────────
         // Buena parte de lo que se escala son preguntas repetidas cuya respuesta no cambia
         // nunca, y cada una interrumpe a una persona para decir lo mismo otra vez.
@@ -227,6 +247,33 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
 
         $this->em->flush();
 
+        // ── ❄️ ENFRIAMIENTO ─────────────────────────────────────────────────
+        // La marca de arriba ya salió: el caso está visible en el panel pase lo que pase. Lo que
+        // se ahorra aquí es la SEGUNDA ronda de teléfonos.
+        //
+        // Hace falta porque el escalado no era idempotente entre turnos y ahora se dispara solo:
+        // agotada la escalera de un tema ({@see \App\Agent\Service\EscaleraDeTemas}), cada
+        // insistencia posterior vuelve a ordenar el aviso. Tres «sigue sin funcionar» en una
+        // tarde eran tres tandas de WhatsApp a TODA la guardia por el mismo problema, y el
+        // segundo y el tercero no le dicen nada nuevo a nadie.
+        if (!$emergencia && $this->yaAvisadoHacePoco($conversacion)) {
+            $this->logger->info('Escalado: enfriado, ya se avisó de esta conversación hace poco.', [
+                'conversacion' => (string) $conversacion->getId(),
+                'motivo' => $motivo,
+            ]);
+
+            return SkillResult::ok(array_filter([
+                'marcada_pendiente' => true,
+                'respuesta_ya_escrita' => $sugerencia,
+                'ya_avisado' => true,
+                'aviso' => 'Al equipo YA se le avisó de esto hace un momento y sigue pendiente. '
+                    . 'No he vuelto a avisar. Dile que su caso está en manos del equipo y que le '
+                    . 'responderán, SIN prometerle plazo y sin repetirle lo que ya le contaste. '
+                    . 'Si lo que cuenta AHORA es un problema distinto y grave que no admite '
+                    . 'espera, vuelve a llamarme marcando «emergencia».',
+            ], static fn ($v) => $v !== null && $v !== false));
+        }
+
         $guardia = $this->guardia();
 
         if ($guardia === []) {
@@ -261,7 +308,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
             $nombre = $operador->getFullname() ?: $operador->getUserIdentifier();
 
             try {
-                $enviados[$nombre] = $this->avisar($operador, $texto, $variables, $plantilla);
+                $enviados[$nombre] = $this->avisar($operador, $texto, $variables, $plantilla, $conversacion, $motivo);
             } catch (Throwable $e) {
                 // Un operador que falla no puede impedir que se avise al resto.
                 $fallos[] = $nombre;
@@ -403,11 +450,59 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
      * falta porque `WhatsappMetaSendEnqueuer` saca el número destino de
      * `MessageConversation::$guestPhone`: sin conversación no hay a quién enviar.
      */
+    /**
+     * ¿A esta conversación ya se le hizo sonar el teléfono a la guardia hace poco?
+     *
+     * Se mira en los avisos que salieron —que llevan `escalado_de` con el id del origen—, no en
+     * una marca de la conversación del huésped: así el enfriamiento se apoya en que el aviso
+     * EXISTIÓ, no en que alguien recordara anotarlo. Los que fallaron no cuentan; si el aviso se
+     * quedó en el sitio, hay que volver a intentarlo.
+     *
+     * El filtro por origen se hace en PHP a propósito: son unas pocas filas en una ventana de
+     * media hora, y una consulta sobre un campo JSON ataría esto a la versión de MySQL.
+     */
+    private function yaAvisadoHacePoco(MessageConversation $origen): bool
+    {
+        $desde = new \DateTimeImmutable(self::ENFRIAMIENTO);
+        $idOrigen = (string) $origen->getId();
+
+        /** @var list<Message> $recientes */
+        $recientes = $this->em->getRepository(Message::class)->createQueryBuilder('m')
+            // ⚠️ ACOTADO A LAS CONVERSACIONES DE STAFF. Sin esto el tope de filas se llena con el
+            // tráfico normal —respuestas del bot a otros huéspedes, tandas de plantillas del
+            // motor de reglas— y el aviso que se busca se cae fuera justo el día de más carga,
+            // que es cuando más avisos hay. El enfriamiento fallaría abierto y volvería a sonar
+            // toda la guardia, en silencio y sólo bajo volumen.
+            ->join('m.conversation', 'c')
+            ->andWhere('c.contextType = :staff')->setParameter('staff', self::CONTEXTO_STAFF)
+            ->andWhere('m.direction = :dir')->setParameter('dir', Message::DIRECTION_OUTGOING)
+            ->andWhere('m.createdAt >= :desde')->setParameter('desde', $desde)
+            ->andWhere('m.status NOT IN (:muertos)')
+            ->setParameter('muertos', [Message::STATUS_FAILED, Message::STATUS_CANCELLED])
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults(100)
+            ->getQuery()->getResult();
+
+        foreach ($recientes as $mensaje) {
+            $metadata = $mensaje->getMetadata();
+
+            if (($metadata['aviso_escalado'] ?? false) === true
+                && ($metadata['escalado_de'] ?? null) === $idOrigen
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function avisar(
         User $operador,
         string $texto,
         array $variables,
-        ?MessageTemplate $plantilla
+        ?MessageTemplate $plantilla,
+        MessageConversation $origen,
+        string $motivo
     ): Message {
         $conversacion = $this->conversacionStaff($operador);
 
@@ -423,6 +518,12 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         $mensaje->setContentExternal($texto);
         $mensaje->setLanguageCode($conversacion->getIdioma()?->getId() ?? 'es');
         $mensaje->addMetadata('aviso_escalado', true);
+        // De qué conversación de huésped viene. Sin esto no se puede saber si a este caso ya se
+        // le hizo sonar el teléfono hace un rato, que es lo que evita el enfriamiento.
+        $mensaje->addMetadata('escalado_de', (string) $origen->getId());
+        // Para saber DE QUÉ se avisó sin releer el texto: es lo que falta cuando el enfriamiento
+        // silencia un aviso y alguien pregunta después qué se calló.
+        $mensaje->addMetadata('motivo_escalado', $motivo);
 
         // La plantilla SÓLO fuera de ventana. Dentro, el texto libre gana: lleva los márgenes de
         // ocupación en varias líneas, y la plantilla no puede —Meta prohíbe los saltos de línea

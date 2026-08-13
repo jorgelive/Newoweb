@@ -114,8 +114,6 @@ class CotizacionFilepasajeroAdmin extends AbstractSecureAdmin
             ])
             ->add('fechanacimiento', DatePickerType::class, [
                 'label' => 'Fecha de nacimiento',
-                'dp_use_current' => true,
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd'
             ])
         ;
@@ -143,8 +141,6 @@ class CotizacionFilepasajeroAdmin extends AbstractSecureAdmin
                 ])
                 ->add('fechanacimiento', DatePickerType::class, [
                     'label' => 'Fecha de nacimiento',
-                    'dp_use_current' => true,
-                    'dp_show_today' => true,
                     'format'=> 'yyyy/MM/dd',
                     'attr' => [
                         'style' => 'width: 100px;'

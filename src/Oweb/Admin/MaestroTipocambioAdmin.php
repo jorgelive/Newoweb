@@ -70,8 +70,6 @@ class MaestroTipocambioAdmin extends AbstractSecureAdmin
         $formMapper
             ->add('fecha', DatePickerType::class, [
                 'label' => 'Fecha',
-                'dp_use_current' => true,
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd'
             ])
             ->add('moneda')

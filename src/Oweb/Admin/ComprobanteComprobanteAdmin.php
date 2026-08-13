@@ -80,8 +80,6 @@ class ComprobanteComprobanteAdmin extends AbstractSecureAdmin
                 },
                 'field_type' => DatePickerType::class,
                 'field_options' => [
-                    'dp_use_current' => true,
-                    'dp_show_today' => true,
                     'format'=> 'yyyy/MM/dd'
                 ],
                 'operator_type' => ChoiceType::class,
@@ -145,8 +143,6 @@ class ComprobanteComprobanteAdmin extends AbstractSecureAdmin
                 },
                 'field_type' => DatePickerType::class,
                 'field_options' => [
-                    'dp_use_current' => true,
-                    'dp_show_today' => true,
                     'format'=> 'yyyy/MM/dd'
                 ],
                 'operator_type' => ChoiceType::class,

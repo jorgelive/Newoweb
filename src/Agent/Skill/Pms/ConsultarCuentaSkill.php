@@ -181,6 +181,18 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             'reserva_id' => $reservaId,
             'huesped' => $this->huesped($reserva),
             'tiene_cuenta' => true,
+            // 🔀 A DÓNDE IR SI DISCUTE LA CIFRA. Que el huésped diga «en la app veo otro
+            // importe» es la objeción más frecuente de este tema, y la respuesta —que el canal
+            // muestra su tarifa, que puede no incluir limpieza ni cargo por servicio, y que
+            // nunca refleja lo que ya nos pagó directamente— está escrita en la guía, no aquí.
+            //
+            // Va pegado al dato y no confiado al prompt: sin esto el modelo improvisa una
+            // explicación verosímil distinta cada vez, que es justo lo que no puede pasar
+            // hablando de dinero. Mismo patrón que `debes_escalar` en la guía.
+            'si_discute_el_importe' => $reserva->getChannel() === null ? null
+                : 'Si dice que en la app del canal ve OTRA cifra, NO improvises la explicación: '
+                    . 'pídeme el tema de pagos con consultar_guia poniendo «ya_lo_intento», y te '
+                    . 'daré lo que hay que contarle.',
             'moneda' => $moneda,
             'total_cargos' => $info->getTotalCargos(),
             'total_pagado' => $info->getTotalPagos(),
@@ -337,6 +349,11 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             'huesped' => $this->huesped($reserva),
             'tiene_cuenta' => true,
             'canal_ya_cobro' => true,
+            // Aquí la objeción es aún más probable: no se le da ninguna cifra, así que la que
+            // él tiene delante es la de la plataforma y no hay con qué compararla.
+            'si_discute_el_importe' => 'Si dice que en la app del canal ve OTRA cifra o que pagó '
+                . 'un importe distinto, NO improvises: pídeme el tema de pagos con consultar_guia '
+                . 'poniendo «ya_lo_intento».',
             'idioma_huesped' => $idioma,
         ];
 

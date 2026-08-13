@@ -274,8 +274,6 @@ class ServicioTarifaAdmin extends AbstractSecureAdmin
 
             ->add('validezinicio', DatePickerType::class, [
                 'label' => 'Inicio validex',
-                'dp_use_current' => true,
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd',
                 'attr' => [
                     'class' => 'fecha'
@@ -283,8 +281,6 @@ class ServicioTarifaAdmin extends AbstractSecureAdmin
             ])
             ->add('validezfin', DatePickerType::class, [
                 'label' => 'Fin validez',
-                'dp_use_current' => true,
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd',
                 'attr' => [
                     'class' => 'fecha'

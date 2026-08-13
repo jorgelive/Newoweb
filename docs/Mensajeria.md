@@ -6998,8 +6998,223 @@ de la lista que acabamos de dar: entre las dos, el modelo pudo inventárselo.
 
 ### 21.6 Lo que falta
 
-- **El bloque de categorías en el contexto del turno.** Hoy el modelo tiene que pedirlo con una
-  llamada sin `categoria`; con el bloque puesto se ahorra esa vuelta. Toca
-  `AiConversationProcessor`, que es núcleo del agente.
+- ~~El bloque de categorías en el contexto del turno.~~ **Hecho.** `contexto()` inyecta
+  `ConocimientoGenerico::bloqueDeCategorias()` en lo volátil (no en el prefijo cacheado: la tabla
+  se alimenta desde el panel y meterla en la caché la invalidaría en cada alta).
+
+  ⚠️ Sin ese bloque la skill **mentía**: su descripción prometía «en el contexto tienes la lista
+  de TEMAS», el modelo se inventaba una categoría verosímil, no existía, y la skill respondía «no
+  hay nada escrito, no insistas: escala». Una pregunta **con** respuesta escrita acababa
+  interrumpiendo a una persona. Arreglado además por los dos lados: `categoria` es opcional de
+  verdad, y una categoría que no existe devuelve **el catálogo real** en lugar de una orden de
+  escalar —la misma lección que `ConsultarGuiaSkill` ya había aprendido con `tema_id`—.
 - **Alimentar la tabla.** Nace vacía: sin categorías no hay primera fase y el agente se comporta
   exactamente como hoy. Lo que se desplegó es la posibilidad, no un cambio de conducta.
+
+---
+
+## 22. La escalera de un tema: por qué no se contesta lo mismo dos veces
+
+Una persona no responde igual la segunda vez. Dice «prueba esto», y si vuelven, «prueba lo otro»,
+y si nada funciona manda al técnico. El agente hacía otra cosa: tenía **toda** la escalera escrita
+de corrido dentro del contenido del tema, y la orden de dosificarla en prosa.
+
+El ítem «Ducha (casa 2)» lo enseña entero — tres cosas distintas en un solo campo:
+
+```
+[uso]      «La manija izquierda es la caliente. Ábrela del todo… cuanta más agua pasa,
+            menos caliente sale…»
+[avería]   «Funcionan con gas propano en balones. Si se acaba el agua caliente, lo más
+            probable es que el balón esté vacío…»
+[escalado] «Si ya se lo explicaste y vuelve a decir que sigue sin salir caliente, no
+            repitas las instrucciones: avisa al equipo.»
+```
+
+Dos problemas, y el segundo es el caro:
+
+1. **Se le enseñaba entero y se le pedía que se autocensurara la mitad.** Ese patrón ya falló
+   aquí varias veces — los teléfonos del personal de limpieza se colaron tres veces pese a una
+   instrucción en mayúsculas. Lo que no debe salir, no se manda.
+2. **Es anticomercial.** Quien sólo pregunta cómo funciona la ducha recibía, en el primer
+   mensaje, que los balones se vacían y que avisaremos al equipo. Se le está respondiendo a un
+   problema que no tiene, y eso genera mal ambiente con alguien que no venía a quejarse.
+
+### 22.1 Cómo queda
+
+`PmsGuiaItem::$agentePasos` (JSON, **vacío por defecto**) guarda lo que se dice sólo si lo
+anterior no resolvió. `agenteContenido` no se toca: pasa a ser el peldaño 0.
+
+```
+   peldaño 0   agenteContenido    uso normal, lo que se contesta a una pregunta blanca
+   peldaño 1   pasos[0]           no le funcionó: lo que puede probar él
+   peldaño 2   pasos[1]           sigue sin ir: la comprobación que decide qué mandamos
+   → agotados, se escala contando lo que ya se intentó. NO se repite el peldaño 0.
+```
+
+El peldaño lo decide **código**, no el prompt: `EscaleraDeTemas::peldanoPara()` cuenta las huellas
+que ese mismo tema dejó en la metadata de los mensajes salientes (`tema_peldano`).
+
+| Decisión | Por qué |
+|---|---|
+| Huella en el **mensaje**, no un contador en `MessageConversation` | La fusión de hilos por contacto (§20) corrompería un contador agregado; los mensajes viajan enteros con su metadata |
+| Se **recalcula** leyendo, no se mantiene | Sin estado que sincronizar y sin migración |
+| Un **humano de por medio reinicia** la cuenta | Lo que venga después es conversación con la persona, no insistencia con el bot: subir peldaños ahí sería escalar lo ya escalado |
+| Ventana de **14 días** | La ducha en marzo y la ducha en junio no son insistencia, son dos averías |
+| Escalera **opcional por ítem** | La mayoría de los temas se contestan de una vez. Sin pasos, el ítem se comporta exactamente como antes |
+
+### 22.2 El aviso que hace que esto no sea contraproducente
+
+⚠️ **Lo que se le quita del texto, el modelo no se lo calla: lo NIEGA.** Está probado en esta
+misma guía — al sacar el depósito de garantía del contenido, respondía «no es necesario dejar
+ningún depósito».
+
+Por eso `ConsultarGuiaSkill::detalle()` devuelve, junto al peldaño actual, la clave
+`si_no_le_funciona` cuando quedan pasos: le dice que **existe** un «y si no» sin darle el
+contenido, y que si el huésped vuelve no improvise una solución. Sin eso, el campo de pasos sería
+peor que tenerlo todo junto.
+
+### 22.3 Cuatro trampas que costaron caro al construirlo
+
+- **`setParameter()` con la ENTIDAD en vez del id + tipo `uuid`.** Los ids son `BINARY(16)`, y
+  pasar el objeto **no da error: devuelve cero filas**. La escalera se habría quedado clavada en
+  el peldaño 0 para siempre, repitiendo la misma respuesta, sin que nada lo delatara. El patrón
+  correcto ya estaba en `NotificadorPushConversacion`.
+- **`created_at` tiene precisión de segundo.** Dos mensajes del mismo segundo salían en orden
+  arbitrario, y aquí lo primero que se mira es **quién habló último**: con el orden suelto, la
+  respuesta de un operador podía quedar detrás de la del bot y no cortar la cuenta. Se desempata
+  por `id` (UUID v7, ordenado por tiempo).
+- **«Humano» no es «cualquiera que no sea la IA».** La primera versión cortaba la cuenta con
+  `metadata['generado_por'] !== 'ia'`, y esa clave sólo la escriben `encolarRespuesta()` y
+  `EnviarmePlantillaSkill`: los recordatorios programados de `MessageRuleEngine`, las plantillas
+  del autoresponder y los avisos de escalado salen todos **sin** ella. Como prácticamente toda
+  reserva tiene mensajes programados, la escalera se habría quedado clavada en el peldaño 0 casi
+  siempre. El discriminador bueno es la columna `senderType = SENDER_HOST`, la misma que usa
+  `hayHumanoAtendiendo()`.
+- **`MAX_PELDANOS` no escalaba solo.** `peldanoPara()` satura en 3, y la rama de agotado miraba
+  únicamente si el texto era `null`. Con un ítem de **tres** pasos, el peldaño se clavaba en 3,
+  `pasos[2]` seguía existiendo y se servía **en bucle sin escalar nunca**; con dos o menos
+  funcionaba por casualidad. La skill mira ahora las dos condiciones.
+
+### 22.4 El estado del turno, y por qué se tira dos veces
+
+`EscaleraDeTemas` guarda lo servido en el turno porque las dos mitades viven separadas: quien
+**sabe** qué tema salió es la skill, y quien **escribe** el saliente es el procesador. Es un
+servicio compartido, y el worker de Messenger es un proceso largo que atiende conversaciones
+distintas en fila, así que un resto sin consumir se pega al mensaje siguiente. Como los ítems de
+guía se comparten entre casitas, ese id colisiona de verdad: alguien que preguntaba por primera
+vez recibiría el paso 1.
+
+Por eso se llama a `limpiar()` en dos sitios:
+
+- **Al abrir el turno**, porque `process()` tiene tres salidas después de `generar()` que nunca
+  encolan (`ia_sin_respuesta`, `humano_atendiendo_al_responder`, `rafaga_superada_al_responder`):
+  la guía ya corrió y anotó, pero no sale nada.
+- **Antes del acuse de recibo**, porque si `generar()` revienta después de que la guía corriera,
+  el huésped no llegó a leer ese peldaño. Estamparlo en un «lo estoy revisando» daría por
+  explicado algo que nunca recibió.
+
+La lista, además, es lista y no plaza única: un mensaje puede tocar dos temas —«no hay agua
+caliente y el calefactor no prende»— y con una sola plaza el segundo pisaba al primero.
+
+### 22.5 Los ítems con candado y la búsqueda por palabras no gastan peldaños
+
+Dos rutas quedan fuera de la escalera, cada una por su motivo:
+
+- **Ítem bloqueado.** `cuerpoParaElAgente()` devuelve el motivo del candado, no la explicación.
+  Contarlo como «ya se le contó» haría que, al abrirse la ventana, se le sirviera el paso 1 —«si
+  eso no te funcionó…»— a alguien que nunca llegó a leer la explicación normal.
+- **Búsqueda por palabras.** Esta ruta no cuenta peldaños ni deja huella, así que servir el
+  contenido por aquí significaba (a) que un huésped que reformula —«no hay agua caliente» en vez
+  de «la ducha no funciona»— recibiera el peldaño 0 indefinidamente, y (b) que el texto llegara
+  **sin** el aviso de que existen más pasos, con lo que el modelo negaría la avería en vez de
+  callarse. Ahora, si el ítem tiene escalera, esta ruta devuelve el `tema_id` y manda a pedirlo
+  por el camino bueno. Ojo: la descripción de la skill sigue ofreciendo el atajo `busqueda`, así
+  que ésta es la ruta que el modelo intentará primero en los temas con escalera.
+
+### 22.6 Lo que NO resuelve
+
+**Lo que sólo se dice si lo preguntan no es un peldaño.** El depósito de garantía no depende de
+que el huésped insista, sino de que pregunte por él, y hoy viaja dentro del ítem «Pago (general)»
+—1756 caracteres con cinco temas pegados— con la instrucción «SOLO si pregunta. No lo saques tú».
+Eso se arregla **partiendo el ítem**, para que el índice de temas lo elija cuando toca y el resto
+del tiempo ni exista.
+
+Diez de los 35 ítems con texto de agente llevan hoy contenido defensivo o condicional en la
+primera respuesta: «Early check in / Late check out» (1848), «Pago (general)» (1756), las siete
+duchas y «Calefactor». Varios necesitan las dos cosas: pasos **y** partirse.
+
+### 22.7 Lo que falta
+
+- **Cargar los pasos.** El campo nace vacío en los 44 ítems: lo desplegado es la posibilidad, no
+  un cambio de conducta.
+- **La comprobación del gas compartido no está escrita en ninguna parte.** Las casitas 7, 2, 4 y 3
+  comparten el balón entre ducha y cocina, así que encender una hornilla dice si hay gas o no —y
+  eso decide si se manda un balón o un técnico—. Ningún ítem de ducha menciona la cocina, y **no
+  existe ningún ítem de cocina** en la guía.
+- ~~Entrar directo al peldaño 1.~~ **Hecho**, ver §22.9.
+- ~~Enfriamiento del escalado.~~ **Hecho**, ver §22.8.
+- **El huésped que vuelve tras hablar con una persona recibe el peldaño 0.** El operador contesta
+  «te mandamos un balón» (`SENDER_HOST`) → la cuenta se reinicia por diseño → pasan los 30 minutos
+  de `HUMANO_AL_MANDO` → el huésped escribe «sigue igual» → el bot le explica otra vez la manija,
+  a alguien cuya avería ya está en manos del equipo. Reiniciar es correcto para no **subir**
+  peldaños; servir el 0 de nuevo es peor que las dos cosas. No tiene arreglo barato dentro de la
+  escalera: la memoria del humano para este propósito debería ser más larga que la del guardia.
+
+### Dónde tocar para cambiar la escalera
+
+| Necesidad | Archivo / método |
+|---|---|
+| Cargar o corregir los pasos de un tema | Panel → guía → ítem, campo «🪜 Si eso no resolvió (pasos)» |
+| Cambiar cuánto dura la memoria | `EscaleraDeTemas::DIAS_DE_MEMORIA` |
+| Cambiar el tope de peldaños | `EscaleraDeTemas::MAX_PELDANOS` |
+| Cambiar qué se le dice al agotarse | `ConsultarGuiaSkill::detalle()`, clave `debes_escalar` |
+| Cambiar el aviso anti-invención | `ConsultarGuiaSkill::detalle()`, clave `si_no_le_funciona` |
+| Que la huella se escriba en el saliente | `AiConversationProcessor::encolarRespuesta()` |
+| Probarlo con datos reales | `php var/probar-escalera.php` (transacción + rollback) |
+
+### 22.8 El enfriamiento del escalado
+
+`EscalarAlEquipoSkill` no era idempotente entre turnos, y la escalera convirtió eso de riesgo
+latente en garantizado: la rama de agotado no anota huella, así que la cuenta no se mueve y
+**cada** insistencia posterior vuelve a ordenar el aviso. Tres «sigue sin funcionar» en una tarde
+eran tres tandas de WhatsApp a **toda** la guardia por el mismo problema, y el segundo y el
+tercero no le dicen nada nuevo a nadie.
+
+Ahora, antes de buscar guardia, `yaAvisadoHacePoco()` mira si en los últimos 30 minutos salió un
+aviso de **esta misma conversación de origen**. Si lo hubo, no se repite la ronda y se le devuelve
+al modelo `ya_avisado` con la orden de decirle al huésped que su caso está en manos del equipo,
+sin prometer plazo.
+
+| Decisión | Por qué |
+|---|---|
+| La marca de no leído sale **siempre**, antes del enfriamiento | Lo que se ahorra es la segunda ronda de teléfonos, no la visibilidad: el caso sigue en el panel |
+| Se mira en los **avisos que salieron** (`escalado_de` con el id del origen), no en una marca de la conversación | El enfriamiento se apoya en que el aviso EXISTIÓ, no en que alguien recordara anotarlo |
+| Los avisos `FAILED`/`CANCELLED` **no enfrían** | Si el aviso se quedó en el sitio —plantilla sin aprobar por Meta, por ejemplo— hay que volver a intentarlo |
+| El filtro por origen se hace **en PHP** | Son unas pocas filas en media hora; una consulta sobre JSON ataría esto a la versión de MySQL |
+| 30 minutos | La misma ventana que `HUMANO_AL_MANDO`, y por el mismo motivo: es el tiempo en que se da por hecho que la guardia ya lo tiene delante |
+| `emergencia` lo decide **el modelo** | Asimetría deliberada: un falso positivo cuesta un WhatsApp de más; un falso negativo silencia una emergencia real. Ante la duda, que suene |
+
+Verificado con `php var/probar-enfriamiento.php`: no enfría sin avisos previos, ni con un aviso de
+otra conversación, ni con uno que falló al encolarse, ni con uno de hace tres horas; sí con uno de
+hace un momento.
+
+### 22.9 Entrar directo al paso siguiente
+
+El peldaño 0 por defecto es lo correcto: la mayoría de los «no funciona» son de gente que no ha
+leído nada. Pero quien abre diciendo **«ya hice lo que decía la guía y sigue igual»** o **«en
+Booking veo otro importe»** no está preguntando por primera vez: está objetando, y contestarle la
+explicación de siempre es no escucharle.
+
+`consultar_guia` acepta `ya_lo_intento`. Sube **un** peldaño (`max($peldano, 1)`) y nunca baja:
+no puede saltar hasta el escalado, así que el modelo usándolo de más cuesta un paso, no la
+escalera. Su descripción es deliberadamente estrecha — «no lo pongas porque suene molesto ni
+porque diga *no funciona* a secas».
+
+La misma puerta resuelve un caso que empieza en otra skill: `consultar_cuenta` devuelve ahora
+`si_discute_el_importe`, que manda al tema de pagos de la guía con `ya_lo_intento` puesto. Así la
+objeción del importe llega al **disclaimer** —por qué el canal muestra otra cifra— en vez de al
+peldaño 0, que le repetiría quién cobra.
+
+No hace falta volver al triaje: clasifica **antes** de que corran las herramientas y no ve sus
+resultados, así que re-invocarlo a mitad de turno sería pagar una clasificación sin el dato que
+provocó la objeción. La orden viaja pegada al dato, como `debes_escalar` en la guía.

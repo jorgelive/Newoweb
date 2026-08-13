@@ -21,6 +21,7 @@ use App\Pms\Guia\PmsGuiaAcceso;
 use App\Pms\Guia\PmsGuiaMensajes;
 use App\Pms\Guia\PmsGuiaArbolFiltro;
 use App\Pms\Guia\PmsGuiaContexto;
+use App\Agent\Service\EscaleraDeTemas;
 use App\Pms\Guia\PmsGuiaEstanciaResolver;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -105,6 +106,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         private EntityManagerInterface $em,
         private PmsGuiaArbolFiltro $filtro,
         private PmsGuiaEstanciaResolver $estancias,
+        private EscaleraDeTemas $escalera,
     ) {}
 
     public function nombre(): string
@@ -139,6 +141,13 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
                 SkillParameter::texto('busqueda', 'Atajo para cuando el tema es evidente: UNA o '
                     . 'DOS palabras («ducha», «basura»). Nunca el mensaje del huésped. Si dudas, '
                     . 'no lo uses: pide el catálogo y elige.', requerido: false),
+                SkillParameter::booleano('ya_lo_intento', 'Ponlo SÓLO si el huésped DICE que ya '
+                    . 'probó lo que explica la guía y no le funcionó, o que vio algo que '
+                    . 'contradice lo que le contamos («ya hice lo que decía y sigue igual», «en '
+                    . 'Booking veo otro importe»). Entonces le doy el paso siguiente en vez de '
+                    . 'repetirle la explicación de siempre. NO lo pongas porque suene molesto ni '
+                    . 'porque diga «no funciona» a secas: la mayoría de las veces eso significa '
+                    . 'que no lo ha leído, y ahí lo que toca es la explicación normal.'),
                 SkillParameter::texto('reserva_id', 'Sólo para el equipo, cuando consulta la guía '
                     . 'de OTRO huésped. Al hablar con el propio huésped no hace falta: se usa su '
                     . 'reserva.', requerido: false),
@@ -196,7 +205,8 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             return $this->guiaPublica(
                 $entrada,
                 trim((string) ($entrada['casita'] ?? '')),
-                $actor->restriccion()->categoriasBloqueadas()
+                $actor->restriccion()->categoriasBloqueadas(),
+                $actor->conversacionId()
             );
         }
 
@@ -311,7 +321,9 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             'hora_check_out' => $contexto->valores['check_out'] ?? null,
         ], static fn ($v) => $v !== null && $v !== '');
 
-        return $this->responder($entrada, $base, $secciones, $idioma, $contexto, $acceso);
+        return $this->responder(
+            $entrada, $base, $secciones, $idioma, $contexto, $acceso, $actor->conversacionId()
+        );
     }
 
     /**
@@ -336,7 +348,12 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
      *        canal propio—, pero se pasa igual: dejar una puerta al árbol sin la resta es
      *        cómo se cuela la fuga el día que exista un prospecto de canal restringido.
      */
-    private function guiaPublica(array $entrada, string $casita, array $categoriasBloqueadas = []): SkillResult
+    private function guiaPublica(
+        array $entrada,
+        string $casita,
+        array $categoriasBloqueadas = [],
+        ?string $conversacionId = null
+    ): SkillResult
     {
         if ($casita === '') {
             return SkillResult::ok([
@@ -392,7 +409,9 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
                 . 'aquí, y es correcto que no estén.',
         ];
 
-        return $this->responder($entrada, $base, $secciones, 'es', $contexto, $acceso);
+        return $this->responder(
+            $entrada, $base, $secciones, 'es', $contexto, $acceso, $conversacionId
+        );
     }
 
     /**
@@ -441,6 +460,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         string $idioma,
         PmsGuiaContexto $contexto,
         PmsGuiaAcceso $acceso,
+        ?string $conversacionId = null,
     ): SkillResult {
         // El nombre de la casita se lee de `$base` y no de la unidad: las dos puertas lo ponen
         // ahí, y así este tramo no necesita conocer por cuál se entró.
@@ -468,7 +488,10 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
 
             return SkillResult::ok($base + [
                 'encontrado' => true,
-                'resultados' => [$this->detalle($item['item'], $item['seccion'], $idioma, $contexto, $acceso)],
+                'resultados' => [$this->detalle(
+                    $item['item'], $item['seccion'], $idioma, $contexto, $acceso, $conversacionId,
+                    (bool) ($entrada['ya_lo_intento'] ?? false)
+                )],
             ]);
         }
 
@@ -610,15 +633,81 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         PmsGuiaSeccion $seccion,
         string $idioma,
         PmsGuiaContexto $contexto,
-        PmsGuiaAcceso $acceso
+        PmsGuiaAcceso $acceso,
+        ?string $conversacionId = null,
+        bool $yaLoIntento = false
     ): array {
-        $cuerpo = $this->cuerpoParaElAgente($item, $idioma, $contexto, $acceso);
+        // 🪜 LA ESCALERA DEL TEMA. Sólo para los ítems que la tienen cargada: sin pasos, esto
+        // vale 0 y todo se comporta como antes de que existiera. Ver PmsGuiaItem::$agentePasos.
+        // ⚠️ UN ÍTEM CON CANDADO NO GASTA PELDAÑOS. `cuerpoParaElAgente()` le devuelve el motivo
+        // del bloqueo, no la explicación: contar eso como «ya se le contó» haría que, al abrirse
+        // la ventana, se le sirviera el paso 1 —«si eso no te funcionó…»— a alguien que nunca
+        // llegó a leer la explicación normal.
+        $peldano = ($item->pasosDisponibles() > 0 && !$item->isBloqueado())
+            ? $this->escalera->peldanoPara($conversacionId, (string) $item->getId())
+            : 0;
+
+        // ⏭️ ENTRADA DIRECTA AL SIGUIENTE PASO cuando el huésped abre diciendo que ya lo probó.
+        //
+        // El peldaño 0 por defecto es lo correcto —la mayoría de los «no funciona» son de gente
+        // que no ha leído nada—, pero quien empieza con «ya hice lo que decía la guía» o «en el
+        // canal veo otro importe» NO está preguntando por primera vez: está objetando, y
+        // responderle la explicación de siempre es no escucharle.
+        //
+        // Sube UN peldaño y nunca baja: no puede saltar hasta el escalado, así que el modelo
+        // usándolo de más cuesta un paso, no la escalera entera.
+        if ($yaLoIntento && $item->pasosDisponibles() > 0 && !$item->isBloqueado()) {
+            $peldano = max($peldano, 1);
+        }
+
+        // Se acabó lo que se podía intentar por chat. NO se le repite el texto —repetirlo es
+        // exactamente lo que hace que la gente pierda la paciencia—: se reconoce y se escala.
+        // El tope cuenta tanto como quedarse sin texto: `peldanoPara()` satura en MAX_PELDANOS,
+        // así que un ítem con TRES pasos se clavaba ahí sirviendo el último en bucle y no
+        // escalaba nunca. Con ≤2 pasos funcionaba de casualidad.
+        if ($peldano > 0
+            && ($peldano >= EscaleraDeTemas::MAX_PELDANOS
+                || $item->agenteTextoParaPeldano($peldano) === null)
+        ) {
+            return array_filter([
+                'tema' => $this->enIdioma($item->getTituloParaCliente(), $idioma),
+                'seccion' => $this->enIdioma($seccion->getTitulo(), $idioma) ?: null,
+                'sin_mas_pasos' => sprintf(
+                    'Ya se le explicó este tema y se le hicieron probar %d cosa(s) más, y sigue '
+                    . 'sin resolverse.',
+                    $item->pasosDisponibles()
+                ),
+                'debes_escalar' => 'NO vuelvas a explicarle lo mismo ni le propongas otra prueba: '
+                    . 'no queda ninguna. Reconoce que no se ha resuelto, dile que lo pasas al '
+                    . 'equipo y llama a escalar_al_equipo en este mismo turno, contando lo que ya '
+                    . 'se intentó. No le prometas plazo.',
+            ], static fn ($v) => $v !== null && $v !== '');
+        }
+
+        // Queda anotado ANTES de devolver: es lo que hará que la próxima vez el peldaño suba.
+        // Si el ítem no tiene escalera no se anota nada, y así la metadata de los salientes no
+        // se llena de huellas que nadie va a contar.
+        if ($item->pasosDisponibles() > 0 && !$item->isBloqueado()) {
+            $this->escalera->anotarServido((string) $item->getId(), $peldano);
+        }
+
+        $cuerpo = $this->cuerpoParaElAgente($item, $idioma, $contexto, $acceso, $peldano);
 
         return array_filter([
             'tema' => $this->enIdioma($item->getTituloParaCliente(), $idioma),
             'seccion' => $this->enIdioma($seccion->getTitulo(), $idioma) ?: null,
             'bloqueado' => $item->isBloqueado() ?: null,
             'contenido' => $this->recortar($cuerpo),
+            // 🔥 SIN ESTO EL CAMPO DE PASOS SERÍA CONTRAPRODUCENTE. Lo que se le quita del texto,
+            // el modelo no se lo calla: lo NIEGA. Está probado en esta misma guía —al sacar el
+            // depósito de garantía del contenido, respondía «no es necesario dejar ningún
+            // depósito»—. Así que cuando quedan pasos hay que decírselo: existe un «y si no», no
+            // se le da todavía, y no se improvisa uno.
+            'si_no_le_funciona' => $item->agenteTextoParaPeldano($peldano + 1) !== null
+                ? 'Para este tema hay MÁS pasos guardados, que no te doy ahora. Si te dice que '
+                    . 'esto no le funcionó, no improvises una solución ni des el tema por perdido: '
+                    . 'vuelve a llamarme con el mismo tema_id y te daré el siguiente.'
+                : null,
             // 🔔 La orden viaja PEGADA al texto que el modelo acaba de leer, no en una regla
             // general del prompt que tenga que recordar. Ver PmsGuiaItem::$agenteRequiereHumano.
             'debes_escalar' => $item->isAgenteRequiereHumano()
@@ -726,6 +815,28 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
                     continue;
                 }
 
+                // 🪜 UN TEMA CON ESCALERA NO SE SIRVE POR AQUÍ. Esta ruta no cuenta peldaños ni
+                // deja huella, así que devolver el contenido significaba: (a) que un huésped que
+                // reformula —«no hay agua caliente» en vez de «la ducha no funciona»— recibiera
+                // el peldaño 0 indefinidamente, y (b) que el texto llegara SIN el aviso de que
+                // existen más pasos, con lo que el modelo negaría la avería en vez de callarse.
+                // Se le devuelve el tema y se le manda a pedirlo por el camino bueno.
+                if ($item->pasosDisponibles() > 0 && !$item->isBloqueado()) {
+                    $fila = array_filter([
+                        'tema' => $titulo,
+                        'tema_id' => (string) $item->getId(),
+                        'seccion' => $this->enIdioma($seccion->getTitulo(), $idioma) ?: null,
+                        'aviso' => 'Este tema tiene instrucciones que se dan por pasos y no te '
+                            . 'las puedo dar por esta vía. Vuelve a llamarme con este «tema_id» '
+                            . 'y te doy la que toca — y si habías puesto «ya_lo_intento», '
+                            . 'consérvalo en esa segunda llamada.',
+                    ], static fn ($v) => $v !== null && $v !== '');
+
+                    ($enTerminos || $enTitulo) ? $porTitulo[] = $fila : $porCuerpo[] = $fila;
+
+                    continue;
+                }
+
                 $fila = array_filter([
                     'tema' => $titulo,
                     'seccion' => $this->enIdioma($seccion->getTitulo(), $idioma) ?: null,
@@ -778,7 +889,8 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         PmsGuiaItem $item,
         string $idioma,
         PmsGuiaContexto $contexto,
-        PmsGuiaAcceso $acceso
+        PmsGuiaAcceso $acceso,
+        int $peldano = 0
     ): string {
         // 🔒 UN ÍTEM BLOQUEADO NO ENTREGA SU CONTENIDO, y el override tampoco.
         //
@@ -792,7 +904,9 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             return PmsGuiaMensajes::bloqueo($acceso, $idioma);
         }
 
-        $override = $item->getAgenteContenido();
+        // El peldaño 0 es el `agente_contenido` de siempre; de ahí en adelante, los pasos. Sólo
+        // se cae al cuerpo publicado cuando no hay override ninguno, que es el caso normal.
+        $override = $item->agenteTextoParaPeldano($peldano);
 
         if ($override !== null) {
             return $override;

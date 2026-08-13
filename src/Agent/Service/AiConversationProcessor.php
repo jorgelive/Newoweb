@@ -69,6 +69,8 @@ final readonly class AiConversationProcessor
         private AgentActorFactory $actores,
         private InstruccionesDominioRegistry $dominios,
         private PhoneSanitizer $telefonos,
+        private EscaleraDeTemas $escalera,
+        private ConocimientoGenerico $conocimiento,
         private bool $habilitado,
     ) {}
 
@@ -95,6 +97,14 @@ final readonly class AiConversationProcessor
             return $motivo;
         }
 
+        // 🪜 SE ABRE EL TURNO EN LIMPIO. `EscaleraDeTemas` es un servicio compartido y el worker
+        // de Messenger es un proceso largo que atiende conversaciones distintas en fila: un turno
+        // que consultó la guía y acabó callándose —ráfaga, humano que entra a mitad, motor sin
+        // texto— dejaba la huella colgando y se la pegaba al saliente del SIGUIENTE huésped. Como
+        // los ítems de guía se comparten entre casitas, ese id colisiona de verdad: alguien que
+        // preguntaba por primera vez recibía el paso 1.
+        $this->escalera->limpiar();
+
         try {
             $respuesta = $this->generar($conversacion, $message);
         } catch (Throwable $e) {
@@ -113,6 +123,12 @@ final readonly class AiConversationProcessor
             // El acuse ya existía para el caso «el motor respondió sin texto»; una caída de red
             // a mitad de turno deja al huésped exactamente igual de solo, así que se le trata
             // igual. Es el suelo, no la política.
+
+            // El acuse NO hereda la huella: si `generar()` reventó después de que la guía
+            // corriera, el huésped no llegó a leer ese peldaño. Estamparlo en un «lo estoy
+            // revisando» le daría por explicado algo que nunca recibió, y la próxima vez se le
+            // serviría el paso siguiente.
+            $this->escalera->limpiar();
             $this->encolarRespuesta($conversacion, $message, $this->acuseDeRecibo($conversacion));
 
             return 'error_ia';
@@ -612,6 +628,13 @@ final readonly class AiConversationProcessor
             return $respuesta->texto;
         }
 
+        // El acuse NO hereda la huella, igual que en el `catch` de `process()`. Éste es el
+        // TERCER camino al acuse y el más fácil de pasar por alto: aquí no hay excepción, se
+        // devuelve el acuse como si fuera la respuesta y se encola por la vía normal. Si la guía
+        // corrió antes de que el motor se quedara sin texto, la huella acabaría estampada en un
+        // «un compañero te responderá» y el huésped tendría por explicado algo que nunca leyó.
+        $this->escalera->limpiar();
+
         // Sin texto no hay nada que entregar —el motor no respondió, o los clasificadores del
         // proveedor declinaron, o al huésped le faltaban permisos—. Antes esto era silencio y
         // el huésped se quedaba mirando el chat sin saber si alguien le leyó. El acuse de
@@ -841,8 +864,21 @@ final readonly class AiConversationProcessor
         $limites = $actor->restriccion()->avisoParaElPrompt();
         $limites = $limites === '' ? '' : "\n" . $limites;
 
+        // 📚 Los temas sobre los que HAY respuesta escrita ({@see ConocimientoGenerico}).
+        //
+        // Va aquí, en lo volátil, y no en el prompt cacheado: la tabla se alimenta desde el panel
+        // cada vez que alguien nota una pregunta repetida, y meterla en el prefijo obligaría a
+        // invalidar la caché de todas las conversaciones cada vez que se añade una categoría.
+        //
+        // ⚠️ Sin este bloque la skill de conocimiento MIENTE: su descripción le dice al modelo
+        // «en el contexto de este turno tienes la lista de TEMAS», así que se inventaba una
+        // categoría verosímil, no existía, y la skill respondía «no hay nada escrito, no insistas
+        // con otro tema: escala». Una pregunta CON respuesta escrita acababa en escalado.
+        $temas = $this->conocimiento->bloqueDeCategorias();
+        $temas = $temas === '' ? '' : "\n" . $temas;
+
         $contexto = <<<CONTEXTO
-        Hablas con {$huesped}.{$dominio}{$quien}{$limites}
+        Hablas con {$huesped}.{$dominio}{$quien}{$limites}{$temas}
         Responde SIEMPRE en el idioma con código "{$idioma}".
         CONTEXTO;
 
@@ -1005,6 +1041,20 @@ final readonly class AiConversationProcessor
         $salida->setContentExternal($texto);
         $salida->setLanguageCode($conversacion->getIdioma()?->getId() ?? 'es');
         $salida->addMetadata('generado_por', 'ia');
+
+        // 🪜 La huella del tema, si en este turno se sirvió uno con escalera. Es lo que permite
+        // que la próxima vez que vuelva sobre lo mismo se le dé el paso siguiente en vez de la
+        // misma explicación. Vive en el mensaje y no en la conversación a propósito: la fusión
+        // de hilos por contacto (§20) se llevaría por delante un contador agregado, mientras que
+        // los mensajes viajan enteros con su metadata. Ver EscaleraDeTemas.
+        // ⚠️ LA LISTA ENTERA, EN UNA SOLA CLAVE. `addMetadata()` sobrescribe, así que estampar
+        // una clave por vuelta dejaba sólo el último tema — y la lista existe justamente para que
+        // «no hay agua caliente y el calefactor no prende» no pierda la escalera de la ducha.
+        $servidos = $this->escalera->tomarServido();
+
+        if ($servidos !== []) {
+            $salida->addMetadata('temas_peldano', $servidos);
+        }
 
         $conversacion->addMessage($salida);
         $this->em->persist($salida);

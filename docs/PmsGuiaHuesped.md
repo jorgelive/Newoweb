@@ -1088,6 +1088,14 @@ Un ítem de guía puede decirle **una cosa a la pantalla y otra al chat**. Con
 `PmsGuiaItem::$agenteContenido` escrito, `consultar_guia` devuelve ese texto **en lugar del
 cuerpo**; la app del huésped no se entera y sigue pintando la descripción de siempre.
 
+> 🪜 **Y una cosa distinta la segunda vez.** `agenteContenido` es sólo el primer peldaño: lo que
+> se contesta a una pregunta blanca. Lo que se dice **cuando eso no resolvió** —«cierra y abre al
+> máximo», «enciende una hornilla, comparten el gas»— va en `PmsGuiaItem::$agentePasos`, y sale
+> sólo si el huésped vuelve sobre el tema. Así al que sólo pregunta cómo funciona la ducha no se
+> le contesta con avisos de avería. El mecanismo completo —cómo se cuenta el peldaño, por qué un
+> humano reinicia la cuenta, y el aviso que evita que el modelo NIEGUE lo que no se le dio— está
+> en `docs/Mensajeria.md` §22. **Casi todos los ítems lo llevan vacío, y así debe ser.**
+
 ### Por qué hacen falta dos versiones
 
 No es censura, es que **leer y que te lo digan no son lo mismo**. El ítem «Pago y depósito de

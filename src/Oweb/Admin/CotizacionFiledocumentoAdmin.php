@@ -86,8 +86,6 @@ class CotizacionFiledocumentoAdmin extends AbstractSecureAdmin
             ->add('nombre')
             ->add('vencimiento', DatePickerType::class, [
                 'label' => 'Vencimiento',
-                'dp_use_current' => true,
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd',
                 'required' => false
             ])

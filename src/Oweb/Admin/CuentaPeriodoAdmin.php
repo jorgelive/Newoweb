@@ -81,8 +81,6 @@ class CuentaPeriodoAdmin extends AbstractSecureAdmin
         $formMapper
             ->add('fechainicio', DatePickerType::class, [
                 'label' => 'Inicio',
-                'dp_use_current' => true,
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd',
                 'attr' => [
                     'class' => 'fecha'
@@ -91,8 +89,6 @@ class CuentaPeriodoAdmin extends AbstractSecureAdmin
             ->add('fechafin', DatePickerType::class, [
                 'required' => false,
                 'label' => 'Fin',
-                'dp_use_current' => true,
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd',
                 'attr' => [
                     'class' => 'fecha'

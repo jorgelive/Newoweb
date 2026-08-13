@@ -71,9 +71,7 @@ class ReservaPagoAdmin extends AbstractSecureAdmin
         $formMapper
             ->add('fecha', DatePickerType::class, [
                 'label' => 'Fecha',
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd',
-                'dp_default_date' => $ahora->format('Y-m-d')
             ])
             ->add('moneda')
             ->add('monto')
@@ -89,9 +87,7 @@ class ReservaPagoAdmin extends AbstractSecureAdmin
             $form
                 ->add('fecha', DatePickerType::class, [
                     'label' => 'Fecha',
-                    'dp_show_today' => true,
                     'format'=> 'yyyy/MM/dd',
-                    'dp_default_date' => $ahora->format('Y-m-d'),
                     'attr' => [
                         'style' => 'min-width: 100px;'
                     ]

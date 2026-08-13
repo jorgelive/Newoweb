@@ -75,8 +75,6 @@ class TransporteUnidadbitacoraAdmin extends AbstractSecureAdmin
             ->add('kilometraje')
             ->add('fecha', DatePickerType::class, [
                 'label' => 'Fecha',
-                'dp_use_current' => true,
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd'
             ])
         ;

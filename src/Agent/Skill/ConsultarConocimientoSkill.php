@@ -52,13 +52,16 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
                 . 'En el contexto de este turno tienes la lista de TEMAS disponibles: elige el que '
                 . 'encaje y llámame con «categoria». Te devuelvo las etiquetas de ese tema; '
                 . 'cuando veas la que responde, vuelve a llamarme con su «item_id» y te doy el '
-                . 'texto. Si ninguna etiqueta encaja, NO insistas con otra categoría: significa '
-                . 'que no está escrito, y entonces sí toca escalar. '
+                . 'texto. Si el tema que elegiste no tenía nada, te devuelvo la lista de los que '
+                . 'sí existen: mírala antes de darlo por perdido. Cuando ninguno encaje, entonces '
+                . 'sí toca escalar. '
                 . 'El texto que devuelvo está redactado para decirse: adáptalo al idioma y al tono '
                 . 'de quien pregunta, pero no le añadas datos que no estén ahí.',
             parametros: [
                 SkillParameter::texto('categoria', 'El id del tema, tal cual aparece en la lista '
-                    . 'de TEMAS del contexto (por ejemplo «pagos»).'),
+                    . 'de TEMAS del contexto (por ejemplo «pagos»). Si no lo tienes delante, '
+                    . 'llámame SIN esto y te doy la lista: NUNCA te lo inventes.',
+                    requerido: false),
                 SkillParameter::texto('item_id', 'El id de la respuesta concreta, de la lista que '
                     . 'te devolví en la llamada anterior. Sin esto te doy sólo las etiquetas.',
                     requerido: false),
@@ -128,10 +131,29 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
         $items = $this->conocimiento->itemsDe($categoria, $actor);
 
         if ($items === []) {
+            // ⚠️ AQUÍ SE DEVUELVE EL CATÁLOGO, NO UNA ORDEN DE ESCALAR.
+            //
+            // Antes esto respondía «no hay nada escrito, no insistas con otro tema: escala», y
+            // era la peor salida posible en el caso más probable: el modelo llega con una
+            // categoría que se inventó —o que ya no existe porque alguien la renombró en el
+            // panel—, no encuentra nada, y una pregunta CON respuesta escrita acababa
+            // interrumpiendo a una persona. Con la lista delante, corrige y acierta.
+            //
+            // `ConsultarGuiaSkill` ya aprendió esto: cuando el `tema_id` no está, devuelve el
+            // catálogo. Esta skill nació sin la lección.
+            $temas = $this->conocimiento->categorias();
+
             return SkillResult::ok([
                 'encontrado' => false,
-                'aviso' => 'No hay nada escrito en ese tema para quien pregunta. No insistas con '
-                    . 'otro tema: si de verdad no hay respuesta, escala al equipo.',
+                'temas' => array_map(
+                    static fn ($c): array => ['id' => $c->getId(), 'nombre' => $c->getNombre()],
+                    $temas
+                ),
+                'aviso' => $temas === []
+                    ? 'No hay nada escrito todavía. Si no puedes responder tú, escala al equipo.'
+                    : 'En ese tema no hay nada para quien pregunta. Estos son los temas que SÍ '
+                        . 'existen: si alguno encaja con lo que te preguntaron, vuelve a llamarme '
+                        . 'con su id. Si ninguno encaja, entonces sí escala.',
             ]);
         }
 

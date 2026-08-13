@@ -61,13 +61,9 @@ class CuentaMovimientoAdmin extends AbstractSecureAdmin
                 'field_type' => DateRangePickerType::class,
                 'field_options' => [
                     'field_options_start' => [
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format'=> 'yyyy/MM/dd'
                     ],
                     'field_options_end' => [
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format'=> 'yyyy/MM/dd'
                     ]
                 ],
@@ -171,8 +167,6 @@ class CuentaMovimientoAdmin extends AbstractSecureAdmin
         $formMapper
             ->add('fechahora', DateTimePickerType::class, [
                 'label' => 'Fecha',
-                'dp_use_current' => true,
-                'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd HH:mm',
                 'attr' => [
                     'class' => 'fechahora'

@@ -103,13 +103,9 @@ class CotizacionCotcomponenteAdmin extends AbstractSecureAdmin
                 'field_type' => DateRangePickerType::class,
                 'field_options' => [
                     'field_options_start' => [
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format'=> 'yyyy/MM/dd'
                     ],
                     'field_options_end' => [
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format'=> 'yyyy/MM/dd'
                     ]
                 ],
@@ -232,7 +228,6 @@ class CotizacionCotcomponenteAdmin extends AbstractSecureAdmin
             $formMapper
                 ->add('fechahorainicio', DateTimePickerType::class, [
                     'label'         => 'Inicio',
-                    'dp_show_today' => true,
                     'format'        => 'yyyy/MM/dd HH:mm',
                     'attr'          => [
                         'class'               => 'fechahora componenteinicio',
@@ -241,7 +236,6 @@ class CotizacionCotcomponenteAdmin extends AbstractSecureAdmin
                 ])
                 ->add('fechahorafin', DateTimePickerType::class, [
                     'label'         => 'Fin',
-                    'dp_show_today' => true,
                     'format'        => 'yyyy/MM/dd HH:mm',
                     'attr'          => [
                         'class'               => 'fechahora componentefin',
@@ -281,7 +275,6 @@ class CotizacionCotcomponenteAdmin extends AbstractSecureAdmin
             $form
                 ->add('fechahorainicio', DateTimePickerType::class, [
                     'label'         => 'Inicio',
-                    'dp_show_today' => true,
                     'format'        => 'yyyy/MM/dd HH:mm',
                     'attr'          => [
                         'duracion'            => $duracion,
@@ -291,7 +284,6 @@ class CotizacionCotcomponenteAdmin extends AbstractSecureAdmin
                 ])
                 ->add('fechahorafin', DateTimePickerType::class, [
                     'label'         => 'Fin',
-                    'dp_show_today' => true,
                     'format'        => 'yyyy/MM/dd HH:mm',
                     'attr'          => [
                         'duracion'            => $duracion,

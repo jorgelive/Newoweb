@@ -176,13 +176,9 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
                 'field_type' => DateRangePickerType::class,
                 'field_options' => [
                     'field_options_start' => [
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format' => 'yyyy/MM/dd'
                     ],
                     'field_options_end' => [
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format' => 'yyyy/MM/dd'
                     ]
                 ],
@@ -216,13 +212,9 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
                 'field_type' => DateRangePickerType::class,
                 'field_options' => [
                     'field_options_start' => [
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format' => 'yyyy/MM/dd'
                     ],
                     'field_options_end' => [
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format' => 'yyyy/MM/dd'
                     ]
                 ],
@@ -412,12 +404,10 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
             ])
             ->add('fechahorainicio', DateTimePickerType::class, [
                 'label' => 'Check-in',
-                'dp_show_today' => true,
                 'format' => 'yyyy/MM/dd HH:mm'
             ])
             ->add('fechahorafin', DateTimePickerType::class, [
                 'label' => 'Check-out',
-                'dp_show_today' => true,
                 'format' => 'yyyy/MM/dd HH:mm'
             ])
             ->add('channel', null, [

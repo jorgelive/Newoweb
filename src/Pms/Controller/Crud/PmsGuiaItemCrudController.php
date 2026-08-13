@@ -26,6 +26,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 
 class PmsGuiaItemCrudController extends AbstractCrudController
 {
@@ -268,6 +269,36 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 . 'y se devuelven al salir.»</em> Las instrucciones no se le escapan al huésped.'
             )
             ->setNumOfRows(5)
+            ->hideOnIndex()
+            ->setColumns(12);
+
+        // La escalera del tema. Ver PmsGuiaItem::$agentePasos: lo que NO debe salir en la primera
+        // respuesta no se manda en la primera respuesta, en vez de pedirle al modelo que se lo
+        // calle habiéndoselo enseñado.
+        yield CollectionField::new('agentePasos', '🪜 Si eso no resolvió (pasos)')
+            ->setEntryType(TextareaType::class)
+            ->setFormTypeOption('entry_options', ['label' => false, 'attr' => ['rows' => 4]])
+            ->allowAdd()
+            ->allowDelete()
+            ->setHelp(
+                '<strong>Casi siempre va vacío.</strong> La mayoría de los temas se contestan de '
+                . 'una vez. Llénalo sólo donde el tema tenga de verdad un «¿y si no le funciona?».'
+                . '<br>'
+                . 'Sirve para no darle problemas a quien no los tiene: al que sólo pregunta cómo '
+                . 'funciona la ducha no se le contesta con avisos de avería, ni al que pregunta '
+                . 'cómo se paga se le suelta que si los números no cuadran avisaremos al equipo. '
+                . 'Eso espanta. Pero cuando la avería es real hace falta, así que se guarda aquí '
+                . 'y sale sólo entonces.<br>'
+                . '<strong>Un paso por peldaño y en orden</strong>, como responde una persona: '
+                . '<em>«cierra, espera un minuto y abre al máximo»</em> primero; '
+                . '<em>«enciende una hornilla, comparten el gas: si no prende es el balón»</em> '
+                . 'después. Agotados los pasos, el asistente escala contando lo que ya se probó.'
+                . '<br>'
+                . '<strong>Dos bastan.</strong> Si necesitas cuatro, el tema está mal partido.<br>'
+                . '<strong>Esto NO es el sitio de lo que sólo se dice si lo preguntan.</strong> El '
+                . 'depósito de garantía no depende de que insista, sino de que pregunte por él: '
+                . 'eso va en su propio ítem, no aquí.'
+            )
             ->hideOnIndex()
             ->setColumns(12);
 

@@ -117,8 +117,6 @@ class TransporteServicioAdmin extends AbstractSecureAdmin
                 },
                 'field_type' => DatePickerType::class,
                 'field_options' => [
-                    'dp_use_current' => true,
-                    'dp_show_today' => true,
                     'format'=> 'yyyy/MM/dd'
                 ],
                 'operator_type' => ChoiceType::class,
@@ -263,14 +261,10 @@ class TransporteServicioAdmin extends AbstractSecureAdmin
                 ->with('Info')
                     ->add('fechahorainicio', DateTimePickerType::class, [
                         'label' => 'Inicio',
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format'=> 'yyyy/MM/dd HH:mm'
                     ])
                     ->add('fechahorafin', DateTimePickerType::class, [
                         'label' => 'Fin',
-                        'dp_use_current' => true,
-                        'dp_show_today' => true,
                         'format'=> 'yyyy/MM/dd HH:mm'
                     ])
                     ->add('nombre')

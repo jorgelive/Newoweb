@@ -179,6 +179,51 @@ class PmsGuiaItem
     #[ORM\Column(name: 'agente_contenido', type: 'text', nullable: true)]
     private ?string $agenteContenido = null;
 
+    /**
+     * Lo que se dice **sólo si lo primero no resolvió**: un paso por peldaño, en orden.
+     *
+     * ### Por qué el tema no cabe en un solo texto
+     *
+     * Al que pregunta cómo funciona la ducha no se le contesta con avisos de avería, ni al que
+     * pregunta cómo se paga se le suelta que hay un depósito de S/ 300 y que si los números no le
+     * cuadran avisará al equipo. **Es anticomercial y genera mal ambiente**: le estamos
+     * respondiendo a un problema que no tiene. Pero esa información hace falta —cuando de verdad
+     * hay avería, o cuando el huésped dice que él ve otra cifra—, así que el contenido no sobra:
+     * sobra *en el primer mensaje*.
+     *
+     * Hasta ahora todo iba junto en {@see $agenteContenido} con la escalera escrita en prosa
+     * («si insiste, no repitas las instrucciones: avisa al equipo»), es decir, **pidiéndole al
+     * modelo que se autocensure la mitad de lo que acaba de leer**. Eso ya falló otras veces en
+     * este proyecto — con los teléfonos del personal de limpieza, una instrucción en mayúsculas
+     * se ignoró tres veces. Lo que no debe salir todavía, no se manda todavía.
+     *
+     * ### Cómo se recorre
+     *
+     * ```
+     *   paso 0   agenteContenido        uso normal, lo que se contesta a una pregunta blanca
+     *   paso 1   pasos[0]               no le funcionó: lo que puede probar él
+     *   paso 2   pasos[1]               sigue sin ir: la comprobación que decide qué mandamos
+     *   → agotados los pasos, escala, con el rastro de lo ya intentado en el aviso
+     * ```
+     *
+     * Es lo que hace una persona al responder: prueba esto, prueba lo otro, y si nada funciona
+     * mandamos al técnico. Dos peldaños bastan; si hacen falta más, el tema está mal partido.
+     *
+     * ⚠️ **Vacío es lo normal.** La mayoría de los temas se contestan de una vez y no quieren
+     * escalera: sin pasos, el ítem se comporta exactamente como antes de que esto existiera. Se
+     * llena sólo donde el tema tiene de verdad un «y si no…» (ducha, pagos, horarios de entrada
+     * y salida).
+     *
+     * ⚠️ **No es el sitio de lo que sólo se dice si lo preguntan.** El depósito de garantía no es
+     * un peldaño: no depende de que insista, sino de que pregunte por él. Eso se resuelve
+     * partiéndolo en su propio ítem, para que el índice de temas lo elija cuando toca y el resto
+     * del tiempo ni exista.
+     *
+     * @var list<string>
+     */
+    #[ORM\Column(name: 'agente_pasos', type: 'json', nullable: true)]
+    private ?array $agentePasos = [];
+
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $labelBoton = [];
@@ -380,6 +425,55 @@ class PmsGuiaItem
         $this->agenteContenido = ($contenido === null || $contenido === '') ? null : $contenido;
 
         return $this;
+    }
+
+    /** @return list<string> */
+    public function getAgentePasos(): array { return $this->agentePasos ?? []; }
+
+    /**
+     * Se guardan sin huecos: un paso en blanco en medio dejaría un peldaño mudo, y un peldaño
+     * mudo es una respuesta vacía justo cuando el huésped ya insistió una vez.
+     *
+     * @param list<string>|null $pasos
+     */
+    public function setAgentePasos(?array $pasos): self
+    {
+        $limpios = [];
+
+        foreach ($pasos ?? [] as $paso) {
+            $paso = trim((string) $paso);
+
+            if ($paso !== '') {
+                $limpios[] = $paso;
+            }
+        }
+
+        $this->agentePasos = $limpios;
+
+        return $this;
+    }
+
+    /** Cuántas veces se puede volver sobre el tema antes de que no quede nada que intentar. */
+    public function pasosDisponibles(): int
+    {
+        return count($this->getAgentePasos());
+    }
+
+    /**
+     * El texto que toca en este peldaño, o `null` si ya no queda nada que contar.
+     *
+     * `$peldano` 0 es la primera respuesta —el contenido de siempre— y de ahí en adelante se
+     * recorren los pasos. El `null` **no es un error**: es la señal de que se agotó lo que se
+     * podía intentar por chat y toca una persona. Quien llame decide qué hacer con eso; aquí no
+     * se inventa un último mensaje de relleno.
+     */
+    public function agenteTextoParaPeldano(int $peldano): ?string
+    {
+        if ($peldano <= 0) {
+            return $this->agenteContenido;
+        }
+
+        return $this->getAgentePasos()[$peldano - 1] ?? null;
     }
 
     public function getAgenteTerminos(): ?string { return $this->agenteTerminos; }
