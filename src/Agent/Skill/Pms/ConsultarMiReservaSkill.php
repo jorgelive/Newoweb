@@ -7,8 +7,10 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Reserva\PmsEspacioEstancia;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,7 +27,7 @@ use App\Security\Roles;
  *
  * Su hermana para el equipo es {@see BuscarReservaSkill}, y están separadas justo por eso.
  */
-final readonly class ConsultarMiReservaSkill implements SkillInterface
+final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
         private MessageDataResolverRegistry $resolvers,
@@ -57,6 +59,18 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface
                 . 'No necesita parámetros: siempre '
                 . 'consulta la reserva de esta conversación.',
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** El huésped la tiene por serlo; el equipo, por poder ver reservas. */

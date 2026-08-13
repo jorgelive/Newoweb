@@ -7,6 +7,7 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
@@ -15,6 +16,7 @@ use App\Entity\User;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Repository\UserRepository;
@@ -71,7 +73,7 @@ use Throwable;
  * la que garantiza que el caso no se pierde. Eso NO se da por bueno: el fallo se detecta después
  * del flush leyendo el estado del mensaje y el operador aparece en `no_avisados`.
  */
-final readonly class EscalarAlEquipoSkill implements SkillInterface
+final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDominioInterface
 {
     /** Techo del motivo. Es un aviso para leer en el móvil, no un informe. */
     private const int MAX_MOTIVO = 400;
@@ -133,6 +135,18 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface
                     requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** El huésped la dispara sin saberlo; el equipo puede escalar desde el panel. */

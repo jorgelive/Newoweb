@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Finanzas\Entity\FinMedioCobro;
 use App\Finanzas\Repository\FinMedioCobroRepository;
@@ -55,7 +57,7 @@ use Symfony\Component\Uid\Uuid;
  * justo lo que el modelo rellena solo. Cuando se encienda el flag y Culqi esté en producción,
  * el enlace lo emitirá {@see GenerarEnlacePrepagoSkill} y aquí pasará a `true`.
  */
-final readonly class ConsultarMediosPagoSkill implements SkillInterface
+final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
         private EntityManagerInterface $em,
@@ -102,6 +104,18 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface
                     requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** El huésped la tiene por serlo —acotada a SU reserva—; el equipo, por ver reservas. */

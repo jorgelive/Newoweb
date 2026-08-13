@@ -33,6 +33,16 @@ interface FrentesPorDominioInterface
     public function negocio(): string;
 
     /**
+     * ¿Este `context_type` de conversación es de mi negocio? (`pms_reserva`, `cotizacion_file`…)
+     *
+     * Mismo método y mismo papel que en {@see InstruccionesDeDominioInterface::supports()}: el
+     * núcleo no sabe qué `context_type` pertenece a qué negocio, y no debe saberlo. Aquí sirve
+     * para lo contrario de lo habitual —traducir un contexto a un negocio— y así poder decir a
+     * qué dominios llega un actor sin ir a la base de datos a buscar sus asuntos vivos.
+     */
+    public function supports(?string $contextType): bool;
+
+    /**
      * ¿Se le ofrece a CUALQUIERA la puerta de venta de este negocio, tenga o no algo comprado?
      *
      * Casi siempre sí: vender es lo que se hace con los desconocidos. Un negocio que no venda

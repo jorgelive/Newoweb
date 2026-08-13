@@ -7,6 +7,7 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
@@ -14,6 +15,7 @@ use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,7 +38,7 @@ use Symfony\Component\Uid\Uuid;
  * El motivo por el que un canal no vale se explica **para el operador**, no con el nombre
  * técnico de la regla.
  */
-final readonly class LocalizarConversacionSkill implements SkillInterface
+final readonly class LocalizarConversacionSkill implements SkillInterface, SkillDominioInterface
 {
     /**
      * @param iterable<ChannelEnqueuerInterface> $enqueuers
@@ -66,6 +68,18 @@ final readonly class LocalizarConversacionSkill implements SkillInterface
                 SkillParameter::texto('reserva_id', 'Identificador de la reserva.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
@@ -49,7 +51,7 @@ use Doctrine\ORM\EntityManagerInterface;
  * que el push de tarifas a Beds24. Si aquí se calculara aparte, el precio que se consulta y el
  * que se cobra podrían separarse — y el día que pasara, nadie lo vería hasta la factura.
  */
-final readonly class ConsultarTarifasSkill implements SkillInterface
+final readonly class ConsultarTarifasSkill implements SkillInterface, SkillDominioInterface
 {
     private const string TZ = 'America/Lima';
 
@@ -96,6 +98,18 @@ final readonly class ConsultarTarifasSkill implements SkillInterface
                     requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

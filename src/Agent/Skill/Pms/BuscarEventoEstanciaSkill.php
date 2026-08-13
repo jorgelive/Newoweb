@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
@@ -31,7 +33,7 @@ use Symfony\Component\Uid\Uuid;
  * Meterlo todo en «modificar la salida de Carlos» daría una skill gigante que no sirve para
  * nada más.
  */
-final readonly class BuscarEventoEstanciaSkill implements SkillInterface
+final readonly class BuscarEventoEstanciaSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
         private EntityManagerInterface $em
@@ -55,6 +57,18 @@ final readonly class BuscarEventoEstanciaSkill implements SkillInterface
                     . 'lo devolvió buscar_reserva o consultar_mi_reserva.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

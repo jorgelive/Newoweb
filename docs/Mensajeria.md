@@ -6345,13 +6345,38 @@ abre datos de nadie.
 | `Frente`, `MomentoDeFrente`, `FrentesPorDominioInterface` | hechos, en `src/Message/Contract/` |
 | `EnumeradorDeFrentes` (lista, defecto, bloque del prompt, lista blanca de ids) | hecho, `src/Message/Service/` |
 | `PmsFrentes` — envuelve `findVivasByTelefono()`, no reinventa su desempate | hecho |
-| `SkillDominioInterface` + filtro en `SkillRegistry::paraActor()` | hecho, **no-op**: ninguna skill lo implementa todavía |
-| `ActorInterface::dominios()` | hecho, devuelve vacío: nadie lo puebla todavía |
+| `SkillDominioInterface` + filtro en `SkillRegistry::paraActor()` | hecho, y **29 de las 30 skills declaran `['hotelero']`** |
+| `ActorInterface::dominios()`, poblado por `AgentActorFactory` | hecho: `dominiosPara(contextoTipo)` = lo vendible ∪ el negocio del contexto |
 | Que el triaje elija frente (`tipo: aclaracion`, campo `frente`) | **pendiente** |
 | `resolveConversation()` sobre `frentesVivos()` | **pendiente** |
 | Frentes de turismo | **pendiente**: `CotizacionFile` no tiene repositorio con búsqueda por teléfono |
 
-Hoy **no cambia ningún comportamiento**: el andamiaje está en verde y desconectado, que es como
-tenía que entrar. El id de un frente es un hash opaco de negocio+momento+entidad —estable entre
-turnos, para que una pregunta de desambiguación de ayer siga siendo mapeable hoy, y sin uuids
-dentro para que enseñárselo al modelo no filtre nada—.
+El id de un frente es un hash opaco de negocio+momento+entidad —estable entre turnos, para que
+una pregunta de desambiguación de ayer siga siendo mapeable hoy, y sin uuids dentro para que
+enseñárselo al modelo no filtre nada—.
+
+#### El catálogo, medido
+
+`app:agent:permisos` **no sirve** para comprobar esto: construye los actores con `AgentActor::`
+a secas, sin dominios, así que nunca ejerce el filtro. Se comprueba con
+`php var/probar-dominios.php`, que los arma por la factoría, como nacen en producción:
+
+| Actor | Dominios | Skills |
+|---|---|---|
+| huésped (`pms_reserva`) | `hotelero` | 10 — **las mismas de antes** |
+| prospecto (sin contexto) | `hotelero` | 4 — **las mismas de antes** |
+| pasajero de turismo (simulado) | `turistico` | 1 |
+
+Las dos primeras filas son la prueba de que no se rompió nada; la tercera, de que el mecanismo
+hace algo — sin ella, el filtro podría estar inerte y nadie se enteraría.
+
+⚠️ **Y esa tercera fila deja un aviso: el pasajero de turismo no puede escalar.** Sólo le llega
+`consultar_tipo_cambio`, porque `EscalarAlEquipoSkill` está marcada `['hotelero']` — su
+`margenes()` consulta `PmsDisponibilidadService` y habla de `pms_reserva`. Es un callejón sin
+salida idéntico al que ya se corrigió una vez para los prospectos, y bloquea al primer cliente
+de tours que escriba. **Antes de encender el dominio turístico hay que sacar ese enriquecimiento
+a un método por dominio** —el sitio natural es `InstruccionesDeDominioInterface`, que ya es «lo
+que depende del negocio»— y entonces sí declarar la skill transversal.
+
+Hoy, con un solo negocio registrado, **no cambia ningún comportamiento**: todo actor real cae en
+`hotelero` y ve exactamente lo que veía.

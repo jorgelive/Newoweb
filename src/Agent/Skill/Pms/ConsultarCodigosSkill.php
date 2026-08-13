@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
@@ -50,7 +52,7 @@ use Symfony\Component\Uid\Uuid;
  * No es contenido de huésped bajo ninguna condición: no aparece en esta skill ni con el actor
  * del equipo. Se consulta y se cambia con `cambiar_codigo_caja`, que exige rol de escritura.
  */
-final readonly class ConsultarCodigosSkill implements SkillInterface
+final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDominioInterface
 {
     /**
      * El aviso que acompaña SIEMPRE al código, en el idioma del huésped.
@@ -115,6 +117,18 @@ final readonly class ConsultarCodigosSkill implements SkillInterface
                     . 'varias.', requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

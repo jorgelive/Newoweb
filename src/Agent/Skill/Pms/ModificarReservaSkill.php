@@ -7,10 +7,12 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Entity\Maestro\MaestroIdioma;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
@@ -58,7 +60,7 @@ use Symfony\Component\Uid\Uuid;
  * estado de pago viven en la ESTANCIA, y por eso hay que decir en cuál: en un grupo repartido
  * cada casita tiene su gente y puede tener su propio estado de pago.
  */
-final readonly class ModificarReservaSkill implements SkillInterface
+final readonly class ModificarReservaSkill implements SkillInterface, SkillDominioInterface
 {
     /** Los que hablamos: fuera de esto no hay plantillas traducidas. */
     private const array IDIOMAS = ['es', 'en', 'pt', 'fr', 'it', 'de', 'nl'];
@@ -108,6 +110,18 @@ final readonly class ModificarReservaSkill implements SkillInterface
                     . 'del operador. false para previsualizar.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

@@ -7,6 +7,7 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
@@ -14,6 +15,7 @@ use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -47,7 +49,7 @@ use Symfony\Component\Uid\Uuid;
  * `MessageDispatcher::resolveChannels()` da prioridad a la plantilla cuando la hay; aquí no
  * la hay, así que manda la lista de canales. Ver docs/Mensajeria.md §5.
  */
-final readonly class EnviarMensajeHuespedSkill implements SkillInterface
+final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillDominioInterface
 {
     /** Techo del texto. WhatsApp corta antes, pero un mensaje así ya es un error de uso. */
     private const int MAX_CARACTERES = 3000;
@@ -89,6 +91,18 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface
                     . 'del operador. false para ver el borrador.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** Escribir al huésped exige permiso de mensajería, no basta con ver reservas. */

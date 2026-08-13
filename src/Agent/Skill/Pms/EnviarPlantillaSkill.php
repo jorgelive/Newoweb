@@ -7,6 +7,7 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
@@ -14,6 +15,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -51,7 +53,7 @@ use Symfony\Component\Uid\Uuid;
  * `is_active`, y si además se piden canales, hace la intersección. Una plantilla sin cuerpo de
  * Beds24 no sale por Beds24 aunque se pida.
  */
-final readonly class EnviarPlantillaSkill implements SkillInterface
+final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
         private EntityManagerInterface $em
@@ -91,6 +93,18 @@ final readonly class EnviarPlantillaSkill implements SkillInterface
                     . 'del operador. false para ver la previsualización.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

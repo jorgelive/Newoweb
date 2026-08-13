@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsUnidad;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -33,7 +35,7 @@ use Doctrine\ORM\EntityManagerInterface;
  * vender en las fechas sin rango: el motor no encuentra precio y no hay nada que cobrar. Se
  * dice explícitamente, porque «sin tarifa base» leído deprisa parece un cero.
  */
-final readonly class ConsultarTarifasBaseSkill implements SkillInterface
+final readonly class ConsultarTarifasBaseSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
         private EntityManagerInterface $em,
@@ -61,6 +63,18 @@ final readonly class ConsultarTarifasBaseSkill implements SkillInterface
                     . 'para ver todas.', requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

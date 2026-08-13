@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
@@ -47,7 +49,7 @@ use Symfony\Component\Uid\Uuid;
  * bajar desde el panel. Esta skill no des-confirma: es una operación con más consecuencias que
  * su contraria y no se hace de pasada por chat.
  */
-final readonly class ConfirmarEstanciaSkill implements SkillInterface
+final readonly class ConfirmarEstanciaSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
         private EntityManagerInterface $em,
@@ -79,6 +81,18 @@ final readonly class ConfirmarEstanciaSkill implements SkillInterface
                     . 'del operador. false para previsualizar.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

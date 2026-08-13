@@ -8,9 +8,11 @@ use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Security\Roles;
 use DateTimeImmutable;
@@ -42,7 +44,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * y ningún huésped la alcanza, pero el enlace apunta al panel interno: si algún día se abre a
  * otro actor, esto se queda fuera.
  */
-final readonly class ListarSalidasSkill implements SkillInterface
+final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioInterface
 {
     private const string TZ = 'America/Lima';
     private const int MAX_DIAS = 30;
@@ -96,6 +98,18 @@ final readonly class ListarSalidasSkill implements SkillInterface
                 ),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** Limpieza también: es justo lo que necesita para organizar el día. */

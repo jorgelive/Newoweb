@@ -48,6 +48,19 @@ final readonly class PmsFrentes implements FrentesPorDominioInterface
     }
 
     /**
+     * El `context_type` de una conversación de alojamiento.
+     *
+     * `manual` NO entra a propósito: es el contexto de quien escribió sin tener nada —el
+     * walk-in—, y no es de este negocio ni de ningún otro. Ese caso se cubre por la puerta de
+     * venta, que está abierta para todos, y no colgándolo del alojamiento porque históricamente
+     * fuera el único negocio que había.
+     */
+    public function supports(?string $contextType): bool
+    {
+        return $contextType === 'pms_reserva';
+    }
+
+    /**
      * Sí: el alojamiento se le vende a cualquiera que escriba.
      *
      * Es lo que pone «Reservar o ampliar alojamiento» en la lista de TODO el mundo, tenga o no

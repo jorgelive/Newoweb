@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
@@ -53,7 +55,7 @@ use Symfony\Component\Uid\Uuid;
  * cargo», «pendiente de revisar con Susan»), y esta skill puede acabar alimentando una
  * respuesta que el operador copia y pega al huésped.
  */
-final readonly class ConsultarCuentaSkill implements SkillInterface
+final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
         private EntityManagerInterface $em,
@@ -96,6 +98,18 @@ final readonly class ConsultarCuentaSkill implements SkillInterface
                     . 'se ignora.', requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** El huésped la tiene por serlo —acotada a SU reserva—; el equipo, por ver reservas. */

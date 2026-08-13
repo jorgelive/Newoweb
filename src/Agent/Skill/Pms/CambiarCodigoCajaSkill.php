@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -40,7 +42,7 @@ use Doctrine\ORM\EntityManagerInterface;
  * nunca leer «de paso»: la respuesta confirma el cambio sin repetir el código nuevo, para que no
  * se quede escrito en un chat que alguien reenvía.
  */
-final readonly class CambiarCodigoCajaSkill implements SkillInterface
+final readonly class CambiarCodigoCajaSkill implements SkillInterface, SkillDominioInterface
 {
     /** Un código de caja es corto y numérico con alguna letra: 2499E. */
     private const int MAX_LARGO = 20;
@@ -74,6 +76,18 @@ final readonly class CambiarCodigoCajaSkill implements SkillInterface
                     . 'del operador. false para previsualizar.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** Sólo el equipo con permiso de escritura: deja fuera a limpieza y al huésped. */

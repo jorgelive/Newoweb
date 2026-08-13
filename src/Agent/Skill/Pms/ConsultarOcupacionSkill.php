@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Dto\PmsOcupacionDto;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
@@ -40,7 +42,7 @@ use InvalidArgumentException;
  *
  * Ver docs/PmsDisponibilidad.md.
  */
-final readonly class ConsultarOcupacionSkill implements SkillInterface
+final readonly class ConsultarOcupacionSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
         private PmsDisponibilidadService $disponibilidad,
@@ -76,6 +78,18 @@ final readonly class ConsultarOcupacionSkill implements SkillInterface
                     requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** Ver quién está alojado es leer reservas ajenas: sólo el equipo. */

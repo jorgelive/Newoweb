@@ -7,10 +7,12 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Entity\Maestro\MaestroIdioma;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
@@ -63,7 +65,7 @@ use Doctrine\ORM\EntityManagerInterface;
  * (§ `PmsCargosAutomaticosService`). Esta skill deja apartarse de eso porque es lo que se
  * negocia al vender: un precio cerrado, perdonar la limpieza, o cobrar un % de servicio.
  */
-final readonly class CrearReservaSkill implements SkillInterface
+final readonly class CrearReservaSkill implements SkillInterface, SkillDominioInterface
 {
     /** Los que hablamos. Un idioma fuera de esto no tiene plantillas traducidas. */
     private const array IDIOMAS = ['es', 'en', 'pt', 'fr', 'it', 'de', 'nl'];
@@ -121,6 +123,18 @@ final readonly class CrearReservaSkill implements SkillInterface
                     . 'del operador. false para previsualizar.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

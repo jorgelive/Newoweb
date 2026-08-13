@@ -157,6 +157,37 @@ final readonly class EnumeradorDeFrentes
     }
 
     /**
+     * A qué negocios llega quien escribe desde este contexto: lo vendible **más** el negocio
+     * del contexto en el que está. Es lo que alimenta {@see \App\Agent\Access\ActorInterface::dominios()}.
+     *
+     * ── Por qué no se miran los asuntos vivos aquí ──────────────────────────
+     * Podría calcularse consultando de verdad qué tiene abierto ese teléfono, y sería más
+     * exacto y más caro: una consulta por negocio **en cada construcción de actor**, incluido
+     * el turno en el que alguien escribe «gracias». No compensa, porque el resultado apenas
+     * cambiaría: la venta ya está abierta para todos, así que lo único que aporta el asunto
+     * vivo es el negocio en el que ya se está — y ése lo dice el `context_type` sin ir a la
+     * base de datos.
+     *
+     * El día que un actor necesite ver el catálogo de un negocio en el que tiene algo vivo
+     * pero por cuyo contexto no entró, lo dará el frente que elija el triaje, que sí enumera
+     * los asuntos de verdad.
+     *
+     * @return list<string>
+     */
+    public function dominiosPara(?string $contextType): array
+    {
+        $dominios = $this->negociosVendibles();
+
+        foreach ($this->dominios as $dominio) {
+            if ($dominio->supports($contextType)) {
+                $dominios[] = $dominio->negocio();
+            }
+        }
+
+        return array_values(array_unique($dominios));
+    }
+
+    /**
      * Los negocios que existen, para la unión de {@see \App\Agent\Access\ActorInterface::dominios()}.
      *
      * @return list<string>

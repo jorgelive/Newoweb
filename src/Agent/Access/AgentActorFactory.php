@@ -6,6 +6,7 @@ namespace App\Agent\Access;
 
 use App\Entity\User;
 use App\Message\Contract\VinculoComercial;
+use App\Message\Service\EnumeradorDeFrentes;
 use App\Security\Roles;
 use Symfony\Component\Security\Core\Authorization\Voter\RoleHierarchyVoter;
 use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
@@ -40,7 +41,8 @@ use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
 final readonly class AgentActorFactory
 {
     public function __construct(
-        private RoleHierarchyInterface $jerarquia
+        private RoleHierarchyInterface $jerarquia,
+        private EnumeradorDeFrentes $frentes,
     ) {}
 
     /** Un miembro del equipo con sesión en el panel. */
@@ -98,7 +100,15 @@ final readonly class AgentActorFactory
         VinculoComercial $vinculo = VinculoComercial::Cliente,
         RestriccionCanal $restriccion = RestriccionCanal::Ninguna
     ): AgentActor {
-        return AgentActor::huesped($origen, $contextoTipo, $contextoId, $conversacionId, $vinculo, $restriccion);
+        return AgentActor::huesped(
+            $origen,
+            $contextoTipo,
+            $contextoId,
+            $conversacionId,
+            $vinculo,
+            $restriccion,
+            $this->frentes->dominiosPara($contextoTipo)
+        );
     }
 
     /**
@@ -107,7 +117,10 @@ final readonly class AgentActorFactory
      */
     public function prospecto(string $origen, ?string $conversacionId = null): AgentActor
     {
-        return AgentActor::prospecto($origen, $conversacionId);
+        // Sin contexto, pero NO sin dominios: la venta está abierta para cualquiera, y un
+        // prospecto es exactamente para quien está abierta. Dejarlo sin negocios lo habría
+        // dejado sin catálogo justo a quien más interesa atender.
+        return AgentActor::prospecto($origen, $conversacionId, $this->frentes->dominiosPara(null));
     }
 
     /**

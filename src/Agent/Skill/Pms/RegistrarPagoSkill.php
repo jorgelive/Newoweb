@@ -7,10 +7,12 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Entity\User;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
@@ -52,7 +54,7 @@ use Symfony\Component\Uid\Uuid;
  * descripción se compone en `definicion()` interpolando el valor real. Teclear «5.5» en el
  * prompt habría creado una segunda verdad que nadie recuerda actualizar el día que cambie.
  */
-final readonly class RegistrarPagoSkill implements SkillInterface
+final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioInterface
 {
     /**
      * La moneda en la que habla el operador cuando no dice ninguna.
@@ -145,6 +147,18 @@ final readonly class RegistrarPagoSkill implements SkillInterface
                     . 'del operador. false para previsualizar.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

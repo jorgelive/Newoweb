@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Entity\PmsGuiaSeccion;
@@ -54,7 +56,7 @@ use Symfony\Component\Uid\Uuid;
  * `PmsGuiaItem::$descripcion` es HTML editado por el operador. Al modelo se le da texto plano:
  * las etiquetas se pagan en tokens en cada consulta y no aportan nada a una respuesta hablada.
  */
-final readonly class ConsultarGuiaSkill implements SkillInterface
+final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioInterface
 {
     /** Cuántos ítems se devuelven con cuerpo. Más que esto es una guía entera en el chat. */
     private const int MAX_ITEMS = 4;
@@ -144,6 +146,18 @@ final readonly class ConsultarGuiaSkill implements SkillInterface
                     . 'varias y ya sabes de cuál preguntan.', requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** El huésped la tiene por serlo; el equipo, por poder ver reservas. */

@@ -100,7 +100,8 @@ final readonly class AgentActor implements ActorInterface
         ?string $contextoId,
         ?string $conversacionId = null,
         VinculoComercial $vinculo = VinculoComercial::Cliente,
-        RestriccionCanal $restriccion = RestriccionCanal::Ninguna
+        RestriccionCanal $restriccion = RestriccionCanal::Ninguna,
+        array $dominios = []
     ): self {
         return new self(
             null,
@@ -110,7 +111,8 @@ final readonly class AgentActor implements ActorInterface
             $contextoId,
             $conversacionId,
             $vinculo,
-            $restriccion
+            $restriccion,
+            $dominios
         );
     }
 
@@ -129,9 +131,19 @@ final readonly class AgentActor implements ActorInterface
      * —su único camino para no ser un callejón sin salida— y con él no se le abre ninguna
      * skill acotada, porque todas miran el contexto y ese sigue en `null`.
      */
-    public static function prospecto(string $origen, ?string $conversacionId = null): self
+    public static function prospecto(string $origen, ?string $conversacionId = null, array $dominios = []): self
     {
-        return new self(null, $origen, [Roles::PROSPECTO], null, null, $conversacionId);
+        return new self(
+            null,
+            $origen,
+            [Roles::PROSPECTO],
+            null,
+            null,
+            $conversacionId,
+            VinculoComercial::Ninguno,
+            RestriccionCanal::Ninguna,
+            $dominios
+        );
     }
 
     public function roles(): array

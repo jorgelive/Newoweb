@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
@@ -56,7 +58,7 @@ use Doctrine\ORM\EntityManagerInterface;
  * ⚠️ **`fechaFin` es EXCLUSIVA.** Una noche suelta es `fin = inicio + 1 día`; con `fin = inicio`
  * el flattener descarta el rango entero y se guarda sin error sin hacer nada.
  */
-final readonly class AjustarTarifasSkill implements SkillInterface
+final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominioInterface
 {
     private const string TZ = 'America/Lima';
 
@@ -103,6 +105,18 @@ final readonly class AjustarTarifasSkill implements SkillInterface
                     . 'del operador. false para previsualizar.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

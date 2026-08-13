@@ -8,10 +8,12 @@ use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillConmutableInterface;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Entity\User;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsPoliticaPrepago;
 use App\Pms\Finanzas\PmsPrepagoEnlaceService;
@@ -58,7 +60,7 @@ use Symfony\Component\Uid\Uuid;
  * esta skill no existe en su contexto. El huésped ve sus enlaces en su app, que sólo enseña
  * los que ya existen — leer no es emitir.
  */
-final readonly class GenerarEnlacePrepagoSkill implements SkillInterface, SkillConmutableInterface
+final readonly class GenerarEnlacePrepagoSkill implements SkillInterface, SkillDominioInterface, SkillConmutableInterface
 {
     public function __construct(
         private EntityManagerInterface $em,
@@ -97,6 +99,18 @@ final readonly class GenerarEnlacePrepagoSkill implements SkillInterface, SkillC
                     . 'explícita del operador. false para previsualizar sin emitir nada.'),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array

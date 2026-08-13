@@ -7,10 +7,12 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Message\Service\MessageDataResolverRegistry;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use DateTimeImmutable;
@@ -41,7 +43,7 @@ use Doctrine\ORM\EntityManagerInterface;
  * Al añadir una clave a `getMessageVariables()` hay que decidir si se anuncia. La descripción
  * es el contrato; lo demás es carga que se paga en tokens y nadie pide.
  */
-final readonly class BuscarReservaSkill implements SkillInterface
+final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioInterface
 {
     /** Coincidencias devueltas. Más que esto no ayuda: se le pide al usuario que acote. */
     private const int MAX_RESULTADOS = 8;
@@ -95,6 +97,18 @@ final readonly class BuscarReservaSkill implements SkillInterface
                     requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     /** Sólo el equipo: consultar la reserva de OTRA persona. El huésped tiene la suya. */

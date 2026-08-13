@@ -33,6 +33,7 @@ final class EnumeradorDeFrentesTest extends TestCase
             ) {}
 
             public function negocio(): string { return $this->negocio; }
+            public function supports(?string $contextType): bool { return $contextType === $this->negocio . '_ctx'; }
             public function esVendible(): bool { return $this->vendible; }
             public function etiquetaDeVenta(): string { return 'Comprar ' . $this->negocio; }
             public function frentesVivos(?string $telefono): array { return $this->vivos; }
@@ -125,6 +126,31 @@ final class EnumeradorDeFrentesTest extends TestCase
         self::assertNotNull($defecto);
         self::assertSame('hotelero', $defecto->negocio);
         self::assertSame(1, count(array_filter($frentes, static fn (Frente $f) => $f->porDefecto)));
+    }
+
+    /**
+     * A qué negocios llega un actor: lo vendible SIEMPRE, más aquel en cuyo contexto está.
+     *
+     * Es lo que impide que el filtro de dominio deje sin catálogo a un prospecto —que por
+     * definición no tiene nada comprado— justo cuando más interesa atenderlo.
+     */
+    #[Test]
+    public function los_dominios_de_un_actor_incluyen_siempre_lo_vendible(): void
+    {
+        $enumerador = new EnumeradorDeFrentes([
+            $this->dominio('hotelero', []),
+            $this->dominio('turistico', [], vendible: false),
+        ]);
+
+        // Un desconocido: sólo lo que se vende a cualquiera.
+        self::assertSame(['hotelero'], $enumerador->dominiosPara(null));
+
+        // Dentro de un contexto turístico: lo vendible MÁS el negocio en el que está, aunque
+        // ese negocio no se venda por el chat.
+        self::assertEqualsCanonicalizing(
+            ['hotelero', 'turistico'],
+            $enumerador->dominiosPara('turistico_ctx')
+        );
     }
 
     /**

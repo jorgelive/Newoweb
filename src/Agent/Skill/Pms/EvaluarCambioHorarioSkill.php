@@ -7,9 +7,11 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Security\Roles;
@@ -39,7 +41,7 @@ use Symfony\Component\Uid\Uuid;
  * 3. **Alargar ocupa una noche más**, así que hay que comprobar que la casita esté libre —
  *    o se crea un doble booking.
  */
-final readonly class EvaluarCambioHorarioSkill implements SkillInterface
+final readonly class EvaluarCambioHorarioSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
         private EntityManagerInterface $em,
@@ -72,6 +74,18 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface
                     . '(YYYY-MM-DD) para mover días.', requerido: false),
             ],
         );
+    }
+
+    /**
+     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     *
+     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     *
+     * @return list<string>
+     */
+    public function dominios(): array
+    {
+        return [PmsFrentes::NEGOCIO];
     }
 
     public function rolesRequeridos(): array
