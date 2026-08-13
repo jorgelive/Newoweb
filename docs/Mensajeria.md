@@ -6551,3 +6551,67 @@ conversación, uno con 247 mensajes repartidos en dos hilos y otro con 122 en cu
 5. Retirar `contextType`/`contextId`/`contextData` de la conversación.
 
 Los pasos 1 y 2 se pueden desplegar sin que nada cambie. El 3 es el que hay que medir.
+
+### 20.7 Los hitos que siempre faltaron: salida temporal, reingreso y cambio de casita
+
+Los hitos de hoy resumen la estancia en dos fechas, `start` y `end`, y las dos salen de
+`PmsReserva::getFechaLlegada()`/`getFechaSalida()` — **el mínimo y el máximo de todos los
+tramos**. Es el mismo fallo de agregados que ya apareció en la etiqueta del frente, pero aquí
+cuesta mensajes:
+
+```
+  Casita 1   10 → 12        se va a Machu Picchu
+  Casita 3   15 → 18        vuelve, y además a otra casita
+
+  lo que ve la mensajería:  start = 10,  end = 18
+```
+
+Bienvenida el 10, instrucciones de salida el 18. **El 12 se va sin que nadie le diga cómo dejar
+la casita; el 15 vuelve sin que nadie le diga que ahora es la 3.**
+
+`PmsHitosDeEstancia::para()` los deriva de los TRAMOS y devuelve una **lista** —no un mapa—
+porque una estancia larga puede tener varias escapadas y un mapa `clave => fecha` sólo admite
+una de cada. Tipos nuevos en `ConversationMilestoneInterface`: `TEMPORARY_END`, `REENTRY`,
+`UNIT_CHANGE`.
+
+#### ⚠️ La trampa: dos casitas A LA VEZ no son un cambio
+
+El caso más común de reserva multitramo **no** es la estancia partida: es el grupo que ocupa la
+Casita 2 y la Casita 5 las mismas noches. Comparar tramos consecutivos sin más habría anunciado
+un «cambio de casita» a cada familia que reserva dos.
+
+Por eso los tramos se agrupan primero en **bloques por solape temporal** —un bloque es «dónde
+está el huésped durante este rato», tenga una casita o cuatro— y los hitos salen de comparar
+bloques. Lo que separa bloques es el tiempo, no la unidad.
+
+Esa agrupación no es teórica: una consulta SQL que comparaba tramos sin agrupar decía que había
+**20** reservas con hueco. Al derivarlas de verdad son **5**; las otras 15 eran casitas
+simultáneas. La consulta ingenua se habría equivocado en 15 de 20.
+
+#### Contra datos reales (25 reservas multitramo)
+
+| Hito | Reservas |
+|---|---|
+| `temporary_end` + `reentry` | 5 |
+| `unit_change` | 7 |
+
+```
+Karina      start 27/03 Casita 7 · temporary_end 02/04 · reentry 03/04 · end 08/04
+Jean        start 17/04 Casita 2 · unit_change 18/04 → Casita 7 · end 20/04
+Giulianna   start 03/04 Casita 4 · unit_change 04/04 → Casita 2 · end 07/04
+```
+
+Doce personas que se fueron y volvieron, o que cambiaron de casita, sin un solo mensaje.
+
+#### Lo que falta para que salgan mensajes
+
+La derivación está hecha y probada; **no la consume nadie todavía**. Falta:
+
+1. Exponerla en `ConversacionEnlaceInterface` —el asunto es quien tiene los hitos— sin romper
+   `getMilestones()`, que sigue siendo lo que el motor lee hoy.
+2. Que `MessageRule` pueda apuntar a los tipos nuevos (el desplegable del CRUD sale de las
+   constantes).
+3. Que el motor sepa programar **una ocurrencia por hito** y no una por tipo: dos escapadas son
+   dos mensajes de salida temporal, no uno.
+
+El 3 depende del trabajo de programar por asunto y va con él.

@@ -24,4 +24,27 @@ interface ConversationMilestoneInterface
 
     /** Fecha y hora en la que el evento o reserva fue cancelado */
     public const string CANCELLED = 'cancelled_at';
+
+    /**
+     * Se va, pero VUELVE: el hueco entre dos tramos de la misma estancia.
+     *
+     * El caso típico aquí es la escapada de dos noches a Machu Picchu. No es un `END`: la
+     * estancia sigue viva y el huésped no se despide. Necesita su propio mensaje —cómo dejar la
+     * casita, qué hacer con la llave, qué pasa con su equipaje— y hasta ahora **no existía**:
+     * la mensajería sólo veía la llegada del primer tramo y la salida del último.
+     */
+    public const string TEMPORARY_END = 'temporary_end';
+
+    /** Vuelve tras una salida temporal. Es una bienvenida, no un check-in. */
+    public const string REENTRY = 'reentry';
+
+    /**
+     * Cambia de casita sin irse: termina un tramo y empieza otro el mismo día, en otra unidad.
+     *
+     * ⚠️ **No confundir con ocupar dos casitas A LA VEZ**, que es lo que hace un grupo y es el
+     * caso más común de reserva multitramo. Eso no es un cambio: no hay nada que anunciar.
+     * Quien derive este hito tiene que agrupar los tramos que se solapan antes de compararlos
+     * — ver `PmsHitosDeEstancia`.
+     */
+    public const string UNIT_CHANGE = 'unit_change';
 }
