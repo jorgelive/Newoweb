@@ -7530,3 +7530,28 @@ la descripción lo dice una sola vez: *«que YO no tenga algo no significa que n
 
 ⚠️ **Sin nombrar la guía.** La skill es transversal y no debe saber que existe el PMS: dice «tus
 otras herramientas», no «consultar_guia». Ver CLAUDE.md §Dominios y contratos.
+
+### 22.22 El validador aconseja según la política, no sólo avisa
+
+Avisar de que la guía ya cubre un tema no dice qué hacer con el duplicado, y **las dos situaciones
+posibles piden decisiones opuestas**:
+
+| La guía… | Qué conviene | Por qué |
+|---|---|---|
+| tiene algo **mejor** (ficha por casita, datos de la estancia, ventana) | **excluir** al huésped | La genérica le quitaría el grifo de SU casita o sus horas |
+| dice **lo mismo** (tema general, texto plano) | **no** excluirlo | La mejor y la peor son la misma, y excluirlo le quita la red si la guía no llega a servirle |
+
+El veredicto lo emite **el dominio**, no el núcleo: `IndiceDeTemasInterface::temasQueCubren()`
+devuelve ahora `TemaQueCubre` con `masEspecifica` y el porqué ya redactado. Qué hace específica a
+una ficha es conocimiento de alojamiento —fichas por casita, `{{ placeholders }}`, ventanas de
+acceso—; en Turismo será otra cosa, y el núcleo compone el consejo sin entender ninguno de los dos.
+
+⚠️ **La señal de «ventana» se calibró.** La primera versión miraba «distinto de público», y como
+32 de los 51 ítems son `cliente` —que sólo quiere decir «se le enseña al cliente»—, el veredicto
+salía «es mejor» en casi todo. Un aviso que siempre dice lo mismo no ayuda a decidir: es el mismo
+ruido que las coincidencias de una sola palabra (§22.12). Ahora sólo cuentan `solo-ventana` y
+`cliente-confirmado`.
+
+Resultado sobre las 7 fichas: sólo **«Agua caliente»** tiene algo mejor en la guía —las siete
+fichas de ducha—. Las demás dicen lo mismo, así que excluir al huésped en ellas no le protege de
+nada.

@@ -7,6 +7,7 @@ namespace App\Agent\Service;
 use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Entity\AgentConocimiento;
 use App\Message\Contract\IndiceDeTemasInterface;
+use App\Message\Contract\TemaQueCubre;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 /**
@@ -68,27 +69,54 @@ final readonly class ValidadorDeConocimiento
             return null;
         }
 
-        $lista = implode('», «', $temas);
+        $lista = implode('», «', array_map(static fn (TemaQueCubre $t): string => $t->etiqueta, $temas));
+        $mejores = array_values(array_filter($temas, static fn (TemaQueCubre $t): bool => $t->masEspecifica));
+        $excluida = $this->esPublica($item);
 
-        if ($this->esPublica($item)) {
-            // Ya está declarada: se confirma que la duplicación es deliberada y se deja en paz.
-            return sprintf(
-                'Esto también lo contesta la guía en «%s». Como esta ficha excluye al huésped, '
-                . 'él seguirá recibiendo la de su casita —que es mejor— y los demás recibirán '
-                . 'ésta. Correcto.',
-                $lista
-            );
+        // ── La guía tiene algo MEJOR para quien llega a ella ──────────────────
+        // Aquí sí importa que el huésped quede fuera: la genérica le quitaría el grifo de su
+        // casita o las horas de su estancia.
+        if ($mejores !== []) {
+            $porQue = $mejores[0]->porQue;
+
+            return $excluida
+                ? sprintf(
+                    'También lo contesta la guía en «%s», y allí es mejor: %s. Como esta ficha '
+                    . 'excluye al huésped, él recibirá la suya y los demás ésta. Correcto.',
+                    $lista,
+                    $porQue
+                )
+                : sprintf(
+                    '⚠️ Esto ya lo contesta la guía en «%s», y allí es MEJOR: %s. Tal como está, '
+                    . 'un huésped podría llevarse esta versión genérica en lugar de la suya.<br>'
+                    . 'En «A quién se le puede contar» marca todos <strong>menos Huésped</strong>: '
+                    . 'así él sigue recibiendo la de su casita y los demás —incluido el equipo— '
+                    . 'reciben ésta.',
+                    $lista,
+                    $porQue
+                );
         }
 
-        return sprintf(
-            '⚠️ Esto ya lo contesta la guía en «%s», que además lo responde por casita y con los '
-            . 'datos de la estancia resueltos. Tal como está, un huésped recibiría esta versión '
-            . 'genérica en lugar de la suya.<br>'
-            . 'Si lo quieres para quien NO llega a la guía —el que pregunta antes de reservar, y '
-            . 'también el equipo—, decláralo: en «A quién se le puede contar» marca todos '
-            . '<strong>menos Huésped</strong>. Si no, mejor bórralo y corrige el tema de la guía.',
-            $lista
-        );
+        // ── La guía dice LO MISMO ─────────────────────────────────────────────
+        // Excluir al huésped aquí no le protege de nada, porque la mejor y la peor son la misma —
+        // y en cambio le quita esta red si la guía no llega a servirle (sin reserva resuelta,
+        // fuera de ventana). Es el consejo contrario al de arriba, y por eso se distinguen.
+        return $excluida
+            ? sprintf(
+                '💡 La guía contesta esto en «%s», pero **lo mismo**: es un tema general, sin '
+                . 'nada por casita ni datos de la estancia.<br>'
+                . 'Excluir al huésped aquí no le protege —la versión buena y ésta son iguales— y '
+                . 'sí le quita esta red si la guía no llega a servirle. Puedes marcarle '
+                . '<strong>Huésped</strong> también.',
+                $lista
+            )
+            : sprintf(
+                '✅ La guía contesta esto en «%s», pero lo mismo: es un tema general. Dejarlo para '
+                . 'todos está bien — hace de red por si la guía no llega.<br>'
+                . '⚠️ Eso sí: ahora hay dos textos que dicen lo mismo y nadie obliga a que sigan '
+                . 'diciéndolo. Si cambias uno, cambia el otro.',
+                $lista
+            );
     }
 
     /**
@@ -101,7 +129,7 @@ final readonly class ValidadorDeConocimiento
         return !$this->esPublica($item) && $this->temasQueYaLoCubren($item) !== [];
     }
 
-    /** @return list<string> */
+    /** @return list<TemaQueCubre> */
     public function temasQueYaLoCubren(AgentConocimiento $item): array
     {
         // Se pregunta por las etiquetas y no por el contenido: las etiquetas son «con qué
@@ -117,11 +145,11 @@ final readonly class ValidadorDeConocimiento
 
         foreach ($this->indices as $indice) {
             foreach ($indice->temasQueCubren($texto) as $tema) {
-                $temas[$tema] = true;
+                $temas[$tema->etiqueta] = $tema;
             }
         }
 
-        return array_values(array_keys($temas));
+        return array_values($temas);
     }
 
     /**

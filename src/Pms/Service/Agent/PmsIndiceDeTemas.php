@@ -9,6 +9,8 @@ use App\Message\Contract\IndiceDeTemasInterface;
 use App\Pms\Entity\PmsGuia;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsGuiaItem;
+use App\Pms\Enum\PmsGuiaVisibilidad;
+use App\Message\Contract\TemaQueCubre;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -142,10 +144,84 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
 
             // «Ducha (casa 3)» → «Ducha»: siete fichas del mismo tema son un aviso, no siete.
             $nombre = trim(preg_replace('/\s*\((?:casa|general)[^)]*\)\s*$/i', '', $item->getNombreInterno()) ?? '');
-            $encontrados[$nombre] = true;
+
+            // Basta con que UNA de las fichas del tema sea específica para que el tema lo sea:
+            // «Ducha» tiene siete, y aunque alguna se pareciese a la genérica, el huésped tiene
+            // que recibir la de SU casita.
+            $porQue = $this->porQueEsMejor($item);
+
+            if (!isset($encontrados[$nombre]) || ($porQue !== '' && $encontrados[$nombre] === '')) {
+                $encontrados[$nombre] = $porQue;
+            }
         }
 
-        return array_values(array_keys($encontrados));
+        $temas = [];
+
+        foreach ($encontrados as $nombre => $porQue) {
+            $temas[] = new TemaQueCubre((string) $nombre, $porQue !== '', $porQue);
+        }
+
+        return $temas;
+    }
+
+    /**
+     * Qué hace que la ficha de la guía sea MEJOR que una genérica, o cadena vacía si no lo es.
+     *
+     * Son las tres cosas que la guía puede hacer y el conocimiento no. Si no se da ninguna, el
+     * tema es general y de texto plano: entonces las dos versiones dicen lo mismo y excluir al
+     * huésped no le protege de nada —sólo le quita la red si la guía no llega a servirle—.
+     */
+    private function porQueEsMejor(PmsGuiaItem $item): string
+    {
+        // ⚠️ Es un CONSEJO, no un veredicto. Mira tres señales objetivas y se le escapa una: un
+        // ítem que recibe datos de la estancia por la respuesta de la skill —«usa hora_check_in,
+        // que viene en esta misma respuesta»— y no por un `{{ placeholder }}`. «Early check in»
+        // es ese caso: como ficha es general, pero la parte de horarios sí es específica.
+        //
+        // No se afina más a propósito: el ítem cubre varios asuntos a la vez —horarios Y
+        // equipaje— y un veredicto por TEMA no puede decir que uno es específico y el otro no.
+        // Quien decide sigue siendo quien escribe la ficha; esto sólo le pone delante en qué
+        // fijarse.
+        // Una ficha por casita: el grifo de la ducha no es el mismo en todas.
+        if (preg_match('/\(casa\s/i', $item->getNombreInterno()) === 1) {
+            return 'tiene una ficha distinta por casita';
+        }
+
+        // Placeholders: la guía los resuelve con los datos de ESA estancia; aquí no se resuelven.
+        if (str_contains($this->titulos($item) . ' ' . $this->cuerpoCrudo($item), '{{')) {
+            return 'resuelve datos de la estancia (horas, códigos)';
+        }
+
+        // Contenido con candado o ventana: la guía sabe cuándo puede darlo y el conocimiento no.
+        //
+        // ⚠️ SÓLO estas dos. La primera versión miraba «distinto de público», y como 32 de los 51
+        // ítems son `cliente` —que sólo quiere decir «se le enseña al cliente», no que tenga
+        // ventana—, el veredicto salía «es mejor» en casi todo. Un aviso que siempre dice lo
+        // mismo no ayuda a decidir: es el ruido que ya nos comimos con las coincidencias de una
+        // sola palabra.
+        if (in_array(
+            $item->getVisibilidad(),
+            [PmsGuiaVisibilidad::SoloVentana, PmsGuiaVisibilidad::ClienteConfirmado],
+            true
+        )) {
+            return 'sólo se puede dar en cierto momento, y la guía sabe cuándo';
+        }
+
+        return '';
+    }
+
+    /** El cuerpo publicado sin traducir, sólo para mirar si lleva placeholders. */
+    private function cuerpoCrudo(PmsGuiaItem $item): string
+    {
+        $textos = [];
+
+        foreach ($item->getContenidoParaCliente() as $traduccion) {
+            if (is_array($traduccion) && isset($traduccion['content'])) {
+                $textos[] = (string) $traduccion['content'];
+            }
+        }
+
+        return implode(' ', $textos);
     }
 
     /** Los títulos del tema en todos los idiomas: la gente pregunta en el suyo. */

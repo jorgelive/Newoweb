@@ -140,9 +140,14 @@ final class AgentSembrarConocimientoCommand extends Command
                 $ficha['tema'],
                 match (true) {
                     $duplica === [] => 'sin equivalente en la guía · para todos',
-                    $ficha['perfiles'] === self::TODOS => 'roza «' . implode('», «', $duplica)
-                        . '» · para todos, a propósito',
-                    default => 'versión pública de «' . implode('», «', $duplica) . '»',
+                    $ficha['perfiles'] === self::TODOS => 'roza «' . implode('», «', array_map(
+                        static fn ($t): string => $t->etiqueta,
+                        $duplica
+                    )) . '» · para todos, a propósito',
+                    default => 'versión pública de «' . implode('», «', array_map(
+                        static fn ($t): string => $t->etiqueta,
+                        $duplica
+                    )) . '»',
                 }
             ));
 

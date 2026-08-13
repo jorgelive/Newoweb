@@ -85,7 +85,11 @@ interface IndiceDeTemasInterface
      * Lo que sí es un error es una copia **sin acotar**: entonces un huésped recibiría la versión
      * genérica en lugar de la de su casita, con sus horas y sus códigos resueltos.
      *
-     * @return list<string> Etiquetas legibles de los temas que ya lo cubren. Vacío si ninguno.
+     * Cada tema dice además **si su versión es mejor** que una genérica para quien llega a ella
+     * ({@see TemaQueCubre}): eso es lo que decide si el duplicado debe excluir al huésped o no, y
+     * lo sabe el dominio, no el núcleo.
+     *
+     * @return list<TemaQueCubre> Vacío si ninguno lo cubre.
      */
     public function temasQueCubren(string $texto): array;
 }
