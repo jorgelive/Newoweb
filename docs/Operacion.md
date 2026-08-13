@@ -823,3 +823,52 @@ cotizado, no contra la venta real.
 | Qué muestra la columna Prestador (§7.2) | mismo archivo | `editarPrestador()`, `mostrarComercial()`, `telHref()` |
 | Cómo se registra el costo real (§7.3) | mismo archivo | `editarCostoReal()`, `deltaOperativo()`, `PATRON_IMPORTE` |
 | Colores/labels/iconos | `util/src/types/operacionModel.ts` | `ESTADO_*_CONFIG`, `TIPO_COMPONENTE_CONFIG` |
+
+---
+
+## 11. Los mini-hitos: cada servicio es un momento que se puede anunciar
+
+`OperacionHitosDeViaje::para()` convierte los `OperacionServicio` de un expediente en una lista
+de hitos con fecha y hora — la **misma forma** que resolvió la estancia partida en alojamiento
+(`docs/Mensajeria.md` §20.7).
+
+### Por qué un viaje lo necesita más que una estancia
+
+Una estancia tiene principio y fin, y lo de en medio es la excepción. **Un viaje es todo días de
+en medio:**
+
+```
+  Cusco–Puno–Arequipa, 8 días
+    día 1  traslado del aeropuerto
+    día 2  city tour con guía
+    día 4  bus a Puno
+    día 6  Islas Uros
+    día 8  traslado de salida
+
+  con start/end:  «tu viaje empieza el 1 y acaba el 8»
+```
+
+Al pasajero no le hace falta saber cuándo empieza su viaje: le hace falta saber **a qué hora le
+recogen mañana**. Cada servicio es un hito, tipo `SERVICE`; el primero lleva además `START` y el
+último `END`, para que las reglas que hoy cuelgan de esos dos —la bienvenida, la despedida—
+sigan encontrando dónde engancharse sin reescribirlas.
+
+### Decisiones
+
+| Qué | Por qué |
+|---|---|
+| Recibe los **servicios**, no el expediente | `OperacionServicio → CotizacionFile` no tiene lado inverso; añadirlo obligaría a arrastrar decenas de filas para leer una fecha. Quien llama los consulta acotados |
+| La hora sale de `horaRecojoReal` | Es el dato que de verdad se manda. Es texto libre que teclea el operador: si no se puede leer, **se deja el día a secas** — un mensaje a una hora rara se recupera, uno el día equivocado no |
+| Fuera los cancelados y los que no tienen fecha | Una fila de La Biblia a medio cuadrar no puede reventar el cálculo de las demás |
+
+⚠️ **De aquí no sale ni el coste al proveedor (`totalOs`) ni el estado del papeleo (`estadoOs`).**
+El detalle de un hito es lo que se le puede leer al pasajero. El recorte va en la fuente, no
+confiando en que un prompt lo prohíba — eso ya falló esta semana con los teléfonos del personal
+de limpieza. Y si algún día hay que decirle «tu tour está confirmado», el estado que responde a
+eso es `estadoReservaProveedor` (§4.1), nunca el de la orden de compra.
+
+### Lo que falta
+
+La derivación está hecha y probada (8 tests con objetos en memoria) y **no la consume nadie**.
+Para que salgan mensajes hace falta el enlace de conversación del lado de cotizaciones, que a su
+vez espera a que `CotizacionFile` tenga búsqueda por teléfono. Ver `docs/Mensajeria.md` §20.5.

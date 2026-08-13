@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Pms\Service\Message;
 
 use App\Message\Contract\ConversationMilestoneInterface as Hito;
-use App\Message\Contract\HitoDeEstancia;
+use App\Message\Contract\HitoDeAsunto;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
@@ -57,7 +57,7 @@ final class PmsHitosDeEstanciaTest extends TestCase
     private function tipos(PmsReserva $reserva): array
     {
         return array_map(
-            static fn (HitoDeEstancia $h): string => $h->tipo,
+            static fn (HitoDeAsunto $h): string => $h->tipo,
             (new PmsHitosDeEstancia())->para($reserva)
         );
     }
@@ -88,7 +88,7 @@ final class PmsHitosDeEstanciaTest extends TestCase
         self::assertSame([Hito::START, Hito::END], $this->tipos($reserva));
 
         $hitos = (new PmsHitosDeEstancia())->para($reserva);
-        self::assertSame('Casita 2 + Casita 5', $hitos[0]->unidad, 'el bloque lleva las dos casitas');
+        self::assertSame('Casita 2 + Casita 5', $hitos[0]->detalle, 'el bloque lleva las dos casitas');
     }
 
     /**
@@ -110,7 +110,7 @@ final class PmsHitosDeEstanciaTest extends TestCase
         $hitos = (new PmsHitosDeEstancia())->para($reserva);
         self::assertSame('2026-03-12', $hitos[1]->fecha->format('Y-m-d'), 'se va el día que termina el primer tramo');
         self::assertSame('2026-03-15', $hitos[2]->fecha->format('Y-m-d'), 'vuelve el día que empieza el segundo');
-        self::assertSame('Casita 3', $hitos[2]->unidad, 'y vuelve a otra casita');
+        self::assertSame('Casita 3', $hitos[2]->detalle, 'y vuelve a otra casita');
     }
 
     /** Cambia de casita sin irse: hay que decirle cuál es la nueva y de dónde viene. */
@@ -124,8 +124,8 @@ final class PmsHitosDeEstanciaTest extends TestCase
         self::assertSame([Hito::START, Hito::UNIT_CHANGE, Hito::END], $this->tipos($reserva));
 
         $hitos = (new PmsHitosDeEstancia())->para($reserva);
-        self::assertSame('Casita 3', $hitos[1]->unidad);
-        self::assertSame('Casita 1', $hitos[1]->unidadAnterior, 'para poder redactar «de la 1 a la 3»');
+        self::assertSame('Casita 3', $hitos[1]->detalle);
+        self::assertSame('Casita 1', $hitos[1]->detalleAnterior, 'para poder redactar «de la 1 a la 3»');
     }
 
     /** Mismo día y misma casita es una estancia continua partida por administración: no se anuncia. */

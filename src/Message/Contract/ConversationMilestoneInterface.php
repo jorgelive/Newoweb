@@ -47,4 +47,13 @@ interface ConversationMilestoneInterface
      * — ver `PmsHitosDeEstancia`.
      */
     public const string UNIT_CHANGE = 'unit_change';
+
+    /**
+     * Un servicio suelto dentro de un itinerario: el traslado del día 4, la excursión del 6.
+     *
+     * Es el hito de los TOURS, y ahí no es un caso raro sino la norma: un viaje de ocho días es
+     * todo días de en medio, y al pasajero no le hace falta saber cuándo empieza su viaje —le
+     * hace falta saber a qué hora le recogen mañana—. `start` y `end` solos no dicen nada de eso.
+     */
+    public const string SERVICE = 'service';
 }

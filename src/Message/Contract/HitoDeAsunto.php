@@ -33,15 +33,21 @@ use DateTimeInterface;
  * `clave => fecha` sólo admite uno de cada. Con una lista, el motor de reglas puede programar
  * un mensaje por cada ocurrencia en vez de por cada tipo.
  */
-final readonly class HitoDeEstancia
+final readonly class HitoDeAsunto
 {
     public function __construct(
         /** Una de las constantes de {@see ConversationMilestoneInterface}. */
         public string $tipo,
         public DateTimeInterface $fecha,
-        /** La casita a la que se refiere el hito, cuando aplica: a la que entra o de la que sale. */
-        public ?string $unidad = null,
-        /** De dónde viene, sólo en un cambio de unidad. Sirve para redactar «de la 1 a la 3». */
-        public ?string $unidadAnterior = null,
+        /**
+         * A qué se refiere el hito, en palabras que se le pueden leer al cliente: la casita a la
+         * que entra o de la que sale, el servicio que le toca ese día.
+         *
+         * Se llama `detalle` y no `unidad` porque el mismo objeto sirve a los dos negocios: en
+         * alojamiento es «Casita 3», en un tour es «Traslado al aeropuerto».
+         */
+        public ?string $detalle = null,
+        /** De dónde viene, sólo en un cambio. Sirve para redactar «de la 1 a la 3». */
+        public ?string $detalleAnterior = null,
     ) {}
 }

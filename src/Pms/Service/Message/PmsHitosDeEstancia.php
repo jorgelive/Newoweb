@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Service\Message;
 
 use App\Message\Contract\ConversationMilestoneInterface;
-use App\Message\Contract\HitoDeEstancia;
+use App\Message\Contract\HitoDeAsunto;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
@@ -29,8 +29,9 @@ use DateTimeInterface;
  *
  * Se le da la bienvenida el 10 y las instrucciones de salida el 18. **El día que de verdad se
  * va —el 12— nadie le dice cómo dejar la casita, y el día que vuelve —el 15— nadie le dice que
- * ahora está en la 3.** De 25 reservas de varios tramos en la base, 20 tienen hueco y 8 cambian
- * de unidad: es la mayoría de las multitramo, no una rareza.
+ * ahora está en la 3.** Contra la base real: de 25 reservas de varios tramos, 5 tienen hueco y 7
+ * cambian de unidad — doce personas que se fueron y volvieron o cambiaron de casita sin un solo
+ * mensaje.
  *
  * ── La trampa: dos casitas A LA VEZ no son un cambio ────────────────────────
  * ⚠️ El caso más común de reserva con varios tramos **no** es la estancia partida: es el grupo
@@ -49,7 +50,7 @@ use DateTimeInterface;
 final readonly class PmsHitosDeEstancia
 {
     /**
-     * @return list<HitoDeEstancia> En orden cronológico. Vacía si la estancia no tiene tramos
+     * @return list<HitoDeAsunto> En orden cronológico. Vacía si la estancia no tiene tramos
      *                              vivos —una consulta, un bloqueo, todo cancelado—, y eso NO es
      *                              un error: es que no hay nada que anunciar.
      */
@@ -64,7 +65,7 @@ final readonly class PmsHitosDeEstancia
         $hitos = [];
         $primero = $bloques[0];
 
-        $hitos[] = new HitoDeEstancia(
+        $hitos[] = new HitoDeAsunto(
             ConversationMilestoneInterface::START,
             $primero['inicio'],
             implode(' + ', $primero['unidades'])
@@ -78,13 +79,13 @@ final readonly class PmsHitosDeEstancia
             // hitos —la salida y el regreso— porque son dos mensajes distintos con días
             // distintos, no las dos caras de uno.
             if ($this->dia($siguiente['inicio']) > $this->dia($actual['fin'])) {
-                $hitos[] = new HitoDeEstancia(
+                $hitos[] = new HitoDeAsunto(
                     ConversationMilestoneInterface::TEMPORARY_END,
                     $actual['fin'],
                     implode(' + ', $actual['unidades'])
                 );
 
-                $hitos[] = new HitoDeEstancia(
+                $hitos[] = new HitoDeAsunto(
                     ConversationMilestoneInterface::REENTRY,
                     $siguiente['inicio'],
                     implode(' + ', $siguiente['unidades'])
@@ -97,7 +98,7 @@ final readonly class PmsHitosDeEstancia
             // misma, son dos tramos administrativos de una estancia continua —una extensión, un
             // cambio de tarifa— y anunciarlos sería ruido.
             if ($actual['unidades'] !== $siguiente['unidades']) {
-                $hitos[] = new HitoDeEstancia(
+                $hitos[] = new HitoDeAsunto(
                     ConversationMilestoneInterface::UNIT_CHANGE,
                     $siguiente['inicio'],
                     implode(' + ', $siguiente['unidades']),
@@ -108,7 +109,7 @@ final readonly class PmsHitosDeEstancia
 
         $ultimo = $bloques[count($bloques) - 1];
 
-        $hitos[] = new HitoDeEstancia(
+        $hitos[] = new HitoDeAsunto(
             ConversationMilestoneInterface::END,
             $ultimo['fin'],
             implode(' + ', $ultimo['unidades'])
