@@ -16,6 +16,7 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation;
 use App\Entity\Maestro\MaestroIdioma;
+use App\Pms\Entity\PmsConversacionEnlace;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\Contract\ConversationMilestoneInterface;
@@ -209,11 +210,41 @@ class MessageConversation
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $messages;
 
+    /**
+     * Los ASUNTOS de alojamiento de los que se habla en este hilo.
+     *
+     * ── Por qué una colección y no `contextId` ──────────────────────────────
+     * Porque una conversación es de una PERSONA, y una persona puede tener varios asuntos: el
+     * titular que reserva para terceros, el huésped que vuelve, el que está alojado y además
+     * pregunta por ampliar. Con `(contextType, contextId)` como identidad hacía falta **una
+     * conversación por reserva**, y eso parte el historial: medido en producción, 20 teléfonos
+     * con más de un hilo, uno con 247 mensajes repartidos en dos, y un titular con 7
+     * conversaciones creadas el mismo día. El agente atiende una y no ve las demás.
+     *
+     * ── Convive con `contextType`/`contextId`, de momento ───────────────────
+     * ⚠️ Esto es aditivo: **hoy no lo lee nadie**. Las dos columnas viejas siguen siendo la
+     * verdad para `MessageRuleEngine` y para todo lo que segmenta por contexto, y se retiran
+     * cuando el motor sepa programar por asunto. Mientras tanto, un enlace es una copia
+     * paralela; la migración que los puebla lo hace sin tocar las columnas.
+     *
+     * ── Por qué una colección por módulo y no una polimórfica ───────────────
+     * Habrá una hermana para cotizaciones y otra para los hilos libres. Doctrine sabe hacer
+     * herencia de tabla única, pero mete a los tres módulos en una tabla compartida con las
+     * columnas de todos —y con eso, `Cotizacion` volvería a depender del esquema del PMS, que
+     * es justo la dependencia que se está quitando. Cada módulo, su tabla y su FK real; lo que
+     * los une es {@see \App\Message\Contract\ConversacionEnlaceInterface}, no una tabla.
+     *
+     * @var Collection<int, PmsConversacionEnlace>
+     */
+    #[ORM\OneToMany(mappedBy: 'conversacion', targetEntity: PmsConversacionEnlace::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $enlacesPms;
+
     public function __construct(string $contextType, string $contextId)
     {
         $this->contextType = $contextType;
         $this->contextId   = $contextId;
         $this->messages    = new ArrayCollection();
+        $this->enlacesPms  = new ArrayCollection();
         $this->contextData = [];
         $this->id          = Uuid::v7();
     }
@@ -512,5 +543,34 @@ class MessageConversation
     public function __toString(): string
     {
         return sprintf('%s (%s)', $this->guestName ?? 'Sin Nombre', $this->guestPhone ?? 'Sin Teléfono');
+    }
+
+    /**
+     * Los asuntos de alojamiento de este hilo. Ver {@see self::$enlacesPms}.
+     *
+     * @return Collection<int, PmsConversacionEnlace>
+     */
+    public function getEnlacesPms(): Collection
+    {
+        return $this->enlacesPms;
+    }
+
+    public function addEnlacePms(PmsConversacionEnlace $enlace): self
+    {
+        if (!$this->enlacesPms->contains($enlace)) {
+            $this->enlacesPms->add($enlace);
+            $enlace->setConversacion($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEnlacePms(PmsConversacionEnlace $enlace): self
+    {
+        if ($this->enlacesPms->removeElement($enlace) && $enlace->getConversacion() === $this) {
+            $enlace->setConversacion(null);
+        }
+
+        return $this;
     }
 }

@@ -6410,3 +6410,110 @@ siempre «no» y **`MomentoDeFrente::Venta` con entidad era código inalcanzable
 motivó el modelo entero —huésped alojado con una consulta de ampliación pendiente— no podía
 producirse, y el test lo daba por bueno porque usaba dobles que se saltan `PmsFrentes`. Si
 alguna vez tocas esto, comprueba el camino real con `var/probar-frentes.php`, no sólo la suite.
+
+---
+
+## 20. La cirugía: separar la persona del asunto
+
+Estado: **primer corte hecho, nada conectado todavía.** Las tablas existen y están pobladas de
+contactos; ni una línea del flujo de mensajería las lee aún.
+
+### 20.1 El diagnóstico, con números
+
+`msg_conversation` intenta ser dos cosas a la vez, y tiene **dos creadores con claves de
+identidad distintas** escribiendo en ella:
+
+| Creador | Identidad | Resultado |
+|---|---|---|
+| `WhatsappMetaReceivePersister::resolveConversation()` | `guestPhone` + `status = OPEN` | un hilo por **persona**, y sólo mientras esté abierto |
+| `MessageConversationFactory` | `(contextType, contextId)` | un hilo por **activo** — ni mira el teléfono |
+
+No pueden coincidir. Medido en producción:
+
+- **20 teléfonos con más de una conversación**, 50 conversaciones entre ellos.
+- No son cáscaras vacías: `51921166466` tiene **247 mensajes repartidos en 2 hilos**;
+  `51958191965`, 122 en 4; otros seis pasan de 40.
+- El extremo: un número con **7 conversaciones creadas el mismo día**, una por cada casita que
+  reservó — el titular que reserva para terceros que el propio repositorio documenta.
+
+Cuando el agente atiende a esa persona, toma **la más reciente entre las abiertas** y el
+historial de las otras seis no existe para él.
+
+⚠️ **No basta con unificar por teléfono.** La identidad por activo no es un capricho:
+`MessageRuleEngine` lee `$conversation->getContextMilestones()` para programar los envíos y
+filtra las reglas por el `contextType` **de la conversación**. Una conversación por reserva es
+lo que le da a cada estancia su propia agenda. Fusionar sin más deja a un titular con 7 reservas
+con una sola agenda de envíos.
+
+### 20.2 El reparto
+
+| Se queda en la conversación | Se muda a `MaestroContacto` | Se muda al enlace del módulo |
+|---|---|---|
+| `status`, `unreadCount` | `guestName`, `guestPhone` | `contextType`, `contextId` |
+| `resumenIa`, `resumenIaHasta` | `idioma`, `idiomaFijado` | `contextData['vinculo']` |
+| `lastMessageAt`, `lastInboundAt` | | `contextData['milestones']` |
+| `messages` | | `['origin']`, `['agency']`, `['status_tag']` |
+
+`whatsappDisabled` y `whatsappSessionValidUntil` se quedan **de momento** en la conversación:
+son del NÚMERO, no del hilo ni del activo, y su sitio correcto sería una entidad por canal. No
+bloquean nada y moverlos después es barato.
+
+`contextData['financials']` e `['items']` tampoco se mudan: son una foto de la cuenta que usa el
+motor de plantillas, y su sitio natural es el activo (`PmsInformacionFinanciera`), no una copia
+más. Se decide al conectar el motor.
+
+### 20.3 Lo construido
+
+| Pieza | Qué es |
+|---|---|
+| `App\Entity\Maestro\MaestroContacto` | la **persona**. En `Maestro` porque no es de ningún módulo: el mismo señor reserva una casita, contrata un tour y escribe por WhatsApp |
+| `App\Message\Contract\ConversacionEnlaceInterface` | el contrato de los asuntos: `MessageContextInterface` **persistido** |
+| `App\Pms\Entity\PmsConversacionEnlace` | primera implementación, con FK real a `PmsReserva` |
+| `MessageConversation::$enlacesPms` | la colección uno-a-muchos. **Aditiva: hoy no la lee nadie** |
+| `app:contactos:poblar` | crea los contactos desde las tres fuentes |
+
+**Una tabla por módulo, no una polimórfica.** Doctrine sabe hacer herencia de tabla única, pero
+mete a los tres módulos en una tabla con las columnas de todos — y con eso `Cotizacion` volvería
+a depender del esquema del PMS, que es justo la dependencia que se está quitando. Lo que los une
+es el contrato, no una tabla.
+
+**El teléfono del contacto no es único, a propósito.** Un matrimonio comparte número y una
+agencia usa el suyo para los grupos que manda: son personas distintas, no duplicados. Y la tabla
+se puebla desde columnas sucias —números de OTA con el código de país repetido— que harían
+fallar una restricción de unicidad por un puñado de filas.
+
+### 20.4 El poblado, y lo que confirma
+
+`app:contactos:poblar` va de la fuente más rica a la más pobre y **el primero que entra manda**:
+completar huecos entre fuentes mezclaría personas distintas en cuanto dos compartan número.
+Deduplica por los **últimos 8 dígitos del número normalizado con `PhoneSanitizer`** — el mismo
+criterio que ya usa `PmsReservaRepository`.
+
+⚠️ Por eso es un comando y no una migración: en SQL habría que reescribir la normalización con
+`REGEXP_REPLACE` y serían dos criterios condenados a separarse. Además los ids son UUID v7, que
+MySQL no genera.
+
+Resultado de la primera pasada:
+
+| Fuente | Filas | Contactos nuevos |
+|---|---|---|
+| `pms_reserva` | 285 | 260 |
+| `cotizacion_file` | 3 | 3 |
+| `msg_conversation` | 298 | **6** |
+
+**Esos 6 son la prueba del diagnóstico**: de 298 conversaciones, 292 son con personas que ya
+existían como clientes de una reserva. La duplicación era real, y el contacto la colapsa.
+
+Es idempotente y **no toca ni una columna de los módulos de origen**: no reescribe
+`pms_reserva`, no borra, no enlaza. Se puede correr en producción sin ventana de mantenimiento.
+
+### 20.5 Lo que falta
+
+1. **Enganchar cada reserva y cada conversación a su contacto** (FK + poblado). Aditivo.
+2. **Poblar `pms_conversacion_enlace`** desde el `contextType`/`contextId`/`contextData` actual.
+3. **Enseñarle a `MessageRuleEngine` a programar por ASUNTO** en vez de por conversación. Éste
+   es el corazón abierto: hasta que no esté, las columnas viejas siguen siendo la verdad.
+4. Fusionar los hilos duplicados por contacto, con su historial.
+5. Retirar `contextType`/`contextId`/`contextData` de la conversación.
+
+Los pasos 1 y 2 se pueden desplegar sin que nada cambie. El 3 es el que hay que medir.
