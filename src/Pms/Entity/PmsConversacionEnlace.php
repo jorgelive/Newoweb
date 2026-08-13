@@ -296,17 +296,39 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
      *
      * El asunto que revienta se salta entero: esa reserva se queda **sin sus recordatorios**.
      *
-     * @param array<string, string|\DateTimeInterface> $milestones
+     * @param array<string, string|\DateTimeInterface|array{date?: string}> $milestones
      */
     public function setMilestones(array $milestones): self
     {
         $normalizados = [];
 
         foreach ($milestones as $clave => $valor) {
-            $normalizados[$clave] = $valor instanceof \DateTimeInterface
-                ? $valor->format('Y-m-d H:i:s')
-                : (string) $valor;
+            if ($valor instanceof \DateTimeInterface) {
+                $normalizados[$clave] = $valor->format('Y-m-d H:i:s');
+
+                continue;
+            }
+
+            // 🩹 La FORMA SERIALIZADA de un DateTimeImmutable: `{"date": "...", "timezone": ...}`.
+            // Es lo que quedó grabado en las filas escritas antes de que esto normalizara, y no
+            // se puede ignorar: al releerlas llegan como array y el motor de reglas se lleva por
+            // delante el asunto entero. Se acepta y se aplana, para que reparar sea sólo volver a
+            // guardar.
+            if (is_array($valor)) {
+                $fecha = trim((string) ($valor['date'] ?? ''));
+                $normalizados[$clave] = $fecha === ''
+                    ? ''
+                    : (new DateTimeImmutable($fecha))->format('Y-m-d H:i:s');
+
+                continue;
+            }
+
+            $normalizados[$clave] = (string) $valor;
         }
+
+        // Una clave vacía es peor que no tenerla: el motor la trata como hito existente y
+        // programa contra una fecha que no se puede interpretar.
+        $normalizados = array_filter($normalizados, static fn (string $v): bool => $v !== '');
 
         $this->milestones = $normalizados;
 

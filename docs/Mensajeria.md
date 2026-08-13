@@ -7359,6 +7359,19 @@ Cerrado por los dos lados: `setMilestones()` normaliza a `Y-m-d H:i:s`, y `parse
 también `DateTimeInterface` — es el borde que lee un JSON de forma libre, y un `instanceof` es más
 barato que volver a perseguir esto.
 
+⚠️ **Y hay una TERCERA forma, que apareció al desplegar el arreglo:** las filas escritas antes de
+la normalización guardaron el objeto **serializado**, `{"date": "…", "timezone": "America/Lima"}`,
+así que al releerlas llega un `array`. Trece enlaces en producción. El daño no es el hito: **el
+asunto entero se salta**, y esa reserva se queda sin ninguno de sus recordatorios —ni bienvenida,
+ni guía de llegada, ni check-out—.
+
+Las tres formas se aceptan ahora en `setMilestones()` y en `parseMilestone()`, y las claves que no
+se pueden interpretar se descartan en vez de guardarse vacías —un hito vacío es peor que ninguno:
+el motor lo trata como existente y programa contra una fecha ilegible—.
+
+Lo ya escrito se repara con `app:pms:reparar-hitos`, que es «volver a guardar por el ORM»: el
+normalizador de la entidad hace el trabajo, sin replicar la lógica en SQL.
+
 ### 22.17 La procedencia comercial viaja con el ASUNTO, y la redacta el dominio
 
 Varios ítems de guía llevaban dentro condicionales por canal de venta —«a los de Airbnb no», «si

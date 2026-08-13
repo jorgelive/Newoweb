@@ -492,7 +492,7 @@ final readonly class MessageRuleEngine
      * Los hitos se serializan sin sufijo de zona, así que fijarla aquí es lo que impide
      * que el mismo dato signifique dos instantes distintos según el php.ini del servidor.
      */
-    private function parseMilestone(string|DateTimeInterface $raw): ?DateTimeImmutable
+    private function parseMilestone(string|DateTimeInterface|array $raw): ?DateTimeImmutable
     {
         // Acepta objetos además de texto. Los hitos DEBEN llegar normalizados —lo hace
         // `PmsConversacionEnlace::setMilestones()`—, pero éste es el borde que lee un JSON de
@@ -501,6 +501,17 @@ final readonly class MessageRuleEngine
         // barato que volver a perseguirlo.
         if ($raw instanceof DateTimeInterface) {
             return DateTimeImmutable::createFromInterface($raw);
+        }
+
+        // La forma serializada de un DateTimeImmutable, que quedó grabada en filas antiguas.
+        // Aquí se acepta en vez de reventar: un asunto que revienta se salta ENTERO y esa reserva
+        // se queda sin ninguno de sus recordatorios —no sólo sin el hito malo—.
+        if (is_array($raw)) {
+            $raw = (string) ($raw['date'] ?? '');
+        }
+
+        if ($raw === '') {
+            return null;
         }
 
         try {
