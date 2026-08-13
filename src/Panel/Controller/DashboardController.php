@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 // 🔥 IMPORTACIONES DE CONTROLADORES CRUD
+use App\Agent\Controller\Crud\AgentConocimientoCategoriaCrudController;
+use App\Agent\Controller\Crud\AgentConocimientoCrudController;
 use App\Agent\Controller\Crud\AutoResponderRuleCrudController;
 use App\Exchange\Controller\Crud\Beds24ConfigCrudController;
 use App\Exchange\Controller\Crud\CronCursorCrudController;
@@ -244,6 +246,8 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::subMenu('Bot & IA (AutoResponder)', 'fa fa-brain')
             ->setSubItems([
                 MenuItem::linkTo(AutoResponderRuleCrudController::class, 'Reglas Deterministas', 'fa fa-bolt'),
+                MenuItem::linkTo(AgentConocimientoCrudController::class, 'Conocimiento del agente', 'fa fa-lightbulb'),
+                MenuItem::linkTo(AgentConocimientoCategoriaCrudController::class, 'Temas de conocimiento', 'fa fa-tags'),
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 

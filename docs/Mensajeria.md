@@ -6925,3 +6925,81 @@ guardan, pero no se ofrecen**:
 guardaría, parecería activa y **no dispararía nunca, sin un error que lo delatara**. Se añaden el
 día que el motor programe **una ocurrencia por hito** — que es lo que ya pide §20.7, y lo que
 distingue «dos escapadas» de «una salida temporal».
+
+---
+
+## 21. El conocimiento genérico: la última red antes de escalar
+
+Cuando ninguna skill encaja, el agente escala al equipo. Y buena parte de lo que escala son
+**preguntas repetidas cuya respuesta no cambia nunca** —si hay estacionamiento, a qué hora abre
+la puerta, si aceptan Yape—. Cada una interrumpe a una persona para decir lo mismo otra vez.
+
+`AgentConocimiento` es lo último que se mira antes de ese escalado.
+
+### 21.1 Qué NO es
+
+- **No sustituye a ninguna skill.** Lo que se calcula o se consulta —disponibilidad, cuenta, el
+  wifi de una casita— sigue siendo de ellas, y esas respuestas están más al día que cualquier
+  texto escrito a mano. Esto es para lo que **no tiene skill y no cambia**.
+- **No es la guía del huésped** (`PmsGuiaItem`), que es del alojamiento y para el huésped. Esto
+  es transversal: el horario de la oficina se le responde igual a un pasajero de tours.
+
+### 21.2 Las dos fases, y por qué
+
+La tabla está pensada para **crecer mucho**: se alimenta con el tiempo, cada vez que alguien nota
+que una pregunta se repite. Mandársela entera al modelo en cada turno sería insostenible.
+
+```
+  fase 1   se le enseñan las CATEGORÍAS (unas líneas) y elige de qué va la pregunta
+  fase 2   se le enseñan las ETIQUETAS de esa categoría, sin contenido
+  →        el CONTENIDO sólo cuando ya eligió un ítem
+```
+
+Se podría buscar por texto y devolver lo parecido, y sería peor: una búsqueda por palabras
+acierta cuando el huésped usa las nuestras y falla cuando usa las suyas —«cochera», «dónde meto
+el auto»—. Quien resuelve eso es el modelo, que entiende la pregunta. Lo que hace falta es
+enseñarle **lo justo** para que elija.
+
+⚠️ Las **etiquetas se escriben como pregunta la gente**, no como lo llamamos nosotros. Es lo
+único de la ficha que el modelo usa para elegir.
+
+### 21.3 Dos caminos, a propósito
+
+| Camino | Cuándo |
+|---|---|
+| Skill `consultar_conocimiento` | El modelo la llama cuando ninguna otra encaja. Transversal: sin dominio declarado, la ve cualquier actor |
+| Red dentro de `EscalarAlEquipoSkill` | **Automática.** Antes de avisar, se mira si lo preguntado ya está escrito |
+
+La segunda existe porque «pídeselo en el prompt» ya se demostró insuficiente más de una vez. No
+bloquea el escalado —si el equipo debe enterarse, se entera— sino que **devuelve la respuesta
+junto al aviso**, para contestar en el acto en lugar de dejar al huésped esperando.
+
+Su comparación es tosca a propósito: palabras de cuatro letras o más, sin acentos. Aquí no se
+busca acertar siempre, sino **no escalar lo obvio**; lo fino lo hace el modelo por el otro camino.
+
+### 21.4 Quién ve qué
+
+`dominios` y `perfiles` son listas, y **vacío = sin acotar** — la misma convención que
+`SkillDominioInterface` y `ActorInterface::dominios()`, y por el mismo motivo: un olvido al
+clasificar deja el ítem de más, no invisible. Lo segundo no se descubre nunca.
+
+⚠️ **El filtro se aplica al construir la lista, no pidiéndoselo al modelo.** Un ítem que no le
+toca a este interlocutor no llega a verse. Y el id se revalida en la segunda llamada aunque venga
+de la lista que acabamos de dar: entre las dos, el modelo pudo inventárselo.
+
+### 21.5 Decisiones
+
+| Decisión | Por qué |
+|---|---|
+| La categoría es **tabla, no enum** | Se alimenta desde el panel. Con un enum, añadir «reclamos» a las nueve de la noche significa no añadirla |
+| Id natural (`pagos`, `llegada`) | Sale en el prompt y en los registros; un uuid ahí no explica por qué el agente eligió lo que eligió |
+| El «sistema» **es el dominio** | `hotelero`/`turistico`, los mismos de `ActorInterface::dominios()`. No hacía falta un eje nuevo ni una tabla de relación |
+| Sin optimizar para caché | Decisión del dueño: con el volumen actual la granularidad vale más que el ahorro del prefijo cacheado. Cuando el volumen lo pida, la fase 1 puede moverse al bloque estable |
+
+### 21.6 Lo que falta
+
+- **El bloque de categorías en el contexto del turno.** Hoy el modelo tiene que pedirlo con una
+  llamada sin `categoria`; con el bloque puesto se ahorra esa vuelta. Toca
+  `AiConversationProcessor`, que es núcleo del agente.
+- **Alimentar la tabla.** Nace vacía: sin categorías no hay primera fase y el agente se comporta
+  exactamente como hoy. Lo que se desplegó es la posibilidad, no un cambio de conducta.

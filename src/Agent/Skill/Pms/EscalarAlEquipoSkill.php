@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Skill\Pms;
 
 use App\Agent\Access\ActorInterface;
+use App\Agent\Service\ConocimientoGenerico;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
 use App\Agent\Skill\SkillDominioInterface;
@@ -99,6 +100,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         private ParameterBagInterface $params,
         private PmsDisponibilidadService $disponibilidad,
         private LoggerInterface $logger,
+        private ConocimientoGenerico $conocimiento,
     ) {}
 
     public function nombre(): string
@@ -187,6 +189,17 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
 
         $motivo = mb_substr($motivo, 0, self::MAX_MOTIVO);
 
+        // ── La última red: ¿esto ya está contestado? ─────────────────────────
+        // Buena parte de lo que se escala son preguntas repetidas cuya respuesta no cambia
+        // nunca, y cada una interrumpe a una persona para decir lo mismo otra vez.
+        //
+        // Se comprueba AQUÍ y no confiando en que el modelo llame antes a `consultar_conocimiento`:
+        // la skill existe y su descripción se lo pide, pero «pídeselo en el prompt» ya se ha
+        // demostrado insuficiente más de una vez. Esto no bloquea el escalado —si el operador
+        // debe enterarse, se entera igual— sino que devuelve la respuesta junto al aviso, para
+        // que el modelo pueda contestar en el acto en lugar de dejar al huésped esperando.
+        $yaEscrito = $this->conocimiento->candidatosPara($motivo, $actor);
+
         $conversacion = $this->conversacionDe($entrada, $actor);
 
         if ($conversacion === null) {
@@ -194,6 +207,15 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                 'No sé de qué conversación hablas. Localízala con localizar_conversacion.'
             );
         }
+
+        // Si hay algo escrito, se devuelve junto al escalado. El aviso sale igual: lo que se
+        // ahorra no es el aviso, es que el huésped se quede sin respuesta mientras llega.
+        $sugerencia = $yaEscrito === [] ? null : [
+            'hay_respuesta_escrita' => true,
+            'contenido' => $yaEscrito[0]->getContenido(),
+            'aviso' => 'Esto ya estaba contestado: díselo AHORA en vez de dejarlo esperando. El '
+                . 'equipo queda avisado igualmente.',
+        ];
 
         // 1️⃣ La marca PRIMERO y con su propio flush: es lo único que no depende de que Meta,
         // la red o una plantilla cooperen. Si el aviso falla después, el caso sigue visible.
@@ -274,6 +296,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
 
         return SkillResult::ok(array_filter([
             'marcada_pendiente' => true,
+            'respuesta_ya_escrita' => $sugerencia,
             'avisados' => $avisados,
             'no_avisados' => $fallos !== [] ? $fallos : null,
             'aviso_encolado' => $avisados !== [],
