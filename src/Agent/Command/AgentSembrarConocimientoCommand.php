@@ -230,11 +230,15 @@ final class AgentSembrarConocimientoCommand extends Command
                     . 'perro, viajo con mi mascota, pet friendly, pets, dog, animales',
                 'contenido' => 'Lo sentimos, no aceptamos mascotas.'
                     . "\n\n"
-                    . 'Dilo con amabilidad —empieza disculpándote— pero sin dejar lugar a dudas: no '
-                    . 'hay excepción que ofrecer, así que no prometas consultarlo ni des a entender '
-                    . 'que depende del caso. Tampoco expliques el motivo: no le interesa a quien '
-                    . 'pregunta y suena a excusa. Si todavía no ha reservado, es mejor que lo sepa '
-                    . 'ahora que al llegar con el animal a la puerta.',
+                    . '⚠️ LA DISCULPA VA SIEMPRE, también en otros idiomas: «We are sorry, we do '
+                    . 'not accept pets». Sin ella la frase es un portazo, y ya pasó — en inglés '
+                    . 'salió un «We do not accept pets» a secas.'
+                    . "\n\n"
+                    . 'Sin dejar lugar a dudas, eso sí: no prometas consultarlo ni des a entender '
+                    . 'que depende del caso, porque no hay excepción que ofrecer. Y no expliques el '
+                    . 'motivo: no le interesa a quien pregunta y suena a excusa. Si todavía no ha '
+                    . 'reservado, es mejor que lo sepa ahora que al llegar con el animal a la '
+                    . 'puerta.',
                 // Va acotada como las demás duplicadas: el huésped ya lo tiene en «Reglas», y
                 // quien de verdad necesita esta respuesta es el que aún está decidiendo si
                 // reserva — y ése no llega a la guía.
