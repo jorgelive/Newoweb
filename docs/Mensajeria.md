@@ -29,6 +29,9 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 15. [Dónde tocar para cambiar X](#15-dónde-tocar-para-cambiar-x)
 16. [Cómo se paga: medios de cobro y tipo de cambio](#16-cómo-se-paga-medios-de-cobro-y-tipo-de-cambio)
 17. [La conciencia del tiempo y del espacio](#17-la-conciencia-del-tiempo-y-del-espacio)
+18. [Sincronizar plantillas con Meta](#18-sincronizar-plantillas-con-meta-por-qué-aparecen-duplicados-y-qué-no-hacer)
+19. [Con quién se habla: vínculo, restricción de canal y categoría de conocimiento](#19-con-quién-se-habla-vínculo-restricción-de-canal-y-categoría-de-conocimiento)
+20. [La cirugía: separar la persona del asunto](#20-la-cirugía-separar-la-persona-del-asunto)
 
 ---
 
@@ -141,10 +144,15 @@ comprobar que la pasada `INSERT` sigue ocurriendo.
 
 ## 4. El motor de reglas, decisión a decisión
 
-Por cada regla del `contextType` de la conversación, el motor calcula dos cosas independientes:
+La unidad de trabajo del motor es la **AGENDA de un asunto** (`AgendaDeAsunto`), no la
+conversación. Si el hilo tiene enlaces persistidos (§20), cada enlace aporta su agenda; si no
+tiene —hoy, casi todos—, la agenda única sale de `contextType`/`contextId`/`contextData` de la
+conversación y todo esta sección aplica tal cual. El detalle del modo por-asunto está en §20.5.
+
+Por cada regla del `contextType` de la agenda, el motor calcula dos cosas independientes:
 
 - **`calculateRunAt()`** — la fecha: hito + `offsetMinutes`. `null` si el hito no existe.
-- **`ruleAppliesToConversation()`** — si la regla tiene derecho a existir aquí y ahora.
+- **`ruleAppliesToAgenda()`** — si la regla tiene derecho a existir aquí y ahora.
 
 Si cualquiera de las dos falla y ya había un mensaje, se cancela. Ese es el mecanismo por el que
 mover una reserva a otra fecha reprograma sus avisos y cancelarla los apaga.
@@ -163,6 +171,9 @@ el bug.
 
 ### 4.2 La barrera de estado y el hito `CANCELLED`
 
+⚠️ Esta tabla describe el **modo legado** (conversación sin enlaces). En modo por-asunto la
+muerte viaja en el ENLACE y la regla es otra —y más dura—: ver §20.5.
+
 | Estado de la conversación | Reglas normales | Reglas con hito `cancelled_at` |
 |---|---|---|
 | `open` | ✅ | ❌ |
@@ -178,18 +189,24 @@ Un cierre manual del operador no cuenta como cancelación: lo que distingue los 
 presencia del hito `cancelled_at`, que sólo `PmsReservaMessageContext::getMilestones()` añade
 cuando `isCancelled()` es cierto. Sin hito no hay `runAt`, y sin `runAt` no hay mensaje.
 
-### 4.3 Identidad del mensaje: la REGLA, no la plantilla
+### 4.3 Identidad del mensaje: (REGLA, ASUNTO), no la plantilla
 
-`Message::getRule()` (columna `rule_id`, migración `Version20260805120000`) es lo que empareja un
-mensaje con la regla que lo creó.
+`Message::getRule()` (columna `rule_id`, migración `Version20260805120000`) empareja un mensaje
+con la regla que lo creó, y `Message::getAsuntoType()/getAsuntoId()` (columnas `asunto_type` y
+`asunto_id`, migración `Version20260812300000`) con el asunto por el que se programó.
 
-Antes la identidad era la plantilla, y dos reglas que la compartieran —un recordatorio a −7 días
-y otro a −1 día con el mismo texto— se reconocían como **el mismo mensaje**: la segunda regla
-encontraba el mensaje de la primera, le reescribía `scheduledAt` y sólo salía un envío.
+Las dos mitades existen por la misma clase de bug:
 
-`MessageRuleEngine::messageBelongsToRule()` cae en la plantilla sólo para mensajes anteriores a
-la columna (`rule_id IS NULL`). El backfill de la migración es conservador: sólo adopta la regla
-cuando una plantilla identifica a una sola.
+- **La regla y no la plantilla**: dos reglas que compartieran plantilla —un recordatorio a −7
+  días y otro a −1 con el mismo texto— se reconocían como el mismo mensaje y se pisaban el
+  `scheduledAt`. `MessageRuleEngine::messageBelongsToRule()` cae en la plantilla sólo para
+  mensajes anteriores a la columna (`rule_id IS NULL`).
+- **El asunto**, porque con varios enlaces en el mismo hilo la misma regla programa N mensajes
+  legítimos, uno por reserva. `MessageRuleEngine::messageBelongsToAsunto()` deduce para los
+  mensajes sin estampar (`asunto_type IS NULL`): pertenecen al asunto propio de su conversación,
+  porque en esa era la conversación ERA el asunto — y los ADOPTA (los estampa) al primer toque.
+  No hay backfill en la migración a propósito: sería la misma deducción repetida en SQL, dos
+  criterios condenados a separarse.
 
 ### 4.4 Los cuatro umbrales temporales
 
@@ -203,9 +220,11 @@ Todos son constantes de `MessageRuleEngine` y todos se miden en `America/Lima`:
 | `TZ` | `America/Lima` | Zona en la que se interpretan hitos y "hoy" |
 
 **El rescate** (`canRescue`) crea el mensaje con `runAt = now` cuando su fecha teórica ya pasó.
-Se activa en `INSERT` o en `COMMAND + force`, y sólo dentro de `RESCUE_WINDOW`. Ese suelo es
-imprescindible: sin él, importar el histórico de un canal —donde toda conversación entra como
-`INSERT`— disparaba de golpe los mensajes de bienvenida de reservas hechas hace meses.
+Se activa en `INSERT`, en `COMMAND + force` o cuando el ASUNTO acaba de nacer (`esNueva`: enlace
+con `createdAt === null`, es decir, creado en esta misma unidad de trabajo — §20.5), y sólo
+dentro de `RESCUE_WINDOW`. Ese suelo es imprescindible: sin él, importar el histórico de un
+canal —donde toda conversación entra como `INSERT`— disparaba de golpe los mensajes de
+bienvenida de reservas hechas hace meses.
 
 > ⚠️ **`force` por sí solo NO habilita el rescate**, y esto no es un detalle menor.
 > `PmsReservaRecalculoService` pasa `force: true` en **cada** cambio de reserva, y
@@ -5027,7 +5046,10 @@ arreglar** — ver el aviso al final de esta sección.
 | Añadir un hito nuevo (ej. "pago recibido") | `src/Message/Contract/ConversationMilestoneInterface.php` | constante + `MessageConversation::addContextMilestone()` + `MessageRule::setMilestone()` + choices del CRUD |
 | Cambiar de dónde sale una fecha del PMS | `src/Pms/Service/Message/PmsReservaMessageContext.php` | `getMilestones()` |
 | Ajustar cuándo caduca o se rescata un mensaje | `src/Message/Service/Queue/MessageRuleEngine.php` | constantes `PAST_THRESHOLD`, `RESCUE_WINDOW`, `EXPIRY_WINDOW` |
-| Cambiar qué estados de conversación admiten reglas | `src/Message/Service/Queue/MessageRuleEngine.php` | `ruleAppliesToConversation()` — §4.2 |
+| Cambiar qué estados de conversación/asunto admiten reglas | `src/Message/Service/Queue/MessageRuleEngine.php` | `ruleAppliesToAgenda()` — §4.2 y §20.5 |
+| Saber de qué asunto es un mensaje encolado | `src/Message/Entity/Message.php` | `getAsuntoType()`/`getAsuntoId()` — §4.3 |
+| Tocar cómo se arma la agenda de un asunto (hitos, muerte, novedad) | `src/Message/Service/Queue/AgendaDeAsunto.php` | `deEnlace()`, `estaMuerta()` — §20.5 |
+| Que los asuntos de un módulo nuevo entren al motor | `src/Message/Entity/MessageConversation.php` | `getEnlaces()` — punto único, como `Message::getAllQueues()` |
 | Añadir un filtro de segmentación (ej. por tipo de unidad) | `src/Message/Entity/MessageRule.php` | `matchesSegmentation()` — **fuente única**, la usa también `isSatisfiedBy()` |
 | Que un cambio de la conversación re-dispare reglas | `src/Message/EventListener/Queue/MessageRuleEngineListener.php` | `CAMPOS_CRITICOS` |
 | Añadir un canal de salida nuevo | nuevo `ChannelEnqueuerInterface` + entidad de cola | `supports()`, `createQueueEntity()`, `isValid()`, `getChannelId()` |
@@ -6415,8 +6437,9 @@ alguna vez tocas esto, comprueba el camino real con `var/probar-frentes.php`, no
 
 ## 20. La cirugía: separar la persona del asunto
 
-Estado: **primer corte hecho, nada conectado todavía.** Las tablas existen y están pobladas de
-contactos; ni una línea del flujo de mensajería las lee aún.
+Estado: **el motor ya sabe programar por asunto (§20.5); los enlaces siguen sin poblarse.**
+Las tablas existen, `maestro_contacto` está poblada, y `MessageRuleEngine` lee los enlaces si
+los hay — mientras `pms_conversacion_enlace` esté vacía, todo se comporta como siempre.
 
 ### 20.1 El diagnóstico, con números
 
@@ -6433,17 +6456,24 @@ No pueden coincidir. Medido en producción:
 - **20 teléfonos con más de una conversación**, 50 conversaciones entre ellos.
 - No son cáscaras vacías: `51921166466` tiene **247 mensajes repartidos en 2 hilos**;
   `51958191965`, 122 en 4; otros seis pasan de 40.
-- El extremo: un número con **7 conversaciones creadas el mismo día**, una por cada casita que
-  reservó — el titular que reserva para terceros que el propio repositorio documenta.
 
 Cuando el agente atiende a esa persona, toma **la más reciente entre las abiertas** y el
-historial de las otras seis no existe para él.
+historial de los otros hilos no existe para él.
+
+⚠️ **Dato corregido por el dueño (2026-08-12).** El «titular con 7 reservas creadas el mismo
+día» que esta sección usaba como ejemplo era FALSO: esas 7 filas de `pms_reserva` son basura de
+un bug al guardar —están canceladas, y lo correcto era UNA reserva con 4 eventos—. Se contaron
+filas y se sacó una conclusión de negocio que no se sostiene. Lo que la basura sí enseña es
+otra cosa: **la base trae asuntos podridos** (canceladas duplicadas, y 2 conversaciones
+apuntando a reservas BORRADAS — `context_id` es texto sin integridad referencial), y el motor
+tiene que atravesarlos sin reventar ni encolar de más. Ver §20.5.
 
 ⚠️ **No basta con unificar por teléfono.** La identidad por activo no es un capricho:
-`MessageRuleEngine` lee `$conversation->getContextMilestones()` para programar los envíos y
-filtra las reglas por el `contextType` **de la conversación**. Una conversación por reserva es
-lo que le da a cada estancia su propia agenda. Fusionar sin más deja a un titular con 7 reservas
-con una sola agenda de envíos.
+`MessageRuleEngine` leía `$conversation->getContextMilestones()` para programar los envíos y
+filtraba las reglas por el `contextType` **de la conversación**. Una conversación por reserva
+era lo que le daba a cada estancia su propia agenda. Fusionar hilos sin enseñarle al motor a
+programar por asunto dejaba a un titular con N reservas con una sola agenda de envíos — resuelto
+en §20.5.
 
 ### 20.2 El reparto
 
@@ -6469,7 +6499,7 @@ más. Se decide al conectar el motor.
 | `App\Entity\Maestro\MaestroContacto` | la **persona**. En `Maestro` porque no es de ningún módulo: el mismo señor reserva una casita, contrata un tour y escribe por WhatsApp |
 | `App\Message\Contract\ConversacionEnlaceInterface` | el contrato de los asuntos: `MessageContextInterface` **persistido** |
 | `App\Pms\Entity\PmsConversacionEnlace` | primera implementación, con FK real a `PmsReserva` |
-| `MessageConversation::$enlacesPms` | la colección uno-a-muchos. **Aditiva: hoy no la lee nadie** |
+| `MessageConversation::$enlacesPms` | la colección uno-a-muchos. La lee el motor vía `getEnlaces()` (§20.5) |
 | `app:contactos:poblar` | crea los contactos desde las tres fuentes |
 
 **Una tabla por módulo, no una polimórfica.** Doctrine sabe hacer herencia de tabla única, pero
@@ -6507,7 +6537,68 @@ existían como clientes de una reserva. La duplicación era real, y el contacto 
 Es idempotente y **no toca ni una columna de los módulos de origen**: no reescribe
 `pms_reserva`, no borra, no enlaza. Se puede correr en producción sin ventana de mantenimiento.
 
-### 20.5 Lo que falta
+### 20.5 El motor programa por ASUNTO (paso 3, hecho)
+
+`MessageRuleEngine` ya no programa contra la conversación sino contra **agendas**
+(`AgendaDeAsunto`, en `src/Message/Service/Queue/`), una por asunto:
+
+```
+ syncConversationRules(conversación, trigger, force)
+        │
+        ├─ healZombieMessages()                        igual que siempre, por conversación
+        ├─ agendasDe()          ─── ¿tiene enlaces? ───┐
+        │        │ no                                  │ sí
+        │        ▼                                     ▼
+        │   1 agenda LEGADA                       N agendas, una por enlace
+        │   (contextData de la conversación)      (milestones/origen/agencia DEL ENLACE)
+        │
+        ├─ cancelarPendientesDeAsuntosRetirados()      sólo con panorama completo
+        └─ por agenda: evaluarReglasDeAgenda()         aislada en try/catch
+                └─ por regla: calculateRunAt() + ruleAppliesToAgenda()
+                              → cancelar / sincronizar / crear (con asunto estampado)
+```
+
+**Compatibilidad hacia atrás, sin ventana.** Una conversación sin enlaces produce una única
+agenda legada con los mismos datos de siempre y la MISMA barrera de estado de §4.2: el
+comportamiento es idéntico byte a byte. Se puede desplegar con `pms_conversacion_enlace` vacía
+y no cambia nada; los enlaces van encendiendo el modo nuevo hilo a hilo cuando el paso 2 los
+puble.
+
+**Identidad e idempotencia por asunto.** Cada mensaje del sistema queda estampado con su par
+`(asunto_type, asunto_id)` (§4.3). Los mensajes de la era anterior (sin estampar) se reconocen
+por deducción —pertenecen al asunto propio de su conversación— y se **adoptan** al primer
+toque, de modo que estrenar un enlace cuyo par coincide con el de la conversación NO duplica lo
+ya encolado. Duplicar aquí es escribirle dos veces al huésped; hay test que lo clava.
+
+**La muerte de un asunto es categórica** — regla del dueño del producto: *«cuando regenere, el
+engine que no se muera»*. En modo por-asunto, un enlace cancelado (hito `cancelled_at`) o con
+vínculo `Terminado` no encola **ni un mensaje** (`AgendaDeAsunto::estaMuerta()`), y lo suyo
+pendiente se cancela. Consecuencia asumida: **el aviso de cancelación por asunto queda mudo**
+—en modo legado sigue funcionando como en §4.2—. El motivo es la basura medida (canceladas
+duplicadas por el bug de guardado): regenerar sobre ellas habría sido un envío real por cada
+duplicado. Recuperar el aviso por asunto exige una guarda nueva y es una decisión de producto
+pendiente.
+
+**Los asuntos podridos se saltan, no tumban el barrido.** Un enlace que no resuelve a nada
+(sin activo detrás, o cuyo proxy revienta al cargar) se registra en el log y se salta;
+`evaluarReglasDeAgenda()` va además aislada por asunto en try/catch, para que uno malo no deje
+a los demás sin sus recordatorios. Y con el panorama incompleto la barrida de huérfanos NO
+corre: no se puede distinguir «asunto retirado» de «asunto que hoy no cargó», y cancelar sobre
+una foto rota apagaría mensajes legítimos.
+
+**Asunto nuevo = enlace sin flushear.** El rescate de última hora y las reglas `CREATED`
+aceptan, además de `INSERT` y la reparación manual, un enlace con `createdAt === null` (nació
+en esta misma unidad de trabajo). Es la señal que sustituye al `INSERT` cuando los hilos estén
+fusionados y una reserva nueva llegue como `UPDATE` de una conversación vieja. Un poblado
+masivo nunca la activa, porque flushea antes de que el motor corra — por eso la señal es
+«null», y no «creado hace poco».
+
+**Gotcha pendiente de cableado:** `MessageRuleEngineListener::CAMPOS_CRITICOS` vigila columnas
+de la CONVERSACIÓN; tocar un enlace no dispara el motor. Mientras el flujo que refresque
+enlaces sea el recálculo del PMS (que llama al motor explícitamente) no importa, pero si algo
+más escribe enlaces, tiene que disparar el motor él mismo o los cambios no reprograman nada.
+
+### 20.6 Lo que falta
 
 1. ✅ **Enganchar reservas y expedientes a su contacto** — `pms_reserva.contacto_id` y
    `cotizacion_file.contacto_id`, nullable y `ON DELETE SET NULL`. Los engancha la segunda
@@ -6517,8 +6608,25 @@ Es idempotente y **no toca ni una columna de los módulos de origen**: no reescr
    *Falta la FK en `MessageConversation`, que espera al paso 3 para no chocar con él.*
 2. ✅ **Poblar `pms_conversacion_enlace`** — `app:conversaciones:enlazar`, **204 enlaces**.
    Idempotente y aditivo: no toca las columnas viejas.
-3. **Enseñarle a `MessageRuleEngine` a programar por ASUNTO** en vez de por conversación. Éste
-   es el corazón abierto: hasta que no esté, las columnas viejas siguen siendo la verdad.
+   ⚠️ Falta decidir **quién refresca el enlace cuando la reserva cambia**: hoy
+   `PmsReservaRecalculoService` reescribe el `contextData` de la conversación, y con enlaces
+   tiene que reescribir también el enlace —hitos, vínculo, `status_tag`— en el mismo
+   movimiento, o el motor programará con fechas viejas.
+3. ✅ **El motor programa por ASUNTO** — §20.5. Las columnas viejas siguen siendo la verdad
+   para las conversaciones sin enlaces, así que se despliega sin que nada cambie.
+4. **Fusionar los hilos duplicados por contacto**, con su historial. Los mensajes viajan con su
+   asunto estampado; **los que no lo tengan hay que adoptarlos ANTES de mover**, porque la
+   deducción usa el par de contexto de la conversación de origen. Éste es el paso que hay que
+   medir.
+5. **Retirar `contextType`/`contextId`/`contextData`** de la conversación. Antes, TODOS los
+   mensajes vivos tienen que estar estampados: la adopción es perezosa y un barrido con
+   `app:message:sync-rules --all` la completa.
+6. **Que los hitos nuevos lleguen al motor** (§20.7): exponerlos en el contrato del enlace, que
+   `MessageRule` pueda apuntar a ellos, y que se programe **una ocurrencia por hito** y no una
+   por tipo — dos escapadas son dos mensajes de salida temporal.
+7. **Decisión de producto pendiente**: si vuelve el aviso de cancelación por asunto, y con qué
+   guarda contra las canceladas duplicadas (§20.6 explica por qué es delicado: un tercio de las
+   conversaciones cuelga de una reserva cancelada).
 
 ### 20.6 Lo que la base arrastra, y que el motor tiene que atravesar sin morirse
 

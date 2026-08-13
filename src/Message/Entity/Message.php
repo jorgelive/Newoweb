@@ -33,6 +33,7 @@ use App\Message\Contract\MessageQueueItemInterface;
 #[ORM\Table(name: 'msg_message')]
 #[ORM\Index(columns: ['status'], name: 'idx_msg_status')]
 #[ORM\Index(columns: ['direction'], name: 'idx_msg_direction')]
+#[ORM\Index(columns: ['asunto_type', 'asunto_id'], name: 'idx_msg_asunto')]
 #[ORM\HasLifecycleCallbacks]
 #[ValidTemplateScope]
 #[ApiResource(
@@ -136,6 +137,40 @@ class Message
     #[ORM\JoinColumn(name: 'rule_id', nullable: true, onDelete: 'SET NULL')]
     #[Groups(['message:read'])]
     private ?MessageRule $rule = null;
+
+    /**
+     * El ASUNTO que programó este mensaje: el par `(tipo, id)` del activo — p. ej.
+     * `('pms_reserva', <uuid de la reserva>)`. Sólo lo rellena el motor de reglas.
+     *
+     * ── Por qué hace falta ───────────────────────────────────────────────────
+     * Con una conversación por reserva, «de qué asunto es este mensaje» era trivial: del único
+     * que la conversación tenía. Con varios asuntos colgando del mismo hilo
+     * ({@see MessageConversation::getEnlaces()}), la regla deja de bastar como identidad: la
+     * MISMA regla programa legítimamente N mensajes en la misma conversación, uno por reserva.
+     * Sin esto, el motor encontraba el mensaje de la reserva A al evaluar la B, le pisaba la
+     * fecha, y de N recordatorios sobrevivía uno.
+     *
+     * ── Por qué dos strings y no una FK al enlace ────────────────────────────
+     * Dos razones, y las dos son deliberadas:
+     *
+     * 1. Los enlaces viven en una tabla POR MÓDULO (`pms_conversacion_enlace` hoy, la de
+     *    cotizaciones mañana). Una FK ataría `msg_message` al esquema del PMS, que es justo la
+     *    dependencia que la cirugía está quitando; y una FK polimórfica no existe en MySQL.
+     * 2. La identidad real del asunto es el par `(contextType, contextId)` — la misma con la
+     *    que segmentan las reglas—. La fila del enlace es sólo su representación persistida:
+     *    si un repoblado la borra y la recrea, el UUID cambia pero el asunto es el mismo, y
+     *    los mensajes ya encolados tienen que seguir reconociéndose como suyos.
+     *
+     * `null` significa «programado en la era de una-conversación-por-activo»: el motor lo trata
+     * como perteneciente al asunto propio de la conversación (`contextType`/`contextId` de
+     * ella) y lo adopta —lo estampa— la primera vez que lo vuelve a tocar.
+     */
+    #[ORM\Column(name: 'asunto_type', type: 'string', length: 50, nullable: true)]
+    private ?string $asuntoType = null;
+
+    /** La otra mitad del par. Ver {@see self::$asuntoType}. */
+    #[ORM\Column(name: 'asunto_id', type: 'string', length: 100, nullable: true)]
+    private ?string $asuntoId = null;
 
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappMetaSendQueue::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
@@ -336,6 +371,18 @@ class Message
 
     public function getRule(): ?MessageRule { return $this->rule; }
     public function setRule(?MessageRule $rule): self { $this->rule = $rule; return $this; }
+
+    public function getAsuntoType(): ?string { return $this->asuntoType; }
+    public function getAsuntoId(): ?string { return $this->asuntoId; }
+
+    /** Estampa el asunto dueño del mensaje. Ver {@see self::$asuntoType} para el porqué del par. */
+    public function setAsunto(?string $asuntoType, ?string $asuntoId): self
+    {
+        $this->asuntoType = $asuntoType;
+        $this->asuntoId   = $asuntoId;
+
+        return $this;
+    }
 
     public function getTransientChannels(): array { return $this->transientChannels; }
     public function setTransientChannels(array $channels): self { $this->transientChannels = $channels; return $this; }

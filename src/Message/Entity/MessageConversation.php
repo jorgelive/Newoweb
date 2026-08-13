@@ -546,6 +546,32 @@ class MessageConversation
     }
 
     /**
+     * TODOS los asuntos colgados de este hilo, vengan del módulo que vengan.
+     *
+     * Es el punto único de convergencia entre las colecciones físicas por módulo y el contrato
+     * de dominio, calcado de {@see Message::getAllQueues()}: quien programa envíos
+     * (`MessageRuleEngine`) itera asuntos sin saber de qué tabla salen. 🔥 Al añadir un módulo
+     * (cotizaciones, hilos libres) su colección DEBE sumarse aquí, o sus asuntos serán
+     * invisibles para el motor: no dará error, simplemente nunca programará sus mensajes.
+     *
+     * Vacío significa «conversación de la era anterior»: el motor cae entonces a
+     * `contextType`/`contextId`/`contextData` de esta entidad, que siguen siendo la verdad
+     * hasta que la retirada (§20 de docs/Mensajeria.md) llegue a su último paso.
+     *
+     * @return list<\App\Message\Contract\ConversacionEnlaceInterface>
+     */
+    public function getEnlaces(): array
+    {
+        $enlaces = [];
+
+        foreach ($this->enlacesPms as $enlace) {
+            $enlaces[] = $enlace;
+        }
+
+        return $enlaces;
+    }
+
+    /**
      * Los asuntos de alojamiento de este hilo. Ver {@see self::$enlacesPms}.
      *
      * @return Collection<int, PmsConversacionEnlace>
