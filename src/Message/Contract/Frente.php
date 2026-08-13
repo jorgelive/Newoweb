@@ -52,6 +52,19 @@ final readonly class Frente
         public ?string $entidadTipo = null,
         public ?string $entidadId = null,
         public bool $porDefecto = false,
+        /**
+         * De dónde vino este asunto, ya redactado por el dominio. `null` cuando no cambia nada.
+         *
+         * ⚠️ El núcleo NO lo interpreta: lo transporta y lo imprime. Que Airbnb ya haya cobrado
+         * o que Booking aplique depósito es conocimiento de alojamiento, y en Turismo será otro
+         * —quién gestiona un cambio de fecha, quién emite el comprobante—. Lo redacta quien sabe:
+         * {@see \App\Message\Contract\ConversacionEnlaceInterface::procedenciaParaElPrompt()}.
+         *
+         * Viaja en el frente y no en una línea suelta del contexto porque **es del asunto**: una
+         * persona puede tener una estancia de Booking y un tour directo en el mismo hilo, y una
+         * procedencia global sería falsa en cuanto haya dos.
+         */
+        public ?string $procedencia = null,
     ) {
         // Tipo y id van juntos o no van. Un frente con tipo y sin id se cuela por dos sitios a
         // la vez: `esVentaSintetica()` lo daría por la puerta de venta —mira sólo el id— y su
@@ -120,11 +133,12 @@ final readonly class Frente
     public function comoLinea(): string
     {
         return sprintf(
-            '- %s · %s · «%s»%s',
+            '- %s · %s · «%s»%s%s',
             $this->id(),
             $this->negocio,
             $this->etiqueta,
-            $this->porDefecto ? ' (por defecto)' : ''
+            $this->porDefecto ? ' (por defecto)' : '',
+            $this->procedencia === null ? '' : ' — ' . $this->procedencia
         );
     }
 }

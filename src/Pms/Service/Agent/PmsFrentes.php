@@ -115,6 +115,15 @@ final readonly class PmsFrentes implements FrentesPorDominioInterface
             etiqueta: $this->etiquetaDe($reserva, $momento),
             entidadTipo: 'pms_reserva',
             entidadId: (string) $reserva->getId(),
+            // De dónde vino, con sus consecuencias ya redactadas. Sin esto el modelo tiene que
+            // ir a buscar `channel_name` con una herramienta antes de poder contestar nada de
+            // pagos —y si no la llama, elige rama a ciegas—.
+            //
+            // Sale del canal de la reserva y no del enlace porque este camino no pasa por él:
+            // es el mismo criterio que usa PmsReservaMessageContext::getOrigin().
+            procedencia: PmsProcedenciaComercial::frase(
+                $reserva->getChannel()?->getId() ?? 'directo'
+            ),
         );
     }
 

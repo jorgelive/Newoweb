@@ -7358,3 +7358,56 @@ como única señal.
 Cerrado por los dos lados: `setMilestones()` normaliza a `Y-m-d H:i:s`, y `parseMilestone()` acepta
 también `DateTimeInterface` — es el borde que lee un JSON de forma libre, y un `instanceof` es más
 barato que volver a perseguir esto.
+
+### 22.17 La procedencia comercial viaja con el ASUNTO, y la redacta el dominio
+
+Varios ítems de guía llevaban dentro condicionales por canal de venta —«a los de Airbnb no», «si
+viene de una OTA, manda lo que diga SU reserva», «compruébalo con `consultar_mi_reserva`, campo
+`channel_name`»—. Es el mismo patrón que ya falló tres veces aquí: enseñárselo todo al modelo y
+pedirle que discrimine.
+
+Y había una asimetría medible: `msg_template` y `msg_rule` filtran por canal **estructuralmente**
+(`allowed_sources`, `allowed_agencies`); `pms_guia_item` y `agent_conocimiento` **no tienen ni una
+columna** para eso.
+
+⚠️ **La bifurcación no era el problema; la precondición sí.** Elegir entre dos ramas con el hecho
+delante es fácil para un modelo. Lo que fallaba es que `channel_name` no estaba en ninguna parte
+del contexto: había que ir a buscarlo con una herramienta, y si no la llamaba, elegía a ciegas.
+
+#### Dónde vive
+
+`ConversacionEnlaceInterface::procedenciaParaElPrompt()`. **En el enlace, no en la conversación**,
+y ésa es la decisión que importa: con la fusión de hilos por contacto (§20) una misma persona
+puede tener una estancia de Booking y un tour directo en el mismo chat. Una procedencia a nivel de
+conversación sería falsa en cuanto hubiera dos asuntos — el error exacto que la separación
+persona/asunto vino a corregir.
+
+Viaja al prompt dentro de `Frente`, donde los asuntos ya se enumeran, así que funciona con N
+asuntos y con Turismo sin tocar el núcleo.
+
+⚠️ **La redacción vive en `PmsProcedenciaComercial::frase()`, no en la entidad**, y no es un
+capricho: hay **dos** caminos que necesitan la misma frase y no comparten datos. El enlace la saca
+de sus columnas `origen`/`agencia`; `PmsFrentes::frenteDe()` construye el frente **desde la
+reserva** sin pasar por el enlace — y ése es el camino que de verdad llega al prompt. Con la
+redacción sólo en la entidad, la funcionalidad entera era código muerto.
+
+#### Quién escribe qué
+
+`getOrigen()` devuelve un identificador **opaco** (`booking`, `airbnb`, `directo`). El núcleo lo
+transporta y lo imprime; **no lo interpreta**. Las consecuencias —quién cobró, si hay depósito—
+las redacta el dominio, porque en Turismo serán otras (quién gestiona un cambio de fecha, quién
+emite el comprobante).
+
+Un origen desconocido devuelve `null`: mejor sin línea que con una frase adivinada sobre quién
+cobra.
+
+Las líneas van **en positivo para todas las ramas** —«Airbnb: ya cobrado, sin depósito»— y nunca
+como supresión —«no le menciones el depósito»—: lo segundo se ha ignorado varias veces en este
+módulo.
+
+#### Regla general
+
+**Ningún servicio transversal lleva dentro conocimiento de un dominio.** Si hace falta, se define
+un contrato que el dominio implementa y el núcleo consume sin entender. Antes de añadir campo o
+servicio, mirar si el contrato ya existe: `ConversacionEnlaceInterface` ya exponía
+`getOrigen()`/`getAgencia()`, y sólo faltaba la frase.

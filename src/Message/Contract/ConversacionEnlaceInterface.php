@@ -90,6 +90,33 @@ interface ConversacionEnlaceInterface
     public function getAgencia(): ?string;
 
     /**
+     * De dónde vino este asunto, **redactado para el modelo**, o `null` si no cambia nada.
+     *
+     * ── Por qué lo escribe el dominio y no el núcleo ────────────────────────
+     * `getOrigen()` devuelve un identificador opaco —`booking`, `airbnb`, `directo`— y el núcleo
+     * no sabe ni debe saber qué implica cada uno. Lo que cambia la respuesta no es la etiqueta,
+     * son sus **consecuencias**: en Airbnb la plataforma ya cobró y no hay depósito; en Booking
+     * se paga aquí y sí lo hay. Eso es conocimiento de alojamiento, y en Turismo será otro
+     * —quién gestiona un cambio de fecha, quién emite el comprobante—.
+     *
+     * Así que el dominio entrega la frase hecha y el núcleo la concatena sin entenderla. Es la
+     * misma división que ya usan {@see InstruccionesDeDominioInterface} y
+     * {@see IndiceDeTemasInterface}.
+     *
+     * ── Va pegado al ASUNTO, no a la conversación ───────────────────────────
+     * ⚠️ Y es la razón de que viva aquí. Con la fusión de hilos por contacto, una misma persona
+     * puede tener una estancia de Booking y un tour directo en el mismo chat: una procedencia a
+     * nivel de conversación sería falsa en cuanto hubiera dos asuntos, y elegir «el principal»
+     * es exactamente el error que la separación persona/asunto vino a corregir.
+     *
+     * ── Qué escribir ────────────────────────────────────────────────────────
+     * Una línea corta y **en positivo para las dos ramas**: lo que sí pasa, no lo que no hay que
+     * decir. «Airbnb: ya cobrado, sin depósito» funciona; «no le menciones el depósito» es una
+     * supresión, y las supresiones en el prompt ya se han ignorado varias veces en este módulo.
+     */
+    public function procedenciaParaElPrompt(): ?string;
+
+    /**
      * Cuándo se persistió el enlace. `null` significa «nació en esta misma unidad de trabajo
      * y todavía no se flusheó».
      *

@@ -14,6 +14,7 @@ use App\Message\Contract\MomentoDeFrente;
 use App\Message\Contract\VinculoComercial;
 use App\Message\Entity\MessageConversation;
 use App\Pms\Service\Agent\PmsFrentes;
+use App\Pms\Service\Agent\PmsProcedenciaComercial;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
@@ -471,6 +472,7 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
             etiqueta: $this->getEtiqueta(),
             entidadTipo: self::CONTEXT_TYPE,
             entidadId: $this->getContextId(),
+            procedencia: $this->procedenciaParaElPrompt(),
         );
     }
 
@@ -484,6 +486,23 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
 
     public function getAgencia(): ?string { return $this->agencia; }
     public function setAgencia(?string $agencia): self { $this->agencia = $agencia; return $this; }
+
+    /**
+     * Lo que el alojamiento necesita que el modelo sepa del canal por el que se vendió.
+     *
+     * Se escribe **en positivo para todas las ramas**: cada una dice algo cierto, y así no queda
+     * nada que el modelo tenga que callarse. Con esto delante deja de tener que ir a buscar
+     * `channel_name` con `consultar_mi_reserva` para decidir el tono de una respuesta de pagos —y
+     * de arriesgarse a elegir rama a ciegas cuando no lo consulta—.
+     *
+     * La agencia manda sobre el origen cuando existe: una reserva que entró por una mayorista es
+     * suya aunque el canal técnico diga otra cosa. Hoy está a NULL en todas, pero el orden de
+     * precedencia queda escrito para cuando se pueble.
+     */
+    public function procedenciaParaElPrompt(): ?string
+    {
+        return PmsProcedenciaComercial::frase($this->origen, $this->agencia);
+    }
 
     public function getStatusTag(): ?string { return $this->statusTag; }
     public function setStatusTag(?string $statusTag): self { $this->statusTag = $statusTag; return $this; }
