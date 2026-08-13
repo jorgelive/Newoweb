@@ -169,6 +169,14 @@ class MessageRuleCrudController extends BaseCrudController
         // =========================================================================
         yield FormField::addPanel('Programación en el Tiempo (Scheduler)')->setIcon('fa fa-clock')->collapsible();
 
+        // ⚠️ Los hitos INTERMEDIOS —salida temporal, reingreso, cambio de casita, servicio de un
+        // tour— existen y se guardan, pero NO se ofrecen aquí a propósito: el motor programa
+        // leyendo el mapa plano del asunto, y esos cuatro viven sólo en la lista de hitos. Una
+        // regla apuntando a ellos no dispararía NUNCA, y sin un error que lo delatara — que es
+        // peor que no poder crearla. Se añadirán el día que el motor sepa programar una
+        // ocurrencia por hito (docs/Mensajeria.md §20.7).
+        //
+        // `partial_cancellation` sí está: se proyecta al mapa plano, así que funciona hoy.
         yield ChoiceField::new('milestone', 'Hito de Referencia')
             ->setChoices([
                 'Creación (Reserva / Registro)' => ConversationMilestoneInterface::CREATED,
@@ -176,6 +184,7 @@ class MessageRuleCrudController extends BaseCrudController
                 'Inicio del Servicio (Check-in / Recojo)' => ConversationMilestoneInterface::START,
                 'Fin del Servicio (Check-out / Retorno)' => ConversationMilestoneInterface::END,
                 'Cancelación del Servicio' => ConversationMilestoneInterface::CANCELLED,
+                'Pierde una parte (una casita de dos, un tramo)' => ConversationMilestoneInterface::PARTIAL_CANCELLATION,
             ])
             ->setRequired(true)
             ->setColumns(6)
@@ -186,6 +195,7 @@ class MessageRuleCrudController extends BaseCrudController
                     ConversationMilestoneInterface::START            => '🟢 Inicio (Check-in / Tour)',
                     ConversationMilestoneInterface::END              => '🔴 Fin (Check-out / Retorno)',
                     ConversationMilestoneInterface::CANCELLED        => '❌ Cancelación',
+                    ConversationMilestoneInterface::PARTIAL_CANCELLATION => '➖ Pierde una parte',
                     default                                          => $value,
                 };
             });

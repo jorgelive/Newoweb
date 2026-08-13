@@ -6908,3 +6908,20 @@ lo rehace entero desde la lista en cada cambio, así que no puede desincronizars
 Comprobado con `php var/probar-parcial.php`, que cancela una casita de una reserva real dentro de
 una transacción, verifica que se anota **una** vez y **vuelve a guardar tres veces más** para
 confirmar que no se duplica.
+
+### 20.11 Qué hitos se pueden usar YA en una regla, y cuáles no
+
+`MessageRuleCrudController` ofrece los cinco de siempre más `partial_cancellation`. Los cuatro
+intermedios —`temporary_end`, `reentry`, `unit_change`, `service`— **existen, se derivan y se
+guardan, pero no se ofrecen**:
+
+| Hito | ¿En el desplegable? | Por qué |
+|---|---|---|
+| `created_at`, `expected_arrival`, `start`, `end`, `cancelled_at` | ✅ | Los de siempre |
+| `partial_cancellation` | ✅ | Se proyecta al mapa plano, así que el motor lo encuentra |
+| `temporary_end`, `reentry`, `unit_change`, `service` | ❌ | Viven **sólo en la lista**; el motor programa leyendo el mapa |
+
+⚠️ Ofrecerlos sin que el motor lea la lista sería peor que no poder crearlos: la regla se
+guardaría, parecería activa y **no dispararía nunca, sin un error que lo delatara**. Se añaden el
+día que el motor programe **una ocurrencia por hito** — que es lo que ya pide §20.7, y lo que
+distingue «dos escapadas» de «una salida temporal».
