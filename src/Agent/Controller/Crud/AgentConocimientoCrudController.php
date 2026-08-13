@@ -10,6 +10,8 @@ use App\Panel\Controller\Crud\BaseCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use App\Agent\Service\ValidadorDeConocimiento;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\HttpFoundation\RequestStack;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
@@ -25,9 +27,19 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 class AgentConocimientoCrudController extends BaseCrudController
 {
 
+    /**
+     * ⚠️ `BaseCrudController` tiene su propio constructor con dependencias, así que hay que
+     * llamarlo. Sin el `parent::__construct()` el panel devolvía un 500 al entrar —«Typed
+     * property BaseCrudController::$requestStack must not be accessed before initialization»—
+     * porque `configureActions()` lo usa en la primera línea.
+     */
     public function __construct(
+        AdminUrlGenerator $adminUrlGenerator,
+        RequestStack $requestStack,
         private readonly ValidadorDeConocimiento $validador,
-    ) {}
+    ) {
+        parent::__construct($adminUrlGenerator, $requestStack);
+    }
 
     /**
      * Al guardar, se comprueba si la guía ya contesta esto — y se dice, sin impedirlo.
