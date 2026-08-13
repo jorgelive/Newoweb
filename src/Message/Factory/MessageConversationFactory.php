@@ -6,8 +6,10 @@ namespace App\Message\Factory;
 
 use App\Entity\Maestro\MaestroIdioma;
 use App\Message\Contract\MessageContextInterface;
+use App\Message\Contract\SincronizadorDeEnlaceInterface;
 use App\Message\Entity\MessageConversation;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * MessageConversationFactory
@@ -17,8 +19,13 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 readonly class MessageConversationFactory
 {
+    /**
+     * @param iterable<SincronizadorDeEnlaceInterface> $sincronizadores
+     */
     public function __construct(
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        #[AutowireIterator('app.message.sincronizador_enlace')]
+        private iterable $sincronizadores = [],
     ) {}
 
     public function upsertFromContext(MessageContextInterface $context, bool $flush = false): MessageConversation
@@ -71,6 +78,24 @@ readonly class MessageConversationFactory
         } else {
             if ($conversation->getStatus() === MessageConversation::STATUS_CLOSED) { //Cambiado
                 $conversation->setStatus(MessageConversation::STATUS_OPEN);
+            }
+        }
+
+        // 6. EL ENLACE DEL ASUNTO, al día en el mismo movimiento
+        //
+        // Va aquí y no en un listener aparte porque este método es EL sitio por el que pasa cada
+        // cambio de una reserva (`PmsReservaRecalculoService` lo llama en cada recálculo). Un
+        // enlace que se refrescara en otro punto podría quedarse atrás sin que nada lo delatara:
+        // el motor lee el enlace, así que unas fechas viejas ahí son mensajes en el día
+        // equivocado.
+        //
+        // Sin sincronizador para este `context_type` no pasa nada: el asunto se queda sin enlace
+        // y todo sigue por el camino de siempre, que es el fallo seguro mientras los negocios se
+        // van enchufando uno a uno.
+        foreach ($this->sincronizadores as $sincronizador) {
+            if ($sincronizador->supports($context->getContextType())) {
+                $sincronizador->sincronizar($conversation, $context);
+                break;
             }
         }
 

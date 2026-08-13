@@ -7,6 +7,7 @@ namespace App\Message\Command;
 use App\Message\Entity\MessageConversation;
 use App\Pms\Entity\PmsConversacionEnlace;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Message\PmsHitosDeEstancia;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -54,6 +55,7 @@ final class PoblarEnlacesCommand extends Command
 
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly PmsHitosDeEstancia $hitos,
     ) {
         parent::__construct();
     }
@@ -76,12 +78,29 @@ final class PoblarEnlacesCommand extends Command
         $creados = 0;
         $yaTenian = 0;
         $canceladas = 0;
+        $refrescados = 0;
         $sobrantes = 0;
         $huerfanas = [];
 
         foreach ($conversaciones as $conversacion) {
             if (!$conversacion->getEnlacesPms()->isEmpty()) {
                 $yaTenian++;
+
+                // No se salta: se le REFRESCAN los hitos. Un enlace poblado antes de que
+                // existieran los tenía vacíos, y este comando es reejecutable a propósito — que
+                // «ya existe» signifique «no lo miro» convierte cada mejora del cálculo en una
+                // migración de datos a mano.
+                if (!$dryRun) {
+                    foreach ($conversacion->getEnlacesPms() as $existente) {
+                        $reservaExistente = $existente->getReserva();
+
+                        if ($reservaExistente !== null) {
+                            $existente->setHitos($this->hitos->para($reservaExistente));
+                            $refrescados++;
+                        }
+                    }
+                }
+
                 continue;
             }
 
@@ -117,10 +136,17 @@ final class PoblarEnlacesCommand extends Command
 
             $enlace = new PmsConversacionEnlace($conversacion, $reserva);
             $enlace->setVinculo($conversacion->getContextVinculo() ?? $enlace->getVinculo());
-            $enlace->setMilestones($conversacion->getContextMilestones());
             $enlace->setOrigen($conversacion->getContextOrigin());
             $enlace->setAgencia($conversacion->getContextAgency());
             $enlace->setStatusTag($conversacion->getContextStatusTag());
+
+            // Los hitos se DERIVAN de los tramos, no se copian del JSON de la conversación. Ese
+            // JSON trae `start`/`end` sacados del mínimo y el máximo de la reserva, y copiarlo
+            // habría heredado el defecto que este trabajo persigue: una estancia partida
+            // aplastada en una sola ventana. `setHitos()` mantiene además el mapa plano en
+            // sintonía, para que las reglas de hoy sigan encontrando `start` y `end`.
+            $enlace->setMilestones($conversacion->getContextMilestones());
+            $enlace->setHitos($this->hitos->para($reserva));
 
             $this->em->persist($enlace);
 
@@ -142,8 +168,8 @@ final class PoblarEnlacesCommand extends Command
         }
 
         $io->table(
-            ['Enlaces nuevos', 'Ya tenían', 'Saltados por cancelada', 'Retirados (cancelados ya enlazados)', 'Apuntan a una reserva que no existe'],
-            [[$creados, $yaTenian, $canceladas, $sobrantes, count($huerfanas)]]
+            ['Enlaces nuevos', 'Ya tenían (hitos refrescados)', 'Saltados por cancelada', 'Retirados', 'Reserva inexistente'],
+            [[$creados, sprintf('%d (%d)', $yaTenian, $refrescados), $canceladas, $sobrantes, count($huerfanas)]]
         );
 
         if ($huerfanas !== []) {

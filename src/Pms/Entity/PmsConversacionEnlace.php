@@ -7,11 +7,14 @@ namespace App\Pms\Entity;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\Contract\ConversacionEnlaceInterface;
+use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\Frente;
+use App\Message\Contract\HitoDeAsunto;
 use App\Message\Contract\MomentoDeFrente;
 use App\Message\Contract\VinculoComercial;
 use App\Message\Entity\MessageConversation;
 use App\Pms\Service\Agent\PmsFrentes;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
@@ -78,6 +81,26 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
     /** @var array<string, string> */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $milestones = [];
+
+    /**
+     * Los hitos DERIVADOS de los tramos: llegada, salidas temporales, reingresos, cambios de
+     * casita, salida final. Cada uno con su fecha y su detalle.
+     *
+     * ── Por qué convive con `$milestones` y no lo sustituye ─────────────────
+     * `$milestones` es el mapa plano de siempre —`start`, `end`, `created`— que es lo que el
+     * motor de reglas lee hoy y con lo que están escritas las reglas en producción. Esto es la
+     * lista completa, y **admite varias ocurrencias del mismo tipo**: dos escapadas en un viaje
+     * largo son dos salidas temporales, y en un mapa `clave => fecha` sólo cabe una.
+     *
+     * Se guarda derivado y no calculado al vuelo porque el motor barre cientos de asuntos por
+     * pasada y recorrer los tramos de cada reserva en cada barrido sale caro. Lo mantiene al día
+     * {@see \App\Pms\Service\Message\PmsSincronizadorDeEnlace}, que corre en cada cambio de la
+     * reserva — incluido el borrado de un evento, que puede hacer desaparecer un hueco.
+     *
+     * @var list<array{tipo: string, fecha: string, detalle: ?string, detalleAnterior: ?string}>
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $hitos = [];
 
     /** `directo`, `airbnb`, `booking`… De qué canal vino este asunto. */
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
@@ -159,6 +182,66 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
     public function setMilestones(array $milestones): self
     {
         $this->milestones = $milestones;
+
+        return $this;
+    }
+
+    /**
+     * Los hitos completos, reconstruidos desde el JSON.
+     *
+     * @return list<HitoDeAsunto>
+     */
+    public function getHitos(): array
+    {
+        return array_values(array_map(
+            static fn (array $h): HitoDeAsunto => new HitoDeAsunto(
+                $h['tipo'],
+                new DateTimeImmutable($h['fecha']),
+                $h['detalle'] ?? null,
+                $h['detalleAnterior'] ?? null,
+            ),
+            $this->hitos ?? []
+        ));
+    }
+
+    /**
+     * Guarda los hitos y, de paso, **mantiene `$milestones` en sintonía**.
+     *
+     * Los dos salen de la misma derivación a propósito: si el mapa plano se siguiera copiando
+     * del `contextData` de la conversación mientras la lista se deriva de los tramos, tendríamos
+     * dos verdades sobre las mismas fechas y acabarían discrepando — que es justo el fallo que
+     * este trabajo persigue. El mapa se queda con el primer `start` y el último `end`, que es lo
+     * que las reglas de hoy esperan.
+     *
+     * @param list<HitoDeAsunto> $hitos
+     */
+    public function setHitos(array $hitos): self
+    {
+        $this->hitos = array_values(array_map(
+            static fn (HitoDeAsunto $h): array => [
+                'tipo' => $h->tipo,
+                'fecha' => $h->fecha->format('Y-m-d H:i:s'),
+                'detalle' => $h->detalle,
+                'detalleAnterior' => $h->detalleAnterior,
+            ],
+            $hitos
+        ));
+
+        $plano = $this->milestones ?? [];
+
+        foreach ($hitos as $hito) {
+            // El primero de cada tipo manda para `start` (la llegada) y el último para `end` (la
+            // salida final); los intermedios no tienen sitio en un mapa y por eso existe la lista.
+            if ($hito->tipo === ConversationMilestoneInterface::START && !isset($plano[$hito->tipo])) {
+                $plano[$hito->tipo] = $hito->fecha->format('Y-m-d H:i:s');
+            }
+
+            if ($hito->tipo === ConversationMilestoneInterface::END) {
+                $plano[$hito->tipo] = $hito->fecha->format('Y-m-d H:i:s');
+            }
+        }
+
+        $this->milestones = $plano;
 
         return $this;
     }

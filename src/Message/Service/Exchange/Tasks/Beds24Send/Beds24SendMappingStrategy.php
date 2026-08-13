@@ -67,7 +67,14 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             // ⬇️ ESCENARIO B: ENVÍO DE MENSAJE NUEVO (OUTGOING) ⬇️
             // =================================================================
             $conversation = $msg->getConversation();
-            $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
+            // Del asunto del MENSAJE si lo lleva estampado; si no, del contexto de la
+            // conversación. Mismo motivo que en la estrategia de WhatsApp: con varios asuntos por
+            // hilo, redactar siempre con el de la conversación manda un mensaje impecable con los
+            // datos de otra reserva, y sin error que lo delate.
+            $asuntoType = $message->getAsuntoType() ?? $conversation->getContextType();
+            $asuntoId = $message->getAsuntoId() ?? $conversation->getContextId();
+
+            $resolver = $this->resolverRegistry->getResolver($asuntoType);
 
             $idiomaEntity = $conversation->getIdioma();
             $internalLang = strtolower($idiomaEntity->getId());
@@ -101,7 +108,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             }
 
             // Extraemos las variables una sola vez para usarlas en texto y botones
-            $variables = $resolver !== null ? $resolver->getMessageVariables($conversation->getContextId()) : [];
+            $variables = $resolver !== null ? $resolver->getMessageVariables($asuntoId) : [];
 
             // 2. INTERPOLACIÓN DE VARIABLES (Soporta {{ var }} y {{var}})
             if (!empty($variables) && str_contains($content, '{{')) {

@@ -90,9 +90,22 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
             // 🔥 ESCENARIO B: ENVÍO DE MENSAJE
             $conversation = $msg->getConversation();
-            $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
 
-            $livePhone = $resolver?->getPhoneNumber($conversation->getContextId());
+            // ── De QUÉ asunto se redacta ─────────────────────────────────────
+            // Del asunto del MENSAJE cuando lo lleva estampado, y sólo si no, del contexto de la
+            // conversación. Con varios asuntos colgando de un mismo hilo, tomar siempre el de la
+            // conversación redactaría el recordatorio de la reserva B con las fechas, la casita y
+            // el nombre de la A. No daría error: mandaría un mensaje impecable con los datos de
+            // otro, que es la peor forma de fallar que tiene esto.
+            //
+            // Hoy coinciden siempre —una conversación, un asunto— y por eso no se nota; deja de
+            // coincidir en cuanto se fusionen los hilos duplicados por persona.
+            $asuntoType = $message->getAsuntoType() ?? $conversation->getContextType();
+            $asuntoId = $message->getAsuntoId() ?? $conversation->getContextId();
+
+            $resolver = $this->resolverRegistry->getResolver($asuntoType);
+
+            $livePhone = $resolver?->getPhoneNumber($asuntoId);
             $destination = $livePhone ?: $item->getDestinationPhone();
 
             if ($livePhone && $livePhone !== $item->getDestinationPhone()) {
@@ -128,7 +141,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             // en el contexto de la conversación sino en el hecho que los provocó —el escalado, que
             // llega a la conversación interna de un operador y habla de OTRO huésped—. Ver
             // Message::getVariablesPlantilla().
-            $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
+            $variables = $resolver ? $resolver->getMessageVariables($asuntoId) : [];
             $variables = $msg->getVariablesPlantilla() + $variables;
 
             // Obtenemos el nuevo JSON Greenfield completo

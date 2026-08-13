@@ -6621,9 +6621,10 @@ más escribe enlaces, tiene que disparar el motor él mismo o los cambios no rep
 5. **Retirar `contextType`/`contextId`/`contextData`** de la conversación. Antes, TODOS los
    mensajes vivos tienen que estar estampados: la adopción es perezosa y un barrido con
    `app:message:sync-rules --all` la completa.
-6. **Que los hitos nuevos lleguen al motor** (§20.7): exponerlos en el contrato del enlace, que
-   `MessageRule` pueda apuntar a ellos, y que se programe **una ocurrencia por hito** y no una
-   por tipo — dos escapadas son dos mensajes de salida temporal.
+6. **Que los hitos nuevos lleguen al motor** (§20.7). Ya están **guardados** en
+   `pms_conversacion_enlace.hitos` y al día en cada cambio de la reserva; falta que
+   `MessageRule` pueda apuntar a ellos y que el motor programe **una ocurrencia por hito** y no
+   una por tipo — dos escapadas son dos mensajes de salida temporal.
 7. **Decisión de producto pendiente**: si vuelve el aviso de cancelación por asunto, y con qué
    guarda contra las canceladas duplicadas (§20.6 explica por qué es delicado: un tercio de las
    conversaciones cuelga de una reserva cancelada).
@@ -6723,3 +6724,59 @@ La derivación está hecha y probada; **no la consume nadie todavía**. Falta:
    dos mensajes de salida temporal, no uno.
 
 El 3 depende del trabajo de programar por asunto y va con él.
+
+### 20.8 Tres agujeros que el modelo nuevo dejó abiertos, y cómo se cerraron
+
+Al revisar el flujo completo aparecieron tres sitios donde **el modelo nuevo existía y el código
+seguía leyendo el viejo**. Los tres eran del mismo tipo, y dos habrían fallado en silencio.
+
+#### Nadie creaba ni refrescaba enlaces en caliente
+
+`MessageConversationFactory::upsertFromContext()` —por donde pasa **cada** cambio de reserva, vía
+`PmsReservaRecalculoService`— no sabía de enlaces. Consecuencias: una reserva nueva nacía sin
+enlace y se quedaba en el camino legado para siempre, y —peor— mover las fechas de una reserva
+que **sí** tenía enlace dejaba la conversación al día y el enlace con los hitos viejos. Como el
+motor en modo enlace lee el enlace, habría programado con fechas caducas. Con 204 enlaces
+poblados, ese riesgo estaba vivo.
+
+Lo cierra `SincronizadorDeEnlaceInterface` (tag `app.message.sincronizador_enlace`), que la
+factoría recorre al final del upsert. `PmsSincronizadorDeEnlace` crea o actualiza el enlace, y
+**retira el enlace si la reserva se cancela** — la barrera en el origen, además de la del motor.
+
+⚠️ Es un contrato y no un `if` en la factoría porque ésta vive en `src/Message` y el enlace en
+`src/Pms`: escribirlo allí ataría la mensajería al esquema del PMS.
+
+#### Los hitos se derivan, no se copian
+
+El poblado inicial copiaba `milestones` del JSON de la conversación. El sincronizador los
+**deriva de los tramos** con `PmsHitosDeEstancia`, así que un evento que se mueve, se añade o
+**se borra** cambia los hitos en el acto: aparece o desaparece la salida temporal, el reingreso o
+el cambio de casita. Copiarlos habría heredado el defecto de origen —`start`/`end` son el mínimo
+y el máximo— justo cuando el objetivo es dejar de aplastar la estancia en dos fechas.
+
+`PmsConversacionEnlace::setHitos()` mantiene además el mapa plano en sintonía (primer `start`,
+último `end`) para que las reglas de hoy sigan encontrando lo que esperan. **Una sola derivación
+alimenta los dos**, para no tener dos verdades sobre las mismas fechas.
+
+En la base real: 202 de 204 enlaces con hitos, **12 con intermedios**.
+
+#### La hidratación tomaba el asunto equivocado
+
+```php
+// antes, en las dos estrategias de envío
+$variables = $resolver->getMessageVariables($conversation->getContextId());
+```
+
+Las variables salían del `contextId` de la **conversación**, no del asunto del mensaje —que ya
+viaja estampado en `asunto_type`/`asunto_id`—. Hoy coinciden siempre; **dejan de coincidir en
+cuanto se fusionen los hilos**, y entonces el recordatorio de la reserva B se redactaría con las
+fechas, la casita y el nombre de la A. Sin error: un mensaje impecable con los datos de otro.
+
+Ahora ambas estrategias resuelven `asuntoType`/`asuntoId` del mensaje y sólo caen al contexto de
+la conversación si el mensaje no lo lleva.
+
+#### Lo que NO había que tocar
+
+`WhatsappMetaSendEnqueuer` manda a `$conversation->getGuestPhone()`. Eso es **la persona**, que
+bajo el modelo nuevo es justo lo que la conversación representa: correcto tal cual, y de hecho
+confirma el diseño.
