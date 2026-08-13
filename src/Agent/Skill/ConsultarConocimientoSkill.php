@@ -53,8 +53,10 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
                 . 'encaje y llámame con «categoria». Te devuelvo las etiquetas de ese tema; '
                 . 'cuando veas la que responde, vuelve a llamarme con su «item_id» y te doy el '
                 . 'texto. Si el tema que elegiste no tenía nada, te devuelvo la lista de los que '
-                . 'sí existen: mírala antes de darlo por perdido. Cuando ninguno encaje, entonces '
-                . 'sí toca escalar. '
+                . 'sí existen: mírala antes de darlo por perdido. '
+                . '⚠️ Que YO no tenga algo no significa que no exista: soy la última red, no la '
+                . 'única. Si vuelvo vacío, comprueba tus otras herramientas antes de avisar al '
+                . 'equipo. '
                 . 'El texto que devuelvo está redactado para decirse: adáptalo al idioma y al tono '
                 . 'de quien pregunta, pero no le añadas datos que no estén ahí.',
             parametros: [
@@ -100,7 +102,9 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
                 // modelo no insista ni deduzca nada de la diferencia.
                 return SkillResult::ok([
                     'encontrado' => false,
-                    'aviso' => 'No hay respuesta escrita para eso. Si hace falta, escala al equipo.',
+                    'aviso' => 'Aquí no hay respuesta escrita para eso. Antes de escalar, mira si '
+                        . 'alguna otra de tus herramientas lo contesta; si tampoco, entonces sí '
+                        . 'avisa al equipo.',
                 ]);
             }
 
@@ -150,10 +154,12 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
                     $temas
                 ),
                 'aviso' => $temas === []
-                    ? 'No hay nada escrito todavía. Si no puedes responder tú, escala al equipo.'
+                    ? 'Aquí todavía no hay nada escrito. Mira si otra de tus herramientas lo '
+                        . 'contesta; si ninguna, avisa al equipo.'
                     : 'En ese tema no hay nada para quien pregunta. Estos son los temas que SÍ '
                         . 'existen: si alguno encaja con lo que te preguntaron, vuelve a llamarme '
-                        . 'con su id. Si ninguno encaja, entonces sí escala.',
+                        . 'con su id. Si ninguno encaja, aquí no está escrito — mira si otra de '
+                        . 'tus herramientas lo contesta antes de avisar al equipo.',
             ]);
         }
 
@@ -166,7 +172,8 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
                 $items
             ),
             'aviso' => 'Elige la que responda a la pregunta y vuelve a llamarme con su «item_id». '
-                . 'Si ninguna encaja, no está escrito: escala.',
+                . 'Si ninguna encaja, aquí no está escrito: mira si otra de tus herramientas lo '
+                . 'contesta antes de avisar al equipo.',
         ]);
     }
 }

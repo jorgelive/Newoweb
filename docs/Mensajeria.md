@@ -7505,3 +7505,28 @@ devuelve **sin llamar al modelo** — instantánea y gratis.
 
 ⚠️ Preguntar y no responder ambas cosas es deliberado: **listar de más es ruido, pero ejecutar
 sobre el dominio equivocado no se deshace.**
+
+### 22.21 Los avisos del conocimiento decían «escala» y provocaban escalados
+
+La skill declara en su descripción que es **la última red**, pero sus cuatro avisos de salida
+decían, cada uno a su manera, «si no encaja: escala». Contradicción con consecuencia:
+
+```
+huésped: «¿hay cochera?»
+  → el modelo prueba conocimiento primero (más barato, y su descripción se lo pide)
+  → la categoría «servicios» le aparece —la ficha de frazadas la mantiene visible—
+  → pero dentro sólo hay frazadas: estacionamiento está excluido por perfil
+  → lee «si ninguna encaja, no está escrito: escala»
+  → escala, SIN haber tocado consultar_guia, que tiene «Estacionamiento (general)»
+```
+
+Una pregunta con respuesta escrita desde hace meses acababa interrumpiendo a una persona. Lo
+provocó la combinación de dos cosas correctas por separado: la acotación por perfil (§22.19) y un
+aviso redactado como orden.
+
+Los cuatro avisos mandan ahora **comprobar el resto de herramientas antes de avisar al equipo**, y
+la descripción lo dice una sola vez: *«que YO no tenga algo no significa que no exista: soy la
+última red, no la única»*.
+
+⚠️ **Sin nombrar la guía.** La skill es transversal y no debe saber que existe el PMS: dice «tus
+otras herramientas», no «consultar_guia». Ver CLAUDE.md §Dominios y contratos.
