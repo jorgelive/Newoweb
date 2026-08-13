@@ -12,6 +12,7 @@ use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageRule;
 use DateTimeImmutable;
+use DateTimeInterface;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
@@ -491,8 +492,17 @@ final readonly class MessageRuleEngine
      * Los hitos se serializan sin sufijo de zona, así que fijarla aquí es lo que impide
      * que el mismo dato signifique dos instantes distintos según el php.ini del servidor.
      */
-    private function parseMilestone(string $raw): ?DateTimeImmutable
+    private function parseMilestone(string|DateTimeInterface $raw): ?DateTimeImmutable
     {
+        // Acepta objetos además de texto. Los hitos DEBEN llegar normalizados —lo hace
+        // `PmsConversacionEnlace::setMilestones()`—, pero éste es el borde que lee un JSON de
+        // forma libre y lo que estaba en juego era gordo: un asunto cuyo hito venía como objeto
+        // se saltaba entero y esa reserva se quedaba sin recordatorios. Un `instanceof` es más
+        // barato que volver a perseguirlo.
+        if ($raw instanceof DateTimeInterface) {
+            return DateTimeImmutable::createFromInterface($raw);
+        }
+
         try {
             return new DateTimeImmutable($raw, new DateTimeZone(self::TZ));
         } catch (Exception) {

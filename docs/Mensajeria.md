@@ -7218,3 +7218,143 @@ peldaño 0, que le repetiría quién cobra.
 No hace falta volver al triaje: clasifica **antes** de que corran las herramientas y no ve sus
 resultados, así que re-invocarlo a mitad de turno sería pagar una clasificación sin el dato que
 provocó la objeción. La orden viaja pegada al dato, como `debes_escalar` en la guía.
+
+### 22.10 La contabilidad de huellas: tres formas de mentir
+
+La revisión final encontró tres fallos de la misma familia, todos silenciosos y con el mismo
+síntoma —«repite un paso» o «adelanta un paso»—, invisible en logs porque no hay error:
+
+1. **El tercer camino al acuse de recibo.** `limpiar()` estaba al abrir el turno y en el `catch`,
+   pero cuando el motor termina **sin excepción y sin texto**, `generar()` devuelve el acuse como
+   si fuera la respuesta y se encola por la vía normal: la huella acababa estampada en un «un
+   compañero te responderá», dando por explicado algo que el huésped nunca leyó.
+2. **`addMetadata()` sobrescribe.** Estampar una clave por vuelta dejaba sólo el último tema del
+   turno, lo que anulaba el motivo mismo de haber convertido `$servido` en lista. Ahora la lista
+   entera va en `temas_peldano`.
+3. **Contar huellas asume que se sirvieron 0..N−1 en orden**, y `ya_lo_intento` rompe ese
+   invariante: quien entra directo al paso 1 deja UNA huella y, contándola, volvía a recibir el
+   paso 1. La huella guarda el peldaño servido; ahora se usa:
+   `min(max($cuenta, $servidoMax + 1), MAX_PELDANOS)`.
+
+⚠️ **La forma vieja de la huella sigue leyéndose.** `tema_peldano` (objeto suelto) convive con
+`temas_peldano` (lista) en `huellasDe()`: hay mensajes con la forma antigua en producción, y dejar
+de contarlos reiniciaría a cero la escalera de todas las conversaciones vivas el día del
+despliegue.
+
+Y en el enfriamiento, un fallo de capacidad, no de lógica: la consulta miraba los 100 salientes
+más recientes de **todo el sistema**. Bajo carga —justo cuando más avisos hay— el aviso buscado se
+caía fuera y el enfriamiento fallaba abierto, volviendo a sonar toda la guardia. Acotado con un
+join a `contextType = 'staff'`, donde 100 filas en media hora sobran.
+
+### 22.11 Qué se le enseña a quién del conocimiento
+
+`bloqueDeCategorias()` recibe el actor y sólo nombra categorías con **al menos un ítem visible**
+para ese interlocutor. El contenido nunca fugaba —los ítems filtran en `itemsDe()`— pero el
+**nombre** de la categoría sí viaja en el prompt, y enseñarle a un prospecto que existe un tema de
+«protocolos internos» es a la vez una fuga pequeña y una invitación a alucinar sobre él.
+
+Lleva además tope (`MAX_CATEGORIAS = 30`, con aviso en log al pasarse): el bloque va en lo volátil
+y se paga entero en cada turno, así que sin tope el precio del agente crecería cada vez que
+alguien añade un tema en el panel, sin que nada lo delatara hasta la factura.
+
+### 22.12 Qué temas llevan escalera, y la regla para decidirlo
+
+Trece ítems de los 44. El criterio no es «avería / no avería» sino **qué se dice a priori**:
+
+> En el peldaño 0 va lo que sirve a quien pregunta. Lo que **niega, limita, advierte o cuesta
+> dinero** baja un peldaño y sale sólo cuando la pregunta lo pide.
+
+| Ítem | Paso 1 | Paso 2 |
+|---|---|---|
+| Ducha ×7 | reintento con caudal alto | hornilla (sólo casas 2, 3, 4, 7) |
+| Pago | por qué el canal muestra otra cifra | — |
+| Early check-in | el margen real, condicionado | que tiene coste, y la noche adicional |
+| Calefactor | por qué cuesta lo que cuesta | — |
+| Estacionamiento | no sabemos el precio ni reservamos | — |
+| Limpieza | la limpieza extra tiene coste | — |
+| Traslados | no es nuestro; lo del recojo de Booking | — |
+
+⚠️ **La distinción que decide qué se mueve:** lo que es **instrucción al agente** se queda en el
+peldaño 0 aunque suene negativo; lo que se mueve es **la negativa dicha al cliente**.
+
+«NO tenemos traslado propio: no lo prometas nunca» sigue en el peldaño 0 — si el agente deja de
+saberlo, se lo inventa, y prometer un traslado inexistente es peor que cualquier frase seca. Lo
+que bajó de peldaño es *empezar por ahí*, no el dato. Lo mismo con «la playa gratuita no es un
+área vigilada», que se dice siempre a propósito: es honesto y evita el reclamo.
+
+`Cancelación (general)` se revisó y **no lleva escalera**: «después se cobra la primera noche» es
+la respuesta a la pregunta, no una advertencia de más. No todos los temas la quieren, y llenar el
+campo por costumbre reintroduce el problema al revés.
+
+### 22.13 Contenido pendiente, y por qué no lo hice solo
+
+~~Televisor~~ **creado** (§22.14). Quedan tres: **Depósito de garantía** y **Comprobante de pago**
+(hoy dentro de «Pago» con la instrucción «SOLO si pregunta», que es autocensura pedida al modelo),
+y **Cocina**.
+
+Crear un ítem no es sólo texto para el agente: **se publica en la app del huésped en siete
+idiomas**, y las traducciones las genera `AutoTranslationEventListener` al persistir la entidad —
+una migración SQL se lo salta. Habría que crearlos por el ORM y, sobre todo, escribir el texto
+publicado, que es una decisión de contenido del negocio.
+
+⚠️ Mientras el depósito siga dentro de «Pago», su instrucción de «no lo saques tú» sigue siendo
+una petición al modelo. Sacarlo sin darle otro sitio es peor: está probado que entonces el
+asistente **niega** que exista («no es necesario dejar ningún depósito»).
+
+### 22.14 Contenido publicado: por comando, nunca por SQL
+
+Un ítem de guía **se publica en la app del huésped en siete idiomas**, y las traducciones las
+genera `AutoTranslationEventListener` en `prePersist`. Una migración escribe SQL directo y **se
+salta el listener**: crearía fichas sólo en español, o —peor— dejaría traducciones vivas diciendo
+lo contrario que el original.
+
+Regla: **`agente_contenido` y `agente_pasos` pueden ir por migración** (texto plano, sin
+traducir); **`titulo` y `descripcion` van por comando, con el ORM.**
+
+Dos comandos en `src/Pms/Command/`, ambos con `--dry-run`:
+
+- `app:pms:guia:crear-televisor` — crea el ítem «Televisor» de cada casita. Idempotente por
+  `nombreInterno`. El aparato no es el mismo en todas: Roku en las casas 1–5, Mi TV Stick de
+  Xiaomi en la 6, y Smart TV Android **con un solo mando** en la 7 —ahí no hay que cambiar de
+  entrada, y sugerirlo confunde—. Paso 1 en las tres variantes: **no hay canales locales ni
+  cable**, que es una negativa y no se dice a priori.
+- `app:pms:guia:corregir-duchas` — ver §22.15.
+
+### 22.15 Las duchas decían dos cosas distintas, y ninguna era cierta
+
+El cuerpo **publicado** decía «manija derecha» en las siete casitas; el `agente_contenido` decía
+«izquierda» en las siete. Se contradecían entre sí y ninguno valía para todas, porque el lado
+**varía por casa y por baño**. No se veía porque cada superficie era coherente consigo misma.
+
+```
+casas 1, 3, 4, 5   un baño, dos manijas              caliente IZQUIERDA
+casa 2             un baño, dos manijas              caliente DERECHA   ← la excepción
+casa 6             DOS baños, ambos monocomando      abajo DERECHA · arriba IZQUIERDA
+casa 7             DOS baños: palanca y dos manijas  ambos IZQUIERDA
+```
+
+⚠️ El texto de la casa 6 estaba **copiado del de la 7**: describía un baño de dos manijas que ahí
+no existe. Y «abajo / arriba» sustituye a «Baño A / Baño B», para que el huésped sepa de cuál se le
+habla sin ir a mirar el grifo.
+
+Corregido en los **tres** sitios a la vez —cuerpo publicado, texto del agente y paso 1—: arreglar
+uno solo deja la contradicción viva.
+
+### 22.16 El motor de reglas moría con un hito que era objeto
+
+En producción, 13/08/2026: `parseMilestone(): Argument #1 ($raw) must be of type string,
+DateTimeImmutable given`. Cuatro veces en 96 segundos sobre una reserva, y después el dato en la
+base se veía correcto — que es lo que hacía este fallo tan difícil de perseguir.
+
+La causa: `PmsReservaMessageContext::getMilestones()` devuelve objetos `DateTimeImmutable` pese a
+que el contrato de `PmsConversacionEnlace::setMilestones()` declara `array<string, string>`.
+Guardados tal cual, el mapa queda con objetos **en memoria** hasta que la entidad da la vuelta por
+JSON, y en esa ventana el motor los lee.
+
+Consecuencia real: el asunto que revienta **se salta entero** —hay aislamiento por asunto para que
+no arrastre a los demás— y esa reserva se queda **sin sus recordatorios**, con un `ERROR` en el log
+como única señal.
+
+Cerrado por los dos lados: `setMilestones()` normaliza a `Y-m-d H:i:s`, y `parseMilestone()` acepta
+también `DateTimeInterface` — es el borde que lee un JSON de forma libre, y un `instanceof` es más
+barato que volver a perseguir esto.

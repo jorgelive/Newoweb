@@ -874,7 +874,7 @@ final readonly class AiConversationProcessor
         // «en el contexto de este turno tienes la lista de TEMAS», así que se inventaba una
         // categoría verosímil, no existía, y la skill respondía «no hay nada escrito, no insistas
         // con otro tema: escala». Una pregunta CON respuesta escrita acababa en escalado.
-        $temas = $this->conocimiento->bloqueDeCategorias();
+        $temas = $this->conocimiento->bloqueDeCategorias($actor);
         $temas = $temas === '' ? '' : "\n" . $temas;
 
         $contexto = <<<CONTEXTO

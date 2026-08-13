@@ -121,7 +121,7 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
             return SkillResult::ok([
                 'temas' => array_map(
                     static fn ($c): array => ['id' => $c->getId(), 'nombre' => $c->getNombre()],
-                    $this->conocimiento->categorias()
+                    $this->conocimiento->categoriasPara($actor)
                 ),
                 'aviso' => 'Elige un tema y vuelve a llamarme con «categoria».',
             ]);
@@ -141,7 +141,7 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
             //
             // `ConsultarGuiaSkill` ya aprendió esto: cuando el `tema_id` no está, devuelve el
             // catálogo. Esta skill nació sin la lección.
-            $temas = $this->conocimiento->categorias();
+            $temas = $this->conocimiento->categoriasPara($actor);
 
             return SkillResult::ok([
                 'encontrado' => false,

@@ -9,6 +9,7 @@ use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Entity\AgentConocimiento;
 use App\Agent\Entity\AgentConocimientoCategoria;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Las dos fases de la consulta de conocimiento, y el filtro de quién puede ver qué.
@@ -44,8 +45,12 @@ final readonly class ConocimientoGenerico
      */
     private const int MAX_ETIQUETAS = 25;
 
+    /** Tope de categorías que se enseñan en la primera fase. Ver {@see bloqueDeCategorias()}. */
+    private const int MAX_CATEGORIAS = 30;
+
     public function __construct(
         private EntityManagerInterface $em,
+        private LoggerInterface $logger,
     ) {}
 
     /**
@@ -54,12 +59,27 @@ final readonly class ConocimientoGenerico
      * Cadena vacía cuando no hay ninguna: entonces esto no existe para el turno y el agente se
      * comporta como antes de que hubiera conocimiento. Es el estado del día del despliegue.
      */
-    public function bloqueDeCategorias(): string
+    public function bloqueDeCategorias(?ActorInterface $actor = null): string
     {
-        $categorias = $this->categorias();
+        $categorias = $actor === null ? $this->categorias() : $this->categoriasPara($actor);
 
         if ($categorias === []) {
             return '';
+        }
+
+        // ⚠️ TOPE. La fase 2 lo tiene (`MAX_ETIQUETAS`) y ésta no lo tenía, en una tabla que
+        // según su propio diseño «está pensada para crecer mucho». Este bloque va en lo volátil:
+        // se paga entero en cada turno, así que sin tope el precio del agente crece cada vez que
+        // alguien añade un tema en el panel, sin que nada lo delate hasta la factura.
+        if (count($categorias) > self::MAX_CATEGORIAS) {
+            $this->logger->warning(sprintf(
+                'Conocimiento: %d categorías activas, se enseñan las %d primeras. Conviene '
+                . 'agruparlas: el modelo elige peor cuantas más ve.',
+                count($categorias),
+                self::MAX_CATEGORIAS
+            ));
+
+            $categorias = array_slice($categorias, 0, self::MAX_CATEGORIAS);
         }
 
         return "CONOCIMIENTO (temas sobre los que hay respuesta escrita):\n"
@@ -151,6 +171,36 @@ final readonly class ConocimientoGenerico
         }
 
         return $encontrados;
+    }
+
+    /**
+     * Las categorías que tienen algo que contarle a ESTE interlocutor.
+     *
+     * Una categoría cuyos ítems son todos de perfil equipo —«protocolos», «guardia»— no se le
+     * nombra a un huésped. El contenido no fugaba (los ítems filtran en {@see itemsDe()}), pero
+     * el nombre de la categoría sí viaja en el prompt, y enseñarle a un prospecto que existe un
+     * tema de protocolos internos es a la vez una fuga pequeña y una invitación a alucinar sobre
+     * él.
+     *
+     * @return list<AgentConocimientoCategoria>
+     */
+    public function categoriasPara(ActorInterface $actor): array
+    {
+        $perfil = PerfilConversacion::deActor($actor);
+        $dominios = $actor->dominios();
+        $visibles = [];
+
+        foreach ($this->categorias() as $categoria) {
+            foreach ($categoria->getItems() as $item) {
+                if ($item->visiblePara($dominios, $perfil)) {
+                    $visibles[] = $categoria;
+
+                    break;
+                }
+            }
+        }
+
+        return $visibles;
     }
 
     /** @return list<AgentConocimientoCategoria> */

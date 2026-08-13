@@ -282,10 +282,32 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
         return $this->milestones ?? [];
     }
 
-    /** @param array<string, string> $milestones */
+    /**
+     * ⚠️ **Normaliza a texto, y no es cosmético.**
+     *
+     * `PmsReservaMessageContext::getMilestones()` devuelve objetos `DateTimeImmutable`, no
+     * cadenas, pese a lo que dice este contrato. Guardados tal cual, el mapa queda con objetos
+     * **en memoria** hasta que la entidad da la vuelta por JSON — y en esa ventana el motor de
+     * reglas los lee y revienta: `parseMilestone(): Argument #1 ($raw) must be of type string,
+     * DateTimeImmutable given`. Visto en producción el 13/08/2026: cuatro fallos en 96 segundos
+     * sobre la misma reserva, y después el dato en la base se veía correcto, que es lo que hace
+     * este fallo tan difícil de perseguir.
+     *
+     * El asunto que revienta se salta entero: esa reserva se queda **sin sus recordatorios**.
+     *
+     * @param array<string, string|\DateTimeInterface> $milestones
+     */
     public function setMilestones(array $milestones): self
     {
-        $this->milestones = $milestones;
+        $normalizados = [];
+
+        foreach ($milestones as $clave => $valor) {
+            $normalizados[$clave] = $valor instanceof \DateTimeInterface
+                ? $valor->format('Y-m-d H:i:s')
+                : (string) $valor;
+        }
+
+        $this->milestones = $normalizados;
 
         return $this;
     }
