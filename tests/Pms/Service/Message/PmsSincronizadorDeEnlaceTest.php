@@ -222,6 +222,76 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
         self::assertTrue($enlace->estaCancelado(), 'la cancelación sobrevive al recálculo');
     }
 
+    /**
+     * Pierde una casita de dos: la reserva sigue viva y hay algo concreto que contar.
+     *
+     * Es el caso que era invisible: los hitos se recalculaban en silencio y el huésped no se
+     * enteraba de que una casita había dejado de ser suya.
+     */
+    #[Test]
+    public function perder_una_casita_de_dos_se_anota_como_cancelacion_parcial(): void
+    {
+        $enlace = $this->enlaceCon([
+            $this->hito(Hito::START, '2026-03-10 14:00', 'Casita 2 + Casita 5'),
+            $this->hito(Hito::END, '2026-03-15 10:00', 'Casita 2 + Casita 5'),
+        ]);
+
+        self::assertSame(['Casita 2', 'Casita 5'], $enlace->unidadesDerivadas());
+
+        // Se cae la 5: el recálculo deja sólo la 2.
+        $enlace->setHitos([
+            $this->hito(Hito::START, '2026-03-10 14:00', 'Casita 2'),
+            $this->hito(Hito::END, '2026-03-15 10:00', 'Casita 2'),
+        ]);
+        $enlace->anotarCancelacionParcial('Casita 5');
+
+        $tipos = array_map(static fn (HitoDeAsunto $h): string => $h->tipo, $enlace->getHitos());
+
+        self::assertContains(Hito::PARTIAL_CANCELLATION, $tipos);
+        self::assertArrayHasKey(Hito::PARTIAL_CANCELLATION, $enlace->getMilestones(), 'una regla puede colgarse de esto ya');
+    }
+
+    /**
+     * ⚠️ La trampa: una cancelación parcial es un HECHO, no un estado derivado.
+     *
+     * Los tramos que la provocaron ya no existen, así que no se puede volver a deducir. Si
+     * `setHitos()` la borrara, desaparecería en cuanto la reserva volviera a tocarse —y el aviso
+     * que la anuncia se quedaría sin fecha a la que colgarse—.
+     */
+    #[Test]
+    public function la_cancelacion_parcial_sobrevive_a_los_recalculos(): void
+    {
+        $enlace = $this->enlaceCon([$this->hito(Hito::START, '2026-03-10 14:00', 'Casita 2')]);
+        $enlace->anotarCancelacionParcial('Casita 5');
+
+        // El operador mueve las fechas: recálculo completo de los derivados.
+        $enlace->setHitos([
+            $this->hito(Hito::START, '2026-03-12 14:00', 'Casita 2'),
+            $this->hito(Hito::END, '2026-03-16 10:00', 'Casita 2'),
+        ]);
+
+        $tipos = array_map(static fn (HitoDeAsunto $h): string => $h->tipo, $enlace->getHitos());
+
+        self::assertContains(Hito::PARTIAL_CANCELLATION, $tipos, 'el hecho ocurrido no se recalcula: se conserva');
+        self::assertSame('2026-03-12 14:00:00', $enlace->getMilestones()[Hito::START], 'y los derivados sí se rehacen');
+    }
+
+    /**
+     * ⚠️ Y la trampa de la trampa: la casita perdida NO puede contar como presente.
+     *
+     * `unidadesDerivadas()` ignora las cancelaciones parciales ya anotadas. Si las contara, la
+     * casita perdida volvería a aparecer como cubierta y el siguiente recálculo la daría por
+     * perdida otra vez, anotando un duplicado **en cada guardado de la reserva**.
+     */
+    #[Test]
+    public function una_casita_ya_perdida_no_vuelve_a_contarse_como_presente(): void
+    {
+        $enlace = $this->enlaceCon([$this->hito(Hito::START, '2026-03-10 14:00', 'Casita 2')]);
+        $enlace->anotarCancelacionParcial('Casita 5');
+
+        self::assertSame(['Casita 2'], $enlace->unidadesDerivadas(), 'la 5 ya no cuenta como cubierta');
+    }
+
     /** Recalcular sustituye: los hitos viejos no se acumulan con los nuevos. */
     #[Test]
     public function recalcular_sustituye_y_no_acumula(): void

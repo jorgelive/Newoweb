@@ -62,6 +62,22 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
 
     public const string CONTEXT_TYPE = 'pms_reserva';
 
+    /**
+     * Los hitos que se RECALCULAN enteros desde los tramos en cada cambio.
+     *
+     * Todo lo demás que haya en la lista es un HECHO ocurrido —una cancelación parcial— que ya
+     * no se puede deducir de los tramos, porque los que lo provocaron ya no están. `setHitos()`
+     * reemplaza estos y conserva aquéllos.
+     */
+    private const array TIPOS_DERIVADOS = [
+        ConversationMilestoneInterface::START,
+        ConversationMilestoneInterface::END,
+        ConversationMilestoneInterface::TEMPORARY_END,
+        ConversationMilestoneInterface::REENTRY,
+        ConversationMilestoneInterface::UNIT_CHANGE,
+        ConversationMilestoneInterface::SERVICE,
+    ];
+
     #[ORM\ManyToOne(targetEntity: MessageConversation::class, inversedBy: 'enlacesPms')]
     #[ORM\JoinColumn(name: 'conversacion_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?MessageConversation $conversacion = null;
@@ -123,6 +139,65 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
         $this->milestones = $plano;
 
         return $this;
+    }
+
+    /**
+     * Anota que la reserva perdió algo pero sigue viva: una casita de dos, un tramo.
+     *
+     * Se guarda en la lista —donde sobrevive a los recálculos— **y** en el mapa plano, para que
+     * una regla pueda colgarse de `partial_cancellation` sin esperar a que el motor sepa
+     * programar por hito. En el mapa queda la ÚLTIMA, que es la que tiene sentido anunciar: si
+     * pierde dos casitas en dos momentos, lo que importa es lo último que se le quitó.
+     *
+     * @param string $perdido Qué dejó de ser suyo, en palabras que se le pueden leer: «Casita 1».
+     */
+    public function anotarCancelacionParcial(string $perdido, ?DateTimeImmutable $cuando = null): self
+    {
+        $cuando ??= new DateTimeImmutable();
+
+        $this->hitos = array_merge($this->hitos ?? [], [[
+            'tipo' => ConversationMilestoneInterface::PARTIAL_CANCELLATION,
+            'fecha' => $cuando->format('Y-m-d H:i:s'),
+            'detalle' => $perdido,
+            'detalleAnterior' => null,
+        ]]);
+
+        $this->proyectarEnMapaPlano();
+
+        return $this;
+    }
+
+    /**
+     * Las unidades que cubren los hitos DERIVADOS, para poder ver qué se perdió entre dos
+     * recálculos.
+     *
+     * Sólo los derivados: si contara también las cancelaciones parciales ya anotadas, la casita
+     * perdida volvería a aparecer como presente y el siguiente recálculo la daría por perdida
+     * otra vez, anotando un duplicado en cada guardado.
+     *
+     * @return list<string>
+     */
+    public function unidadesDerivadas(): array
+    {
+        $unidades = [];
+
+        foreach ($this->hitos ?? [] as $h) {
+            if (!in_array($h['tipo'], self::TIPOS_DERIVADOS, true)) {
+                continue;
+            }
+
+            foreach (explode(' + ', (string) ($h['detalle'] ?? '')) as $unidad) {
+                $unidad = trim($unidad);
+
+                if ($unidad !== '' && !in_array($unidad, $unidades, true)) {
+                    $unidades[] = $unidad;
+                }
+            }
+        }
+
+        sort($unidades);
+
+        return $unidades;
     }
 
     /** ¿Este asunto está cancelado? */
@@ -246,6 +321,14 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
      */
     public function setHitos(array $hitos): self
     {
+        // Los hechos ocurridos sobreviven al recálculo; los derivados se reemplazan. Sin esto,
+        // una cancelación parcial desaparecería en cuanto la reserva volviera a tocarse, y el
+        // aviso que la anuncia se quedaría sin fecha a la que colgarse.
+        $historicos = array_values(array_filter(
+            $this->hitos ?? [],
+            static fn (array $h): bool => !in_array($h['tipo'], self::TIPOS_DERIVADOS, true)
+        ));
+
         $this->hitos = array_values(array_map(
             static fn (HitoDeAsunto $h): array => [
                 'tipo' => $h->tipo,
@@ -256,35 +339,57 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
             $hitos
         ));
 
-        // ⚠️ Se RECONSTRUYEN las dos claves que le pertenecen a esta derivación, no se fusionan.
-        //
-        // Fusionar con `!isset` parecía prudente y era el bug: `start` sólo se escribía si el
-        // mapa no lo tenía ya, o sea **una vez en la vida del enlace**. Mover la llegada del 10
-        // al 12 dejaba la lista diciendo 12 y el mapa diciendo 10 — y como el motor programa con
-        // el mapa, el check-in salía calculado contra la fecha vieja. Justo el síntoma que este
-        // trabajo venía a matar, reintroducido por una guarda de más.
-        //
-        // Se borran antes del bucle para que una estancia que se queda sin tramos vivos no
-        // conserve un `start` fantasma de cuando los tenía. Las claves ajenas a esta derivación
-        // —`created_at`, `expected_arrival`— se respetan: las pone quien sabe de ellas.
-        $plano = $this->milestones ?? [];
-        unset($plano[ConversationMilestoneInterface::START], $plano[ConversationMilestoneInterface::END]);
+        $this->hitos = array_merge($historicos, $this->hitos);
 
-        foreach ($hitos as $hito) {
-            // El PRIMER `start` de esta derivación es la llegada; el ÚLTIMO `end`, la salida
-            // final. Los intermedios no caben en un mapa, y por eso existe la lista.
-            if ($hito->tipo === ConversationMilestoneInterface::START && !isset($plano[ConversationMilestoneInterface::START])) {
-                $plano[ConversationMilestoneInterface::START] = $hito->fecha->format('Y-m-d H:i:s');
+        $this->proyectarEnMapaPlano();
+
+        return $this;
+    }
+
+    /**
+     * El mapa plano es una PROYECCIÓN de la lista, no un almacén paralelo.
+     *
+     * ⚠️ Existe porque tenerlo como almacén ya falló dos veces. La primera, `start` se escribía
+     * una sola vez en la vida del enlace y no se actualizaba nunca. La segunda, la cancelación
+     * parcial aparecía en el mapa al anotarla y **desaparecía en el siguiente guardado**: el
+     * sincronizador repone el mapa del contexto en cada recálculo, y como la pérdida ya no se
+     * volvía a detectar, la clave se perdía y la regla que colgara de ella dejaba de tener fecha.
+     *
+     * Reproyectando desde la lista, el mapa no puede desincronizarse: se rehace entero desde la
+     * única fuente que hay. Lo que no sale de aquí —`created_at`, `expected_arrival`— lo pone el
+     * contexto y se respeta.
+     */
+    private function proyectarEnMapaPlano(): void
+    {
+        // Se borran las claves que proyecta la lista —y sólo ésas— para que una estancia que se
+        // queda sin tramos vivos no conserve un `start` fantasma de cuando los tenía. Las ajenas
+        // (`created_at`, `expected_arrival`) las pone el contexto y se respetan.
+        $plano = $this->milestones ?? [];
+        unset(
+            $plano[ConversationMilestoneInterface::START],
+            $plano[ConversationMilestoneInterface::END],
+            $plano[ConversationMilestoneInterface::PARTIAL_CANCELLATION],
+        );
+
+        foreach ($this->hitos ?? [] as $h) {
+            $tipo = (string) $h['tipo'];
+
+            // El PRIMER `start` es la llegada. Los intermedios no caben en un mapa, y por eso
+            // existe la lista.
+            if ($tipo === ConversationMilestoneInterface::START && !isset($plano[$tipo])) {
+                $plano[$tipo] = $h['fecha'];
             }
 
-            if ($hito->tipo === ConversationMilestoneInterface::END) {
-                $plano[ConversationMilestoneInterface::END] = $hito->fecha->format('Y-m-d H:i:s');
+            // De la salida final y de la pérdida parcial manda la ÚLTIMA: si pierde dos casitas
+            // en dos momentos, lo que hay que anunciar es lo último que se le quitó.
+            if ($tipo === ConversationMilestoneInterface::END
+                || $tipo === ConversationMilestoneInterface::PARTIAL_CANCELLATION
+            ) {
+                $plano[$tipo] = $h['fecha'];
             }
         }
 
         $this->milestones = $plano;
-
-        return $this;
     }
 
     public function getEtiqueta(): string

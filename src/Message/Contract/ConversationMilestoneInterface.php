@@ -56,4 +56,23 @@ interface ConversationMilestoneInterface
      * hace falta saber a qué hora le recogen mañana—. `start` y `end` solos no dicen nada de eso.
      */
     public const string SERVICE = 'service';
+
+    /**
+     * La reserva PIERDE algo pero sigue viva: se cancela una casita de dos, se cae un tramo.
+     *
+     * ── Por qué no vale con `cancelled_at` ──────────────────────────────────
+     * Porque no es una cancelación: el huésped sigue viniendo. Un aviso de cancelación no tiene
+     * que ser específico cuando se cae la reserva ENTERA —ahí basta uno genérico—, pero cuando
+     * **deja de involucrar al menos un evento** sí hay algo concreto que contar, porque la
+     * estancia cambia sin desaparecer y el huésped tiene que enterarse de qué perdió.
+     *
+     * Hasta ahora ese caso era invisible: la reserva seguía viva, los hitos se recalculaban
+     * solos y nadie avisaba de que una casita ya no era suya.
+     *
+     * ⚠️ **Es un HECHO, no un estado derivado.** A diferencia de `start` o `unit_change` —que se
+     * recalculan enteros desde los tramos en cada cambio—, esto ocurrió en un momento y no se
+     * puede volver a deducir después: los tramos que lo provocaron ya no están. Por eso
+     * sobrevive a los recálculos; ver `PmsConversacionEnlace::setHitos()`.
+     */
+    public const string PARTIAL_CANCELLATION = 'partial_cancellation';
 }

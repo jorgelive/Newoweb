@@ -6868,15 +6868,43 @@ Verificado tras marcar los 310 enlaces (106 de ellos cancelados): el dry-run del
 dando **0 mensajes y 0 colas**, y la regeneración desde cero sigue devolviendo **todos** los
 mensajes vivos idénticos.
 
-#### La regla que falta escribir
-
-Decisión de producto ya tomada, pendiente de implementar:
+#### La regla, implementada
 
 > Un aviso de cancelación **no tiene por qué ser específico si afecta a todos los eventos** de la
 > reserva: ahí basta un mensaje genérico, uno solo. Pero **si deja de involucrar al menos uno**
 > —se cancela una casita de dos, se cae un tramo— eso sí tiene sentido contarlo, porque la
 > estancia del huésped cambia sin desaparecer.
 
-Hoy el segundo caso ni siquiera es una cancelación para el modelo: la reserva sigue viva, los
-hitos se recalculan solos y el huésped **no se entera** de que perdió una casita. Es el mismo
-hueco que el de la salida temporal, un escalón más arriba.
+- **Total** (`PmsReserva::isCancelada()`: todos los tramos cancelados) → el enlace se marca con
+  `cancelled_at` y el asunto queda muerto para el motor. Un aviso genérico, cuando producto
+  decida recuperarlo.
+- **Parcial** → hito nuevo `PARTIAL_CANCELLATION`, con **qué** se perdió («Casita 5»). La reserva
+  sigue viva y el resto de sus hitos también.
+
+Lo detecta `PmsSincronizadorDeEnlace` comparando las unidades que cubría el enlace **antes** con
+las que cubre **después** del recálculo. Si desaparece alguna y quedan otras, es parcial; si no
+queda ninguna, es total y la trata la rama de arriba.
+
+⚠️ **Dos trampas, las dos con test:**
+
+1. Una cancelación parcial es un **hecho**, no un estado derivado: los tramos que la provocaron
+   ya no existen, así que no se puede volver a deducir. `setHitos()` reemplaza los hitos
+   derivados y **conserva** los históricos; si los borrara, la pérdida desaparecería en cuanto
+   la reserva volviera a tocarse.
+2. La casita perdida **no puede seguir contando como cubierta**. `unidadesDerivadas()` ignora las
+   cancelaciones ya anotadas: si las contara, el siguiente recálculo la daría por perdida otra
+   vez y anotaría un duplicado **en cada guardado**.
+
+#### Y una tercera que sólo salió al probarlo contra la base real
+
+El mapa plano se quedaba **sin** la clave `partial_cancellation` tras el siguiente guardado: el
+sincronizador repone el mapa del contexto en cada recálculo, y como la pérdida ya no se volvía a
+detectar, la clave se perdía y la regla que colgara de ella se quedaba sin fecha.
+
+Es la **segunda** vez que el mapa plano falla por tratarse como un almacén paralelo —la primera
+fue el `start` que sólo se escribía una vez—. Ahora es una **proyección**: `proyectarEnMapaPlano()`
+lo rehace entero desde la lista en cada cambio, así que no puede desincronizarse.
+
+Comprobado con `php var/probar-parcial.php`, que cancela una casita de una reserva real dentro de
+una transacción, verifica que se anota **una** vez y **vuelve a guardar tres veces más** para
+confirmar que no se duplica.

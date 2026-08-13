@@ -99,8 +99,25 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
         // Después `setHitos()` reescribe `start` y `end` con los derivados de los tramos, que
         // son mejores que los del contexto: éstos son el mínimo y el máximo de la reserva, y
         // aquéllos distinguen la estancia partida.
+        // ── ¿Se cayó algo por el camino? ────────────────────────────────────
+        // Se compara lo que cubría el enlace ANTES con lo que cubre ahora. Si desaparece una
+        // casita y quedan otras, la reserva no está cancelada —el huésped sigue viniendo— pero
+        // ha perdido algo concreto, y eso hay que contárselo: es el caso que hasta ahora era
+        // invisible, porque los hitos se recalculaban en silencio y nadie avisaba.
+        //
+        // Si NO queda ninguna, es una cancelación total y la trata la rama de arriba: ahí no
+        // hace falta ser específico, basta un aviso genérico.
+        $antes = $enlace->unidadesDerivadas();
+
         $enlace->setMilestones($contexto->getMilestones());
         $enlace->setHitos($this->hitos->para($reserva));
+
+        $ahora = $enlace->unidadesDerivadas();
+        $perdidas = array_values(array_diff($antes, $ahora));
+
+        if ($perdidas !== [] && $ahora !== []) {
+            $enlace->anotarCancelacionParcial(implode(' + ', $perdidas));
+        }
 
         // El hito de cancelación se pone DESPUÉS de los derivados, porque `setHitos()` reescribe
         // `start`/`end` y no toca las claves ajenas. Con la reserva cancelada, los hitos
