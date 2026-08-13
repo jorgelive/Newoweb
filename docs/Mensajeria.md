@@ -7555,3 +7555,25 @@ ruido que las coincidencias de una sola palabra (§22.12). Ahora sólo cuentan `
 Resultado sobre las 7 fichas: sólo **«Agua caliente»** tiene algo mejor en la guía —las siete
 fichas de ducha—. Las demás dicen lo mismo, así que excluir al huésped en ellas no le protege de
 nada.
+
+### 22.23 El tono no sobrevive a la traducción si no está escrito
+
+Probando en producción:
+
+```
+«Aceptan mascotas»    → «No, lo sentimos, no aceptamos mascotas.»   ✅
+«Are pets allowed?»   → «We do not accept pets.»                    ❌ sin la disculpa
+```
+
+El modelo tradujo el **hecho** y se dejó el **tono**. Pasa porque la instrucción está escrita en
+español y él la lee como contexto, no como texto a decir: al redactar en otro idioma se queda con
+el dato mínimo.
+
+**La regla para escribir fichas:** lo que deba salir sí o sí va como **frase hecha**, y si el tono
+importa, dada también en el otro idioma. Una instrucción sobre cómo decir algo —«dilo con
+amabilidad»— es lo primero que se cae al cambiar de lengua.
+
+Y el error anterior fue el simétrico: la primera versión decía «dilo claro y sin rodeos, **sin dar
+explicaciones**» y salió un «No se aceptan mascotas» de tres palabras. El modelo hace exactamente
+lo que la ficha dice, así que hay que separar **qué se dice** de **cómo se dice** — y escribir el
+qué, no confiarlo al cómo.
