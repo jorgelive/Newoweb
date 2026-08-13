@@ -6515,17 +6515,38 @@ Es idempotente y **no toca ni una columna de los módulos de origen**: no reescr
    deduplicar: separarlo en otro comando habría significado escribir esa regla dos veces.
    Resultado: 285 de 285 reservas y 3 de 3 expedientes, ninguno sin cruzar.
    *Falta la FK en `MessageConversation`, que espera al paso 3 para no chocar con él.*
-2. ✅ **Poblar `pms_conversacion_enlace`** — `app:conversaciones:enlazar`, 310 enlaces, uno por
-   conversación de alojamiento. Idempotente y aditivo: no toca las columnas viejas.
-   ⚠️ Destapó **2 conversaciones que apuntan a una reserva borrada**: `context_id` es un string
-   sin integridad referencial, así que eso ya estaba roto. Se dejan sin enlace y se listan, en
-   vez de inventarles uno.
+2. ✅ **Poblar `pms_conversacion_enlace`** — `app:conversaciones:enlazar`, **204 enlaces**.
+   Idempotente y aditivo: no toca las columnas viejas.
 3. **Enseñarle a `MessageRuleEngine` a programar por ASUNTO** en vez de por conversación. Éste
    es el corazón abierto: hasta que no esté, las columnas viejas siguen siendo la verdad.
 
-**La prueba de que el modelo era el correcto, con nombre y apellido:** Adrián Tolaba tiene
-**7 reservas** y era el mismo que tenía 7 conversaciones creadas el mismo día. Ahora es un
-contacto con 7 asuntos, que es lo que siempre fue.
+### 20.6 Lo que la base arrastra, y que el motor tiene que atravesar sin morirse
+
+Poblar los enlaces obligó a mirar los datos de verdad, y salieron dos cosas que **ya estaban
+rotas** y que hoy no se notan porque una conversación es un asunto:
+
+| Qué | Cuántas | Por qué importa mañana |
+|---|---|---|
+| Conversaciones que apuntan a una reserva **CANCELADA** | **106 de 310** | Al programar por asunto, el motor las encontraría vivas y regeneraría mensajes por cada una |
+| Conversaciones que apuntan a una reserva **BORRADA** | 2 | `context_id` es un string sin integridad referencial; no resuelven a nada |
+
+Un tercio de las conversaciones cuelga de algo cancelado. Entre ellas hay **reservas duplicadas
+nacidas de un bug de guardado** —siete filas donde debía haber una con cuatro eventos—, que
+quedaron canceladas y siguen ahí.
+
+Por eso `app:conversaciones:enlazar` **no enlaza reservas canceladas**: el enlace es justo la
+puerta por la que esa basura entraría al motor. Y por eso la regla para el paso 3 es explícita:
+
+> **Un asunto cancelado no regenera nada, y un asunto que no resuelve no puede tumbar a los
+> demás.** Hoy, si una conversación es basura, falla sólo lo suyo. Mañana, un asunto malo
+> conviviendo con seis buenos bajo el mismo hilo puede dejar a los seis sin sus mensajes. Hay
+> que aislar por enlace.
+
+⚠️ **Corrección de una lectura anterior de este doc.** Aquí se afirmaba que un contacto con «7
+reservas» era la prueba del modelo. Era falso: son 7 filas de un bug de guardado, canceladas, y
+lo correcto habría sido una reserva con cuatro eventos. Contar filas no es contar reservas. Lo
+que sí está medido y sigue en pie es la fragmentación del historial: 20 teléfonos con más de una
+conversación, uno con 247 mensajes repartidos en dos hilos y otro con 122 en cuatro.
 4. Fusionar los hilos duplicados por contacto, con su historial.
 5. Retirar `contextType`/`contextId`/`contextData` de la conversación.
 
