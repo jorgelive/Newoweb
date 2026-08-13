@@ -3,8 +3,20 @@
 ## Stack
 
 - **Backend:** Symfony (PHP >= 8.4), API Platform, Doctrine ORM, EasyAdmin (panel legacy).
-  Comandos: `php bin/console ...`. Verificación: `php bin/phpunit`, `php -l`,
-  `lint:container` y, cuando aplica, ejecutar el flujo real.
+  Comandos: `php bin/console ...`. Verificación: `php bin/phpunit`, `vendor/bin/phpstan analyse`,
+  `php -l`, `lint:container` y, cuando aplica, ejecutar el flujo real.
+
+  **Análisis estático:** PHPStan nivel 2 sobre `src/`, con `phpstan-baseline.neon` congelando la
+  deuda que ya existía. Está en nivel 2 y no más porque ése es el que caza **variables
+  indefinidas y métodos que no existen**, que es la clase de fallo que ya costó caro: un
+  `$message` donde la variable era `$msg` pasó `php -l`, pasó los 104 tests —ninguno tocaba ese
+  archivo— y habría tumbado TODO el envío saliente en el primer mensaje. Correrlo antes de
+  cerrar un cambio no es opcional; es más barato que cualquier test que se pueda escribir para
+  cubrir lo mismo.
+
+  ⚠️ La baseline **no es una lista de perdonados**: es la foto del día que se instaló, para que
+  salte sólo lo nuevo. Si tocas un archivo que tiene errores dentro, arréglalos y quítalos de
+  ahí.
 
   **Tests:** PHPUnit 13 (`phpunit.dist.xml`), suite en `tests/` espejando `src/`. Hoy sólo hay
   tests **unitarios puros** —sin contenedor ni base de datos— sobre las piezas de decisión del
@@ -62,6 +74,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Finanzas/`, resolvers `*/Finanzas/*OrigenCobroResolver.php`, cobros en `util/` y `pax/` | `docs/FinanzasEnlacesPago.md` |
 | `src/Service/Phone/`, listeners de integridad de teléfonos, `util/src/utils/telefono.ts` | `docs/Telefonos.md` |
 | `src/Agent/Alexa/`, `VoiceAssistant`, `AlexaController` (el agente por voz) | `docs/AgentVoz.md` |
+| `src/Logging/`, `config/packages/monolog.yaml`, rotación de logs | `docs/Logging.md` |
 
 Si el módulo que tocas no tiene doc (`src/Travel/`, `src/Agent/`, `src/Pax/`…), **créalo**
 siguiendo el formato de los existentes y agrégalo a esta tabla.

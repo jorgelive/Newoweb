@@ -73,6 +73,17 @@ readonly class MessageConversationFactory
         $conversation->setContextFinancials($context->getFinancialTotal(), $context->isFinancialCleared());
 
         // 5. AUTO-ARCHIVADO y REACTIVACIÓN
+        //
+        // ⚠️ CENTINELA: esto razona por HILO y el paso 6 razona por ASUNTO.
+        //
+        // Cancelar una reserva cierra la conversación ENTERA. Hoy da igual —un hilo, un asunto—,
+        // pero en cuanto se fusionen los hilos duplicados por persona, cancelar la reserva A
+        // cerrará el hilo y silenciará las agendas VIVAS de B y de C: el motor descarta las
+        // reglas de una conversación cerrada.
+        //
+        // No se cambia ahora a propósito: alterar cuándo se cierra un hilo es un cambio de
+        // comportamiento en producción que no hace falta todavía. Pero es el primer sitio que
+        // hay que tocar el día de la fusión, y por eso queda escrito aquí y no sólo en el doc.
         if ($context->isCancelled()) {
             $conversation->setStatus(MessageConversation::STATUS_CLOSED); //Cambiado
         } else {

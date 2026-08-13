@@ -38,17 +38,30 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
             throw new RuntimeException('No se puede encolar en Beds24: El mensaje no tiene una conversación asociada.');
         }
 
-        $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
+
+        // ── El asunto del MENSAJE, no el de la conversación ──────────────────
+        // Esto decide en QUÉ HILO DE BEDS24 aterriza el mensaje (`beds24_book_id`) y si el canal
+        // es válido para él. Las dos cosas son del asunto: el mismo titular puede tener una
+        // reserva directa y otra de Airbnb colgando del mismo hilo, y tomar el contexto de la
+        // conversación publicaría el recordatorio de la reserva B en el hilo de la A —o lo podaría
+        // por el `source` de la que no es—.
+        //
+        // Es el mismo fallo que ya se cerró en las estrategias de envío, un paso antes en la
+        // tubería. Hoy coinciden siempre; dejan de coincidir en cuanto se fusionen los hilos.
+        $asuntoType = $message->getAsuntoType() ?? $conversation->getContextType();
+        $asuntoId = $message->getAsuntoId() ?? $conversation->getContextId();
+
+        $resolver = $this->resolverRegistry->getResolver($asuntoType);
         if (!$resolver) {
             // 🔥 El error que pediste: Si es manual/walk-in y piden Beds24, explota y avisa.
             throw new RuntimeException(sprintf(
-                'No se puede enviar por Beds24: La conversación actual (Tipo: %s) no está vinculada a una reserva del PMS.',
-                $conversation->getContextType()
+                'No se puede enviar por Beds24: el asunto de este mensaje (Tipo: %s) no está vinculado a una reserva del PMS.',
+                $asuntoType
             ));
         }
 
         // 1. Obtener la Metadata del PMS (Snapshot)
-        $metadata = $resolver->getMetadata($conversation->getContextId());
+        $metadata = $resolver->getMetadata($asuntoId);
 
         // 🔥 REGLA DE SEGURIDAD ESTRICTA: ¿Es Reserva Directa?
         $source = (string) ($metadata['source'] ?? '');
@@ -158,12 +171,17 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
             return false;
         }
 
-        $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
+        // Mismo motivo que en `createQueueEntity()`: la poda de canales tiene que juzgar por el
+        // `source` del asunto de ESTE mensaje, no por el de la conversación.
+        $asuntoType = $message->getAsuntoType() ?? $conversation->getContextType();
+        $asuntoId = $message->getAsuntoId() ?? $conversation->getContextId();
+
+        $resolver = $this->resolverRegistry->getResolver($asuntoType);
         if (!$resolver) {
             return false;
         }
 
-        $metadata = $resolver->getMetadata($conversation->getContextId());
+        $metadata = $resolver->getMetadata($asuntoId);
         $source = strtolower((string) ($metadata['source'] ?? ''));
 
         // Si es directo, el canal Beds24 ya no es válido

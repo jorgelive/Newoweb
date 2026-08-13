@@ -1,0 +1,27 @@
+# Análisis estático — la red que faltaba
+#
+# Nivel 2 a propósito, y no más: es el que caza VARIABLES INDEFINIDAS y métodos que no existen,
+# que es la clase de fallo que ya costó caro. Un `$message` donde la variable era `$msg` pasó
+# `php -l`, pasó los 104 tests —ninguno tocaba ese archivo— y habría tumbado todo el envío
+# saliente en el primer mensaje. Esto lo caza en un segundo y en TODO el proyecto, no sólo donde
+# alguien se acordó de escribir un test.
+#
+# Subir de nivel es deseable pero es otro trabajo: los niveles altos exigen tipar genéricos y
+# anotar colecciones de Doctrine en cientos de sitios, y un baseline gigante que nadie mira no
+# protege de nada.
+includes:
+    # La deuda que ya existía, congelada. NO es una lista de perdonados para siempre: es lo que
+    # había el día que se instaló la herramienta, para que a partir de aquí salte SÓLO lo nuevo.
+    # Las 13 variables indefinidas que hay dentro están todas en `src/Oweb/`, el módulo legado
+    # que ya está marcado para retirar, y por eso no se arreglan: se van con él.
+    - phpstan-baseline.neon
+
+parameters:
+    level: 2
+    paths:
+        - src
+    bootstrapFiles:
+        - vendor/autoload.php
+    # Cachés y código generado: no es nuestro y no se corrige aquí.
+    excludePaths:
+        - src/Kernel.php

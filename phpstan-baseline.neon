@@ -1,0 +1,811 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method App\\Agent\\Access\\ActorInterface\:\:tieneRol\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Agent/Skill/Pms/ListarSalidasSkill.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Calendar/Provider/DoctrineCalendarProvider.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
+
+		-
+			message: '#^Access to an undefined property App\\Command\\EnviarResumenCommand\:\:\$mailer\.$#'
+			identifier: property.notFound
+			count: 2
+			path: src/Command/EnviarResumenCommand.php
+
+		-
+			message: '#^Access to an undefined property App\\Command\\EnviarResumenCommand\:\:\$params\.$#'
+			identifier: property.notFound
+			count: 4
+			path: src/Command/EnviarResumenCommand.php
+
+		-
+			message: '#^Variable \$summaryRaw on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: src/Command/ObtenerReservasCommand.php
+
+		-
+			message: '#^Access to an undefined property App\\Cotizacion\\Entity\\CotizacionCottarifa\:\:\$proveedorServicioNombreSnapshot\.$#'
+			identifier: property.notFound
+			count: 2
+			path: src/Cotizacion/Entity/CotizacionCottarifa.php
+
+		-
+			message: '#^Method Symfony\\Component\\Serializer\\Normalizer\\NormalizerInterface\:\:supportsNormalization\(\) invoked with 3 parameters, 1\-2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: src/Cotizacion/Serializer/CotizacionCotcomponentePrestadorPublicNormalizer.php
+
+		-
+			message: '#^Method Symfony\\Component\\Serializer\\Normalizer\\NormalizerInterface\:\:supportsNormalization\(\) invoked with 3 parameters, 1\-2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: src/Cotizacion/Serializer/CotizacionCottarifaProveedorPublicNormalizer.php
+
+		-
+			message: '#^Method Symfony\\Component\\Serializer\\Normalizer\\NormalizerInterface\:\:supportsNormalization\(\) invoked with 3 parameters, 1\-2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: src/Cotizacion/Serializer/CotizacionPublicNormalizer.php
+
+		-
+			message: '#^Call to an undefined method App\\Exchange\\Entity\\MetaConfig\:\:getToken\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Exchange/Service/Client/WhatsappMetaClient.php
+
+		-
+			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ChannelConfigInterface\:\:getCredential\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Exchange/Service/Client/WhatsappMetaClient.php
+
+		-
+			message: '#^Variable \$evento in PHPDoc tag @var does not match any variable in the foreach loop\: \$link$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: src/Exchange/Service/Cron/Job/Beds24BookingsPushJob.php
+
+		-
+			message: '#^Call to an undefined method DateTimeInterface\:\:modify\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Message/Entity/Message.php
+
+		-
+			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:getTargetBookId\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveMappingStrategy.php
+
+		-
+			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\EndpointInterface\:\:getId\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendQueueProvider.php
+
+		-
+			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ChannelConfigInterface\:\:getCredential\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
+
+		-
+			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ChannelConfigInterface\:\:getNombre\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
+
+		-
+			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\EndpointInterface\:\:getId\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendQueueProvider.php
+
+		-
+			message: '#^Class App\\Message\\Dto\\Mercure\\MercureMessageDto constructor invoked with 2 parameters, 1 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: src/Message/Service/Mercure/MercureBroadcaster.php
+
+		-
+			message: '#^Access to an undefined property App\\Oweb\\Admin\\CotizacionCotservicioAdmin\:\:\$vars\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Oweb/Admin/CotizacionCotservicioAdmin.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$datagridMapper$#'
+			identifier: parameter.notFound
+			count: 1
+			path: src/Oweb/Admin/MaestroCategoriatourAdmin.php
+
+		-
+			message: '#^Call to an undefined method Sonata\\AdminBundle\\Model\\ModelManagerInterface\<object\>\:\:getEntityManager\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Oweb/Admin/ReservaReservaAdmin.php
+
+		-
+			message: '#^Call to an undefined method Sonata\\AdminBundle\\Model\\ModelManagerInterface\<object\>\:\:getEntityManager\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Oweb/Admin/ReservaUnitCaracteristicaLinkAdmin.php
+
+		-
+			message: '#^Access to an undefined property App\\Oweb\\Admin\\ReservaUnitmedioAdmin\:\:\$datagridValues\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Oweb/Admin/ReservaUnitmedioAdmin.php
+
+		-
+			message: '#^Call to an undefined method Sonata\\AdminBundle\\Datagrid\\ProxyQueryInterface\<object\>\:\:andWhere\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Oweb/Admin/TransporteServicioAdmin.php
+
+		-
+			message: '#^Call to an undefined method Sonata\\AdminBundle\\Datagrid\\ProxyQueryInterface\<object\>\:\:expr\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Oweb/Admin/TransporteServicioAdmin.php
+
+		-
+			message: '#^Call to an undefined method Sonata\\AdminBundle\\Datagrid\\ProxyQueryInterface\<object\>\:\:getRootAliases\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Oweb/Admin/TransporteServicioAdmin.php
+
+		-
+			message: '#^Call to an undefined method Sonata\\AdminBundle\\Datagrid\\ProxyQueryInterface\<object\>\:\:setParameter\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Oweb/Admin/TransporteServicioAdmin.php
+
+		-
+			message: '#^Cannot call method getUser\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: src/Oweb/Admin/TransporteServicioAdmin.php
+
+		-
+			message: '#^Method Symfony\\Component\\Security\\Csrf\\TokenStorage\\TokenStorageInterface\:\:getToken\(\) invoked with 0 parameters, 1 required\.$#'
+			identifier: arguments.count
+			count: 4
+			path: src/Oweb/Admin/TransporteServicioAdmin.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#2 \$response \(Symfony\\Component\\HttpFoundation\\Response\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Block/TareasBlockService.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$request \(Symfony\\Component\\HttpFoundation\\Request\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Controller/ComprobanteComprobanteController.php
+
+		-
+			message: '#^Variable \$cotizacion in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: src/Oweb/Controller/CotizacionCotservicioController.php
+
+		-
+			message: '#^Variable \$cotizacion might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: src/Oweb/Controller/CotizacionCotservicioController.php
+
+		-
+			message: '#^Variable \$resultados might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: src/Oweb/Controller/CotizacionFileController.php
+
+		-
+			message: '#^Cannot call method getId\(\) on null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: src/Oweb/Controller/ReservaReservaController.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$request \(Symfony\\Component\\HttpFoundation\\Request\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 4
+			path: src/Oweb/Controller/ReservaReservaController.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$request \(Symfony\\Component\\HttpFoundation\\Request\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 4
+			path: src/Oweb/Controller/ReservaUnitController.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$request \(Symfony\\Component\\HttpFoundation\\Request\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 2
+			path: src/Oweb/Controller/ReservaUnitnexoController.php
+
+		-
+			message: '#^Property App\\Oweb\\Entity\\CotizacionCotizacion\:\:\$portadafotos in isset\(\) is not nullable nor uninitialized\.$#'
+			identifier: isset.initializedProperty
+			count: 2
+			path: src/Oweb/Entity/CotizacionCotizacion.php
+
+		-
+			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
+			identifier: unset.variable
+			count: 1
+			path: src/Oweb/Entity/CotizacionFiledocumento.php
+
+		-
+			message: '#^PHPDoc tag @extends has invalid value \(AbstractPersonalTranslation\)\: Unexpected token "\\n ", expected ''\<'' at offset 43 on line 2$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: src/Oweb/Entity/CotizacionMenuTranslation.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$unidad \(App\\Oweb\\Entity\\TransporteUnidad\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/CuentaCentro.php
+
+		-
+			message: '#^Binary operation "\*" between non\-falsy\-string and 1\|3\.2 results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 2
+			path: src/Oweb/Entity/CuentaMovimiento.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$centro \(App\\Oweb\\Entity\\CuentaCentro\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/CuentaMovimiento.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$periodotransferencia \(App\\Oweb\\Entity\\CuentaPeriodo\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/CuentaMovimiento.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$cuenta \(App\\Oweb\\Entity\\CuentaCuenta\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/CuentaPeriodo.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$medidaalimento \(App\\Oweb\\Entity\\FitMedidaalimento\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/FitAlimento.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$tipoalimento \(App\\Oweb\\Entity\\FitTipoalimento\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/FitAlimento.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$user \(App\\Entity\\User\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/FitDieta.php
+
+		-
+			message: '#^Binary operation "\*" between string and string results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: src/Oweb/Entity/FitDietaalimento.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$alimento \(App\\Oweb\\Entity\\FitAlimento\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/FitDietaalimento.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$dietacomida \(App\\Oweb\\Entity\\FitDietacomida\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/FitDietaalimento.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$dieta \(App\\Oweb\\Entity\\FitDieta\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/FitDietacomida.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$maestromedio$#'
+			identifier: parameter.notFound
+			count: 1
+			path: src/Oweb/Entity/MaestroClasemedio.php
+
+		-
+			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
+			identifier: unset.variable
+			count: 1
+			path: src/Oweb/Entity/MaestroMedio.php
+
+		-
+			message: '#^Call to an undefined static method Gedmo\\Translatable\\Entity\\MappedSuperclass\\AbstractPersonalTranslation\:\:__construct\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: src/Oweb/Entity/MaestroTipocontactoTranslation.php
+
+		-
+			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
+			identifier: unset.variable
+			count: 1
+			path: src/Oweb/Entity/MainArchivo.php
+
+		-
+			message: '#^Call to an undefined method App\\Oweb\\Entity\\ReservaImporte\:\:getFecha\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Oweb/Entity/ReservaImporte.php
+
+		-
+			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
+			identifier: unset.variable
+			count: 1
+			path: src/Oweb/Entity/ReservaUnitmedio.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$servicio \(App\\Oweb\\Entity\\ServicioServicio\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/ServicioItinerario.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$itinerariodia with type App\\Oweb\\Entity\\ServicioItinerariodia is incompatible with native type App\\Oweb\\Entity\\ServicioItinerario\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: src/Oweb/Entity/ServicioNotaitinerariodia.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$itinerario$#'
+			identifier: parameter.notFound
+			count: 1
+			path: src/Oweb/Entity/ServicioNotaitinerariodia.php
+
+		-
+			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
+			identifier: unset.variable
+			count: 1
+			path: src/Oweb/Entity/ServicioProvidermedio.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$user \(App\\Entity\\User\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteConductor.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$conductor \(App\\Oweb\\Entity\\TransporteConductor\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteServicio.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$dependencia \(App\\Oweb\\Entity\\UserDependencia\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteServicio.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$unidad \(App\\Oweb\\Entity\\TransporteUnidad\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteServicio.php
+
+		-
+			message: '#^Variable \$fechahorafin in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: src/Oweb/Entity/TransporteServicio.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$servicio \(App\\Oweb\\Entity\\TransporteServicio\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteServiciocomponente.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$servicio \(App\\Oweb\\Entity\\TransporteServicio\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteServiciocontable.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$servicio \(App\\Oweb\\Entity\\TransporteServicio\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteServiciooperativo.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$tiposeroperativo \(App\\Oweb\\Entity\\TransporteTiposeroperativo\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteServiciooperativo.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$centro \(App\\Oweb\\Entity\\CuentaCentro\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteUnidad.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$tipounibit \(App\\Oweb\\Entity\\TransporteTipounibit\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteUnidadbitacora.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$unidad \(App\\Oweb\\Entity\\TransporteUnidad\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/TransporteUnidadbitacora.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$users$#'
+			identifier: parameter.notFound
+			count: 1
+			path: src/Oweb/Entity/UserArea.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$cuentatipo \(App\\Oweb\\Entity\\UserCuentatipo\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/UserCuenta.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$user \(App\\Entity\\User\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/UserCuenta.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$organizacion \(App\\Oweb\\Entity\\UserOrganizacion\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Oweb/Entity/UserDependencia.php
+
+		-
+			message: '#^Variable \$newFechahoraFin might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: src/Oweb/EventListener/CotizacionCotcomponenteDoctrineEventListener.php
+
+		-
+			message: '#^Variable \$newFechahoraInicio might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: src/Oweb/EventListener/CotizacionCotcomponenteDoctrineEventListener.php
+
+		-
+			message: '#^Variable \$newFechahoraIngreso might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: src/Oweb/EventListener/CotizacionCotservicioDoctrineEventListener.php
+
+		-
+			message: '#^Variable \$newFechahoraSalida might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: src/Oweb/EventListener/CotizacionCotservicioDoctrineEventListener.php
+
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\HttpFoundation\\Session\\SessionInterface\:\:getFlashBag\(\)\.$#'
+			identifier: method.notFound
+			count: 12
+			path: src/Oweb/Service/CotizacionClasificador.php
+
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\HttpFoundation\\Session\\SessionInterface\:\:getFlashBag\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Oweb/Service/CotizacionIncluye.php
+
+		-
+			message: '#^Call to an undefined method DateTimeInterface\:\:add\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Oweb/Service/CotizacionItinerario.php
+
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\HttpFoundation\\Session\\SessionInterface\:\:getFlashBag\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Oweb/Service/CotizacionProceso.php
+
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\HttpFoundation\\Session\\SessionInterface\:\:getFlashBag\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Oweb/Service/CotizacionResumen.php
+
+		-
+			message: '#^Variable \$repositorio in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: src/Oweb/Service/MainArchivoexcel.php
+
+		-
+			message: '#^Variable \$setTablaSpecs in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: src/Oweb/Service/MainArchivoexcel.php
+
+		-
+			message: '#^Cannot cast App\\Pms\\Enum\\PmsMedioPago to string\.$#'
+			identifier: cast.string
+			count: 1
+			path: src/Pms/Command/PmsAuditarReservaCommand.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$apiReference follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$arrival follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$arrivalTime follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$bookingTime follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$channel follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$comments follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$commission follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$country2 follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$departure follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$email follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$firstName follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$lang follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$lastName follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$mobile follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$modifiedTime follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$notes follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$numAdult follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$numChild follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$phone follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$price follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$rateDescription follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$subStatus follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Deprecated in PHP 8\.1\: Required parameter \$status follows optional parameter \$bookingGroup\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: src/Pms/Dto/Beds24BookingDto.php
+
+		-
+			message: '#^Attribute class App\\Pms\\Entity\\Assert\\Valid does not exist\.$#'
+			identifier: attribute.notFound
+			count: 1
+			path: src/Pms/Entity/PmsChannel.php
+
+		-
+			message: '#^PHPDoc tag @return with type int is incompatible with native type bool\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: src/Pms/Entity/PmsEventoCalendario.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectManager\:\:getReference\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Pms/EventListener/PmsEventoCalendarioIntegrityListener.php
+
+		-
+			message: '#^Variable \$e in PHPDoc tag @var does not match any variable in the foreach loop\: \$l$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
+
+		-
+			message: '#^Variable \$r in PHPDoc tag @var does not match any variable in the foreach loop\: \$e$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
+
+		-
+			message: '#^Access to an undefined property App\\Pms\\Dto\\Beds24BookingDto\:\:\$country\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
+
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\Serializer\\SerializerInterface\:\:denormalize\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullHandler.php
+
+		-
+			message: '#^Variable \$unidad in PHPDoc tag @var does not match any variable in the foreach loop\: \$map$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullMappingStrategy.php
+
+		-
+			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:getTargetBookId\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveMappingStrategy.php
+
+		-
+			message: '#^Variable \$evento in PHPDoc tag @var does not match any variable in the foreach loop\: \$link$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: src/Pms/Service/Message/PmsMessageDataResolver.php
+
+		-
+			message: '#^Call to an undefined method DateTimeInterface\:\:setTime\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/Pms/Service/Message/PmsReservaMessageContext.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectManager\:\:getUnitOfWork\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Service/Translate/AutoTranslationService.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Travel/Filter/ProveedorServicioProveedorExtension.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Travel/Filter/TarifaBatchIdExtension.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Travel/Filter/TarifaComponenteExtension.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: src/Travel/Filter/UuidBatchIdExtension.php
