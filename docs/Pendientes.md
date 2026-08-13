@@ -57,3 +57,27 @@ antelación» no se puede implementar hasta que ese dato exista.
   push a Beds24 manda bien la cifra por evento. Hace falta el reparto real (las notas dicen
   2/6/6) y decidir qué pasa con la Casita 1, que quedó con 1 adulto.
 - **Mensaje entrante duplicado a las 23:12:59** en `msg_message`. Detectado y nunca investigado.
+
+---
+
+## 4. Los mensajes de reservas canceladas se quedan ahí, y ensucian
+
+Verificado el 12/08/2026 al poblar los enlaces de conversación: **106 de las 310 conversaciones
+de alojamiento cuelgan de una reserva CANCELADA** —un tercio—, y otras 2 apuntan a una reserva
+borrada que ya no existe (`context_id` es un string sin integridad referencial).
+
+Entre esas canceladas hay reservas duplicadas nacidas de un bug de guardado: siete filas donde
+debía haber una con cuatro eventos.
+
+Sus mensajes programados siguen en `msg_message` y en las colas. Hoy no se envían —el motor los
+cancela al barrer— pero ocupan, ensucian los recuentos y obligan a que cada consulta se acuerde
+de filtrarlos.
+
+**Decisión tomada (dueño del producto): se borran, con un cron que los limpie.** No al vuelo ni
+con lógica dentro del motor, que ya tiene bastante: un barrido periódico que quite los mensajes
+de asuntos cancelados.
+
+⚠️ **No se hace todavía, y es deliberado.** Primero tiene que estar comprobado que el motor por
+asunto funciona bien; borrar en paralelo a un cambio del motor mezcla dos causas cuando algo
+salga mal. Cuando se haga, decidir también qué pasa con el aviso de cancelación por asunto, que
+hoy queda mudo en modo enlace (`docs/Mensajeria.md` §20.6).

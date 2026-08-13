@@ -38,13 +38,34 @@ class MessageSyncRulesCommand extends Command
         parent::__construct();
     }
 
+    /**
+     * Cuántas filas hay en lo que este comando puede tocar.
+     *
+     * Es la única forma de contar el efecto de un barrido sin fiarse de lo que diga el motor por
+     * pantalla: se mira lo que hay en la base antes y después.
+     *
+     * @return array<string, int>
+     */
+    private function fotoDeLasColas(): array
+    {
+        $conexion = $this->em->getConnection();
+        $foto = [];
+
+        foreach (['msg_message', 'msg_whatsapp_meta_send_queue'] as $tabla) {
+            $foto[$tabla] = (int) $conexion->fetchOne(sprintf('SELECT COUNT(*) FROM %s', $tabla));
+        }
+
+        return $foto;
+    }
+
     protected function configure(): void
     {
         $this
             ->addArgument('conversation_id', InputArgument::OPTIONAL, 'UUID de una conversación específica a sincronizar')
             ->addOption('all', null, InputOption::VALUE_NONE, 'Sincroniza todas las conversaciones con estado OPEN')
             ->addOption('closed', null, InputOption::VALUE_NONE, 'Barredora: Sincroniza conversaciones con estado CLOSED o ARCHIVED para cancelar colas pendientes')
-            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Reparación: programa hitos CREATED, rescata vencidos dentro de las últimas 24h y regenera mensajes fallidos sin reintentos');
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Reparación: programa hitos CREATED, rescata vencidos dentro de las últimas 24h y regenera mensajes fallidos sin reintentos')
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Ejecuta de verdad pero DESHACE al final: enseña qué mensajes saldrían sin encolar ninguno');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -54,10 +75,31 @@ class MessageSyncRulesCommand extends Command
         $syncAll = $input->getOption('all');
         $syncClosed = $input->getOption('closed');
         $force = (bool) $input->getOption('force');
+        $dryRun = (bool) $input->getOption('dry-run');
 
         if (!$conversationId && !$syncAll && !$syncClosed) {
             $io->error('Debes proporcionar un UUID de conversación, usar la opción --all, o usar la opción --closed');
             return Command::FAILURE;
+        }
+
+        // ── Cómo se simula, y por qué así ───────────────────────────────────
+        // No hay un «modo simulación» dentro del motor, y ponerlo habría significado un `if` en
+        // cada escritura: la simulación dejaría de ejercitar el camino real justo donde importa.
+        // En su lugar se corre TODO de verdad dentro de una transacción y se deshace al final.
+        //
+        // Sirve porque lo que este comando produce son FILAS —mensajes y sus colas—, no envíos:
+        // quien manda de verdad es un worker que lee esas filas después. Si nunca se
+        // confirman, nadie las lee.
+        //
+        // ⚠️ Lo que NO cubre: si algún día una regla llamara a un servicio externo en caliente
+        // —un HTTP, un correo directo—, eso escapa de la transacción. Hoy no pasa; si pasa,
+        // esta opción deja de ser segura y hay que decirlo aquí.
+        $antes = [];
+
+        if ($dryRun) {
+            $antes = $this->fotoDeLasColas();
+            $this->em->getConnection()->beginTransaction();
+            $io->warning('DRY RUN: se ejecuta todo de verdad y se deshace al final. No se encola nada.');
         }
 
         $repository = $this->em->getRepository(MessageConversation::class);
@@ -115,6 +157,28 @@ class MessageSyncRulesCommand extends Command
         }
 
         $io->progressFinish();
+
+        if ($dryRun) {
+            $this->em->flush();
+            $despues = $this->fotoDeLasColas();
+
+            $filas = [];
+
+            foreach ($despues as $tabla => $cuantas) {
+                $filas[] = [$tabla, $antes[$tabla] ?? 0, $cuantas, $cuantas - ($antes[$tabla] ?? 0)];
+            }
+
+            $this->em->getConnection()->rollBack();
+
+            $io->table(['Tabla', 'Antes', 'Después', 'Diferencia'], $filas);
+            $io->success(sprintf(
+                '%d conversaciones evaluadas. Todo deshecho: la base queda como estaba.',
+                $countSynced
+            ));
+
+            return Command::SUCCESS;
+        }
+
         $io->success(sprintf('Sincronización completada. Se evaluaron %d conversaciones.', $countSynced));
 
         return Command::SUCCESS;
