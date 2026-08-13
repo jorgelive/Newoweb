@@ -1907,6 +1907,26 @@ saber:
 | `consultar_tipo_cambio` | Un dato público |
 | `escalar_al_equipo` | Un prospecto sin respuesta es un **lead**, no un callejón sin salida |
 
+#### 🔁 Y el huésped alojado entra también a `consultar_disponibilidad`
+
+Estaba excluido **a propósito**, con este argumento escrito en la skill: *«un huésped con
+reserva que pregunta "¿qué más tenéis libre?" está pidiendo que le vendan algo, y eso lo cierra
+una persona»*. La preocupación era buena; la consecuencia, no: **el huésped que quiere ampliar
+su estadía es el caso de venta más fácil que existe —ya está dentro y quiere quedarse— y era el
+único al que el agente no podía ni informar.** De las cuatro skills abiertas al prospecto, tres
+admitían ya también al huésped; la única que no era justo la de vender.
+
+Lo que motivaba la exclusión sigue en pie y no dependía de los roles: la skill es de
+`NivelRiesgo::Lectura` y **no reserva nada**. Enseña el hueco y el precio; ampliar la estancia lo
+cierra una persona, por `escalar_al_equipo` o por el operador. Cambió quién puede **preguntar**,
+no quién puede **vender**.
+
+⚠️ Esto es sólo la mitad del caso. Con el rol pero sin contexto, el agente puede consultar
+disponibilidad pero le habla al huésped como si preguntara por la estancia que ya tiene. La otra
+mitad —saber que está comprando algo NUEVO— es el **frente de venta** del rediseño de dominios;
+hasta que exista, el operador verá consultas de ampliación resueltas con voz de estancia.
+Compruébalo con `app:agent:permisos`, que lista el catálogo real por perfil.
+
 `consultar_ocupacion` se queda fuera y es el ejemplo que explica el resto: devuelve
 `PmsOcupacionDto`, que lleva `huesped`, `localizador` y `reserva_id`. Era la skill que contestaba
 «¿cuándo está libre la 6?» diciendo «sale Sarah Beament el 15/08», y esa frase no puede salir del

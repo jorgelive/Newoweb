@@ -119,19 +119,29 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface
     }
 
     /**
-     * El equipo y el PROSPECTO — no el huésped alojado.
+     * El equipo, el prospecto **y el huésped alojado**.
      *
-     * Puede sonar al revés y no lo es. Un huésped con reserva que pregunta «¿qué más tenéis
-     * libre?» está pidiendo que le vendan algo, y eso lo cierra una persona. Un prospecto es
-     * alguien que TODAVÍA no es cliente: contestarle qué hay libre y a cuánto es el trabajo,
-     * no una excepción. Y la respuesta no nombra a ningún huésped —eso es
-     * `consultar_ocupacion`, que sigue siendo sólo del equipo—.
+     * Qué hay libre y a cuánto es justo lo que un desconocido puede saber, y la respuesta no
+     * nombra a ningún huésped —eso es `consultar_ocupacion`, que sigue siendo sólo del equipo—.
+     * Si se le puede contestar a alguien que no es cliente, negárselo a quien ya está dentro no
+     * se sostiene.
+     *
+     * ── Por qué antes el huésped NO entraba, y por qué se cambió ────────────────
+     * Estaba excluido a propósito, con este argumento: «un huésped con reserva que pregunta
+     * "¿qué más tenéis libre?" está pidiendo que le vendan algo, y eso lo cierra una persona».
+     * La preocupación era buena; la consecuencia, no: **el huésped que quiere ampliar su
+     * estadía es el caso de venta más fácil que existe —ya está dentro y quiere quedarse— y era
+     * justo el único al que el agente no podía ni informar.** De las cuatro skills que admitían
+     * al prospecto, tres admitían ya también al huésped; la única que no era la de vender.
+     *
+     * Lo que motivaba aquella exclusión sigue en pie y no depende de este método: esta skill es
+     * {@see NivelRiesgo::Lectura} y **no reserva nada**. Enseña el hueco y el precio; ampliar la
+     * estancia lo sigue cerrando una persona, por `escalar_al_equipo` o por el operador. Cambia
+     * quién puede PREGUNTAR, no quién puede VENDER.
      */
     public function rolesRequeridos(): array
     {
-        // El prospecto entra aquí: qué hay libre y a qué precio es justo lo que un
-        // desconocido puede saber, y la respuesta no nombra a ningún huésped.
-        return [Roles::PROSPECTO, Roles::RESERVAS_SHOW];
+        return [Roles::PROSPECTO, Roles::HUESPED, Roles::RESERVAS_SHOW];
     }
 
     public function nivelRiesgo(): NivelRiesgo
