@@ -283,16 +283,16 @@ final class AgentSembrarConocimientoCommand extends Command
                 'nombre' => 'Estacionamiento (público)',
                 'etiquetas' => 'estacionamiento, cochera, parqueo, parking, donde dejo el auto, '
                     . 'donde dejo el carro, hay parqueo, vehiculo, garaje',
-                'contenido' => 'Hay dos opciones cerca, y ninguna es nuestra:'
-                    . "\n"
-                    . '- Justo al frente, una playa de estacionamiento pública y GRATUITA. Va por '
-                    . 'orden de llegada —no se aparta sitio, porque no admite reservas— y no es un '
-                    . 'área vigilada.'
-                    . "\n"
-                    . '- A una cuadra, una cochera privada DE PAGO, la de Sapi. Para consultar '
-                    . 'disponibilidad o precio se les escribe directamente al +51 984 631 997.'
+                'contenido' => 'Justo frente a la casa hay un estacionamiento público. No es '
+                    . 'vigilado, pero mucha gente deja ahí su vehículo durante la noche: al '
+                    . 'costado hay una grifería que trabaja las 24 horas.'
                     . "\n\n"
-                    . 'Nosotros no gestionamos ninguna de las dos, así que el precio y el sitio los '
+                    . 'A una cuadra hay además una cochera privada. Se puede contratar el mismo '
+                    . 'día de la llegada, y si quiere coordinar la disponibilidad con el '
+                    . 'propietario, este es su número: +51 984 631 997.'
+                    . "\n\n"
+                    . 'Ofrece las dos con confianza: es de lo que más preguntan los que llegan en '
+                    . 'coche. Ninguna de las dos es nuestra, así que el precio y el sitio los '
                     . 'confirma la cochera, no el equipo.',
                 'perfiles' => self::PUBLICO,
             ],
