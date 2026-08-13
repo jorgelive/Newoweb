@@ -56,7 +56,7 @@ final class FinEnlacePagoSerializer
             'origenTipo' => $enlace->getOrigenTipo()?->value,
             // Columna «Módulo» del listado: «Manual» cuando el cobro no pertenece a ninguno.
             'moduloEtiqueta' => $enlace->getModuloEtiqueta(),
-            'esManual' => $enlace->esManual(),
+            'esManual' => $enlace->getEsManual(),
             'origenId' => (string) $enlace->getOrigenId(),
             'origenReferencia' => $enlace->getOrigenReferencia(),
             'clienteNombre' => $enlace->getClienteNombre(),

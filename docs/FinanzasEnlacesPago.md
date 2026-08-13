@@ -1260,3 +1260,28 @@ se marca «Retraducir la nota al guardar». Las ocho cuentas bancarias no llevan
 | Añadir un campo que vea el huésped en su guía | `PmsGuiaHuespedProvider::mediosPago()` **y** `paxHuespedGuiaModel.ts` | Espejo, §7. El front lo ignora en silencio si falta |
 | Quién puede editar el catálogo | `FinMedioCobroCrudController` | `MAESTROS_WRITE` hoy; ver el aviso de su docblock |
 | Comprobar el CRUD sin abrir el navegador | — | `php var/probar-medios-cobro.php` — §14.4 |
+
+---
+
+## Gotcha: `#[Groups]` en métodos y Symfony 7
+
+Symfony 7 exige que todo método anotado con `#[Groups]` empiece por **`get`, `is`,
+`has`, `can` o `set`**. Un nombre en español como `esManual()` deja de ser válido y el
+error **no aparece al arrancar**: revienta al calentar la caché de `prod` o al serializar
+la entidad en runtime.
+
+```
+Groups on "App\Finanzas\Entity\FinEnlacePago::esManual()" cannot be added.
+Groups can only be added on methods beginning with "get", "is", "has", "can" or "set".
+```
+
+El método se renombró a **`getEsManual()`**, no a `isManual()`, y la elección importa: el
+serializer quita el prefijo `get`, así que la propiedad sigue publicándose como
+`esManual` — la clave que ya consumen `util/src/types/finEnlacePagoModel.ts` y
+`FinanzasView.vue`. Con `isManual()` se habría serializado como `manual` y habría roto el
+frontend sin ningún error en PHP.
+
+**Al añadir un getter con `#[Groups]`:** si el nombre natural en español no empieza por
+uno de esos prefijos, antepón `get` en vez de traducirlo. Y verifica siempre con
+`php bin/console cache:warmup --env=prod`: `lint:container` **no** detecta esto, porque
+los metadatos del serializer no se cargan al lintar el contenedor.

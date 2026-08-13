@@ -255,7 +255,7 @@ final class FinEnlacePagoService
         // registrado sólo en Finanzas. No es un caso degradado, es el caso normal de una
         // venta suelta — por eso no se avisa ni se registra como incidencia.
         $enlace->setMovimientoGeneradoId(
-            $enlace->esManual() ? null : $this->registry->registrarCobro($enlace)
+            $enlace->getEsManual() ? null : $this->registry->registrarCobro($enlace)
         );
 
         $this->em->flush();

@@ -288,8 +288,13 @@ class FinEnlacePago
      * Un manual etiquetado como PMS sigue siendo manual: nadie le va a imputar el dinero
      * a ninguna reserva, porque no hay reserva a la que imputarlo.
      */
+    // Symfony 7 exige que un metodo con #[Groups] empiece por get/is/has/can/set.
+    // Se usa `getEsManual` y no `isManual` a proposito: el serializer quita el
+    // prefijo `get` y la propiedad sigue llamandose `esManual`, que es la clave
+    // que ya consume util/src/types/finEnlacePagoModel.ts. Con `isManual` pasaria
+    // a serializarse como `manual` y romperia el frontend.
     #[Groups(['fin_enlace:read'])]
-    public function esManual(): bool
+    public function getEsManual(): bool
     {
         return $this->origenId === null;
     }
