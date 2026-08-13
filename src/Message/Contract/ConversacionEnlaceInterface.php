@@ -68,13 +68,39 @@ interface ConversacionEnlaceInterface
     /**
      * Las fechas con las que se programan los envíos: llegada, salida, creación…
      *
-     * ⚠️ **Aquí está el corazón de la cirugía.** Hoy `MessageRuleEngine::…` las lee de
-     * `MessageConversation::getContextMilestones()`, y por eso cada activo necesita su propia
-     * conversación. Cuando las lea de aquí, una sola conversación podrá tener N agendas.
+     * ⚠️ **Aquí está el corazón de la cirugía.** `MessageRuleEngine` las leía de
+     * `MessageConversation::getContextMilestones()`, y por eso cada activo necesitaba su propia
+     * conversación. Desde que las lee de aquí ({@see \App\Message\Service\Queue\AgendaDeAsunto}),
+     * una sola conversación puede tener N agendas.
      *
      * @return array<string, string> Claves de {@see ConversationMilestoneInterface}.
      */
     public function getMilestones(): array;
+
+    /**
+     * `directo`, `airbnb`, `booking`… De qué canal vino ESTE asunto.
+     *
+     * Es entrada directa de `MessageRule::matchesSegmentation()`: la regla «sólo a reservas
+     * directas» tiene que poder decidir por asunto, porque el mismo titular puede tener una
+     * reserva directa y otra de Airbnb colgando del mismo hilo.
+     */
+    public function getOrigen(): ?string;
+
+    /** Agencia mayorista dueña del asunto. La otra mitad de la segmentación. */
+    public function getAgencia(): ?string;
+
+    /**
+     * Cuándo se persistió el enlace. `null` significa «nació en esta misma unidad de trabajo
+     * y todavía no se flusheó».
+     *
+     * Ese `null` es una señal que el motor de reglas usa a propósito: un asunto recién colgado
+     * de una conversación VIEJA es el equivalente a la reserva de última hora —hoy eso llega
+     * como `INSERT` porque cada reserva estrena conversación, pero con hilos fusionados llegará
+     * como `UPDATE` y sin esta señal perdería el rescate y el mensaje de bienvenida—. Un enlace
+     * ya flusheado (poblado masivo incluido) nunca la activa: por eso es «null», y no «creado
+     * hace poco», lo que define asunto nuevo.
+     */
+    public function getCreatedAt(): ?\DateTimeImmutable;
 
     /**
      * Cómo se le nombra a quien escribe: «Tu reserva Casita 3, 12/03–15/03».

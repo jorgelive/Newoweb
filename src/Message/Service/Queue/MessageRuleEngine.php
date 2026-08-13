@@ -16,6 +16,7 @@ use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Psr\Log\LoggerInterface;
+use Throwable;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 /**
@@ -74,7 +75,14 @@ final readonly class MessageRuleEngine
     ) {}
 
     /**
-     * Evalúa todas las reglas del contexto contra una conversación y orquesta su ciclo de vida.
+     * Evalúa todas las reglas contra las AGENDAS de una conversación y orquesta su ciclo de vida.
+     *
+     * Una agenda por ASUNTO ({@see AgendaDeAsunto}): si la conversación tiene enlaces
+     * persistidos, cada enlace aporta la suya —un titular con N reservas en el mismo hilo tiene
+     * N agendas de envíos, no una—. Sin enlaces, la única agenda sale de
+     * `contextType`/`contextId`/`contextData` de la conversación y el motor se comporta
+     * EXACTAMENTE como antes de la cirugía de §20: la retirada de esas columnas es un paso
+     * posterior y no exige ventana de mantenimiento.
      *
      * @param MessageConversation $conversation La conversación objetivo.
      * @param string $trigger El origen de la ejecución.
@@ -99,26 +107,97 @@ final readonly class MessageRuleEngine
         // 1. Curación Automática: sanar mensajes zombie y caducar vencidos antes de evaluar reglas.
         $this->healZombieMessages($conversation, $now->modify(self::EXPIRY_WINDOW));
 
-        // Se traen TODAS las reglas del contexto, activas o no. Filtrar por `isActive` en la
-        // consulta hacía que una regla apagada desapareciera del bucle y sus mensajes ya
-        // programados se enviaran igual: la desactivación tiene que poder CANCELAR.
-        $rules = $this->em->getRepository(MessageRule::class)->findBy([
-            'contextType' => $conversation->getContextType()
-        ]);
+        [$agendas, $panoramaCompleto] = $this->agendasDe($conversation);
 
-        // El rescate de mensajes vencidos sólo tiene sentido cuando la conversación acaba de
+        // 2. Un mensaje pendiente cuyo asunto ya no cuelga de la conversación no lo va a
+        // reprogramar ni cancelar ningún bucle de reglas: su agenda no existe. Sin esta barrida
+        // se quedaría con su fecha vieja y saldría igual — el fallo silencioso que no perdona.
+        //
+        // SÓLO con el panorama completo: si algún enlace no resolvió esta pasada, no se puede
+        // distinguir «asunto retirado» de «asunto que hoy no cargó», y cancelar sobre una foto
+        // rota apagaría mensajes legítimos de los asuntos sanos.
+        if ($panoramaCompleto) {
+            $this->cancelarPendientesDeAsuntosRetirados($conversation, $agendas);
+        }
+
+        $esReparacionManual = $trigger === self::TRIGGER_COMMAND && $force;
+
+        // Cache por tipo: con varios asuntos del mismo módulo la consulta de reglas es la
+        // misma y no hay por qué repetirla.
+        $reglasPorTipo = [];
+
+        foreach ($agendas as $agenda) {
+            // Se traen TODAS las reglas del contexto, activas o no. Filtrar por `isActive` en la
+            // consulta hacía que una regla apagada desapareciera del bucle y sus mensajes ya
+            // programados se enviaran igual: la desactivación tiene que poder CANCELAR.
+            $rules = $reglasPorTipo[$agenda->contextType]
+                ??= $this->em->getRepository(MessageRule::class)->findBy([
+                    'contextType' => $agenda->contextType
+                ]);
+
+            // AISLAMIENTO POR ASUNTO. Antes de la cirugía, un asunto que reventaba se fallaba
+            // sólo a sí mismo, porque era su propia conversación. Con N agendas en el mismo
+            // hilo, dejar subir la excepción significa que un asunto podrido deja a los demás
+            // sin sus recordatorios — regla del dueño: «cuando regenere, el engine que no se
+            // muera». Se registra y se sigue.
+            try {
+                $this->evaluarReglasDeAgenda(
+                    $conversation,
+                    $agenda,
+                    $rules,
+                    $trigger,
+                    $force,
+                    $esReparacionManual,
+                    $now,
+                    $pastThreshold,
+                    $rescueFloor
+                );
+            } catch (Throwable $e) {
+                $this->logger->error(sprintf(
+                    'El asunto %s de la conversación %s reventó al evaluarse: %s. Se sigue con los demás.',
+                    $agenda->llave(),
+                    $conversation->getId(),
+                    $e->getMessage()
+                ));
+            }
+        }
+
+        $this->em->flush();
+    }
+
+    /**
+     * El ciclo de vida de los mensajes de UNA agenda: calcular, cancelar, sincronizar o crear.
+     * Es el cuerpo que antes vivía inline en syncConversationRules(); se extrajo para poder
+     * aislar sus fallos por asunto sin un try/catch de doscientas líneas.
+     *
+     * @param list<MessageRule> $rules
+     */
+    private function evaluarReglasDeAgenda(
+        MessageConversation $conversation,
+        AgendaDeAsunto $agenda,
+        array $rules,
+        string $trigger,
+        bool $force,
+        bool $esReparacionManual,
+        DateTimeImmutable $now,
+        DateTimeImmutable $pastThreshold,
+        DateTimeImmutable $rescueFloor
+    ): void {
+        // El rescate de mensajes vencidos sólo tiene sentido cuando el ASUNTO acaba de
         // nacer (reserva de última hora) o cuando un humano pide explícitamente reparar.
+        // Con una conversación por reserva la novedad la decía el trigger INSERT; con hilos
+        // compartidos un asunto nuevo llega como UPDATE, y lo delata `esNueva` (el enlace
+        // aún sin flushear). Ver AgendaDeAsunto::deEnlace().
         //
         // Deliberadamente NO basta con `force`: el recálculo del PMS lo pasa siempre, y el
         // barrido nocturno de app:message:rebuild-context recorre con él todas las reservas.
-        $esReparacionManual = $trigger === self::TRIGGER_COMMAND && $force;
-        $canRescue = $trigger === self::TRIGGER_INSERT || $esReparacionManual;
+        $canRescue = $trigger === self::TRIGGER_INSERT || $esReparacionManual || $agenda->esNueva;
 
         foreach ($rules as $rule) {
-            $runAt   = $this->calculateRunAt($rule, $conversation);
-            $applies = $this->ruleAppliesToConversation($rule, $conversation, $now);
+            $runAt   = $this->calculateRunAt($rule, $agenda);
+            $applies = $this->ruleAppliesToAgenda($rule, $conversation, $agenda, $now);
 
-            $existingMessage = $this->findExistingSystemMessage($conversation, $rule, $esReparacionManual);
+            $existingMessage = $this->findExistingSystemMessage($conversation, $agenda, $rule, $esReparacionManual);
 
             if (!$applies || $runAt === null) {
                 if ($existingMessage !== null) {
@@ -135,13 +214,17 @@ final readonly class MessageRuleEngine
             // =========================================================
             // 🛡️ Prevención de Spam Histórico
             // =========================================================
-            // Evita que un simple UPDATE en una reserva vieja dispare correos de Bienvenida de
-            // forma retroactiva. Se exige INSERT (o `force`) en vez de excluir sólo UPDATE:
-            // con la lista blanca, un trigger nuevo como COMMAND queda protegido por defecto.
+            // Evita que un simple UPDATE en una reserva vieja dispare correos de Bienvenida
+            // de forma retroactiva. Se exige INSERT, `force` o asunto recién nacido, en vez
+            // de excluir sólo UPDATE: con la lista blanca, un trigger nuevo como COMMAND
+            // queda protegido por defecto. `esNueva` entra por la misma razón que en el
+            // rescate: la bienvenida de una reserva que se cuelga de un hilo ya existente
+            // llega como UPDATE y sin ella jamás saldría.
             if (
                 $rule->getMilestone() === ConversationMilestoneInterface::CREATED
                 && $trigger !== self::TRIGGER_INSERT
                 && !$force
+                && !$agenda->esNueva
             ) {
                 $this->logger->info(sprintf(
                     "Omisión preventiva: Regla CREATED ('%s') ignorada en trigger '%s' para %s",
@@ -154,13 +237,13 @@ final readonly class MessageRuleEngine
 
             if ($runAt > $pastThreshold) {
                 // Flujo regular: El mensaje está en el futuro o acaba de cumplirse
-                $this->createNewScheduledMessage($conversation, $rule, $runAt);
+                $this->createNewScheduledMessage($conversation, $agenda, $rule, $runAt);
                 continue;
             }
 
             // Flujo de Rescate (Last-Minute Booking), con suelo de antigüedad
             if ($canRescue && $runAt > $rescueFloor) {
-                $this->createNewScheduledMessage($conversation, $rule, $now);
+                $this->createNewScheduledMessage($conversation, $agenda, $rule, $now);
                 continue;
             }
 
@@ -174,17 +257,128 @@ final readonly class MessageRuleEngine
                 ));
             }
         }
+    }
 
-        $this->em->flush();
+    /**
+     * Las agendas de envío de la conversación, una por asunto, más la señal de si el panorama
+     * quedó COMPLETO (ningún enlace se saltó).
+     *
+     * Con enlaces persistidos, cada uno es una agenda y las columnas viejas de la conversación
+     * DEJAN de leerse aquí — pero no se borran: son la red de seguridad para volver atrás y la
+     * fuente de la adopción de mensajes legados (ver messageBelongsToAsunto()).
+     *
+     * Sin enlaces, la agenda única sale de la conversación misma: comportamiento idéntico al
+     * anterior, byte a byte. Es lo que permite desplegar esto con las tablas de enlaces vacías.
+     *
+     * ── Los asuntos basura se saltan, no tumban a los demás ─────────────────
+     * La base trae de dónde: hay conversaciones apuntando a reservas BORRADAS (`context_id` es
+     * texto sin integridad referencial) y filas duplicadas de un bug de guardado. Un enlace que
+     * no resuelve a nada —sin id, o cuyo proxy revienta al cargar— se registra y se salta, y
+     * las agendas de los demás asuntos siguen su vida. Antes de esta cirugía un asunto malo
+     * sólo se fallaba a sí mismo (era su propia conversación); con N por hilo, dejarlo
+     * propagarse callaría a los sanos.
+     *
+     * @return array{list<AgendaDeAsunto>, bool} [agendas, panorama completo]
+     */
+    private function agendasDe(MessageConversation $conversation): array
+    {
+        $enlaces = $conversation->getEnlaces();
+
+        if ($enlaces === []) {
+            return [[AgendaDeAsunto::deConversacion($conversation)], true];
+        }
+
+        $agendas = [];
+        $completo = true;
+
+        foreach ($enlaces as $enlace) {
+            try {
+                $agenda = AgendaDeAsunto::deEnlace($enlace);
+            } catch (Throwable $e) {
+                // Típicamente un proxy de Doctrine que no encuentra su fila. El asunto queda
+                // sin evaluar esta pasada; los demás no tienen la culpa.
+                $this->logger->error(sprintf(
+                    'Asunto irresoluble en la conversación %s: %s. Se salta y se sigue con el resto.',
+                    $conversation->getId(),
+                    $e->getMessage()
+                ));
+                $completo = false;
+                continue;
+            }
+
+            if ($agenda->contextId === '') {
+                $this->logger->warning(sprintf(
+                    'Asunto sin identidad en la conversación %s (tipo %s): enlace sin activo detrás. Se salta.',
+                    $conversation->getId(),
+                    $agenda->contextType
+                ));
+                $completo = false;
+                continue;
+            }
+
+            $agendas[] = $agenda;
+        }
+
+        return [$agendas, $completo];
+    }
+
+    /**
+     * Cancela los pendientes del sistema cuyo asunto ya no existe en la conversación.
+     *
+     * ¿Cuándo pasa?: al fusionar hilos (§20 paso 4) los mensajes viajan con su asunto estampado,
+     * y si el enlace de un asunto se retira —reserva desvinculada, repoblado que corrige un
+     * enlace mal puesto— sus mensajes quedan huérfanos: ninguna agenda los evalúa, así que nadie
+     * les movería la fecha ni los cancelaría al cancelarse la reserva. Enviar con datos que ya
+     * nadie mantiene es peor que no enviar: se cancelan y queda el rastro en el log.
+     *
+     * En una conversación sin enlaces es inocua por construcción: la única agenda ES el par de
+     * la conversación, y los mensajes sin estampar pertenecen a ese par por definición.
+     *
+     * @param list<AgendaDeAsunto> $agendas
+     */
+    private function cancelarPendientesDeAsuntosRetirados(MessageConversation $conversation, array $agendas): void
+    {
+        $vigentes = [];
+        foreach ($agendas as $agenda) {
+            $vigentes[$agenda->llave()] = true;
+        }
+
+        foreach ($conversation->getMessages() as $msg) {
+            if ($msg->getSenderType() !== Message::SENDER_SYSTEM) {
+                continue;
+            }
+
+            if (!in_array($msg->getStatus(), [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
+                continue;
+            }
+
+            // Un mensaje sin estampar es de la era anterior: su asunto es el propio de la
+            // conversación. El mismo criterio que messageBelongsToAsunto(), en la otra dirección.
+            $llave = ($msg->getAsuntoType() ?? $conversation->getContextType())
+                . '|' . ($msg->getAsuntoId() ?? $conversation->getContextId());
+
+            if (isset($vigentes[$llave])) {
+                continue;
+            }
+
+            $this->cancelPendingQueues($msg);
+            $this->logger->info(sprintf(
+                'Asunto retirado: mensaje %s cancelado porque su asunto (%s) ya no cuelga de la conversación %s.',
+                $msg->getId(),
+                $llave,
+                $conversation->getId()
+            ));
+        }
     }
 
     /**
      * Valida si el estado, el contexto, la segmentación y los hitos cronológicos
-     * de la conversación permiten la ejecución de la regla.
+     * de la agenda permiten la ejecución de la regla.
      */
-    private function ruleAppliesToConversation(
+    private function ruleAppliesToAgenda(
         MessageRule $rule,
         MessageConversation $conversation,
+        AgendaDeAsunto $agenda,
         DateTimeImmutable $now
     ): bool {
         // Una regla apagada nunca aplica, pero SÍ entra al bucle para poder cancelar lo suyo.
@@ -192,37 +386,65 @@ final readonly class MessageRuleEngine
             return false;
         }
 
-        if ($rule->getContextType() !== $conversation->getContextType()) {
+        if ($rule->getContextType() !== $agenda->contextType) {
             return false;
         }
 
         $milestone = $rule->getMilestone();
         $status    = $conversation->getStatus();
 
-        // BARRERA DE ESTADO.
-        // Archivado = muerto para todo. Cerrado = muerto para todo SALVO las reglas de
-        // cancelación: el factory cierra la conversación en el mismo movimiento en que marca la
-        // reserva como cancelada, así que exigir "abierta" dejaba el hito CANCELLED inalcanzable.
+        // BARRERA DE ESTADO. Archivado = muerto para todo, venga la agenda de donde venga.
         if ($status === MessageConversation::STATUS_ARCHIVED) {
             return false;
         }
 
-        if ($milestone === ConversationMilestoneInterface::CANCELLED) {
-            // Cierre manual de un operador ≠ cancelación de la reserva. Lo que distingue un caso
-            // del otro es la presencia del hito `cancelled_at`, que calculateRunAt() ya exige.
-            if ($status !== MessageConversation::STATUS_CLOSED) {
+        if ($agenda->esLegado) {
+            // Era anterior: la cancelación de la reserva y el cierre del hilo son EL MISMO
+            // hecho (el factory cierra la conversación al detectar la reserva cancelada), así
+            // que exigir "abierta" dejaba el hito CANCELLED inalcanzable.
+            if ($milestone === ConversationMilestoneInterface::CANCELLED) {
+                // Cierre manual de un operador ≠ cancelación de la reserva. Lo que distingue un
+                // caso del otro es la presencia del hito `cancelled_at`, que calculateRunAt() ya exige.
+                if ($status !== MessageConversation::STATUS_CLOSED) {
+                    return false;
+                }
+            } elseif ($status === MessageConversation::STATUS_CLOSED) {
                 return false;
             }
-        } elseif ($status === MessageConversation::STATUS_CLOSED) {
+        } else {
+            // Con asuntos persistidos la muerte es DEL ASUNTO y viaja en él (hito `cancelled_at`
+            // o vínculo Terminado), no en el estado del hilo: cancelar una reserva del titular
+            // no puede exigir que el hilo de la persona esté cerrado, porque eso mataría las
+            // agendas de sus otras reservas vivas.
+            //
+            // ⚠️ Y es CATEGÓRICO por decisión del dueño del producto («cuando regenere, el
+            // engine que no se muera»): un asunto muerto no encola NI UN mensaje — ni siquiera
+            // el aviso de cancelación, que en modo legado sí existe (rama de arriba). El motivo
+            // es la basura medida en producción: reservas canceladas duplicadas por un bug de
+            // guardado. Un repoblado o un rebuild sobre ellas habría significado un envío real
+            // POR CADA duplicado. Consecuencia asumida y documentada en §20: el aviso de
+            // cancelación por asunto queda mudo hasta que producto decida recuperarlo con una
+            // guarda mejor (p. ej. sólo el primer asunto muerto del par persona+fechas).
+            if ($agenda->estaMuerta()) {
+                return false;
+            }
+
+            // Sin asunto muerto no hay cancelación que avisar; y el cierre manual del hilo
+            // sigue siendo el silencio de TODA la persona, como hoy.
+            if ($milestone === ConversationMilestoneInterface::CANCELLED
+                || $status === MessageConversation::STATUS_CLOSED) {
+                return false;
+            }
+        }
+
+        // Segmentación: fuente única en la entidad (incluye allowedAgencies, que el motor
+        // ignoraba). El origen y la agencia son del ASUNTO: la regla «sólo directas» decide
+        // reserva a reserva aunque compartan hilo.
+        if (!$rule->matchesSegmentation($agenda->origen, $agenda->agencia)) {
             return false;
         }
 
-        // Segmentación: fuente única en la entidad (incluye allowedAgencies, que el motor ignoraba).
-        if (!$rule->matchesSegmentation($conversation->getContextOrigin(), $conversation->getContextAgency())) {
-            return false;
-        }
-
-        $milestones = $conversation->getContextMilestones();
+        $milestones = $agenda->milestones;
         $today = $now->setTime(0, 0, 0);
 
         // Hitos con fecha propia que, una vez pasados, invalidan la regla.
@@ -252,10 +474,9 @@ final readonly class MessageRuleEngine
     /**
      * Proyecta la fecha matemática exacta de envío aplicando el offset de la regla al hito.
      */
-    private function calculateRunAt(MessageRule $rule, MessageConversation $conversation): ?DateTimeImmutable
+    private function calculateRunAt(MessageRule $rule, AgendaDeAsunto $agenda): ?DateTimeImmutable
     {
-        $milestones = $conversation->getContextMilestones();
-        $baseDateString = $milestones[$rule->getMilestone()] ?? null;
+        $baseDateString = $agenda->milestones[$rule->getMilestone()] ?? null;
 
         if (!$baseDateString) {
             return null;
@@ -328,16 +549,21 @@ final readonly class MessageRuleEngine
     }
 
     /**
-     * Localiza el último intento de un mensaje generado por el sistema para una regla.
+     * Localiza el último intento de un mensaje generado por el sistema para una regla y un asunto.
      * Ignora los intentos muertos (cancelados) para forzar la creación de uno nuevo.
      *
      * ¿Por qué existe?: Facilita la reactivación de reservas. Si una reserva fue cancelada
      * (y su mensaje murió) pero luego se reactiva, este método asegura que el motor genere
      * una nueva entidad limpia.
      *
-     * La identidad es la REGLA, no la plantilla: dos reglas pueden compartir plantilla y antes
-     * se reconocían como el mismo mensaje, pisándose la fecha de envío. Los mensajes anteriores
-     * a la columna `rule_id` se emparejan por plantilla como antes (legado).
+     * La identidad es (REGLA, ASUNTO), y las dos mitades importan:
+     *
+     * - La regla y no la plantilla: dos reglas pueden compartir plantilla y antes se reconocían
+     *   como el mismo mensaje, pisándose la fecha de envío. Los mensajes anteriores a la
+     *   columna `rule_id` se emparejan por plantilla como antes (legado).
+     * - El asunto, porque con varios colgando del mismo hilo la MISMA regla programa N mensajes
+     *   legítimos: sin esta mitad, al evaluar la reserva B el motor encontraba el recordatorio
+     *   de la A y le pisaba la fecha — de N recordatorios sobrevivía uno.
      *
      * @param bool $allowFailedRetry Permite regenerar un mensaje FAILED que ya agotó reintentos.
      *                               Por defecto NO: un FAILED puede seguir en ciclo de reintentos
@@ -346,6 +572,7 @@ final readonly class MessageRuleEngine
      */
     private function findExistingSystemMessage(
         MessageConversation $conversation,
+        AgendaDeAsunto $agenda,
         MessageRule $rule,
         bool $allowFailedRetry = false
     ): ?Message {
@@ -362,6 +589,18 @@ final readonly class MessageRuleEngine
 
             if (!$this->messageBelongsToRule($msg, $ruleId, $templateId)) {
                 continue;
+            }
+
+            if (!$this->messageBelongsToAsunto($msg, $agenda, $conversation)) {
+                continue;
+            }
+
+            // ADOPCIÓN: la primera vez que el motor por-asunto toca un mensaje de la era
+            // anterior, lo estampa. Sin esto, cada pasada repetiría el emparejamiento por
+            // deducción, y el día que las columnas de contexto de la conversación se retiren
+            // (§20 paso 5) la deducción se quedaría sin base.
+            if ($msg->getAsuntoType() === null) {
+                $msg->setAsunto($agenda->contextType, $agenda->contextId);
             }
 
             // 🔥 LA MAGIA DE LA INMUTABILIDAD:
@@ -402,6 +641,30 @@ final readonly class MessageRuleEngine
         }
 
         return (string) $msg->getTemplate()->getId() === $templateId;
+    }
+
+    /**
+     * Empareja un mensaje con un asunto. Prefiere el estampado explícito
+     * ({@see Message::getAsuntoType()}) y sólo deduce para los mensajes creados antes de que
+     * existieran las columnas: un mensaje sin estampar sólo pudo programarlo el asunto propio
+     * de la conversación, porque en esa era la conversación ERA el asunto.
+     *
+     * La deducción es también lo que hace la transición sin ventana: al estrenar un enlace cuyo
+     * par coincide con el de la conversación, los mensajes ya encolados se reconocen como suyos
+     * (y se adoptan) en vez de duplicarse — duplicar aquí es enviar dos veces al huésped.
+     */
+    private function messageBelongsToAsunto(
+        Message $msg,
+        AgendaDeAsunto $agenda,
+        MessageConversation $conversation
+    ): bool {
+        if ($msg->getAsuntoType() !== null) {
+            return $msg->getAsuntoType() === $agenda->contextType
+                && $msg->getAsuntoId() === $agenda->contextId;
+        }
+
+        return $agenda->contextType === $conversation->getContextType()
+            && $agenda->contextId === $conversation->getContextId();
     }
 
     /**
@@ -525,12 +788,23 @@ final readonly class MessageRuleEngine
         }
     }
 
-    private function createNewScheduledMessage(MessageConversation $conversation, MessageRule $rule, DateTimeImmutable $runAt): void
-    {
+    private function createNewScheduledMessage(
+        MessageConversation $conversation,
+        AgendaDeAsunto $agenda,
+        MessageRule $rule,
+        DateTimeImmutable $runAt
+    ): void {
         $message = new Message();
         $message->setConversation($conversation);
         $message->setTemplate($rule->getTemplate());
         $message->setRule($rule);
+
+        // Se estampa SIEMPRE, también en modo legado (donde el asunto es el par de la propia
+        // conversación): dejar el estampado sólo para los enlaces habría creado una tercera
+        // generación de mensajes —ni viejos ni completos— que la fusión de hilos (§20 paso 4)
+        // tendría que volver a deducir.
+        $message->setAsunto($agenda->contextType, $agenda->contextId);
+
         $message->setDirection(Message::DIRECTION_OUTGOING);
         $message->setSenderType(Message::SENDER_SYSTEM);
         $message->setStatus(Message::STATUS_QUEUED);
