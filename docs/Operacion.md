@@ -293,7 +293,7 @@ proveedor.
 
 #### Lo que la reconciliación NUNCA toca
 
-`estadoReserva`, `estadoOperacion`, `costoRealOperativo`, `montoVenta`, `monedaReal` y
+`estadoReservaProveedor`, `estadoOperacion`, `costoRealOperativo`, `montoVenta`, `monedaReal` y
 `ordenServicio`. No salen de la cotización: son del operador. Esa lista corta es media
 razón de ser del módulo.
 
@@ -388,9 +388,32 @@ después no llega nunca a Operaciones. Para eso está §3.4.
 
 | Enum | Campo | Responde a |
 |---|---|---|
-| `EstadoReservaEnum` | `OperacionServicio::$estadoReserva` | ¿El proveedor ya me confirmó? `sin-solicitar` → `solicitado` → `confirmado` → `reconfirmado`, más `pendiente-pago`. |
+| `EstadoReservaProveedorEnum` | `OperacionServicio::$estadoReservaProveedor` | ¿El proveedor ya me confirmó? `sin-solicitar` → `solicitado` → `confirmado` → `reconfirmado`, más `pendiente-pago`. |
 | `EstadoOperacionEnum` | `OperacionServicio::$estadoOperacion` | ¿El servicio ya ocurrió? `pendiente` → `en-proceso` → `completado` / `cancelado`. |
 | `EstadoOrdenServicioEnum` | `OperacionOrdenServicio::$estadoOs` | ¿En qué punto está el papeleo? `borrador` → `emitida` → `confirmada` → `completada` / `cancelada`. |
+
+### 4.1 «Reserva» aquí es al PROVEEDOR — y por eso el campo se renombró
+
+El primero se llamaba `EstadoReservaProveedorEnum` sobre un campo `estadoReservaProveedor`, y era una trampa
+tendida: en este sistema **«reserva» significa `PmsReserva`**, la del huésped. Esta otra es la
+que le hago YO al proveedor cuando le compro el servicio. Quien leyera `estadoReservaProveedor =
+confirmado` en una fila de La Biblia tenía todo el derecho a entender lo contrario de lo que
+dice. Renombrado a `estadoReservaProveedor` en `Version20260812280000`; los valores no
+cambiaron.
+
+⚠️ **Al pasajero se le contesta con éste, nunca con el de la orden.** El agente conversacional
+va a leer estos estados cuando alguien pregunte «¿ya está confirmado mi tour?»:
+
+| Pregunta del pasajero | Estado que la responde |
+|---|---|
+| ¿Tengo la plaza? ¿Está confirmado? | `estadoReservaProveedor` |
+| ¿Ya lo hice / ya pasó? | `estadoOperacion` |
+| — (nada: es papeleo interno) | `estadoOs` de la orden |
+
+Contestar «sí, confirmado» leyendo `estadoOs` no da ningún error: da una respuesta
+tranquilizadora y falsa sobre una plaza que quizá el proveedor no ha confirmado. Y `totalOs` es
+el **coste al proveedor**: no viaja jamás a un DTO de cliente — se recorta en la capa de datos,
+por perfil, no confiando en que el prompt lo prohíba.
 
 Son ortogonales a propósito: un servicio puede estar `confirmado` con el proveedor y aún
 `pendiente` de ejecutarse.
@@ -428,7 +451,7 @@ pisarlo borraría el registro de lo que de verdad ocurrió, que es justo lo que 
 
 | PHP | TypeScript | Regla |
 |---|---|---|
-| `EstadoReservaEnum` | `ESTADO_RESERVA_CONFIG` | añadir un case obliga a añadir la entrada |
+| `EstadoReservaProveedorEnum` | `ESTADO_RESERVA_PROVEEDOR_CONFIG` | añadir un case obliga a añadir la entrada |
 | `EstadoOperacionEnum` | `ESTADO_OPERACION_CONFIG` | ídem |
 | `EstadoOrdenServicioEnum` | `ESTADO_OS_CONFIG` | ídem |
 | `ComponenteTipoEnum` | `TIPO_COMPONENTE_CONFIG` | ídem; la **prioridad NO se replica** |
@@ -554,7 +577,7 @@ colección llega en orden arbitrario de la BD y el cuadro de tráfico es ilegibl
 | Filtro | Parámetro |
 |---|---|
 | `DateFilter` sobre `fechaServicio` | `fechaServicio[after]`, `[before]` (inclusivos), `[strictly_after]`, `[strictly_before]` |
-| `SearchFilter` exact | `file`, `cotizacionServicio.cotizacion`, `ordenServicio`, `estadoReserva`, `estadoOperacion`, `proveedorMaestroId`, `tipoComponente`, `modoComponente`, `estadoComponente` |
+| `SearchFilter` exact | `file`, `cotizacionServicio.cotizacion`, `ordenServicio`, `estadoReservaProveedor`, `estadoOperacion`, `proveedorMaestroId`, `tipoComponente`, `modoComponente`, `estadoComponente` |
 | `OrderFilter` | `order[fechaServicio]`, `order[horaRecojoReal]`, `order[tipoComponente]`, `order[descripcionServicio]` |
 
 `fechaServicio` usa `DateFilter` y no `SearchFilter`: `exact` sólo permite un día suelto y el

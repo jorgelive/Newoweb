@@ -70,7 +70,7 @@ export type OperacionMensajeWrite = Omit<
 // ============================================================================
 
 export type EstadoOsValue       = OperacionOrdenServicio['estadoOs'];
-export type EstadoReservaValue  = OperacionServicio['estadoReserva'];
+export type EstadoReservaProveedorValue  = OperacionServicio['estadoReservaProveedor'];
 export type EstadoOperacionValue = OperacionServicio['estadoOperacion'];
 
 // ============================================================================
@@ -85,7 +85,7 @@ export const ESTADO_OS_CONFIG: Record<EstadoOsValue, EstadoUIConfig> = {
     cancelada:  { label: 'Cancelada',  bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    icon: 'fa-times-circle' },
 };
 
-export const ESTADO_RESERVA_CONFIG: Record<EstadoReservaValue, EstadoUIConfig> = {
+export const ESTADO_RESERVA_PROVEEDOR_CONFIG: Record<EstadoReservaProveedorValue, EstadoUIConfig> = {
     'sin-solicitar':  { label: 'Sin Solicitar',  bg: 'bg-slate-100',  text: 'text-slate-500',   border: 'border-slate-200',   icon: 'fa-circle-minus' },
     'solicitado':     { label: 'Solicitado',     bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   icon: 'fa-paper-plane' },
     'confirmado':     { label: 'Confirmado',     bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
@@ -159,7 +159,7 @@ export const MODO_COMPONENTE_CONFIG: Record<string, EstadoUIConfig> = {
 
 /**
  * Espejo de `ComponenteEstadoEnum` — cómo estaba el componente EN LA COTIZACIÓN al
- * confirmarla. Nada que ver con `ESTADO_RESERVA_CONFIG`, que es lo que el proveedor
+ * confirmarla. Nada que ver con `ESTADO_RESERVA_PROVEEDOR_CONFIG`, que es lo que el proveedor
  * ha confirmado y sí se edita aquí. Ver docs/Cotizaciones.md §3.b.
  */
 export const ESTADO_COMPONENTE_CONFIG: Record<string, EstadoUIConfig> = {
@@ -192,7 +192,7 @@ export interface FiltrosBiblia {
     /** UUID de la cotización. */
     cotizacionId?: string;
     tipos?: string[];
-    estadoReserva?: string;
+    estadoReservaProveedor?: string;
     estadoOperacion?: string;
 }
 
@@ -205,7 +205,7 @@ export const construirParamsBiblia = (f: FiltrosBiblia): Record<string, string |
 
     if (f.fileId) params['file'] = f.fileId;
     if (f.cotizacionId) params['cotizacionServicio.cotizacion'] = f.cotizacionId;
-    if (f.estadoReserva) params['estadoReserva'] = f.estadoReserva;
+    if (f.estadoReservaProveedor) params['estadoReservaProveedor'] = f.estadoReservaProveedor;
     if (f.estadoOperacion) params['estadoOperacion'] = f.estadoOperacion;
 
     // SearchFilter admite multivalor con la forma prop[]=a&prop[]=b
@@ -275,8 +275,8 @@ export interface AplicarPlanPayload {
 export const getEstadoOsConfig = (v?: string | null): EstadoUIConfig =>
     ESTADO_OS_CONFIG[(v as EstadoOsValue) || 'borrador'] ?? ESTADO_OS_CONFIG.borrador;
 
-export const getEstadoReservaConfig = (v?: string | null): EstadoUIConfig =>
-    ESTADO_RESERVA_CONFIG[(v as EstadoReservaValue) || 'sin-solicitar'] ?? ESTADO_RESERVA_CONFIG['sin-solicitar'];
+export const getEstadoReservaProveedorConfig = (v?: string | null): EstadoUIConfig =>
+    ESTADO_RESERVA_PROVEEDOR_CONFIG[(v as EstadoReservaProveedorValue) || 'sin-solicitar'] ?? ESTADO_RESERVA_PROVEEDOR_CONFIG['sin-solicitar'];
 
 export const getEstadoOperacionConfig = (v?: string | null): EstadoUIConfig =>
     ESTADO_OPERACION_CONFIG[(v as EstadoOperacionValue) || 'pendiente'] ?? ESTADO_OPERACION_CONFIG.pendiente;

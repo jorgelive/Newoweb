@@ -18,12 +18,12 @@ import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
     getEstadoOsConfig,
-    getEstadoReservaConfig,
+    getEstadoReservaProveedorConfig,
     getEstadoOperacionConfig,
     getTipoComponenteConfig,
     getModoComponenteConfig,
     getEstadoComponenteConfig,
-    ESTADO_RESERVA_CONFIG,
+    ESTADO_RESERVA_PROVEEDOR_CONFIG,
     ESTADO_OPERACION_CONFIG,
     TIPOS_COMPONENTE,
     type FiltrosBiblia,
@@ -61,7 +61,7 @@ const sumarDias = (iso: string, dias: number): string => {
 const desde = ref<string>(`${hoyIso()}T00:00`);
 const hasta = ref<string>(`${sumarDias(hoyIso(), 6)}T00:00`);
 const tiposSeleccionados = ref<string[]>([]);
-const filtroEstadoReserva = ref<string>('');
+const filtroEstadoReservaProveedor = ref<string>('');
 const filtroEstadoOperacion = ref<string>('');
 const mostrarFiltrosAvanzados = ref<boolean>(false);
 
@@ -79,7 +79,7 @@ const filtrosActivos = computed<FiltrosBiblia>(() => ({
     fileId: expedienteSeleccionado.value?.id,
     cotizacionId: cotizacionSeleccionada.value || undefined,
     tipos: tiposSeleccionados.value.length ? tiposSeleccionados.value : undefined,
-    estadoReserva: filtroEstadoReserva.value || undefined,
+    estadoReservaProveedor: filtroEstadoReservaProveedor.value || undefined,
     estadoOperacion: filtroEstadoOperacion.value || undefined,
 }));
 
@@ -90,7 +90,7 @@ const hayServiciosOcultos = computed(() =>
 
 const hayFiltrosExtra = computed(() =>
     tiposSeleccionados.value.length > 0
-    || !!filtroEstadoReserva.value
+    || !!filtroEstadoReservaProveedor.value
     || !!filtroEstadoOperacion.value
     || !!expedienteSeleccionado.value
 );
@@ -131,7 +131,7 @@ const aplicarPreset = async (preset: 'hoy' | 'manana' | 'semana') => {
 
 const limpiarFiltros = async () => {
     tiposSeleccionados.value = [];
-    filtroEstadoReserva.value = '';
+    filtroEstadoReservaProveedor.value = '';
     filtroEstadoOperacion.value = '';
     expedienteSeleccionado.value = null;
     cotizacionSeleccionada.value = '';
@@ -681,12 +681,12 @@ onMounted(cargarBiblia);
                             <label class="flex flex-col gap-1">
                                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reserva</span>
                                 <select
-                                    v-model="filtroEstadoReserva"
+                                    v-model="filtroEstadoReservaProveedor"
                                     @change="cargarBiblia"
                                     class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
                                 >
                                     <option value="">Cualquiera</option>
-                                    <option v-for="(cfg, k) in ESTADO_RESERVA_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+                                    <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
                                 </select>
                             </label>
 
@@ -1042,12 +1042,12 @@ onMounted(cargarBiblia);
                                             <!-- Estado reserva editable -->
                                             <td class="px-3 py-3 whitespace-nowrap align-top">
                                                 <select
-                                                    :value="servicio.estadoReserva"
-                                                    @change="guardarCampo(servicio, { estadoReserva: ($event.target as HTMLSelectElement).value })"
+                                                    :value="servicio.estadoReservaProveedor"
+                                                    @change="guardarCampo(servicio, { estadoReservaProveedor: ($event.target as HTMLSelectElement).value })"
                                                     :disabled="guardando === servicio.id"
-                                                    :class="['px-2 py-1 text-[10px] font-black rounded-lg border cursor-pointer outline-none appearance-none', getEstadoReservaConfig(servicio.estadoReserva).bg, getEstadoReservaConfig(servicio.estadoReserva).text, getEstadoReservaConfig(servicio.estadoReserva).border]"
+                                                    :class="['px-2 py-1 text-[10px] font-black rounded-lg border cursor-pointer outline-none appearance-none', getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).bg, getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).text, getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).border]"
                                                 >
-                                                    <option v-for="(cfg, k) in ESTADO_RESERVA_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+                                                    <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
                                                 </select>
                                             </td>
 

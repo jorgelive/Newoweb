@@ -23,7 +23,7 @@ use App\Cotizacion\Enum\ComponenteEstadoEnum;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Operacion\Enum\EstadoOperacionEnum;
-use App\Operacion\Enum\EstadoReservaEnum;
+use App\Operacion\Enum\EstadoReservaProveedorEnum;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
 use App\Travel\Enum\ComponenteModoEnum;
@@ -71,7 +71,7 @@ use Symfony\Component\Uid\Uuid;
     'file'                          => 'exact',
     // Filtro por cotización: navega la asociación cotservicio → cotizacion.
     'cotizacionServicio.cotizacion' => 'exact',
-    'estadoReserva'                 => 'exact',
+    'estadoReservaProveedor'                 => 'exact',
     'estadoOperacion'               => 'exact',
     'proveedorMaestroId'            => 'exact',
     'tipoComponente'                => 'exact',
@@ -255,9 +255,20 @@ class OperacionServicio
     #[ORM\JoinColumn(name: 'moneda_real', referencedColumnName: 'id', nullable: true)]
     private ?MaestroMoneda $monedaReal = null;
 
+    /**
+     * ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
+     *
+     * ⚠️ Uno de TRES estados que suenan parecido y no lo son. Al pasajero se le contesta con
+     * éste; los otros dos no significan nada para quien viaja:
+     *   - `$estadoOperacion` → ¿el servicio ya ocurrió?
+     *   - `OperacionOrdenServicio::$estadoOs` → ¿en qué punto está el papeleo de la compra?
+     *
+     * Se llamaba `estadoReserva` a secas y era una trampa: en este sistema «reserva» es la del
+     * huésped ({@see \App\Pms\Entity\PmsReserva}), y ésta es la que le hago YO al proveedor.
+     */
     #[Groups(['operacion:item:read', 'operacion:write'])]
-    #[ORM\Column(type: 'string', length: 30, enumType: EstadoReservaEnum::class, options: ['default' => 'sin-solicitar'])]
-    private EstadoReservaEnum $estadoReserva = EstadoReservaEnum::SIN_SOLICITAR;
+    #[ORM\Column(name: 'estado_reserva_proveedor', type: 'string', length: 30, enumType: EstadoReservaProveedorEnum::class, options: ['default' => 'sin-solicitar'])]
+    private EstadoReservaProveedorEnum $estadoReservaProveedor = EstadoReservaProveedorEnum::SIN_SOLICITAR;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: EstadoOperacionEnum::class, options: ['default' => 'pendiente'])]
@@ -514,8 +525,8 @@ class OperacionServicio
     public function getMonedaReal(): ?MaestroMoneda { return $this->monedaReal; }
     public function setMonedaReal(?MaestroMoneda $monedaReal): self { $this->monedaReal = $monedaReal; return $this; }
 
-    public function getEstadoReserva(): EstadoReservaEnum { return $this->estadoReserva; }
-    public function setEstadoReserva(EstadoReservaEnum $estadoReserva): self { $this->estadoReserva = $estadoReserva; return $this; }
+    public function getEstadoReservaProveedor(): EstadoReservaProveedorEnum { return $this->estadoReservaProveedor; }
+    public function setEstadoReservaProveedor(EstadoReservaProveedorEnum $estadoReservaProveedor): self { $this->estadoReservaProveedor = $estadoReservaProveedor; return $this; }
 
     public function getEstadoOperacion(): EstadoOperacionEnum { return $this->estadoOperacion; }
     public function setEstadoOperacion(EstadoOperacionEnum $estadoOperacion): self { $this->estadoOperacion = $estadoOperacion; return $this; }

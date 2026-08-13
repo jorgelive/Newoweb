@@ -117,7 +117,7 @@ componente sigue en pie dentro de la cotización?»*:
 | `activo` | cuenta en el cálculo y se publica |
 | `cancelado` | no suma costo, no llega al cliente, y en La Biblia sale con badge y atenuado |
 
-**No dice si el proveedor confirmó.** Eso es `App\Operacion\Enum\EstadoReservaEnum`
+**No dice si el proveedor confirmó.** Eso es `App\Operacion\Enum\EstadoReservaProveedorEnum`
 sobre la fila de La Biblia (`sin-solicitar → solicitado → confirmado → reconfirmado`),
 que es donde se gestiona y donde se edita.
 

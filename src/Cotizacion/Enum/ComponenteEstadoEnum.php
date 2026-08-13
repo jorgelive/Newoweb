@@ -8,7 +8,7 @@ namespace App\Cotizacion\Enum;
  * ¿Este componente sigue en pie dentro de la cotización?
  *
  * Sólo eso. **No dice si el proveedor confirmó**: esa pregunta la responde
- * `App\Operacion\Enum\EstadoReservaEnum` sobre la fila de La Biblia, que es donde
+ * `App\Operacion\Enum\EstadoReservaProveedorEnum` sobre la fila de La Biblia, que es donde
  * de verdad se gestiona y donde se edita.
  *
  * Antes tenía cuatro casos —`pendiente`, `confirmado`, `reconfirmado`, `cancelado`—

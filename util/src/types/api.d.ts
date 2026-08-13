@@ -3413,6 +3413,7 @@ export interface components {
             contextType?: string;
             contextId?: string;
             guestName?: string | null;
+            /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
             whatsappDisabled?: boolean;
             whatsappDisabledReason?: string | null;
@@ -3459,6 +3460,11 @@ export interface components {
              */
             contextAgency?: string | null;
             contextStatusTag?: string | null;
+            /**
+             * @description El vínculo que declaró el contexto, o `null` en conversaciones anteriores al campo.
+             * @enum {string|null}
+             */
+            contextVinculo?: "ninguno" | "interesado" | "cliente" | "terminado" | null;
             contextMilestones?: string[];
             contextItems?: string[];
             readonly contextFinancialTotal?: number | null;
@@ -3471,6 +3477,7 @@ export interface components {
             contextType?: string;
             contextId?: string;
             guestName?: string | null;
+            /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
             whatsappDisabled?: boolean;
             whatsappDisabledReason?: string | null;
@@ -3518,6 +3525,7 @@ export interface components {
             /** @default open */
             status: string;
             guestName?: string | null;
+            /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
             whatsappDisabled?: boolean;
             whatsappDisabledReason?: string | null;
@@ -3534,6 +3542,7 @@ export interface components {
             contextType?: string;
             contextId?: string;
             guestName?: string | null;
+            /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
             whatsappDisabled?: boolean;
             whatsappDisabledReason?: string | null;
@@ -3583,6 +3592,7 @@ export interface components {
             contextType?: string;
             contextId?: string;
             guestName?: string | null;
+            /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
             whatsappDisabled?: boolean;
             whatsappDisabledReason?: string | null;
@@ -3632,6 +3642,7 @@ export interface components {
             contextType?: string;
             contextId?: string;
             guestName?: string | null;
+            /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
             whatsappDisabled?: boolean;
             whatsappDisabledReason?: string | null;
@@ -12509,10 +12520,11 @@ export interface components {
             costoRealOperativo: string;
             monedaReal?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
             /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
              * @enum {string}
              */
-            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
              * @default pendiente
              * @enum {string}
@@ -12587,10 +12599,11 @@ export interface components {
              */
             monedaReal?: string | null;
             /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
              * @enum {string}
              */
-            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
              * @default pendiente
              * @enum {string}
@@ -12651,10 +12664,11 @@ export interface components {
              */
             monedaReal?: string | null;
             /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
              * @enum {string}
              */
-            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
              * @default pendiente
              * @enum {string}
@@ -12703,10 +12717,11 @@ export interface components {
             costoRealOperativo: string;
             monedaReal?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
             /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
              * @enum {string}
              */
-            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
              * @default pendiente
              * @enum {string}
@@ -12769,10 +12784,11 @@ export interface components {
             costoRealOperativo: string;
             monedaReal?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
             /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
              * @enum {string}
              */
-            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
              * @default pendiente
              * @enum {string}
@@ -12835,10 +12851,11 @@ export interface components {
             costoRealOperativo: string;
             monedaReal?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
             /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
              * @enum {string}
              */
-            estadoReserva: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
              * @default pendiente
              * @enum {string}
@@ -28306,8 +28323,8 @@ export interface operations {
                 "file[]"?: string[];
                 "cotizacionServicio.cotizacion"?: string;
                 "cotizacionServicio.cotizacion[]"?: string[];
-                estadoReserva?: string;
-                "estadoReserva[]"?: string[];
+                estadoReservaProveedor?: string;
+                "estadoReservaProveedor[]"?: string[];
                 estadoOperacion?: string;
                 "estadoOperacion[]"?: string[];
                 proveedorMaestroId?: string;

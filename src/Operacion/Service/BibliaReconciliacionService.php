@@ -12,7 +12,7 @@ use App\Operacion\ApiPlatform\Dto\CampoPropuesto;
 use App\Operacion\ApiPlatform\Dto\PlanReconciliacion;
 use App\Operacion\ApiPlatform\Dto\ResultadoAplicacion;
 use App\Operacion\Entity\OperacionServicio;
-use App\Operacion\Enum\EstadoReservaEnum;
+use App\Operacion\Enum\EstadoReservaProveedorEnum;
 use DomainException;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -41,7 +41,7 @@ class BibliaReconciliacionService
      * Campos que la cotización gobierna, con su etiqueta para el diff.
      *
      * Los que NO están aquí pertenecen al operador y la reconciliación no los toca
-     * jamás: `estadoReserva`, `estadoOperacion`, `costoRealOperativo`, `montoVenta`,
+     * jamás: `estadoReservaProveedor`, `estadoOperacion`, `costoRealOperativo`, `montoVenta`,
      * `monedaReal` y `ordenServicio`. Esa lista corta es media razón de ser del módulo.
      */
     private const ETIQUETAS = [
@@ -489,10 +489,10 @@ class BibliaReconciliacionService
         // agencia reserva por teléfono o WhatsApp y lo anota aquí sin emitir orden: si
         // el estado de reserva ya salió de `sin-solicitar`, hay un proveedor esperando.
         // Borrar la fila deja esa reserva viva y sin rastro — y el no-show se factura.
-        if ($fila->getEstadoReserva() !== EstadoReservaEnum::SIN_SOLICITAR) {
+        if ($fila->getEstadoReservaProveedor() !== EstadoReservaProveedorEnum::SIN_SOLICITAR) {
             return sprintf(
                 'No se puede borrar: está «%s» con el proveedor. Cancélalo con él y pon el estado en Sin Solicitar antes de quitarlo.',
-                $fila->getEstadoReserva()->value
+                $fila->getEstadoReservaProveedor()->value
             );
         }
 
