@@ -13,6 +13,8 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
+use App\Repository\UserRepository;
+use App\Service\Phone\PhoneSanitizer;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Throwable;
 
@@ -27,6 +29,8 @@ final readonly class ProcessInboundIntentDispatchHandler
         private LoggerInterface $logger,
         #[Autowire('%env(int:AGENT_IA_ESPERA_RAFAGA)%')]
         private int $esperaRafaga,
+        private UserRepository $usuarios,
+        private PhoneSanitizer $telefonos,
     ) {}
 
     public function __invoke(ProcessInboundIntentDispatch $dispatch): void
@@ -56,7 +60,11 @@ final readonly class ProcessInboundIntentDispatchHandler
         // Si el huésped escribió mientras tanto, este trabajo morirá igual en el guardia de
         // ráfaga de AiConversationProcessor: son dos redes distintas y la segunda sigue
         // puesta. Ver PreRouterRafaga.
-        if (!$dispatch->yaEsperado && $this->preRouter->debeEsperar($msg)) {
+        // ⏱️ Y el equipo tampoco espera la ventana larga, por el mismo motivo: los 15 segundos
+        // están para agrupar al huésped que escribe a trozos y para que la respuesta no parezca
+        // automática. Un colaborador que pregunta «quiénes salen mañana» no escribe a trozos y no
+        // quiere que parezca humano: quiere el dato.
+        if (!$dispatch->yaEsperado && !$this->esDelEquipo($msg) && $this->preRouter->debeEsperar($msg)) {
             $this->bus->dispatch(
                 new ProcessInboundIntentDispatch($dispatch->messageId, yaEsperado: true),
                 [new DelayStamp($this->esperaRafaga * 1000)]
@@ -189,5 +197,16 @@ final readonly class ProcessInboundIntentDispatchHandler
     private function nombreDelLock(string $messageId): string
     {
         return substr('intent-' . $this->em->getConnection()->getDatabase() . '-' . $messageId, 0, 64);
+    }
+
+    /**
+     * ¿Lo escribe alguien del equipo? Mismo criterio que `AgentActor::esDelEquipo()`.
+     */
+    private function esDelEquipo(Message $msg): bool
+    {
+        $telefono = $msg->getConversation()?->getGuestPhone();
+
+        return $telefono !== null
+            && $this->usuarios->findByTelefono($telefono, $this->telefonos) !== null;
     }
 }

@@ -8,6 +8,7 @@ use App\Agent\Access\ActorInterface;
 use App\Message\Contract\IndiceDeTemasInterface;
 use App\Pms\Entity\PmsGuia;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Entity\PmsGuiaItem;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -94,6 +95,114 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
     public function __construct(
         private EntityManagerInterface $em,
     ) {}
+
+    /**
+     * Los temas de la guía que ya responden a estas palabras.
+     *
+     * La comparación es **tosca a propósito**: palabras de cuatro letras o más, sin acentos,
+     * contra los términos y el título del tema. Aquí no se busca acertar siempre, sino avisar de
+     * lo evidente antes de crear un duplicado — el mismo criterio y el mismo motivo que
+     * {@see \App\Agent\Service\ConocimientoGenerico::candidatosPara()}.
+     *
+     * Se mira en `agenteTerminos` y en el título, no en el cuerpo: el cuerpo menciona de pasada
+     * cosas que el tema no responde —«lavandería» aparece dentro de «Reglas»— y eso daría avisos
+     * de más que acabarían ignorándose.
+     *
+     * ⚠️ Se agrupan por nombre visible: los siete ítems de ducha son **un** tema para quien está
+     * decidiendo si crear una entrada, no siete avisos iguales.
+     *
+     * @return list<string>
+     */
+    public function temasQueCubren(string $texto): array
+    {
+        $palabras = $this->palabrasDe($texto);
+
+        if ($palabras === []) {
+            return [];
+        }
+
+        $encontrados = [];
+
+        /** @var list<PmsGuiaItem> $items */
+        $items = $this->em->getRepository(PmsGuiaItem::class)->findAll();
+
+        foreach ($items as $item) {
+            $suyas = $this->palabrasDe(
+                (string) $item->getAgenteTerminos() . ' ' . $this->titulos($item)
+            );
+
+            // ⚠️ DOS COINCIDENCIAS, NO UNA. Con una sola, «estacionamiento, cochera, dónde dejo
+            // el auto» sacaba también «Llaves» y «Ubicación» —comparten «donde», «dejo»—, y un
+            // aviso que salta siempre se acaba ignorando, que es peor que no tenerlo. Es la
+            // misma lección que MAX_PALABRAS_BUSQUEDA en ConsultarGuiaSkill: cuantas más
+            // palabras se cruzan, más fácil es que alguna case por casualidad.
+            if (count(array_intersect($palabras, $suyas)) < self::MINIMO_COINCIDENCIAS) {
+                continue;
+            }
+
+            // «Ducha (casa 3)» → «Ducha»: siete fichas del mismo tema son un aviso, no siete.
+            $nombre = trim(preg_replace('/\s*\((?:casa|general)[^)]*\)\s*$/i', '', $item->getNombreInterno()) ?? '');
+            $encontrados[$nombre] = true;
+        }
+
+        return array_values(array_keys($encontrados));
+    }
+
+    /** Los títulos del tema en todos los idiomas: la gente pregunta en el suyo. */
+    private function titulos(PmsGuiaItem $item): string
+    {
+        $textos = [];
+
+        foreach ($item->getTituloParaCliente() as $traduccion) {
+            if (is_array($traduccion) && isset($traduccion['content'])) {
+                $textos[] = (string) $traduccion['content'];
+            }
+        }
+
+        return implode(' ', $textos);
+    }
+
+    /**
+     * Cuántas palabras tienen que coincidir para dar por solapado un tema.
+     *
+     * Dos es el mínimo que distingue «hablan de lo mismo» de «comparten una palabra corriente».
+     */
+    private const int MINIMO_COINCIDENCIAS = 2;
+
+    /**
+     * Palabras que casan con cualquier cosa y no dicen de qué se habla.
+     *
+     * Van fuera porque son las que provocan los falsos positivos: aparecen en los términos de
+     * medio catálogo porque así es como pregunta la gente —«dónde dejo», «puedo tener»—.
+     */
+    private const array VACIAS = [
+        'donde', 'dejo', 'dejar', 'puedo', 'tengo', 'tiene', 'hacer', 'para', 'como', 'cual',
+        'esta', 'este', 'mismo', 'cuando', 'hasta', 'desde', 'sobre', 'algun', 'alguna', 'hola',
+        'favor', 'gracias', 'consulta', 'pregunta', 'quisiera', 'saber', 'necesito',
+    ];
+
+    /**
+     * Palabras de cuatro letras o más, en minúsculas y sin acentos.
+     *
+     * Cuatro y no tres porque «con», «que» o «por» casan con cualquier cosa y convertirían el
+     * aviso en ruido que se ignora.
+     *
+     * @return list<string>
+     */
+    private function palabrasDe(string $texto): array
+    {
+        $limpio = strtr(
+            mb_strtolower($texto),
+            ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']
+        );
+
+        $palabras = preg_split('/[^a-z0-9]+/', $limpio, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return array_values(array_unique(array_filter(
+            $palabras,
+            static fn (string $p): bool => mb_strlen($p) >= 4 && !in_array($p, self::VACIAS, true)
+        )));
+    }
 
     /**
      * El índice entero, montado determinista para que el prefijo cacheado no baile.

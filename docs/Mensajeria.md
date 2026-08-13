@@ -7424,3 +7424,28 @@ módulo.
 un contrato que el dominio implementa y el núcleo consume sin entender. Antes de añadir campo o
 servicio, mirar si el contrato ya existe: `ConversacionEnlaceInterface` ya exponía
 `getOrigen()`/`getAgencia()`, y sólo faltaba la frase.
+
+### 22.18 El equipo no paga el disfraz
+
+Buena parte de la latencia del agente **está puesta a propósito**: el `.env` lo dice con todas las
+letras —«una respuesta instantánea delata al bot»—. Para el huésped eso es un activo: cree que hay
+alguien escribiendo y tolera la espera.
+
+Para un colaborador es exactamente lo contrario. Ya sabe que es un bot, así que la espera no le
+compra nada y lo único que percibe es **que el sistema va lento**. Le estamos cobrando el disfraz
+sin venderle el disfraz.
+
+Con `esDelEquipo()` —el teléfono resuelve a un `User`— se retira todo lo que existe por realismo:
+
+| | Huésped | Equipo |
+|---|---|---|
+| `AGENT_IA_ESPERA_CORTA` | 3 s | **0** |
+| `AGENT_IA_ESPERA_RAFAGA` (ventana larga) | 15 s | **0** |
+| Tramo de potencia | media | **baja** |
+
+Hasta 18 segundos de espera artificial que desaparecen, y una respuesta que además llega de un
+modelo más rápido. No se pierde nada por el camino: el colaborador escribe consultas de una línea
+—«quiénes llegan hoy»—, así que no hay ráfaga que agrupar, y lo que pide son datos, no redacción.
+
+⚠️ **La emergencia se comprueba ANTES que el equipo.** Si un colaborador avisa de un incendio, eso
+se sigue atendiendo con el tramo alto: quien escribe no cambia lo que está en juego.

@@ -6,6 +6,8 @@ namespace App\Message\EventListener;
 
 use App\Agent\Dispatch\ProcessInboundIntentDispatch;
 use App\Message\Entity\Message;
+use App\Service\Phone\PhoneSanitizer;
+use App\Repository\UserRepository;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
@@ -25,7 +27,25 @@ final readonly class MessageAutoResponderListener
         private MessageBusInterface $bus,
         #[Autowire('%env(int:AGENT_IA_ESPERA_CORTA)%')]
         private int $esperaCorta,
+        private UserRepository $usuarios,
+        private PhoneSanitizer $telefonos,
     ) {}
+
+    /**
+     * ¿Lo escribe alguien del equipo?
+     *
+     * Se resuelve con una lectura por teléfono, el mismo criterio que usa
+     * {@see \App\Agent\Access\AgentActor::esDelEquipo()}. Es una consulta indexada y de sólo
+     * lectura: cabe dentro del flush donde corre este listener, a diferencia de una llamada al
+     * modelo —que es lo que sí está prohibido aquí—.
+     */
+    private function esDelEquipo(Message $message): bool
+    {
+        $telefono = $message->getConversation()?->getGuestPhone();
+
+        return $telefono !== null
+            && $this->usuarios->findByTelefono($telefono, $this->telefonos) !== null;
+    }
 
     public function postPersist(Message $message, PostPersistEventArgs $event): void
     {
@@ -105,7 +125,13 @@ final readonly class MessageAutoResponderListener
         // El modelo NO puede consultarse aquí: esto corre dentro de un flush de Doctrine y
         // sería una petición de red a mitad de transacción. Por eso solo se fija el retraso
         // mínimo y la decisión viaja al handler. Ver PreRouterRafaga.
-        $espera = ($intent['category'] ?? null) === 'free_text' ? $this->esperaCorta : 0;
+        // ⏱️ EL EQUIPO NO PAGA EL DISFRAZ. Esta espera existe para que una respuesta instantánea
+        // no delate al bot ante el huésped. Al colaborador no le compra nada: ya sabe que es un
+        // bot, y lo que percibe es que el sistema va lento. Además escribe consultas de una línea
+        // —«quiénes llegan hoy»—, así que tampoco hay ráfaga que agrupar.
+        $espera = ($intent['category'] ?? null) === 'free_text' && !$this->esDelEquipo($message)
+            ? $this->esperaCorta
+            : 0;
 
         $this->bus->dispatch(
             new ProcessInboundIntentDispatch((string) $message->getId()),

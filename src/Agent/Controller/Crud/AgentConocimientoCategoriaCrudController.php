@@ -52,7 +52,11 @@ class AgentConocimientoCategoriaCrudController extends BaseCrudController
                 . 'nombre ya lo dice todo, déjalo vacío: cada palabra aquí se paga en cada turno.')
             ->setColumns(4);
 
-        yield IntegerField::new('orden', 'Orden')->setColumns(2);
+        yield IntegerField::new('orden', 'Orden')
+            ->setHelp('En qué orden los ve el agente. Los primeros pesan un poco más cuando duda, '
+                . 'así que pon delante los que más se preguntan. De 10 en 10, para poder colar '
+                . 'uno en medio sin renumerar.')
+            ->setColumns(2);
 
         yield BooleanField::new('activa', 'Activo')
             ->setHelp('Apagarlo lo saca de la lista que ve el agente, sin borrar sus respuestas.')

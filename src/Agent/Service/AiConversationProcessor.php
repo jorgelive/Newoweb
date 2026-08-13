@@ -580,7 +580,7 @@ final readonly class AiConversationProcessor
         // decidió el triaje; el proveedor sale de las claves de potencia, con caída al de
         // `AGENT_IA_PROVEEDOR` si están sin configurar. El chat del huésped nunca ha elegido
         // proveedor por conversación, y sigue sin hacerlo: es configuración, no negociación.
-        $elegido = $this->potencias->elegir($this->tramoPara($decision));
+        $elegido = $this->potencias->elegir($this->tramoPara($decision, $actor));
         if ($elegido === null) {
             return null;
         }
@@ -805,10 +805,21 @@ final readonly class AiConversationProcessor
      * - **Todo lo demás → Media**, que es lo que hace hoy el agente entero. Incluye el
      *   `indeterminado`: si el triaje no supo, no se toca nada.
      */
-    private function tramoPara(DecisionDeTriaje $decision): PotenciaRequerida
+    private function tramoPara(DecisionDeTriaje $decision, ActorInterface $actor): PotenciaRequerida
     {
         if ($decision->tipo === TipoDeMensaje::Emergencia) {
             return PotenciaRequerida::Alta;
+        }
+
+        // ⚡ EL EQUIPO PIDE DATOS, NO REDACCIÓN. Un colaborador pregunta «quiénes salen mañana» y
+        // lo que quiere es la lista: no hay tono que cuidar ni un cliente al que no espantar, y
+        // sí una persona esperando delante del teléfono. El tramo bajo responde antes y para esto
+        // basta.
+        //
+        // Va DESPUÉS de la emergencia a propósito: si un colaborador avisa de un incendio, eso se
+        // sigue atendiendo con la cabeza que haga falta.
+        if ($actor->esDelEquipo()) {
+            return PotenciaRequerida::Baja;
         }
 
         if ($decision->skill !== null) {

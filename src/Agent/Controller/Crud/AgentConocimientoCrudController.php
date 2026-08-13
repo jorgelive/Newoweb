@@ -8,6 +8,8 @@ use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Entity\AgentConocimiento;
 use App\Panel\Controller\Crud\BaseCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use App\Agent\Service\ValidadorDeConocimiento;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
@@ -22,6 +24,51 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
  */
 class AgentConocimientoCrudController extends BaseCrudController
 {
+
+    public function __construct(
+        private readonly ValidadorDeConocimiento $validador,
+    ) {}
+
+    /**
+     * Al guardar, se comprueba si la guía ya contesta esto — y se dice, sin impedirlo.
+     *
+     * ⚠️ **Avisa, no bloquea**, y es deliberado: duplicar un tema aquí puede ser lo correcto. La
+     * guía exige una casita, así que quien pregunta antes de reservar no llega a ella; para ese
+     * público la copia genérica es la respuesta buena, y basta con **declararla** acotándola a
+     * prospecto e interesado. El aviso explica las dos salidas.
+     */
+    public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        $this->avisarSiDuplica($entityInstance);
+        parent::persistEntity($entityManager, $entityInstance);
+    }
+
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        $this->avisarSiDuplica($entityInstance);
+        parent::updateEntity($entityManager, $entityInstance);
+    }
+
+    private function avisarSiDuplica(mixed $entidad): void
+    {
+        if (!$entidad instanceof AgentConocimiento) {
+            return;
+        }
+
+        $aviso = $this->validador->avisoPara($entidad);
+
+        if ($aviso === null) {
+            return;
+        }
+
+        // `warning` cuando pisa a la guía, `info` cuando la duplicación ya está declarada: lo
+        // segundo es una confirmación, no un problema, y teñirlo de amarillo enseña a ignorarlo.
+        $this->addFlash(
+            $this->validador->duplicaSinDeclarar($entidad) ? 'warning' : 'info',
+            $aviso
+        );
+    }
+
     public static function getEntityFqcn(): string
     {
         return AgentConocimiento::class;
@@ -36,8 +83,36 @@ class AgentConocimientoCrudController extends BaseCrudController
             ->setHelp('index', 'Esto es lo ÚLTIMO que mira el agente antes de escalar por no '
                 . 'saber. Cada respuesta que añadas aquí es una interrupción menos al equipo. '
                 . 'No sirve para lo que cambia —fechas, saldos, disponibilidad—: eso lo consultan '
-                . 'las herramientas y siempre estará más al día que un texto escrito a mano.');
+                . 'las herramientas y siempre estará más al día que un texto escrito a mano.')
+            ->setHelp('new', self::AYUDA_GUIA)
+            ->setHelp('edit', self::AYUDA_GUIA);
     }
+
+    /**
+     * Lo que hay que entender antes de escribir una ficha aquí: en qué se diferencia de la guía.
+     */
+    private const string AYUDA_GUIA = <<<'HTML'
+        <strong>Esto y la guía del huésped no son lo mismo, y a veces conviene que digan lo mismo.</strong>
+        <ul>
+          <li><strong>La guía</strong> contesta «cómo funciona X <em>en tu casita</em>». Está atada a
+              una reserva: resuelve la hora de entrada, el código de la puerta, el grifo de esa ducha.
+              <strong>Quien no tiene reserva no llega a ella</strong> — si pregunta antes de reservar,
+              el agente le repregunta de qué casita le habla en vez de contestarle.</li>
+          <li><strong>Esto</strong> contesta «este sitio tiene X». No depende de la reserva ni del día,
+              y <strong>sí puede ser público</strong>: es lo único que el agente puede decirle a alguien
+              que todavía está decidiendo si reserva.</li>
+        </ul>
+        <strong>Por eso duplicar a veces es correcto.</strong> «¿Hay estacionamiento?» ya está en la
+        guía, pero el que lo pregunta suele no tener reserva todavía. La copia genérica aquí es la
+        respuesta buena para él — siempre que la <strong>declares</strong>: en «A quién se le puede
+        contar», marca <strong>Prospecto</strong> e <strong>Interesado</strong> y nada más. Así el
+        huésped sigue recibiendo la versión de su casita, que es mejor, y el que aún no ha reservado
+        recibe ésta.
+        <br><br>
+        Al guardar te avisamos si la guía ya lo contesta: no te lo impide, te dice qué tema es para
+        que decidas. <strong>Una copia sin acotar sí es un error</strong> —el huésped se llevaría esta
+        versión genérica en vez de la suya, sin sus horas ni sus códigos—.
+        HTML;
 
     public function configureFields(string $pageName): iterable
     {
@@ -76,9 +151,14 @@ class AgentConocimientoCrudController extends BaseCrudController
                 array_map(static fn (PerfilConversacion $p): string => $p->value, PerfilConversacion::cases())
             ))
             ->allowMultipleChoices()
-            ->setHelp('<strong>Vacío = a todos.</strong> Marca a quién SÍ, sólo cuando la '
-                . 'respuesta no sea para cualquiera: un procedimiento interno o un código van '
-                . 'sólo para el equipo.')
+            ->setHelp('<strong>Vacío = a todos</strong>, incluido el huésped. Marca a quién SÍ '
+                . 'en dos casos:<br>'
+                . '· <strong>Es interno</strong> —un procedimiento, un código—: marca sólo Personal '
+                . 'y Colaborador.<br>'
+                . '· <strong>Duplica un tema de la guía a propósito</strong>, para quien todavía no '
+                . 'tiene reserva: marca sólo <strong>Prospecto</strong> e <strong>Interesado</strong>. '
+                . 'Eso ES la declaración de «esto es la versión pública»; sin ella, el huésped '
+                . 'recibiría esta respuesta genérica en lugar de la de su casita.')
             ->setColumns(6);
 
         yield BooleanField::new('requiereHumano', 'Además, avisar al equipo')
@@ -87,6 +167,11 @@ class AgentConocimientoCrudController extends BaseCrudController
             ->renderAsSwitch(true)
             ->setColumns(6);
 
-        yield BooleanField::new('activo', 'Activo')->renderAsSwitch(true)->setColumns(6);
+        yield BooleanField::new('activo', 'Activo')
+            ->setHelp('Apagarlo lo saca para todos sin borrarlo. Úsalo cuando una respuesta deje '
+                . 'de ser cierta y todavía no sepas con qué sustituirla: es preferible que el '
+                . 'agente escale a que repita algo que ya no vale.')
+            ->renderAsSwitch(true)
+            ->setColumns(6);
     }
 }

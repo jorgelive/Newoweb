@@ -68,4 +68,24 @@ interface IndiceDeTemasInterface
      * Cadena vacía cuando no hay nada que decir. NUNCA entra en el bloque cacheado.
      */
     public function lineaVolatil(ActorInterface $actor): string;
+
+    /**
+     * ¿Este dominio ya responde a esto?
+     *
+     * Existe para que el **conocimiento genérico** —que es la última red antes de escalar— no
+     * nazca repitiendo lo que la guía ya contesta mejor. Se consulta al dar de alta una entrada,
+     * y devuelve las etiquetas de los temas propios que casan con esas palabras.
+     *
+     * ⚠️ **Informa, no prohíbe.** Duplicar un tema aquí puede ser lo correcto: la guía está
+     * anclada a una casita y con ventana de acceso, así que quien pregunta **sin reserva** —«¿hay
+     * estacionamiento?» antes de reservar— no llega a ella. Para ese caso la copia genérica es la
+     * respuesta buena, y lo que hay que hacer es **declararla pública** acotándola a los perfiles
+     * `prospecto` e `interesado`.
+     *
+     * Lo que sí es un error es una copia **sin acotar**: entonces un huésped recibiría la versión
+     * genérica en lugar de la de su casita, con sus horas y sus códigos resueltos.
+     *
+     * @return list<string> Etiquetas legibles de los temas que ya lo cubren. Vacío si ninguno.
+     */
+    public function temasQueCubren(string $texto): array;
 }
