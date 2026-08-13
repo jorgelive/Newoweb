@@ -6839,3 +6839,44 @@ De los 204 enlaces, 202 con hitos: **202 con el `start` del mapa igual al del pr
   y silenciaría las agendas vivas de las demás cuando los hilos se fusionen.
 - **No hay ni un test bajo `tests/Message/Service/Exchange/`**, que es justo donde vive el código
   que se envía al huésped.
+
+### 20.10 Un asunto cancelado se MARCA, no se borra
+
+La primera versión del sincronizador borraba el enlace cuando la reserva se cancelaba, y el
+poblado se saltaba las canceladas. El miedo era correcto —106 de 310 conversaciones cuelgan de
+una reserva cancelada, muchas duplicados de un bug de guardado, y regenerar sobre ellas
+significaba una tanda de envíos por cada duplicado— pero **la solución era la equivocada: perder
+el dato**.
+
+Borrar tenía dos costes:
+
+1. **Se perdía el rastro.** Un asunto cancelado es parte de lo que le pasó a esa persona. Sin él,
+   el hilo cuenta una versión incompleta de su historia.
+2. **Cerraba la puerta al aviso de cancelación.** `AgendaDeAsunto::estaCancelada()` lee el hito
+   `cancelled_at` **del enlace**. Sin enlace no hay hito, así que esa rama era código muerto de
+   hecho y el aviso quedaba mudo **por accidente, no por decisión**.
+
+Ahora se marca: `PmsConversacionEnlace::marcarCancelado()` sella la fecha y el vínculo pasa a
+`Terminado`. Los hitos derivados **se conservan** —lo que iba a pasar sigue ahí— y el recálculo
+no borra la marca.
+
+⚠️ **Marcarlo no despierta nada.** El motor sigue tratando el asunto como muerto por
+`AgendaDeAsunto::estaMuerta()`: ni un mensaje. Lo que cambia es que **el dato existe**, y con él
+la decisión de si el aviso vuelve se puede plantear. Sin el dato ni siquiera era una decisión.
+
+Verificado tras marcar los 310 enlaces (106 de ellos cancelados): el dry-run del motor sigue
+dando **0 mensajes y 0 colas**, y la regeneración desde cero sigue devolviendo **todos** los
+mensajes vivos idénticos.
+
+#### La regla que falta escribir
+
+Decisión de producto ya tomada, pendiente de implementar:
+
+> Un aviso de cancelación **no tiene por qué ser específico si afecta a todos los eventos** de la
+> reserva: ahí basta un mensaje genérico, uno solo. Pero **si deja de involucrar al menos uno**
+> —se cancela una casita de dos, se cae un tramo— eso sí tiene sentido contarlo, porque la
+> estancia del huésped cambia sin desaparecer.
+
+Hoy el segundo caso ni siquiera es una cancelación para el modelo: la reserva sigue viva, los
+hitos se recalculan solos y el huésped **no se entera** de que perdió una casita. Es el mismo
+hueco que el de la salida temporal, un escalón más arriba.

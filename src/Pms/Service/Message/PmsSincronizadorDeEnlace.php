@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Message;
 
+use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\MessageContextInterface;
 use App\Message\Contract\SincronizadorDeEnlaceInterface;
+use App\Message\Contract\VinculoComercial;
 use App\Message\Entity\MessageConversation;
 use App\Pms\Entity\PmsConversacionEnlace;
 use App\Pms\Entity\PmsReserva;
@@ -53,15 +55,26 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
         }
 
         $enlace = $this->enlaceDe($conversacion, $reserva);
+        $cancelada = $contexto->isCancelled() || $reserva->isCancelada();
 
-        // Cancelada: fuera el enlace si lo había, y no se crea si no lo había.
-        if ($contexto->isCancelled() || $reserva->isCancelada()) {
-            if ($enlace !== null) {
-                $conversacion->removeEnlacePms($enlace);
-                $this->em->remove($enlace);
-            }
-
-            return;
+        // ── Cancelada: se MARCA, no se borra ────────────────────────────────
+        // La primera versión lo borraba, y era un error con dos caras:
+        //
+        //  1. Se perdía el rastro. Un asunto cancelado sigue siendo parte de la historia de esa
+        //     persona —qué reservó, qué pasó— y borrarlo deja el hilo contando una versión
+        //     incompleta de lo que ocurrió.
+        //  2. Y se cerraba la puerta a avisar de la cancelación. `AgendaDeAsunto::estaMuerta()`
+        //     lee el hito `cancelled_at` **del enlace**: sin enlace no hay hito, así que esa
+        //     rama era código muerto de hecho y el aviso quedaba mudo para siempre, no por
+        //     decisión sino por accidente.
+        //
+        // Marcado, el asunto sigue muerto para la mensajería automática —la guarda del motor no
+        // cambia— pero **el dato existe**, que es lo que hace falta para que producto pueda
+        // decidir después si el aviso vuelve y con qué condiciones.
+        if ($cancelada && $enlace === null) {
+            $enlace = new PmsConversacionEnlace($conversacion, $reserva);
+            $conversacion->addEnlacePms($enlace);
+            $this->em->persist($enlace);
         }
 
         if ($enlace === null) {
@@ -70,7 +83,7 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
             $this->em->persist($enlace);
         }
 
-        $enlace->setVinculo($contexto->getVinculo());
+        $enlace->setVinculo($cancelada ? VinculoComercial::Terminado : $contexto->getVinculo());
         $enlace->setOrigen($contexto->getOrigin());
         $enlace->setAgencia($contexto->getAgencyId());
         $enlace->setStatusTag($contexto->getStatusTag());
@@ -88,6 +101,13 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
         // aquéllos distinguen la estancia partida.
         $enlace->setMilestones($contexto->getMilestones());
         $enlace->setHitos($this->hitos->para($reserva));
+
+        // El hito de cancelación se pone DESPUÉS de los derivados, porque `setHitos()` reescribe
+        // `start`/`end` y no toca las claves ajenas. Con la reserva cancelada, los hitos
+        // derivados vienen vacíos —no hay tramos vivos— y lo único que queda es este.
+        if ($cancelada) {
+            $enlace->marcarCancelado($contexto->getMilestones()[ConversationMilestoneInterface::CANCELLED] ?? null);
+        }
     }
 
     /**

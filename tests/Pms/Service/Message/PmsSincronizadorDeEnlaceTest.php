@@ -166,6 +166,62 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
         self::assertSame([], $enlace->getMilestones());
     }
 
+    /**
+     * Cancelar MARCA, no borra. El asunto sigue en el hilo, con su fecha de cancelación.
+     *
+     * Se borraba, y era un error con dos caras: se perdía el rastro de lo que le pasó a esa
+     * persona, y se cerraba la puerta a avisar de la cancelación — `AgendaDeAsunto::estaCancelada()`
+     * lee este hito **del enlace**, así que sin enlace esa rama era código muerto de hecho.
+     */
+    #[Test]
+    public function marcar_cancelado_deja_constancia_sin_borrar_los_hitos(): void
+    {
+        $enlace = $this->enlaceCon([
+            $this->hito(Hito::START, '2026-03-10 14:00', 'Casita 1'),
+            $this->hito(Hito::END, '2026-03-15 10:00', 'Casita 1'),
+        ]);
+
+        $enlace->marcarCancelado('2026-03-05 11:30:00');
+
+        self::assertTrue($enlace->estaCancelado());
+        self::assertSame('2026-03-05 11:30:00', $enlace->getMilestones()[Hito::CANCELLED]);
+        self::assertCount(2, $enlace->getHitos(), 'lo que iba a pasar sigue ahí: es la historia de esa persona');
+    }
+
+    /** Sin fecha explícita se sella el momento, para que el hito nunca quede vacío. */
+    #[Test]
+    public function marcar_cancelado_sin_fecha_sella_el_momento(): void
+    {
+        $enlace = (new PmsConversacionEnlace())->marcarCancelado();
+
+        self::assertTrue($enlace->estaCancelado());
+        self::assertNotSame('', $enlace->getMilestones()[Hito::CANCELLED]);
+    }
+
+    /** Un enlace normal no está cancelado: la marca tiene que ser explícita. */
+    #[Test]
+    public function un_enlace_sin_marcar_no_esta_cancelado(): void
+    {
+        self::assertFalse($this->enlaceCon([$this->hito(Hito::START, '2026-03-10 14:00')])->estaCancelado());
+    }
+
+    /**
+     * ⚠️ Y recalcular los hitos NO borra la marca: `setHitos()` sólo reescribe `start`/`end`.
+     *
+     * Importa porque el sincronizador recalcula en cada cambio de la reserva, y si eso limpiara
+     * la cancelación, un asunto muerto volvería a estar vivo para el motor sin que nadie lo
+     * pidiera.
+     */
+    #[Test]
+    public function recalcular_los_hitos_no_resucita_un_asunto_cancelado(): void
+    {
+        $enlace = (new PmsConversacionEnlace())->marcarCancelado('2026-03-05 11:30:00');
+
+        $enlace->setHitos([$this->hito(Hito::START, '2026-03-10 14:00')]);
+
+        self::assertTrue($enlace->estaCancelado(), 'la cancelación sobrevive al recálculo');
+    }
+
     /** Recalcular sustituye: los hitos viejos no se acumulan con los nuevos. */
     #[Test]
     public function recalcular_sustituye_y_no_acumula(): void

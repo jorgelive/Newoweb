@@ -102,6 +102,35 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $hitos = [];
 
+    /**
+     * Deja constancia de que este asunto se canceló, con su fecha.
+     *
+     * ── Se marca, no se borra ───────────────────────────────────────────────
+     * Un asunto cancelado sigue siendo parte de lo que le pasó a esa persona, y borrarlo deja el
+     * hilo contando una versión incompleta. Además es lo único que permite que el aviso de
+     * cancelación pueda existir: {@see \App\Message\Service\Queue\AgendaDeAsunto::estaCancelada()}
+     * lee este hito, y sin enlace no hay hito que leer.
+     *
+     * ⚠️ Marcarlo **no** hace que se envíe nada: el motor sigue tratando el asunto como muerto y
+     * no encola ni un mensaje. Lo que cambia es que el dato existe, y con él se puede decidir
+     * después —con la guarda que haga falta— si el aviso vuelve. Sin el dato, esa decisión ni
+     * siquiera se podía plantear.
+     */
+    public function marcarCancelado(?string $cuando = null): self
+    {
+        $plano = $this->milestones ?? [];
+        $plano[ConversationMilestoneInterface::CANCELLED] = $cuando ?: (new DateTimeImmutable())->format('Y-m-d H:i:s');
+        $this->milestones = $plano;
+
+        return $this;
+    }
+
+    /** ¿Este asunto está cancelado? */
+    public function estaCancelado(): bool
+    {
+        return ($this->milestones[ConversationMilestoneInterface::CANCELLED] ?? '') !== '';
+    }
+
     /** `directo`, `airbnb`, `booking`… De qué canal vino este asunto. */
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $origen = null;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Command;
 
 use App\Message\Entity\MessageConversation;
+use App\Message\Contract\VinculoComercial;
 use App\Pms\Entity\PmsConversacionEnlace;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Message\PmsHitosDeEstancia;
@@ -79,7 +80,6 @@ final class PoblarEnlacesCommand extends Command
         $yaTenian = 0;
         $canceladas = 0;
         $refrescados = 0;
-        $sobrantes = 0;
         $huerfanas = [];
 
         foreach ($conversaciones as $conversacion) {
@@ -119,27 +119,27 @@ final class PoblarEnlacesCommand extends Command
                 continue;
             }
 
-            // Una reserva CANCELADA no es un asunto: no hay nada que atender, nada que
-            // programar y nada de lo que hablar.
-            //
-            // ⚠️ Y no es un caso raro: la base arrastra reservas duplicadas nacidas de un bug de
-            // guardado que quedaron canceladas —siete filas donde debía haber una con cuatro
-            // eventos—. Enlazarlas las convertiría en siete asuntos vivos colgando de un hilo, y
-            // el día que el motor programe por asunto se pondría a regenerar mensajes por cada
-            // una. El enlace es justo la puerta por la que eso entraría, así que se cierra aquí.
-            if ($reserva->isCancelada()) {
-                $canceladas++;
-                continue;
-            }
-
             $creados++;
 
             if ($dryRun) {
                 continue;
             }
 
+            // ── Las canceladas también se enlazan, MARCADAS ─────────────────
+            // La primera versión las saltaba, por miedo a que el motor regenerara mensajes sobre
+            // la basura de la base —106 de 310 conversaciones cuelgan de una reserva cancelada,
+            // muchas duplicados de un bug de guardado—. El miedo era correcto y la solución era
+            // la equivocada: perder el dato.
+            //
+            // Marcadas con su hito de cancelación, el motor las trata como asuntos muertos y no
+            // encola ni un mensaje —la guarda está en `AgendaDeAsunto::estaMuerta()`, no aquí—,
+            // pero el hilo conserva la historia completa de esa persona: qué reservó y qué se
+            // canceló. Y es lo único que permite plantearse después si el aviso de cancelación
+            // vuelve: sin enlace no hay hito que leer.
+            $cancelada = $reserva->isCancelada();
+
             $enlace = new PmsConversacionEnlace($conversacion, $reserva);
-            $enlace->setVinculo($conversacion->getContextVinculo() ?? $enlace->getVinculo());
+            $enlace->setVinculo($cancelada ? VinculoComercial::Terminado : ($conversacion->getContextVinculo() ?? $enlace->getVinculo()));
             $enlace->setOrigen($conversacion->getContextOrigin());
             $enlace->setAgencia($conversacion->getContextAgency());
             $enlace->setStatusTag($conversacion->getContextStatusTag());
@@ -155,6 +155,11 @@ final class PoblarEnlacesCommand extends Command
             $enlace->setMilestones($conversacion->getContextMilestones());
             $enlace->setHitos($this->hitos->para($reserva));
 
+            if ($cancelada) {
+                $enlace->marcarCancelado($conversacion->getContextMilestones()['cancelled_at'] ?? null);
+                $canceladas++;
+            }
+
             $this->em->persist($enlace);
 
             if ($creados % self::LOTE === 0) {
@@ -166,17 +171,9 @@ final class PoblarEnlacesCommand extends Command
             $this->em->flush();
         }
 
-        // Los enlaces de reservas canceladas que se crearon ANTES de que existiera el filtro de
-        // arriba. Se retiran aquí y no a mano: son filas que nadie lee todavía —el motor sigue
-        // programando por conversación—, así que quitarlas no tiene efecto ninguno hoy y evita
-        // que el motor las encuentre vivas mañana.
-        if (!$dryRun) {
-            $sobrantes = $this->retirarCancelados();
-        }
-
         $io->table(
-            ['Enlaces nuevos', 'Ya tenían (hitos refrescados)', 'Saltados por cancelada', 'Retirados', 'Reserva inexistente'],
-            [[$creados, sprintf('%d (%d)', $yaTenian, $refrescados), $canceladas, $sobrantes, count($huerfanas)]]
+            ['Enlaces nuevos', 'Ya tenían (hitos refrescados)', 'De ellos, marcados cancelados', 'Reserva inexistente'],
+            [[$creados, sprintf('%d (%d)', $yaTenian, $refrescados), $canceladas, count($huerfanas)]]
         );
 
         if ($huerfanas !== []) {
@@ -194,33 +191,4 @@ final class PoblarEnlacesCommand extends Command
         return Command::SUCCESS;
     }
 
-    /**
-     * Borra los enlaces cuya reserva está cancelada.
-     *
-     * Existe porque la primera versión de este comando no filtraba, y dejó enlazadas reservas
-     * canceladas —entre ellas las duplicadas de un bug de guardado—. Se corrige aquí en vez de
-     * con SQL a mano para que la reparación quede escrita, se pueda repetir y no dependa de que
-     * alguien recuerde qué consulta lanzó.
-     *
-     * Es seguro: hoy nadie lee esta tabla.
-     */
-    private function retirarCancelados(): int
-    {
-        $retirados = 0;
-
-        foreach ($this->em->getRepository(PmsConversacionEnlace::class)->findAll() as $enlace) {
-            $reserva = $enlace->getReserva();
-
-            if ($reserva === null || $reserva->isCancelada()) {
-                $this->em->remove($enlace);
-                $retirados++;
-            }
-        }
-
-        if ($retirados > 0) {
-            $this->em->flush();
-        }
-
-        return $retirados;
-    }
 }
