@@ -25,7 +25,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * horarios de entrada (36), cómo llegar (31), calefacción (28), agua caliente (22),
  * estacionamiento (12), lavandería (6).
  *
- * ### ⚠️ Todas duplican la guía A PROPÓSITO, y por eso van declaradas
+ * ### ⚠️ Cinco duplican la guía A PROPÓSITO, y por eso van declaradas
  *
  * Estos temas ya están en la guía y allí se contestan **mejor**: por casita, con las horas y los
  * códigos de esa estancia resueltos. Pero la guía **exige una reserva**, y quien pregunta «¿hay
@@ -38,11 +38,14 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * Sin esa acotación serían un error: el huésped se llevaría la genérica en lugar de la suya.
  *
- * ### Lo que NO se siembra
+ * ### Dos van SIN acotar, y es la otra mitad de la regla
  *
- * Tipo de cambio y frazadas adicionales, que son de los más preguntados, **no están aquí porque
- * no sé el dato**: la regla del cambio y si las mantas extra tienen coste sólo las sabe el
- * negocio. Se cargan a mano desde el panel.
+ * `Tipo de cambio` y `Frazadas adicionales` no duplican ningún tema de la guía, así que van para
+ * todos los perfiles. Acotarlas a prospecto las dejaría mudas justo para quien más las necesita:
+ * a las mantas las pide el huésped ya alojado, de noche y con frío.
+ *
+ * ⚠️ El tipo de cambio guarda **el criterio, no la cifra**: «venta de SUNAT del día» no caduca
+ * nunca; un «3.75» empieza a mentir mañana y nadie se entera.
  *
  * Es idempotente por `nombreInterno`: relanzarlo no duplica nada.
  */
@@ -60,6 +63,16 @@ final class AgentSembrarConocimientoCommand extends Command
         'servicios' => ['Servicios y alrededores', 'lavandería, estacionamiento, limpieza extra', 40],
         'reservar' => ['Reservar y disponibilidad', 'capacidad, mínimo de noches, cómo reservar', 50],
     ];
+
+    /**
+     * «Sólo para quien todavía no ha reservado»: la declaración de versión pública.
+     *
+     * @var list<string>
+     */
+    private const array PUBLICO = ['prospecto', 'interesado'];
+
+    /** Sin acotar: la contesta a cualquiera, porque no pisa nada de la guía. @var list<string> */
+    private const array TODOS = [];
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -100,12 +113,12 @@ final class AgentSembrarConocimientoCommand extends Command
                 ->setEtiquetas($ficha['etiquetas'])
                 ->setContenido($ficha['contenido'])
                 ->setDominios(['hotelero'])
-                // 🔓 LA DECLARACIÓN. Ver el docblock de la clase: sin esto, el huésped recibiría
-                // esta versión genérica en lugar de la de su casita.
-                ->setPerfiles([
-                    PerfilConversacion::Prospecto->value,
-                    PerfilConversacion::Interesado->value,
-                ]);
+                // 🔓 LA DECLARACIÓN, cuando la ficha duplica un tema de la guía: acotarla a
+                // prospecto e interesado es lo que evita que el huésped reciba la versión
+                // genérica en lugar de la de su casita. Las que NO duplican nada van sin acotar,
+                // porque ahí el huésped también las necesita —y de hecho suele ser él quien
+                // pregunta—.
+                ->setPerfiles($ficha['perfiles']);
 
             if (isset($temas[$ficha['tema']])) {
                 $item->setCategoria($temas[$ficha['tema']]);
@@ -117,9 +130,12 @@ final class AgentSembrarConocimientoCommand extends Command
                 '+ %-24s [%s] %s',
                 $nombre,
                 $ficha['tema'],
-                $duplica === []
-                    ? 'sin equivalente en la guía'
-                    : 'versión pública de «' . implode('», «', $duplica) . '»'
+                match (true) {
+                    $duplica === [] => 'sin equivalente en la guía · para todos',
+                    $ficha['perfiles'] === self::TODOS => 'roza «' . implode('», «', $duplica)
+                        . '» · para todos, a propósito',
+                    default => 'versión pública de «' . implode('», «', $duplica) . '»',
+                }
             ));
 
             ++$creadas;
@@ -136,9 +152,8 @@ final class AgentSembrarConocimientoCommand extends Command
         $io->success(sprintf('%d respuesta(s) %s.', $creadas, $seco ? 'se crearían' : 'creadas'));
 
         $io->note(
-            'Faltan dos de las más preguntadas y necesitan un dato del negocio: el TIPO DE CAMBIO '
-            . '(la regla, no la cifra) y las FRAZADAS ADICIONALES (si hay y si cuestan). '
-            . 'Cárgalas desde el panel.'
+            'De aquí en adelante, las fichas nuevas se cargan desde el panel: al guardar te avisa '
+            . 'si la guía ya lo contesta. Esto es sólo la primera tanda.'
         );
 
         return Command::SUCCESS;
@@ -185,11 +200,43 @@ final class AgentSembrarConocimientoCommand extends Command
     /**
      * Las fichas. Todo el contenido sale de lo que ya dice la guía — no se inventa nada nuevo.
      *
-     * @return list<array{tema: string, nombre: string, etiquetas: string, contenido: string}>
+     * @return list<array{tema: string, nombre: string, etiquetas: string, contenido: string,
+     *                     perfiles: list<string>}>
      */
     private function respuestas(): array
     {
         return [
+            // ── Las dos que NO duplican la guía: van sin acotar ──────────────────────────
+            // El tipo de cambio y las frazadas no están en ningún ítem de guía, y quien pregunta
+            // suele ser el huésped ya alojado —de noche y con frío, en el caso de las mantas—.
+            // Acotarlas a prospecto las dejaría mudas justo para quien las necesita.
+            [
+                'tema' => 'pagos',
+                'nombre' => 'Tipo de cambio',
+                'etiquetas' => 'tipo de cambio, en dolares, dolares o soles, en que moneda pago, '
+                    . 'cuanto es en soles, cuanto en dolares, exchange rate, pay in dollars, moneda',
+                'contenido' => 'Se cobra en soles. Si prefiere pagar en dólares también se acepta, '
+                    . 'y la conversión se hace con el tipo de cambio VENTA de SUNAT del día.'
+                    . "\n\n"
+                    . 'NO des una cifra: cambia cada día, y la que corresponda se la confirma el '
+                    . 'equipo al momento de cobrar. Decir el criterio ya responde la pregunta.',
+                'perfiles' => self::TODOS,
+            ],
+            [
+                'tema' => 'la-casa',
+                'nombre' => 'Frazadas adicionales',
+                'etiquetas' => 'frazadas, frazada, mantas, manta, cobijas, mas abrigo, tengo frio, '
+                    . 'hace frio de noche, blankets, extra blanket, abrigo',
+                'contenido' => 'Sí, hay frazadas adicionales y no cuestan nada. Lo único es que '
+                    . 'hay que pedirlas CON ANTICIPACIÓN: no se pueden llevar en el momento, así '
+                    . 'que conviene avisar por el chat con tiempo y se las dejamos preparadas.'
+                    . "\n\n"
+                    . 'Si lo que quiere es calor AHORA, eso es el calefactor: se enciende en '
+                    . 'remoto y está caliente en minutos. Las mantas son para quien lo prevé; el '
+                    . 'calefactor, para quien ya tiene frío. No son la misma respuesta.',
+                'perfiles' => self::TODOS,
+            ],
+
             [
                 'tema' => 'llegada',
                 'nombre' => 'Guardar equipaje (público)',
@@ -200,6 +247,7 @@ final class AgentSembrarConocimientoCommand extends Command
                     . 'la ciudad. También se pueden guardar varios días —por ejemplo mientras hace '
                     . 'un trek—: en ese caso conviene avisar con un día de antelación y decir '
                     . 'cuántos bultos son.',
+                'perfiles' => self::PUBLICO,
             ],
             [
                 'tema' => 'llegada',
@@ -210,6 +258,7 @@ final class AgentSembrarConocimientoCommand extends Command
                     . 'con dar la dirección. El coche llega hasta la puerta: la calle es plana y '
                     . 'ancha, sin escaleras ni un último tramo a pie, lo cual va bien con equipaje '
                     . 'pesado o con personas mayores. No ofrecemos traslado propio.',
+                'perfiles' => self::PUBLICO,
             ],
             [
                 'tema' => 'la-casa',
@@ -219,6 +268,7 @@ final class AgentSembrarConocimientoCommand extends Command
                 'contenido' => 'Sí. Cada casita tiene su propio calentador a gas, así que hay agua '
                     . 'caliente las 24 horas y no depende de horarios ni de un sistema compartido '
                     . 'con otros huéspedes.',
+                'perfiles' => self::PUBLICO,
             ],
             [
                 'tema' => 'servicios',
@@ -229,6 +279,7 @@ final class AgentSembrarConocimientoCommand extends Command
                     . 'playa de estacionamiento pública y gratuita, y a una cuadra una cochera '
                     . 'privada de pago. La gratuita no es un área vigilada, conviene decirlo. No '
                     . 'podemos reservar sitio en ninguna de las dos.',
+                'perfiles' => self::PUBLICO,
             ],
             [
                 'tema' => 'servicios',
@@ -237,6 +288,7 @@ final class AgentSembrarConocimientoCommand extends Command
                 'contenido' => 'Hay lavanderías económicas a media cuadra, frente a la gasolinera. '
                     . 'Además nuestro personal de limpieza ofrece servicio de lavandería a 1 dólar '
                     . 'el kilo: se coordina por el chat.',
+                'perfiles' => self::PUBLICO,
             ],
         ];
     }
