@@ -106,6 +106,52 @@ class PmsReservaRepository extends ServiceEntityRepository
      */
     public function findVivasByTelefono(?string $telefono, PhoneSanitizer $sanitizer): array
     {
+        return $this->buscarPorTelefono($telefono, $sanitizer, PmsEventoEstado::IDENTIFICAN_HUESPED);
+    }
+
+    /**
+     * Las CONSULTAS abiertas de un teléfono: reservas cuyos tramos siguen en `abierto`.
+     *
+     * ⚠️ **Esto NO identifica a un huésped, y no se puede usar para autorizar nada.** Una
+     * `inquiry` de Airbnb es alguien preguntando, no alguien alojado; tratarla como cliente es
+     * exactamente el incidente que motivó `VinculoComercial`. Para «¿de quién es este número?»
+     * está {@see self::findVivasByTelefono()}, que exige un estado de
+     * {@see PmsEventoEstado::IDENTIFICAN_HUESPED}. Ésta es su hermana para el otro lado: **qué
+     * está VENDIÉNDOSE a ese número**.
+     *
+     * Existe porque sin ella el modelo de frentes tenía un agujero mudo:
+     * `PmsFrentes::momentoDe()` preguntaba si una reserva era una consulta, pero la única
+     * fuente que tenía —`findVivasByTelefono()`— filtra por `IDENTIFICAN_HUESPED`, donde
+     * `abierto` no está. O sea que la respuesta era siempre «no» y `MomentoDeFrente::Venta` con
+     * entidad era **código inalcanzable**: el caso que motivó el modelo entero —un huésped
+     * alojado con una consulta de ampliación pendiente— no podía producirse.
+     *
+     * Se ciñe a las que siguen teniendo sentido comercial: nada que ya terminó, y nada más allá
+     * de la ventana de anticipación. Una consulta de hace tres meses no es una venta viva.
+     *
+     * @return list<PmsReserva> Vacía si no hay ninguna.
+     */
+    public function findConsultasAbiertasByTelefono(?string $telefono, PhoneSanitizer $sanitizer): array
+    {
+        return $this->buscarPorTelefono($telefono, $sanitizer, [PmsEventoEstado::CODIGO_ABIERTO]);
+    }
+
+    /**
+     * El buscador que comparten {@see self::findVivasByTelefono()} y
+     * {@see self::findConsultasAbiertasByTelefono()}: mismo criterio de coincidencia de
+     * teléfono, misma ventana temporal, mismo orden por relevancia. **Lo único que cambia es
+     * qué estados cuentan**, y por eso es el único parámetro.
+     *
+     * Está factorizado a propósito y no copiado: el criterio de coincidencia (exacto o los
+     * últimos 8 dígitos, sobre los DOS teléfonos de la reserva) es delicado —los números de las
+     * OTA vienen con el código de país duplicado— y tenerlo dos veces garantizaba que las
+     * copias se separasen.
+     *
+     * @param list<string> $estados
+     * @return list<PmsReserva>
+     */
+    private function buscarPorTelefono(?string $telefono, PhoneSanitizer $sanitizer, array $estados): array
+    {
         $telefono = trim((string) $telefono);
         if ($telefono === '') {
             return [];
@@ -147,7 +193,7 @@ class PmsReservaRepository extends ServiceEntityRepository
             ->andWhere('e.fin >= :corte')
             ->andWhere('e.inicio <= :hasta')
             ->setParameter('exacto', $limpio)
-            ->setParameter('estadosVivos', PmsEventoEstado::IDENTIFICAN_HUESPED)
+            ->setParameter('estadosVivos', $estados)
             ->setParameter('corte', $corte)
             ->setParameter('hasta', $hoy->modify(sprintf('+%d days', self::DIAS_ANTICIPACION)))
             ->distinct()
@@ -157,9 +203,9 @@ class PmsReservaRepository extends ServiceEntityRepository
         // El orden se resuelve en PHP y no en el ORDER BY: hace falta el tramo relevante de
         // cada reserva (el que está en curso, o el próximo), y con el JOIN de arriba una
         // reserva de varias casitas trae varias filas — ordenar en SQL mezclaría los tramos.
-        usort($candidatas, function (PmsReserva $a, PmsReserva $b) use ($hoy, $corte): int {
-            $ta = $this->tramoRelevante($a, $hoy, $corte);
-            $tb = $this->tramoRelevante($b, $hoy, $corte);
+        usort($candidatas, function (PmsReserva $a, PmsReserva $b) use ($hoy, $corte, $estados): int {
+            $ta = $this->tramoRelevante($a, $hoy, $corte, $estados);
+            $tb = $this->tramoRelevante($b, $hoy, $corte, $estados);
 
             // En curso antes que futura.
             if ($ta['enCurso'] !== $tb['enCurso']) {
@@ -183,16 +229,22 @@ class PmsReservaRepository extends ServiceEntityRepository
      * MISMOS filtros que la consulta. Sin repetirlos, una reserva con un tramo cancelado
      * antiguo y otro confirmado futuro se ordenaría por el cancelado.
      *
+     * Por eso `$estados` llega como parámetro y no se lee de una constante: quien busca
+     * consultas abiertas juzga por tramos `abierto`, y con la lista fija todos sus tramos
+     * quedaban descartados aquí y el orden salía por el valor de respaldo —o sea, ninguno—.
+     *
+     * @param list<string> $estados
+     *
      * @return array{enCurso: bool, inicio: DateTimeInterface}
      */
-    private function tramoRelevante(PmsReserva $reserva, DateTimeImmutable $hoy, DateTimeImmutable $corte): array
+    private function tramoRelevante(PmsReserva $reserva, DateTimeImmutable $hoy, DateTimeImmutable $corte, array $estados): array
     {
         $mejor = null;
         $mejorEnCurso = false;
 
         foreach ($reserva->getEventosCalendario() as $evento) {
             if ($evento->getEventoOrigen() !== null
-                || !in_array($evento->getEstado()?->getId(), PmsEventoEstado::IDENTIFICAN_HUESPED, true)
+                || !in_array($evento->getEstado()?->getId(), $estados, true)
             ) {
                 continue;
             }

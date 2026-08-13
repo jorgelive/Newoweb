@@ -7,9 +7,9 @@ namespace App\Pms\Service\Agent;
 use App\Message\Contract\Frente;
 use App\Message\Contract\FrentesPorDominioInterface;
 use App\Message\Contract\MomentoDeFrente;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Repository\PmsReservaRepository;
-use App\Pms\Service\Message\PmsReservaMessageContext;
 use App\Service\Phone\PhoneSanitizer;
 
 /**
@@ -21,12 +21,10 @@ use App\Service\Phone\PhoneSanitizer;
  * el rastro en el log de que había más de una). Esta clase **envuelve** esa lista; si el
  * criterio cambia alguna vez, cambia allí y aquí no hay nada que tocar.
  *
- * ── El momento sale del mismo sitio que el vínculo ──────────────────────────
- * Una consulta sin confirmar —el `inquiry` de una OTA, un bloqueo— es un asunto en VENTA: hay
- * alguien decidiendo. Una reserva confirmada es un asunto en OPERACIÓN: hay una estancia que
- * atender. Es exactamente el mismo corte que hace `PmsReservaMessageContext::getVinculo()` para
- * decidir entre `Interesado` y `Cliente`, y se mantiene igual a propósito: dos definiciones de
- * «esto ya está vendido» acabarían separándose.
+ * ── El momento lo decide la CONSULTA, no un cálculo ────────────────────────
+ * Un `inquiry` de una OTA es un asunto en VENTA; una reserva con tramos que identifican a un
+ * huésped es un asunto en OPERACIÓN. Cada uno viene de su propia consulta al repositorio, así
+ * que el momento no se deduce: se sabe por de dónde salió la fila.
  *
  * ── La etiqueta es lo único que ve el modelo ────────────────────────────────
  * Por eso la escribe el dominio y no el núcleo: aquí se sabe que la casita y las fechas se
@@ -79,6 +77,19 @@ final readonly class PmsFrentes implements FrentesPorDominioInterface
     }
 
     /**
+     * ── DOS fuentes, y hacen falta las dos ──────────────────────────────────
+     * `findVivasByTelefono()` sólo devuelve reservas con algún tramo en
+     * {@see PmsEventoEstado::IDENTIFICAN_HUESPED}, donde `abierto` NO está. Con ella sola,
+     * preguntar «¿esto es una consulta?» daba siempre que no y el momento `Venta` con entidad
+     * era **inalcanzable**: el caso que motivó el modelo entero —un huésped alojado con una
+     * consulta de ampliación pendiente— no podía darse.
+     *
+     * Por eso la venta viene de su hermana, `findConsultasAbiertasByTelefono()`. Están
+     * separadas a propósito y no unidas en una consulta con más estados: la primera decide
+     * **de quién es un número** —una frontera de autorización— y la segunda sólo dice qué se le
+     * está vendiendo. Mezclarlas convertiría una consulta de Airbnb en un huésped identificado,
+     * que es exactamente el incidente que motivó `VinculoComercial`.
+     *
      * @return list<Frente>
      */
     public function frentesVivos(?string $telefono): array
@@ -86,66 +97,77 @@ final readonly class PmsFrentes implements FrentesPorDominioInterface
         $frentes = [];
 
         foreach ($this->reservas->findVivasByTelefono($telefono, $this->telefonos) as $reserva) {
-            // Una reserva cancelada no es un asunto abierto: no hay nada que atender ni nada
-            // que vender ahí. Quien quiera volver a reservar usa la puerta de venta.
-            if ($reserva->isCancelada()) {
-                continue;
-            }
+            $frentes[] = $this->frenteDe($reserva, MomentoDeFrente::Operacion);
+        }
 
-            $frentes[] = new Frente(
-                negocio: self::NEGOCIO,
-                momento: $this->momentoDe($reserva),
-                etiqueta: $this->etiquetaDe($reserva),
-                entidadTipo: 'pms_reserva',
-                entidadId: (string) $reserva->getId(),
-            );
+        foreach ($this->reservas->findConsultasAbiertasByTelefono($telefono, $this->telefonos) as $consulta) {
+            $frentes[] = $this->frenteDe($consulta, MomentoDeFrente::Venta);
         }
 
         return $frentes;
     }
 
-    /**
-     * Sin confirmar = todavía se está vendiendo; confirmada = hay estancia que atender.
-     *
-     * ⚠️ **No se reimplementa el corte, se reutiliza.** `PmsReservaMessageContext` es la clase
-     * que decide si una reserva es una consulta (`inquiry`/bloqueo) o algo vendido, y es la
-     * misma que ya alimenta `VinculoComercial` para todo el sistema de mensajería. Escribir
-     * aquí un segundo `foreach` sobre los estados de los eventos habría dado dos definiciones
-     * de «esto ya está vendido» destinadas a separarse — y el día que se separaran, el agente
-     * le hablaría con voz de cliente a quien el resto del sistema tiene por interesado.
-     *
-     * Se instancia a mano y no se inyecta porque es un envoltorio de una entidad, no un
-     * servicio: el mismo uso que le dan `Beds24ReceivePersister` y `PmsReservaRecalculoService`.
-     * La información financiera se omite: `isAbiertoOrBloqueo()` sólo mira los eventos.
-     */
-    private function momentoDe(PmsReserva $reserva): MomentoDeFrente
+    private function frenteDe(PmsReserva $reserva, MomentoDeFrente $momento): Frente
     {
-        return (new PmsReservaMessageContext($reserva))->isAbiertoOrBloqueo()
-            ? MomentoDeFrente::Venta
-            : MomentoDeFrente::Operacion;
+        return new Frente(
+            negocio: self::NEGOCIO,
+            momento: $momento,
+            etiqueta: $this->etiquetaDe($reserva, $momento),
+            entidadTipo: 'pms_reserva',
+            entidadId: (string) $reserva->getId(),
+        );
     }
 
     /**
-     * «Tu reserva Casita 3, 12–15 mar» — lo justo para reconocerla de un vistazo.
+     * «Tu reserva Casita 3, 12/03–15/03» — lo justo para reconocerla de un vistazo.
      *
      * Sin localizador ni importes: esto se le enseña al modelo para que pueda preguntar «¿me
      * hablas de ésta o de la otra?», y para eso basta con la casita y los días. Cuanto menos
      * viaje, menos hay que vigilar.
+     *
+     * ⚠️ **Se mira sólo los tramos que cuentan para ESTE momento**, no la colección entera ni
+     * `getFechaLlegada()`/`getFechaSalida()`. Esos dos son agregados mín/máx de todos los
+     * tramos, y el propio repositorio ya avisa del fallo: una reserva con la Casita 1 cancelada
+     * y la Casita 3 viva daba «Casita 1 + Casita 3, 05/09–20/09» cuando la estancia real es del
+     * 12 al 15 en la 3. Esa etiqueta es justo lo que el modelo le lee al cliente para
+     * desambiguar, así que una ventana inventada ahí es peor que no tener etiqueta.
      */
-    private function etiquetaDe(PmsReserva $reserva): string
+    private function etiquetaDe(PmsReserva $reserva, MomentoDeFrente $momento): string
     {
+        $estados = $momento === MomentoDeFrente::Venta
+            ? [PmsEventoEstado::CODIGO_ABIERTO]
+            : PmsEventoEstado::IDENTIFICAN_HUESPED;
+
         $unidades = [];
+        $llegada = null;
+        $salida = null;
 
         foreach ($reserva->getEventosCalendario() as $evento) {
+            // Las extensiones fuera: son la noche fantasma de un horario extra, y estirarían la
+            // ventana un día por su cuenta.
+            if ($evento->getEventoOrigen() !== null
+                || !in_array($evento->getEstado()?->getId(), $estados, true)
+            ) {
+                continue;
+            }
+
             $nombre = $evento->getPmsUnidad()?->getNombre();
 
             if ($nombre !== null && !in_array($nombre, $unidades, true)) {
                 $unidades[] = $nombre;
             }
-        }
 
-        $llegada = $reserva->getFechaLlegada();
-        $salida = $reserva->getFechaSalida();
+            $inicio = $evento->getInicio();
+            $fin = $evento->getFin();
+
+            if ($inicio !== null && ($llegada === null || $inicio < $llegada)) {
+                $llegada = $inicio;
+            }
+
+            if ($fin !== null && ($salida === null || $fin > $salida)) {
+                $salida = $fin;
+            }
+        }
 
         $partes = [];
 

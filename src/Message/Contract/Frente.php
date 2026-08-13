@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Contract;
 
+use InvalidArgumentException;
+
 /**
  * Un asunto abierto de quien escribe: «tu reserva del 12 al 15», «tu tour del 14»,
  * «reservar alojamiento».
@@ -50,7 +52,18 @@ final readonly class Frente
         public ?string $entidadTipo = null,
         public ?string $entidadId = null,
         public bool $porDefecto = false,
-    ) {}
+    ) {
+        // Tipo y id van juntos o no van. Un frente con tipo y sin id se cuela por dos sitios a
+        // la vez: `esVentaSintetica()` lo daría por la puerta de venta —mira sólo el id— y su
+        // `id()` **colisionaría con la puerta real del mismo negocio**, porque el hash no
+        // tendría nada que lo distinga. Entonces `porId()` devolvería el primero de la lista y
+        // elegir «reservar alojamiento» acabaría hablando de una reserva concreta.
+        if (($this->entidadTipo === null) !== ($this->entidadId === null)) {
+            throw new InvalidArgumentException(
+                'Un Frente lleva entidadTipo y entidadId juntos, o ninguno de los dos.'
+            );
+        }
+    }
 
     /**
      * Identificador corto y estable que se le enseña al modelo.
@@ -66,7 +79,13 @@ final readonly class Frente
     public function id(): string
     {
         return 'f' . substr(
-            hash('xxh128', $this->negocio . '|' . $this->momento->value . '|' . ($this->entidadId ?? '')),
+            hash(
+                'xxh128',
+                // `entidadTipo` entra en el hash aunque hoy no haga falta: en cuanto un negocio
+                // tenga dos entidades ancla, dos ids iguales de tablas distintas colisionarían.
+                $this->negocio . '|' . $this->momento->value
+                . '|' . ($this->entidadTipo ?? '') . '|' . ($this->entidadId ?? '')
+            ),
             0,
             6
         );
@@ -76,6 +95,25 @@ final readonly class Frente
     public function esVentaSintetica(): bool
     {
         return $this->momento === MomentoDeFrente::Venta && $this->entidadId === null;
+    }
+
+    /**
+     * El mismo frente, marcado como el que se toma cuando el mensaje no aclara de cuál habla.
+     *
+     * Existe para que quien marca el defecto no tenga que reconstruir el objeto campo a campo:
+     * así estaba, y el día que `Frente` gane una propiedad, quien la añada tendría que acordarse
+     * de ese sitio o **se perdería en silencio, sólo en el frente por defecto**.
+     */
+    public function marcadoPorDefecto(): self
+    {
+        return new self(
+            $this->negocio,
+            $this->momento,
+            $this->etiqueta,
+            $this->entidadTipo,
+            $this->entidadId,
+            porDefecto: true,
+        );
     }
 
     /** La línea que ve el modelo. Sin uuids, sin estados internos, sin importes. */

@@ -106,9 +106,11 @@ final class AgentSkillCommand extends Command
             // definición, no una limitación de la prueba. El HILO sí se le pasa: es lo único
             // que le permite escalar, y sin él esta prueba no podía reproducir el camino real
             // —que es justo donde estaba el bug—.
-            $actor = AgentActor::prospecto('cli', $conversacion);
+            // Por la factoría: es la que puebla `dominios()`, y probar una skill con un actor
+            // que no los lleva mide un catálogo que en producción no existe.
+            $actor = $this->actores->prospecto('cli', $conversacion);
         } elseif ($input->getOption('como-huesped')) {
-            $actor = AgentActor::huesped('cli', 'pms_reserva', $contexto !== null ? (string) $contexto : null, $conversacion);
+            $actor = $this->actores->huesped('cli', 'pms_reserva', $contexto !== null ? (string) $contexto : null, $conversacion);
         } else {
             $actor = $this->actorAdmin($contexto !== null ? (string) $contexto : null);
         }

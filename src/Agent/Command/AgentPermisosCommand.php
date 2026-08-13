@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Command;
 
 use App\Agent\Access\AgentActor;
+use App\Agent\Access\AgentActorFactory;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillRegistry;
 use App\Entity\User;
@@ -32,7 +33,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class AgentPermisosCommand extends Command
 {
     public function __construct(
-        private readonly SkillRegistry $registro
+        private readonly SkillRegistry $registro,
+        // ⚠️ Por la FACTORÍA y no por `AgentActor::` a secas, y no es un detalle: la factoría es
+        // la que puebla `dominios()`, y sin ellos el catálogo que sale por aquí NO es el que ve
+        // un actor real. Esta tabla se usa para auditar permisos; si miente, miente en el sitio
+        // donde más caro sale creerla.
+        private readonly AgentActorFactory $actores,
     ) {
         parent::__construct();
     }
@@ -63,7 +69,7 @@ final class AgentPermisosCommand extends Command
         $filas[] = [
             'Huésped (chat)',
             $this->listar($this->registro->paraActor(
-                AgentActor::huesped('whatsapp_meta', 'pms_reserva', 'ejemplo'),
+                $this->actores->huesped('whatsapp_meta', 'pms_reserva', 'ejemplo'),
                 incluirEscritura: false
             )),
         ];
@@ -74,7 +80,7 @@ final class AgentPermisosCommand extends Command
         $filas[] = [
             'Prospecto (chat)',
             $this->listar($this->registro->paraActor(
-                AgentActor::prospecto('whatsapp_meta'),
+                $this->actores->prospecto('whatsapp_meta'),
                 incluirEscritura: false
             )),
         ];

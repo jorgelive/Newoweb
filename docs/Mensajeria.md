@@ -6370,13 +6370,43 @@ a secas, sin dominios, así que nunca ejerce el filtro. Se comprueba con
 Las dos primeras filas son la prueba de que no se rompió nada; la tercera, de que el mecanismo
 hace algo — sin ella, el filtro podría estar inerte y nadie se enteraría.
 
-⚠️ **Y esa tercera fila deja un aviso: el pasajero de turismo no puede escalar.** Sólo le llega
-`consultar_tipo_cambio`, porque `EscalarAlEquipoSkill` está marcada `['hotelero']` — su
-`margenes()` consulta `PmsDisponibilidadService` y habla de `pms_reserva`. Es un callejón sin
-salida idéntico al que ya se corrigió una vez para los prospectos, y bloquea al primer cliente
-de tours que escriba. **Antes de encender el dominio turístico hay que sacar ese enriquecimiento
-a un método por dominio** —el sitio natural es `InstruccionesDeDominioInterface`, que ya es «lo
-que depende del negocio»— y entonces sí declarar la skill transversal.
-
 Hoy, con un solo negocio registrado, **no cambia ningún comportamiento**: todo actor real cae en
 `hotelero` y ve exactamente lo que veía.
+
+#### ⚠️ El filtro todavía no atrapa nada, y hay que saberlo
+
+`dominiosPara()` devuelve **los negocios vendibles ∪ el del contexto**, y el alojamiento es
+vendible. O sea que **todo actor real lleva `hotelero`** y la intersección pasa siempre. El día
+que exista turismo, un pasajero llevará `['hotelero','turistico']` y **seguirá recibiendo el
+catálogo hotelero de operación** —`consultar_mi_reserva`, `consultar_wifi`…—, que morirá con
+«esta conversación no está asociada a ninguna reserva».
+
+La causa de fondo: las skills se etiquetan sólo por NEGOCIO, sin el eje venta/operación. Es
+deliberado —etiquetarlas por momento dejaría fuera al huésped que quiere ampliar—, pero deja la
+tensión abierta: incluir lo vendible en el actor arrastra las skills de **operación** de ese
+negocio.
+
+Se resuelve cuando los asuntos de cada negocio sean **entidades propias** y `dominios()` se
+derive de ellas en vez de «lo vendible». Hasta entonces, la fila del pasajero de
+`probar-dominios.php` es una simulación: se arma a mano con `dominios: ['turistico']`, una
+combinación **que la factoría nunca produce**. Prueba la mecánica del registro, no el camino de
+producción. No construyas encima dando por hecho que el recorte ya funciona.
+
+#### Dos fuentes para los frentes del PMS, y no es duplicación
+
+`PmsFrentes::frentesVivos()` llama a **dos** consultas y cada una fija el momento:
+
+| Consulta | Estados | Momento | Para qué |
+|---|---|---|---|
+| `findVivasByTelefono()` | `IDENTIFICAN_HUESPED` | `Operacion` | **de quién es un número** — frontera de autorización |
+| `findConsultasAbiertasByTelefono()` | `abierto` | `Venta` | qué se le está vendiendo |
+
+Están separadas a propósito: mezclarlas en una consulta con más estados convertiría un `inquiry`
+de Airbnb en un huésped identificado, que es el incidente que motivó `VinculoComercial`.
+
+⚠️ La segunda **nació de un fallo mudo**: sin ella, `momentoDe()` preguntaba «¿esto es una
+consulta?» a una lista que por construcción nunca contiene `abierto`, así que la respuesta era
+siempre «no» y **`MomentoDeFrente::Venta` con entidad era código inalcanzable**. El caso que
+motivó el modelo entero —huésped alojado con una consulta de ampliación pendiente— no podía
+producirse, y el test lo daba por bueno porque usaba dobles que se saltan `PmsFrentes`. Si
+alguna vez tocas esto, comprueba el camino real con `var/probar-frentes.php`, no sólo la suite.

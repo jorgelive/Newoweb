@@ -22,9 +22,23 @@ namespace App\Agent\Skill;
  * responde a otra pregunta: **de qué negocio es esta herramienta**.
  *
  * ── No es un permiso ────────────────────────────────────────────────────────
- * Es un recorte de catálogo, no un control de acceso: sirve para que a un pasajero de tours no
- * le aparezca `consultar_mi_reserva` entre las herramientas ofrecidas. Lo que de verdad impide
- * leer datos ajenos siguen siendo los roles y el contexto del actor.
+ * Es un recorte de catálogo, no un control de acceso. Lo que de verdad impide leer datos ajenos
+ * siguen siendo los roles y el contexto del actor.
+ *
+ * ── ⚠️ HOY NO RECORTA NADA, y hay que saberlo ───────────────────────────────
+ * `AgentActorFactory` puebla `ActorInterface::dominios()` con **los negocios vendibles ∪ el del
+ * contexto**, y el alojamiento es vendible, así que todo actor real lleva `hotelero` y la
+ * intersección pasa siempre. El día que exista turismo, un pasajero llevará
+ * `['hotelero','turistico']` y **seguirá recibiendo el catálogo hotelero de operación** —
+ * `consultar_mi_reserva`, `consultar_wifi`…— que morirá con «esta conversación no está asociada
+ * a ninguna reserva».
+ *
+ * La causa es que las skills se etiquetan sólo por NEGOCIO, sin el eje venta/operación —
+ * decisión deliberada, porque etiquetarlas por momento habría dejado fuera al huésped que
+ * quiere ampliar—. La tensión se resuelve cuando los asuntos de cada negocio sean entidades
+ * propias y `dominios()` se derive de ellas, no de «lo vendible». **Hasta entonces este filtro
+ * es una red que todavía no atrapa nada**, y conviene no construirle encima dando por hecho lo
+ * contrario. Ver docs/Mensajeria.md §19.14.
  */
 interface SkillDominioInterface
 {

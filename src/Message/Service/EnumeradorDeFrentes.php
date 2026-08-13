@@ -26,25 +26,37 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
  * Cuesta una línea por negocio en el bloque volátil del prompt. Es barato y es la diferencia
  * entre un agente que sabe vender y uno que sólo atiende.
  */
-final readonly class EnumeradorDeFrentes
+final class EnumeradorDeFrentes
 {
     /**
      * Tope de asuntos con entidad que se le enseñan al modelo.
      *
      * No es una optimización prematura: el bloque de frentes viaja en la parte VOLÁTIL del
-     * prompt, se paga entera en cada turno y no se cachea. Un cliente veterano con quince
+     * prompt, se paga entero en cada turno y no se cachea. Un cliente veterano con quince
      * expedientes convertiría cada mensaje —incluido un «gracias»— en una factura de contexto.
-     * Con más de este tope, se enseñan los más recientes; el resto se resume en una línea y, si
-     * de verdad hablaba de uno de los que no salen, el camino largo tiene skills para buscarlo.
+     *
+     * Se enseñan los primeros que devuelva cada dominio —cada uno ordena los suyos por
+     * relevancia, el PMS con «en curso antes que próxima»— y el resto se resume en una línea,
+     * para que el modelo SEPA que hay más en vez de creer que la lista es todo. Si de verdad
+     * hablaba de uno de los que no salen, el camino largo tiene skills para buscarlo.
      */
     private const MAX_CON_ENTIDAD = 5;
+
+    /**
+     * Cuántos asuntos con entidad se quedaron fuera del tope en la última enumeración.
+     *
+     * Es lo único que esta clase recuerda entre `paraTelefono()` y `bloqueParaElPrompt()`, y por
+     * eso no es `readonly`. La alternativa —devolver una tupla o un objeto lista— ensuciaba las
+     * cinco llamadas para transportar un entero que sólo usa el bloque de texto.
+     */
+    private int $ocultos = 0;
 
     /**
      * @param iterable<FrentesPorDominioInterface> $dominios
      */
     public function __construct(
         #[AutowireIterator('app.message.frentes_dominio')]
-        private iterable $dominios
+        private readonly iterable $dominios
     ) {}
 
     /**
@@ -67,8 +79,11 @@ final readonly class EnumeradorDeFrentes
                 $conEntidad[] = $frente;
             }
 
+            // Indexado por negocio: dos implementaciones del mismo —el día que el alojamiento
+            // se parta en servicios— pintarían dos puertas idénticas Y CON EL MISMO ID, porque
+            // el hash no las distingue. `porId()` devolvería la primera y nadie lo notaría.
             if ($dominio->esVendible()) {
-                $ventas[] = new Frente(
+                $ventas[$dominio->negocio()] = new Frente(
                     negocio: $dominio->negocio(),
                     momento: MomentoDeFrente::Venta,
                     etiqueta: $dominio->etiquetaDeVenta(),
@@ -76,18 +91,11 @@ final readonly class EnumeradorDeFrentes
             }
         }
 
+        $this->ocultos = max(0, count($conEntidad) - self::MAX_CON_ENTIDAD);
         $conEntidad = array_slice($conEntidad, 0, self::MAX_CON_ENTIDAD);
 
         if ($conEntidad !== []) {
-            $primero = $conEntidad[0];
-            $conEntidad[0] = new Frente(
-                negocio: $primero->negocio,
-                momento: $primero->momento,
-                etiqueta: $primero->etiqueta,
-                entidadTipo: $primero->entidadTipo,
-                entidadId: $primero->entidadId,
-                porDefecto: true,
-            );
+            $conEntidad[0] = $conEntidad[0]->marcadoPorDefecto();
         }
 
         return array_values([...$conEntidad, ...$ventas]);
@@ -106,8 +114,20 @@ final readonly class EnumeradorDeFrentes
             return '';
         }
 
-        return "FRENTES (asuntos abiertos de quien escribe):\n"
+        $bloque = "FRENTES (asuntos abiertos de quien escribe):\n"
             . implode("\n", array_map(static fn (Frente $f): string => $f->comoLinea(), $frentes));
+
+        // Decir que hay más importa: sin esta línea, el truncado es mudo y el modelo da la
+        // lista por completa. Si el cliente habla del sexto asunto, elegiría otro frente
+        // convencido de que acierta.
+        if ($this->ocultos > 0) {
+            $bloque .= sprintf(
+                "\n(y %d asunto(s) más que no caben aquí: si habla de otro, pregúntale cuál)",
+                $this->ocultos
+            );
+        }
+
+        return $bloque;
     }
 
     /**
@@ -185,22 +205,6 @@ final readonly class EnumeradorDeFrentes
         }
 
         return array_values(array_unique($dominios));
-    }
-
-    /**
-     * Los negocios que existen, para la unión de {@see \App\Agent\Access\ActorInterface::dominios()}.
-     *
-     * @return list<string>
-     */
-    public function negocios(): array
-    {
-        $negocios = [];
-
-        foreach ($this->dominios as $dominio) {
-            $negocios[] = $dominio->negocio();
-        }
-
-        return array_values(array_unique($negocios));
     }
 
     /**

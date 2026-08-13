@@ -16,7 +16,6 @@ use App\Entity\User;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
-use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Repository\UserRepository;
@@ -138,15 +137,23 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
     }
 
     /**
-     * Del negocio de ALOJAMIENTO: habla de reservas, estancias, casitas o su dinero.
+     * **Transversal**: pedir ayuda humana no es de ningún negocio.
      *
-     * Recorta el catálogo, no los permisos — ver {@see SkillDominioInterface}.
+     * Se etiquetó `['hotelero']` al marcar en bloque las 30 skills de esta carpeta, y era un
+     * error con consecuencia grave: dejaba sin escalada a cualquier actor que no fuera de
+     * alojamiento. Un pasajero con una emergencia no habría hecho sonar ningún teléfono, que es
+     * el daño máximo que puede hacer este catálogo.
+     *
+     * Lo único de PMS que hay aquí es el enriquecimiento de {@see self::margenes()}, y **ya se
+     * autoprotege**: si el contexto no es `pms_reserva` devuelve cadena vacía y el aviso sale
+     * igual, sólo que sin esa línea extra. Cuando turismo quiera la suya —hora del tour, punto
+     * de recojo— el sitio es un método por dominio, no un segundo `if` aquí dentro.
      *
      * @return list<string>
      */
     public function dominios(): array
     {
-        return [PmsFrentes::NEGOCIO];
+        return [];
     }
 
     /** El huésped la dispara sin saberlo; el equipo puede escalar desde el panel. */

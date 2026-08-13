@@ -129,6 +129,58 @@ final class EnumeradorDeFrentesTest extends TestCase
     }
 
     /**
+     * El tope no puede ser mudo: si se recortan asuntos y el bloque no lo dice, el modelo da la
+     * lista por completa y elegirá otro frente convencido de que acierta.
+     */
+    #[Test]
+    public function el_bloque_avisa_de_los_asuntos_que_no_caben(): void
+    {
+        $vivos = [];
+        for ($i = 1; $i <= 7; $i++) {
+            $vivos[] = $this->ancla('hotelero', MomentoDeFrente::Operacion, 'r' . $i);
+        }
+
+        $enumerador = new EnumeradorDeFrentes([$this->dominio('hotelero', $vivos)]);
+        $frentes = $enumerador->paraTelefono('51987654321');
+
+        $conEntidad = array_filter($frentes, static fn (Frente $f) => !$f->esVentaSintetica());
+        self::assertCount(5, $conEntidad, 'se enseñan como mucho MAX_CON_ENTIDAD');
+
+        self::assertStringContainsString('2 asunto(s) más', $enumerador->bloqueParaElPrompt($frentes));
+    }
+
+    /** Sin recorte no se inventa el aviso. */
+    #[Test]
+    public function sin_recorte_no_hay_linea_de_sobrantes(): void
+    {
+        $enumerador = new EnumeradorDeFrentes([
+            $this->dominio('hotelero', [$this->ancla('hotelero', MomentoDeFrente::Operacion, 'r1')]),
+        ]);
+
+        self::assertStringNotContainsString(
+            'más que no caben',
+            $enumerador->bloqueParaElPrompt($enumerador->paraTelefono('51987654321'))
+        );
+    }
+
+    /**
+     * Dos implementaciones del mismo negocio pintarían dos puertas idénticas **con el mismo
+     * id**, y `porId()` devolvería la primera sin que nadie lo notara.
+     */
+    #[Test]
+    public function no_se_duplica_la_puerta_de_venta_de_un_negocio(): void
+    {
+        $enumerador = new EnumeradorDeFrentes([
+            $this->dominio('hotelero', []),
+            $this->dominio('hotelero', []),
+        ]);
+
+        $ventas = array_filter($enumerador->paraTelefono(null), static fn (Frente $f) => $f->esVentaSintetica());
+
+        self::assertCount(1, $ventas);
+    }
+
+    /**
      * A qué negocios llega un actor: lo vendible SIEMPRE, más aquel en cuyo contexto está.
      *
      * Es lo que impide que el filtro de dominio deje sin catálogo a un prospecto —que por
