@@ -65,11 +65,19 @@ final class AgentSembrarConocimientoCommand extends Command
     ];
 
     /**
-     * «Sólo para quien todavía no ha reservado»: la declaración de versión pública.
+     * La declaración de «versión pública»: **todos menos el huésped**.
+     *
+     * ⚠️ El que sobra es el huésped, y sólo él: para él existe la ficha de la guía, que es mejor
+     * —por casita, con sus horas y sus códigos resueltos—. Todos los demás la necesitan.
+     *
+     * La primera versión ponía sólo `prospecto` e `interesado`, y dejaba al EQUIPO viendo menos
+     * que un desconocido: probando desde el WhatsApp interno, «¿hay cochera?» se contestó con un
+     * «No tenemos cochera propia» —el agente no tenía la ficha y tiró de memoria— en vez de
+     * ofrecer las dos opciones que existen. Quien prueba el bot es justamente el equipo.
      *
      * @var list<string>
      */
-    private const array PUBLICO = ['prospecto', 'interesado'];
+    private const array PUBLICO = ['prospecto', 'interesado', 'personal', 'colaborador'];
 
     /** Sin acotar: la contesta a cualquiera, porque no pisa nada de la guía. @var list<string> */
     private const array TODOS = [];

@@ -7449,3 +7449,30 @@ modelo más rápido. No se pierde nada por el camino: el colaborador escribe con
 
 ⚠️ **La emergencia se comprueba ANTES que el equipo.** Si un colaborador avisa de un incendio, eso
 se sigue atendiendo con el tramo alto: quien escribe no cambia lo que está en juego.
+
+### 22.19 «Público» significa todos menos el huésped, no sólo los prospectos
+
+La primera versión de las fichas duplicadas se acotó a `prospecto` e `interesado`. El
+razonamiento era correcto —el huésped debe recibir la ficha de SU casita, que es mejor— y tenía
+una consecuencia que no se vio: **el equipo se quedó viendo menos que un desconocido**.
+
+Se descubrió probando el bot desde el WhatsApp interno:
+
+```
+«Dan frazadas adicionales en los departamentos»  → correcto (esa ficha va sin acotar)
+«Hay cochera»                                    → «No tenemos cochera propia.»
+```
+
+La segunda es una negativa seca donde había dos opciones que ofrecer. El agente no tenía la ficha
+—quien preguntaba era del equipo— y tiró de memoria. Y quien prueba el bot es, precisamente, el
+equipo: el fallo se habría quedado ahí, invisible, porque los prospectos sí recibían la respuesta
+buena.
+
+**La regla:** el único perfil que sobra es `huesped`, porque para él existe algo mejor. Todos los
+demás la necesitan. `ValidadorDeConocimiento` comprueba exactamente eso —que el huésped no esté en
+la lista—, no una lista blanca de perfiles concretos.
+
+⚠️ Y queda el hueco de fondo, que esta migración **no** arregla: un miembro del equipo sin
+`reserva_id` tampoco llega a los ítems `(general)` de la guía —`consultar_guia` le pide una casita—.
+Por eso contestó de memoria en vez de leer «Estacionamiento (general)», que existe desde hace
+meses. Abrir la puerta pública a los ítems generales sigue pendiente.

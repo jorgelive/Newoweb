@@ -105,9 +105,9 @@ class AgentConocimientoCrudController extends BaseCrudController
         <strong>Por eso duplicar a veces es correcto.</strong> «¿Hay estacionamiento?» ya está en la
         guía, pero el que lo pregunta suele no tener reserva todavía. La copia genérica aquí es la
         respuesta buena para él — siempre que la <strong>declares</strong>: en «A quién se le puede
-        contar», marca <strong>Prospecto</strong> e <strong>Interesado</strong> y nada más. Así el
-        huésped sigue recibiendo la versión de su casita, que es mejor, y el que aún no ha reservado
-        recibe ésta.
+        contar», marca todos <strong>menos Huésped</strong>. Así él sigue recibiendo la versión de
+        su casita, que es mejor, y todos los demás —incluido el equipo, que es quien prueba el
+        bot— reciben ésta.
         <br><br>
         Al guardar te avisamos si la guía ya lo contesta: no te lo impide, te dice qué tema es para
         que decidas. <strong>Una copia sin acotar sí es un error</strong> —el huésped se llevaría esta
@@ -155,10 +155,10 @@ class AgentConocimientoCrudController extends BaseCrudController
                 . 'en dos casos:<br>'
                 . '· <strong>Es interno</strong> —un procedimiento, un código—: marca sólo Personal '
                 . 'y Colaborador.<br>'
-                . '· <strong>Duplica un tema de la guía a propósito</strong>, para quien todavía no '
-                . 'tiene reserva: marca sólo <strong>Prospecto</strong> e <strong>Interesado</strong>. '
-                . 'Eso ES la declaración de «esto es la versión pública»; sin ella, el huésped '
-                . 'recibiría esta respuesta genérica en lugar de la de su casita.')
+                . '· <strong>Duplica un tema de la guía a propósito</strong>: marca todos '
+                . '<strong>menos Huésped</strong>. Eso ES la declaración de «versión pública»; sin '
+                . 'ella el huésped recibiría la genérica en lugar de la de su casita, y acotándola '
+                . 'de más dejas al equipo sin ella.')
             ->setColumns(6);
 
         yield BooleanField::new('requiereHumano', 'Además, avisar al equipo')

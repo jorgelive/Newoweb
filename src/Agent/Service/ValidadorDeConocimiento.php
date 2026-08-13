@@ -24,8 +24,9 @@ use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
  * caliente?»— se lleva hoy una repregunta en vez de una respuesta que existe desde hace meses.
  * Para ese público la copia genérica es la respuesta buena.
  *
- * Lo que hay que hacer entonces es **declararla pública**: acotarla a los perfiles `prospecto` e
- * `interesado`. Esa es la declaración, no hace falta un campo aparte.
+ * Lo que hay que hacer entonces es **declararla pública**: quitar al huésped de «A quién se le
+ * puede contar» y dejar el resto. Esa es la declaración, no hace falta un campo aparte — y el
+ * único que sobra es el huésped, porque para él existe la ficha de su casita.
  *
  * Lo que sí es un error es la copia **sin acotar**: entonces un huésped recibiría la versión
  * genérica en lugar de la de su casita, y perdería las horas y los códigos resueltos. Ése es el
@@ -38,11 +39,14 @@ use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
  */
 final readonly class ValidadorDeConocimiento
 {
-    /** Los perfiles que significan «todavía no es cliente»: para ellos la guía no está. */
-    private const array PERFILES_PUBLICOS = [
-        PerfilConversacion::Prospecto->value,
-        PerfilConversacion::Interesado->value,
-    ];
+    /**
+     * El único perfil que NO debe recibir una copia genérica de un tema de guía.
+     *
+     * Para el huésped existe la ficha de su casita, con sus horas y sus códigos: dársela genérica
+     * es darle la peor de las dos. Los demás —incluido el EQUIPO— la necesitan; acotar a
+     * «prospecto e interesado» dejaba al equipo viendo menos que un desconocido.
+     */
+    private const string PERFIL_QUE_SOBRA = PerfilConversacion::Huesped->value;
 
     /**
      * @param iterable<IndiceDeTemasInterface> $indices
@@ -69,9 +73,9 @@ final readonly class ValidadorDeConocimiento
         if ($this->esPublica($item)) {
             // Ya está declarada: se confirma que la duplicación es deliberada y se deja en paz.
             return sprintf(
-                'Esto también lo contesta la guía en «%s». Como esta ficha está acotada a '
-                . 'prospecto/interesado, se usará sólo con quien todavía no tiene reserva —que es '
-                . 'justo quien no llega a la guía—. Correcto.',
+                'Esto también lo contesta la guía en «%s». Como esta ficha excluye al huésped, '
+                . 'él seguirá recibiendo la de su casita —que es mejor— y los demás recibirán '
+                . 'ésta. Correcto.',
                 $lista
             );
         }
@@ -80,9 +84,9 @@ final readonly class ValidadorDeConocimiento
             '⚠️ Esto ya lo contesta la guía en «%s», que además lo responde por casita y con los '
             . 'datos de la estancia resueltos. Tal como está, un huésped recibiría esta versión '
             . 'genérica en lugar de la suya.<br>'
-            . 'Si lo quieres para el público general —quien pregunta antes de reservar y no llega '
-            . 'a la guía—, decláralo: acota «A quién se le puede contar» a <strong>prospecto</strong> '
-            . 'e <strong>interesado</strong>. Si no, mejor bórralo y corrige el tema de la guía.',
+            . 'Si lo quieres para quien NO llega a la guía —el que pregunta antes de reservar, y '
+            . 'también el equipo—, decláralo: en «A quién se le puede contar» marca todos '
+            . '<strong>menos Huésped</strong>. Si no, mejor bórralo y corrige el tema de la guía.',
             $lista
         );
     }
@@ -123,18 +127,15 @@ final readonly class ValidadorDeConocimiento
     /**
      * ¿Está declarada como pública?
      *
-     * Sólo si **todos** sus perfiles son de los que aún no son clientes. Una lista vacía significa
-     * «para todos» —la convención del resto del agente— y por tanto **no** es una declaración:
-     * ahí el huésped también la recibiría.
+     * Basta con que el huésped NO esté en la lista. Una lista vacía significa «para todos» —la
+     * convención del resto del agente— y por tanto **no** es una declaración: ahí el huésped
+     * también la recibiría.
      */
     private function esPublica(AgentConocimiento $item): bool
     {
         $perfiles = $item->getPerfiles();
 
-        if ($perfiles === []) {
-            return false;
-        }
-
-        return array_diff($perfiles, self::PERFILES_PUBLICOS) === [];
+        // Lista vacía = «para todos», incluido el huésped. No es una declaración.
+        return $perfiles !== [] && !in_array(self::PERFIL_QUE_SOBRA, $perfiles, true);
     }
 }
