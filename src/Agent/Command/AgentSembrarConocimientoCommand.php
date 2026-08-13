@@ -228,11 +228,13 @@ final class AgentSembrarConocimientoCommand extends Command
                 'nombre' => 'Mascotas',
                 'etiquetas' => 'mascotas, mascota, perro, perros, gato, gatos, puedo llevar mi '
                     . 'perro, viajo con mi mascota, pet friendly, pets, dog, animales',
-                'contenido' => 'No se aceptan mascotas.'
+                'contenido' => 'Lo sentimos, no aceptamos mascotas.'
                     . "\n\n"
-                    . 'Dilo claro y sin rodeos, sin dar explicaciones ni prometer que lo consultas: '
-                    . 'no hay excepción que ofrecer. Si la persona todavía no ha reservado, es '
-                    . 'mejor que lo sepa ahora que al llegar con el animal a la puerta.',
+                    . 'Dilo con amabilidad —empieza disculpándote— pero sin dejar lugar a dudas: no '
+                    . 'hay excepción que ofrecer, así que no prometas consultarlo ni des a entender '
+                    . 'que depende del caso. Tampoco expliques el motivo: no le interesa a quien '
+                    . 'pregunta y suena a excusa. Si todavía no ha reservado, es mejor que lo sepa '
+                    . 'ahora que al llegar con el animal a la puerta.',
                 // Va acotada como las demás duplicadas: el huésped ya lo tiene en «Reglas», y
                 // quien de verdad necesita esta respuesta es el que aún está decidiendo si
                 // reserva — y ése no llega a la guía.
