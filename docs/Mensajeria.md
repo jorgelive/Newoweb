@@ -6509,10 +6509,23 @@ Es idempotente y **no toca ni una columna de los módulos de origen**: no reescr
 
 ### 20.5 Lo que falta
 
-1. **Enganchar cada reserva y cada conversación a su contacto** (FK + poblado). Aditivo.
-2. **Poblar `pms_conversacion_enlace`** desde el `contextType`/`contextId`/`contextData` actual.
+1. ✅ **Enganchar reservas y expedientes a su contacto** — `pms_reserva.contacto_id` y
+   `cotizacion_file.contacto_id`, nullable y `ON DELETE SET NULL`. Los engancha la segunda
+   pasada de `app:contactos:poblar`, con **la misma clave de teléfono** que usa para
+   deduplicar: separarlo en otro comando habría significado escribir esa regla dos veces.
+   Resultado: 285 de 285 reservas y 3 de 3 expedientes, ninguno sin cruzar.
+   *Falta la FK en `MessageConversation`, que espera al paso 3 para no chocar con él.*
+2. ✅ **Poblar `pms_conversacion_enlace`** — `app:conversaciones:enlazar`, 310 enlaces, uno por
+   conversación de alojamiento. Idempotente y aditivo: no toca las columnas viejas.
+   ⚠️ Destapó **2 conversaciones que apuntan a una reserva borrada**: `context_id` es un string
+   sin integridad referencial, así que eso ya estaba roto. Se dejan sin enlace y se listan, en
+   vez de inventarles uno.
 3. **Enseñarle a `MessageRuleEngine` a programar por ASUNTO** en vez de por conversación. Éste
    es el corazón abierto: hasta que no esté, las columnas viejas siguen siendo la verdad.
+
+**La prueba de que el modelo era el correcto, con nombre y apellido:** Adrián Tolaba tiene
+**7 reservas** y era el mismo que tenía 7 conversaciones creadas el mismo día. Ahora es un
+contacto con 7 asuntos, que es lo que siempre fue.
 4. Fusionar los hilos duplicados por contacto, con su historial.
 5. Retirar `contextType`/`contextId`/`contextData` de la conversación.
 

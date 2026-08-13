@@ -108,6 +108,7 @@ final class PoblarContactosCommand extends Command
 
         if ($dryRun) {
             $io->warning(sprintf('DRY RUN: se crearían %d contactos (%d saltados por repetidos).', $creados, $saltados));
+            $io->text('(El enganche no se simula: necesita los contactos ya escritos para cruzarlos.)');
 
             return Command::SUCCESS;
         }
@@ -115,7 +116,83 @@ final class PoblarContactosCommand extends Command
         $this->em->flush();
         $io->success(sprintf('%d contactos creados, %d saltados por repetidos.', $creados, $saltados));
 
+        $enlazados = $this->enlazar($conexion);
+        $io->table(['Tabla', 'Filas enganchadas a su contacto'], $enlazados);
+
         return Command::SUCCESS;
+    }
+
+    /**
+     * Segunda pasada: pone `contacto_id` en las filas que todavía no lo tienen.
+     *
+     * ── Va en el mismo comando, y no en uno aparte, por una razón ───────────
+     * La clave de cruce es la MISMA que la de deduplicación —los últimos 8 dígitos del número
+     * normalizado con {@see PhoneSanitizer}—, y separarlo en dos comandos habría significado
+     * escribir esa regla dos veces. Es exactamente el fallo que este proyecto ya ha pagado
+     * varias veces: dos copias de un criterio que empiezan iguales y acaban distintas.
+     *
+     * Sólo toca filas con `contacto_id IS NULL`, así que reejecutarlo no repara ni pisa nada: si
+     * alguien corrigió un enganche a mano, se respeta.
+     *
+     * @return list<array{0: string, 1: int}>
+     */
+    private function enlazar(Connection $conexion): array
+    {
+        /** @var array<string, string> $porClave clave de teléfono → id del contacto, en hexadecimal */
+        $porClave = [];
+
+        foreach ($conexion->fetchAllAssociative('SELECT LOWER(HEX(id)) AS id, telefono FROM maestro_contacto') as $fila) {
+            $clave = $this->clave($fila['telefono']);
+
+            // El primero gana, igual que al crear: con dos contactos que comparten número —un
+            // matrimonio, una agencia— elegir por otro criterio sería inventarse cuál de los dos
+            // hizo la reserva.
+            if ($clave !== null && !isset($porClave[$clave])) {
+                $porClave[$clave] = $fila['id'];
+            }
+        }
+
+        $resultado = [];
+
+        foreach ([
+            'pms_reserva' => 'telefono',
+            'cotizacion_file' => 'telefono',
+        ] as $tabla => $columna) {
+            $enganchadas = 0;
+
+            $pendientes = $conexion->fetchAllAssociative(
+                sprintf(
+                    'SELECT LOWER(HEX(id)) AS id, %s AS telefono FROM %s
+                      WHERE contacto_id IS NULL AND %s IS NOT NULL AND %s <> \'\'',
+                    $columna,
+                    $tabla,
+                    $columna,
+                    $columna
+                )
+            );
+
+            foreach ($pendientes as $fila) {
+                $clave = $this->clave($fila['telefono']);
+
+                if ($clave === null || !isset($porClave[$clave])) {
+                    continue;
+                }
+
+                // Por DBAL y no por el ORM: son cientos de filas y no hace falta hidratar la
+                // entidad entera para escribir una columna. Además así no se disparan los
+                // listeners de integridad de la reserva, que no tienen nada que decir aquí.
+                $conexion->executeStatement(
+                    sprintf('UPDATE %s SET contacto_id = UNHEX(:contacto) WHERE id = UNHEX(:id)', $tabla),
+                    ['contacto' => $porClave[$clave], 'id' => $fila['id']]
+                );
+
+                $enganchadas++;
+            }
+
+            $resultado[] = [$tabla, $enganchadas];
+        }
+
+        return $resultado;
     }
 
     /**

@@ -14,6 +14,7 @@ use App\Api\Provider\Pms\PmsReservaPaxProvider;
 use App\Pms\ApiPlatform\Dto\PmsReservaCrearInput;
 use App\Pms\ApiPlatform\State\PmsReservaCrearProcessor;
 use App\Entity\Maestro\MaestroMoneda;
+use App\Entity\Maestro\MaestroContacto;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
@@ -148,6 +149,28 @@ class PmsReserva
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: true)]
     private ?MaestroMoneda $moneda = null;
+
+    /**
+     * La PERSONA que hay detrás de esta reserva, cuando se sabe cuál es.
+     *
+     * ── Todavía no manda, y por eso es nullable ─────────────────────────────
+     * ⚠️ Las columnas de cliente de aquí al lado —`nombreCliente`, `telefono`, `emailCliente`…—
+     * **siguen siendo la verdad**. Esto es el enganche que permitirá, más adelante, dejar de
+     * teclear los mismos datos en tres módulos: la misma persona reserva una casita, contrata
+     * un tour y escribe por WhatsApp, y hoy está escrita tres veces con nombres de columna
+     * distintos. Corregirle el teléfono en la reserva no lo corrige en su expediente de tours,
+     * y nadie se entera hasta que un mensaje sale al número viejo.
+     *
+     * Es nullable porque se puebla a posteriori ({@see \App\Message\Command\PoblarContactosCommand}
+     * y su hermano de enganche) y porque una reserva que llega de una OTA puede no traer
+     * teléfono con el que reconocer a nadie. Un `null` aquí no rompe nada: significa «todavía no
+     * se ha cruzado», no «esta reserva no tiene cliente».
+     *
+     * Ver docs/Mensajeria.md §20.
+     */
+    #[ORM\ManyToOne(targetEntity: MaestroContacto::class)]
+    #[ORM\JoinColumn(name: 'contacto_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?MaestroContacto $contacto = null;
 
     #[ORM\ManyToOne(targetEntity: MaestroPais::class, inversedBy: 'reservas')]
     #[ORM\JoinColumn(name: 'pais_id', referencedColumnName: 'id', nullable: true)]
@@ -415,6 +438,9 @@ class PmsReserva
     public function setMoneda(?MaestroMoneda $val): self { $this->moneda = $val; return $this; }
 
     #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
+    public function getContacto(): ?MaestroContacto { return $this->contacto; }
+    public function setContacto(?MaestroContacto $contacto): self { $this->contacto = $contacto; return $this; }
+
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $val): self { $this->pais = $val; return $this; }
 

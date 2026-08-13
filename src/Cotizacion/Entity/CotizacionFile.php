@@ -18,6 +18,7 @@ use App\Api\Provider\Cotizacion\CotizacionFileCollectionProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
 use App\Cotizacion\Enum\FileEstadoEnum;
+use App\Entity\Maestro\MaestroContacto;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
@@ -133,6 +134,21 @@ class CotizacionFile
     private ?MaestroPais $pais = null;
 
     #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    /**
+     * La PERSONA titular del expediente, cuando se sabe cuál es.
+     *
+     * ⚠️ `nombreGrupo`, `telefono` y `email` de aquí al lado **siguen siendo la verdad**. Esto
+     * es el enganche para dejar de teclear a la misma persona en tres módulos: hoy el mismo
+     * cliente está escrito en `pms_reserva` como `nombreCliente`, aquí como `nombreGrupo` y en
+     * la conversación como `guestName`, y corregirlo en uno no lo corrige en los otros.
+     *
+     * Nullable porque se puebla a posteriori y porque un expediente puede nacer sin teléfono
+     * con el que reconocer a nadie. Ver docs/Mensajeria.md §20.
+     */
+    #[ORM\ManyToOne(targetEntity: MaestroContacto::class)]
+    #[ORM\JoinColumn(name: 'contacto_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?MaestroContacto $contacto = null;
+
     #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
     #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: true)]
     private ?MaestroIdioma $idioma = null;
@@ -404,4 +420,7 @@ class CotizacionFile
         }
         return $this;
     }
+
+    public function getContacto(): ?MaestroContacto { return $this->contacto; }
+    public function setContacto(?MaestroContacto $contacto): self { $this->contacto = $contacto; return $this; }
 }
