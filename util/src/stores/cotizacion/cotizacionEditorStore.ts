@@ -1078,7 +1078,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         gan(buckets.cortesia);   // negativa: −costo
 
         const tieneConflictos = clases.some(c => !c.isReal);
-        const ganancia = buckets.incluido.gananciaDolares + buckets.cortesia.gananciaDolares;
+        // Una sola fuente de verdad: la misma resta que hace el backend. La fórmula anterior
+        // —sumar las dos ganancias de bucket— daba el mismo número, pero era una segunda forma de
+        // calcularlo, y dos formas es como se llega a dos resultados distintos.
+        const ganancia = buckets.incluido.ventaDolares
+            - (buckets.incluido.costoDolares + buckets.cortesia.costoDolares);
 
         return {
             schemaVersion: CLASIFICACION_SCHEMA_VERSION,
@@ -1087,7 +1091,18 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tipoCambio: tc,
             precioOculto: !!cotizacion.value.precioOculto,
             comisionGlobal,
-            totalCostoNeto: buckets.incluido.costoDolares,
+            // ⚠️ EL COSTO INCLUYE LAS CORTESÍAS; LA VENTA NO.
+            //
+            // Una cortesía cuesta —se le paga al proveedor igual— pero no vende. Contando así,
+            // `venta − costo` resta la cortesía sola, sin necesidad de una fórmula aparte: es lo
+            // que hace `Cotizacion::getGanancia()` en el backend, y por eso los dos números
+            // coinciden.
+            //
+            // Antes el costo era sólo el del bucket incluido, así que el coste de las cortesías
+            // desaparecía y el panel mostraba una ganancia optimista: con venta $1.000, costo
+            // $800 y una cortesía de $120, el editor decía $80 y el panel $200. Dos verdades
+            // para la misma cotización, y el operador decidía precios mirando la buena.
+            totalCostoNeto: buckets.incluido.costoDolares + buckets.cortesia.costoDolares,
             totalVentaBruta: buckets.incluido.ventaDolares,
             ganancia,
             montoAdelanto: buckets.incluido.ventaDolares * adelantoPct,
