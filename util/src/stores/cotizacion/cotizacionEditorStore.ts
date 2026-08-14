@@ -1,4 +1,5 @@
 import {defineStore} from 'pinia';
+import { extractApiErrorMessage } from '@/services/apiError';
 import {computed, ref, type Ref} from 'vue';
 import {apiClient} from '@/services/apiClient';
 
@@ -1781,6 +1782,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             data.idiomaEdicion = 'es';
             cotizacion.value = data;
+            estadoPersistido.value = String(data?.estado ?? '');
 
         } catch (e) {
             throw new Error("No se encontró la cotización o falló la hidratación.");
@@ -1948,9 +1950,34 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      *
      * @returns Promesa vacía que se resuelve al finalizar el proceso de guardado y reconexión de UI.
      */
-    const guardarCotizacion = async (): Promise<void> => {
-        if (!cotizacion.value) return;
-        if (isLoading.value) return;
+    /**
+     * Guarda la cotización. Devuelve si de verdad se guardó.
+     *
+     * ⚠️ El `boolean` no es cosmético. Antes era `Promise<void>` y quien llamaba no podía
+     * distinguir «guardado» de «abortado por la guarda» de «reventó la red». La vista limpiaba
+     * `isDirty` en los tres casos, así que tras un guardado fallido el aviso de «tienes cambios
+     * sin guardar» quedaba desarmado y el trabajo se perdía al navegar **sin ninguna señal**.
+     * Ése era el «guardé y falló silenciosamente».
+     */
+    /**
+     * El estado que la cotización tiene EN LA BASE, no el que se ve en el selector.
+     *
+     * Hace falta para distinguir «publicar» de «seguir editando algo ya publicado»: sin esto, el
+     * único dato disponible era `payload.estado`, que ya lleva lo que el usuario acaba de elegir.
+     */
+    const estadoPersistido = ref<string>('');
+
+    const guardarCotizacion = async (): Promise<boolean> => {
+        if (!cotizacion.value) return false;
+
+        // Otro trabajo tiene el editor ocupado —una carga, una plantilla—. Se avisa en vez de
+        // devolver `false` a secas: para el usuario, un botón que no hace nada es un botón roto.
+        if (isLoading.value) {
+            alert('El editor está ocupado terminando otra operación. Espera un momento y vuelve a guardar.');
+
+            return false;
+        }
+
         isLoading.value = true;
         try {
             // req 5: normaliza roles antes de clonar el payload y de leer el resumen
@@ -2006,19 +2033,49 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const fin = resumenFinanciero.value;
 
-            // 🔥 VALIDACIÓN ESTRICTA DE ESTADOS PROTEGIDOS
-            // Evita guardar si la cotización está en un estado avanzado y tiene conflictos financieros.
+            // 🔥 VALIDACIÓN DE ESTADOS PROTEGIDOS: bloquea la TRANSICIÓN, no toda edición.
+            //
+            // ⚠️ Antes bloqueaba cualquier guardado de una cotización que YA estuviera en un
+            // estado protegido, y eso creaba un callejón sin salida: `agregarComponente()` crea el
+            // componente con `nombreSnapshot: []` y `snapshotItems: []` —lo normal, acabas de
+            // añadirlo—, y esa vacuidad dispara la advertencia «no tiene título público ni ítems».
+            // Con la cotización en `enviado` —las 10 de producción lo están—, el guardado abortaba.
+            // Para rellenar la línea había que guardarla, y para guardarla había que rellenarla.
+            //
+            // Lo que hay que proteger es PUBLICAR algo con conflictos, no seguir trabajando sobre
+            // lo que ya se publicó. Si el estado no cambia en este guardado, se avisa y se deja
+            // decidir.
             const estadosProtegidos = ['enviado', 'confirmado', 'operado'];
+            const cambiaDeEstado = payload.estado !== estadoPersistido.value;
 
-            if (estadosProtegidos.includes(payload.estado) && fin && !fin.publicable) {
+            if (estadosProtegidos.includes(payload.estado) && cambiaDeEstado && fin && !fin.publicable) {
                 const estadoLabel = payload.estado.charAt(0).toUpperCase() + payload.estado.slice(1);
                 alert(
-                    `No se puede guardar la cotización en estado "${estadoLabel}" debido a los siguientes conflictos financieros:\n\n` +
+                    `No se puede pasar la cotización a "${estadoLabel}" debido a los siguientes conflictos financieros:\n\n` +
                     (fin.advertencias.length
                         ? fin.advertencias.map(a => `• ${a}`).join('\n')
                         : '• Hay perfiles de pasajero en conflicto (revisa el panel de resumen para asignar las tarifas correctamente).')
                 );
-                return;
+
+                return false;
+            }
+
+            // Y si NO cambia de estado, se avisa pero se deja guardar: son cosas distintas
+            // —publicar con conflictos frente a seguir trabajando sobre algo ya publicado— y
+            // tratarlas igual es lo que dejaba la cotizadora en solo-lectura.
+            if (estadosProtegidos.includes(payload.estado) && fin && !fin.publicable) {
+                const seguir = confirm(
+                    'Esta cotización tiene conflictos financieros sin resolver:\n\n'
+                    + (fin.advertencias.length
+                        ? fin.advertencias.map(a => `• ${a}`).join('\n')
+                        : '• Hay perfiles de pasajero en conflicto.')
+                    + '\n\nSe guardará igual para que puedas seguir trabajando, pero no podrás '
+                    + 'cambiarla de estado hasta resolverlos. ¿Guardar?'
+                );
+
+                if (!seguir) {
+                    return false;
+                }
             }
 
             // Inyección de la estructura financiera al payload
@@ -2206,11 +2263,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
             }
 
+            // Lo guardado pasa a ser la nueva referencia: si ahora está en «confirmado», el
+            // siguiente guardado ya no cuenta como transición.
+            estadoPersistido.value = String(savedData.estado ?? payload.estado);
+
             alert('Cotización guardada exitosamente.');
 
+            return true;
         } catch (error) {
             console.error('Error al guardar la cotización:', error);
-            alert('Falló la sincronización con la base de datos.');
+
+            // El backend explica QUÉ pasa —«ese servicio pertenece a una Orden de Servicio…»— y
+            // ese texto se tiraba para poner un genérico. `fileStore` ya usa este extractor.
+            alert(extractApiErrorMessage(error, 'Falló la sincronización con la base de datos.'));
+
+            return false;
         } finally {
             isLoading.value = false;
         }

@@ -200,9 +200,18 @@ const handleVolver = () => {
   }
 };
 
-const handleGuardar = async () => {
-  await store.guardarCotizacion();
-  isDirty.value = false;
+const handleGuardar = async (): Promise<boolean> => {
+  const guardado = await store.guardarCotizacion();
+
+  // ⚠️ SÓLO SI DE VERDAD SE GUARDÓ. Antes se limpiaba siempre, así que tras un guardado
+  // abortado —conflictos financieros, 422, red— el aviso de «tienes cambios sin guardar»
+  // quedaba desarmado y el trabajo se perdía al navegar sin ninguna señal. El error se veía
+  // una vez; la pérdida, nunca.
+  if (guardado) {
+    isDirty.value = false;
+  }
+
+  return guardado;
 };
 
 // URL de la vista pax (guía del cliente) de esta misma cotización/tour, para
@@ -220,7 +229,12 @@ const abrirVistaPax = async () => {
   if (!paxPreviewUrl.value) return;
   // Guarda antes para que la guía refleje los cambios (el snapshot cliente se
   // regenera al guardar). Si hay cambios pendientes, guardamos primero.
-  if (isDirty.value) await handleGuardar();
+  // Si el guardado no salió, no se abre la vista del cliente: enseñaría una versión vieja y
+  // el operador creería que lo que ve es lo que hay.
+  if (isDirty.value && !await handleGuardar()) {
+    return;
+  }
+
   window.open(paxPreviewUrl.value, '_blank', 'noopener');
 };
 
