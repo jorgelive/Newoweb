@@ -71,6 +71,27 @@ export const isComponenteCompleto = (c: ComponenteCatalogo | null | undefined): 
     return !!c && 'tipo' in c;
 };
 
+/**
+ * Cuántas unidades cuenta una cantidad, distinguiendo «vacío» de «cero».
+ *
+ * ⚠️ En JavaScript el cero es falso, así que el `|| 1` que había repartido por el cálculo
+ * convertía una tarifa puesta a **0** en **1**: poner a cero la tarifa de niños —la forma natural
+ * de decir «este grupo no lleva»— sumaba una unidad al total. Y no saltaba ninguna alerta, porque
+ * `isComponenteConAlerta` usaba `|| 0`: **el aviso contaba cero y el dinero contaba uno**.
+ *
+ * El 1 por defecto sigue teniendo sentido cuando el campo está SIN RELLENAR —una tarifa recién
+ * creada—; lo que no puede es pisar un cero escrito a conciencia.
+ */
+const unidadesDe = (valor: unknown, porDefecto = 1): number => {
+    if (valor === null || valor === undefined || valor === '') {
+        return porDefecto;
+    }
+
+    const n = parseInt(String(valor), 10);
+
+    return Number.isNaN(n) ? porDefecto : n;
+};
+
 export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () => {
 
     const isLoading = ref<boolean>(false);
@@ -434,7 +455,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (t.rolSnapshot === 'operativo' || t.grupoTarifa == null) continue;
             const acc = grupos.get(t.grupoTarifa) || { pax: 0, grupal: false };
             if (resolverGrupal(t)) acc.grupal = true;
-            else acc.pax += parseInt(String(t.cantidad)) || 0;
+            else acc.pax += unidadesDe(t.cantidad, 0);
             grupos.set(t.grupoTarifa, acc);
         }
 
@@ -701,7 +722,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const mostrarModalidadCliente = !itemsComp.length || itemsComp.some((it) => it.modalidadTarifaVisible);
                 const mostrarCategoriaCliente = !itemsComp.length || itemsComp.some((it) => it.categoriaTarifaVisible);
                 const compLabel = getI18nText(compNombre, idiomaEdicion) || 'Insumo Logístico';
-                const cCant = componente.cantidad || 1;
+                const cCant = unidadesDe(componente.cantidad);
                 const fecha = getFechaLimpia(componente.fechaHoraInicio);
 
                 const lineas: LineaVoter[] = [];
@@ -718,7 +739,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if (rol === 'alternativa') return;   // → opcionesUpgrade
 
                     const esGrupal = resolverGrupal(t);
-                    const tCant = parseInt(String(t.cantidad)) || 1;
+                    const tCant = unidadesDe(t.cantidad);
                     const montoBase = parseFloat(String(t.montoCosto)) || 0;
                     const moneda = String(t.moneda || 'USD').toUpperCase();
 
@@ -822,7 +843,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     // Base ponderada (cifra única) por si la alternativa no tiene un espejo exacto
                     let sumaVenta = 0, sumaPax = 0;
                     estandares.forEach((t) => {
-                        const pax = resolverGrupal(t) ? numPaxGlobal : (parseInt(String(t.cantidad)) || 1);
+                        const pax = resolverGrupal(t) ? numPaxGlobal : unidadesDe(t.cantidad);
                         sumaVenta += ventaPPde(t) * pax;
                         sumaPax += pax;
                     });
@@ -850,7 +871,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 esGrupalAlt = true;
                                 sumaPaxAlt = numPaxGlobal; // Si hay una grupal, asume la cobertura total.
                             } else {
-                                sumaPaxAlt += parseInt(String(t.cantidad)) || 1;
+                                sumaPaxAlt += unidadesDe(t.cantidad);
                             }
                         });
 
@@ -1175,7 +1196,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 if (modo !== 'incluido' && modo !== 'no_incluido' && modo !== 'cortesia') return;
 
                 const fecha = getFechaLimpia(componente.fechaHoraInicio);
-                const cCant = componente.cantidad || 1;
+                const cCant = unidadesDe(componente.cantidad);
                 const tieneNombre = !!componente.nombreSnapshot?.length;
                 const items = componente.snapshotItems || [];
                 const compLabel = getI18nText(componente.nombreSnapshot, idiomaEdicion) || 'Insumo Logístico';
@@ -1198,7 +1219,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 const mapearTarifaInclusion = (t: TarifaSnapshot): InclusionTarifa => ({
                     tarifaTitulo: t.tituloSnapshot || [],
-                    cantidad: parseInt(String(t.cantidad)) || 1,
+                    cantidad: unidadesDe(t.cantidad),
                     esGrupal: t.esGrupal,
                     modalidad: t.modalidadSnapshot || null,
                     categoria: t.categoriaSnapshot || null,
@@ -2108,7 +2129,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                     if (servicio.cotcomponentes && Array.isArray(servicio.cotcomponentes)) {
                         servicio.cotcomponentes.forEach((componente) => {
-                            componente.cantidad = parseInt(String(componente.cantidad)) || 1;
+                            componente.cantidad = unidadesDe(componente.cantidad);
 
                             if (componente.componenteMaestroId) {
                                 componente.componenteMaestroId = extractIdStr(componente.componenteMaestroId);
@@ -2135,7 +2156,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                             if (componente.cottarifas && Array.isArray(componente.cottarifas)) {
                                 componente.cottarifas.forEach((tarifa) => {
-                                    tarifa.cantidad = tarifa.cantidad || 1;
+                                    // Aquí es donde más dolía: esto se PERSISTE, así que un 0
+                                    // escrito a conciencia se guardaba como 1 y el cero no
+                                    // sobrevivía ni al guardado.
+                                    tarifa.cantidad = unidadesDe(tarifa.cantidad);
                                     tarifa.montoCosto = String(tarifa.montoCosto || '0');
                                     if (tarifa.tarifaMaestraId) {
                                         tarifa.tarifaMaestraId = extractIdStr(tarifa.tarifaMaestraId);
