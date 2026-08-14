@@ -8,10 +8,13 @@ use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCotservicio;
 use App\Cotizacion\Entity\CotizacionCottarifa;
+use App\Cotizacion\Entity\CotizacionFile;
 use App\Operacion\Entity\OperacionServicio;
 use App\Travel\Enum\TarifaRolEnum;
 use DateTimeImmutable;
+use DomainException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Construye las filas de La Biblia a partir de una cotización confirmada.
@@ -47,7 +50,7 @@ class BibliaSnapshotService
             return [];
         }
 
-        $file        = $cotizacion->getFile();
+        $file        = $this->resolverFile($cotizacion);
         $cantidadPax = $cotizacion->getNumPax();
         $osRepo      = $this->em->getRepository(OperacionServicio::class);
         $creados     = [];
@@ -83,6 +86,55 @@ class BibliaSnapshotService
         }
 
         return $creados;
+    }
+
+    /**
+     * El expediente del que cuelga cada fila de La Biblia.
+     *
+     * `OperacionServicio::$file` es NOT NULL, así que un file nulo aquí no produce una
+     * fila incompleta: mata el flush entero con un «Column 'file_id' cannot be null»
+     * lanzado desde el fondo de Doctrine, sin una sola línea de `src/` en la traza y sin
+     * mencionar qué cotización era. Le costó a un operador el guardado completo de una
+     * cotización el 14/08/2026.
+     *
+     * El fallback a base de datos es deliberado: esto corre dentro de `onFlush`, con la
+     * cotización a medio escribir, y lo que el objeto en memoria diga del padre puede ser
+     * lo que trajo el payload y no lo que hay guardado. El expediente de una cotización no
+     * cambia por confirmarla, así que ante la duda manda la fila persistida. Es una
+     * consulta escalar a propósito: un `find()` pasaría por el UnitOfWork que estamos
+     * atravesando y devolvería el mismo objeto en memoria que ya sabemos sospechoso.
+     */
+    public function resolverFile(Cotizacion $cotizacion): CotizacionFile
+    {
+        $file = $cotizacion->getFile();
+        if ($file !== null) {
+            return $file;
+        }
+
+        $id = $cotizacion->getId();
+        if ($id !== null) {
+            $fileId = $this->em->getConnection()->fetchOne(
+                'SELECT file_id FROM cotizacion_cotizacion WHERE id = :id',
+                ['id' => $id->toBinary()]
+            );
+
+            if ($fileId) {
+                $file = $this->em->getRepository(CotizacionFile::class)
+                    ->find(Uuid::fromBinary($fileId));
+
+                if ($file !== null) {
+                    return $file;
+                }
+            }
+        }
+
+        // Sin expediente no hay operación posible. Se dice en voz alta y con el número de
+        // cotización delante, que es lo que el 1048 nunca dijo.
+        throw new DomainException(sprintf(
+            'La cotización %s no cuelga de ningún expediente, así que no se pueden generar '
+            . 'sus registros de operación. Vuelve a abrirla desde el expediente y guarda de nuevo.',
+            $cotizacion->getId() ?? 'nueva'
+        ));
     }
 
     /**

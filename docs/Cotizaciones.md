@@ -630,6 +630,18 @@ Reglas al tocar esta zona:
 
 **Gotcha #4 — dev vs build**: si abres el editor desde la app PHP en modo prod (`is_dev` false) usa el bundle de `public/app_util` (hay que `npm run build`). En dev usa el Vite server (fuente + HMR).
 
+**Gotcha #5 — el PUT puede desenganchar la cotización de su expediente**: `Cotizacion::$file` es
+**nullable**, y el editor guarda con un PUT del árbol completo. Un payload que llegue sin `file`
+—o con `file: null`— dejaba la cotización huérfana y Doctrine lo aceptaba sin una palabra: el
+expediente perdía su versión en silencio.
+
+Sólo dio la cara porque al confirmar, ese file se copia a `OperacionServicio`, donde la columna
+**sí** es NOT NULL, y el guardado entero moría con un `Column 'file_id' cannot be null` que no
+menciona la cotización (14/08/2026, `PUT /platform/sales/cotizacions/38e83a6c…`). Hoy
+`Cotizacion::setFile()` **ignora el null que desengancharía** un expediente ya asignado —
+reasignar a otro file sigue permitido, porque eso sí es deliberado. Mecanismo completo y la
+segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
+
 ---
 
 ## 9. "Quiero cambiar X — ¿dónde toco?"

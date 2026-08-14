@@ -332,7 +332,38 @@ class Cotizacion
     }
 
     public function getFile(): ?CotizacionFile { return $this->file; }
-    public function setFile(?CotizacionFile $file): self { $this->file = $file; return $this; }
+
+    /**
+     * ⚠️ Una cotización NO se desengancha de su expediente.
+     *
+     * El editor guarda con un PUT del árbol entero. Si por lo que sea el payload llega
+     * sin `file` —o con `file: null`—, la cotización se quedaba huérfana en silencio:
+     * la columna es nullable, así que Doctrine lo aceptaba sin rechistar y el expediente
+     * perdía su versión sin que nada lo dijera.
+     *
+     * Sólo se notó porque al confirmar, `BibliaSnapshotService` copia este file a cada
+     * OperacionServicio, donde la columna SÍ es NOT NULL: el guardado entero moría con
+     * un «Column 'file_id' cannot be null» que no menciona ni la cotización ni el
+     * expediente (14/08/2026, PUT /platform/sales/cotizacions/38e83a6c…). Sin esa
+     * columna NOT NULL de por medio, el desenganche no habría dado ningún error.
+     *
+     * Se ignora el null en vez de lanzar: quitar el padre nunca es una intención real
+     * del editor, y el guardado no debe caerse por un campo que el payload simplemente
+     * no trajo. Asignar OTRO file sí se permite — eso sí es una operación deliberada.
+     *
+     * Doctrine hidrata por reflexión y no pasa por aquí, así que esto no interfiere con
+     * la carga de entidades ni con las cotizaciones de catálogo (que nacen sin file).
+     */
+    public function setFile(?CotizacionFile $file): self
+    {
+        if ($file === null && $this->file !== null) {
+            return $this;
+        }
+
+        $this->file = $file;
+
+        return $this;
+    }
 
     public function getCatalogo(): ?CotizacionCatalogo { return $this->catalogo; }
     public function setCatalogo(?CotizacionCatalogo $catalogo): self { $this->catalogo = $catalogo; return $this; }

@@ -13,7 +13,7 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 
 1. [Vocabulario](#1-vocabulario)
 2. [Flujo: de cotización confirmada a La Biblia](#2-flujo-de-cotización-confirmada-a-la-biblia)
-3. [Reglas del snapshot](#3-reglas-del-snapshot) — incluye [3.3 comprable vs. referencia](#33), [3.5 reconciliación](#35), [3.4 consola](#34)
+3. [Reglas del snapshot](#3-reglas-del-snapshot) — incluye [3.3 comprable vs. referencia](#33), [3.5 reconciliación](#35), [3.4 consola](#34), [3.7 el file de la fila](#37)
 3.bis [Por qué La Biblia aparece vacía](#3bis-por-qué-la-biblia-aparece-vacía)
 4. [Los tres estados y por qué son tres](#4-los-tres-estados-y-por-qué-son-tres)
 5. [Órdenes de Servicio y bitácora](#5-órdenes-de-servicio-y-bitácora)
@@ -195,6 +195,37 @@ pasar es que se pierda por cambiar una tarifa, y por eso la tarifa es la excepci
 ⚠️ Consecuencia para el reconciliador: el caso `huerfano` **no** cubre «borraron el componente»
 —esas filas desaparecen solas con el CASCADE— sino «el componente sigue existiendo pero dejó de
 producir valores» (le quitaron la fecha, se quedó sólo con alternativas).
+
+### <a id="37"></a>3.7 El file de la fila: por qué no se lee del objeto en memoria
+
+`OperacionServicio::$file` es **NOT NULL**, y sale de `Cotizacion::getFile()`. Si ese file llega
+nulo, no se produce una fila incompleta: **muere el flush entero**, con un
+`SQLSTATE[23000]: Column 'file_id' cannot be null` lanzado desde el fondo de Doctrine, sin una
+sola línea de `src/` en la traza y sin mencionar ni la cotización ni el expediente. El
+14/08/2026 le costó a un operador el guardado completo de una cotización
+(`PUT /platform/sales/cotizacions/38e83a6c…`), y en el log no había nada que dijera de qué
+cotización se trataba.
+
+La causa está en el mismo PUT del árbol completo de §3.6: si el payload llega sin `file` —o con
+`file: null`— la cotización se desengancha de su expediente. La columna de `cotizacion_cotizacion`
+**sí** es nullable, así que Doctrine lo aceptaba sin rechistar; el único motivo por el que esto
+dio la cara es que La Biblia copia ese file a una columna que no lo es. **Sin la generación de
+operaciones de por medio, el desenganche habría sido totalmente silencioso.**
+
+Hay dos guardas, y hacen falta las dos:
+
+| Dónde | Qué hace | Por qué ahí |
+|---|---|---|
+| `Cotizacion::setFile()` | ignora el `null` que desengancharía un expediente ya asignado | ataca la raíz: ningún camino de escritura puede dejar la cotización huérfana. Reasignar a **otro** file sí se permite — eso es deliberado |
+| `BibliaSnapshotService::resolverFile()` | si el objeto no trae file, lo lee **de la base**; si tampoco hay, lanza `DomainException` con el número de cotización | corre dentro de `onFlush`, con la cotización a medio escribir: lo que el objeto diga del padre puede ser lo que trajo el payload y no lo guardado |
+
+El fallback es una **consulta escalar**, no un `find()`: `find()` pasaría por el UnitOfWork que
+estamos atravesando y devolvería el mismo objeto en memoria que ya sabemos sospechoso. El
+expediente de una cotización no cambia por confirmarla, así que ante la duda manda la fila
+persistida.
+
+`BibliaReconciliacionService` usa el mismo resolutor al crear filas: son dos consumidores de la
+misma regla y no pueden divergir.
 
 ### <a id="35"></a>3.5 Reconciliación: plan → revisión → aplicar
 
@@ -786,6 +817,7 @@ cotizado, no contra la venta real.
 |---|---|---|
 | Cambiar qué dispara la generación | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `onFlush()` (el `match` de estados) |
 | Cambiar qué se copia al snapshot | `src/Operacion/Service/BibliaSnapshotService.php` | `generarParaCotizacion()` |
+| **De dónde sale el expediente de la fila** (§3.7) | mismo archivo | `resolverFile()` — y la guarda de raíz en `Cotizacion::setFile()` |
 | **Filtrar qué componentes entran** (§9) | mismo archivo | `generarParaCotizacion()`, guard del bucle |
 | **Cambiar qué fila es "sólo referencia"** (§3.3) | `src/Operacion/Entity/OperacionServicio.php` | `isSoloReferencia()` — y regenerar `api.d.ts` |
 | Cambiar de dónde sale el prestador (§3.3.b) | `src/Cotizacion/Entity/CotizacionCotcomponente.php` **y** `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `resolverPrestador()` (espejo, se tocan los dos) |

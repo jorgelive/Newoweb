@@ -238,7 +238,10 @@ class BibliaReconciliacionService
                         break;
                     }
                     $fila = new OperacionServicio();
-                    $fila->setFile($cotizacion->getFile());
+                    // Mismo resolutor que el generador: el file NOT NULL de la fila no
+                    // puede depender de lo que traiga el objeto en memoria. Ver
+                    // BibliaSnapshotService::resolverFile().
+                    $fila->setFile($this->snapshot->resolverFile($cotizacion));
                     $fila->setCotizacionServicio($componente->getCotservicio());
                     $fila->setCotizacionComponente($componente);
                     $this->snapshot->aplicarValores($fila, $valores, $componente);
