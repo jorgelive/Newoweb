@@ -66,7 +66,7 @@ const badgeClase = (t: keyof typeof CLASIF_BADGE_CLASE) => CLASIF_BADGE_CLASE[t]
 /** "2 x 60.00" — la moneda y (P)/(U) van en badges, no en el texto */
 const montoLinea = (d: LineaDetalleClaseInterna) => {
   const prefijo = d.cantidadComponente > 1 ? `${d.cantidadComponente} x ` : '';
-  return `${prefijo}${parseFloat(d.montoCotizado).toFixed(2)}`;
+  return `${prefijo}${parseFloat(d.montoCosto).toFixed(2)}`;
 };
 
 const labelTarifa = (d: LineaDetalleClaseInterna) =>

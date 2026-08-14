@@ -570,7 +570,9 @@ export const totalesInternosVacios = (): TotalesInternos =>
 // ── Detalle por clase (montos POR PAX) ──────────────────────────────────────
 
 export interface LineaDetalleClaseCliente {
-    montoCotizado: string;
+    // ⚠️ AQUÍ NO VA EL COSTO. La versión interna tiene `montoCosto`; ésta es la que se sirve al
+    // huésped, y el costo de proveedor es exactamente lo que no puede ver. Si algún día hace
+    // falta un importe por línea aquí, será una VENTA —ya están `ventaSoles` y `ventaDolares`—.
     moneda: string;
     esGrupal: boolean;
     cantidad: number;
@@ -594,6 +596,20 @@ export interface LineaDetalleClaseCliente {
 }
 
 export interface LineaDetalleClaseInterna extends LineaDetalleClaseCliente {
+    /**
+     * Lo que le cuesta al negocio esta línea. **Interno.**
+     *
+     * ⚠️ Se llamaba `montoCotizado` y vivía en `LineaDetalleClaseCliente` —la interfaz BASE—.
+     * Dos errores que se sumaron: el nombre se lee como «lo que se le cotiza al cliente», y la
+     * herencia va al revés de lo seguro (el contrato del cliente es la base, así que **todo lo
+     * que se declare sale publicado salvo que alguien se acuerde de ponerlo aquí**). Al montar
+     * la lista blanca de `expurgarParaCliente()`, alguien leyó «monto cotizado» y lo dio por
+     * dato del cliente: las 10 cotizaciones de producción salieron con el costo de proveedor
+     * dentro del JSON del huésped.
+     *
+     * Con el nombre honesto y en esta interfaz, publicarlo deja de ser un despiste.
+     */
+    montoCosto: string;
     costoSoles: number;
     costoDolares: number;
     comisionAplicada: number;
@@ -803,7 +819,7 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
             detalle: c.detalle
                 .filter((d) => d.rol !== 'operativo')
                 .map((d): LineaDetalleClaseCliente => ({
-                    montoCotizado: d.montoCotizado,
+                    // `montoCosto` NO se copia: es el costo de proveedor. Ver la interfaz.
                     moneda: d.moneda,
                     esGrupal: d.esGrupal,
                     cantidad: d.cantidad,
@@ -874,10 +890,10 @@ const limpiarMontoInclusion = (l: InclusionLinea): InclusionLinea => ({
     tarifas: l.tarifas.map(t => ({ ...t, montoCotizado: null, moneda: null }))
 });
 
-export const formatMontoCotizado = (l: { montoCotizado: string; moneda: string; esGrupal: boolean; cantidadComponente: number }): string => {
+export const formatMontoCotizado = (l: { montoCosto: string; moneda: string; esGrupal: boolean; cantidadComponente: number }): string => {
     const prefijo = l.cantidadComponente > 1 ? `${l.cantidadComponente} x ` : '';
     const monedaLabel = l.moneda === 'PEN' ? 'Soles' : 'Dolares';
-    return `${prefijo}${parseFloat(l.montoCotizado).toFixed(2)} ${monedaLabel} (${l.esGrupal ? 'P' : 'U'})`;
+    return `${prefijo}${parseFloat(l.montoCosto).toFixed(2)} ${monedaLabel} (${l.esGrupal ? 'P' : 'U'})`;
 };
 
 export const filasResumenGeneral = (fin: ClasificacionFinancieraInterna) => ([

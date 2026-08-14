@@ -754,7 +754,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         tipo: `r${edadMin}-${edadMax}t${procedencia}`,
                         rutaOrigen: `${servicioLabel} ➔ ${compLabel} (${getI18nText(t.tituloSnapshot, idiomaEdicion) || t.nombreInternoSnapshot || 'Tarifa'})`,
                         base: {
-                            montoCotizado: String(t.montoCosto || '0'),
+                            montoCosto: String(t.montoCosto || '0'),
                             moneda,
                             esGrupal,
                             cantidad: tCant,
@@ -1207,7 +1207,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     edadMax: t.edadMaximaSnapshot ?? null,
                     rol: (t.rolSnapshot || 'estandar') as TarifaRolValue,
                     notaRol: t.notaRol || [],
-                    montoCotizado: String(t.montoCosto || '0'),   // interna con monto; expurgador limpia
+                    montoCotizado: String(t.montoCosto || '0'),   // `limpiarMontoInclusion` lo pone a null
                     moneda: String(t.moneda || 'USD')
                 });
 

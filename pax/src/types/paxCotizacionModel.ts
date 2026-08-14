@@ -224,7 +224,8 @@ export interface PaxClasePasajeroDetalle {
     servicioId: string;
     ventaSoles: number;
     ventaDolares: number;
-    montoCotizado: string;
+    // El costo de proveedor ya no viaja en el detalle por clase: era una fuga de margen.
+    // Los importes que sí puede ver el cliente son `ventaSoles` y `ventaDolares`.
     tarifaTitulo: I18n;
     servicioNombre: I18n;
     componenteNombre: I18n;
