@@ -1011,8 +1011,12 @@ store.$onAction(({ name, args }) => {
 <template>
   <div class="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden relative">
 
-    <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md shrink-0">
-      <div class="flex items-center gap-3">
+    <!-- ⚠️ `min-w-0` en el bloque del título y `shrink-0` en el de acciones, y no es cosmético:
+         sin `min-w-0` flexbox se niega a encoger un hijo por debajo del ancho de su contenido, así
+         que el `truncate` del nombre del expediente NO recortaba y el título empujaba los botones
+         fuera de la pantalla. En móvil, «Guardar» quedaba cortado. -->
+    <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between gap-2 z-20 shadow-md shrink-0">
+      <div class="flex items-center gap-3 min-w-0 flex-1">
         <button @click="handleVolver" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
           <i class="fas fa-arrow-left text-sm"></i>
         </button>
@@ -1027,8 +1031,8 @@ store.$onAction(({ name, args }) => {
         </div>
       </div>
 
-      <div class="flex gap-2 md:gap-3 items-center" v-if="store.cotizacion">
-        <div class="flex items-center bg-slate-800 rounded-lg p-1 gap-1">
+      <div class="flex gap-2 md:gap-3 items-center shrink-0" v-if="store.cotizacion">
+        <div class="flex items-center bg-slate-800 rounded-lg p-1 gap-1 shrink-0">
           <button @click="store.cotizacion.idiomaEdicion = 'es'"
                   :class="store.cotizacion.idiomaEdicion === 'es' ? 'bg-[#376875] text-white shadow' : 'text-slate-400 hover:text-white'"
                   class="px-2 md:px-3 py-1 rounded text-[9px] md:text-[10px] font-black tracking-widest transition-all whitespace-nowrap">
@@ -1049,9 +1053,11 @@ store.$onAction(({ name, args }) => {
                 class="flex items-center gap-2 px-3 md:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold border border-slate-700 transition-colors whitespace-nowrap">
           <i class="fas fa-eye"></i> <span class="hidden md:inline">Vista Cliente</span>
         </button>
+        <!-- La acción primaria: siempre visible y siempre con su nombre. Un icono suelto de
+             disquete no se lee como «guardar» en un móvil. -->
         <button @click="handleGuardar"
-                class="flex items-center gap-2 px-4 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors">
-          <i class="fas fa-save"></i> <span class="hidden sm:inline">Guardar</span>
+                class="flex items-center gap-2 px-3 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors shrink-0 whitespace-nowrap">
+          <i class="fas fa-save"></i> <span>Guardar</span>
         </button>
       </div>
     </header>
