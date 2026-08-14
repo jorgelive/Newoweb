@@ -5,9 +5,10 @@ import { useAttachmentStore } from '@/stores/attachmentStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import EditConversationModal from '@/components/chat/EditConversationModal.vue';
+import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { formatoAHtml, envolverSeleccion } from '@/utils/formatoDeTexto';
 
 const store = useChatStore();
@@ -433,6 +434,44 @@ const isPreviewModalOpen = ref(false);
 const previewImageUrl = ref<string | null>(null);
 
 const isEditConversationModalOpen = ref(false);
+
+// ============================================================================
+// FICHA DE LA RESERVA (drawer sobre el chat)
+//
+// Se guarda el id en vez de un booleano para que el drawer se REMONTE al cambiar
+// de conversación: `ReservaEditDrawer` recarga por `watch` de sus props, pero con
+// la key nos ahorramos depender de eso y de arrastrar estado del hilo anterior.
+// ============================================================================
+const reservaDrawerId = ref<string | null>(null);
+
+function abrirReservaDrawer(): void {
+  reservaDrawerId.value = store.getReservaContextId;
+}
+
+function cerrarReservaDrawer(): void {
+  reservaDrawerId.value = null;
+}
+
+// Borrar la reserva deja la ficha sin sujeto: se cierra sola. La conversación
+// sobrevive —el historial con esa persona no desaparece porque se anule su
+// estancia— así que no se toca nada más del chat.
+function onReservaBorrada(): void {
+  cerrarReservaDrawer();
+}
+
+// Cambiar de conversación con la ficha abierta mostraría la reserva del hilo
+// anterior sobre los mensajes del nuevo. Se cierra.
+watch(() => store.currentConversation?.id, () => cerrarReservaDrawer());
+
+// El «atrás» del móvil cierra la ficha en vez de sacarte del chat — mismo criterio
+// que ReservasView. Vue Router restaura la posición del historial al devolver
+// `false`, así que el back sigue disponible para el siguiente intento.
+onBeforeRouteLeave(() => {
+  if (reservaDrawerId.value) {
+    cerrarReservaDrawer();
+    return false;
+  }
+});
 
 const translatedMessages = ref<Record<string, boolean>>({});
 
@@ -1283,7 +1322,17 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
               <span v-if="store.currentConversation?.contextStatusTag" class="hidden lg:inline-flex items-center px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest">
                 {{ store.currentConversation.contextStatusTag }}
               </span>
-              <a v-if="store.getExternalContextUrl" :href="store.getExternalContextUrl" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 hover:shadow-2xl hover:bg-slate-800 transition-all text-[10px] font-black uppercase tracking-wider">
+              <!--
+                La reserva se abre SOBRE el chat, no en el panel ni en otra pestaña: leer la
+                ficha es parte de contestar el mensaje, y mandar al operador a EasyAdmin le
+                costaba la conversación. Al cerrar el drawer sigue donde estaba, con el
+                borrador intacto.
+              -->
+              <button v-if="store.getReservaContextId" @click="abrirReservaDrawer" class="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 hover:shadow-2xl hover:bg-slate-800 transition-all text-[10px] font-black uppercase tracking-wider">
+                <i class="fas fa-bed"></i><span class="hidden md:inline">Ver Reserva</span>
+              </button>
+              <!-- Contextos que todavía no tienen pantalla propia en la SPA: salida al panel. -->
+              <a v-else-if="store.getExternalContextUrl" :href="store.getExternalContextUrl" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 hover:shadow-2xl hover:bg-slate-800 transition-all text-[10px] font-black uppercase tracking-wider">
                 <i class="fas fa-external-link-alt"></i><span class="hidden md:inline">Ver Reserva</span>
               </a>
             </div>
@@ -1664,6 +1713,22 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
         v-if="isEditConversationModalOpen && store.currentConversation"
         :conversation="store.currentConversation"
         @close="isEditConversationModalOpen = false"
+    />
+
+    <!--
+      La misma ficha que usa el calendario de reservas, montada aquí sin él.
+      `startReadOnly`: se abre a mirar —es lo que se viene a hacer desde un chat— y el
+      botón «Editar» del propio drawer pasa a edición. Sin `@saved`: el drawer se
+      recarga solo y aquí no hay calendario que refrescar.
+    -->
+    <ReservaEditDrawer
+        v-if="reservaDrawerId"
+        :key="reservaDrawerId"
+        :reserva-id="reservaDrawerId"
+        start-read-only
+        abierto-desde-chat
+        @close="cerrarReservaDrawer"
+        @deleted="onReservaBorrada"
     />
 
   </div>

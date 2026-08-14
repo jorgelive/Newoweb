@@ -596,7 +596,7 @@ recurso REST de API Platform propio para EDITAR. Ningún dato de edición pasa p
 | Archivo | Responsabilidad |
 |---|---|
 | `util/src/views/Reservas/ReservasView.vue` | Calendario + menú contextual + drag & drop + buscador |
-| `util/src/components/reservas/ReservaEditDrawer.vue` | Drawer ver/crear/editar (acordeón de estancias) |
+| `util/src/components/reservas/ReservaEditDrawer.vue` | Drawer ver/crear/editar (acordeón de estancias). ⚠️ **Dos consumidores**: también lo monta `ChatView.vue` sin calendario detrás (`docs/Mensajeria.md` §7) — al tocarlo, comprobar los dos |
 | `util/src/stores/reservas/reservasStore.ts` | Catálogos + CRUD de evento/reserva + búsqueda |
 | `util/src/types/pmsReservaModel.ts` | Tipos, helpers de IRI/fecha y reglas OTA |
 | `src/Pms/Controller/Api/PmsReservaBuscarController.php` | `GET /pms/reservas/buscar?q=` (buscador del calendario) |
@@ -839,6 +839,10 @@ Todo `router.push()` disparado desde dentro del drawer tiene que **cerrarlo ante
 guard se lo traga. Es lo que hace `ReservaEditDrawer::abrirChatInterno()` (emite `close` y
 luego navega a `/chat?id=`). Si mañana se añade otro botón que navegue desde el drawer,
 mismo requisito.
+
+`ChatView` monta ahora el mismo guard por el mismo motivo (cerrar la ficha con el back del
+móvil en vez de salir del chat), y allí el botón de chat interno va oculto: lo apaga la prop
+`abiertoDesdeChat`, porque desde el chat sólo llevaría a la conversación en la que ya estás.
 
 ### Tarifas — equivalente de `PmsTarifaRangoCrudController`
 

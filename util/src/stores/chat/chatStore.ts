@@ -212,12 +212,30 @@ export const useChatStore = defineStore('chatStore', () => {
     /**
      * Resuelve dinámicamente la URL absoluta del panel de administración (Symfony)
      * basándose en el ID de la reserva vinculada a la conversación.
+     *
+     * ⚠️ Ya NO lo usa el botón «Ver Reserva»: para `pms_reserva` la ficha se abre con
+     * `ReservaEditDrawer` sobre el propio chat (ver `getReservaContextId`). Se mantiene
+     * porque sigue siendo la única salida al panel para los contextos que aún no tienen
+     * pantalla propia en la SPA; en cuanto no quede ninguno, se retira entero.
      */
     const getExternalContextUrl = computed(() => {
         if (!currentConversation.value) return null;
         const chat = currentConversation.value;
         const routes: Record<string, string> = { 'pms_reserva': `/pms-reserva/${chat.contextId}` };
         return routes[chat.contextType || ''] ? `${getUrls().panel}${routes[chat.contextType || '']}` : null;
+    });
+
+    /**
+     * El UUID de la PmsReserva de la que habla este hilo, o `null` si el contexto es otro.
+     *
+     * `contextId` es opaco: sólo significa «reserva» cuando `contextType` es `pms_reserva`.
+     * La comprobación vive aquí y no en la vista para que el día que haya un drawer de
+     * cotizaciones no se copie el `if` a otro sitio.
+     */
+    const getReservaContextId = computed(() => {
+        const chat = currentConversation.value;
+        if (!chat || chat.contextType !== 'pms_reserva') return null;
+        return chat.contextId || null;
     });
 
     // ============================================================================
@@ -683,6 +701,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, updateConversation, deleteConversation
+        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, updateConversation, deleteConversation
     };
 });

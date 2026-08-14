@@ -368,6 +368,38 @@ momento falla, nada las repesca. Entrada recomendada:
 
 ## 7. Gotchas
 
+### «Ver Reserva» abre la ficha SOBRE el chat, no el panel
+
+El botón del encabezado de `ChatView.vue` llevaba a EasyAdmin (`{panel}/pms-reserva/{id}`,
+en otra pestaña). Consultar la reserva es parte de contestar el mensaje —¿qué día llega, qué
+pagó, en qué casita está—, así que salir de la SPA para leerla costaba la conversación: al
+volver, el borrador se había perdido y había que rebuscar el hilo.
+
+Hoy monta el mismo `ReservaEditDrawer` que usa el calendario de reservas, **sin el
+calendario detrás**. Cerrarlo devuelve al operador exactamente donde estaba.
+
+```
+contextType = 'pms_reserva'  →  chatStore.getReservaContextId  →  <ReservaEditDrawer>
+otro contexto                →  chatStore.getExternalContextUrl →  <a> al panel
+```
+
+Detalles que no se ven en el diff:
+
+- **`contextId` es opaco**: sólo significa «reserva» cuando `contextType` es `pms_reserva`.
+  La comprobación vive en `getReservaContextId` (store), no en la plantilla, para que el día
+  que haya drawer de cotizaciones no se copie el `if` a otra vista.
+- **El drawer es autosuficiente**: `cargarDatos()` pide sus propios maestros y la reserva, así
+  que no necesita nada de `ReservasView`. Por eso se puede montar aquí tal cual.
+- **`:key="reservaDrawerId"`** fuerza el remontado al cambiar de reserva, y un `watch` sobre la
+  conversación activa lo cierra: sin él, cambiar de hilo dejaba la ficha del anterior encima
+  de los mensajes del nuevo.
+- **`onBeforeRouteLeave`** hace que el «atrás» del móvil cierre la ficha en vez de sacarte del
+  chat — mismo criterio que `ReservasView`.
+- **`abiertoDesdeChat`** apaga el botón de «chat interno» del propio drawer: desde aquí sólo
+  cerraría la ficha para llevarte a la conversación en la que ya estás.
+- `getExternalContextUrl` **sigue existiendo**: es la salida al panel de los contextos que aún
+  no tienen pantalla en la SPA. Cuando no quede ninguno, se retira entero.
+
 ### 🔥 `unreadCount` es un contador desnormalizado, y derivó
 
 `MessageConversation::$unreadCount` **no se calcula**: es una columna que se
@@ -5055,6 +5087,7 @@ arreglar** — ver el aviso al final de esta sección.
 | Añadir un canal de salida nuevo | nuevo `ChannelEnqueuerInterface` + entidad de cola | `supports()`, `createQueueEntity()`, `isValid()`, `getChannelId()` |
 | Cambiar la prioridad plantilla vs. operador | `src/Message/Service/Queue/MessageDispatcher.php` | `resolveChannels()` |
 | Cambiar cómo se deduce el estado de un mensaje | `src/Message/Service/Queue/MessageRuleEngine.php` | `resolveMessageStatus()` + `healZombieMessages()` |
+| Qué abre «Ver Reserva» del chat (§7) | `util/src/stores/chat/chatStore.ts` **y** `util/src/views/ChatView.vue` | `getReservaContextId` (qué contextos tienen ficha propia) + `<ReservaEditDrawer>` de la vista |
 | Reparar mensajes fallidos de una reserva | — | `php bin/console app:message:sync-rules <uuid> --force` |
 | Aplicar una regla recién creada al parque existente | — | `php bin/console app:message:sync-rules --all` |
 | Cambiar cómo se numera el menú al SALIR por una OTA | `Beds24SendMappingStrategy` | `map()` — §8, simétrico con el resolutor |
