@@ -1400,9 +1400,11 @@ perdería los cargos de las demás habitaciones. Si el master aún no se conoce 
 se cae al primer link disponible. El cron de **mensajes** conserva su finder original: los
 mensajes sí son de cada booking y ahí hay que ir uno a uno.
 
-**Para distinguir a qué estancia pertenece cada cargo** está `beds24BookingId`, y
-`PmsInformacionFinanciera::getEstancias()` da el mapa `bookingId → casita/fechas` que necesita
-la UI. Sin eso, dos habitaciones del mismo grupo se ven con descripciones idénticas
+**Para distinguir a qué estancia pertenece cada cargo**, el persister la imputa en la FK
+`evento` al sincronizar (resuelta desde `beds24BookingId` por el link principal, ver §12.4.1);
+`beds24BookingId` queda como verdad histórica cruda y `getEstancias()` (mapa
+`bookingId → casita/fechas`) es el respaldo del panel para filas aún sin imputar. Sin nada de
+esto, dos habitaciones del mismo grupo se ven con descripciones idénticas
 (`[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]`, que Beds24 no resuelve) y no hay forma de saber cuál
 es cuál. En el panel, `ReservaFinanzasPanel.vue` agrupa los cargos por estancia con subtotal:
 
@@ -1735,15 +1737,22 @@ tanto el saldo quedaría desfasado. Corregirlo (Patch) sí tiene sentido; borrar
 lo ignoraría y el cargo no afectaría al saldo — y `fechaCreacionBeds24 = ahora`, que es el campo
 por el que se ordena la colección.
 
-**Imputación a una estancia.** Una reserva puede tener varias casitas también siendo directa. Los
-cargos de Beds24 se atribuyen por `beds24BookingId`, pero un cargo manual no tiene booking del
-canal: para eso está `PmsCargoFinanciero.evento` (FK nullable a `PmsEventoCalendario`), que el
-operador elige en el panel. `NULL` = cargo de la reserva en conjunto.
+**Imputación a una estancia: la FK `evento` es LA clave, para todos los cargos.** Una reserva
+puede tener varias casitas también siendo directa. Desde 2026-08-14 la imputación se **persiste**
+en `PmsCargoFinanciero.evento` (FK nullable a `PmsEventoCalendario`) sea cual sea el origen del
+cargo: en los manuales la elige el operador en el panel; en los sincronizados la resuelve
+`Beds24InvoiceReceivePersister::eventosPorBookingId()` desde el `beds24BookingId` vía el link
+**principal** (los espejos nacen sin `beds24BookId`, §6.3) — y la **reevalúa en cada sync**, así
+el cargo sigue a su estancia en una mudanza de casita. Un bookId aún sin link (sync a medias) no
+borra una imputación existente; el siguiente pull la corrige. `NULL` = cargo de la reserva en
+conjunto. `Version20260814100000` hizo el backfill (99/99 en la copia local).
 
-La UI **no agrupa por dos claves distintas**: `getEstancias()` devuelve el `eventoId` de cada
-estancia junto a su `beds24BookingId`, y el panel traduce ambas familias a esa única clave
-(`ReservaFinanzasPanel.vue::claveEstancia()`). El `<select>` de estancia sólo aparece si la
-reserva tiene más de una casita; con una sola se preselecciona sin preguntar.
+Antes los sincronizados sólo llevaban `beds24BookingId` y únicamente el panel sabía traducirlo
+(`claveEstancia()` con el mapa de `getEstancias()`): cualquier otro consumidor —caja, agente, un
+estado de pago por estancia— tenía que repetir la traducción o quedarse sin imputación. Esa
+traducción del panel **se conserva sólo como respaldo** para filas que aún no pasaron por un
+sync. El `<select>` de estancia sólo aparece si la reserva tiene más de una casita; con una sola
+se preselecciona sin preguntar.
 
 `ON DELETE SET NULL` en la FK: si se borra la estancia, el cargo sobrevive como cargo general en
 lugar de irse con ella — es dinero registrado, no un dato derivado.
@@ -1894,14 +1903,28 @@ En los canales de `PmsChannel::CANAL_PAGO_TOTAL` (hoy **Airbnb y VRBO**) el dine
 nosotros: la OTA cobra al huésped y **deposita en la cuenta bancaria**. No hay ningún pago que
 teclear, así que esas reservas figuraban impagadas aunque estuvieran cobradas al 100 %.
 
-`PmsPagoOtaAutomaticoService` crea y mantiene ese pago, dejando el saldo en **0**:
+`PmsPagoOtaAutomaticoService` crea y mantiene ese pago, dejando en **0** el saldo de lo que
+cobró el canal:
 
 | | Valor | Por qué |
 |---|---|---|
-| Importe | `totalCargos` | Es lo que deja el saldo en cero, que es la regla pedida |
+| Importe | `getTotalCargosDelCanal()` — los cargos **del canal** (`esAutomatico`, §12.0.2c), convertidos a la moneda de la cabecera | El canal deposita **lo suyo**; los cargos manuales los paga el huésped a nosotros y tienen que mover el saldo |
 | Fecha | Llegada **+ 1 día** | Es cuando la OTA libera el depósito |
 | Medio | Transferencia bancaria | Es como entra |
 | Moneda | La de la cabecera | Así no necesita tipo de cambio y no depende de §12.2 |
+
+⚠️ **El importe NO es `totalCargos`, y el cambio está pagado.** El primer diseño cuadraba el
+total entero de la cabecera, asumiendo "en una reserva de Airbnb todo lo cobra Airbnb". El caso
+real que lo rompió (reserva V6WDDQ, 2026-08-14): estancia de Airbnb en dólares + **ampliación
+directa en soles dentro de la misma reserva**. Cada cargo manual que el operador registraba lo
+absorbía el depósito en el mismo flush —el saldo volvía a 0 hiciera lo que hiciera—, y registrar
+el pago real del huésped dejaba la reserva en negativo. Con el alcance acotado a los cargos del
+canal, una reserva OTA **pura** se comporta exactamente igual que antes (todos sus cargos son del
+canal), y en una **mixta** los cargos manuales quedan pendientes hasta que se registra el pago
+manual — verificado con `var/probar-deposito-canal.php` (transacción con rollback).
+
+Los depósitos sobredimensionados que dejó la regla anterior **se corrigen solos** en el
+siguiente recálculo de su cabecera (cualquier alta/edición de un cargo o pago de esa reserva).
 
 ⚠️ **No se genera al crear la cabecera**, aunque sea lo intuitivo: en ese momento la reserva aún
 no tiene cargos (llegan después por webhook o por el pull de invoiceItems, §11) y el pago habría
@@ -1957,6 +1980,16 @@ Estos pagos nacen con `es_automatico = 0`: son un dato histórico normal y el op
 editarlos. Se identifican por su `notas` para poder revertirlos en el `down()`.
 
 ## 12.5 Panel financiero en la SPA (`util/`) y patrón de Enums por AJAX
+
+**El panel se refresca al guardar el drawer, no sólo al abrirlo.** El store ya recargaba tras
+cada movimiento hecho *dentro* del panel (`finanzasStore.recargar()` en cada create/patch/delete),
+pero el panel entero sólo cargaba al cambiar `props.reservaId` — y guardar las **estancias**
+también mueve las finanzas en el backend: los cargos automáticos de una estancia directa nueva
+(§12.0.1), el cargo de un horario extra (§7.1.b) y el reajuste del depósito de la OTA (§12.4.5).
+Resultado: los totales parecían congelados («no es información viva») hasta cerrar y reabrir la
+reserva. Ahora `ReservaFinanzasPanel` expone `refrescar()` —recarga datos SIN resetear acordeones,
+candado ni moneda de vista, al contrario que `cargar()`— y `ReservaEditDrawer.guardar()` lo llama
+en los dos caminos que dejan el drawer abierto.
 
 **El tipo de cambio se pide SIEMPRE, en cualquier moneda.** El campo aparecía sólo cuando la
 moneda del registro no era la de la cabecera, y eso dejaba los registros **cojos**: el día que se
@@ -2523,7 +2556,30 @@ pull deshace el arreglo. Hay que confirmarlas **por el panel**, que es lo que di
 > repasarlas después por el panel. Si vuelve a aparecer alguna, la consulta está en la tabla
 > de §13.
 
-## 12.9.b El móvil del EQUIPO: `User::$telefono`
+### 12.9.c ⚠️ El drawer NO manda `estado`/`estadoPago` que no se tocaron
+
+El segundo camino por el que una estancia "volvía sola" a `no-pagado` no era el pull sino
+**nuestro propio drawer** (detectado 2026-08-14, reserva V6WDDQ). El PATCH de la estancia
+(`ReservaEditDrawer.guardar()`) mandaba el formulario completo, y `estado`/`estadoPago` son
+justo los dos campos que el backend mueve POR SU CUENTA mientras el drawer está abierto:
+
+```
+1. Se abre el drawer            → el formulario carga estadoPago = no-pagado
+2. Se registra el pago en el    → el saldo cuadra; PmsEstadoPagoEventosService pone la
+   panel de finanzas              estancia en pago-total (+ confirmada)
+3. «Guardar Cambios» (cerrar)   → el PATCH mandaba el no-pagado con que se ABRIÓ el
+                                  formulario y pisaba el pago-total recién puesto
+```
+
+El síntoma es intermitente porque depende del orden: si el pago se guarda con el propio
+«Guardar Cambios» (paso 2 y 3 juntos), el PATCH viejo viaja ANTES que el pago y el recálculo
+posterior lo corrige. Sólo falla cuando el pago se registró con el botón del panel y el
+guardado del drawer llegó DESPUÉS.
+
+Ahora `estado` y `estadoPago` viajan **sólo si difieren del valor con que llegaron del
+servidor** (`EventoEntry.estadoActualId` / `estadoPagoActualId`). La auto-confirmación local
+por pago sigue viajando: muta `form.estado`, así que difiere del original. El resto del
+formulario se sigue mandando entero: ningún otro campo del PATCH lo escribe el backend solo.
 
 La contraparte del teléfono del huésped. Cuando entra un WhatsApp lo único que se tiene es el
 número del remitente, y sin este campo no había forma de distinguir a un operador de un huésped:
@@ -2947,8 +3003,10 @@ veces** y la cabecera decía 308.42.
 
 ### Por qué nadie lo vio en cuatro meses
 
-Porque el saldo salía a cero. `PmsPagoOtaAutomaticoService::sincronizar()` deja siempre el
-depósito espejo igual a `getTotalCargos()`, de modo que cuando los huérfanos inflaron el total
+Porque el saldo salía a cero. `PmsPagoOtaAutomaticoService::sincronizar()` dejaba entonces el
+depósito espejo igual a `getTotalCargos()` —desde 2026-08-14 sigue sólo los cargos **del canal**
+(§12.4.5), así que hoy unos huérfanos locales como estos SÍ dejarían saldo visible—, de modo
+que cuando los huérfanos inflaron el total
 el depósito los siguió hasta 308.42. Dos errores que se compensan y un saldo aparentemente
 correcto — la peor combinación para detectar nada.
 
@@ -2999,7 +3057,7 @@ deben verse.
 | Cerrar el ciclo de un DELETE manual (§12.12.5) | `BookingsPushHandler` | `handleSuccess()` → `markSyncedDeleted()` |
 | Cambiar cuándo la SPA ofrece borrar (§12.12.6b) | `util/src/types/pmsReservaModel.ts` **y** `PmsEventoCalendario` | `puedeBorrarseYa()` / `getSyncStatus()` — son espejo, hay que tocar **los dos** |
 | Añadir canal de pago total | `PmsChannel` | `CANAL_PAGO_TOTAL` — también decide qué canales generan depósito automático (§12.4.5) |
-| Cambiar el importe/fecha del depósito de OTA (§12.4.5) | `PmsPagoOtaAutomaticoService` | `sincronizar()` / `fechaDeposito()` |
+| Cambiar el importe/fecha del depósito de OTA (§12.4.5) | `PmsPagoOtaAutomaticoService` + `PmsInformacionFinanciera` | `sincronizar()` / `fechaDeposito()` — el alcance del importe vive en `getTotalCargosDelCanal()` |
 | Permitir editar el depósito automático (§12.4.5) | `PmsInformacionFinancieraCoherenciaListener` | `assertPagoAutomaticoNoEditable()` |
 | Cambiar lógica de estado OTA | `BookingPullPersister` | `resolveEstado()` |
 | Cambiar estado de pago inicial | `BookingPullPersister` | `resolveEstadoPagoInicial()` |
@@ -3023,7 +3081,8 @@ deben verse.
 | Tocar el reparto por bookingId (§11.3.1) | `Beds24InvoiceReceiveMappingStrategy` / `Beds24ReceiveMappingStrategy` | `map()` + `parseResponse()` — recorre la correlación, **nunca** el `data` |
 | Cambiar cómo se agrupan los invoiceItems del webhook | `ProcessBeds24WebhookDispatchHandler` | `handleInvoiceItems()` |
 | Cambiar qué booking se consulta por reserva/grupo (§11.6) | `PmsBeds24InvoiceTargetFinder` | `findTargetsForPeriod()` (hoy: el `beds24MasterId`) |
-| Saber a qué estancia pertenece un cargo de un grupo (§11.6) | `PmsCargoFinanciero` + `PmsInformacionFinanciera` | `beds24BookingId` / `getEstancias()` |
+| Saber a qué estancia pertenece un cargo (§12.4.1) | `PmsCargoFinanciero` | FK `evento` — la persiste el persister para los sincronizados y el operador para los manuales; `beds24BookingId`/`getEstancias()` son sólo respaldo |
+| Cambiar cómo se resuelve la imputación de un cargo del canal (§12.4.1) | `Beds24InvoiceReceivePersister` | `eventosPorBookingId()` |
 | Cambiar la agrupación de cargos por casita en la UI (§11.6) | `ReservaFinanzasPanel.vue` | `gruposCargos` / `claveEstancia()` |
 | Imputar un cargo manual a una estancia (§11.5) | `PmsCargoFinanciero` | FK `evento` (`NULL` = toda la reserva) |
 | Que un campo `#[AutoTranslate]` se traduzca de verdad (§12.5.6) | la entidad | `use AutoTranslateControlTrait;` — sin él el atributo es decorativo y falla en silencio |

@@ -321,6 +321,45 @@ class PmsInformacionFinanciera
     }
 
     /**
+     * Total de los cargos que COBRÓ EL CANAL por nosotros, en la moneda de la cabecera.
+     *
+     * "Del canal" = los marcados como espejo contable (`PmsCargoFinanciero::$esAutomatico`,
+     * que el persister de invoiceItems pone en los canales de `PmsChannel::CANAL_PAGO_TOTAL`).
+     * Es el importe que cuadra el depósito automático (`PmsPagoOtaAutomaticoService`): la OTA
+     * deposita LO SUYO, no lo que el operador cargue a mano. Antes el depósito seguía a
+     * `totalCargos` entero, y en una reserva mixta —estancia de Airbnb más una ampliación
+     * directa en la misma reserva— se tragaba los cargos manuales: el saldo volvía a cero
+     * hiciera lo que hiciera el operador, y registrar el pago real lo dejaba en negativo.
+     *
+     * Aplica las mismas reglas que el rollup (§12.2/§12.7): `esCargo()`, con la reserva
+     * anulada sólo cuenta la penalización, `totalLinea ?? monto`, y conversión a la moneda
+     * de la cabecera con el TC congelado en cada línea.
+     */
+    public function getTotalCargosDelCanal(): string
+    {
+        $total = 0.0;
+
+        foreach ($this->cargos as $cargo) {
+            if (!$cargo->esCargo() || !$cargo->isEsAutomatico()) {
+                continue;
+            }
+
+            $tipo = $cargo->getTipoCargo() ?? PmsTipoCargo::OTRO;
+            if (!$this->activa && $tipo !== PmsTipoCargo::PENALIZACION) {
+                continue;
+            }
+
+            $total += $this->aMonedaBase(
+                (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0'),
+                $cargo->getMoneda()?->getId(),
+                $cargo->getTipoCambio(),
+            );
+        }
+
+        return number_format($total, 2, '.', '');
+    }
+
+    /**
      * Las MISMAS líneas que `getDesglosePorTipo()`, pero sin agrupar.
      *
      * Existe porque el estado de cuenta del huésped pasó a enseñar el detalle: agrupado por

@@ -45,7 +45,14 @@ const props = defineProps<{
     createKind?: 'bloqueo' | 'reserva' | null;
     /** Abre el drawer en modo solo-lectura ("Ver"); el usuario puede pasar a edición con el botón. */
     startReadOnly?: boolean;
+    /**
+     * La ficha se montó sobre ChatView, no sobre el calendario. Sólo apaga el botón de
+     * «chat interno», que desde ahí no lleva a ningún sitio nuevo.
+     */
+    abiertoDesdeChat?: boolean;
 }>();
+
+const abiertoDesdeChat = computed(() => !!props.abiertoDesdeChat);
 
 const emit = defineEmits<{
     close: [];
@@ -127,6 +134,16 @@ interface EventoEntry {
     eventoId: string | null;
     isOta: boolean;
     estadoActualId: string | null;
+    /**
+     * `estadoPago` tal como llegó del servidor, para mandarlo en el PATCH SOLO si el operador
+     * lo cambió aquí. No es una copia defensiva más: el backend mueve este campo POR SU CUENTA
+     * mientras el drawer está abierto —registrar un pago en el panel de finanzas cuadra el
+     * saldo y `PmsEstadoPagoEventosService` pone la estancia en `pago-total`—, y el guardado
+     * mandaba siempre el valor con que se ABRIÓ el formulario: pisaba el `pago-total` recién
+     * puesto y la estancia "volvía sola" a no-pagado. `estadoActualId` cumple el mismo papel
+     * para `estado` (que también lo mueve solo la auto-confirmación por pago).
+     */
+    estadoPagoActualId: string | null;
     channelNombre: string;
     form: EventoFormData;
     /**
@@ -224,6 +241,7 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
         eventoId: evento.id ?? null,
         isOta: !!evento.ota,
         estadoActualId: evento.estado?.id ?? null,
+        estadoPagoActualId: evento.estadoPago?.id ?? null,
         channelNombre: evento.channel?.nombre ?? '—',
         horarioExtraGuardado: (evento.entradaTemprana ?? false) || (evento.salidaTardia ?? false),
         inicioPrevio: toDatetimeLocal(evento.inicio),
@@ -676,6 +694,7 @@ function agregarEvento(): void {
         eventoId: null,
         isOta: false,
         estadoActualId: null,
+        estadoPagoActualId: null,
         channelNombre: 'Directo',
         horarioExtraGuardado: false,
         inicioPrevio: inicioLocal,
@@ -963,6 +982,7 @@ async function cargarDatos(): Promise<void> {
                 eventoId: null,
                 isOta: false,
                 estadoActualId: null,
+                estadoPagoActualId: null,
                 channelNombre: 'Directo',
                 horarioExtraGuardado: false,
                 inicioPrevio: toDatetimeLocal(props.createDefaults.inicio),
@@ -1100,7 +1120,7 @@ function payloadCreacion(entry: EventoEntry, estado: string): PmsEventoCalendari
  * panel, así que es el que se acaba usando: sin esto, un cargo o un pago tecleado pero no
  * confirmado se perdía en silencio al cerrar el drawer.
  */
-const finanzasPanel = ref<{ guardarPendientes: () => Promise<void> } | null>(null);
+const finanzasPanel = ref<{ guardarPendientes: () => Promise<void>; refrescar: () => Promise<void> } | null>(null);
 
 /** El id de la reserva recién creada; según el formato de respuesta llega en `id` o en `@id`. */
 function extraerId(reserva: unknown): string | null {
@@ -1192,8 +1212,6 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
                     // NOTA: `channel` nunca se manda. El canal es inmutable tras la
                     // creación (blindado también en el backend por el listener).
                     const payload: PmsEventoCalendarioPatch = {
-                        estado: pmsEventoEstadoIri(entry.form.estado),
-                        estadoPago: pmsEventoEstadoPagoIri(entry.form.estadoPago),
                         descripcion: entry.form.descripcion || null,
                         comentariosHuesped: entry.form.comentariosHuesped || null,
                         monto: entry.form.monto,
@@ -1203,6 +1221,20 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
                         entradaTemprana: entry.form.entradaTemprana,
                         salidaTardia: entry.form.salidaTardia,
                     };
+
+                    // `estado` y `estadoPago` viajan SOLO si se cambiaron en este drawer. El
+                    // backend los mueve por su cuenta mientras el formulario está abierto
+                    // (registrar un pago en el panel cuadra el saldo y pone `pago-total` +
+                    // confirmada vía PmsEstadoPagoEventosService): mandarlos siempre pisaba
+                    // ese avance con el valor con que se ABRIÓ el drawer, y la estancia
+                    // "volvía sola" a no-pagado. La auto-confirmación local sí viaja: cambia
+                    // `form.estado` y por tanto difiere del original.
+                    if (entry.form.estado !== entry.estadoActualId) {
+                        payload.estado = pmsEventoEstadoIri(entry.form.estado);
+                    }
+                    if (entry.form.estadoPago !== entry.estadoPagoActualId) {
+                        payload.estadoPago = pmsEventoEstadoPagoIri(entry.form.estadoPago);
+                    }
 
                     // La limpieza SÍ viaja también en las OTA: el canal manda las fechas, no
                     // quién prepara la casita. Se manda sólo cuando el selector está en
@@ -1260,6 +1292,10 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
         // vez para ponerle el importe, así que aquí se recarga y se queda abierto.
         if (huboHorarioExtra) {
             await cargarDatos();
+            // El cargo del horario extra acaba de nacer en el backend: sin este refresco el
+            // panel financiero seguiría enseñando la foto de cuando se abrió el drawer y el
+            // operador no encontraría el 0.00 que el aviso le pide valorar.
+            await finanzasPanel.value?.refrescar();
             emit('saved', { cerrar: false });
             avisoHorarioExtra.value = true;
             setTimeout(() => (avisoHorarioExtra.value = false), 8000);
@@ -1276,6 +1312,11 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
             // `motivoNoBorrable` y `syncStatus` los calcula el backend, y son justo los que
             // deciden si la zona de borrado de abajo se abre.
             await cargarDatos();
+            // Guardar estancias mueve las finanzas en el backend (cargos automáticos de una
+            // estancia nueva, reajuste del depósito de la OTA, recálculo del saldo): el panel
+            // sólo carga al cambiar de reserva, así que sin esto se quedaba con la foto vieja
+            // y los movimientos "no se veían" hasta reabrir el drawer.
+            await finanzasPanel.value?.refrescar();
             emit('saved', { cerrar: false });
             avisoGuardado.value = true;
             setTimeout(() => (avisoGuardado.value = false), 3000);
@@ -1548,7 +1589,11 @@ async function ejecutarBorrado(): Promise<void> {
                     <i class="fab fa-whatsapp text-emerald-500 text-sm"></i>
                 </a>
 
-                <button type="button" @click="abrirChatInterno" :disabled="abriendoChat"
+                <!--
+                  Oculto cuando la ficha se abrió DESDE el chat: ahí este botón sólo
+                  cerraría el drawer para llevarte a la conversación en la que ya estás.
+                -->
+                <button v-if="!abiertoDesdeChat" type="button" @click="abrirChatInterno" :disabled="abriendoChat"
                     title="Abrir chat interno"
                     class="shrink-0 w-8 h-8 flex items-center justify-center bg-white border border-slate-200 hover:border-[#376875] hover:bg-[#376875]/5 rounded-lg transition-colors disabled:opacity-50">
                     <i class="fas text-sm text-slate-500"

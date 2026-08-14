@@ -916,7 +916,28 @@ async function guardarPendientes(): Promise<void> {
     }
 }
 
-defineExpose({ guardarPendientes });
+/**
+ * Recarga la información financiera SIN resetear el estado de la interfaz.
+ *
+ * Lo llama el drawer después de guardar las estancias: ese guardado genera cargos en el
+ * backend —los automáticos de una estancia directa nueva (§12.0.1), el de un horario
+ * extra (§7.1.b), el reajuste del depósito de la OTA— y el panel no se enteraba: sólo
+ * cargaba al cambiar `props.reservaId`, así que los totales parecían congelados hasta
+ * cerrar y reabrir la reserva.
+ *
+ * A diferencia de `cargar()`, conserva acordeones, candado y moneda de vista: es un
+ * refresco de datos, no una reapertura. Silencioso ante fallo: los datos en pantalla
+ * siguen siendo los últimos buenos y el siguiente movimiento volverá a intentarlo.
+ */
+async function refrescar(): Promise<void> {
+    try {
+        await finanzas.fetchPorReserva(props.reservaId);
+    } catch {
+        /* se conserva lo que había */
+    }
+}
+
+defineExpose({ guardarPendientes, refrescar });
 
 async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
     if (!p.id) return;

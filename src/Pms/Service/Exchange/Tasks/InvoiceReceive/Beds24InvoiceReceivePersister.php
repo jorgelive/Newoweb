@@ -8,6 +8,7 @@ use App\Entity\Maestro\MaestroMoneda;
 use App\Pms\Dto\Beds24InvoiceItemDto;
 use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsChannel;
+use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsTipoCargo;
@@ -72,6 +73,8 @@ readonly class Beds24InvoiceReceivePersister
         $canal = $info->getReserva()?->getChannel()?->getId();
         $esEspejoDeCanal = $canal !== null && in_array($canal, PmsChannel::CANAL_PAGO_TOTAL, true);
 
+        $eventosPorBookId = $this->eventosPorBookingId($reserva);
+
         foreach ($items as $dto) {
             if (!$dto->id) {
                 continue;
@@ -100,6 +103,17 @@ readonly class Beds24InvoiceReceivePersister
                     $cambio = true;
                 }
 
+                // La imputación a estancia también se reevalúa en cada sync: así el cargo
+                // SIGUE a su estancia cuando el link cambia (mudanza de casita, §6.3.b) y
+                // se rellena en filas importadas antes de que existiera esta resolución.
+                // Sólo cuando RESUELVE: un bookId todavía desconocido (sync a medias) no
+                // borra una imputación existente — el siguiente pull la corrige si toca.
+                $eventoResuelto = $eventosPorBookId[$existing->getBeds24BookingId() ?? ''] ?? null;
+                if ($eventoResuelto !== null && $eventoResuelto !== $existing->getEvento()) {
+                    $existing->setEvento($eventoResuelto);
+                    $cambio = true;
+                }
+
                 $cambio ? $stats['updated']++ : $stats['skipped']++;
                 continue;
             }
@@ -108,6 +122,7 @@ readonly class Beds24InvoiceReceivePersister
             $cargo = new PmsCargoFinanciero($extId);
             $this->hidratar($cargo, $dto, $monedaUsd, $tcVenta);
             $cargo->setEsAutomatico($esEspejoDeCanal);
+            $cargo->setEvento($eventosPorBookId[$dto->bookingId ?? ''] ?? null);
             $info->addCargo($cargo);
             $this->em->persist($cargo);
 
@@ -201,5 +216,37 @@ readonly class Beds24InvoiceReceivePersister
         }
 
         return $cambio;
+    }
+
+    /**
+     * Mapa bookingId de Beds24 → estancia de la reserva, para PERSISTIR la imputación
+     * (`PmsCargoFinanciero::$evento`) en vez de derivarla en cada consumidor.
+     *
+     * Antes la imputación vivía en dos claves según el origen del cargo —los del canal por
+     * `beds24BookingId`, los manuales por la FK `evento`— y sólo el panel sabía unificarlas
+     * (`claveEstancia()` traduciendo con `getEstancias()`). Cualquier otro consumidor (caja,
+     * agente, un futuro estado de pago por estancia) tenía que repetir esa traducción o
+     * quedarse sin ella. Ahora la FK es la clave única y `beds24BookingId` queda como verdad
+     * histórica cruda; el panel conserva su traducción sólo como respaldo.
+     *
+     * Se resuelve por el link PRINCIPAL: los espejos virtuales nacen sin `beds24BookId`
+     * (§6.3) y no identifican la estancia. No se filtra por `status` del link a propósito:
+     * un cargo de una estancia en `pending_delete` sigue siendo suyo mientras exista.
+     *
+     * @return array<string, PmsEventoCalendario>
+     */
+    private function eventosPorBookingId(PmsReserva $reserva): array
+    {
+        $mapa = [];
+
+        foreach ($reserva->getEventosCalendario() as $evento) {
+            foreach ($evento->getBeds24Links() as $link) {
+                if ($link->isEsPrincipal() && $link->getBeds24BookId() !== null) {
+                    $mapa[$link->getBeds24BookId()] = $evento;
+                }
+            }
+        }
+
+        return $mapa;
     }
 }

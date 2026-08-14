@@ -18,13 +18,19 @@ use Doctrine\ORM\EntityManagerInterface;
  * cobra y **deposita en la cuenta bancaria**. No hay ningún pago que teclear, así que la reserva
  * aparecía eternamente como impagada aunque estuviera cobrada al 100 %.
  *
- * Este servicio crea y mantiene ese pago, dejando el saldo en 0.
+ * Este servicio crea y mantiene ese pago, dejando en 0 el saldo DE LO QUE COBRÓ EL CANAL.
  *
  * DECISIONES:
  *
- *  · **Importe = total de cargos.** Es lo que hace que el saldo quede en cero, que es la regla
- *    de negocio pedida. Si algún día se quiere reflejar el neto que llega al banco (descontada
- *    la comisión de la OTA), hay que cambiar esto Y aceptar que el saldo deje de ser cero.
+ *  · **Importe = total de cargos DEL CANAL** (`getTotalCargosDelCanal()`: los marcados como
+ *    espejo contable, `PmsCargoFinanciero::$esAutomatico`), no el total de la cabecera.
+ *    El canal deposita lo suyo; un cargo manual —la ampliación directa de una estancia de
+ *    Airbnb, un consumo extra— lo paga el huésped a nosotros y tiene que MOVER el saldo.
+ *    Cuando el depósito seguía a `totalCargos` entero, en una reserva mixta se tragaba los
+ *    cargos manuales: el saldo volvía a cero tras cada movimiento del operador, y registrar
+ *    el pago real lo dejaba en negativo. En una reserva OTA pura los dos criterios coinciden.
+ *    Si algún día se quiere reflejar el neto que llega al banco (descontada la comisión de
+ *    la OTA), hay que cambiar esto Y aceptar que ese saldo deje de ser cero.
  *  · **Fecha = llegada + 1 día.** Es cuando la OTA libera el depósito.
  *  · **Medio = transferencia bancaria**, que es como entra.
  *  · **Moneda = la de la cabecera**, así no necesita tipo de cambio y no depende de §12.2.
@@ -67,11 +73,11 @@ final class PmsPagoOtaAutomaticoService
             return false;
         }
 
-        $objetivo = $info->getTotalCargos();
+        $objetivo = $info->getTotalCargosDelCanal();
         $pago = $this->buscarAutomatico($info);
 
-        // Sin cargos todavía (o reserva anulada sin penalización): no se inventa un depósito.
-        // Si ya existía uno, se elimina en vez de dejarlo descuadrando el saldo.
+        // Sin cargos del canal todavía (o reserva anulada sin penalización): no se inventa un
+        // depósito. Si ya existía uno, se elimina en vez de dejarlo descuadrando el saldo.
         if ((float) $objetivo <= 0) {
             if ($pago !== null) {
                 $this->sincronizando = true;
