@@ -1037,6 +1037,30 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     asignar(l, l.cantidad);
                 }
             });
+            // ⚠️ COBRAR DE MENOS TAMBIÉN ES UN CONFLICTO. Si tras repartir un componente queda
+            // alguna clase real sin cubrir, hay pax por los que no se cobra nada — típicamente
+            // porque se subió `numPax` DESPUÉS de asignar las tarifas y nadie las reescaló.
+            //
+            // Hasta ahora la asimetría era la peor posible: asignar de MÁS disparaba la clase
+            // «⚠️ CONFLICTO» y bloqueaba publicar, mientras que asignar de MENOS se publicaba en
+            // silencio con el total de los pax viejos. Cobrar de menos no se descubre nunca: no
+            // hay cliente que reclame por pagar poco.
+            const sinCubrir = clases.filter((c) => c.isReal && c.cantidadRestante > 0);
+            const tuvoLineasPorPax = lineas.some((l) => !l.esGrupal);
+
+            if (tuvoLineasPorPax && sinCubrir.length > 0) {
+                const nombreComp = lineas[0]?.base.componenteNombre ?? '';
+                const detalle = sinCubrir
+                    .map((c) => `${c.cantidadRestante} de ${c.tipoPaxNombre}`)
+                    .join(', ');
+
+                advertencias.push(
+                    `«${nombreComp}» no cubre a todos los pasajeros: quedan sin tarifa ${detalle}. `
+                    + 'Se está cobrando de menos. Suele pasar al subir el número de pax después de '
+                    + 'asignar las tarifas: revísalas.'
+                );
+            }
+
             clases.forEach((c) => c.cantidadRestante = c.cantidad);   // reset por componente
         });
 
@@ -1455,8 +1479,31 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         try {
             try {
                 const tcResponse = await apiClient.post('/platform/maestro/tipo-cambio/consultar', { fecha: getFechaLimpia(new Date().toISOString()) });
-                tipoCambioSugerido.value = parseFloat(tcResponse.data.promedio) || 1;
-            } catch (err) {}
+                const tc = parseFloat(tcResponse.data.promedio);
+
+                // ⚠️ UN TIPO DE CAMBIO DE 1 NO ES UN VALOR POR DEFECTO, ES UN ERROR.
+                //
+                // Este `catch` estaba VACÍO, así que si el endpoint fallaba la cotización nacía
+                // con `tipoCambio: 1` y toda tarifa en soles se valoraba 1:1 — S/350 pasaban a
+                // ser $350 en vez de ~$95. Un número perfectamente plausible, 3,7 veces mal, y
+                // ni un aviso. Con 72 de las tarifas del catálogo en PEN, es de las cosas que se
+                // descubren en la factura.
+                //
+                // Se avisa en vez de callar: si no hay tipo de cambio, es el operador quien tiene
+                // que ponerlo a mano antes de seguir.
+                if (!Number.isFinite(tc) || tc <= 0) {
+                    throw new Error('el servicio devolvió un valor no utilizable');
+                }
+
+                tipoCambioSugerido.value = tc;
+            } catch (err) {
+                console.error('No se pudo obtener el tipo de cambio del día:', err);
+                alert(
+                    'No se pudo obtener el tipo de cambio del día.\n\n'
+                    + 'Las tarifas en soles se valorarían 1:1 con el dólar, que NO es correcto. '
+                    + 'Revisa el tipo de cambio de la cotización y ponlo a mano antes de guardar.'
+                );
+            }
 
             await fetchIdiomas();
             await fetchCatalogos();
