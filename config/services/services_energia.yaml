@@ -1,0 +1,85 @@
+# config/services/services_energia.yaml
+#
+# Módulo Energía — consumo eléctrico medido por enchufe inteligente.
+#
+# El dominio: qué aparato hay en cada casita, a qué estancia se le imputa lo que gasta, y la
+# bitácora horaria con la que se le puede enseñar al huésped de dónde sale su cuenta.
+#
+# ⚠️ El CLIENTE de Tuya no vive aquí: va en src/Exchange/Service/Client/, junto a
+# Beds24ExchangeClient y WhatsappMetaClient. Firmar HMAC y pedir un token no es conocimiento de
+# este dominio, y meterlo dentro ataría el módulo a un proveedor concreto — la regla de
+# CLAUDE.md §Dominios y contratos.
+
+parameters:
+
+    # -------------------------------------------------------------------------
+    # Credenciales del proyecto en Tuya IoT. Los valores reales van en .env.local,
+    # NUNCA en .env: con el par id/secret se controlan los enchufes, no sólo se leen.
+    # -------------------------------------------------------------------------
+    energia.tuya.host:      '%env(resolve:TUYA_HOST)%'
+    energia.tuya.client_id: '%env(resolve:TUYA_CLIENT_ID)%'
+    energia.tuya.secret:    '%env(resolve:TUYA_SECRET)%'
+
+    # -------------------------------------------------------------------------
+    # Tarifa y cortesía POR DEFECTO.
+    #
+    # Son sólo la semilla: cada suscripción se lleva su copia al abrirse y a partir de ahí no
+    # los mira más. Cambiar esto NO recalcula lo que ya se le dijo a un huésped que iba a pagar
+    # — mismo criterio que los importes congelados de FinEnlacePago.
+    # -------------------------------------------------------------------------
+
+    # Soles por kW·h de Electro Sur Este. Lleva años quieto, que es lo que hace viable cobrar
+    # a tarifa de la distribuidora en vez de inventarse un precio.
+    energia.tarifa_soles_kwh: '%env(resolve:ENERGIA_TARIFA_SOLES_KWH)%'
+
+    # Cortesía diaria por aparato. Es lo que evita la discusión con quien usa el calefactor con
+    # cabeza: si no se pasa, no paga nada. Lo que se cobra es el exceso.
+    energia.credito_diario_soles: '%env(resolve:ENERGIA_CREDITO_DIARIO_SOLES)%'
+
+    # -------------------------------------------------------------------------
+    # Vigilancia. Un enchufe mudo NO se nota solo: la cuenta del huésped deja de subir, que es
+    # justo lo que él esperaría ver si no estuviera gastando. No hay error ni queja, y el
+    # descubrimiento llegaría el día de cobrar — cuando ya no se puede reconstruir lo que no se
+    # midió.
+    # -------------------------------------------------------------------------
+
+    # Fallos SEGUIDOS antes de avisar, y cada cuántos se vuelve a insistir.
+    #
+    # Tres, con muestreo horario: un fallo suelto se recupera a la hora siguiente y avisar de eso
+    # quema el canal para cuando importe. A partir de ahí salta en el 3, el 6, el 9… Sigue
+    # molestando, porque un aparato roto sigue roto, pero no sesenta veces en un fin de semana.
+    energia.fallos_para_alerta: 3
+
+    # Horas sin NINGÚN muestreo tras las que se avisa, mire lo que mire el contador de fallos.
+    #
+    # Es la red para el caso que el contador no ve: si el cron entero deja de correr, nadie suma
+    # fallos y el contador se queda en cero para siempre. Aquí manda el reloj, que es la única
+    # señal que sobrevive a que se muera el proceso que debía vigilar.
+    energia.horas_para_alerta: 3
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Energia\:
+        resource: '../../src/Energia/'
+        exclude:
+            - '../../src/Energia/Dto/'
+            - '../../src/Energia/Entity/'
+            - '../../src/Energia/Enum/'
+            - '../../src/Energia/Contract/'
+
+    # =========================
+    # controllers del módulo Energía (panel de dispositivos y vista del huésped)
+    #
+    # Descomentar AL CREAR el directorio, no antes: un `resource:` que apunta a una carpeta que no
+    # existe revienta la compilación del contenedor entera, no sólo este bloque.
+    # =========================
+    # App\Energia\Controller\:
+    #     resource: '../../src/Energia/Controller/'
+    #     autowire: true
+    #     autoconfigure: true
+    #     tags:
+    #         - 'controller.service_arguments'

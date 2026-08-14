@@ -86,6 +86,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Operacion/Entity'
                 prefix: 'App\Operacion\Entity'
                 alias: pax
+            Energia:
+                is_bundle: false
+                type: attribute
+                dir: '%kernel.project_dir%/src/Energia/Entity'
+                prefix: 'App\Energia\Entity'
+                alias: energia
             gedmo_translatable:
                 type: attribute
                 prefix: Gedmo\Translatable\Entity
