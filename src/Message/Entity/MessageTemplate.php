@@ -18,6 +18,48 @@ use Symfony\Component\Uid\UuidV7;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
+/**
+ * Los bloques por canal (`emailTmpl`, `beds24Tmpl`…) son todos la misma forma: una clave por
+ * pieza del mensaje —`body`, `subject`, `header`, `footer`, `buttons_map`— y dentro, una entrada
+ * por idioma. Es lo que espera `AutoTranslate` con sus `nestedFields` y lo que lee `extract()`.
+ *
+ * ⚠️ No son sólo listas por idioma: llevan también banderas escalares (`is_active`,
+ * `is_official_meta`…). Un tipo que sólo describiera las listas sería MENTIRA, y un tipo
+ * mentiroso es peor que ninguno — el analizador se lo cree y deja de mirar. Esta forma está
+ * derivada de las claves realmente usadas en `src/`, no supuesta.
+ *
+ * ⚠️ **`buttons_map` NO es una lista de textos: son botones**, y su `button_text` es a su vez
+ * una lista de traducciones. Se descubrió tipando: al declararlo como texto, PHPStan avisó de
+ * que el `foreach` de `Beds24SendMappingStrategy` recorría algo que nunca podía tener elementos.
+ * Es la tercera corrección a este tipo, y la razón de que estas anotaciones se escriban leyendo
+ * el uso real y comprobando, no en tandas.
+ *
+ * @phpstan-type TextoTraducido array{
+ *     language?: string,
+ *     content?: string|null,
+ *     format?: string|null,
+ *     status?: string|null
+ * }
+ * @phpstan-type BotonDeMenu array{
+ *     type?: string|null,
+ *     index?: int|string|null,
+ *     resolver_key?: string|null,
+ *     payload?: mixed,
+ *     button_text?: list<TextoTraducido>
+ * }
+ * @phpstan-type BloqueDeCanal array{
+ *     body?: list<TextoTraducido>,
+ *     subject?: list<TextoTraducido>,
+ *     header?: list<TextoTraducido>,
+ *     footer?: list<TextoTraducido>,
+ *     buttons_map?: list<BotonDeMenu>,
+ *     is_active?: bool,
+ *     is_official_meta?: bool,
+ *     disable_meta_buttons?: bool,
+ *     meta_template_name?: string|null,
+ *     category?: string|null
+ * }
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_template')]
 #[ORM\HasLifecycleCallbacks]
@@ -60,6 +102,7 @@ class MessageTemplate
     #[Groups(['template:read'])]
     private ?string $name = null;
 
+    /** @var list<string> Marcadores que la plantilla espera: «nombre_huesped», «fecha_llegada»… */
     #[ORM\Column(type: 'json')]
     #[Assert\Type(type: 'array')]
     private array $parameters = [];
@@ -102,32 +145,38 @@ class MessageTemplate
     #[Groups(['template:read'])]
     private bool $autoenvioHabilitada = false;
 
+    /** @var list<string>|null Códigos de canal: `booking`, `airbnb`, `directo`… */
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array')]
     #[Groups(['template:read'])]
     private ?array $allowedSources = [];
 
+    /** @var list<string>|null Identificadores de agencia mayorista. */
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array')]
     #[Groups(['template:read'])]
     private ?array $allowedAgencies = [];
 
+    /** @var BloqueDeCanal|null */
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array', message: 'La configuración de Email debe ser un arreglo o estructura JSON válida.')]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['subject', 'body'])]
     private ?array $emailTmpl = [];
 
+    /** @var BloqueDeCanal|null */
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array', message: 'La configuración de Beds24 debe ser un arreglo o estructura JSON válida.')]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])]
     private ?array $beds24Tmpl = [];
 
+    /** @var BloqueDeCanal|null */
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array', message: 'La configuración de WhatsApp Meta debe ser un arreglo o estructura JSON válida.')]
     // OPTIMIZACIÓN: Se añaden header y footer a los campos auto-traducibles
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body', 'header', 'footer', 'buttons_map->button_text'], preventOverwriteIf: 'isWhatsappMetaOfficial')]
     private ?array $whatsappMetaTmpl = [];
 
+    /** @var BloqueDeCanal|null */
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array', message: 'La configuración de WhatsApp Link debe ser un arreglo o estructura JSON válida.')]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])]
@@ -222,11 +271,13 @@ class MessageTemplate
         return $this;
     }
 
+    /** @return list<string> */
     public function getParameters(): array
     {
         return $this->parameters;
     }
 
+    /** @param list<string> $parameters */
     public function setParameters(array $parameters): self
     {
         $this->parameters = $parameters;
@@ -244,55 +295,65 @@ class MessageTemplate
         return $this;
     }
 
+    /** @return list<string> */
     public function getAllowedSources(): array
     {
         return $this->allowedSources ?? [];
     }
 
+    /** @param list<string>|null $allowedSources */
     public function setAllowedSources(?array $allowedSources): self
     {
         $this->allowedSources = $allowedSources;
         return $this;
     }
 
+    /** @return list<string> */
     public function getAllowedAgencies(): array
     {
         return $this->allowedAgencies ?? [];
     }
 
+    /** @param list<string>|null $allowedAgencies */
     public function setAllowedAgencies(?array $allowedAgencies): self
     {
         $this->allowedAgencies = $allowedAgencies;
         return $this;
     }
 
+    /** @return BloqueDeCanal|null */
     public function getEmailTmpl(): ?array
     {
         return $this->emailTmpl;
     }
 
+    /** @param BloqueDeCanal|null $val */
     public function setEmailTmpl(?array $val): self
     {
         $this->emailTmpl = $val;
         return $this;
     }
 
+    /** @return BloqueDeCanal|null */
     public function getBeds24Tmpl(): ?array
     {
         return $this->beds24Tmpl;
     }
 
+    /** @param BloqueDeCanal|null $val */
     public function setBeds24Tmpl(?array $val): self
     {
         $this->beds24Tmpl = $val;
         return $this;
     }
 
+    /** @return BloqueDeCanal|null */
     public function getWhatsappMetaTmpl(): ?array
     {
         return $this->whatsappMetaTmpl;
     }
 
+    /** @param BloqueDeCanal|null $val */
     public function setWhatsappMetaTmpl(?array $val): self
     {
         $this->whatsappMetaTmpl = $val;
@@ -400,11 +461,13 @@ class MessageTemplate
         return $conteo;
     }
 
+    /** @return BloqueDeCanal|null */
     public function getWhatsappLinkTmpl(): ?array
     {
         return $this->whatsappLinkTmpl;
     }
 
+    /** @param BloqueDeCanal|null $val */
     public function setWhatsappLinkTmpl(?array $val): self
     {
         $this->whatsappLinkTmpl = $val;
@@ -706,6 +769,7 @@ class MessageTemplate
         return array_map(fn($item) => (object) $item, $this->whatsappMetaTmpl['body'] ?? []);
     }
 
+    /** @param list<object|array<string, mixed>> $bodies Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappMetaBodies(array $bodies): self
     {
         $this->whatsappMetaTmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
@@ -730,72 +794,85 @@ class MessageTemplate
      * @param array $buttons
      * @return self
      */
+    /** @param list<object|array<string, mixed>> $buttons Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappMetaButtonsMap(array $buttons): self
     {
         $this->whatsappMetaTmpl['buttons_map'] = array_map(fn($item) => (array) $item, $buttons);
         return $this;
     }
 
+    /** @return list<object> */
     public function getWhatsappMetaHeaders(): array
     {
         return array_map(fn($item) => (object) $item, $this->whatsappMetaTmpl['header'] ?? []);
     }
 
+    /** @param list<object|array<string, mixed>> $headers Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappMetaHeaders(array $headers): self
     {
         $this->whatsappMetaTmpl['header'] = array_map(fn($item) => (array) $item, $headers);
         return $this;
     }
 
+    /** @return list<object> */
     public function getWhatsappMetaFooters(): array
     {
         return array_map(fn($item) => (object) $item, $this->whatsappMetaTmpl['footer'] ?? []);
     }
 
+    /** @param list<object|array<string, mixed>> $footers Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappMetaFooters(array $footers): self
     {
         $this->whatsappMetaTmpl['footer'] = array_map(fn($item) => (array) $item, $footers);
         return $this;
     }
 
+    /** @return list<object> */
     public function getBeds24Bodies(): array
     {
         return array_map(fn($item) => (object) $item, $this->beds24Tmpl['body'] ?? []);
     }
 
+    /** @param list<object|array<string, mixed>> $bodies Vienen del CollectionField de EasyAdmin. */
     public function setBeds24Bodies(array $bodies): self
     {
         $this->beds24Tmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
         return $this;
     }
 
+    /** @return list<object> */
     public function getEmailSubjects(): array
     {
         return array_map(fn($item) => (object) $item, $this->emailTmpl['subject'] ?? []);
     }
 
+    /** @param list<object|array<string, mixed>> $subjects Vienen del CollectionField de EasyAdmin. */
     public function setEmailSubjects(array $subjects): self
     {
         $this->emailTmpl['subject'] = array_map(fn($item) => (array) $item, $subjects);
         return $this;
     }
 
+    /** @return list<object> */
     public function getEmailBodies(): array
     {
         return array_map(fn($item) => (object) $item, $this->emailTmpl['body'] ?? []);
     }
 
+    /** @param list<object|array<string, mixed>> $bodies Vienen del CollectionField de EasyAdmin. */
     public function setEmailBodies(array $bodies): self
     {
         $this->emailTmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
         return $this;
     }
 
+    /** @return list<object> */
     public function getWhatsappLinkBodies(): array
     {
         return array_map(fn($item) => (object) $item, $this->whatsappLinkTmpl['body'] ?? []);
     }
 
+    /** @param list<object|array<string, mixed>> $bodies Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappLinkBodies(array $bodies): self
     {
         $this->whatsappLinkTmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
@@ -815,6 +892,7 @@ class MessageTemplate
      * @param string $key La clave del valor que se desea retornar (por defecto 'content').
      * @return string|null
      */
+    /** @param list<TextoTraducido>|null $list */
     private function extract(?array $list, string $lang, string $key = 'content'): ?string
     {
         if (empty($list) || !is_array($list)) {

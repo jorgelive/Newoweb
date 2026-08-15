@@ -48,9 +48,24 @@ class MercureMessageDto implements JsonSerializable
      *
      * @param Message $message La entidad origen.
      */
-    public function __construct(Message $message)
+    /**
+     * ⚠️ El `$iri` viene de fuera (`IriConverter`) y el respaldo es sólo por si no se resuelve.
+     *
+     * `MercureBroadcaster` ya se lo pasaba —hay hasta un comentario «FIX: IRI real del recurso»—
+     * pero el constructor **no tenía el parámetro**, y PHP descarta los argumentos de más sin
+     * decir nada: el arreglo llevaba desde entonces sin aplicarse. El respaldo que se usaba en su
+     * lugar, `/platform/user/util/msg/messages/`, tampoco existe: la ruta real es
+     * `/platform/message/messages/{id}` (`routePrefix: '/message'` en {@see Message}).
+     *
+     * No se notó porque el front encaja los mensajes por UUID —`uuidDe()` en `services/hydra.ts`
+     * se queda con el último segmento—, así que el prefijo equivocado daba igual para pintar.
+     * Pero el `@id` que viajaba era irresoluble: cualquier consumidor que lo usara para releer el
+     * recurso se comía un 404. Mismo patrón que {@see MercureConversationDto}, al que sí se le
+     * añadió el parámetro en su día.
+     */
+    public function __construct(Message $message, ?string $iri = null)
     {
-        $this->iri = '/platform/user/util/msg/messages/' . $message->getId();
+        $this->iri = $iri ?? '/platform/message/messages/' . $message->getId();
         $this->id = (string) $message->getId();
         $this->direction = $message->getDirection();
         $this->status = $message->getStatus();

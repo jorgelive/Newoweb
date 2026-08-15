@@ -204,6 +204,7 @@ class Message
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $subjectExternal = null;
 
+    /** @var array<string, mixed> Bolsa abierta por canal: `whatsapp`, `beds24`, trazas de despacho… */
     #[ORM\Column(type: 'json')]
     #[Groups(['message:read'])]
     private array $metadata = [];
@@ -220,9 +221,11 @@ class Message
     #[Groups(['message:read', 'message:write'])]
     private string $senderType = self::SENDER_HOST;
 
+    /** @var array<string, string>|null Identificador del mensaje en cada canal: `['beds24' => '…']`. */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $externalIds = [];
 
+    /** @var list<string> Canales elegidos para ESTE envío; no se persiste. */
     #[Groups(['message:write'])]
     private array $transientChannels = [];
 
@@ -279,7 +282,7 @@ class Message
 
             if ($this->channel?->getId() === 'whatsapp_meta') {
                 $this->conversation->setWhatsappSessionValidUntil(
-                    (clone $msgDate)->modify('+24 hours')
+                    DateTimeImmutable::createFromInterface($msgDate)->modify('+24 hours')
                 );
             }
         }
@@ -387,7 +390,9 @@ class Message
         return $this;
     }
 
+    /** @return list<string> */
     public function getTransientChannels(): array { return $this->transientChannels; }
+    /** @param list<string> $channels */
     public function setTransientChannels(array $channels): self { $this->transientChannels = $channels; return $this; }
 
     public function getScheduledAt(): ?DateTimeImmutable { return $this->scheduledAt; }
@@ -451,8 +456,10 @@ class Message
     // METADATA
     // =========================================================================
 
+    /** @return array<string, mixed> */
     public function getMetadata(): array { return array_merge(['beds24' => [], 'whatsappMeta' => []], $this->metadata); }
 
+    /** @param array<string, mixed> $metadata */
     public function setMetadata(array $metadata): self
     {
         $this->metadata = $metadata;
@@ -498,8 +505,10 @@ class Message
         return $this->addMetadata('variables_plantilla', $variables);
     }
 
+    /** @return array<string, mixed> */
     public function getBeds24Metadata(): array { return $this->metadata['beds24'] ?? []; }
 
+    /** @param array<string, mixed> $data */
     public function setBeds24Metadata(array $data): self
     {
         $meta = $this->metadata;
@@ -528,8 +537,10 @@ class Message
     public function getBeds24ReadAt(): ?string { return $this->metadata['beds24']['read_at'] ?? null; }
     public function setBeds24ReadAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('read_at', $dateTimeIso8601); }
 
+    /** @return array<string, mixed> */
     public function getWhatsappMetaMetadata(): array { return $this->metadata['whatsappMeta'] ?? []; }
 
+    /** @param array<string, mixed> $data */
     public function setWhatsappMetaMetadata(array $data): self
     {
         $meta = $this->metadata;
@@ -589,8 +600,10 @@ class Message
     // IDS EXTERNOS
     // =========================================================================
 
+    /** @return array<string, string> */
     public function getExternalIds(): array { return $this->externalIds ?? []; }
 
+    /** @param array<string, string>|null $externalIds */
     public function setExternalIds(?array $externalIds): self
     {
         $this->externalIds = $externalIds;
@@ -621,6 +634,7 @@ class Message
     // COLECCIONES
     // =========================================================================
 
+    /** @return Collection<int, WhatsappMetaSendQueue> */
     public function getWhatsappMetaSendQueues(): Collection { return $this->whatsappMetaSendQueues; }
 
     public function addWhatsappMetaSendQueue(WhatsappMetaSendQueue $queue): self
@@ -632,6 +646,7 @@ class Message
         return $this;
     }
 
+    /** @return Collection<int, Beds24SendQueue> */
     public function getBeds24SendQueues(): Collection { return $this->beds24SendQueues; }
     public function addBeds24SendQueue(Beds24SendQueue $queue): self
     {
@@ -642,6 +657,7 @@ class Message
         return $this;
     }
 
+    /** @return Collection<int, MessageAttachment> */
     public function getAttachments(): Collection { return $this->attachments; }
 
     public function addAttachment(MessageAttachment $attachment): self
@@ -661,7 +677,7 @@ class Message
      * Recupera la intención inyectada por los Webhooks para el motor de Inteligencia Artificial
      * o el enrutador determinista.
      *
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     public function getInboundIntent(): ?array
     {
@@ -671,8 +687,7 @@ class Message
     /**
      * Define la intención de entrada para ser evaluada asíncronamente por el Autorresponder.
      *
-     * @param array $intentData
-     * @return $this
+     * @param array<string, mixed> $intentData
      */
     public function setInboundIntent(array $intentData): self
     {
@@ -687,7 +702,7 @@ class Message
      * HACK DE AUDITORÍA: Rastrea quién y cuándo modifica el JSON.
      * Esto dejará una huella en el JSON de la base de datos para cazar sobre escrituras.
      */
-    private function appendDebugTrace(string $channel, string $action, $value): void
+    private function appendDebugTrace(string $channel, string $action, mixed $value): void
     {
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
 
