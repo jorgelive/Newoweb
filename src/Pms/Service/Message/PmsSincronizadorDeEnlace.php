@@ -123,7 +123,7 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
         // `start`/`end` y no toca las claves ajenas. Con la reserva cancelada, los hitos
         // derivados vienen vacíos —no hay tramos vivos— y lo único que queda es este.
         if ($cancelada) {
-            $enlace->marcarCancelado($contexto->getMilestones()[ConversationMilestoneInterface::CANCELLED] ?? null);
+            $enlace->marcarCancelado($contexto->getMilestones()->obtener(ConversationMilestoneInterface::CANCELLED));
         }
     }
 

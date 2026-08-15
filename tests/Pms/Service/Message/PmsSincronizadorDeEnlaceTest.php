@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Pms\Service\Message;
 
+use App\Message\Contract\MapaDeHitos;
+use App\Message\Contract\MomentoDeHito;
 use App\Message\Contract\ConversationMilestoneInterface as Hito;
 use App\Message\Contract\HitoDeAsunto;
 use App\Pms\Entity\PmsConversacionEnlace;
@@ -68,8 +70,8 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
 
         $plano = $enlace->getMilestones();
 
-        self::assertSame('2026-03-10 14:00:00', $plano[Hito::START]);
-        self::assertSame('2026-03-18 10:00:00', $plano[Hito::END]);
+        self::assertSame('2026-03-10T14:00:00', $plano[Hito::START]);
+        self::assertSame('2026-03-18T10:00:00', $plano[Hito::END]);
         self::assertArrayNotHasKey(Hito::TEMPORARY_END, $plano, 'los intermedios no caben en el mapa: para eso está la lista');
     }
 
@@ -83,7 +85,7 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
         ]);
 
         self::assertSame(
-            ['start' => '2026-03-10 14:00:00', 'end' => '2026-03-15 10:00:00'],
+            ['start' => '2026-03-10T14:00:00', 'end' => '2026-03-15T10:00:00'],
             $enlace->getMilestones()
         );
     }
@@ -109,7 +111,7 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
             $this->hito(Hito::END, '2026-03-15 10:00'),
         ]);
 
-        self::assertSame('2026-03-12 14:00:00', $enlace->getMilestones()[Hito::START]);
+        self::assertSame('2026-03-12T14:00:00', $enlace->getMilestones()[Hito::START]);
     }
 
     /** Y si se queda sin tramos vivos, no puede sobrevivir un `start` de cuando los tenía. */
@@ -138,7 +140,7 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
     public function los_hitos_que_no_salen_de_los_tramos_sobreviven(): void
     {
         $enlace = (new PmsConversacionEnlace())
-            ->setMilestones([Hito::CREATED => '2026-03-01 09:00:00', Hito::EXPECTED_ARRIVAL => '2026-03-10 18:00:00'])
+            ->setMilestones(MapaDeHitos::desdeCrudo([Hito::CREATED => '2026-03-01T09:00:00', Hito::EXPECTED_ARRIVAL => '2026-03-10T18:00:00']))
             ->setHitos([
                 $this->hito(Hito::START, '2026-03-10 14:00'),
                 $this->hito(Hito::END, '2026-03-15 10:00'),
@@ -146,9 +148,9 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
 
         $plano = $enlace->getMilestones();
 
-        self::assertSame('2026-03-01 09:00:00', $plano[Hito::CREATED]);
-        self::assertSame('2026-03-10 18:00:00', $plano[Hito::EXPECTED_ARRIVAL]);
-        self::assertSame('2026-03-10 14:00:00', $plano[Hito::START]);
+        self::assertSame('2026-03-01T09:00:00', $plano[Hito::CREATED]);
+        self::assertSame('2026-03-10T18:00:00', $plano[Hito::EXPECTED_ARRIVAL]);
+        self::assertSame('2026-03-10T14:00:00', $plano[Hito::START]);
     }
 
     /**
@@ -181,10 +183,10 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
             $this->hito(Hito::END, '2026-03-15 10:00', 'Casita 1'),
         ]);
 
-        $enlace->marcarCancelado('2026-03-05 11:30:00');
+        $enlace->marcarCancelado(MomentoDeHito::de('2026-03-05 11:30:00'));
 
         self::assertTrue($enlace->estaCancelado());
-        self::assertSame('2026-03-05 11:30:00', $enlace->getMilestones()[Hito::CANCELLED]);
+        self::assertSame('2026-03-05T11:30:00', $enlace->getMilestones()[Hito::CANCELLED]);
         self::assertCount(2, $enlace->getHitos(), 'lo que iba a pasar sigue ahí: es la historia de esa persona');
     }
 
@@ -215,7 +217,7 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
     #[Test]
     public function recalcular_los_hitos_no_resucita_un_asunto_cancelado(): void
     {
-        $enlace = (new PmsConversacionEnlace())->marcarCancelado('2026-03-05 11:30:00');
+        $enlace = (new PmsConversacionEnlace())->marcarCancelado(MomentoDeHito::de('2026-03-05 11:30:00'));
 
         $enlace->setHitos([$this->hito(Hito::START, '2026-03-10 14:00')]);
 
@@ -273,7 +275,7 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
         $tipos = array_map(static fn (HitoDeAsunto $h): string => $h->tipo, $enlace->getHitos());
 
         self::assertContains(Hito::PARTIAL_CANCELLATION, $tipos, 'el hecho ocurrido no se recalcula: se conserva');
-        self::assertSame('2026-03-12 14:00:00', $enlace->getMilestones()[Hito::START], 'y los derivados sí se rehacen');
+        self::assertSame('2026-03-12T14:00:00', $enlace->getMilestones()[Hito::START], 'y los derivados sí se rehacen');
     }
 
     /**
@@ -310,7 +312,7 @@ final class PmsSincronizadorDeEnlaceTest extends TestCase
         ]);
 
         self::assertCount(2, $enlace->getHitos());
-        self::assertSame('2026-03-12 10:00:00', $enlace->getMilestones()[Hito::END], 'la salida se adelanta');
+        self::assertSame('2026-03-12T10:00:00', $enlace->getMilestones()[Hito::END], 'la salida se adelanta');
     }
 
     /**

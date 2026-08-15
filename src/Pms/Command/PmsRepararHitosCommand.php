@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Message\Contract\MapaDeHitos;
 use App\Pms\Entity\PmsConversacionEnlace;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -82,7 +83,7 @@ final class PmsRepararHitosCommand extends Command
             if (!$seco) {
                 // El normalizador de la entidad hace el trabajo: basta con devolverle lo que
                 // había leído.
-                $enlace->setMilestones($hitos);
+                $enlace->setMilestones(MapaDeHitos::desdeCrudo($hitos));
             }
         }
 

@@ -6,6 +6,8 @@ namespace App\Tests\Message\Service\Queue;
 
 use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Contract\ConversationMilestoneInterface;
+use App\Message\Contract\MapaDeHitos;
+use App\Message\Contract\MomentoDeHito;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
@@ -117,15 +119,15 @@ final class MessageRuleEngineTest extends TestCase
     }
 
     /** Un hito como lo serializa la conversación: texto sin zona, interpretado en Lima. */
-    private function hito(string $modificador): string
+    private function hito(string $modificador): MomentoDeHito
     {
-        return new DateTimeImmutable($modificador, new DateTimeZone(self::TZ))->format('Y-m-d\TH:i:s');
+        return MomentoDeHito::de(new DateTimeImmutable($modificador, new DateTimeZone(self::TZ)));
     }
 
     /** El instante en que el motor debe programar: hito + offset, ambos en la zona del hotel. */
-    private function esperado(string $hito, int $offsetMinutos): int
+    private function esperado(MomentoDeHito $hito, int $offsetMinutos): int
     {
-        return new DateTimeImmutable($hito, new DateTimeZone(self::TZ))
+        return $hito->comoFecha()
             ->modify(sprintf('%+d minutes', $offsetMinutos))
             ->getTimestamp();
     }
@@ -137,7 +139,7 @@ final class MessageRuleEngineTest extends TestCase
      */
     private function enlace(
         MessageConversation $conversacion,
-        array $hitos,
+        MapaDeHitos $hitos,
         ?PmsReserva $reserva = null,
         ?string $origen = null
     ): PmsConversacionEnlace {
@@ -220,7 +222,7 @@ final class MessageRuleEngineTest extends TestCase
         $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
         $conversacion->addContextMilestone(ConversationMilestoneInterface::START, $inicioViejo);
 
-        $this->enlace($conversacion, [ConversationMilestoneInterface::START => $inicioReal], $reserva);
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicioReal]), $reserva);
 
         $this->motor([$this->regla()])
             ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
@@ -246,8 +248,8 @@ final class MessageRuleEngineTest extends TestCase
         $reservaA = new PmsReserva();
         $conversacion = new MessageConversation('pms_reserva', (string) $reservaA->getId());
 
-        $this->enlace($conversacion, [ConversationMilestoneInterface::START => $inicioA], $reservaA);
-        $enlaceB = $this->enlace($conversacion, [ConversationMilestoneInterface::START => $inicioB]);
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicioA]), $reservaA);
+        $enlaceB = $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicioB]));
 
         $this->motor([$this->regla()])
             ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
@@ -284,8 +286,8 @@ final class MessageRuleEngineTest extends TestCase
 
         $reservaA = new PmsReserva();
         $conversacion = new MessageConversation('pms_reserva', (string) $reservaA->getId());
-        $this->enlace($conversacion, [ConversationMilestoneInterface::START => $inicioA], $reservaA);
-        $this->enlace($conversacion, [ConversationMilestoneInterface::START => $inicioB]);
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicioA]), $reservaA);
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicioB]));
 
         $motor = $this->motor([$regla], [$this->enqueuer()]);
 
@@ -338,7 +340,7 @@ final class MessageRuleEngineTest extends TestCase
         $this->fabricarCola($legado);
 
         // Llega el paso 2 de la cirugía: el enlace se puebla, con la reserva ya movida de fecha.
-        $this->enlace($conversacion, [ConversationMilestoneInterface::START => $inicioNuevo], $reserva);
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicioNuevo]), $reserva);
 
         $this->motor([$regla], [$this->enqueuer()])
             ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
@@ -373,11 +375,11 @@ final class MessageRuleEngineTest extends TestCase
 
         $reservaViva = new PmsReserva();
         $conversacion = new MessageConversation('pms_reserva', (string) $reservaViva->getId());
-        $this->enlace($conversacion, [ConversationMilestoneInterface::START => $inicioVivo], $reservaViva);
-        $enlaceMuerto = $this->enlace($conversacion, [
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicioVivo]), $reservaViva);
+        $enlaceMuerto = $this->enlace($conversacion, MapaDeHitos::de([
             ConversationMilestoneInterface::START => $inicioMuerto,
             ConversationMilestoneInterface::CANCELLED => $this->hito('-30 minutes'),
-        ]);
+        ]));
 
         // El recordatorio que la reserva cancelada dejó encolado antes de morir.
         $encolado = new Message();
@@ -386,7 +388,7 @@ final class MessageRuleEngineTest extends TestCase
         $encolado->setAsunto('pms_reserva', $enlaceMuerto->getContextId());
         $encolado->setSenderType(Message::SENDER_SYSTEM);
         $encolado->setStatus(Message::STATUS_QUEUED);
-        $encolado->setScheduledAt(new DateTimeImmutable($inicioMuerto, new DateTimeZone(self::TZ)));
+        $encolado->setScheduledAt($inicioMuerto->comoFecha());
         $this->fabricarCola($encolado);
 
         $this->motor([$reglaLlegada, $reglaCancelacion])
@@ -415,7 +417,7 @@ final class MessageRuleEngineTest extends TestCase
     {
         $reserva = new PmsReserva();
         $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
-        $this->enlace($conversacion, [ConversationMilestoneInterface::START => $this->hito('+5 days noon')], $reserva)
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $this->hito('+5 days noon')]), $reserva)
             ->setVinculo(VinculoComercial::Terminado);
 
         $this->motor([$this->regla()])
@@ -465,7 +467,7 @@ final class MessageRuleEngineTest extends TestCase
 
         $reservaSana = new PmsReserva();
         $conversacion = new MessageConversation('pms_reserva', (string) $reservaSana->getId());
-        $this->enlace($conversacion, [ConversationMilestoneInterface::START => $inicio], $reservaSana);
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicio]), $reservaSana);
 
         // El enlace podrido: sin reserva detrás, su contextId es la cadena vacía.
         $roto = new PmsConversacionEnlace($conversacion, null);
@@ -507,7 +509,7 @@ final class MessageRuleEngineTest extends TestCase
 
         $reserva = new PmsReserva();
         $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
-        $this->enlace($conversacion, [ConversationMilestoneInterface::START => $this->hito('+5 days noon')], $reserva);
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $this->hito('+5 days noon')]), $reserva);
 
         $huerfano = new Message();
         $huerfano->setConversation($conversacion);

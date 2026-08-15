@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Service\Message;
 
 use App\Message\Contract\ConversationMilestoneInterface;
+use App\Message\Contract\MapaDeHitos;
 use App\Message\Contract\MessageContextInterface;
 use App\Message\Contract\VinculoComercial;
 use App\Pms\Entity\PmsEventoEstado;
@@ -135,13 +136,12 @@ class PmsReservaMessageContext implements MessageContextInterface
      * Genera el diccionario agnóstico de hitos cronológicos (Fechas clave).
      * Estos hitos son el núcleo matemático con el que el MessageRuleEngine calcula los offsets de envío.
      *
-     * @return array<string, \DateTimeInterface>
      */
-    public function getMilestones(): array
+    public function getMilestones(): MapaDeHitos
     {
         // 🔥 CORTAFUEGOS ANTI-SPAM PARA INQUIRIES Y BLOQUEOS
         if ($this->isAbiertoOrBloqueo()) {
-            return [];
+            return MapaDeHitos::vacio();
         }
 
         //TODO: Refactor: poner todo en UTC para mensajes
@@ -239,7 +239,7 @@ class PmsReservaMessageContext implements MessageContextInterface
             $milestones[ConversationMilestoneInterface::CANCELLED] = $this->reserva->getUltimaFechaModificacionCanal();
         }
 
-        return $milestones;
+        return MapaDeHitos::desdeCrudo($milestones);
     }
 
     /**

@@ -20,6 +20,8 @@ use App\Pms\Entity\PmsConversacionEnlace;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\Contract\ConversationMilestoneInterface;
+use App\Message\Contract\MapaDeHitos;
+use App\Message\Contract\MomentoDeHito;
 use App\Message\Controller\Api\MarkConversationReadController;
 use App\Message\Controller\Api\UnreadSummaryController;
 use App\Security\Roles;
@@ -468,19 +470,39 @@ class MessageConversation
         return $this;
     }
 
+    /**
+     * La forma persistida y la que sale por la API. No cambia de tipo: `conversation:read` la
+     * serializa tal cual y el front la consume así.
+     *
+     * @return array<string, string>
+     */
     #[Groups(['conversation:read'])]
     public function getContextMilestones(): array { return $this->contextData['milestones'] ?? []; }
 
-    public function setContextMilestones(array $milestones): self {
+    /** Los mismos hitos, ya tipados, para operar con ellos. */
+    public function getMapaDeHitos(): MapaDeHitos
+    {
+        return MapaDeHitos::desdeCrudo($this->contextData['milestones'] ?? []);
+    }
+
+    public function setContextMilestones(MapaDeHitos $hitos): self {
         $this->initContextData();
         $this->contextData['milestones'] = [];
-        foreach ($milestones as $key => $value) {
-            $this->addContextMilestone($key, $value);
+        foreach ($hitos->todos() as $clave => $momento) {
+            $this->addContextMilestone($clave, $momento);
         }
         return $this;
     }
 
-    public function addContextMilestone(string $key, DateTimeInterface|string|null $date): self
+    /**
+     * ⚠️ **La lista de aquí es MÁS CORTA que el vocabulario completo, y a propósito.**
+     *
+     * Este mapa es el de la CONVERSACIÓN, que es anterior a los enlaces por asunto y sólo sabe
+     * de los cinco hitos originales. Los demás —salida temporal, reingreso, cambio de casita,
+     * servicio, cancelación parcial— son del asunto y viven en `PmsConversacionEnlace`; que aquí
+     * los rechace es la señal de que alguien está escribiendo en el sitio equivocado.
+     */
+    public function addContextMilestone(string $key, ?MomentoDeHito $momento): self
     {
         $validMilestones = [
             ConversationMilestoneInterface::CREATED,
@@ -503,13 +525,11 @@ class MessageConversation
             $this->contextData['milestones'] = [];
         }
 
-        if ($date === null) {
+        if ($momento === null) {
             return $this;
         }
 
-        $this->contextData['milestones'][$key] = $date instanceof DateTimeInterface
-            ? $date->format('Y-m-d\TH:i:s')
-            : $date;
+        $this->contextData['milestones'][$key] = $momento->comoTexto();
 
         return $this;
     }

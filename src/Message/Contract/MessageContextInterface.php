@@ -54,11 +54,14 @@ interface MessageContextInterface
     public function getAgencyId(): ?string;
 
     /**
-     * Devuelve un diccionario con todas las fechas clave (Hitos).
-     * Ej: ['start' => DateTime, 'end' => DateTime, 'booked_at' => DateTime, 'eta' => '14:00']
-     * * @return array<string, mixed>
+     * Las fechas clave del asunto: llegada, salida, creación, cancelación…
+     *
+     * ⚠️ Devuelve {@see MapaDeHitos} y no `array` a propósito. Mientras fue `array`, su tipo de
+     * valor no lo sabía nadie —el `@return` que lo decía estaba mal escrito y ningún analizador
+     * lo leía—, así que pasar sus valores a un método que esperaba texto compilaba sin protestar
+     * y reventaba en producción. Ver `docs/Mensajeria.md` §22.16.
      */
-    public function getMilestones(): array;
+    public function getMilestones(): MapaDeHitos;
 
     public function getItems(): array;
     public function getFinancialTotal(): ?float;

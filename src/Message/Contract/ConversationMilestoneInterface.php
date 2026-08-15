@@ -10,6 +10,31 @@ namespace App\Message\Contract;
  */
 interface ConversationMilestoneInterface
 {
+    /**
+     * El vocabulario completo, para poder recorrerlo.
+     *
+     * Existe porque {@see MapaDeHitos} valida las claves al construirse, y esa comprobación
+     * estaba antes suelta y a medias: `MessageConversation::addContextMilestone()` la hacía
+     * contra una lista de cinco escrita a mano, y los otros dos escritores no la hacían en
+     * absoluto — así que un hito con clave inventada entraba por el enlace sin protestar y luego
+     * el motor no lo encontraba jamás.
+     *
+     * ⚠️ Al añadir una constante aquí, añadirla también a esta lista. Un hito que no esté aquí
+     * se descarta al escribirlo, en silencio y sin error.
+     */
+    public const array CLAVES = [
+        self::CREATED,
+        self::START,
+        self::END,
+        self::EXPECTED_ARRIVAL,
+        self::CANCELLED,
+        self::TEMPORARY_END,
+        self::REENTRY,
+        self::UNIT_CHANGE,
+        self::SERVICE,
+        self::PARTIAL_CANCELLATION,
+    ];
+
     /** Fecha en que se creó/registró el evento (Reserva, Compra, etc.) */
     public const string CREATED = 'created_at';
 

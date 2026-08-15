@@ -6,6 +6,7 @@ namespace App\Message\Service\Queue;
 
 use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Contract\ConversationMilestoneInterface;
+use App\Message\Contract\MomentoDeHito;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
@@ -489,36 +490,15 @@ final readonly class MessageRuleEngine
 
     /**
      * Interpreta un hito del JSON en la zona horaria de operación.
-     * Los hitos se serializan sin sufijo de zona, así que fijarla aquí es lo que impide
-     * que el mismo dato signifique dos instantes distintos según el php.ini del servidor.
+     *
+     * Es una línea porque toda la tolerancia —texto, objeto, la forma serializada de las filas
+     * viejas— vive ahora en {@see MomentoDeHito::de()}, que es el único sitio del módulo que
+     * convierte. Antes esto era una de cinco copias de la misma decisión, y la que se olvidó de
+     * escribir tumbó la sincronización de reservas canceladas (`docs/Mensajeria.md` §22.16).
      */
     private function parseMilestone(string|DateTimeInterface|array $raw): ?DateTimeImmutable
     {
-        // Acepta objetos además de texto. Los hitos DEBEN llegar normalizados —lo hace
-        // `PmsConversacionEnlace::setMilestones()`—, pero éste es el borde que lee un JSON de
-        // forma libre y lo que estaba en juego era gordo: un asunto cuyo hito venía como objeto
-        // se saltaba entero y esa reserva se quedaba sin recordatorios. Un `instanceof` es más
-        // barato que volver a perseguirlo.
-        if ($raw instanceof DateTimeInterface) {
-            return DateTimeImmutable::createFromInterface($raw);
-        }
-
-        // La forma serializada de un DateTimeImmutable, que quedó grabada en filas antiguas.
-        // Aquí se acepta en vez de reventar: un asunto que revienta se salta ENTERO y esa reserva
-        // se queda sin ninguno de sus recordatorios —no sólo sin el hito malo—.
-        if (is_array($raw)) {
-            $raw = (string) ($raw['date'] ?? '');
-        }
-
-        if ($raw === '') {
-            return null;
-        }
-
-        try {
-            return new DateTimeImmutable($raw, new DateTimeZone(self::TZ));
-        } catch (Exception) {
-            return null;
-        }
+        return MomentoDeHito::de($raw)?->comoFecha();
     }
 
     /**

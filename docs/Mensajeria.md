@@ -7448,13 +7448,55 @@ medio procesar y el hito no llegaba a grabarse. Sin el hito,
 `AgendaDeAsunto::estaCancelada()` no tiene qué leer: **el aviso de cancelación no podía existir**,
 que es exactamente lo que el commit del 13/08 venía a habilitar.
 
-⚠️ **La regla, ahora explícita: toda puerta que escriba en el mapa de hitos acepta
-`string|DateTimeInterface|null` y guarda texto.** Hoy son tres —`setMilestones()`,
-`marcarCancelado()` y `MessageConversation::addContextMilestone()`— y las tres normalizan igual. El
-nombre `getMilestones()` está en dos entidades y **no significa lo mismo**: en
-`PmsReservaMessageContext` es el mapa vivo, con objetos; en `PmsConversacionEnlace` es el
-persistido, de texto. Cualquier método nuevo que cruce esa frontera repetirá el fallo si confía en
-el nombre.
+#### El diagnóstico correcto, y el tipo que lo cierra
+
+La primera explicación que se dio de esto —«`getMilestones()` significa dos cosas y por eso
+chocan»— **es falsa**, y conviene que quede escrito porque suena razonable. Son dos métodos en dos
+clases: PHP resuelve por el tipo del objeto y no los confunde jamás. Con nombres distintos habría
+fallado igual.
+
+La causa es que **`array` no dice nada de lo que lleva dentro**, y se midió:
+
+| | Antes | Después |
+|---|---|---|
+| PHPStan nivel 2 (el del proyecto) | no lo ve | no lo ve |
+| PHPStan nivel 3 | no lo ve | **caza la forma exacta del bug** |
+| PHPStan nivel 5 | no lo ve | caza todas las variantes |
+| PHPStan nivel 9 | no lo ve | — |
+| nivel 9 + `checkImplicitMixed` | lo ve | — |
+
+Antes **no lo cazaba ningún nivel**, porque el valor salía de un `array` sin tipo —eso es `mixed`
+*implícito*, que sólo se revisa con una opción que no trae ninguno—. Y el único sitio que podía
+decir qué había dentro, el `@return` de `MessageContextInterface`, estaba escrito `* * @return` :
+con ese asterisco de más la línea deja de empezar por `@` y **ningún analizador la lee**. Un
+contrato que no leía nadie, ni humano ni máquina.
+
+**La solución no es que cada puerta acepte las dos formas** —eso es el mismo fallo escrito más
+veces, y llegó a haber seis puertas: `setMilestones()`, `marcarCancelado()`,
+`addContextMilestone()`, `setContextMilestones()`, `parseMilestone()` y `setHitos()`—. Es que haya
+**una sola**:
+
+- **`MomentoDeHito`** — la fecha de un hito. Constructor privado; se entra por `de()`, que es la
+  única conversión del módulo, o por `ahora()`. `comoTexto()` da la forma persistida y
+  `comoFecha()` la que hace cuentas.
+- **`MapaDeHitos`** — el mapa completo, con validación de claves contra
+  `ConversationMilestoneInterface::CLAVES`. Esa comprobación estaba antes suelta en un solo
+  escritor y con una lista de cinco escrita a mano; los otros no la hacían, así que un hito con
+  clave inventada entraba por el enlace y el motor no lo encontraba nunca.
+
+Quien recibe un `MomentoDeHito` no tiene nada que comprobar, y `parseMilestone()` pasó de treinta
+líneas de ramas a una que delega.
+
+⚠️ **Un solo formato, y gana el de la `T`.** Había dos —el enlace escribía `Y-m-d H:i:s` y la
+conversación `Y-m-d\TH:i:s`—, y nadie lo notó porque PHP traga los dos. Unificar hacia el espacio
+habría roto el chat **en el iPhone sin tocar una línea de frontend**: `contextMilestones` sale por
+la API y el front lo pasa por `new Date()`, que con espacio recibe sintaxis no estándar y Safari
+puede devolver `Invalid Date`. El mapa del enlace no se serializa nunca —la entidad no tiene ni un
+grupo—, así que el que se mueve es él.
+
+Las filas antiguas se siguen leyendo: `MomentoDeHito::de()` acepta las tres formas. Verificado
+contra producción el 15/08/2026 — 137 hitos de 50 enlaces reales, cero perdidos y cero instantes
+desplazados.
 
 ### 22.17 La procedencia comercial viaja con el ASUNTO, y la redacta el dominio
 

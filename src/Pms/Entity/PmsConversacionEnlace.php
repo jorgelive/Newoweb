@@ -10,6 +10,8 @@ use App\Message\Contract\ConversacionEnlaceInterface;
 use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\Frente;
 use App\Message\Contract\HitoDeAsunto;
+use App\Message\Contract\MapaDeHitos;
+use App\Message\Contract\MomentoDeHito;
 use App\Message\Contract\MomentoDeFrente;
 use App\Message\Contract\VinculoComercial;
 use App\Message\Entity\MessageConversation;
@@ -133,34 +135,10 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
      * después —con la guarda que haga falta— si el aviso vuelve. Sin el dato, esa decisión ni
      * siquiera se podía plantear.
      */
-    /**
-     * ⚠️ **Acepta objeto de fecha, y por eso normaliza.**
-     *
-     * Quien llama a esto saca el valor de `PmsReservaMessageContext::getMilestones()`, que
-     * devuelve `DateTimeInterface` — no cadenas, pese a lo que sugiere el nombre compartido con
-     * el getter de esta entidad. Son dos mapas distintos: el del contexto es el **vivo**,
-     * calculado, y el de aquí es el **persistido**, de texto plano.
-     *
-     * Con la firma en `?string` esto reventaba con un `TypeError` **antes de entrar al cuerpo**,
-     * en toda reserva cancelada que trajera fecha de modificación de canal —o sea, en casi
-     * todas—. El worker de Beds24 lo capturaba, así que no salía ningún 500: simplemente se
-     * abandonaba la reserva a medio procesar y el hito nunca se grababa. Y sin el hito,
-     * {@see \App\Message\Service\Queue\AgendaDeAsunto::estaCancelada()} no tiene qué leer, con lo
-     * que el aviso de cancelación no podía existir — justo lo que este método venía a habilitar.
-     * Visto en producción el 15/08/2026.
-     *
-     * Es la misma normalización que ya hacen {@see self::setMilestones()} y
-     * {@see \App\Message\Entity\MessageConversation::addContextMilestone()}: **toda puerta que
-     * escriba en este mapa tiene que aceptar las dos formas y guardar texto.**
-     */
-    public function marcarCancelado(string|\DateTimeInterface|null $cuando = null): self
+    public function marcarCancelado(?MomentoDeHito $cuando = null): self
     {
         $plano = $this->milestones ?? [];
-        $plano[ConversationMilestoneInterface::CANCELLED] = match (true) {
-            $cuando instanceof \DateTimeInterface => $cuando->format('Y-m-d H:i:s'),
-            is_string($cuando) && '' !== trim($cuando) => $cuando,
-            default => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
-        };
+        $plano[ConversationMilestoneInterface::CANCELLED] = ($cuando ?? MomentoDeHito::ahora())->comoTexto();
         $this->milestones = $plano;
 
         return $this;
@@ -301,60 +279,37 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
             : MomentoDeFrente::Venta;
     }
 
-    /** @return array<string, string> */
+    /**
+     * La forma persistida: texto plano. Es lo que declara {@see ConversacionEnlaceInterface} y
+     * lo que consume {@see \App\Message\Service\Queue\AgendaDeAsunto}.
+     *
+     * @return array<string, string>
+     */
     public function getMilestones(): array
     {
         return $this->milestones ?? [];
     }
 
-    /**
-     * ⚠️ **Normaliza a texto, y no es cosmético.**
-     *
-     * `PmsReservaMessageContext::getMilestones()` devuelve objetos `DateTimeImmutable`, no
-     * cadenas, pese a lo que dice este contrato. Guardados tal cual, el mapa queda con objetos
-     * **en memoria** hasta que la entidad da la vuelta por JSON — y en esa ventana el motor de
-     * reglas los lee y revienta: `parseMilestone(): Argument #1 ($raw) must be of type string,
-     * DateTimeImmutable given`. Visto en producción el 13/08/2026: cuatro fallos en 96 segundos
-     * sobre la misma reserva, y después el dato en la base se veía correcto, que es lo que hace
-     * este fallo tan difícil de perseguir.
-     *
-     * El asunto que revienta se salta entero: esa reserva se queda **sin sus recordatorios**.
-     *
-     * @param array<string, string|\DateTimeInterface|array{date?: string}> $milestones
-     */
-    public function setMilestones(array $milestones): self
+    /** Los mismos hitos, ya tipados, para operar con ellos. */
+    public function getMapaDeHitos(): MapaDeHitos
     {
-        $normalizados = [];
+        return MapaDeHitos::desdeCrudo($this->milestones ?? []);
+    }
 
-        foreach ($milestones as $clave => $valor) {
-            if ($valor instanceof \DateTimeInterface) {
-                $normalizados[$clave] = $valor->format('Y-m-d H:i:s');
-
-                continue;
-            }
-
-            // 🩹 La FORMA SERIALIZADA de un DateTimeImmutable: `{"date": "...", "timezone": ...}`.
-            // Es lo que quedó grabado en las filas escritas antes de que esto normalizara, y no
-            // se puede ignorar: al releerlas llegan como array y el motor de reglas se lleva por
-            // delante el asunto entero. Se acepta y se aplana, para que reparar sea sólo volver a
-            // guardar.
-            if (is_array($valor)) {
-                $fecha = trim((string) ($valor['date'] ?? ''));
-                $normalizados[$clave] = $fecha === ''
-                    ? ''
-                    : (new DateTimeImmutable($fecha))->format('Y-m-d H:i:s');
-
-                continue;
-            }
-
-            $normalizados[$clave] = (string) $valor;
-        }
-
-        // Una clave vacía es peor que no tenerla: el motor la trata como hito existente y
-        // programa contra una fecha que no se puede interpretar.
-        $normalizados = array_filter($normalizados, static fn (string $v): bool => $v !== '');
-
-        $this->milestones = $normalizados;
+    /**
+     * El mapa completo de hitos del asunto.
+     *
+     * ⚠️ **Recibe {@see MapaDeHitos}, no un array, y ésa es toda la defensa.** Antes esto
+     * aceptaba `array` y normalizaba dentro, ramificando por las tres formas en que podía llegar
+     * una fecha. Funcionaba, pero era una de cinco copias de la misma decisión repartidas por el
+     * módulo, y bastó que una se escribiera sin ella para tumbar la sincronización de reservas
+     * canceladas (`docs/Mensajeria.md` §22.16). Ahora la conversión ocurre una sola vez, en
+     * {@see MomentoDeHito::de()}, y aquí no queda nada que recordar: lo que entra ya es válido
+     * porque no hay forma de construir el tipo con algo que no lo sea.
+     */
+    public function setMilestones(MapaDeHitos $hitos): self
+    {
+        $this->milestones = $hitos->comoTextoPlano();
 
         return $this;
     }
@@ -369,7 +324,7 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
         return array_values(array_map(
             static fn (array $h): HitoDeAsunto => new HitoDeAsunto(
                 $h['tipo'],
-                new DateTimeImmutable($h['fecha']),
+                (MomentoDeHito::de($h['fecha']) ?? MomentoDeHito::ahora())->comoFecha(),
                 $h['detalle'] ?? null,
                 $h['detalleAnterior'] ?? null,
             ),
@@ -401,7 +356,7 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
         $this->hitos = array_values(array_map(
             static fn (HitoDeAsunto $h): array => [
                 'tipo' => $h->tipo,
-                'fecha' => $h->fecha->format('Y-m-d H:i:s'),
+                'fecha' => (MomentoDeHito::de($h->fecha) ?? MomentoDeHito::ahora())->comoTexto(),
                 'detalle' => $h->detalle,
                 'detalleAnterior' => $h->detalleAnterior,
             ],

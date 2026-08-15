@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command;
 
+use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Entity\MessageConversation;
 use App\Message\Contract\VinculoComercial;
 use App\Pms\Entity\PmsConversacionEnlace;
@@ -98,7 +99,7 @@ final class PoblarEnlacesCommand extends Command
                             // Se repone también el mapa del contexto: los enlaces poblados por la
                             // primera versión de este comando tienen `start` sacado del agregado,
                             // y sólo reponiéndolo antes puede `setHitos()` corregirlo.
-                            $existente->setMilestones($conversacion->getContextMilestones());
+                            $existente->setMilestones($conversacion->getMapaDeHitos());
                             $existente->setHitos($this->hitos->para($reservaExistente));
                             $refrescados++;
                         }
@@ -152,11 +153,11 @@ final class PoblarEnlacesCommand extends Command
             // El mapa del contexto primero —trae `created_at` y `expected_arrival`, que no salen
             // de los tramos— y los hitos derivados encima, que reescriben `start` y `end` con las
             // fechas reales de la estancia en vez del mínimo y el máximo agregados.
-            $enlace->setMilestones($conversacion->getContextMilestones());
+            $enlace->setMilestones($conversacion->getMapaDeHitos());
             $enlace->setHitos($this->hitos->para($reserva));
 
             if ($cancelada) {
-                $enlace->marcarCancelado($conversacion->getContextMilestones()['cancelled_at'] ?? null);
+                $enlace->marcarCancelado($conversacion->getMapaDeHitos()->obtener(ConversationMilestoneInterface::CANCELLED));
                 $canceladas++;
             }
 
