@@ -14,6 +14,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * Repositorio para la gestión de la entidad PmsReserva.
  */
+/** @extends ServiceEntityRepository<PmsReserva> */
 class PmsReservaRepository extends ServiceEntityRepository
 {
     /**

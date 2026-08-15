@@ -150,6 +150,7 @@ class PmsEstablecimientoVirtual
         return $this;
     }
 
+    /** @return Collection<int, PmsUnidadBeds24Map> */
     public function getBeds24Maps(): Collection
     {
         return $this->beds24Maps;

@@ -14,6 +14,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 
+/** @extends AbstractCrudController<PmsGuiaHasSeccion> */
 class PmsGuiaHasSeccionCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

@@ -18,10 +18,11 @@
 # Hecho en `src/Message/`: entidades, DTO de Mercure, servicios de Meta y Exchange, repositorios
 # y CRUD. El módulo va de 236 avisos a 47, y lo que queda ya NO son tipos: son redundancias
 # (`??` sobre lo que nunca es null, comparaciones siempre ciertas) y genéricos de EasyCorp.
-# En `src/Pms/` (287 en solitario → ~190): hechas las entidades de la guía, las colas, la
-# auditoría de webhooks, el catálogo, la unidad, el cargo financiero y `Beds24BookingDto`, más el
-# tipo compartido `ContenidoI18n` y el ayudante `MaestroIdioma::textoEn()`. Siguiente ahí: las
-# estrategias de Exchange y los persisters.
+# `src/Pms/` va de 287 a ~105, y sus anotaciones de tipo están TERMINADAS: de 105 que faltaban
+# queda 1. Lo que resta ahí ya no son tipos, son redundancias e `instanceof` defensivos en
+# fronteras de API — legítimos, se quedan.
+#
+# Siguiente por volumen: `src/Cotizacion/`, `src/Travel/` y `src/Calendar/`.
 #
 # ⚠️ Lo de las columnas nulables de Doctrine YA NO está aquí: se sacó a una `ignoreErrors` en
 # `phpstan.dist.neon`, acotada a `Entity/`. No era deuda —no se va a «saldar» nunca, porque el
@@ -2122,7 +2123,7 @@ parameters:
 			path: src/Message/Entity/MessageConversation.php
 
 		-
-			message: '#^Parameter \#1 \$array \(list\<array\<string, mixed\>\>\) of array_values is already a list, call has no effect\.$#'
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
 			count: 1
 			path: src/Message/Entity/MessageConversation.php
@@ -2386,32 +2387,26 @@ parameters:
 			path: src/Pax/Entity/UiI18n.php
 
 		-
-			message: '#^Class App\\Pms\\ApiPlatform\\State\\PmsEventoCalendarioProcessor implements generic interface ApiPlatform\\State\\ProcessorInterface but does not specify its types\: T1, T2$#'
-			identifier: missingType.generics
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsEventoCalendario and App\\Pms\\Entity\\PmsEventoCalendario will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
 			path: src/Pms/ApiPlatform/State/PmsEventoCalendarioProcessor.php
 
 		-
-			message: '#^Class App\\Pms\\ApiPlatform\\State\\PmsPagoFinancieroProcessor implements generic interface ApiPlatform\\State\\ProcessorInterface but does not specify its types\: T1, T2$#'
-			identifier: missingType.generics
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsPagoFinanciero and App\\Pms\\Entity\\PmsPagoFinanciero will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
 			path: src/Pms/ApiPlatform/State/PmsPagoFinancieroProcessor.php
 
 		-
-			message: '#^Method App\\Pms\\ApiPlatform\\State\\PmsPagoFinancieroProcessor\:\:__construct\(\) has parameter \$persistProcessor with generic interface ApiPlatform\\State\\ProcessorInterface but does not specify its types\: T1, T2$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/ApiPlatform/State/PmsPagoFinancieroProcessor.php
-
-		-
-			message: '#^Class App\\Pms\\ApiPlatform\\State\\PmsReservaCrearProcessor implements generic interface ApiPlatform\\State\\ProcessorInterface but does not specify its types\: T1, T2$#'
-			identifier: missingType.generics
+			message: '#^Instanceof between App\\Pms\\ApiPlatform\\Dto\\PmsReservaCrearInput and App\\Pms\\ApiPlatform\\Dto\\PmsReservaCrearInput will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
 			path: src/Pms/ApiPlatform/State/PmsReservaCrearProcessor.php
 
 		-
-			message: '#^Class App\\Pms\\ApiPlatform\\State\\PmsTarifaMasivaProcessor implements generic interface ApiPlatform\\State\\ProcessorInterface but does not specify its types\: T1, T2$#'
-			identifier: missingType.generics
+			message: '#^Instanceof between App\\Pms\\ApiPlatform\\Dto\\PmsTarifaMasivaInput and App\\Pms\\ApiPlatform\\Dto\\PmsTarifaMasivaInput will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
 			path: src/Pms/ApiPlatform/State/PmsTarifaMasivaProcessor.php
 
@@ -2440,27 +2435,9 @@ parameters:
 			path: src/Pms/Command/PmsRepararHitosCommand.php
 
 		-
-			message: '#^Method App\\Pms\\Controller\\Crud\\PmsBeds24WebhookAuditCrudController\:\:retryWebhookAction\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Controller/Crud/PmsBeds24WebhookAuditCrudController.php
-
-		-
-			message: '#^Class App\\Pms\\Controller\\Crud\\PmsGuiaHasSeccionCrudController extends generic class EasyCorp\\Bundle\\EasyAdminBundle\\Controller\\AbstractCrudController but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Controller/Crud/PmsGuiaHasSeccionCrudController.php
-
-		-
-			message: '#^Class App\\Pms\\Controller\\Crud\\PmsGuiaItemCrudController extends generic class EasyCorp\\Bundle\\EasyAdminBundle\\Controller\\AbstractCrudController but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Controller/Crud/PmsGuiaItemCrudController.php
-
-		-
-			message: '#^Method App\\Pms\\Controller\\Crud\\PmsGuiaItemCrudController\:\:renderTraduccionEs\(\) has parameter \$contenido with no value type specified in iterable type iterable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsGuiaItem and App\\Pms\\Entity\\PmsGuiaItem will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
 			path: src/Pms/Controller/Crud/PmsGuiaItemCrudController.php
 
 		-
@@ -2470,39 +2447,15 @@ parameters:
 			path: src/Pms/Controller/Crud/PmsGuiaItemGaleriaCrudController.php
 
 		-
-			message: '#^Method App\\Pms\\Controller\\Crud\\PmsGuiaItemGaleriaCrudController\:\:moveDown\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Controller/Crud/PmsGuiaItemGaleriaCrudController.php
-
-		-
-			message: '#^Method App\\Pms\\Controller\\Crud\\PmsGuiaItemGaleriaCrudController\:\:movePosition\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Controller/Crud/PmsGuiaItemGaleriaCrudController.php
-
-		-
-			message: '#^Method App\\Pms\\Controller\\Crud\\PmsGuiaItemGaleriaCrudController\:\:moveUp\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Controller/Crud/PmsGuiaItemGaleriaCrudController.php
-
-		-
-			message: '#^Class App\\Pms\\Controller\\Crud\\PmsGuiaSeccionHasItemCrudController extends generic class EasyCorp\\Bundle\\EasyAdminBundle\\Controller\\AbstractCrudController but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Controller/Crud/PmsGuiaSeccionHasItemCrudController.php
-
-		-
-			message: '#^Method App\\Pms\\Controller\\Crud\\PmsReservaCrudController\:\:generarVcard\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsEventoCalendario and App\\Pms\\Entity\\PmsEventoCalendario will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
 			path: src/Pms/Controller/Crud/PmsReservaCrudController.php
 
 		-
-			message: '#^Method App\\Pms\\Controller\\Crud\\PmsReservaCrudController\:\:generarWhatsappUrl\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsReservaHuesped and App\\Pms\\Entity\\PmsReservaHuesped will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
 			path: src/Pms/Controller/Crud/PmsReservaCrudController.php
 
 		-
@@ -2518,46 +2471,10 @@ parameters:
 			path: src/Pms/Controller/Webhook/Beds24WebhookController.php
 
 		-
-			message: '#^Method App\\Pms\\Controller\\Webhook\\Beds24WebhookController\:\:prettyJson\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Controller/Webhook/Beds24WebhookController.php
-
-		-
-			message: '#^Method App\\Pms\\DispatchHandler\\ProcessBeds24WebhookDispatchHandler\:\:handleBookings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/DispatchHandler/ProcessBeds24WebhookDispatchHandler.php
-
-		-
-			message: '#^Method App\\Pms\\DispatchHandler\\ProcessBeds24WebhookDispatchHandler\:\:handleMessages\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/DispatchHandler/ProcessBeds24WebhookDispatchHandler.php
-
-		-
 			message: '#^Offset ''id'' on non\-empty\-array\<mixed, mixed\> on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
 			path: src/Pms/DispatchHandler/ProcessBeds24WebhookDispatchHandler.php
-
-		-
-			message: '#^Method App\\Pms\\Dto\\Beds24InvoiceItemDto\:\:fromArray\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Dto/Beds24InvoiceItemDto.php
-
-		-
-			message: '#^Method App\\Pms\\Dto\\PmsOcupacionDto\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Dto/PmsOcupacionDto.php
-
-		-
-			message: '#^Method App\\Pms\\Dto\\PmsUnidadDisponibleDto\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Dto/PmsUnidadDisponibleDto.php
 
 		-
 			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
@@ -2602,12 +2519,6 @@ parameters:
 			path: src/Pms/Entity/PmsBookingsPullQueue.php
 
 		-
-			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$unidades with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPullQueue.php
-
-		-
 			message: '#^Ternary operator condition is always true\.$#'
 			identifier: ternary.alwaysTrue
 			count: 1
@@ -2632,32 +2543,8 @@ parameters:
 			path: src/Pms/Entity/PmsCargoFinanciero.php
 
 		-
-			message: '#^Property App\\Pms\\Entity\\PmsCargoFinanciero\:\:\$descripcionCliente type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsCargoFinanciero.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsCatalogo\:\:\$subtitulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsCatalogo.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsCatalogo\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsCatalogo.php
-
-		-
 			message: '#^Attribute class App\\Pms\\Entity\\Assert\\Valid does not exist\.$#'
 			identifier: attribute.notFound
-			count: 1
-			path: src/Pms/Entity/PmsChannel.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsChannel\:\:getEventosCalendario\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
 			count: 1
 			path: src/Pms/Entity/PmsChannel.php
 
@@ -2690,30 +2577,6 @@ parameters:
 			identifier: property.unusedType
 			count: 1
 			path: src/Pms/Entity/PmsConversacionEnlace.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsEstablecimiento\:\:getReservas\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsEstablecimiento.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsEstablecimiento\:\:getUnidades\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsEstablecimiento.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsEstablecimiento\:\:getVirtualEstablecimientos\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsEstablecimiento.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsEstablecimientoVirtual\:\:getBeds24Maps\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsEstablecimientoVirtual.php
 
 		-
 			message: '#^PHPDoc tag @return with type int is incompatible with native type bool\.$#'
@@ -2782,12 +2645,6 @@ parameters:
 			path: src/Pms/Entity/PmsInformacionFinanciera.php
 
 		-
-			message: '#^Method App\\Pms\\Entity\\PmsInformacionFinanciera\:\:setPrepagoPendiente\(\) has parameter \$prepago with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsInformacionFinanciera.php
-
-		-
 			message: '#^Property App\\Pms\\Entity\\PmsRatesPushQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -2798,30 +2655,6 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: src/Pms/Entity/PmsRatesPushQueue.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsReserva\:\:getEventosCalendario\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsReserva.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsReserva\:\:getHuespedes\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsReserva.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsReserva\:\:getResumenFinancieroCliente\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsReserva.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsReserva\:\:setResumenFinancieroCliente\(\) has parameter \$resumen with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsReserva.php
 
 		-
 			message: '#^Parameter \#1 \$array \(non\-empty\-list\<array\{ssid\?\: string\|null, password\?\: string\|null, ubicacion\?\: list\<array\{language\?\: string, content\?\: string\|null\}\>\}\>\) of array_values is already a list, call has no effect\.$#'
@@ -2836,14 +2669,14 @@ parameters:
 			path: src/Pms/Entity/PmsUnidad.php
 
 		-
-			message: '#^Property App\\Pms\\Entity\\PmsUnidad\:\:\$wifiNetworks \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			message: '#^Property App\\Pms\\Entity\\PmsUnidad\:\:\$wifiNetworks \(list\<array\{ssid\?\: string\|null, password\?\: string\|null, ubicacion\?\: list\<array\{language\?\: string, content\?\: string\|null\}\>\}\>\|null\) is never assigned null so it can be removed from the property type\.$#'
 			identifier: property.unusedType
 			count: 1
 			path: src/Pms/Entity/PmsUnidad.php
 
 		-
-			message: '#^Property App\\Pms\\Entity\\PmsUnidad\:\:\$wifiNetworks type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
 			count: 1
 			path: src/Pms/Entity/PmsUnidad.php
 
@@ -2860,56 +2693,8 @@ parameters:
 			path: src/Pms/EventListener/PmsEventoCalendarioSecurityListener.php
 
 		-
-			message: '#^Method App\\Pms\\EventListener\\PmsInformacionFinancieraCoherenciaListener\:\:aplicarCancelacion\(\) has parameter \$changeSet with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/EventListener/PmsInformacionFinancieraCoherenciaListener.php
-
-		-
-			message: '#^Method App\\Pms\\EventListener\\PmsInformacionFinancieraCoherenciaListener\:\:assertMonedaNoBloqueada\(\) has parameter \$changeSet with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/EventListener/PmsInformacionFinancieraCoherenciaListener.php
-
-		-
-			message: '#^Method App\\Pms\\EventListener\\PmsInformacionFinancieraCoherenciaListener\:\:assertPagoAutomaticoNoEditable\(\) has parameter \$changeSet with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/EventListener/PmsInformacionFinancieraCoherenciaListener.php
-
-		-
-			message: '#^Method App\\Pms\\EventListener\\PmsInformacionFinancieraCoherenciaListener\:\:assertTipoCambioNoBloqueado\(\) has parameter \$changeSet with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/EventListener/PmsInformacionFinancieraCoherenciaListener.php
-
-		-
 			message: '#^Instanceof between Doctrine\\ORM\\EntityManagerInterface and Doctrine\\ORM\\EntityManagerInterface will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
-
-		-
-			message: '#^Property App\\Pms\\EventListener\\Queue\\Beds24BookingsPushQueueListener\:\:\$eventosTouched with generic class SplObjectStorage does not specify its types\: TObject, TData$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
-
-		-
-			message: '#^Property App\\Pms\\EventListener\\Queue\\Beds24BookingsPushQueueListener\:\:\$linksDeleted with generic class SplObjectStorage does not specify its types\: TObject, TData$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
-
-		-
-			message: '#^Property App\\Pms\\EventListener\\Queue\\Beds24BookingsPushQueueListener\:\:\$linksTouched with generic class SplObjectStorage does not specify its types\: TObject, TData$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
-
-		-
-			message: '#^Property App\\Pms\\EventListener\\Queue\\Beds24BookingsPushQueueListener\:\:\$reservasTouched with generic class SplObjectStorage does not specify its types\: TObject, TData$#'
-			identifier: missingType.generics
 			count: 1
 			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
 
@@ -2932,32 +2717,8 @@ parameters:
 			path: src/Pms/EventListener/Queue/Beds24RatesPushQueueListener.php
 
 		-
-			message: '#^Method App\\Pms\\EventListener\\Queue\\Beds24RatesPushQueueListener\:\:getOldValue\(\) has parameter \$changeSet with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24RatesPushQueueListener.php
-
-		-
-			message: '#^Method App\\Pms\\EventListener\\Queue\\Beds24RatesPushQueueListener\:\:mergeIds\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24RatesPushQueueListener.php
-
-		-
-			message: '#^Property App\\Pms\\EventListener\\Queue\\Beds24RatesPushQueueListener\:\:\$queuedIdsForDispatch type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24RatesPushQueueListener.php
-
-		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsUnidadBeds24Map and App\\Pms\\Entity\\PmsUnidadBeds24Map will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/Factory/PmsEventoCalendarioFactory.php
-
-		-
-			message: '#^Method App\\Pms\\Factory\\PmsEventoCalendarioFactory\:\:getActiveMaps\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Factory/PmsEventoCalendarioFactory.php
 
@@ -2968,64 +2729,10 @@ parameters:
 			path: src/Pms/Form/Type/PmsEventAssignmentEmbeddedType.php
 
 		-
-			message: '#^Method App\\Pms\\Guia\\PmsGuiaArbolFiltro\:\:podar\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Guia/PmsGuiaArbolFiltro.php
-
-		-
-			message: '#^Class App\\Pms\\Naming\\HuespedNamer implements generic interface Vich\\UploaderBundle\\Naming\\NamerInterface but does not specify its types\: T$#'
-			identifier: missingType.generics
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsReservaHuesped and App\\Pms\\Entity\\PmsReservaHuesped will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
 			path: src/Pms/Naming/HuespedNamer.php
-
-		-
-			message: '#^Class App\\Pms\\Repository\\PmsBookingsPullQueueRepository extends generic class App\\Exchange\\Repository\\AbstractExchangeRepository but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Repository/PmsBookingsPullQueueRepository.php
-
-		-
-			message: '#^Class App\\Pms\\Repository\\PmsBookingsPushQueueRepository extends generic class App\\Exchange\\Repository\\AbstractExchangeRepository but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Repository/PmsBookingsPushQueueRepository.php
-
-		-
-			message: '#^Class App\\Pms\\Repository\\PmsGuiaItemGaleriaRepository extends generic class Doctrine\\Bundle\\DoctrineBundle\\Repository\\ServiceEntityRepository but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Repository/PmsGuiaItemGaleriaRepository.php
-
-		-
-			message: '#^Class App\\Pms\\Repository\\PmsReservaHuespedRepository has PHPDoc tag @method for method findBy\(\) parameter \#1 \$criteria with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Repository/PmsReservaHuespedRepository.php
-
-		-
-			message: '#^Class App\\Pms\\Repository\\PmsReservaHuespedRepository has PHPDoc tag @method for method findBy\(\) parameter \#2 \$orderBy with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Repository/PmsReservaHuespedRepository.php
-
-		-
-			message: '#^Class App\\Pms\\Repository\\PmsReservaHuespedRepository has PHPDoc tag @method for method findOneBy\(\) parameter \#1 \$criteria with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Repository/PmsReservaHuespedRepository.php
-
-		-
-			message: '#^Class App\\Pms\\Repository\\PmsReservaHuespedRepository has PHPDoc tag @method for method findOneBy\(\) parameter \#2 \$orderBy with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Repository/PmsReservaHuespedRepository.php
-
-		-
-			message: '#^Class App\\Pms\\Repository\\PmsReservaRepository extends generic class Doctrine\\Bundle\\DoctrineBundle\\Repository\\ServiceEntityRepository but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Repository/PmsReservaRepository.php
 
 		-
 			message: '#^Parameter \#1 \$array \(list\<App\\Pms\\Entity\\PmsReserva\>\) of array_values is already a list, call has no effect\.$#'
@@ -3034,21 +2741,9 @@ parameters:
 			path: src/Pms/Repository/PmsReservaRepository.php
 
 		-
-			message: '#^Method App\\Pms\\Repository\\PmsTarifaRangoRepository\:\:findOverlappingForUnidadAndInterval\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Repository/PmsTarifaRangoRepository.php
-
-		-
 			message: '#^Call to function is_array\(\) with array\{language\: string, content\: string\} will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
-			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Agent\\PmsIndiceDeTemas\:\:temasQueCubren\(\) should return list\<string\> but returns list\<App\\Message\\Contract\\TemaQueCubre\>\.$#'
-			identifier: return.type
-			count: 1
 			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
 
 		-
@@ -3058,68 +2753,14 @@ parameters:
 			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
 
 		-
-			message: '#^Return type \(list\<string\>\) of method App\\Pms\\Service\\Agent\\PmsIndiceDeTemas\:\:temasQueCubren\(\) should be compatible with return type \(list\<App\\Message\\Contract\\TemaQueCubre\>\) of method App\\Message\\Contract\\IndiceDeTemasInterface\:\:temasQueCubren\(\)$#'
-			identifier: method.childReturnType
-			count: 1
-			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
-
-		-
 			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
 			path: src/Pms/Service/Agent/PmsInstruccionesDominio.php
 
 		-
-			message: '#^Method App\\Pms\\Service\\Beds24\\Webhook\\Beds24WebhookBookingFastTrackService\:\:process\(\) has parameter \$bookingData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Beds24/Webhook/Beds24WebhookBookingFastTrackService.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Beds24\\Webhook\\Beds24WebhookBookingFastTrackService\:\:process\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Beds24/Webhook/Beds24WebhookBookingFastTrackService.php
-
-		-
 			message: '#^Access to an undefined property App\\Pms\\Dto\\Beds24BookingDto\:\:\$country\.$#'
 			identifier: property.notFound
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingPullPersister\:\:upsert\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
-
-		-
-			message: '#^Property App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingPullPersister\:\:\$cacheCanales type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
-
-		-
-			message: '#^Property App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingPullPersister\:\:\$cacheEstados type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
-
-		-
-			message: '#^Property App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingPullPersister\:\:\$cacheIdiomas type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
-
-		-
-			message: '#^Property App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingPullPersister\:\:\$cacheMaps type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
-
-		-
-			message: '#^Property App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingPullPersister\:\:\$cachePaises type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
 
@@ -3136,105 +2777,15 @@ parameters:
 			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullHandler.php
 
 		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingsPullHandler\:\:handleSuccess\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullHandler.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingsPullHandler\:\:handleSuccess\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullHandler.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingsPullMappingStrategy\:\:parseResponse\(\) has parameter \$apiResponse with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullMappingStrategy.php
-
-		-
 			message: '#^Variable \$unidad in PHPDoc tag @var does not match any variable in the foreach loop\: \$map$#'
 			identifier: varTag.differentVariable
 			count: 1
 			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullMappingStrategy.php
 
 		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingsPullQueueProvider\:\:getGroupingMetadata\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullQueueProvider.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingsPullQueueProvider\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullQueueProvider.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPull\\BookingsPullTask\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullTask.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushHandler\:\:handleSuccess\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushHandler.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushHandler\:\:handleSuccess\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushHandler.php
-
-		-
 			message: '#^Expression on left side of \?\? is not nullable\.$#'
 			identifier: nullCoalesce.expr
 			count: 2
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushMappingStrategy\:\:applyMasterIdLogic\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushMappingStrategy\:\:buildUpsertPayload\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushMappingStrategy\:\:mapFinancials\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushMappingStrategy\:\:mapGuestData\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushMappingStrategy\:\:mapSyntheticData\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushMappingStrategy\:\:parseResponse\(\) has parameter \$apiResponse with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushMappingStrategy\:\:setIf\(\) has parameter \$arr with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
 			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
 
 		-
@@ -3244,106 +2795,10 @@ parameters:
 			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
 
 		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushQueueProvider\:\:getGroupingMetadata\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushQueueProvider.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushQueueProvider\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushQueueProvider.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\BookingsPush\\BookingsPushTask\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushTask.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\InvoiceReceive\\Beds24InvoiceReceiveHandler\:\:handleSuccess\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveHandler.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\InvoiceReceive\\Beds24InvoiceReceiveHandler\:\:handleSuccess\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveHandler.php
-
-		-
 			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:getTargetBookId\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\InvoiceReceive\\Beds24InvoiceReceiveMappingStrategy\:\:parseResponse\(\) has parameter \$apiResponse with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\InvoiceReceive\\Beds24InvoiceReceiveQueueProvider\:\:getGroupingMetadata\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveQueueProvider.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\InvoiceReceive\\Beds24InvoiceReceiveQueueProvider\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveQueueProvider.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\InvoiceReceive\\Beds24InvoiceReceiveQueueProvider\:\:packItems\(\) has parameter \$items with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveQueueProvider.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\InvoiceReceive\\Beds24InvoiceReceiveTask\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveTask.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\RatesPush\\RatesNestedMappingStrategy\:\:parseResponse\(\) has parameter \$apiResponse with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/RatesPush/RatesNestedMappingStrategy.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\RatesPush\\RatesPushHandler\:\:handleSuccess\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/RatesPush/RatesPushHandler.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\RatesPush\\RatesPushHandler\:\:handleSuccess\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/RatesPush/RatesPushHandler.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\RatesPush\\RatesPushQueueProvider\:\:getGroupingMetadata\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/RatesPush/RatesPushQueueProvider.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\RatesPush\\RatesPushQueueProvider\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/RatesPush/RatesPushQueueProvider.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Exchange\\Tasks\\RatesPush\\RatesPushTask\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/RatesPush/RatesPushTask.php
 
 		-
 			message: '#^Offset ''price'' on array\{price\: float, minStay\: int, currency\: string\|null, sourceId\: string\} on left side of \?\? always exists and is not nullable\.$#'
@@ -3388,12 +2843,6 @@ parameters:
 			path: src/Pms/Service/Message/PmsReservaMessageContext.php
 
 		-
-			message: '#^Method App\\Pms\\Service\\Message\\PmsReservaMessageContext\:\:getItems\(\) should return list\<array\<string, mixed\>\> but returns non\-empty\-list\<string\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Pms/Service/Message/PmsReservaMessageContext.php
-
-		-
 			message: '#^Ternary operator condition is always false\.$#'
 			identifier: ternary.alwaysFalse
 			count: 2
@@ -3418,44 +2867,14 @@ parameters:
 			path: src/Pms/Service/Queue/Beds24RatesPushQueueCreator.php
 
 		-
-			message: '#^Method App\\Pms\\Service\\Queue\\Beds24RatesPushQueueCreator\:\:enqueueForInterval\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Queue/Beds24RatesPushQueueCreator.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Queue\\Beds24RatesPushQueueCreator\:\:expandWindowIteratively\(\) has parameter \$pendingQueues with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Queue/Beds24RatesPushQueueCreator.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Queue\\Beds24RatesPushQueueCreator\:\:expandWindowIteratively\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Queue/Beds24RatesPushQueueCreator.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Queue\\Beds24RatesPushQueueCreator\:\:fetchActiveMaps\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Queue/Beds24RatesPushQueueCreator.php
-
-		-
-			message: '#^Method App\\Pms\\Service\\Queue\\Beds24RatesPushQueueCreator\:\:invalidateQueuesInWindow\(\) has parameter \$queues with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Service/Queue/Beds24RatesPushQueueCreator.php
-
-		-
-			message: '#^Instanceof between App\\Message\\Entity\\MessageConversation and App\\Message\\Entity\\MessageConversation will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Pms/Service/Reserva/PmsReservaRecalculoService.php
 
 		-
-			message: '#^Method App\\Pms\\Service\\Reserva\\PmsReservaRecalculoService\:\:recalcularDesdeEventos\(\) has parameter \$reservaIds with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Instanceof between App\\Message\\Entity\\MessageConversation and App\\Message\\Entity\\MessageConversation will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
 			path: src/Pms/Service/Reserva/PmsReservaRecalculoService.php
 

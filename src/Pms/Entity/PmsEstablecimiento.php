@@ -226,6 +226,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     // COLECCIONES
     // ============================================================
 
+    /** @return Collection<int, PmsUnidad> */
     public function getUnidades(): Collection { return $this->unidades; }
 
     public function addUnidad(PmsUnidad $unidad): self
@@ -247,6 +248,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
         return $this;
     }
 
+    /** @return Collection<int, PmsReserva> */
     public function getReservas(): Collection { return $this->reservas; }
 
     public function addReserva(PmsReserva $reserva): self
@@ -268,6 +270,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
         return $this;
     }
 
+    /** @return Collection<int, PmsEstablecimientoVirtual> */
     public function getVirtualEstablecimientos(): Collection { return $this->virtualEstablecimientos; }
 
     public function addVirtualEstablecimiento(PmsEstablecimientoVirtual $virtualEstablecimiento): self

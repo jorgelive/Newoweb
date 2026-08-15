@@ -22,6 +22,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[AsDoctrineListener(event: Events::postFlush, priority: 200)]
 final class Beds24RatesPushQueueListener
 {
+    /** @var list<string> */
     private array $queuedIdsForDispatch = [];
 
     public function __construct(
@@ -92,10 +93,16 @@ final class Beds24RatesPushQueueListener
         $this->mergeIds($ids);
     }
 
+    /**
+     * @param list<string> $ids
+     */
     private function mergeIds(array $ids): void {
         if (!empty($ids)) $this->queuedIdsForDispatch = array_merge($this->queuedIdsForDispatch, $ids);
     }
 
+    /**
+     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
+     */
     private function getOldValue(array $changeSet, string $field): mixed {
         return $changeSet[$field][0] ?? null;
     }

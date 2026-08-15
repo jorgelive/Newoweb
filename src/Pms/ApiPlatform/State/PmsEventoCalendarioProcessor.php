@@ -33,6 +33,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * Y, desde el drawer de limpieza, resolver los ids de quien limpia: ver
  * aplicarLimpieza(). Va aquí porque la entidad no tiene con qué buscar usuarios.
  */
+/** @implements ProcessorInterface<PmsEventoCalendario, PmsEventoCalendario|null> */
 final class PmsEventoCalendarioProcessor implements ProcessorInterface
 {
     public function __construct(

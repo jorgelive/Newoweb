@@ -9,6 +9,7 @@ use Symfony\Component\String\Slugger\AsciiSlugger;
 use Vich\UploaderBundle\Mapping\PropertyMapping;
 use Vich\UploaderBundle\Naming\NamerInterface;
 
+/** @implements NamerInterface<PmsReservaHuesped> */
 class HuespedNamer implements NamerInterface
 {
     public function name($object, PropertyMapping $mapping): string

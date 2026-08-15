@@ -539,9 +539,9 @@ class MessageConversation
     }
 
     #[Groups(['conversation:read'])]
-    /** @return list<array<string, mixed>> */
+    /** @return list<string> */
     public function getContextItems(): array { return $this->contextData['items'] ?? []; }
-    /** @param list<array<string, mixed>> $items */
+    /** @param list<string> $items */
     public function setContextItems(array $items): self {
         $this->initContextData();
         $this->contextData['items'] = array_values($items);

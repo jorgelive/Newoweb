@@ -353,6 +353,9 @@ class PmsEventoCalendarioFactory
         }
     }
 
+    /**
+     * @return list<PmsUnidadBeds24Map>
+     */
     private function getActiveMaps(PmsUnidad $unidad): array
     {
         $active = [];

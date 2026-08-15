@@ -87,16 +87,31 @@ class PmsGuiaItemGaleriaCrudController extends BaseCrudController
             ->setPermission('moveDown', Roles::RESERVAS_WRITE);
     }
 
+    /**
+     * @return Response
+     *
+     * @param AdminContext<PmsGuiaItemGaleria> $context
+     */
     public function moveUp(AdminContext $context, EntityManagerInterface $em): Response
     {
         return $this->movePosition($context, $em, 'up');
     }
 
+    /**
+     * @return Response
+     *
+     * @param AdminContext<PmsGuiaItemGaleria> $context
+     */
     public function moveDown(AdminContext $context, EntityManagerInterface $em): Response
     {
         return $this->movePosition($context, $em, 'down');
     }
 
+    /**
+     * @return Response
+     *
+     * @param AdminContext<PmsGuiaItemGaleria> $context
+     */
     private function movePosition(AdminContext $context, EntityManagerInterface $em, string $direction): Response
     {
         /** @var PmsGuiaItemGaleria $entity */

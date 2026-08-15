@@ -48,6 +48,8 @@ final readonly class RatesPushQueueProvider implements ExchangeQueueProviderInte
     /**
      * Helper privado para evitar duplicar lógica de empaquetado y validación.
      * @param PmsRatesPushQueue[] $items
+     *
+     * @param list<\App\Exchange\Service\Contract\ExchangeQueueItemInterface> $items
      */
     private function packItems(array $items, bool $strictCheck = false): ?HomogeneousBatch
     {
@@ -84,6 +86,9 @@ final readonly class RatesPushQueueProvider implements ExchangeQueueProviderInte
 
     /**
      * ✅ NUEVO: Método Proxy para obtener metadatos sin exponer el Repositorio completo.
+     *
+     * @param list<string> $ids
+     * @return array<string, mixed> Metadatos de agrupación por lote.
      */
     public function getGroupingMetadata(array $ids): array
     {

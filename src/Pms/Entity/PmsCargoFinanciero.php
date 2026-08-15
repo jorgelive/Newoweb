@@ -214,6 +214,8 @@ class PmsCargoFinanciero
      *
      * Nullable en base de datos —no `NOT NULL DEFAULT '[]'`— para que añadir la columna a una
      * tabla con miles de cargos no exija reescribirlos todos.
+     *
+     * @var list<array{language?: string, content?: string|null}>|null
      */
     #[ORM\Column(name: 'descripcion_cliente', type: 'json', nullable: true)]
     #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]

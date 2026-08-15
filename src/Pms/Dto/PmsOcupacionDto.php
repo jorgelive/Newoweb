@@ -37,6 +37,8 @@ final readonly class PmsOcupacionDto
     /**
      * Forma plana para JSON. Las claves son parte del prompt efectivo: se leen en español y
      * sin abreviar, igual que en el DTO hermano.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {

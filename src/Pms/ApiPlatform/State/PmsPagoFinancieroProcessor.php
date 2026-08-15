@@ -25,14 +25,20 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * listeners de coherencia y el recálculo del saldo siguen corriendo exactamente igual que
  * en cualquier otra escritura del módulo.
  */
+/** @implements ProcessorInterface<PmsPagoFinanciero, PmsPagoFinanciero|null> */
 final readonly class PmsPagoFinancieroProcessor implements ProcessorInterface
 {
+    /** @param ProcessorInterface<PmsPagoFinanciero, PmsPagoFinanciero|null> $persistProcessor */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $persistProcessor,
         private UserRepository $usuarios,
     ) {}
 
+    /**
+     * @param array<string, mixed> $uriVariables
+     * @param array<string, mixed> $context
+     */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
         if ($data instanceof PmsPagoFinanciero && $data->isCobradorIdRecibido()) {

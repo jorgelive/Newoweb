@@ -41,10 +41,15 @@ final class BookingPullPersister implements ResetInterface
     /** @var array<string, PmsEventoBeds24Link|false> */
     private array $cacheLinks = [];
 
+    /** @var array<string, mixed> Caché de mapa de unidad por clave, para no repetir consultas en el lote. */
     private array $cacheMaps = [];
+    /** @var array<string, mixed> Caché de país por clave, para no repetir consultas en el lote. */
     private array $cachePaises = [];
+    /** @var array<string, mixed> Caché de idioma por clave, para no repetir consultas en el lote. */
     private array $cacheIdiomas = [];
+    /** @var array<string, mixed> Caché de canal por clave, para no repetir consultas en el lote. */
     private array $cacheCanales = [];
+    /** @var array<string, mixed> Caché de estado de evento por clave, para no repetir consultas en el lote. */
     private array $cacheEstados = [];
 
     public function __construct(
@@ -85,6 +90,8 @@ final class BookingPullPersister implements ResetInterface
      * status: 'success' | 'skipped'
      * action: 'created' | 'updated' | 'ignored'
      * * @throws RuntimeException Si los datos críticos como el mapeo de unidad o maestros son inválidos.
+     *
+     * @return array<string, mixed>
      */
     public function upsert(Beds24Config $config, Beds24BookingDto $booking): array
     {

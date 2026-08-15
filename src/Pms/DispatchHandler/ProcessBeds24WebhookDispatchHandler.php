@@ -166,6 +166,8 @@ final readonly class ProcessBeds24WebhookDispatchHandler
      * * @param mixed $bookingData Nodo 'booking' del payload
      * @param string $token Token de seguridad del webhook
      * @return array
+     *
+     * @return array<string, mixed>
      */
     private function handleBookings(mixed $bookingData, string $token): array
     {
@@ -196,6 +198,8 @@ final readonly class ProcessBeds24WebhookDispatchHandler
      * Procesa los mensajes recibidos del huésped en el canal de Beds24.
      * * @param mixed $messagesData Nodo 'messages' del payload
      * @return array
+     *
+     * @return array<string, mixed>
      */
     private function handleMessages(mixed $messagesData): array
     {

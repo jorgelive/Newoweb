@@ -19,6 +19,7 @@ use Symfony\Component\Uid\Uuid;
  * @method PmsReservaHuesped[]    findAll()
  * @method PmsReservaHuesped[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
+/** @extends ServiceEntityRepository<PmsReservaHuesped> */
 class PmsReservaHuespedRepository extends ServiceEntityRepository
 {
     /**

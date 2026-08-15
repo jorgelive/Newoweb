@@ -18,6 +18,10 @@ use Throwable;
  */
 final class BookingsPushHandler implements ExchangeHandlerInterface
 {
+    /**
+     * @param array<string, mixed> $data Respuesta cruda del canal.
+     * @return array<string, mixed>
+     */
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {
         // 1. Validación de Tipo

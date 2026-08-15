@@ -22,6 +22,9 @@ final class Beds24WebhookBookingFastTrackService
     /**
      * Procesa UNA sola reserva.
      * @throws Throwable Si algo falla, el Controller captura y loguea.
+     *
+     * @param array<string, mixed> $bookingData
+     * @return array<string, mixed>
      */
     public function process(string $token, array $bookingData): array
     {

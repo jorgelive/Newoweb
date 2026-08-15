@@ -31,6 +31,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * establecimiento único del sistema, idioma por defecto si no se especifica. El canal
  * se fuerza SIEMPRE a "directo": este endpoint no puede crear reservas de canales OTA.
  */
+/** @implements ProcessorInterface<PmsReservaCrearInput, PmsReserva> */
 final class PmsReservaCrearProcessor implements ProcessorInterface
 {
     public function __construct(

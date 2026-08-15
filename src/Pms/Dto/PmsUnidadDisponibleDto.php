@@ -31,6 +31,8 @@ final readonly class PmsUnidadDisponibleDto
      * Forma plana para JSON. Es lo que ve el modelo cuando llama a la herramienta de
      * disponibilidad, así que las claves se leen en español y sin abreviar: son parte
      * del prompt efectivo.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {

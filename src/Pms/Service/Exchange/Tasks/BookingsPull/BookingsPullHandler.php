@@ -25,6 +25,10 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
         private readonly SerializerInterface  $serializer
     ) {}
 
+    /**
+     * @param array<string, mixed> $data Respuesta cruda del canal.
+     * @return array<string, mixed>
+     */
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {
         // 1. Validación de Tipo y Configuración

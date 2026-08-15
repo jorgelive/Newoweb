@@ -33,6 +33,9 @@ class Beds24RatesPushQueueCreator
         private readonly PmsRatesPushQueueFactory $factory
     ) {}
 
+    /**
+     * @return list<string> Los ids de las colas creadas.
+     */
     public function enqueueForInterval(
         PmsUnidad $unidad,
         DateTimeInterface $start,
@@ -153,6 +156,10 @@ class Beds24RatesPushQueueCreator
     }
 
     // --- Helpers ---
+    /**
+     * @param  list<PmsRatesPushQueue> $pendingQueues
+     * @return array{0: DateTimeImmutable, 1: DateTimeImmutable} La ventana ya expandida.
+     */
     private function expandWindowIteratively(array $pendingQueues, DateTimeImmutable $from, DateTimeImmutable $to): array {
         $hasExpanded = true;
         $iterations = 0;
@@ -172,6 +179,9 @@ class Beds24RatesPushQueueCreator
         return [$from, $to];
     }
 
+    /**
+     * @param list<PmsRatesPushQueue> $queues
+     */
     private function invalidateQueuesInWindow(array $queues, DateTimeImmutable $start, DateTimeImmutable $end, PmsUnidadBeds24Map $map, ?UnitOfWork $uow): void {
         foreach ($queues as $q) {
             if ($q->getUnidadBeds24Map() !== $map) continue;
@@ -200,6 +210,9 @@ class Beds24RatesPushQueueCreator
             'activo' => true
         ]);
     }
+    /**
+     * @return list<PmsUnidadBeds24Map>
+     */
     private function fetchActiveMaps(PmsUnidad $u): array { return $this->em->getRepository(PmsUnidadBeds24Map::class)->findBy(['pmsUnidad' => $u, 'activo' => true]); }
     private function createRangeAccessor(): callable {
         return fn(PmsTarifaRango $r) => [

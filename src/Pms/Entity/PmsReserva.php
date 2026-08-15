@@ -510,6 +510,8 @@ class PmsReserva
      * lista para saber qué estancias tiene la reserva y luego pide el detalle completo
      * de cada una por GET /pms_evento_calendarios/{id} (mismo endpoint que ya usa para
      * editar un evento individual).
+     *
+     * @return Collection<int, PmsEventoCalendario>
      */
     #[Groups(['pms_reserva:read'])]
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
@@ -625,9 +627,15 @@ class PmsReserva
      */
     private ?array $resumenFinancieroCliente = null;
 
+    /**
+     * @return array<string, mixed>|null
+     */
     #[Groups(['pax_reserva:read'])]
     #[SerializedName('resumenFinanciero')]
     public function getResumenFinancieroCliente(): ?array { return $this->resumenFinancieroCliente; }
+    /**
+     * @param array<string, mixed>|null $resumen
+     */
     public function setResumenFinancieroCliente(?array $resumen): self { $this->resumenFinancieroCliente = $resumen; return $this; }
 
     public function getInformacionFinanciera(): ?PmsInformacionFinanciera { return $this->informacionFinanciera; }
@@ -642,6 +650,7 @@ class PmsReserva
         return $this;
     }
 
+    /** @return Collection<int, PmsReservaHuesped> */
     public function getHuespedes(): Collection { return $this->huespedes; }
     public function addHuesped(PmsReservaHuesped $huesped): self {
         if (!$this->huespedes->contains($huesped)) {

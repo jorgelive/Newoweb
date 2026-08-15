@@ -64,7 +64,11 @@ interface MessageContextInterface
     public function getMilestones(): MapaDeHitos;
 
     /**
-     * @return list<array<string, mixed>>
+     * Lo que compone el asunto, en palabras que se le pueden leer al huésped: los nombres de las
+     * casitas de una reserva, los servicios de un tour. Es lo que el motor de plantillas
+     * concatena, no una estructura.
+     *
+     * @return list<string>
      */
     public function getItems(): array;
     public function getFinancialTotal(): ?float;

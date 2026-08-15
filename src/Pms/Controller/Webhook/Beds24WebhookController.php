@@ -177,6 +177,8 @@ final class Beds24WebhookController extends AbstractController
 
     /**
      * Responde en formato JSON formateado para debugging.
+     *
+     * @param array<string, mixed> $data
      */
     private function prettyJson(array $data, int $status = 200): JsonResponse
     {

@@ -22,6 +22,8 @@ final class PmsTarifaRangoRepository extends ServiceEntityRepository
     /**
      * Devuelve rangos que solapan el intervalo.
      * ✅ FIX: Filtramos por ID de unidad (String) para evitar errores de comparación de objetos en Doctrine.
+     *
+     * @return list<PmsTarifaRango>
      */
     public function findOverlappingForUnidadAndInterval(PmsUnidad $unidad, DateTimeInterface $from, DateTimeInterface $to): array
     {

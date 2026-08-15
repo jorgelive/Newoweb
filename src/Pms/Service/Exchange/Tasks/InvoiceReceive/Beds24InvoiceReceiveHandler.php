@@ -17,6 +17,10 @@ final readonly class Beds24InvoiceReceiveHandler implements ExchangeHandlerInter
         private Beds24InvoiceReceivePersister $persister
     ) {}
 
+    /**
+     * @param array<string, mixed> $data Respuesta cruda del canal.
+     * @return array<string, mixed>
+     */
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {
         if (!$item instanceof Beds24InvoiceReceiveQueue) {

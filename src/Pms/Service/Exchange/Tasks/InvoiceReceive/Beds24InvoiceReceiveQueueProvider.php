@@ -25,6 +25,9 @@ final readonly class Beds24InvoiceReceiveQueueProvider implements ExchangeQueueP
         return $this->packItems($items, true);
     }
 
+    /**
+     * @param list<\App\Exchange\Service\Contract\ExchangeQueueItemInterface> $items
+     */
     private function packItems(array $items, bool $strictCheck = false): ?HomogeneousBatch
     {
         if (empty($items)) {
@@ -33,6 +36,10 @@ final readonly class Beds24InvoiceReceiveQueueProvider implements ExchangeQueueP
         return new HomogeneousBatch($items[0]->getConfig(), $items[0]->getEndpoint(), $items);
     }
 
+    /**
+     * @param list<string> $ids
+     * @return array<string, mixed> Metadatos de agrupación por lote.
+     */
     public function getGroupingMetadata(array $ids): array
     {
         return $this->repository->getGroupingMetadata($ids);

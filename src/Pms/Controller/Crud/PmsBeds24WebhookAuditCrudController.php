@@ -197,6 +197,8 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
      * 🔥 LÓGICA DE LA ACCIÓN PERSONALIZADA
      * Este método recibe el clic del botón "Reejecutar".
      * Reencola el webhook fallido en Messenger utilizando los datos crudos almacenados.
+     *
+     * @param AdminContext<PmsBeds24WebhookAudit> $context
      */
     public function retryWebhookAction(
         AdminContext $context,

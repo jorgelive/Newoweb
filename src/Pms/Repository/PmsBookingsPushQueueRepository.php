@@ -8,6 +8,7 @@ use App\Pms\Entity\PmsBookingsPushQueue;
 use Doctrine\DBAL\ArrayParameterType; // <--- AGREGAR ESTO
 use Doctrine\Persistence\ManagerRegistry;
 
+/** @extends AbstractExchangeRepository<PmsBookingsPushQueue> */
 final class PmsBookingsPushQueueRepository extends AbstractExchangeRepository
 {
     public function __construct(ManagerRegistry $registry)

@@ -41,9 +41,13 @@ final class Beds24BookingsPushQueueListener
         'nota', 'comentariosHuesped', 'horaLlegadaCanal', 'pais', 'idioma',
     ];
 
+    /** @var SplObjectStorage<PmsEventoCalendario, null> */
     private SplObjectStorage $eventosTouched;
+    /** @var SplObjectStorage<PmsReserva, null> */
     private SplObjectStorage $reservasTouched;
+    /** @var SplObjectStorage<PmsEventoBeds24Link, null> */
     private SplObjectStorage $linksTouched;
+    /** @var SplObjectStorage<PmsEventoBeds24Link, null> */
     private SplObjectStorage $linksDeleted;
 
     /** @var string[] IDs recolectados para despacho inmediato */

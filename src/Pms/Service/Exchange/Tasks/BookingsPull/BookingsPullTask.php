@@ -66,6 +66,9 @@ final readonly class BookingsPullTask implements ExchangeTaskInterface
     /**
      * ✅ IMPLEMENTACIÓN DEL PROXY
      * El Handler llama a esto -> Tarea llama a Provider -> Provider llama a Repository
+     *
+     * @param list<string> $ids
+     * @return array<string, mixed> Metadatos de agrupación por lote.
      */
     public function getGroupingMetadata(array $ids): array
     {

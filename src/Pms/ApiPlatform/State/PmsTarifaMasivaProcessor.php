@@ -22,6 +22,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * "Generar Masivo" de EasyAdmin. El push a Beds24 lo dispara después
  * Beds24RatesPushQueueListener con el flush del servicio.
  */
+/** @implements ProcessorInterface<PmsTarifaMasivaInput, PmsTarifaMasivaResult> */
 final class PmsTarifaMasivaProcessor implements ProcessorInterface
 {
     public function __construct(

@@ -58,6 +58,8 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface, MemoryCleanabl
     private ?ExchangeEndpoint $endpoint = null;
 
     /** * @var Collection<int, PmsUnidad>
+     *
+     * @var Collection<int, PmsUnidad>
      */
     #[ORM\ManyToMany(targetEntity: PmsUnidad::class, inversedBy: 'bookingsPullQueues')]
     #[ORM\JoinTable(name: 'pms_pull_queue_job_unidad')]

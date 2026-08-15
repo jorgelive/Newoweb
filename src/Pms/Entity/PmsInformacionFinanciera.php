@@ -244,8 +244,16 @@ class PmsInformacionFinanciera
             'concepto' => ['type' => 'string', 'example' => 'Adelanto de reserva AB12CD — Casita 4'],
         ],
     ])]
+    /**
+     * @return array<string, mixed>|null
+     *
+     * @return array<string, mixed>|null
+     */
     #[Groups(['pms_finanzas:read'])]
     public function getPrepagoPendiente(): ?array { return $this->prepagoPendiente; }
+    /**
+     * @param array<string, mixed>|null $prepago
+     */
     public function setPrepagoPendiente(?array $prepago): self { $this->prepagoPendiente = $prepago; return $this; }
 
     /**

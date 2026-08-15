@@ -254,6 +254,8 @@ final class PmsInformacionFinancieraCoherenciaListener
      *
      * Sólo se anula si TODAS las estancias de la reserva están canceladas: en un grupo, que
      * caiga una casita no anula el cobro de las demás.
+     *
+     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
      */
     private function aplicarCancelacion(PmsEventoCalendario $evento, array $changeSet, EntityManagerInterface $em): void
     {
@@ -471,6 +473,8 @@ final class PmsInformacionFinancieraCoherenciaListener
      * el panel— sin tener que llegar en dos viajes.
      *
      * El propio servicio sí lo mueve, y lo declara con `estaSincronizando()`.
+     *
+     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
      */
     private function assertPagoAutomaticoNoEditable(PmsPagoFinanciero $pago, array $changeSet): void
     {
@@ -578,6 +582,8 @@ final class PmsInformacionFinancieraCoherenciaListener
      * Bloquea el cambio de moneda de un cargo/pago ya persistido. `$old === null` significa que
      * la moneda se está estableciendo por primera vez (backfill de filas antiguas sin moneda) y
      * SÍ se permite: no hay conversión previa que romper.
+     *
+     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
      */
     private function assertMonedaNoBloqueada(PmsCargoFinanciero|PmsPagoFinanciero $entity, array $changeSet): void
     {
@@ -613,6 +619,8 @@ final class PmsInformacionFinancieraCoherenciaListener
      * Un registro sin TC en moneda distinta a la cabecera aporta **0** al saldo (§12.2). Si el
      * candado fuera total, la única forma de arreglarlo sería borrarlo y rehacerlo — y en un
      * cargo sincronizado desde Beds24 eso ni siquiera es posible.
+     *
+     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
      */
     private function assertTipoCambioNoBloqueado(PmsCargoFinanciero|PmsPagoFinanciero $entity, array $changeSet): void
     {

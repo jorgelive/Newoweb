@@ -23,6 +23,9 @@ final class RatesPushHandler implements ExchangeHandlerInterface
      * * @param array $data Respuesta decodificada de la API.
      * @param ExchangeQueueItemInterface $item La entidad de la cola.
      * @return array Resumen estructurado para persistir en la columna JSON 'execution_result'.
+     *
+     * @param array<string, mixed> $data Respuesta cruda del canal.
+     * @return array<string, mixed>
      */
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {

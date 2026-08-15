@@ -113,7 +113,7 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
      * ⚠️ Se agrupan por nombre visible: los siete ítems de ducha son **un** tema para quien está
      * decidiendo si crear una entrada, no siete avisos iguales.
      *
-     * @return list<string>
+     * @return list<TemaQueCubre>
      */
     public function temasQueCubren(string $texto): array
     {

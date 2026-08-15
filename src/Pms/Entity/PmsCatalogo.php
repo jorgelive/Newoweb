@@ -93,13 +93,19 @@ class PmsCatalogo
     /**
      * Título COMERCIAL, independiente del de la guía. La guía puede llamarse
      * «Manual de Casita 3» y el escaparate «Casita con vista al bosque».
+     *
+     * @var list<array{language?: string, content?: string|null}>
      */
     #[ORM\Column(type: 'json')]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[Assert\NotNull]
     private array $titulo = [];
 
-    /** Gancho bajo el título del hero. Opcional. */
+    /**
+     * Gancho bajo el título del hero. Opcional.
+     *
+     * @var list<array{language?: string, content?: string|null}>|null
+     */
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $subtitulo = [];

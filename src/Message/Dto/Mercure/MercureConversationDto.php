@@ -33,7 +33,7 @@ class MercureConversationDto implements JsonSerializable
     private ?string $contextStatusTag;
     /** @var array<string, string> Hitos ya en texto: {@see \App\Message\Contract\MomentoDeHito}. */
     private array $contextMilestones = [];
-    /** @var list<array<string, mixed>> */
+    /** @var list<string> */
     private array $contextItems = [];
     private ?float $contextFinancialTotal;
     private bool $contextFinancialIsCleared;
@@ -175,9 +175,9 @@ class MercureConversationDto implements JsonSerializable
     /** @param array<string, string> $contextMilestones */
     public function setContextMilestones(array $contextMilestones): self { $this->contextMilestones = $contextMilestones; return $this; }
 
-    /** @return list<array<string, mixed>> */
+    /** @return list<string> */
     public function getContextItems(): array { return $this->contextItems; }
-    /** @param list<array<string, mixed>> $contextItems */
+    /** @param list<string> $contextItems */
     public function setContextItems(array $contextItems): self { $this->contextItems = $contextItems; return $this; }
 
     public function getContextFinancialTotal(): ?float { return $this->contextFinancialTotal; }

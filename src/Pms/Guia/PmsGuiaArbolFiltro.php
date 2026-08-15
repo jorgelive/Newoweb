@@ -42,6 +42,9 @@ final class PmsGuiaArbolFiltro
      * @param list<string> $categoriasBloqueadas Categorías que no pueden salir por el canal
      *        que va a responder. Vacío —el default— deja el comportamiento de siempre, que es
      *        el de la web y el catálogo: ahí no hay partner que restrinja nada.
+     *
+     * @param list<string> $categoriasBloqueadas
+     * @return list<PmsGuiaSeccion>
      */
     public function podar(
         PmsGuia $guia,

@@ -272,6 +272,9 @@ final class PmsReservaCrudController extends BaseCrudController
         return parent::configureResponseParameters($responseParameters);
     }
 
+    /**
+     * @param AdminContext<PmsReserva> $context
+     */
     public function generarWhatsappUrl(AdminContext $context): Response
     {
         $reservaId = $context->getRequest()->query->get('entityId');
@@ -332,6 +335,9 @@ final class PmsReservaCrudController extends BaseCrudController
     // =========================================================================
     // 🔥 ACCIÓN PARA GENERAR VCARD (MÓVIL / WHATSAPP AGENDA)
     // =========================================================================
+    /**
+     * @param AdminContext<PmsReserva> $context
+     */
     public function generarVcard(AdminContext $context): Response
     {
         $reserva = $context->getEntity()->getInstance();

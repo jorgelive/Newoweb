@@ -118,6 +118,9 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
 
     /**
      * Procesa la respuesta de Beds24 y la mapea de vuelta a los IDs de nuestra cola.
+     *
+     * @param array<array-key, mixed> $apiResponse Puede venir como mapa o como lista: el código comprueba ambas.
+     * @return array<string, mixed>
      */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {

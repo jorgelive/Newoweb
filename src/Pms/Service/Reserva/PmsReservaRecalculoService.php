@@ -49,6 +49,8 @@ final class PmsReservaRecalculoService
      * );
      *
      * @return void
+     *
+     * @param list<string> $reservaIds
      */
     public function recalcularDesdeEventos(array $reservaIds, EntityManagerInterface $entityManager, $flush): void
     {

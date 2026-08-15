@@ -28,6 +28,7 @@ use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 
+/** @extends AbstractCrudController<PmsGuiaItem> */
 class PmsGuiaItemCrudController extends AbstractCrudController
 {
     public function __construct(
@@ -102,6 +103,8 @@ class PmsGuiaItemCrudController extends AbstractCrudController
 
     /**
      * Devuelve el texto en español (sin HTML) truncado, o un placeholder si está vacío.
+     *
+     * @param list<array{language?: string, content?: string|null}>|null $contenido
      */
     private function renderTraduccionEs(?iterable $contenido, int $limite, string $vacio): string
     {

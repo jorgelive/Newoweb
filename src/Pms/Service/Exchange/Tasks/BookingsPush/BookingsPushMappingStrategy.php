@@ -116,6 +116,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
      * @param array $apiResponse Respuesta cruda decodificada desde la API.
      * @param MappingResult $mapping Objeto de mapeo original que contiene la correlación.
      * @return array<string, ItemResult> Resultados indexados por el ID de la cola.
+     *
+     * @param array<string, mixed> $apiResponse
+     * @return array<string, mixed>
      */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
@@ -159,6 +162,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     // BUILDERS Y LOGICA DE NEGOCIO
     // =========================================================================
 
+    /**
+     * @return array<string, mixed> El cuerpo que espera la API de Beds24.
+     */
     private function buildUpsertPayload(PmsBookingsPushQueue $queue): array
     {
         $link = $queue->getLink();
@@ -273,6 +279,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         return $payload;
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     private function mapGuestData(array &$payload, PmsReserva $reserva, PmsEventoCalendario $evento, bool $isMirror, bool $isOta): void
     {
         // Datos seguros (Nombres e info interna)
@@ -298,12 +307,18 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         }
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     private function mapFinancials(array &$payload, PmsEventoCalendario $evento): void
     {
         $this->setIf($payload, 'price',      $evento->getMonto());
         $this->setIf($payload, 'commission', $evento->getComision());
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     private function mapSyntheticData(array &$payload, PmsEventoCalendario $evento): void
     {
         $estado = $evento->getEstado()?->getNombre() ?? 'Bloqueo';
@@ -333,6 +348,8 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     /**
      * Lógica para agrupar reservas (Group Booking).
      * Evita asignar masterId si es igual al ID actual (referencia circular).
+     *
+     * @param array<string, mixed> $payload
      */
     private function applyMasterIdLogic(array &$payload, PmsReserva $reserva, ?int $currentId): void
     {
@@ -346,6 +363,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
 
     // --- Helpers de Sanitización ---
 
+    /**
+     * @param array<string, mixed> $arr
+     */
     private function setIf(array &$arr, string $key, mixed $val): void
     {
         if ($val === null) return;

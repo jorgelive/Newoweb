@@ -94,6 +94,9 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
     /**
      * Procesa la respuesta masiva.
      * Beds24 v2 GET bookings suele devolver un array de objetos o un wrapper con error.
+     *
+     * @param array<array-key, mixed> $apiResponse Puede venir como mapa o como lista: el código comprueba ambas.
+     * @return array<string, mixed>
      */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {

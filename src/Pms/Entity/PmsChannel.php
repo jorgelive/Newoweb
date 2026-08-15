@@ -101,6 +101,7 @@ class PmsChannel
         return $this;
     }
 
+    /** @return Collection<int, PmsEventoCalendario> */
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
 
     public function addEventosCalendario(PmsEventoCalendario $evento): self {

@@ -132,6 +132,8 @@ class PmsUnidad
      * ]
      * }
      * ]
+     *
+     * @var list<array{ssid?: string|null, password?: string|null, ubicacion?: list<array{language?: string, content?: string|null}>}>|null
      */
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['ubicacion'])] // 👈 Traducción anidada configurada
