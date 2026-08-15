@@ -1463,13 +1463,21 @@ final readonly class LoQueSea implements SkillInterface
 }
 ```
 
-Dos reglas al escribirla:
+Tres reglas al escribirla:
 
 - **La descripción es prompt, no documentación.** Di *cuándo* usarla y prohíbe responder de
   memoria si el dato tiene que salir de ahí. Eso es lo que sube la tasa de invocación.
 - **Los errores de negocio se devuelven** (`SkillResult::error()`), no se lanzan: el modelo
   puede reformular. Una excepción es un fallo de infraestructura; «no encuentro a ese huésped»
   no lo es.
+- **Un helper que devuelve varias cosas a la vez devuelve un objeto, no un array con la forma
+  prometida en un docblock.** El docblock es una promesa que nadie ejecuta —PHPStan compara
+  formas de array en nivel 3, no en el 2 del proyecto— y ya se rompió en producción: una
+  salida temprana de `parsearDistribucion()` devolvió `[]` sin las claves prometidas, leer la
+  clave ausente evaluó a `null` sin más que un warning, y la skill de disponibilidad murió en
+  el caso normal con el agente de WhatsApp callado. El patrón es `final readonly` con
+  constructor privado y un constructor nombrado — ver
+  `DistribucionLeida` y el porqué completo en su docblock.
 
 Y sé una fachada delgada: la lógica vive en el servicio del dominio, no en la skill.
 

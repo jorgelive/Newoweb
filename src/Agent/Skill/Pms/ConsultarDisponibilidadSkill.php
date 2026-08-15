@@ -223,19 +223,22 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
         // añadir el suplemento por su cuenta — calculó 2 personas adicionales donde había 3 y
         // cotizó 248 USD en vez de 260. Los números de la skill eran correctos; lo que
         // fallaba era la aritmética que le tocaba hacer a él.
-        $leido = $this->parsearDistribucion((string) ($entrada['distribucion'] ?? ''));
+        //
+        // Objeto y no array a propósito: la versión array de este contrato se rompió en
+        // producción y tumbó la skill en el caso normal — el porqué, en {@see DistribucionLeida}.
+        $leido = DistribucionLeida::deTexto((string) ($entrada['distribucion'] ?? ''));
 
-        if ($leido['ilegibles'] !== []) {
+        if ($leido->ilegibles !== []) {
             return SkillResult::error(sprintf(
                 'No entendí este trozo de la distribución: «%s». El formato es casita:personas '
                 . 'separado por comas, por ejemplo «2:7, 5:2». Corrígelo y vuelve a llamarme; '
                 . 'no cotizo con la mitad del reparto.',
-                implode('», «', $leido['ilegibles'])
+                implode('», «', $leido->ilegibles)
             ));
         }
 
-        if ($leido['reparto'] !== []) {
-            return $this->cotizarDistribucion($leido['reparto'], $desde, $hasta, $noches);
+        if ($leido->reparto !== []) {
+            return $this->cotizarDistribucion($leido->reparto, $desde, $hasta, $noches);
         }
 
         // En un reparto NO se sabe cuántos van en cada casita, así que el suplemento por
@@ -261,60 +264,6 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
                 $libres
             ),
         ], static fn ($v) => $v !== null));
-    }
-
-    /**
-     * «2:7, Casita 5:2» → `[['2', 7], ['5', 2]]`.
-     *
-     * Tolerante con lo que escriba el modelo —con o sin la palabra «Casita», con espacios, con
-     * `-` o `=` en vez de `:`— porque el formato exacto es lo primero que se le olvida. Lo que
-     * no encaje se descarta en silencio: mejor cotizar de menos que inventar un reparto.
-     *
-     * ⚠️ Lo que no encaja YA NO se descarta en silencio: vuelve en `ilegibles` y quien llama
-     * corta con un error. El descarte callado convertía «2:7 y 5:2» —sin coma— en un reparto
-     * de una sola casita, y «Casita 2: 7 personas» en ninguna, cotizando por un camino
-     * distinto sin que nadie lo notara.
-     *
-     * @return array{reparto: list<array{0: string, 1: int}>, ilegibles: list<string>}
-     */
-    private function parsearDistribucion(string $texto): array
-    {
-        $texto = trim($texto);
-
-        if ($texto === '') {
-            return [];
-        }
-
-        $salida = [];
-        $ilegibles = [];
-
-        foreach (preg_split('/[,;]+/', $texto) ?: [] as $par) {
-            $par = trim($par);
-
-            if ($par === '') {
-                continue;
-            }
-
-            // El separador es `:` o `=`. El guion NO: «Casitas 2-7: 10» es «de la 2 a la 7»
-            // para un humano, y aceptándolo se cotizaba SOLO la 7 con las 10 personas y la
-            // cotización salía marcada como completa.
-            if (preg_match('/^([\w\s]*?)\s*[:=]\s*(\d{1,3})$/u', $par, $m) !== 1) {
-                $ilegibles[] = $par;
-                continue;
-            }
-
-            $casita = trim(preg_replace('/casitas?/iu', '', $m[1]) ?? '');
-            $pax = (int) $m[2];
-
-            if ($casita === '' || $pax < 1) {
-                $ilegibles[] = $par;
-                continue;
-            }
-
-            $salida[] = [$casita, $pax];
-        }
-
-        return ['reparto' => $salida, 'ilegibles' => $ilegibles];
     }
 
     /**
