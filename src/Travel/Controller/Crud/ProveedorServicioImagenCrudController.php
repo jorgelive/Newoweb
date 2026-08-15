@@ -125,6 +125,8 @@ class ProveedorServicioImagenCrudController extends BaseCrudController
      *
      * @param string $pageName Identificador de la página actual (Index, Edit, New, Detail).
      * @return iterable Colección de campos configurados de EasyAdmin.
+     *
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
      */
     public function configureFields(string $pageName): iterable
     {

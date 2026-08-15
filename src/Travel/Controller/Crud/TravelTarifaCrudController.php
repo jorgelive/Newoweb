@@ -111,6 +111,8 @@ class TravelTarifaCrudController extends BaseCrudController
      * @param EntityManagerInterface $em Manejador de persistencia.
      * @param AdminUrlGenerator $adminUrlGenerator Generador de rutas del panel.
      * @return Response Redirección al formulario de edición del clon generado.
+     *
+     * @param AdminContext<TravelTarifa> $context
      */
     public function cloneTarifa(
         AdminContext $context,
@@ -143,6 +145,8 @@ class TravelTarifaCrudController extends BaseCrudController
      *
      * @param string $pageName Nombre de la página del contexto actual.
      * @return iterable Lista de configuraciones de campos de EasyAdmin.
+     *
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
      */
     public function configureFields(string $pageName): iterable
     {

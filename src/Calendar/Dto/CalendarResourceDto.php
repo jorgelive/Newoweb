@@ -12,6 +12,9 @@ use JsonSerializable;
  */
 final class CalendarResourceDto implements JsonSerializable
 {
+    /**
+     * @param array<string, mixed> $extendedProps
+     */
     public function __construct(
         public readonly string|int|object $id,
         public readonly string $title,
@@ -19,11 +22,17 @@ final class CalendarResourceDto implements JsonSerializable
         public readonly ?array $extendedProps = null,
     ) {}
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return $this->jsonSerialize();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function jsonSerialize(): array
     {
         $out = [

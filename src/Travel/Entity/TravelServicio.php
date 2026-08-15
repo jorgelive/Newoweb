@@ -56,6 +56,7 @@ class TravelServicio
     #[ORM\Column(type: 'string', length: 20, nullable: true)]
     private ?string $codigo = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['servicio:read', 'servicio:item:read', 'servicio:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -153,17 +154,26 @@ class TravelServicio
         return $this;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getTitulo(): array
     {
         return $this->titulo;
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self
     {
         $this->titulo = $titulo;
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelComponente>
+     */
     public function getComponentes(): Collection
     {
         return $this->componentes;
@@ -186,6 +196,9 @@ class TravelServicio
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelItinerario>
+     */
     public function getItinerarios(): Collection
     {
         return $this->itinerarios;
@@ -210,6 +223,9 @@ class TravelServicio
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelSegmento>
+     */
     public function getSegmentos(): Collection
     {
         return $this->segmentos;
@@ -240,13 +256,13 @@ class TravelServicio
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
     {
         $hasValidSpanish = false;
-        if (is_array($this->titulo)) {
-            foreach ($this->titulo as $item) {
-                if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                    if (trim(strip_tags((string) $item['content'])) !== '') {
-                        $hasValidSpanish = true;
-                        break;
-                    }
+
+        // Sin `is_array()`: la propiedad ya está declarada como lista de traducciones.
+        foreach ($this->titulo as $item) {
+            if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                if (trim(strip_tags((string) $item['content'])) !== '') {
+                    $hasValidSpanish = true;
+                    break;
                 }
             }
         }

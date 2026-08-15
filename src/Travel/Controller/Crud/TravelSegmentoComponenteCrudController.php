@@ -31,6 +31,9 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
         return $crud->showEntityActionsInlined();
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         $apiHostUrl = rtrim($this->getParameter('api_host_url'), '/');

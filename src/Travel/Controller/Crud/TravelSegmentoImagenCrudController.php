@@ -93,6 +93,9 @@ class TravelSegmentoImagenCrudController extends BaseCrudController
         ]);
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         $isEmbedded = $this->isEmbedded();

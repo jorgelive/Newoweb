@@ -52,11 +52,13 @@ class TravelSegmento
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
@@ -138,6 +140,9 @@ class TravelSegmento
         return $this->id;
     }
 
+    /**
+     * @return Collection<int, TravelServicio>
+     */
     public function getServicios(): Collection
     {
         return $this->servicios;
@@ -168,28 +173,43 @@ class TravelSegmento
         return $this;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getTitulo(): array
     {
         return $this->titulo;
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self
     {
         $this->titulo = $titulo;
         return $this;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getContenido(): array
     {
         return $this->contenido;
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $contenido
+     */
     public function setContenido(array $contenido): self
     {
         $this->contenido = $contenido;
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelNota>
+     */
     public function getNotas(): Collection
     {
         return $this->notas;
@@ -209,6 +229,9 @@ class TravelSegmento
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelSegmentoImagen>
+     */
     public function getImagenes(): Collection
     {
         return $this->imagenes;
@@ -233,6 +256,9 @@ class TravelSegmento
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelSegmentoComponente>
+     */
     public function getSegmentoComponentes(): Collection
     {
         return $this->segmentoComponentes;
@@ -259,6 +285,8 @@ class TravelSegmento
 
     /**
      * @return Collection<int, TravelItinerarioSegmentoRel>
+     *
+     * @return Collection<int, TravelItinerarioSegmentoRel>
      */
     public function getItinerarioSegmentosInyectados(): Collection
     {
@@ -277,13 +305,13 @@ class TravelSegmento
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
     {
         $hasValidSpanish = false;
-        if (is_array($this->titulo)) {
-            foreach ($this->titulo as $item) {
-                if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                    if (trim(strip_tags((string) $item['content'])) !== '') {
-                        $hasValidSpanish = true;
-                        break;
-                    }
+
+        // Sin `is_array()`: la propiedad ya está declarada como lista de traducciones.
+        foreach ($this->titulo as $item) {
+            if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                if (trim(strip_tags((string) $item['content'])) !== '') {
+                    $hasValidSpanish = true;
+                    break;
                 }
             }
         }

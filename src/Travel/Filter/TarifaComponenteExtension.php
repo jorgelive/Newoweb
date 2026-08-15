@@ -19,7 +19,7 @@ class TarifaComponenteExtension implements QueryCollectionExtensionInterface
         QueryBuilder $queryBuilder,
         QueryNameGeneratorInterface $queryNameGenerator,
         string $resourceClass,
-        Operation $operation = null,
+        ?Operation $operation = null,
         array $context = []
     ): void {
         // Solo intervenimos si están consultando el recurso TravelTarifa

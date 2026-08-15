@@ -100,6 +100,8 @@ class TravelComponenteCrudController extends BaseCrudController
 
     /**
      * 🔥 Deep Clone mediante llamada a __clone() en el Dominio.
+     *
+     * @param AdminContext<TravelComponente> $context
      */
     public function cloneComponente(
         AdminContext $context,
@@ -126,6 +128,9 @@ class TravelComponenteCrudController extends BaseCrudController
         return $this->redirect($url);
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         yield FormField::addPanel('Identidad del Componente')->setIcon('fa fa-box');

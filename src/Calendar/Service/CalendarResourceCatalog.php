@@ -54,6 +54,10 @@ final class CalendarResourceCatalog
      * @param list<CalendarResourceDto> $derived recursos deducidos de las entidades del rango
      * @param string|null $defaultEntity clase a usar si el YAML no trae resources.entity
      * @return list<CalendarResourceDto>
+     *
+     * @param list<\App\Calendar\Dto\CalendarResourceDto> $derived
+     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @return list<\App\Calendar\Dto\CalendarResourceDto>
      */
     public function merge(array $derived, array $config, ?string $defaultEntity = null): array
     {
@@ -141,6 +145,9 @@ final class CalendarResourceCatalog
 
     /**
      * @return list<CalendarResourceDto>
+     *
+     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @return list<\App\Calendar\Dto\CalendarResourceDto>
      */
     private function fetchCatalog(array $config, ?string $defaultEntity): array
     {

@@ -94,6 +94,10 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         return $this->resourceCatalog->merge($out, $config, PmsUnidad::class);
     }
 
+    /**
+     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @return list<\App\Pms\Entity\PmsEventoCalendario>
+     */
     private function fetchEventos(DateTimeInterface $from, DateTimeInterface $to, array $config): array
     {
         $em = $this->managerRegistry->getManagerForClass(PmsEventoCalendario::class);
@@ -122,6 +126,9 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * @param array<string, mixed> $filters
+     */
     private function applyIdFilter(QueryBuilder $qb, string $alias, string $key, array $filters): void
     {
         $val = $filters[$key] ?? null;
@@ -153,6 +160,9 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         return sprintf('%s x%d | %s | %s', $channel, $pax, $cliente, (string)$evento->getPmsUnidad());
     }
 
+    /**
+     * @return list<string> Las líneas del tooltip, ya redactadas.
+     */
     private function buildTooltip(PmsEventoCalendario $evento, ?PmsReserva $reserva): array
     {
         $lines = [
@@ -175,6 +185,10 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         return $estado?->getColor() ?? null;
     }
 
+    /**
+     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @return array{0: string|null, 1: string|null} La URL de ver y la de editar.
+     */
     private function buildUrls(PmsEventoCalendario $evento, ?PmsReserva $reserva, array $config): array
     {
         $cfg = $config['event']['url'] ?? null;

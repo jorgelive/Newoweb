@@ -70,6 +70,7 @@ class TravelItemDiccionario
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['diccionario:read', 'diccionario:item:read', 'diccionario:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -105,11 +106,17 @@ class TravelItemDiccionario
         return $this;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getTitulo(): array
     {
         return $this->titulo;
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self
     {
         $this->titulo = $titulo;
@@ -117,6 +124,8 @@ class TravelItemDiccionario
     }
 
     /**
+     * @return Collection<int, TravelComponenteItem>
+     *
      * @return Collection<int, TravelComponenteItem>
      */
     public function getComponenteItems(): Collection

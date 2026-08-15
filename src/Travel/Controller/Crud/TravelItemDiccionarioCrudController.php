@@ -49,6 +49,9 @@ class TravelItemDiccionarioCrudController extends BaseCrudController
             ->setPermission(Action::DELETE, Roles::MAESTROS_WRITE); // o MAESTROS_DELETE si lo tienes definido
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         yield TextField::new('nombreInterno', 'Nombre Interno')

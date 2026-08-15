@@ -104,11 +104,13 @@ class Proveedor
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $email = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -272,6 +274,8 @@ class Proveedor
     /**
      * Obtiene el título estructurado en formato JSON.
      * Diseñado para almacenar traducciones dinámicas.
+     *
+     * @return list<array{language?: string, content?: string|null}>
      */
     public function getTitulo(): array
     {
@@ -280,6 +284,8 @@ class Proveedor
 
     /**
      * Establece el título estructurado en formato JSON.
+     *
+     * @param list<array{language?: string, content?: string|null}> $titulo
      */
     public function setTitulo(array $titulo): self
     {
@@ -289,6 +295,8 @@ class Proveedor
 
     /**
      * Obtiene la descripción estructurada en formato JSON.
+     *
+     * @return list<array{language?: string, content?: string|null}>
      */
     public function getDescripcion(): array
     {
@@ -297,6 +305,8 @@ class Proveedor
 
     /**
      * Establece la descripción estructurada en formato JSON.
+     *
+     * @param list<array{language?: string, content?: string|null}> $descripcion
      */
     public function setDescripcion(array $descripcion): self
     {
@@ -342,6 +352,8 @@ class Proveedor
      * Obtiene la colección completa de imágenes pertenecientes a la galería del proveedor.
      *
      * @return Collection<int, ProveedorImagen>
+     *
+     * @return Collection<int, ProveedorImagen>
      */
     public function getProveedorImagenes(): Collection
     {
@@ -369,6 +381,8 @@ class Proveedor
 
     /**
      * Obtiene la colección completa de servicios pertenecientes al proveedor.
+     *
+     * @return Collection<int, ProveedorServicio>
      *
      * @return Collection<int, ProveedorServicio>
      */
@@ -432,6 +446,8 @@ class Proveedor
     }
 
     /**
+     * @return Collection<int, TravelLugar>
+     *
      * @return Collection<int, TravelLugar>
      */
     public function getLugares(): Collection

@@ -23,10 +23,12 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * usa `documento`). A partir de aquí manda VichUploader, y
  * {@see \App\Panel\EventListener\Media\VichWebpConversionListener} convierte a WebP.
  */
+/** @implements ProcessorInterface<ProveedorImagen, ProveedorImagen|null> */
 final readonly class ProveedorImagenMultipartProcessor implements ProcessorInterface
 {
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
+        /** @var ProcessorInterface<ProveedorImagen, ProveedorImagen|null> */
         private ProcessorInterface $persistProcessor,
         private RequestStack $requestStack,
     ) {

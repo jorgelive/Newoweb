@@ -22,7 +22,7 @@ class ProveedorServicioProveedorExtension implements QueryCollectionExtensionInt
         QueryBuilder $queryBuilder,
         QueryNameGeneratorInterface $queryNameGenerator,
         string $resourceClass,
-        Operation $operation = null,
+        ?Operation $operation = null,
         array $context = []
     ): void {
         if (ProveedorServicio::class !== $resourceClass) {

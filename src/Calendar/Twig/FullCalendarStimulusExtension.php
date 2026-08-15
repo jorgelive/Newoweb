@@ -120,6 +120,9 @@ class FullCalendarStimulusExtension extends AbstractExtension
      * @param int $resourceAreaWidth    Ancho de la columna de recursos en píxeles (default 120).
      *
      * @return string HTML del componente listo para inyectar en la plantilla.
+     *
+     * @param array<string, mixed>|string $calendars Un mapa de calendarios, o el nombre de uno solo.
+     * @param array<string, mixed> $views
      */
     public function renderStimulus(
         $caller,

@@ -24,7 +24,12 @@
 #
 # `src/Cotizacion/` va de 111 a ~15, también con sus anotaciones TERMINADAS (de 104 quedan 0).
 #
-# Siguiente por volumen: `src/Travel/` y `src/Calendar/`.
+# `src/Travel/` (75 → ~10) y `src/Calendar/` (77 → ~20) también terminados.
+#
+# ✅ Los cuatro módulos grandes —Message, Pms, Cotizacion, Travel, Calendar— tienen su tipado
+# saldado. Lo que queda en el baseline es casi todo redundancia: `??` sobre lo que nunca es
+# null, `instanceof` que no pueden fallar, comparaciones siempre ciertas. Se quitan al tocar
+# cada archivo, con criterio y de una en una.
 #
 # ⚠️ Lo de las columnas nulables de Doctrine YA NO está aquí: se sacó a una `ignoreErrors` en
 # `phpstan.dist.neon`, acotada a `Entity/`. No era deuda —no se va a «saldar» nunca, porque el
@@ -499,104 +504,8 @@ parameters:
 			path: src/Calendar/Dto/CalendarEventDto.php
 
 		-
-			message: '#^Method App\\Calendar\\Dto\\CalendarEventDto\:\:jsonSerialize\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Dto/CalendarEventDto.php
-
-		-
-			message: '#^Method App\\Calendar\\Dto\\CalendarEventDto\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Dto/CalendarEventDto.php
-
-		-
-			message: '#^Method App\\Calendar\\Dto\\CalendarResourceDto\:\:__construct\(\) has parameter \$extendedProps with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Dto/CalendarResourceDto.php
-
-		-
-			message: '#^Method App\\Calendar\\Dto\\CalendarResourceDto\:\:jsonSerialize\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Dto/CalendarResourceDto.php
-
-		-
-			message: '#^Method App\\Calendar\\Dto\\CalendarResourceDto\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Dto/CalendarResourceDto.php
-
-		-
-			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Calendar/Provider/DoctrineCalendarProvider.php
-
-		-
-			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsEventoCalendario and App\\Pms\\Entity\\PmsEventoCalendario will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Calendar/Provider/DoctrineCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\DoctrineCalendarProvider\:\:fetchEntities\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/DoctrineCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\DoctrineCalendarProvider\:\:mapEntitiesToEventDtos\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/DoctrineCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\DoctrineCalendarProvider\:\:mapEntitiesToResourceDtos\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/DoctrineCalendarProvider.php
-
-		-
-			message: '#^Unable to resolve the template type T in call to method Doctrine\\Persistence\\ObjectManager\:\:getRepository\(\)$#'
-			identifier: argument.templateType
-			count: 1
-			path: src/Calendar/Provider/DoctrineCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosRawCalendarProvider\:\:applyIdFilter\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosRawCalendarProvider\:\:buildTooltip\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosRawCalendarProvider\:\:buildUrls\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosRawCalendarProvider\:\:buildUrls\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosRawCalendarProvider\:\:fetchEventos\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosRawCalendarProvider\:\:fetchEventos\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
 
@@ -605,6 +514,12 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 2
 			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
+
+		-
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsEventoCalendario and App\\Pms\\Entity\\PmsEventoCalendario will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
+			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
 
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsInformacionFinanciera and App\\Pms\\Entity\\PmsInformacionFinanciera will always evaluate to true\.$#'
@@ -613,86 +528,14 @@ parameters:
 			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
 
 		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosSpaCalendarProvider\:\:applyIdFilter\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosSpaCalendarProvider\:\:buildTooltip\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosSpaCalendarProvider\:\:fetchEventos\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosSpaCalendarProvider\:\:fetchEventos\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosSpaCalendarProvider\:\:fetchFinanzas\(\) has parameter \$eventos with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\PmsEventosSpaCalendarProvider\:\:fetchFinanzas\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
-
-		-
 			message: '#^Using nullsafe method call on non\-nullable type App\\Pms\\Entity\\PmsEventoCalendario\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 2
 			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
 
 		-
-			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
 			message: '#^Call to function method_exists\(\) with App\\Pms\\Service\\Tarifa\\Dto\\TarifaLogicalRangeDto and ''getSourceId'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
-			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaCompressedRangesCalendarProvider\:\:assertConfig\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaCompressedRangesCalendarProvider\:\:fetchEntities\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaCompressedRangesCalendarProvider\:\:groupByUnit\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaCompressedRangesCalendarProvider\:\:rangeAccessor\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
 
@@ -707,18 +550,6 @@ parameters:
 			identifier: nullCoalesce.offset
 			count: 1
 			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
-			message: '#^Unable to resolve the template type T in call to method Doctrine\\Persistence\\ObjectManager\:\:getRepository\(\)$#'
-			identifier: argument.templateType
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
-			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
 
 		-
 			message: '#^Call to function method_exists\(\) with App\\Pms\\Service\\Tarifa\\Dto\\TarifaLogicalRangeDto and ''getSourceId'' will always evaluate to true\.$#'
@@ -727,36 +558,6 @@ parameters:
 			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
 
 		-
-			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaCompressedRangesSpaCalendarProvider\:\:assertConfig\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaCompressedRangesSpaCalendarProvider\:\:fetchEntities\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaCompressedRangesSpaCalendarProvider\:\:groupByUnit\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaCompressedRangesSpaCalendarProvider\:\:rangeAccessor\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
 			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
@@ -767,54 +568,6 @@ parameters:
 			identifier: nullCoalesce.offset
 			count: 1
 			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Unable to resolve the template type T in call to method Doctrine\\Persistence\\ObjectManager\:\:getRepository\(\)$#'
-			identifier: argument.templateType
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
-
-		-
-			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesRawCalendarProvider\:\:assertConfig\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesRawCalendarProvider\:\:fetchEntities\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesRawCalendarProvider\:\:fetchEntities\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesRawCalendarProvider\:\:parseHms\(\) has parameter \$default with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesRawCalendarProvider\:\:parseHms\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
 
 		-
 			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
@@ -829,54 +582,6 @@ parameters:
 			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
 
 		-
-			message: '#^Unable to resolve the template type T in call to method Doctrine\\Persistence\\ObjectManager\:\:getRepository\(\)$#'
-			identifier: argument.templateType
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
-
-		-
-			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesSpaCalendarProvider\:\:assertConfig\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesSpaCalendarProvider\:\:fetchEntities\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesSpaCalendarProvider\:\:fetchEntities\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesSpaCalendarProvider\:\:parseHms\(\) has parameter \$default with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Provider\\TarifaRangesSpaCalendarProvider\:\:parseHms\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
 			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
@@ -887,24 +592,6 @@ parameters:
 			identifier: nullCoalesce.offset
 			count: 1
 			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Unable to resolve the template type T in call to method Doctrine\\Persistence\\ObjectManager\:\:getRepository\(\)$#'
-			identifier: argument.templateType
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Method App\\Calendar\\Service\\CalendarResourceCatalog\:\:fetchCatalog\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Service/CalendarResourceCatalog.php
-
-		-
-			message: '#^Method App\\Calendar\\Service\\CalendarResourceCatalog\:\:merge\(\) has parameter \$config with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Service/CalendarResourceCatalog.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int will always evaluate to true\.$#'
@@ -915,19 +602,7 @@ parameters:
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Calendar/Twig/FullCalendarStimulusExtension.php
-
-		-
-			message: '#^Method App\\Calendar\\Twig\\FullCalendarStimulusExtension\:\:renderStimulus\(\) has parameter \$calendars with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Twig/FullCalendarStimulusExtension.php
-
-		-
-			message: '#^Method App\\Calendar\\Twig\\FullCalendarStimulusExtension\:\:renderStimulus\(\) has parameter \$views with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
+			count: 2
 			path: src/Calendar/Twig/FullCalendarStimulusExtension.php
 
 		-
@@ -2503,166 +2178,10 @@ parameters:
 			path: src/Service/WebPushNotificationService.php
 
 		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\ProveedorCrudController\:\:configureFields\(\) return type has no value type specified in iterable type iterable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Controller/Crud/ProveedorCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\ProveedorImagenCrudController\:\:configureFields\(\) return type has no value type specified in iterable type iterable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Controller/Crud/ProveedorImagenCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\ProveedorServicioCrudController\:\:configureFields\(\) return type has no value type specified in iterable type iterable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Controller/Crud/ProveedorServicioCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\ProveedorServicioImagenCrudController\:\:configureFields\(\) return type has no value type specified in iterable type iterable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Controller/Crud/ProveedorServicioImagenCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\TravelComponenteCrudController\:\:cloneComponente\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Controller/Crud/TravelComponenteCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\TravelComponenteItemCrudController\:\:configureFields\(\) return type has no value type specified in iterable type iterable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Controller/Crud/TravelComponenteItemCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\TravelItinerarioCrudController\:\:cloneItinerario\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Controller/Crud/TravelItinerarioCrudController.php
-
-		-
 			message: '#^Cannot call method isEmpty\(\) on iterable\<App\\Travel\\Entity\\TravelSegmentoComponente\>\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: src/Travel/Controller/Crud/TravelSegmentoCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\TravelSegmentoCrudController\:\:cloneSegmento\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Controller/Crud/TravelSegmentoCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\TravelServicioCrudController\:\:cloneServicio\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Controller/Crud/TravelServicioCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\TravelTarifaCrudController\:\:cloneTarifa\(\) has parameter \$context with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Context\\AdminContext but does not specify its types\: TEntity$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Controller/Crud/TravelTarifaCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Controller\\Crud\\TravelTarifaCrudController\:\:configureFields\(\) return type has no value type specified in iterable type iterable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Controller/Crud/TravelTarifaCrudController.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\Proveedor\:\:getDescripcion\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/Proveedor.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\Proveedor\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/Proveedor.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\Proveedor\:\:setDescripcion\(\) has parameter \$descripcion with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/Proveedor.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\Proveedor\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/Proveedor.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\Proveedor\:\:\$descripcion type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/Proveedor.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\Proveedor\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/Proveedor.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\ProveedorServicio\:\:getDescripcion\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/ProveedorServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\ProveedorServicio\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/ProveedorServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\ProveedorServicio\:\:setDescripcion\(\) has parameter \$descripcion with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/ProveedorServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\ProveedorServicio\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/ProveedorServicio.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\ProveedorServicio\:\:\$descripcion type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/ProveedorServicio.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\ProveedorServicio\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/ProveedorServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelComponente\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelComponente.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelComponente\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelComponente.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\TravelComponente\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelComponente.php
 
 		-
 			message: '#^Match arm comparison between ''OPCIONAL'' and ''OPCIONAL'' is always true\.$#'
@@ -2683,244 +2202,16 @@ parameters:
 			path: src/Travel/Entity/TravelItemDiccionario.php
 
 		-
-			message: '#^Method App\\Travel\\Entity\\TravelItemDiccionario\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelItemDiccionario.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelItemDiccionario\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelItemDiccionario.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\TravelItemDiccionario\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelItemDiccionario.php
-
-		-
-			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Travel/Entity/TravelItinerario.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelItinerario\:\:getItinerarioSegmentos\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Entity/TravelItinerario.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelItinerario\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelItinerario.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelItinerario\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelItinerario.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\TravelItinerario\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelItinerario.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelNota\:\:getContenido\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelNota.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelNota\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelNota.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelNota\:\:setContenido\(\) has parameter \$contenido with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelNota.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelNota\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelNota.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\TravelNota\:\:\$contenido type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelNota.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\TravelNota\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelNota.php
-
-		-
-			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelSegmento\:\:getContenido\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelSegmento\:\:getImagenes\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelSegmento\:\:getNotas\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelSegmento\:\:getSegmentoComponentes\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelSegmento\:\:getServicios\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelSegmento\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelSegmento\:\:setContenido\(\) has parameter \$contenido with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelSegmento\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\TravelSegmento\:\:\$contenido type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\TravelSegmento\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelSegmento.php
-
-		-
-			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Travel/Entity/TravelServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelServicio\:\:getComponentes\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Entity/TravelServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelServicio\:\:getItinerarios\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Entity/TravelServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelServicio\:\:getSegmentos\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/Entity/TravelServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelServicio\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelServicio\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelServicio.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\TravelServicio\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelServicio.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelTarifa\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelTarifa.php
-
-		-
-			message: '#^Method App\\Travel\\Entity\\TravelTarifa\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelTarifa.php
-
-		-
-			message: '#^Property App\\Travel\\Entity\\TravelTarifa\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Travel/Entity/TravelTarifa.php
-
-		-
 			message: '#^Method App\\Travel\\EventListener\\TravelSegmentoComponentePromocionUnicaListener\:\:desmarcar\(\) has parameter \$meta with generic class Doctrine\\ORM\\Mapping\\ClassMetadata but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: src/Travel/EventListener/TravelSegmentoComponentePromocionUnicaListener.php
 
 		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Travel/Filter/ProveedorServicioProveedorExtension.php
-
-		-
 			message: '#^Call to function is_array\(\) with non\-empty\-array\<mixed\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Travel/Filter/TarifaBatchIdExtension.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Travel/Filter/TarifaBatchIdExtension.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Travel/Filter/TarifaComponenteExtension.php
 
 		-
 			message: '#^Call to function is_array\(\) with non\-empty\-array\<mixed\> will always evaluate to true\.$#'
@@ -2929,14 +2220,8 @@ parameters:
 			path: src/Travel/Filter/UuidBatchIdExtension.php
 
 		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Travel/Filter/UuidBatchIdExtension.php
-
-		-
-			message: '#^Class App\\Travel\\State\\ProveedorImagenMultipartProcessor implements generic interface ApiPlatform\\State\\ProcessorInterface but does not specify its types\: T1, T2$#'
-			identifier: missingType.generics
+			message: '#^Instanceof between App\\Travel\\Entity\\ProveedorImagen and App\\Travel\\Entity\\ProveedorImagen will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
 			path: src/Travel/State/ProveedorImagenMultipartProcessor.php
 

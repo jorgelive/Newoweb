@@ -54,6 +54,7 @@ class TravelItinerario
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write','servicio:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -125,11 +126,17 @@ class TravelItinerario
         return $this;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getTitulo(): array
     {
         return $this->titulo;
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self
     {
         $this->titulo = $titulo;
@@ -147,6 +154,9 @@ class TravelItinerario
         return $this;
     }
 
+    /**
+     * @return Collection<int, TravelItinerarioSegmentoRel>
+     */
     public function getItinerarioSegmentos(): Collection
     {
         return $this->itinerarioSegmentos;
@@ -179,13 +189,13 @@ class TravelItinerario
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void
     {
         $hasValidSpanish = false;
-        if (is_array($this->titulo)) {
-            foreach ($this->titulo as $item) {
-                if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                    if (trim(strip_tags((string) $item['content'])) !== '') {
-                        $hasValidSpanish = true;
-                        break;
-                    }
+
+        // Sin `is_array()`: la propiedad ya está declarada como lista de traducciones.
+        foreach ($this->titulo as $item) {
+            if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                if (trim(strip_tags((string) $item['content'])) !== '') {
+                    $hasValidSpanish = true;
+                    break;
                 }
             }
         }

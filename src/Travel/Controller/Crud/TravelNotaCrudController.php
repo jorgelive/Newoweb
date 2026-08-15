@@ -39,6 +39,9 @@ class TravelNotaCrudController extends BaseCrudController
             ->add(EntityFilter::new('segmentos', 'Segmento'));
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         yield FormField::addPanel('Configuración de la Nota')->setIcon('fa fa-info-circle');

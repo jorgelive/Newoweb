@@ -65,6 +65,7 @@ class TravelTarifa
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['componente:item:read', 'componente:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[Assert\NotNull(message: 'El título multiidioma es requerido.')]
@@ -257,11 +258,17 @@ class TravelTarifa
         $this->nombreInterno = $nombreInterno;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getTitulo(): array
     {
         return $this->titulo;
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): void
     {
         $this->titulo = $titulo;

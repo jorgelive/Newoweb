@@ -69,6 +69,9 @@ class TravelServicioCrudController extends BaseCrudController
             ->setPermission('cloneAction', Roles::MAESTROS_WRITE);
     }
 
+    /**
+     * @param AdminContext<TravelServicio> $context
+     */
     public function cloneServicio(
         AdminContext $context,
         EntityManagerInterface $em,
@@ -92,6 +95,9 @@ class TravelServicioCrudController extends BaseCrudController
         return $this->redirect($url);
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         yield FormField::addPanel('Datos Generales')->setIcon('fa fa-info-circle');

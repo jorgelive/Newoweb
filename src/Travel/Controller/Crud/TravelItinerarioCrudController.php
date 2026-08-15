@@ -91,6 +91,9 @@ class TravelItinerarioCrudController extends BaseCrudController
             ->setPermission('cloneAction', Roles::MAESTROS_WRITE);
     }
 
+    /**
+     * @param AdminContext<TravelItinerario> $context
+     */
     public function cloneItinerario(
         AdminContext $context,
         EntityManagerInterface $em,
@@ -114,6 +117,9 @@ class TravelItinerarioCrudController extends BaseCrudController
         return $this->redirect($url);
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         yield FormField::addPanel('Definición de Plantilla')->setIcon('fa fa-book');

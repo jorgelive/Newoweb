@@ -23,7 +23,7 @@ class UuidBatchIdExtension implements QueryCollectionExtensionInterface
         QueryBuilder $queryBuilder,
         QueryNameGeneratorInterface $queryNameGenerator,
         string $resourceClass,
-        Operation $operation = null,
+        ?Operation $operation = null,
         array $context = []
     ): void {
         // 1. Entidades que soportan la carga en lote mediante ?id[]=...

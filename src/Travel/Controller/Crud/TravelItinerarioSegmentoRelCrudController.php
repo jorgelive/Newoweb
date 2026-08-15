@@ -27,6 +27,9 @@ class TravelItinerarioSegmentoRelCrudController extends BaseCrudController
             ->showEntityActionsInlined();
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         // 🔥 EL HACK MAESTRO: Imprimimos el ID deshabilitado y lo ocultamos con CSS

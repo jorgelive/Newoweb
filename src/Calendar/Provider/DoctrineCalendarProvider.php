@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Calendar\Provider;
 
+use Doctrine\ORM\EntityRepository;
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
 use DateTimeInterface;
@@ -58,9 +59,13 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
      * Obtiene entidades a partir del repositorymethod (recomendado) o un fallback simple.
      *
      * @return list<object>
+     *
+     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @return list<object>
      */
     private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, array $config): array
     {
+        /** @var class-string $entityClass La clase viene de la configuración del calendario. */
         $entityClass = (string) $config['entity'];
 
         $manager = $this->managerRegistry->getManagerForClass($entityClass);
@@ -69,7 +74,10 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
         }
 
         $repository = $manager->getRepository($entityClass);
-        if (!$repository instanceof ObjectRepository) {
+        // ⚠️ `EntityRepository` y no `ObjectRepository`: abajo se llama a `createQueryBuilder()`,
+        // que sólo existe en el primero. Con la guarda anterior, un repositorio que no fuera de
+        // Doctrine ORM la pasaba y reventaba doce líneas más abajo con «undefined method».
+        if (!$repository instanceof EntityRepository) {
             throw new \LogicException(sprintf('No hay repository para %s', $entityClass));
         }
 
@@ -120,6 +128,10 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
      *
      * @param list<object> $entities
      * @return list<CalendarResourceDto>
+     *
+     * @param list<object> $entities
+     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @return list<\App\Calendar\Dto\CalendarResourceDto>
      */
     private function mapEntitiesToResourceDtos(array $entities, array $config): array
     {
@@ -174,6 +186,10 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
      *
      * @param list<object> $entities
      * @return list<CalendarEventDto>
+     *
+     * @param list<object> $entities
+     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @return list<\App\Calendar\Dto\CalendarEventDto>
      */
     private function mapEntitiesToEventDtos(array $entities, array $config): array
     {

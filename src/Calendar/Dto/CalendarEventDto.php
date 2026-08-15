@@ -40,11 +40,17 @@ final class CalendarEventDto implements JsonSerializable
         public readonly ?array $extendedProps = null,
     ) {}
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return $this->jsonSerialize();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function jsonSerialize(): array
     {
         $out = [

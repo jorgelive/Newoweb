@@ -96,6 +96,8 @@ class ProveedorServicioCrudController extends BaseCrudController
      *
      * @param string $pageName
      * @return iterable
+     *
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
      */
     public function configureFields(string $pageName): iterable
     {

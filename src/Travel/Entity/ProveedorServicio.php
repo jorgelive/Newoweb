@@ -99,11 +99,13 @@ class ProveedorServicio
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'proveedor_servicio:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'proveedor_servicio:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -177,6 +179,8 @@ class ProveedorServicio
      * Ejemplo de uso: $servicio->getTitulo()['fr'] ?? '';
      *
      * @return array Arreglo asociativo del título.
+     *
+     * @return list<array{language?: string, content?: string|null}>
      */
     public function getTitulo(): array
     {
@@ -188,6 +192,8 @@ class ProveedorServicio
      *
      * @param array $titulo Arreglo de datos estructurados para el título.
      * @return $this
+     *
+     * @param list<array{language?: string, content?: string|null}> $titulo
      */
     public function setTitulo(array $titulo): self
     {
@@ -201,6 +207,8 @@ class ProveedorServicio
      * Ejemplo de uso: $servicio->getDescripcion()['es'] ?? '';
      *
      * @return array Arreglo asociativo de la descripción.
+     *
+     * @return list<array{language?: string, content?: string|null}>
      */
     public function getDescripcion(): array
     {
@@ -212,6 +220,8 @@ class ProveedorServicio
      *
      * @param array $descripcion Arreglo de datos estructurados para la descripción.
      * @return $this
+     *
+     * @param list<array{language?: string, content?: string|null}> $descripcion
      */
     public function setDescripcion(array $descripcion): self
     {
@@ -258,6 +268,8 @@ class ProveedorServicio
 
     /**
      * Obtiene la colección completa de imágenes pertenecientes a la galería de este servicio.
+     *
+     * @return Collection<int, ProveedorServicioImagen>
      *
      * @return Collection<int, ProveedorServicioImagen>
      */

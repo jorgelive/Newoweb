@@ -70,11 +70,13 @@ class TravelNota
     #[ORM\Column(type: 'string', length: 30, enumType: NotaTipoEnum::class)]
     private NotaTipoEnum $tipo = NotaTipoEnum::INTRODUCCION;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['nota:read', 'nota:item:read', 'nota:write', 'segmento:read', 'segmento:item:read', 'servicio:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['nota:read', 'nota:item:read', 'nota:write', 'segmento:read', 'segmento:item:read', 'servicio:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
@@ -120,22 +122,34 @@ class TravelNota
         return $this;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getTitulo(): array
     {
         return $this->titulo;
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self
     {
         $this->titulo = $titulo;
         return $this;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getContenido(): array
     {
         return $this->contenido;
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $contenido
+     */
     public function setContenido(array $contenido): self
     {
         $this->contenido = $contenido;
@@ -143,6 +157,8 @@ class TravelNota
     }
 
     /**
+     * @return Collection<int, TravelSegmento>
+     *
      * @return Collection<int, TravelSegmento>
      */
     public function getSegmentos(): Collection

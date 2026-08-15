@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Calendar\Provider;
 
+use Doctrine\ORM\EntityRepository;
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
 use App\Calendar\Service\CalendarResourceCatalog;
@@ -265,8 +266,13 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @return list<object>
+     */
     private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, array $config): array
     {
+        /** @var class-string $entityClass La clase viene de la configuración del calendario. */
         $entityClass = (string) $config['entity'];
 
         $manager = $this->managerRegistry->getManagerForClass($entityClass);
@@ -275,7 +281,9 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         }
 
         $repo = $manager->getRepository($entityClass);
-        if (!$repo instanceof ObjectRepository) {
+        // ⚠️ `EntityRepository` y no `ObjectRepository`: abajo se llama a `createQueryBuilder()`,
+        // que sólo existe en el primero.
+        if (!$repo instanceof EntityRepository) {
             throw new HttpException(500, sprintf('No hay repository para %s', $entityClass));
         }
 
@@ -311,6 +319,9 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     */
     private function assertConfig(array $config): void
     {
         if (empty($config['entity']) || !is_string($config['entity'])) {
@@ -359,6 +370,10 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         return number_format($n, $decimals, '.', '');
     }
 
+    /**
+     * @param array{0: int, 1: int, 2: int} $default
+     * @return array{0: int, 1: int, 2: int}
+     */
     private function parseHms(string $time, array $default): array
     {
         $time = trim($time);

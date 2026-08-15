@@ -57,6 +57,9 @@ class TravelLugarCrudController extends BaseCrudController
             ->setPermission(Action::DELETE, Roles::MAESTROS_DELETE);
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         yield TextField::new('nombre', 'Nombre')

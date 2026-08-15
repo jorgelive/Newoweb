@@ -117,6 +117,9 @@ class TravelSegmentoCrudController extends BaseCrudController
             ->setPermission('cloneAction', Roles::MAESTROS_WRITE);
     }
 
+    /**
+     * @param AdminContext<TravelSegmento> $context
+     */
     public function cloneSegmento(
         AdminContext $context,
         EntityManagerInterface $em,
@@ -140,6 +143,9 @@ class TravelSegmentoCrudController extends BaseCrudController
         return $this->redirect($url);
     }
 
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
     public function configureFields(string $pageName): iterable
     {
         yield FormField::addPanel('Configuración de la Pieza')->setIcon('fa fa-puzzle-piece');

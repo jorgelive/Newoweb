@@ -93,6 +93,7 @@ class TravelComponente
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[Assert\NotNull(message: 'El título multiidioma es requerido.')]
@@ -269,6 +270,8 @@ class TravelComponente
 
     /**
      * Obtiene el título multilingüe visible para el cliente.
+     *
+     * @return list<array{language?: string, content?: string|null}>
      */
     public function getTitulo(): array
     {
@@ -277,6 +280,8 @@ class TravelComponente
 
     /**
      * Establece el título multilingüe visible para el cliente.
+     *
+     * @param list<array{language?: string, content?: string|null}> $titulo
      */
     public function setTitulo(array $titulo): self
     {
@@ -339,6 +344,8 @@ class TravelComponente
      * Devuelve los ítems internos que componen este servicio logístico.
      *
      * @return Collection<int, TravelComponenteItem>
+     *
+     * @return Collection<int, TravelComponenteItem>
      */
     public function getComponenteItems(): Collection
     {
@@ -372,6 +379,8 @@ class TravelComponente
 
     /**
      * Devuelve el listado de tarifas configuradas para este componente.
+     *
+     * @return Collection<int, TravelTarifa>
      *
      * @return Collection<int, TravelTarifa>
      */
@@ -410,6 +419,8 @@ class TravelComponente
      * Devuelve la colección de Servicios Mayores (Bolsas) que incluyen a este componente.
      *
      * @return Collection<int, TravelServicio>
+     *
+     * @return Collection<int, TravelServicio>
      */
     public function getServicios(): Collection
     {
@@ -441,6 +452,8 @@ class TravelComponente
 
     /**
      * @return Collection<int, TravelSegmentoComponente>
+     *
+     * @return Collection<int, TravelSegmentoComponente>
      */
     public function getSegmentoComponentesInyectados(): Collection
     {
@@ -448,6 +461,8 @@ class TravelComponente
     }
 
     /**
+     * @return Collection<int, TravelLugar>
+     *
      * @return Collection<int, TravelLugar>
      */
     public function getLugares(): Collection

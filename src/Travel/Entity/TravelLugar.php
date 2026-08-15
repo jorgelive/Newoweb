@@ -195,6 +195,8 @@ class TravelLugar
 
     /**
      * @return Collection<int, TravelComponente>
+     *
+     * @return Collection<int, TravelComponente>
      */
     public function getComponentes(): Collection
     {
@@ -226,6 +228,8 @@ class TravelLugar
     }
 
     /**
+     * @return Collection<int, Proveedor>
+     *
      * @return Collection<int, Proveedor>
      */
     public function getProveedores(): Collection
