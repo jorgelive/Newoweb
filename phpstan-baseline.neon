@@ -18,7 +18,9 @@
 # Hecho en `src/Message/`: entidades, DTO de Mercure, servicios de Meta y Exchange, repositorios
 # y CRUD. El módulo va de 236 avisos a 47, y lo que queda ya NO son tipos: son redundancias
 # (`??` sobre lo que nunca es null, comparaciones siempre ciertas) y genéricos de EasyCorp.
-# Siguiente: `src/Pms/` (191).
+# Empezado `src/Pms/` (287 en solitario): hecho `PmsGuia` y el tipo compartido `ContenidoI18n`,
+# que vive en `MaestroIdioma` porque es quien lo IMPONE en tiempo de ejecución. Siguiente ahí:
+# `Beds24BookingDto` (25), `PmsGuiaItem` (19) y `PmsGuiaSeccion` (13).
 #
 # El resto (~250) es REDUNDANCIA heredada del salto de nivel: un `??` sobre algo que nunca es
 # null, comparaciones que siempre dan lo mismo. Quitarlas a ciegas es peligroso —con entidades de
@@ -1640,30 +1642,6 @@ parameters:
 			path: src/Cotizacion/State/CotizacionFiledocumentoMultipartProcessor.php
 
 		-
-			message: '#^Method App\\Entity\\Maestro\\MaestroIdioma\:\:normalizarParaDB\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Maestro/MaestroIdioma.php
-
-		-
-			message: '#^Method App\\Entity\\Maestro\\MaestroIdioma\:\:normalizarParaDB\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Maestro/MaestroIdioma.php
-
-		-
-			message: '#^Method App\\Entity\\Maestro\\MaestroIdioma\:\:ordenarParaFormulario\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Maestro/MaestroIdioma.php
-
-		-
-			message: '#^Method App\\Entity\\Maestro\\MaestroIdioma\:\:ordenarParaFormulario\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/Maestro/MaestroIdioma.php
-
-		-
 			message: '#^Property App\\Entity\\MessengerMessage\:\:\$availableAt \(DateTimeImmutable\|null\) is never assigned DateTimeImmutable so it can be removed from the property type\.$#'
 			identifier: property.unusedType
 			count: 1
@@ -3030,60 +3008,6 @@ parameters:
 			identifier: return.phpDocType
 			count: 1
 			path: src/Pms/Entity/PmsEventoCalendario.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuia\:\:getGuiaHasSecciones\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsGuia.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuia\:\:getSeccionesApi\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuia.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuia\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuia.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuia\:\:setContextoParaCliente\(\) has parameter \$contexto with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuia.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuia\:\:setMediosPagoParaCliente\(\) has parameter \$medios with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuia.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuia\:\:setRedesWifiParaCliente\(\) has parameter \$redes with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuia.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuia\:\:setSeccionesParaCliente\(\) has parameter \$secciones with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuia.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuia\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuia.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuia\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuia.php
 
 		-
 			message: '#^Right side of && is always true\.$#'

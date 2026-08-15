@@ -78,6 +78,7 @@ class PmsGuia
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $activo = true;
 
+    /** @var list<array{language?: string, content?: string|null}> Lista de pares por idioma; la forma la impone `MaestroIdioma::normalizarParaDB()`. */
     #[ORM\Column(type: 'json')]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[Assert\NotNull]
@@ -132,6 +133,8 @@ class PmsGuia
      * Árbol COMPLETO de secciones activas, sin filtrar por visibilidad. No se
      * serializa: es la entrada de PmsGuiaArbolFiltro::podar(), que decide qué
      * sobrevive. Lo que ve el cliente es getSeccionesParaCliente().
+     *
+     * @return list<PmsGuiaSeccion>
      */
     public function getSeccionesApi(): array
     {
@@ -151,6 +154,7 @@ class PmsGuia
 
     public function isActivo(): bool { return $this->activo; }
 
+    /** @return list<array{language?: string, content?: string|null}> */
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getTitulo(): array
     {
@@ -161,6 +165,9 @@ class PmsGuia
      * VISTA PÚBLICA (pax) — las llenan los providers
      * ====================================================== */
 
+    /**
+     * @param list<PmsGuiaSeccion> $secciones
+     */
     public function setSeccionesParaCliente(array $secciones): self
     {
         $this->seccionesParaCliente = $secciones;
@@ -180,6 +187,9 @@ class PmsGuia
         return $this->seccionesParaCliente;
     }
 
+    /**
+     * @param array<string, mixed> $contexto
+     */
     public function setContextoParaCliente(array $contexto): self
     {
         $this->contextoParaCliente = $contexto;
@@ -194,6 +204,9 @@ class PmsGuia
         return $this->contextoParaCliente;
     }
 
+    /**
+     * @param list<array<string, mixed>> $redes
+     */
     public function setRedesWifiParaCliente(array $redes): self
     {
         $this->redesWifiParaCliente = $redes;
@@ -215,6 +228,9 @@ class PmsGuia
         return $this->redesWifiParaCliente;
     }
 
+    /**
+     * @param list<array<string, mixed>> $medios
+     */
     public function setMediosPagoParaCliente(array $medios): self
     {
         $this->mediosPagoParaCliente = $medios;
@@ -269,11 +285,17 @@ class PmsGuia
     public function setUnidad(?PmsUnidad $unidad): self { $this->unidad = $unidad; return $this; }
     public function setActivo(bool $activo): self { $this->activo = $activo; return $this; }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self
     {
         $this->titulo = MaestroIdioma::normalizarParaDB($titulo); return $this;
     }
 
+    /**
+     * @return Collection<int, PmsGuiaHasSeccion>
+     */
     public function getGuiaHasSecciones(): Collection { return $this->guiaHasSecciones; }
     public function addGuiaHasSeccion(PmsGuiaHasSeccion $guiaHasSeccion): self { if (!$this->guiaHasSecciones->contains($guiaHasSeccion)) { $this->guiaHasSecciones->add($guiaHasSeccion); $guiaHasSeccion->setGuia($this); } return $this; }
     public function removeGuiaHasSeccion(PmsGuiaHasSeccion $guiaHasSeccion): self { if ($this->guiaHasSecciones->removeElement($guiaHasSeccion)) { if ($guiaHasSeccion->getGuia() === $this) { $guiaHasSeccion->setGuia(null); } } return $this; }
@@ -281,7 +303,18 @@ class PmsGuia
     public function __toString(): string
     {
         $nombreUnidad = $this->unidad?->getNombre();
-        $tituloGuia = $this->titulo['es'] ?? null;
+
+        // ⚠️ `titulo` es una LISTA de pares `{language, content}` —lo impone
+        // `MaestroIdioma::normalizarParaDB()`—, no un mapa por idioma. El `$this->titulo['es']`
+        // que había aquí no encontraba nunca nada, así que toda guía se mostraba en el panel con
+        // el nombre de la unidad en vez de con su título. Se recorre igual que en `validate()`.
+        $tituloGuia = null;
+        foreach ($this->titulo as $item) {
+            if (($item['language'] ?? null) === 'es' && !empty(trim((string) ($item['content'] ?? '')))) {
+                $tituloGuia = $item['content'];
+                break;
+            }
+        }
         return $tituloGuia ? "$tituloGuia ($nombreUnidad)" : ($nombreUnidad ?? 'Guía UUID ' . $this->getId());
     }
 

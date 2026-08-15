@@ -16,6 +16,16 @@ use Doctrine\ORM\Mapping as ORM;
 use Egulias\EmailValidator\Parser\IDLeftPart;
 use Symfony\Component\Serializer\Attribute\Groups;
 
+/**
+ * La forma de un campo traducible, declarada donde se IMPONE.
+ *
+ * `normalizarParaDB()` lanza si un elemento no trae exactamente `language` y `content`, así que
+ * este tipo no es una suposición: es el contrato que esta misma clase valida en tiempo de
+ * ejecución. Vive aquí y no en cada entidad para que haya una sola definición — se importa con
+ * `@phpstan-import-type ContenidoI18n from MaestroIdioma`.
+ *
+ * @phpstan-type ContenidoI18n array{language: string, content: string|null}
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'maestro_idioma')]
 #[ORM\HasLifecycleCallbacks]
@@ -224,6 +234,13 @@ class MaestroIdioma
      * @param array $data Arreglo donde cada ítem debe ser un array asociativo con la llave 'language'.
      * @throws \RuntimeException Si la estructura de los datos inyectados no posee el nodo 'language'.
      * @return array El arreglo reorganizado jerárquica y alfabéticamente.
+     *
+     * ⚠️ Igual que `normalizarParaDB()`: la entrada es lo que haya en la columna JSON, que puede
+     * venir de una migración o de una fila antigua, y este método lanza si no cumple. Declararla
+     * ya válida haría que el analizador diera esas comprobaciones por redundantes.
+     *
+     * @param  array<int, mixed> $data
+     * @return list<ContenidoI18n>
      */
     public static function ordenarParaFormulario(array $data): array
     {
@@ -271,6 +288,14 @@ class MaestroIdioma
      * @param array $data El conjunto crudo de traducciones recibido en el payload.
      * @throws \InvalidArgumentException Si algún elemento carece de las propiedades obligatorias o está mal formateado.
      * @return array Un arreglo seguro, sanitizado y con sus llaves reindexadas secuencialmente.
+     *
+     * ⚠️ La ENTRADA es lo que venga —de un formulario, de un import, de una migración— y por eso
+     * se declara `mixed`: si aquí se declarase ya la forma buena, el analizador daría por
+     * redundantes las comprobaciones que son la única razón de que este método exista. La SALIDA
+     * sí está garantizada, porque lo que no cumpla lanza.
+     *
+     * @param  array<int, mixed> $data
+     * @return list<ContenidoI18n>
      */
     public static function normalizarParaDB(array $data): array
     {

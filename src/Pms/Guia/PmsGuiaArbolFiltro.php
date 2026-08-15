@@ -51,9 +51,9 @@ final class PmsGuiaArbolFiltro
     ): array {
         $visibles = [];
 
+        // El `assert()` que había aquí sobra desde que `getSeccionesApi()` declara
+        // `list<PmsGuiaSeccion>`: lo que garantizaba en ejecución lo garantiza ahora el tipo.
         foreach ($guia->getSeccionesApi() as $seccion) {
-            \assert($seccion instanceof PmsGuiaSeccion);
-
             $items = $this->podarItems($seccion, $acceso, $contexto, $categoriasBloqueadas);
 
             if ([] === $items) {
