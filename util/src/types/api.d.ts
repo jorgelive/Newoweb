@@ -16335,7 +16335,6 @@ export interface components {
             readonly estancias?: string[][];
         };
         "PmsPagoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
-            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
             moneda?: components["schemas"]["Moneda-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /**
              * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
@@ -16356,8 +16355,16 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
-            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
-            esAutomatico?: boolean;
+            /**
+             * @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.4.5)?
+             * @default false
+             */
+            esAutomatico: boolean;
+            /**
+             * @description El operador fijó este depósito a mano y el sistema deja de cuadrarlo.
+             * @default false
+             */
+            intervenido: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -16374,6 +16381,8 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /** @description ¿Manda el sistema en el importe y la fecha de este pago? */
+            readonly gestionadoPorElSistema?: boolean;
             /**
              * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
              *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
@@ -16404,6 +16413,11 @@ export interface components {
             referencia?: string | null;
             notas?: string | null;
             /**
+             * @description El operador fijó este depósito a mano y el sistema deja de cuadrarlo.
+             * @default false
+             */
+            intervenido: boolean;
+            /**
              * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
              *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
              */
@@ -16411,7 +16425,6 @@ export interface components {
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero-pms_pago.read_maestro.moneda.read": {
-            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
             moneda?: components["schemas"]["Moneda-pms_pago.read_maestro.moneda.read"] | null;
             /**
              * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
@@ -16432,8 +16445,16 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
-            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
-            esAutomatico?: boolean;
+            /**
+             * @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.4.5)?
+             * @default false
+             */
+            esAutomatico: boolean;
+            /**
+             * @description El operador fijó este depósito a mano y el sistema deja de cuadrarlo.
+             * @default false
+             */
+            intervenido: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -16450,6 +16471,8 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /** @description ¿Manda el sistema en el importe y la fecha de este pago? */
+            readonly gestionadoPorElSistema?: boolean;
             /**
              * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
              *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
@@ -16497,7 +16520,6 @@ export interface components {
             cobradorId?: string | null;
         };
         "PmsPagoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
-            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
             moneda?: components["schemas"]["Moneda.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /**
              * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
@@ -16518,8 +16540,16 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
-            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
-            esAutomatico?: boolean;
+            /**
+             * @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.4.5)?
+             * @default false
+             */
+            esAutomatico: boolean;
+            /**
+             * @description El operador fijó este depósito a mano y el sistema deja de cuadrarlo.
+             * @default false
+             */
+            intervenido: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -16536,6 +16566,8 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /** @description ¿Manda el sistema en el importe y la fecha de este pago? */
+            readonly gestionadoPorElSistema?: boolean;
             /**
              * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
              *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
@@ -16546,7 +16578,6 @@ export interface components {
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero.html-pms_pago.read_maestro.moneda.read": {
-            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
             moneda?: components["schemas"]["Moneda.html-pms_pago.read_maestro.moneda.read"] | null;
             /**
              * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
@@ -16567,8 +16598,16 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
-            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
-            esAutomatico?: boolean;
+            /**
+             * @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.4.5)?
+             * @default false
+             */
+            esAutomatico: boolean;
+            /**
+             * @description El operador fijó este depósito a mano y el sistema deja de cuadrarlo.
+             * @default false
+             */
+            intervenido: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -16585,6 +16624,8 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /** @description ¿Manda el sistema en el importe y la fecha de este pago? */
+            readonly gestionadoPorElSistema?: boolean;
             /**
              * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
              *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
@@ -16692,7 +16733,6 @@ export interface components {
             readonly cobradorNombre?: string | null;
         };
         "PmsPagoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
-            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
             moneda?: components["schemas"]["Moneda.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /**
              * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
@@ -16713,8 +16753,16 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
-            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
-            esAutomatico?: boolean;
+            /**
+             * @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.4.5)?
+             * @default false
+             */
+            esAutomatico: boolean;
+            /**
+             * @description El operador fijó este depósito a mano y el sistema deja de cuadrarlo.
+             * @default false
+             */
+            intervenido: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -16731,6 +16779,8 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /** @description ¿Manda el sistema en el importe y la fecha de este pago? */
+            readonly gestionadoPorElSistema?: boolean;
             /**
              * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
              *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.
@@ -16741,7 +16791,6 @@ export interface components {
         };
         /** @description Pago efectivamente recibido de un huésped, registrado por nosotros. */
         "PmsPagoFinanciero.multipart-pms_pago.read_maestro.moneda.read": {
-            /** @description Moneda del pago (resolver contra maestro; default USD). Los pagos en soles son comunes. */
             moneda?: components["schemas"]["Moneda.multipart-pms_pago.read_maestro.moneda.read"] | null;
             /**
              * @description Importe NETO que se imputa a la reserva, sin el recargo del medio de pago.
@@ -16762,8 +16811,16 @@ export interface components {
             /** @description Referencia externa (nº de operación de Western Union, transferencia, etc.). */
             referencia?: string | null;
             notas?: string | null;
-            /** @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)? */
-            esAutomatico?: boolean;
+            /**
+             * @description ¿Es el depósito que genera el sistema para las OTA de pago total (§12.4.5)?
+             * @default false
+             */
+            esAutomatico: boolean;
+            /**
+             * @description El operador fijó este depósito a mano y el sistema deja de cuadrarlo.
+             * @default false
+             */
+            intervenido: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -16780,6 +16837,8 @@ export interface components {
             readonly borrable?: boolean;
             /** @description El motivo viaja al frontend para poder explicarlo en el tooltip, no sólo ocultarlo. */
             readonly motivoNoBorrableTexto?: string | null;
+            /** @description ¿Manda el sistema en el importe y la fecha de este pago? */
+            readonly gestionadoPorElSistema?: boolean;
             /**
              * @description El cobrador en UUID plano: lo que la SPA lee para preseleccionar el desplegable y lo
              *     que manda al guardar. Ver la nota de `$cobrador` sobre por qué no viaja la relación.

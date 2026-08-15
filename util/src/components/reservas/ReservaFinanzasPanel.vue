@@ -11,6 +11,12 @@
 // así que el formulario nace bloqueado y hay que abrir el candado a propósito.
 // Es el mismo criterio del backend: los cargos no tienen Post/Delete en la API.
 //
+// El MISMO candado protege el depósito automático de las OTA en la sección de
+// pagos, con una diferencia que importa: ahí no basta con desbloquear la interfaz.
+// El depósito lo cuadra el sistema en cada recálculo, así que guardar un importe a
+// mano manda además `intervenido`, que es lo que hace al sincronizador soltarlo
+// (§12.4.5). Sin eso, la edición se aceptaría y se desharía sola al momento.
+//
 // Las etiquetas de tipoCargo/medioPago NO se declaran aquí: llegan del backend
 // (PmsEnumAjaxController), que es su única fuente de verdad.
 // ============================================================================
@@ -66,6 +72,12 @@ const panelAnulado = computed(() => finanzas.info?.activa === false);
 const cargosDesbloqueados = ref(false);
 
 /**
+ * 🔒 Su gemelo en la sección de pagos, y protege una sola cosa: el depósito automático
+ * del canal. Los pagos normales nunca han necesitado candado y siguen sin tenerlo.
+ */
+const pagosDesbloqueados = ref(false);
+
+/**
  * Moneda en la que se están MIRANDO los totales (null = la de la cabecera). Ver el bloque
  * "VISTA DUAL" más abajo, donde vive el resto de la lógica.
  *
@@ -82,6 +94,7 @@ function toggleSeccion(s: 'cargos' | 'pagos'): void {
 async function cargar(): Promise<void> {
     error.value = null;
     cargosDesbloqueados.value = false;
+    pagosDesbloqueados.value = false;
     // Al cambiar de reserva el panel vuelve a colapsarse: cada una se abre por decisión propia.
     panelAbierto.value = false;
     seccionAbierta.value = null;
@@ -738,6 +751,94 @@ function abrirNuevoPago(): void {
     void enfocarFormPago();
 }
 
+/**
+ * ¿Se puede tocar este pago?
+ *
+ * Todos menos el depósito automático del canal, que exige abrir el candado. La condición
+ * es `esAutomatico` y no `gestionadoPorElSistema`: un depósito YA intervenido sigue siendo
+ * el del canal y sigue mereciendo la pausa —lo que cambia al intervenirlo es quién manda en
+ * el importe, no lo fácil que debe ser tocarlo por descuido—.
+ */
+function puedeEditarPago(p: PmsPagoFinanciero): boolean {
+    if (props.readOnly) return false;
+    return p.esAutomatico !== true || pagosDesbloqueados.value;
+}
+
+/** Sin depósito del canal (una reserva directa, sin ir más lejos) no hay nada que proteger. */
+const hayDepositoAutomatico = computed(
+    () => (finanzas.info?.pagos ?? []).some(p => p.esAutomatico === true),
+);
+
+/** El pago abierto en el formulario es el depósito del canal: hay que avisar de la consecuencia. */
+const editandoDepositoAutomatico = computed(() => {
+    if (pagoEditandoId.value === null) return false;
+
+    return finanzas.info?.pagos?.find(p => p.id === pagoEditandoId.value)?.esAutomatico === true;
+});
+
+/**
+ * ¿Este guardado saca al depósito del automático?
+ *
+ * Sólo si cambia alguno de los campos que el sincronizador gobierna —los mismos que veta
+ * `assertPagoAutomaticoNoEditable()` en el backend—. La referencia y las notas quedan fuera
+ * a propósito: son anotaciones que nunca han estado vetadas y no mueven el saldo.
+ *
+ * ⚠️ Espejo de `$camposBloqueados` en PmsInformacionFinancieraCoherenciaListener; si allí se
+ * añade o quita un campo, hay que tocarlo aquí también, o el panel mandará a guardar algo
+ * que el backend va a rechazar (o intervendrá un depósito sin necesidad).
+ *
+ * Los importes se comparan en NÚMERO, no en cadena: el servidor devuelve '118.07' y el enum
+ * de comisión '0.00', mientras el formulario trae lo que se tecleó ('118.070', '0'), y una
+ * comparación de texto declararía cambiado lo que no lo está.
+ */
+function intervieneAlGuardar(p?: PmsPagoFinanciero): boolean {
+    if (p?.esAutomatico !== true) return false;
+
+    const igualNumero = (a?: string | null, b?: string | null): boolean =>
+        (Number(a) || 0) === (Number(b) || 0);
+
+    return !igualNumero(p.monto, pagoForm.value.monto)
+        || !igualNumero(p.comisionPorcentaje, pagoForm.value.comisionPorcentaje)
+        || p.medioPago !== pagoForm.value.medioPago
+        || toDateInput(p.fechaPago) !== pagoForm.value.fechaPago;
+}
+
+/**
+ * Devuelve el depósito al automático: el sistema vuelve a cuadrarlo contra los cargos del
+ * canal en este mismo guardado (y lo retira si ya no queda ninguno).
+ *
+ * Va SOLO el flag: mandar además el importe del formulario haría que el backend viera un
+ * pago gestionado por el sistema con el monto cambiado, y lo rechazaría — que es justo la
+ * incoherencia que representa («devuélveme el control, pero con mi cifra»).
+ */
+async function devolverPagoAlAutomatico(p: PmsPagoFinanciero): Promise<void> {
+    if (!p.id) return;
+    if (!window.confirm(
+        '¿Devolver el depósito al automático? El sistema volverá a cuadrarlo con los cargos '
+        + 'del canal y se perderá el importe que fijaste a mano.'
+    )) return;
+
+    error.value = null;
+    try {
+        if (pagoEditandoId.value === p.id) cerrarPagoForm();
+        await finanzas.patchPago(p.id, { intervenido: false });
+    } catch (err) {
+        error.value = extractApiErrorMessage(err, 'No se pudo devolver el depósito al automático.');
+    }
+}
+
+/**
+ * Cerrar el candado cierra la edición del depósito que estuviera en marcha, por lo mismo
+ * que en los cargos: el formulario abierto ya no se podría guardar y el operador se llevaría
+ * el rechazo. Los pagos normales no se ven afectados.
+ */
+watch(pagosDesbloqueados, (abierto) => {
+    if (abierto || pagoEditandoId.value === null) return;
+
+    const enEdicion = finanzas.info?.pagos?.find(p => p.id === pagoEditandoId.value);
+    if (enEdicion?.esAutomatico === true) cerrarPagoForm();
+});
+
 function editarPago(p: PmsPagoFinanciero): void {
     pagoEditandoId.value = p.id ?? null;
     pagoForm.value = {
@@ -775,6 +876,21 @@ function onCambiarMedioPago(): void {
 const monedaPagoEsExtranjera = computed(
     () => !!monedaCabecera.value?.id && pagoForm.value.moneda !== monedaCabecera.value.id,
 );
+
+/**
+ * ¿El tipo de cambio de este pago ya está guardado y por tanto es intocable?
+ *
+ * Se mira el valor DEL SERVIDOR, no el del formulario: el autocompletado rellena el campo en
+ * cuanto se abre un pago que no lo tenía, y comparar contra el formulario congelaría justo la
+ * reparación que sí está permitida (§12.4: null → X se acepta, X → Y no).
+ */
+const tipoCambioPagoCongelado = computed(() => {
+    if (pagoEditandoId.value === null) return false;
+
+    const original = finanzas.info?.pagos?.find(p => p.id === pagoEditandoId.value)?.tipoCambio;
+
+    return !!original;
+});
 
 /**
  * Rellena el tipo de cambio del día consultando el servicio ya existente
@@ -845,8 +961,20 @@ async function guardarPagoOrThrow(): Promise<void> {
     }
 
     if (pagoEditandoId.value) {
+        const editado = finanzas.info?.pagos?.find(p => p.id === pagoEditandoId.value);
+
         // `moneda` no viaja: es inmutable una vez registrado el pago.
         await finanzas.patchPago(pagoEditandoId.value, {
+            // 🔓 Cambiar lo que el sincronizador gobierna es, por definición, intervenir el
+            // depósito: tiene que soltarlo o el importe volvería a su sitio en el mismo flush.
+            // Viaja en el MISMO PATCH que el importe —el backend lee el estado ya mutado— así
+            // que no hacen falta dos viajes ni un botón aparte.
+            //
+            // Sólo cuando de verdad cambió algo de eso: anotar la REFERENCIA o una nota en el
+            // depósito nunca ha necesitado permiso —el backend siempre las dejó pasar— y
+            // marcarlo como intervenido por escribir un comentario lo sacaría del automático
+            // sin que nadie lo pidiera, que es una decisión demasiado grande para un tooltip.
+            ...(intervieneAlGuardar(editado) ? { intervenido: true } : {}),
             monto: pagoForm.value.monto,
             // Mismo caso que `tipoCargo`: el formulario guarda el id del enum como cadena
             // —viene del <select> que alimenta el AJAX de PmsMedioPago— y el tipo derivado
@@ -1521,6 +1649,26 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                 </button>
 
                 <div v-show="seccionAbierta === 'pagos'" class="border-t border-sky-100">
+                    <!-- 🔒 Candado: sólo protege el depósito automático del canal, que el
+                         sistema cuadra solo. Los pagos normales se editan sin candado.
+                         No se pinta si esta reserva no tiene depósito: sería una advertencia
+                         sobre algo que no está en pantalla. -->
+                    <div v-if="!readOnly && hayDepositoAutomatico"
+                        class="flex items-start gap-2 px-4 py-2.5 bg-amber-50 border-b border-amber-100">
+                        <label class="flex items-center gap-2 cursor-pointer shrink-0">
+                            <input type="checkbox" v-model="pagosDesbloqueados" class="rounded" />
+                            <span class="text-[11px] font-black uppercase tracking-wide"
+                                :class="pagosDesbloqueados ? 'text-amber-700' : 'text-slate-500'">
+                                <i class="fas" :class="pagosDesbloqueados ? 'fa-lock-open' : 'fa-lock'"></i>
+                                {{ pagosDesbloqueados ? 'Edición habilitada' : 'Habilitar edición' }}
+                            </span>
+                        </label>
+                        <p class="text-[10px] font-bold text-amber-700/80 leading-snug">
+                            Protege el depósito automático del canal. Al guardarlo a mano, el sistema
+                            deja de cuadrarlo con los cargos hasta que lo devuelvas al automático.
+                        </p>
+                    </div>
+
                     <p v-if="!finanzas.info.pagos?.length && !pagoFormAbierto" class="px-4 py-3 text-xs font-bold text-slate-400">
                         Sin pagos registrados.
                     </p>
@@ -1539,6 +1687,22 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     class="px-1.5 py-0.5 rounded bg-[#376875]/10 text-[#376875] text-[9px] font-black uppercase tracking-wide">
                                     <i class="fas fa-link mr-0.5"></i>
                                     Enlace · {{ enlaceDePago(p.id)?.pasarelaEtiqueta }}
+                                </span>
+                                <!-- El depósito del canal se distingue a simple vista, y con qué
+                                     manda: mientras lo cuadra el sistema, corregirlo es tarea de
+                                     los CARGOS; una vez intervenido, la cifra es la del operador
+                                     y nadie la va a mover. Sin esta marca, un depósito ajustado a
+                                     mano era indistinguible de uno automático descuadrado. -->
+                                <span v-if="p.esAutomatico"
+                                    class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide"
+                                    :class="p.intervenido
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-slate-100 text-slate-500'"
+                                    :title="p.intervenido
+                                        ? 'Importe fijado a mano: el sistema ya no lo cuadra con los cargos del canal.'
+                                        : 'Depósito que genera el sistema: sigue al total de los cargos del canal.'">
+                                    <i class="fas mr-0.5" :class="p.intervenido ? 'fa-hand' : 'fa-robot'"></i>
+                                    {{ p.intervenido ? 'Ajustado a mano' : 'Depósito del canal' }}
                                 </span>
                             </p>
                             <p class="text-[10px] font-bold text-slate-400 mt-1 flex flex-wrap gap-x-2">
@@ -1559,7 +1723,17 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <div class="flex items-center gap-2 shrink-0">
                             <span class="text-sm font-black text-emerald-600">{{ importeConMoneda(p.monto, p.moneda) }}</span>
                             <template v-if="!readOnly">
-                                <button type="button" @click="editarPago(p)" title="Editar pago"
+                                <!-- Volver al automático: sólo con el candado abierto, y sólo en
+                                     un depósito ya intervenido. Es la marcha atrás de haberlo
+                                     fijado a mano, así que vive junto al lápiz y no escondida en
+                                     el formulario. -->
+                                <button v-if="p.intervenido && pagosDesbloqueados" type="button"
+                                    @click="devolverPagoAlAutomatico(p)"
+                                    title="Devolver al automático: el sistema volverá a cuadrarlo con los cargos del canal"
+                                    class="w-7 h-7 flex items-center justify-center rounded-lg text-amber-500 hover:text-amber-700 hover:bg-amber-50">
+                                    <i class="fas fa-rotate-left text-[11px]"></i>
+                                </button>
+                                <button v-if="puedeEditarPago(p)" type="button" @click="editarPago(p)" title="Editar pago"
                                     class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#376875] hover:bg-slate-100">
                                     <i class="fas fa-pen text-[11px]"></i>
                                 </button>
@@ -1595,6 +1769,16 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 {{ pagoEditandoId ? 'Editar pago' : 'Nuevo pago' }}
                             </h4>
                         </div>
+                        <!-- La consecuencia se dice ANTES de guardar, no después: al confirmar,
+                             este depósito deja de seguir a los cargos del canal y se queda con
+                             la cifra tecleada hasta que se devuelva al automático. -->
+                        <p v-if="editandoDepositoAutomatico"
+                            class="px-4 py-2 bg-amber-50 border-b border-amber-100 text-[10px] font-bold text-amber-700 leading-snug">
+                            <i class="fas fa-triangle-exclamation mr-1"></i>
+                            Es el depósito automático del canal. Al guardarlo, el sistema
+                            <b>dejará de cuadrarlo</b> con los cargos y mandará tu importe. Se
+                            puede devolver al automático con la flecha de la fila.
+                        </p>
                     <div class="px-4 py-3 grid grid-cols-2 gap-2">
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Monto neto</span>
@@ -1658,9 +1842,20 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     <i class="fas fa-spinner fa-spin text-[9px]"></i> consultando…
                                 </span>
                             </span>
+                            <!-- Se congela una vez puesto, igual que en los cargos: el backend
+                                 sólo permite RELLENAR el que está vacío (§12.4), así que un
+                                 campo abierto sobre un TC ya guardado es un rechazo asegurado
+                                 con el botón de guardar bien visible. Editable mientras esté
+                                 vacío, que es la reparación legítima. -->
                             <input type="text" inputmode="decimal" v-model="pagoForm.tipoCambio" placeholder="Ej. 3.750"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                            <span v-if="monedaPagoEsExtranjera && !pagoForm.tipoCambio"
+                                :disabled="tipoCambioPagoCongelado"
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                :class="tipoCambioPagoCongelado ? 'bg-slate-100 text-slate-500' : 'bg-white'" />
+                            <span v-if="tipoCambioPagoCongelado" class="mt-1 block text-[10px] font-bold text-slate-400">
+                                <i class="fas fa-lock text-[9px] mr-1"></i>
+                                Es la foto del día en que se registró el importe: no se corrige.
+                            </span>
+                            <span v-else-if="monedaPagoEsExtranjera && !pagoForm.tipoCambio"
                                 class="mt-1 block text-[10px] font-bold text-amber-600">
                                 <i class="fas fa-triangle-exclamation text-[9px] mr-1"></i>
                                 Sin tipo de cambio este pago no suma al saldo (moneda distinta a la reserva).

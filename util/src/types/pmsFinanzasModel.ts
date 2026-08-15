@@ -242,11 +242,19 @@ export function sumarEnMoneda<T extends RegistroConvertible>(
 }
 
 /**
- * PATCH de un pago (grupo pms_pago:patch).
- * `moneda` queda EXCLUIDA a propósito: una vez registrado el pago su moneda es
- * inmutable (el backend la bloquea con DomainException — ver §12.4 del doc).
+ * PATCH de un pago (grupo `pms_pago:patch`), derivado de SU PROPIO esquema generado.
+ *
+ * Antes salía de `Omit<PmsPagoFinancieroCreate, …>`, o sea del grupo de ALTA, y eso lo dejaba
+ * ciego a los campos que sólo existen al parchear: `intervenido` —el candado del depósito
+ * automático (§12.4.5)— no aparecía por ningún lado y el `patchPago` que lo mandaba no
+ * compilaba. El esquema del PATCH ya excluye `informacionFinanciera` y `moneda` por sí mismo
+ * (la moneda es inmutable una vez registrado el pago; ver §12.4), así que el `Omit` sobraba.
+ *
+ * `Partial` porque un merge-patch manda sólo lo que cambia, y el esquema declara obligatorios
+ * los campos que tienen valor por defecto en la entidad (`monto`, `medioPago`).
  */
-export type PmsPagoFinancieroPatch = Partial<Omit<PmsPagoFinancieroCreate, 'informacionFinanciera' | 'moneda'>>;
+export type PmsPagoFinancieroPatch =
+    Partial<components['schemas']['PmsPagoFinanciero-pms_pago.patch.jsonMergePatch']>;
 
 // ============================================================================
 // HELPERS DE IRI

@@ -39,6 +39,10 @@ use Doctrine\ORM\EntityManagerInterface;
  * todavía no tiene cargos (llegan después por webhook o por el pull de invoiceItems, §11), así
  * que el pago habría nacido en 0.00. Se ejecuta tras cada recálculo, que es cuando el importe
  * ya se conoce.
+ *
+ * 🔓 Y respeta el depósito INTERVENIDO: el que el operador fijó a mano abriendo el candado del
+ * panel (`PmsPagoFinanciero::$intervenido`) no se toca. Es la válvula para el caso raro en que
+ * la OTA deposita algo distinto de lo que facturó.
  */
 final class PmsPagoOtaAutomaticoService
 {
@@ -75,6 +79,19 @@ final class PmsPagoOtaAutomaticoService
 
         $objetivo = $info->getTotalCargosDelCanal();
         $pago = $this->buscarAutomatico($info);
+
+        // 🔓 INTERVENIDO: el operador abrió el candado y fijó el importe a mano (§12.4.5).
+        // A partir de ahí manda su criterio y aquí no se toca NADA —ni el importe, ni la
+        // fecha, ni el borrado de más abajo—, porque cualquiera de las tres cosas le
+        // desharía la corrección en el siguiente recálculo, que es justo lo que hace inútil
+        // un campo editable. Sigue encontrándose (`esAutomatico` no se apaga), así que no
+        // nace un segundo depósito.
+        //
+        // La vuelta atrás es poner `intervenido` en false: el pago reaparece por aquí y se
+        // vuelve a cuadrar solo —o se retira, si ya no quedan cargos del canal—.
+        if ($pago !== null && $pago->isIntervenido()) {
+            return false;
+        }
 
         // Sin cargos del canal todavía (o reserva anulada sin penalización): no se inventa un
         // depósito. Si ya existía uno, se elimina en vez de dejarlo descuadrando el saldo.

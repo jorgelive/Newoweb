@@ -453,21 +453,35 @@ final class PmsInformacionFinancieraCoherenciaListener
     }
 
     /**
-     * El depósito automático de una OTA de pago total NO se edita a mano (§12.8).
+     * El depósito automático de una OTA de pago total no se edita por descuido (§12.4.5).
      *
-     * No es un dato propio: es el reflejo de los cargos, y el sistema lo mantiene cuadrado en
-     * cada recálculo. Permitir editarlo daría una falsa sensación de control —el siguiente
-     * cargo que llegara del canal lo devolvería a su sitio— así que se bloquea con un mensaje
-     * que dice dónde está la verdad.
+     * Mientras el sistema lo gestiona no es un dato propio: es el reflejo de los cargos, y se
+     * mantiene cuadrado en cada recálculo. Editarlo así daría una falsa sensación de control
+     * —el siguiente cargo del canal lo devolvería a su sitio—, así que se bloquea con un
+     * mensaje que dice dónde está la verdad.
+     *
+     * 🔓 LA SALIDA: marcar `intervenido`. Entonces el operador se hace cargo del importe y
+     * PmsPagoOtaAutomaticoService deja de pisarlo, así que la edición ya no es una promesa
+     * falsa y se permite. La condición se pregunta a la ENTIDAD
+     * (`isGestionadoPorElSistema()`), no se reconstruye aquí: la SPA necesita la misma regla
+     * para saber cuándo pedir el candado.
+     *
+     * Se lee el estado YA MUTADO del pago, no el changeSet, y es deliberado: así un mismo
+     * PATCH puede traer `intervenido: true` junto con el importe nuevo —que es como lo manda
+     * el panel— sin tener que llegar en dos viajes.
      *
      * El propio servicio sí lo mueve, y lo declara con `estaSincronizando()`.
      */
     private function assertPagoAutomaticoNoEditable(PmsPagoFinanciero $pago, array $changeSet): void
     {
-        if (!$pago->isEsAutomatico() || $this->pagoOta->estaSincronizando()) {
+        if (!$pago->isGestionadoPorElSistema() || $this->pagoOta->estaSincronizando()) {
             return;
         }
 
+        // ⚠️ ESPEJO de `intervieneAlGuardar()` en ReservaFinanzasPanel.vue, que decide con esta
+        // misma lista cuándo el guardado interviene el depósito. Si aquí se añade o quita un
+        // campo, hay que tocar allí también: si no, el panel mandará a guardar algo que este
+        // método va a rechazar, o intervendrá un depósito sin que hiciera falta.
         $camposBloqueados = ['monto', 'fechaPago', 'medioPago', 'comisionPorcentaje', 'moneda'];
         if (array_intersect($camposBloqueados, array_keys($changeSet)) === []) {
             return; // referencia/notas sí se pueden anotar
@@ -476,7 +490,9 @@ final class PmsInformacionFinancieraCoherenciaListener
         throw new DomainException(
             'Este pago es el depósito automático del canal (Airbnb/VRBO cobran y depositan) y '
             . 'se mantiene cuadrado con los cargos. Si el importe no coincide con lo que entró '
-            . 'en la cuenta, corrige los CARGOS de la reserva: el depósito los sigue.'
+            . 'en la cuenta, corrige los CARGOS de la reserva: el depósito los sigue. Para '
+            . 'fijarlo a mano de todas formas, abre el candado del panel: el sistema dejará de '
+            . 'cuadrarlo hasta que lo devuelvas al automático.'
         );
     }
 

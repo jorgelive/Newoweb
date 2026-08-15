@@ -1931,17 +1931,63 @@ no tiene cargos (llegan después por webhook o por el pull de invoiceItems, §11
 nacido en `0.00`. Se sincroniza **después de cada recálculo**, que es cuando el importe ya se
 conoce — y como al crearlo cambia `total_pagos`, el listener **vuelve a recalcular**.
 
-**El depósito es de SÓLO LECTURA.** Editarlo o borrarlo lanza `DomainException` con un mensaje
+**El depósito nace de SÓLO LECTURA.** Editarlo o borrarlo lanza `DomainException` con un mensaje
 que dice dónde está la verdad: *corrige los cargos, que el depósito los sigue*.
 
 Esa decisión salió de un fallo detectado al probarlo. El primer diseño desmarcaba el pago cuando
 el operador lo editaba, para respetar su criterio. Resultado: al perder la marca, el sincronizador
 no encontraba depósito automático y **creaba otro** — dos pagos y el saldo en −100. La raíz era
 que un solo booleano intentaba significar dos cosas a la vez ("es el depósito del canal" y "lo
-gestiona el sistema"). Se resolvió quitándole al pago la condición de dato editable: **es un
-reflejo de los cargos**, no un dato propio.
+gestiona el sistema").
 
 `referencia` y `notas` sí se pueden anotar: no afectan al saldo.
+
+#### El candado se puede abrir: `intervenido`
+
+El bloqueo total resolvía el 99% de los casos y dejaba sin salida el 1%: **la OTA que deposita un
+importe distinto del que facturó** —un ajuste, una resolución de disputa, una penalización cobrada
+aparte—. Ahí la única cifra real era justo la imposible de registrar.
+
+La salida son **dos campos donde antes había uno**, que es la lección del fallo de arriba:
+
+| Campo | Significa | Quién lo cambia |
+|---|---|---|
+| `esAutomatico` | **Identidad**: éste es el depósito del canal | Nadie. Es como lo encuentra el sincronizador para no crear un segundo |
+| `intervenido` | **Gobierno**: el importe lo manda el operador | El operador, abriendo el candado del panel |
+
+Con `intervenido = 1`, `PmsPagoOtaAutomaticoService::sincronizar()` **no toca nada** de ese pago:
+ni el importe, ni la fecha, ni el borrado por quedarse sin cargos. Cualquiera de las tres cosas le
+desharía la corrección en el siguiente recálculo, que es exactamente lo que hace inútil un campo
+editable.
+
+Cómo se abre y cómo se cierra:
+
+- **Abrir**: el panel manda `intervenido: true` en el MISMO PATCH que el importe nuevo.
+  `assertPagoAutomaticoNoEditable()` lee el estado **ya mutado** del pago
+  (`isGestionadoPorElSistema()`), no el changeSet, así que no hacen falta dos viajes.
+  ⚠️ Sólo lo manda si cambió algo que el sincronizador gobierna: `intervieneAlGuardar()` en el
+  panel es **espejo de `$camposBloqueados`** en el listener, y hay que tocar los dos a la vez.
+  Anotar la `referencia` o una nota nunca estuvo vetado y no debe sacar el depósito del
+  automático — es una decisión demasiado grande para un comentario.
+- **Cerrar**: `intervenido: false` **a secas**. Mandarlo junto a un importe se rechaza, y con
+  razón: es pedir «devuélveme el control, pero con mi cifra». Al volver bajo el sincronizador, el
+  recálculo de ese mismo flush lo cuadra contra los cargos del canal — o lo **retira**, si ya no
+  queda ninguno. Ésa es la salida limpia de un depósito intervenido que sobra.
+- **Borrar sigue vetado**, intervenido o no. El veto es por su IDENTIDAD: sin el pago, el
+  sincronizador no lo encuentra y crea otro. Pero el MOTIVO que se enseña cambia, y no es
+  cosmético: a uno intervenido el sincronizador ni se asoma, así que **quitarle los cargos no lo
+  retira** —hay que devolverlo antes al automático—. `getMotivoNoBorrable()` da un texto para
+  cada caso; con uno solo, el tooltip del basurero daba una instrucción que no funcionaba.
+
+La regla vive en **la entidad** (`PmsPagoFinanciero::isGestionadoPorElSistema()`), no repetida en
+el listener, el servicio y la SPA: los tres la consultan, y el campo se serializa para que el
+panel sepa cuándo pedir el candado. Verificado con `var/probar-deposito-intervenido.php`
+(transacción con rollback): el veto sigue en pie sin intervenir, la edición pasa al intervenir, el
+recálculo la respeta, no nace un segundo depósito y la marcha atrás vuelve a cuadrar.
+
+⚠️ **Un depósito intervenido deja de avisar de los descuadres.** Es el precio de la válvula: si
+después llega un cargo nuevo del canal, el saldo ya no se cuadra solo y nadie lo señala. Por eso
+la fila lo marca en ámbar («Ajustado a mano») en vez de dejarlo indistinguible de uno automático.
 
 **Si los cargos desaparecen, el depósito se borra solo** (o si la reserva se anula y no queda ni
 penalización). Sin cargos no se inventa un depósito.
@@ -1990,6 +2036,15 @@ Resultado: los totales parecían congelados («no es información viva») hasta 
 reserva. Ahora `ReservaFinanzasPanel` expone `refrescar()` —recarga datos SIN resetear acordeones,
 candado ni moneda de vista, al contrario que `cargar()`— y `ReservaEditDrawer.guardar()` lo llama
 en los dos caminos que dejan el drawer abierto.
+
+**Dos candados, no uno.** `cargosDesbloqueados` protege los cargos sincronizados de Beds24;
+`pagosDesbloqueados` protege **sólo** el depósito automático del canal, y su banner no se pinta
+si la reserva no tiene ninguno (sería una advertencia sobre algo que no está en pantalla). Los
+dos se cierran al cambiar de reserva y ambos, al cerrarse, abandonan la edición que hubiera en
+marcha: si no, quedaba abierto un formulario que ya no se podía guardar y el operador se llevaba
+el rechazo al pulsar. La diferencia entre ellos es que el de los cargos sólo desbloquea la
+interfaz, mientras que el de los pagos **también cambia el dato** — guardar manda `intervenido`,
+o el importe volvería a su sitio en el mismo flush (§12.4.5).
 
 **El tipo de cambio se pide SIEMPRE, en cualquier moneda.** El campo aparecía sólo cuando la
 moneda del registro no era la de la cabecera, y eso dejaba los registros **cojos**: el día que se
@@ -3058,7 +3113,9 @@ deben verse.
 | Cambiar cuándo la SPA ofrece borrar (§12.12.6b) | `util/src/types/pmsReservaModel.ts` **y** `PmsEventoCalendario` | `puedeBorrarseYa()` / `getSyncStatus()` — son espejo, hay que tocar **los dos** |
 | Añadir canal de pago total | `PmsChannel` | `CANAL_PAGO_TOTAL` — también decide qué canales generan depósito automático (§12.4.5) |
 | Cambiar el importe/fecha del depósito de OTA (§12.4.5) | `PmsPagoOtaAutomaticoService` + `PmsInformacionFinanciera` | `sincronizar()` / `fechaDeposito()` — el alcance del importe vive en `getTotalCargosDelCanal()` |
-| Permitir editar el depósito automático (§12.4.5) | `PmsInformacionFinancieraCoherenciaListener` | `assertPagoAutomaticoNoEditable()` |
+| Cambiar cuándo se puede editar el depósito automático (§12.4.5) | `PmsPagoFinanciero` | `isGestionadoPorElSistema()` — fuente única; la consultan el listener, el sincronizador y la SPA |
+| Cambiar el mensaje del veto o los campos vetados (§12.4.5) | `PmsInformacionFinancieraCoherenciaListener` | `assertPagoAutomaticoNoEditable()` → `$camposBloqueados` |
+| Cambiar cómo se abre el candado del depósito en el panel (§12.4.5) | `util/src/components/reservas/ReservaFinanzasPanel.vue` | `pagosDesbloqueados` / `puedeEditarPago()` / `devolverPagoAlAutomatico()` |
 | Cambiar lógica de estado OTA | `BookingPullPersister` | `resolveEstado()` |
 | Cambiar estado de pago inicial | `BookingPullPersister` | `resolveEstadoPagoInicial()` |
 | Cambiar cómo el saldo deriva el estado de pago de las estancias (§12.9) | `PmsEstadoPagoEventosService` | `sincronizar()` — las dos sentencias |

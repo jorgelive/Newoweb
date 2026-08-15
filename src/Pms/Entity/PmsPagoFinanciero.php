@@ -131,19 +131,42 @@ class PmsPagoFinanciero
     private ?string $notas = null;
 
     /**
-     * ¿Es el depósito que genera el sistema para las OTA de pago total (§12.8)?
+     * ¿Es el depósito que genera el sistema para las OTA de pago total (§12.4.5)?
      *
      * Airbnb y VRBO cobran al huésped y nos depositan: no hay un pago que registrar a mano, y
      * sin él la reserva aparecía eternamente como impagada. El sistema lo crea y lo mantiene
      * cuadrado con los cargos.
      *
-     * La marca existe para poder ENCONTRARLO después sin adivinar por medio de pago o
-     * referencia. Y se apaga sola en cuanto el operador toca el importe, la fecha o el medio:
-     * a partir de ahí manda su criterio y el sistema deja de pisarlo.
+     * Esta marca es la IDENTIDAD del pago —«éste es el depósito del canal»— y no se apaga
+     * nunca: es como lo encuentra PmsPagoOtaAutomaticoService para no crear un segundo. Quien
+     * dice si el sistema lo sigue gobernando es `$intervenido`, que es un campo aparte.
+     *
+     * ⚠️ Que sean dos campos y no uno está PAGADO. El primer diseño desmarcaba `esAutomatico`
+     * al editarlo: el sincronizador dejaba de encontrarlo, creaba otro, y la reserva acababa
+     * con dos depósitos y el saldo en −100. Un booleano no puede significar a la vez «es el
+     * depósito del canal» y «lo gestiona el sistema».
      */
     #[ORM\Column(name: 'es_automatico', type: 'boolean', options: ['default' => false])]
     #[Groups(['pms_pago:read'])]
     private bool $esAutomatico = false;
+
+    /**
+     * El operador fijó este depósito a mano y el sistema deja de cuadrarlo.
+     *
+     * Es la contrapartida editable de `$esAutomatico`: sigue siendo el depósito del canal (no
+     * nacerá otro), pero PmsPagoOtaAutomaticoService ya no le pisa importe ni fecha.
+     *
+     * Existe porque el depósito de sólo lectura, siendo lo correcto el 99% de las veces, no
+     * tiene salida en el 1% restante: la OTA que deposita un importe distinto al que facturó
+     * —un ajuste, una resolución de disputa, una penalización cobrada aparte— dejaba la única
+     * cifra real imposible de registrar. La protección se mantiene, pero deja de ser un muro:
+     * se abre a propósito, queda marcada en el registro y se puede devolver al automático.
+     *
+     * Sólo tiene sentido con `$esAutomatico`; en un pago normal se ignora.
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    #[Groups(['pms_pago:read', 'pms_pago:patch'])]
+    private bool $intervenido = false;
 
     /**
      * Quién RECIBIÓ el dinero de manos del huésped.
@@ -251,8 +274,22 @@ class PmsPagoFinanciero
     public function getMotivoNoBorrable(): ?string
     {
         // Ojo: `esAutomatico` NO es "lo creó el sistema", es "el sistema lo REGENERA solo".
-        // Marca el depósito espejo de las OTA de pago total (§12.8). Un cobro por pasarela
+        // Marca el depósito espejo de las OTA de pago total (§12.4.5). Un cobro por pasarela
         // también lo crea el sistema y sí es borrable, justamente porque no reaparece.
+        //
+        // Sigue vetado aunque esté intervenido: el veto es por su IDENTIDAD —borrarlo hace
+        // que el sincronizador no lo encuentre y cree otro—, no por quién manda en su importe.
+        //
+        // Pero el MOTIVO cambia, y decirlo importa: a un depósito intervenido el
+        // sincronizador ni se asoma (sale antes por su guarda), así que quitarle los cargos
+        // NO lo retira. Con el texto único, el tooltip del basurero daba una instrucción que
+        // no funciona — que es el mismo pecado que este método vino a arreglar.
+        if ($this->esAutomatico && $this->intervenido) {
+            return 'Es el depósito del canal, con el importe fijado a mano: mientras esté así '
+                . 'el sistema no lo toca, ni siquiera para retirarlo. Devuélvelo al automático '
+                . 'y desaparecerá solo si ya no quedan cargos del canal.';
+        }
+
         if ($this->esAutomatico) {
             return 'Es el depósito automático del canal: se regenera solo mientras la reserva '
                 . 'tenga cargos. Para que desaparezca, quita los cargos.';
@@ -277,6 +314,23 @@ class PmsPagoFinanciero
 
     public function isEsAutomatico(): bool { return $this->esAutomatico; }
     public function setEsAutomatico(bool $esAutomatico): self { $this->esAutomatico = $esAutomatico; return $this; }
+
+    public function isIntervenido(): bool { return $this->intervenido; }
+    public function setIntervenido(bool $intervenido): self { $this->intervenido = $intervenido; return $this; }
+
+    /**
+     * ¿Manda el sistema en el importe y la fecha de este pago?
+     *
+     * FUENTE ÚNICA de la regla: la consultan el sincronizador (para saber si puede pisarlo),
+     * el listener de coherencia (para saber si veta la edición) y la SPA (para saber si pide
+     * abrir el candado). Con la condición repetida en tres sitios, cualquier matiz nuevo
+     * —como la intervención— habría que acordarse de añadirlo en los tres.
+     */
+    #[Groups(['pms_pago:read'])]
+    public function isGestionadoPorElSistema(): bool
+    {
+        return $this->esAutomatico && !$this->intervenido;
+    }
 
     public function getCobrador(): ?User { return $this->cobrador; }
     public function setCobrador(?User $cobrador): self { $this->cobrador = $cobrador; return $this; }
