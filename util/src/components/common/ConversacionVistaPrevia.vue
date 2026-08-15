@@ -89,7 +89,10 @@ const router = useRouter();
 // ============================================================================
 // DATOS
 // ============================================================================
-const conversacion = ref<ApiConversation | null>(null);
+// Renombrado: coexistía con el prop `conversacion` y lo tapaba en la plantilla.
+// Funcionaba por accidente; Vue avisa de la colisión y el siguiente que lo lea
+// no sabría cuál de los dos está viendo.
+const conversacionActual = ref<ApiConversation | null>(null);
 const mensajes = ref<ApiMessage[]>([]);
 const cargando = ref(false);
 /** El asunto existe pero nadie ha hablado con él todavía: no es un error. */
@@ -114,7 +117,7 @@ const identidad = computed(() => props.conversacion?.id
 async function cargar(): Promise<void> {
     const mia = ++peticion;
 
-    conversacion.value = null;
+    conversacionActual.value = null;
     mensajes.value = [];
     sinConversacion.value = false;
     cargando.value = true;
@@ -131,7 +134,7 @@ async function cargar(): Promise<void> {
             return;
         }
 
-        conversacion.value = resuelta;
+        conversacionActual.value = resuelta;
         mensajes.value = await store.fetchLatestMessagesForStalk(resuelta.id, props.limite);
 
         if (mia !== peticion) return;
@@ -243,7 +246,7 @@ function cerrarConMargen(): void {
 onBeforeUnmount(cancelarCierre);
 
 function irAlChat(): void {
-    const id = conversacion.value?.id;
+    const id = conversacionActual.value?.id;
     if (!id) return;
 
     emit('abrir-chat', id);
@@ -291,11 +294,11 @@ function nombrePlantilla(plantilla: ApiMessage['template']): string {
     return store.templates.find(t => (t['@id'] || t.id) === plantilla)?.name || 'Plantilla automática';
 }
 
-const nombreHuesped = computed(() => conversacion.value?.guestName || 'Huésped');
+const nombreHuesped = computed(() => conversacionActual.value?.guestName || 'Huésped');
 
 /** El asunto en una línea: «Airbnb · Casa Azul» o lo que traiga el contexto. */
 const subtitulo = computed(() => {
-    const c = conversacion.value;
+    const c = conversacionActual.value;
     if (!c) return null;
 
     const partes = [
@@ -306,11 +309,11 @@ const subtitulo = computed(() => {
     return partes.length ? partes.join(' · ') : null;
 });
 
-const noLeidos = computed(() => conversacion.value?.unreadCount ?? 0);
+const noLeidos = computed(() => conversacionActual.value?.unreadCount ?? 0);
 
 /** ¿El pie va a llevar algún botón? Si no, no se pinta la franja. */
 const hayPie = computed(() =>
-    (conversacion.value !== null && props.accionChat !== 'ninguna') || props.modo === 'fijado'
+    (conversacionActual.value !== null && props.accionChat !== 'ninguna') || props.modo === 'fijado'
 );
 
 /**
@@ -318,14 +321,14 @@ const hayPie = computed(() =>
  * contestó, el campo está vacío o cuenta algo que ya no está vivo (ver §12 de
  * docs/Mensajeria.md).
  */
-const resumen = computed(() => (noLeidos.value > 0 ? conversacion.value?.resumenIa || null : null));
+const resumen = computed(() => (noLeidos.value > 0 ? conversacionActual.value?.resumenIa || null : null));
 
 /**
  * La ventana de 24 h de WhatsApp, que es lo que de verdad decide si se puede
  * contestar con texto libre o hay que gastar una plantilla. Al asomarse antes de
  * escribir es EL dato operativo, y hasta ahora había que abrir el chat para verlo.
  */
-const ventanaAbierta = computed(() => conversacion.value?.whatsappSessionActive === true);
+const ventanaAbierta = computed(() => conversacionActual.value?.whatsappSessionActive === true);
 </script>
 
 <template>
@@ -361,7 +364,7 @@ const ventanaAbierta = computed(() => conversacion.value?.whatsappSessionActive 
                 </div>
 
                 <!-- Se puede contestar o no: el dato por el que se abría el chat. -->
-                <p v-if="conversacion" class="mt-1.5 text-[9px] font-black uppercase tracking-wider flex items-center gap-1"
+                <p v-if="conversacionActual" class="mt-1.5 text-[9px] font-black uppercase tracking-wider flex items-center gap-1"
                     :class="ventanaAbierta ? 'text-emerald-600' : 'text-slate-400'">
                     <i class="fas" :class="ventanaAbierta ? 'fa-unlock' : 'fa-lock'"></i>
                     {{ ventanaAbierta ? 'Ventana de 24 h abierta' : 'Ventana de 24 h cerrada' }}
@@ -420,7 +423,7 @@ const ventanaAbierta = computed(() => conversacion.value?.whatsappSessionActive 
                  de chat—; si no, quedaría una franja gris vacía bajo los mensajes. -->
             <div v-if="hayPie"
                  class="shrink-0 px-4 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
-                <button v-if="conversacion && accionChat !== 'ninguna'" type="button" @click="irAlChat"
+                <button v-if="conversacionActual && accionChat !== 'ninguna'" type="button" @click="irAlChat"
                     class="flex-1 py-2 text-xs font-black text-white bg-[#376875] hover:bg-[#2d5660]
                            rounded-xl transition-colors flex items-center justify-center gap-1.5">
                     <i class="fas fa-comment-dots text-[10px]"></i> Ir al chat

@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useChatStore } from '@/stores/chat/chatStore.ts';
-import { useNotificationStore } from '@/stores/notificationStore';
 import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
 import { isSessionExpired } from '@/services/sessionAuth';
 import { MODULOS_APP } from '@/types/modulosApp';
@@ -20,7 +19,6 @@ import { PMS_OCUPACION_CALENDARIO_KEY, fromDateLocal, sumarDias } from '@/types/
 
 const router = useRouter();
 const store = useChatStore();
-const notificationStore = useNotificationStore();
 const noLeidos = useNoLeidosStore();
 
 /** Ruta del módulo que lleva contador de no leídos en el mosaico. */
@@ -274,11 +272,11 @@ const handleLogout = async () => {
     // navigator.serviceWorker.ready puede quedar colgado para siempre si no
     // hay un SW activo (registro fallido, primera carga, etc.). Nunca debe
     // bloquear el logout — le ponemos un techo de tiempo.
-    const registration = await Promise.race([
+    await Promise.race([
       navigator.serviceWorker.ready,
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('SW no disponible')), 3000))
     ]);
-  } catch (err) {
+  } catch {
     // No bloqueamos el logout si falla la baja de la suscripción push
   } finally {
     // 2. Usamos el enrutamiento nativo del navegador hacia el firewall de Symfony
