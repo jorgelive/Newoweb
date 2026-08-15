@@ -56,6 +56,9 @@ final class PmsGuiaInterpolador
      * @param array<int, array{language?: string, content?: string}> $contenido
      *
      * @return array<int, array{language: string, content: string}>
+     *
+     * @param  list<array{language?: string, content?: string|null}>|null $contenido
+     * @return list<array{language: string, content: string}>
      */
     public function interpolar(?array $contenido, PmsGuiaContexto $contexto, PmsGuiaAcceso $acceso): array
     {

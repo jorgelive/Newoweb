@@ -83,8 +83,8 @@ final class PmsGuiaArbolFiltro
     ): array {
         $items = [];
 
+        // Igual que arriba: el `assert()` sobra desde que `getItemsApi()` declara su tipo.
         foreach ($seccion->getItemsApi() as $item) {
-            \assert($item instanceof PmsGuiaItem);
 
             // 🚧 RESTA POR CANAL, antes que nada.
             //

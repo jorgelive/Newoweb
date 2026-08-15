@@ -32,12 +32,14 @@ class PmsGuiaSeccion
     #[Assert\NotBlank(message: 'El nombre interno es obligatorio para la gestión administrativa')]
     private ?string $nombreInterno = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[ORM\Column(type: 'json')]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[Assert\NotNull(message: 'Debe ingresar al menos el título en español')]
     #[Assert\Count(min: 1, minMessage: 'Debe ingresar al menos un título')]
     private array $titulo = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $subtitulo = [];
@@ -54,13 +56,13 @@ class PmsGuiaSeccion
     private ?PmsGuiaSeccionTipo $tipo = null;
 
     // Relación INVERSA hacia la tabla intermedia (Seccion <-> Item)
+    /** @var Collection<int, PmsGuiaSeccionHasItem> */
     #[ORM\OneToMany(
         mappedBy: 'seccion',
         targetEntity: PmsGuiaSeccionHasItem::class,
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
-    /** @var Collection<int, PmsGuiaSeccionHasItem> */
     #[ORM\OrderBy(['orden' => 'ASC'])]
     #[Assert\Valid]
     private Collection $seccionHasItems;
@@ -99,6 +101,9 @@ class PmsGuiaSeccion
      */
     private array $itemsParaCliente = [];
 
+    /**
+     * @param list<PmsGuiaItem> $items
+     */
     public function setItemsParaCliente(array $items): self
     {
         $this->itemsParaCliente = $items;
@@ -117,6 +122,8 @@ class PmsGuiaSeccion
      * Ítems activos SIN filtrar por visibilidad, ocultando la complejidad de la
      * tabla intermedia 'seccionHasItems'. No se serializa: es la entrada de
      * PmsGuiaArbolFiltro::podarItems().
+     *
+     * @return list<PmsGuiaItem>
      */
     public function getItemsApi(): array
     {
@@ -136,6 +143,9 @@ class PmsGuiaSeccion
         return $items;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getTitulo(): array
     {
@@ -182,17 +192,26 @@ class PmsGuiaSeccion
         return $this;
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self
     {
         $this->titulo = MaestroIdioma::normalizarParaDB($titulo); return $this;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getSubtitulo(): array
     {
         return MaestroIdioma::ordenarParaFormulario($this->subtitulo ?? []);
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}>|null $subtitulo
+     */
     public function setSubtitulo(?array $subtitulo): self
     {
         $this->subtitulo = MaestroIdioma::normalizarParaDB($subtitulo ?? []);
@@ -220,6 +239,9 @@ class PmsGuiaSeccion
     // GESTIÓN DE RELACIONES (TABLA INTERMEDIA)
     // =========================================================================
 
+    /**
+     * @return Collection<int, PmsGuiaSeccionHasItem>
+     */
     public function getSeccionHasItems(): Collection
     {
         return $this->seccionHasItems;
@@ -251,7 +273,7 @@ class PmsGuiaSeccion
     public function __toString(): string
     {
         // Prioridad al nombre interno para selectores
-        return $this->nombreInterno ?: ($this->titulo['es'] ?? (string) $this->id);
+        return $this->nombreInterno ?: (MaestroIdioma::textoEn($this->titulo) ?? (string) $this->id);
     }
 
     #[Assert\Callback]

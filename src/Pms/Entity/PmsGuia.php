@@ -26,13 +26,13 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
-#[ORM\Entity]
-#[ORM\Table(name: 'pms_guia')]
-#[ORM\HasLifecycleCallbacks]
 /**
  * PmsGuia centraliza la información de la guía para el huésped.
  * La operación principal se accede vía el UUID de la unidad vinculada.
  */
+#[ORM\Entity]
+#[ORM\Table(name: 'pms_guia')]
+#[ORM\HasLifecycleCallbacks]
 
 #[ApiResource(
     operations: [
@@ -304,17 +304,9 @@ class PmsGuia
     {
         $nombreUnidad = $this->unidad?->getNombre();
 
-        // ⚠️ `titulo` es una LISTA de pares `{language, content}` —lo impone
-        // `MaestroIdioma::normalizarParaDB()`—, no un mapa por idioma. El `$this->titulo['es']`
-        // que había aquí no encontraba nunca nada, así que toda guía se mostraba en el panel con
-        // el nombre de la unidad en vez de con su título. Se recorre igual que en `validate()`.
-        $tituloGuia = null;
-        foreach ($this->titulo as $item) {
-            if (($item['language'] ?? null) === 'es' && !empty(trim((string) ($item['content'] ?? '')))) {
-                $tituloGuia = $item['content'];
-                break;
-            }
-        }
+        // Ver el aviso de `MaestroIdioma::textoEn()`: el `$this->titulo['es']` que había aquí no
+        // encontraba nunca nada, y toda guía se mostraba con el nombre de la unidad.
+        $tituloGuia = MaestroIdioma::textoEn($this->titulo);
         return $tituloGuia ? "$tituloGuia ($nombreUnidad)" : ($nombreUnidad ?? 'Guía UUID ' . $this->getId());
     }
 

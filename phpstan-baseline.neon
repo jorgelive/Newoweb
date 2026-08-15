@@ -18,9 +18,13 @@
 # Hecho en `src/Message/`: entidades, DTO de Mercure, servicios de Meta y Exchange, repositorios
 # y CRUD. El módulo va de 236 avisos a 47, y lo que queda ya NO son tipos: son redundancias
 # (`??` sobre lo que nunca es null, comparaciones siempre ciertas) y genéricos de EasyCorp.
-# Empezado `src/Pms/` (287 en solitario): hecho `PmsGuia` y el tipo compartido `ContenidoI18n`,
-# que vive en `MaestroIdioma` porque es quien lo IMPONE en tiempo de ejecución. Siguiente ahí:
-# `Beds24BookingDto` (25), `PmsGuiaItem` (19) y `PmsGuiaSeccion` (13).
+# En `src/Pms/` (287 en solitario → 251): hechas las tres entidades de la guía y el interpolador,
+# más el tipo compartido `ContenidoI18n` y el ayudante `MaestroIdioma::textoEn()`. Siguiente ahí:
+# `Beds24BookingDto` (25) y las estrategias de Exchange.
+#
+# ⚠️ `property.unusedType` sobre columnas JSON nulables (`descripcion`, `labelBoton`,
+# `subtitulo`): PHPStan dice que nunca se les asigna null y sugiere quitar el `?`. NO se quita:
+# la columna es nullable y Doctrine puede hidratar null: eso el análisis estático no lo ve.
 #
 # El resto (~250) es REDUNDANCIA heredada del salto de nivel: un `??` sobre algo que nunca es
 # null, comparaciones que siempre dan lo mismo. Quitarlas a ciegas es peligroso —con entidades de
@@ -3016,116 +3020,20 @@ parameters:
 			path: src/Pms/Entity/PmsGuia.php
 
 		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:getDescripcion\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:getGaleria\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:getItemHasSecciones\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:getLabelBoton\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:getMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:setContenidoParaCliente\(\) has parameter \$contenido with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:setDescripcion\(\) has parameter \$descripcion with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:setLabelBoton\(\) has parameter \$labelBoton with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:setMetadata\(\) has parameter \$metadata with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItem\:\:setTituloParaCliente\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
 			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$agentePasos \(list\<string\>\|null\) is never assigned null so it can be removed from the property type\.$#'
 			identifier: property.unusedType
 			count: 1
 			path: src/Pms/Entity/PmsGuiaItem.php
 
 		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$descripcion \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$descripcion \(list\<array\{language\?\: string, content\?\: string\|null\}\>\|null\) is never assigned null so it can be removed from the property type\.$#'
 			identifier: property.unusedType
 			count: 1
 			path: src/Pms/Entity/PmsGuiaItem.php
 
 		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$descripcion type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$labelBoton \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$labelBoton \(list\<array\{language\?\: string, content\?\: string\|null\}\>\|null\) is never assigned null so it can be removed from the property type\.$#'
 			identifier: property.unusedType
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$labelBoton type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$metadata type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItem.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Entity/PmsGuiaItem.php
 
@@ -3160,74 +3068,14 @@ parameters:
 			path: src/Pms/Entity/PmsGuiaItemGaleria.php
 
 		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaSeccion\:\:getItemsApi\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaSeccion\:\:getSeccionHasItems\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaSeccion\:\:getSubtitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaSeccion\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaSeccion\:\:setItemsParaCliente\(\) has parameter \$items with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaSeccion\:\:setSubtitulo\(\) has parameter \$subtitulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaSeccion\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
 			message: '#^Property App\\Pms\\Entity\\PmsGuiaSeccion\:\:\$icono \(string\|null\) is never assigned null so it can be removed from the property type\.$#'
 			identifier: property.unusedType
 			count: 1
 			path: src/Pms/Entity/PmsGuiaSeccion.php
 
 		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaSeccion\:\:\$seccionHasItems with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaSeccion\:\:\$subtitulo \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaSeccion\:\:\$subtitulo \(list\<array\{language\?\: string, content\?\: string\|null\}\>\|null\) is never assigned null so it can be removed from the property type\.$#'
 			identifier: property.unusedType
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaSeccion\:\:\$subtitulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaSeccion.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaSeccion\:\:\$titulo type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Entity/PmsGuiaSeccion.php
 

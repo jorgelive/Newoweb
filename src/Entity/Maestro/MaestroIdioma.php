@@ -224,6 +224,32 @@ class MaestroIdioma
     // --- MÉTODOS ESTÁTICOS DE AYUDA ---
 
     /**
+     * El texto de un campo traducible en un idioma, o `null` si no está.
+     *
+     * ⚠️ Existe porque el atajo evidente —`$titulo['es']`— **no funciona y no avisa**: estos
+     * campos son una LISTA de pares `{language, content}`, no un mapa por idioma, así que esa
+     * clave no existe nunca y el `??` se traga el fallo. Estaba escrito así en los `__toString()`
+     * de `PmsGuia`, `PmsGuiaItem` y `PmsGuiaSeccion`, y el efecto era que ninguna de las tres
+     * mostraba su título en el panel: todas caían al respaldo.
+     *
+     * @param list<array{language?: string, content?: string|null}>|null $contenido
+     */
+    public static function textoEn(?array $contenido, string $idioma = 'es'): ?string
+    {
+        foreach ($contenido ?? [] as $item) {
+            if (($item['language'] ?? null) !== $idioma) {
+                continue;
+            }
+
+            $texto = trim((string) ($item['content'] ?? ''));
+
+            return '' === $texto ? null : $texto;
+        }
+
+        return null;
+    }
+
+    /**
      * Ordena un arreglo de datos de idiomas basándose en la jerarquía del sistema.
      *
      * Este método existe para pre-procesar listas desordenadas de idiomas provenientes

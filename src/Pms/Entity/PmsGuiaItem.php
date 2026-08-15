@@ -92,12 +92,14 @@ class PmsGuiaItem
     #[Assert\NotNull]
     private CategoriaConocimiento $categoria = CategoriaConocimiento::General;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[ORM\Column(type: 'json')]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[Assert\NotNull(message: 'Debe ingresar al menos el título en español')]
     #[Assert\Count(min: 1, minMessage: 'Debe ingresar al menos un título')]
     private array $titulo = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     private ?array $descripcion = [];
@@ -225,10 +227,12 @@ class PmsGuiaItem
     #[ORM\Column(name: 'agente_pasos', type: 'json', nullable: true)]
     private ?array $agentePasos = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $labelBoton = [];
 
+    /** @var array<string, mixed>|null Ajustes sueltos del ítem; hoy sólo `urlBoton`. */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $metadata = [];
 
@@ -347,6 +351,9 @@ class PmsGuiaItem
      * VISTA PÚBLICA (pax) — las llena PmsGuiaArbolFiltro
      * ====================================================== */
 
+    /**
+     * @param list<array{language: string, content: string}> $titulo
+     */
     public function setTituloParaCliente(array $titulo): self
     {
         $this->tituloParaCliente = $titulo;
@@ -358,6 +365,9 @@ class PmsGuiaItem
     #[SerializedName('titulo')]
     public function getTituloParaCliente(): array { return $this->tituloParaCliente; }
 
+    /**
+     * @param list<array{language: string, content: string}> $contenido
+     */
     public function setContenidoParaCliente(array $contenido): self
     {
         $this->contenidoParaCliente = $contenido;
@@ -393,10 +403,22 @@ class PmsGuiaItem
     // interpolador. Lo que ve el cliente es getTituloParaCliente() /
     // getContenidoParaCliente(). Si algún día alguien le pone un grupo a estos
     // dos, el huésped verá `{{ door_code }}` literal en pantalla.
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getTitulo(): array { return MaestroIdioma::ordenarParaFormulario($this->titulo); }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self { $this->titulo = MaestroIdioma::normalizarParaDB($titulo); return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getDescripcion(): ?array { return MaestroIdioma::ordenarParaFormulario($this->descripcion ?? []); }
+    /**
+     * @param list<array{language?: string, content?: string|null}>|null $descripcion
+     */
     public function setDescripcion(?array $descripcion): self { $this->descripcion = MaestroIdioma::normalizarParaDB($descripcion ?? []); return $this; }
 
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
@@ -435,6 +457,8 @@ class PmsGuiaItem
     /**
      * Se guardan sin huecos: un paso en blanco en medio dejaría un peldaño mudo, y un peldaño
      * mudo es una respuesta vacía justo cuando el huésped ya insistió una vez.
+     *
+     * @param list<string>|null $pasos
      *
      * @param list<string>|null $pasos
      */
@@ -505,20 +529,38 @@ class PmsGuiaItem
         ), static fn (string $t): bool => $t !== ''));
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getLabelBoton(): ?array { return MaestroIdioma::ordenarParaFormulario($this->labelBoton ?? []); }
+    /**
+     * @param list<array{language?: string, content?: string|null}>|null $labelBoton
+     */
     public function setLabelBoton(?array $labelBoton): self { $this->labelBoton = MaestroIdioma::normalizarParaDB($labelBoton ?? []); return $this; }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array { return $this->metadata ?? []; }
+    /**
+     * @param array<string, mixed>|null $metadata
+     */
     public function setMetadata(?array $metadata): self { $this->metadata = $metadata; return $this; }
 
+    /**
+     * @return Collection<int, PmsGuiaItemGaleria>
+     */
     public function getGaleria(): Collection { return $this->galeria; }
     public function addGaleria(PmsGuiaItemGaleria $galeria): self { if (!$this->galeria->contains($galeria)) { $this->galeria->add($galeria); $galeria->setItem($this); } return $this; }
     public function removeGaleria(PmsGuiaItemGaleria $galeria): self { if ($this->galeria->removeElement($galeria)) { if ($galeria->getItem() === $this) { $galeria->setItem(null); } } return $this; }
 
+    /**
+     * @return Collection<int, PmsGuiaSeccionHasItem>
+     */
     public function getItemHasSecciones(): Collection { return $this->itemHasSecciones; }
 
-    public function __toString(): string { return $this->nombreInterno ?: ($this->titulo['es'] ?? 'Ítem sin nombre'); }
+    public function __toString(): string { return $this->nombreInterno ?: (MaestroIdioma::textoEn($this->titulo) ?? 'Ítem sin nombre'); }
 
     public function getVirtualGaleria(): string { return ''; }
 
