@@ -52,6 +52,10 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
     ) {
     }
 
+    /**
+     * @param array<string, mixed> $context
+     * @return array<array-key, mixed>|\ArrayObject<array-key, mixed>|string|int|float|bool|null
+     */
     public function normalize($object, ?string $format = null, array $context = []): array|string|int|float|bool|\ArrayObject|null
     {
         $data = $this->decorated->normalize($object, $format, $context);

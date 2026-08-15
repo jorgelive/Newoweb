@@ -175,12 +175,15 @@ class Cotizacion
      * Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
      * Experiencia Mística". Diferencia paquetes tanto en el expediente del
      * cliente como en el escaparate del catálogo.
+     *
+     * @var list<array{language?: string, content?: string|null}>
      */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
@@ -213,6 +216,8 @@ class Cotizacion
      *
      * Estructura: [{ titulo: I18n[], moneda: 'PEN'|'USD', valor: '99.00' }, ...]
      * El título es traducible (AutoTranslate busca la clave anidada).
+     *
+     * @var list<array{valor?: string, moneda?: string, titulo?: list<array{language?: string, content?: string|null}>}>
      */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['titulo'])]
@@ -238,6 +243,8 @@ class Cotizacion
      * si existe, y si no la derivada del itinerario. NO se persiste — la llena
      * CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
      * contexto donde se pintan tarjetas de tour en el panel interno.
+     *
+     * @var array<string, mixed>|null
      */
     #[Groups(['catalogo:item:read'])]
     private ?array $imagenTarjeta = null;
@@ -253,11 +260,13 @@ class Cotizacion
     #[ORM\Column(type: 'decimal', precision: 10, scale: 4, options: ['default' => '1.0000'])]
     private string $tipoCambio = '1.0000';
 
+    /** @var array<string, mixed>|null */
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $clasificacionFinanciera = null;
 
     // 🔥 NUEVA PROPIEDAD: CLASIFICACION FINANCIERA SIN COSTOS NI MÁRGENES
+    /** @var array<string, mixed>|null */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $clasificacionFinancieraCliente = null;
@@ -368,17 +377,39 @@ class Cotizacion
     public function getCatalogo(): ?CotizacionCatalogo { return $this->catalogo; }
     public function setCatalogo(?CotizacionCatalogo $catalogo): self { $this->catalogo = $catalogo; return $this; }
 
+    /**
+     * @return list<array{valor?: string, moneda?: string, titulo?: list<array{language?: string, content?: string|null}>}>
+     */
     public function getPreciosDesde(): array { return $this->preciosDesde; }
+    /**
+     * @param list<array{valor?: string, moneda?: string, titulo?: list<array{language?: string, content?: string|null}>}> $preciosDesde
+     */
     public function setPreciosDesde(array $preciosDesde): self { $this->preciosDesde = $preciosDesde; return $this; }
 
     public function getOrden(): int { return $this->orden; }
     public function setOrden(int $orden): self { $this->orden = $orden; return $this; }
 
+    /**
+     * @return array<string, mixed>
+     *
+     * @return array<string, mixed>|null
+     */
     public function getImagenPortada(): ?array { return $this->imagenPortada; }
+    /**
+     * @param array<string, mixed>|null $imagenPortada
+     *
+     * @param array<string, mixed>|null $imagenPortada
+     */
     public function setImagenPortada(?array $imagenPortada): self { $this->imagenPortada = $imagenPortada; return $this; }
 
     // Virtuales de tarjeta (ver CotizacionCatalogoAdminProvider)
+    /**
+     * @return array<string, mixed>
+     */
     public function getImagenTarjeta(): ?array { return $this->imagenTarjeta; }
+    /**
+     * @param array<string, mixed>|null $imagenTarjeta
+     */
     public function setImagenTarjeta(?array $imagenTarjeta): self { $this->imagenTarjeta = $imagenTarjeta; return $this; }
     public function getNumDias(): ?int { return $this->numDias; }
     public function setNumDias(?int $numDias): self { $this->numDias = $numDias; return $this; }
@@ -404,7 +435,13 @@ class Cotizacion
     public function getTipoCambio(): string { return $this->tipoCambio; }
     public function setTipoCambio(string $tipoCambio): self { $this->tipoCambio = $tipoCambio; return $this; }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getClasificacionFinanciera(): ?array { return $this->clasificacionFinanciera; }
+    /**
+     * @param array<string, mixed>|null $clasificacionFinanciera
+     */
     public function setClasificacionFinanciera(?array $clasificacionFinanciera): self { $this->clasificacionFinanciera = $clasificacionFinanciera; return $this; }
 
     /**
@@ -415,6 +452,8 @@ class Cotizacion
      * o la utilidad de la agencia en endpoints públicos o PDFs.
      *
      * @return array|null
+     *
+     * @return array<string, mixed>
      */
     public function getClasificacionFinancieraCliente(): ?array
     {
@@ -426,6 +465,8 @@ class Cotizacion
      *
      * @param array|null $clasificacionFinancieraCliente
      * @return self
+     *
+     * @param array<string, mixed>|null $clasificacionFinancieraCliente
      */
     public function setClasificacionFinancieraCliente(?array $clasificacionFinancieraCliente): self
     {
@@ -433,6 +474,9 @@ class Cotizacion
         return $this;
     }
 
+    /**
+     * @return Collection<int, CotizacionCotservicio>
+     */
     public function getCotservicios(): Collection { return $this->cotservicios; }
     public function addCotservicio(CotizacionCotservicio $cotservicio): self
     {
@@ -492,9 +536,21 @@ class Cotizacion
         $this->proveedorOculto = $proveedorOculto;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getTitulo(): array { return $this->titulo; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self { $this->titulo = $titulo; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getResumen(): array { return $this->resumen; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $resumen
+     */
     public function setResumen(array $resumen): void { $this->resumen = $resumen; }
 }

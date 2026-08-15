@@ -11,9 +11,18 @@ use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 
+/** @implements ProcessorInterface<Cotizacion, Cotizacion|null> */
 final class CloneCotizacionProcessor implements ProcessorInterface
 {
     public function __construct(private EntityManagerInterface $entityManager) {}
+
+    /**
+
+     * @param array<string, mixed> $uriVariables
+
+     * @param array<string, mixed> $context
+
+     */
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): Cotizacion
     {

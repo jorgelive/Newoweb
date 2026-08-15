@@ -48,6 +48,10 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
     ) {
     }
 
+    /**
+     * @param array<string, mixed> $context
+     * @return array<array-key, mixed>|\ArrayObject<array-key, mixed>|string|int|float|bool|null
+     */
     public function normalize($object, ?string $format = null, array $context = []): array|string|int|float|bool|\ArrayObject|null
     {
         $isPublicView = \in_array(self::GRUPO_PUBLICO, $context['groups'] ?? [], true);

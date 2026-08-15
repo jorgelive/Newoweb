@@ -73,6 +73,8 @@ class CotizacionCottarifa
     /**
      * Título público del proveedor (I18nContent[]), traducible.
      * Snapshot independiente del catálogo maestro — sobrevive aunque el Proveedor cambie o se borre.
+     *
+     * @var list<array{language?: string, content?: string|null}>
      */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
@@ -92,6 +94,7 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'json')]
     private array $proveedorImagenesSnapshot = [];
 
+    /** @var list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json')]
     private array $proveedorServicioImagenesSnapshot = [];
@@ -104,6 +107,7 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $proveedorServicioMaestroId = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -174,6 +178,7 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'decimal', precision: 5, scale: 2, nullable: true)]
     private ?string $comisionOverrideSnapshot = null;
 
+    /** @var list<array{language?: string, content?: string|null}>|null */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json', nullable: true)]
@@ -229,6 +234,8 @@ class CotizacionCottarifa
      * Obtiene el título comercial multidioma de la tarifa.
      *
      * @return array
+     *
+     * @return list<array{language?: string, content?: string|null}>
      */
     public function getTituloSnapshot(): array { return $this->tituloSnapshot; }
 
@@ -237,6 +244,8 @@ class CotizacionCottarifa
      *
      * @param array $tituloSnapshot
      * @return self
+     *
+     * @param list<array{language?: string, content?: string|null}> $tituloSnapshot
      */
     public function setTituloSnapshot(array $tituloSnapshot): self { $this->tituloSnapshot = $tituloSnapshot; return $this; }
 
@@ -295,7 +304,13 @@ class CotizacionCottarifa
     public function getProveedorNombreSnapshot(): ?string { return $this->proveedorNombreSnapshot; }
     public function setProveedorNombreSnapshot(?string $proveedorNombreSnapshot): self { $this->proveedorNombreSnapshot = $proveedorNombreSnapshot; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getProveedorTituloSnapshot(): array { return $this->proveedorTituloSnapshot; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $proveedorTituloSnapshot
+     */
     public function setProveedorTituloSnapshot(array $proveedorTituloSnapshot): self { $this->proveedorTituloSnapshot = $proveedorTituloSnapshot; return $this; }
 
     public function getProveedorUrlSnapshot(): ?string { return $this->proveedorUrlSnapshot; }
@@ -304,19 +319,44 @@ class CotizacionCottarifa
     public function getProveedorServicioMaestroId(): ?string { return $this->proveedorServicioMaestroId; }
     public function setProveedorServicioMaestroId(?string $proveedorServicioMaestroId): self { $this->proveedorServicioMaestroId = $proveedorServicioMaestroId; return $this; }
 
-    public function getProveedorServicioNombreSnapshot(): ?string { return $this->proveedorServicioNombreSnapshot; }
-    public function setProveedorServicioNombreSnapshot(?string $proveedorServicioNombreSnapshot): self { $this->proveedorServicioNombreSnapshot = $proveedorServicioNombreSnapshot; return $this; }
+    // Aquí había un `getProveedorServicioNombreSnapshot()`/`set…()` sobre una propiedad que NO
+    // EXISTE: ni declarada, ni con columna en la base. Quedó de copiar el bloque del proveedor
+    // —donde `proveedorNombreSnapshot` sí es real y lo usa el editor—. El setter creaba una
+    // propiedad dinámica que no se persistía y el getter leía null; nadie los llamaba, así que
+    // nunca dio la cara. Si algún día hace falta el nombre del servicio, se añade con su columna.
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getProveedorServicioTituloSnapshot(): array { return $this->proveedorServicioTituloSnapshot; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $proveedorServicioTituloSnapshot
+     */
     public function setProveedorServicioTituloSnapshot(array $proveedorServicioTituloSnapshot): self { $this->proveedorServicioTituloSnapshot = $proveedorServicioTituloSnapshot; return $this; }
 
     public function getProveedorServicioUrlSnapshot(): ?string { return $this->proveedorServicioUrlSnapshot; }
     public function setProveedorServicioUrlSnapshot(?string $proveedorServicioUrlSnapshot): self { $this->proveedorServicioUrlSnapshot = $proveedorServicioUrlSnapshot; return $this; }
 
+    /**
+     * @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}>
+     */
     public function getProveedorImagenesSnapshot(): array { return $this->proveedorImagenesSnapshot; }
+    /**
+     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
+     *
+     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
+     */
     public function setProveedorImagenesSnapshot(array $v): self { $this->proveedorImagenesSnapshot = $v; return $this; }
 
+    /**
+     * @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}>
+     */
     public function getProveedorServicioImagenesSnapshot(): array { return $this->proveedorServicioImagenesSnapshot; }
+    /**
+     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
+     *
+     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
+     */
     public function setProveedorServicioImagenesSnapshot(array $v): self { $this->proveedorServicioImagenesSnapshot = $v; return $this; }
 
     public function getModalidadSnapshot(): ?string { return $this->modalidadSnapshot; }
@@ -378,11 +418,17 @@ class CotizacionCottarifa
     public function getComisionOverrideSnapshot(): ?string { return $this->comisionOverrideSnapshot; }
     public function setComisionOverrideSnapshot(?string $comisionOverrideSnapshot): self { $this->comisionOverrideSnapshot = $comisionOverrideSnapshot; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getNotaRol(): array
     {
         return $this->notaRol ?? [];
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}>|null $notaRol
+     */
     public function setNotaRol(?array $notaRol): self
     {
         $this->notaRol = $notaRol ?? [];

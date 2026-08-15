@@ -39,11 +39,13 @@ class CotizacionCotservicio
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Cotizacion $cotizacion = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $nombreSnapshot = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -60,6 +62,7 @@ class CotizacionCotservicio
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $itinerarioMaestroId = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -176,21 +179,42 @@ class CotizacionCotservicio
     public function getCotizacion(): ?Cotizacion { return $this->cotizacion; }
     public function setCotizacion(?Cotizacion $cotizacion): self { $this->cotizacion = $cotizacion; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $nombreSnapshot
+     */
     public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getItinerarioNombreSnapshot(): array { return $this->itinerarioNombreSnapshot; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $itinerarioNombreSnapshot
+     */
     public function setItinerarioNombreSnapshot(array $itinerarioNombreSnapshot): self { $this->itinerarioNombreSnapshot = $itinerarioNombreSnapshot; return $this; }
 
     public function getItinerarioMaestroId(): ?string { return $this->itinerarioMaestroId; }
     public function setItinerarioMaestroId(?string $itinerarioMaestroId): self { $this->itinerarioMaestroId = $itinerarioMaestroId; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getNombrePublicoSnapshot(): array { return $this->nombrePublicoSnapshot; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $nombrePublicoSnapshot
+     */
     public function setNombrePublicoSnapshot(array $nombrePublicoSnapshot): self { $this->nombrePublicoSnapshot = $nombrePublicoSnapshot; return $this; }
 
     public function getFechaInicioAbsoluta(): ?DateTimeImmutable { return $this->fechaInicioAbsoluta; }
     public function setFechaInicioAbsoluta(?DateTimeImmutable $fechaInicioAbsoluta): self { $this->fechaInicioAbsoluta = $fechaInicioAbsoluta; return $this; }
 
+    /**
+     * @return Collection<int, CotizacionCotcomponente>
+     */
     public function getCotcomponentes(): Collection { return $this->cotcomponentes; }
     public function addCotcomponente(CotizacionCotcomponente $cotcomponente): self
     {
@@ -208,6 +232,9 @@ class CotizacionCotservicio
         return $this;
     }
 
+    /**
+     * @return Collection<int, CotizacionSegmento>
+     */
     public function getCotsegmentos(): Collection { return $this->cotsegmentos; }
     public function addCotsegmento(CotizacionSegmento $cotsegmento): self
     {

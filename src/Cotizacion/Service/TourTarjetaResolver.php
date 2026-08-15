@@ -36,6 +36,10 @@ final class TourTarjetaResolver
      *
      * @param array<int, mixed> $cotIds
      * @return array<string, array> Mapa cotizacionId => imagen (snapshot)
+     *
+     * @param list<\Symfony\Component\Uid\Uuid|string> $cotIds
+     *
+     * @return array<string, array<string, mixed>> Mapa cotizacionId => imagen (snapshot)
      */
     public function portadasDerivadas(array $cotIds): array
     {

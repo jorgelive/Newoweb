@@ -230,6 +230,9 @@ class CotizacionFile
         return $this->localizador;
     }
 
+    /**
+     * @param list<array<string, mixed>> $versiones
+     */
     public function setVersionesParaCliente(array $versiones): self
     {
         $this->versionesParaCliente = $versiones;
@@ -265,12 +268,18 @@ class CotizacionFile
      */
     private array $versionesFechas = [];
 
+    /**
+     * @param list<array<string, mixed>> $versionesFechas
+     */
     public function setVersionesFechas(array $versionesFechas): self
     {
         $this->versionesFechas = $versionesFechas;
         return $this;
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     #[Groups(['file:read'])]
     public function getVersionesFechas(): array
     {
@@ -291,6 +300,8 @@ class CotizacionFile
      * Documentos visibles para el cliente en el visor público.
      * Filtra por ArchivoTipoEnum::esPublico() en vez de una lista de
      * strings hardcodeada, para mantener la regla en un solo sitio.
+     *
+     * @return list<CotizacionFiledocumento>
      */
     #[Groups(['pax_file:read'])]
     public function getDocumentosParaCliente(): array
@@ -370,6 +381,9 @@ class CotizacionFile
         return $this;
     }
 
+    /**
+     * @return Collection<int, Cotizacion>
+     */
     public function getCotizaciones(): Collection { return $this->cotizaciones; }
     public function addCotizacion(Cotizacion $cotizacion): self
     {
@@ -387,6 +401,9 @@ class CotizacionFile
         return $this;
     }
 
+    /**
+     * @return Collection<int, CotizacionFilepasajero>
+     */
     public function getFilepasajeros(): Collection { return $this->filepasajeros; }
     public function addFilepasajero(CotizacionFilepasajero $filepasajero): self
     {
@@ -404,6 +421,9 @@ class CotizacionFile
         return $this;
     }
 
+    /**
+     * @return Collection<int, CotizacionFiledocumento>
+     */
     public function getFiledocumentos(): Collection { return $this->filedocumentos; }
     public function addFiledocumento(CotizacionFiledocumento $filedocumento): self
     {

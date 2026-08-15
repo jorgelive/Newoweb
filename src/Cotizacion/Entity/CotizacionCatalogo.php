@@ -178,6 +178,9 @@ class CotizacionCatalogo
         return $this->localizador;
     }
 
+    /**
+     * @param list<array<string, mixed>> $tours
+     */
     public function setToursParaCliente(array $tours): self
     {
         $this->toursParaCliente = $tours;
@@ -231,6 +234,9 @@ class CotizacionCatalogo
     public function getOrden(): int { return $this->orden; }
     public function setOrden(int $orden): self { $this->orden = $orden; return $this; }
 
+    /**
+     * @return Collection<int, Cotizacion>
+     */
     public function getCotizaciones(): Collection { return $this->cotizaciones; }
     public function addCotizacion(Cotizacion $cotizacion): self
     {

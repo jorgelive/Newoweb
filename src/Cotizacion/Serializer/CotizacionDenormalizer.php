@@ -147,6 +147,8 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
      * POST: quita SIEMPRE el id (crear, ItemNormalizer no permite ids).
      * PUT/PATCH: quita el id solo si no existe en BD (upsert).
      * Inyecta el UUID temporalmente en el campo JSON.
+     *
+     * @param array<string, mixed> $item
      */
     private function embedIdInJson(array &$item, string $class, string $jsonField, bool $permiteUpdate): void
     {

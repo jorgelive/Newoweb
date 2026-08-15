@@ -59,16 +59,19 @@ class CotizacionSegmento
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $segmentoMaestroId = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $nombreSnapshot = [];
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
     private array $contenidoSnapshot = [];
 
+    /** @var list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json')]
     private array $imagenesSnapshot = [];
@@ -163,19 +166,39 @@ class CotizacionSegmento
         return $this;
     }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $nombreSnapshot
+     */
     public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getContenidoSnapshot(): array { return $this->contenidoSnapshot; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $contenidoSnapshot
+     */
     public function setContenidoSnapshot(array $contenidoSnapshot): self { $this->contenidoSnapshot = $contenidoSnapshot; return $this; }
 
+    /**
+     * @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}>
+     */
     public function getImagenesSnapshot(): array { return $this->imagenesSnapshot; }
+    /**
+     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $imagenesSnapshot
+     */
     public function setImagenesSnapshot(array $imagenesSnapshot): self { $this->imagenesSnapshot = $imagenesSnapshot; return $this; }
 
     /**
      * Obtiene el snapshot inmutable de notas asociadas a este segmento cotizado.
      *
      * @return array Retorna la estructura JSON con las notas congeladas.
+     *
+     * @return list<array<string, mixed>>
      */
     public function getNotasSnapshot(): array
     {
@@ -187,6 +210,8 @@ class CotizacionSegmento
      *
      * @param array $notasSnapshot Array multidimensional con el historial de notas.
      * @return self
+     *
+     * @param list<array<string, mixed>> $notasSnapshot
      */
     public function setNotasSnapshot(array $notasSnapshot): self
     {
@@ -194,6 +219,9 @@ class CotizacionSegmento
         return $this;
     }
 
+    /**
+     * @return Collection<int, CotizacionCotcomponente>
+     */
     public function getCotcomponentes(): Collection { return $this->cotcomponentes; }
     public function addCotcomponente(CotizacionCotcomponente $cotcomponente): self
     {

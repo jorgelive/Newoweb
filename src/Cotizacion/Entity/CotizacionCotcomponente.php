@@ -55,6 +55,7 @@ class CotizacionCotcomponente
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?CotizacionSegmento $cotsegmento = null;
 
+    /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -87,6 +88,7 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?DateTimeImmutable $fechaHoraFin = null;
 
+    /** @var list<array<string, mixed>> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['nombreSnapshot'], format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -105,6 +107,7 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $componenteMaestroId = null;
 
+    /** @var list<array<string, mixed>> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['detalle'], format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -159,7 +162,11 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $prestadorNombreSnapshot = null;
 
-    /** Título de cara al cliente (I18nContent[]), traducible. */
+    /**
+     * Título de cara al cliente (I18nContent[]), traducible.
+     *
+     * @var list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
@@ -169,7 +176,11 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $prestadorUrlSnapshot = null;
 
-    /** Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
+    /**
+     * Galería del prestador (snapshot), para la tarjeta de referencia en pax.
+     *
+     * @var list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}>
+     */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json')]
     private array $prestadorImagenesSnapshot = [];
@@ -280,6 +291,8 @@ class CotizacionCotcomponente
      * Obtiene el snapshot del nombre del componente.
      *
      * @return array
+     *
+     * @return list<array{language?: string, content?: string|null}>
      */
     public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
 
@@ -288,6 +301,8 @@ class CotizacionCotcomponente
      *
      * @param array $nombreSnapshot
      * @return self
+     *
+     * @param list<array{language?: string, content?: string|null}> $nombreSnapshot
      */
     public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }
 
@@ -370,6 +385,8 @@ class CotizacionCotcomponente
      * Obtiene los items guardados en el snapshot.
      *
      * @return array
+     *
+     * @return list<array<string, mixed>>
      */
     public function getSnapshotItems(): array { return $this->snapshotItems; }
 
@@ -378,6 +395,8 @@ class CotizacionCotcomponente
      *
      * @param array $snapshotItems
      * @return self
+     *
+     * @param list<array<string, mixed>> $snapshotItems
      */
     public function setSnapshotItems(array $snapshotItems): self { $this->snapshotItems = $snapshotItems; return $this; }
 
@@ -385,6 +404,8 @@ class CotizacionCotcomponente
      * Obtiene las tarifas vinculadas al componente.
      *
      * @return Collection
+     *
+     * @return Collection<int, CotizacionCottarifa>
      */
     public function getCottarifas(): Collection { return $this->cottarifas; }
 
@@ -421,6 +442,8 @@ class CotizacionCotcomponente
      * Obtiene los detalles operativos internos.
      *
      * @return array
+     *
+     * @return list<array<string, mixed>>
      */
     public function getDetallesOperativos(): array
     {
@@ -433,6 +456,8 @@ class CotizacionCotcomponente
      * @param array $detallesOperativos
      * @return self
      * @throws \InvalidArgumentException
+     *
+     * @param list<array<string, mixed>> $detallesOperativos
      */
     public function setDetallesOperativos(array $detallesOperativos): self
     {
@@ -450,6 +475,8 @@ class CotizacionCotcomponente
      * Retorna únicamente los detalles que el cliente está autorizado a ver.
      *
      * @return array
+     *
+     * @return list<array<string, mixed>>
      */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     public function getDetallesParaCliente(): array
@@ -495,13 +522,29 @@ class CotizacionCotcomponente
     public function getPrestadorNombreSnapshot(): ?string { return $this->prestadorNombreSnapshot; }
     public function setPrestadorNombreSnapshot(?string $v): self { $this->prestadorNombreSnapshot = $v; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getPrestadorTituloSnapshot(): array { return $this->prestadorTituloSnapshot; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $v
+     *
+     * @param list<array{language?: string, content?: string|null}> $v
+     */
     public function setPrestadorTituloSnapshot(array $v): self { $this->prestadorTituloSnapshot = $v; return $this; }
 
     public function getPrestadorUrlSnapshot(): ?string { return $this->prestadorUrlSnapshot; }
     public function setPrestadorUrlSnapshot(?string $v): self { $this->prestadorUrlSnapshot = $v; return $this; }
 
+    /**
+     * @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}>
+     */
     public function getPrestadorImagenesSnapshot(): array { return $this->prestadorImagenesSnapshot; }
+    /**
+     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
+     *
+     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
+     */
     public function setPrestadorImagenesSnapshot(array $v): self { $this->prestadorImagenesSnapshot = $v; return $this; }
 
     public function getPrestadorTelefonoSnapshot(): ?string { return $this->prestadorTelefonoSnapshot; }

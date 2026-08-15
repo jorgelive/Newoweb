@@ -97,6 +97,7 @@ class CotizacionFiledocumento
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     private ?string $imageUrl = null;
 
+    /** @var list<array{language?: string, content?: string|null}>|null */
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json', nullable: true)]
@@ -175,6 +176,12 @@ class CotizacionFiledocumento
     public function getImageUrl(): ?string { return $this->imageUrl; }
     public function setImageUrl(?string $imageUrl): self { $this->imageUrl = $imageUrl; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     public function getNombre(): array { return $this->nombre; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $nombre
+     */
     public function setNombre(array $nombre): void { $this->nombre = $nombre; }
 }

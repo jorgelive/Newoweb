@@ -54,8 +54,8 @@ parameters:
             identifier: property.unusedType
             message: '#is never assigned null so it can be removed from the property type\.$#'
             paths:
-                - src/*/Entity
-                - src/Entity
+                - src/*/Entity/*
+                - src/Entity/*
             # Es preventiva: vale que hoy alguna de esas rutas no tenga ninguna coincidencia.
             reportUnmatched: false
 
