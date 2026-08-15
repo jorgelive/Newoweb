@@ -53,6 +53,9 @@ readonly class WhatsappMetaReceivePersister
      * - Activa la ventana de sesión de 24 horas de WhatsApp Meta al persistir un mensaje nuevo.
      * * @param array $messageData El nodo 'messages[0]' del payload del webhook de Meta.
      * @param array $contactData El nodo 'contacts[0]' del payload del webhook de Meta.
+     *
+     * @param array<string, mixed> $messageData Mensaje crudo del webhook de Meta.
+     * @param array<string, mixed> $contactData
      */
     public function upsertInboundMessage(array $messageData, array $contactData): void
     {
@@ -102,7 +105,7 @@ readonly class WhatsappMetaReceivePersister
         // =====================================================================
         // 5. PROCESAMIENTO DE CONTENIDO
         // =====================================================================
-        $currentConversationLang = $conversation->getIdioma()?->getId() ?? 'es';
+        $currentConversationLang = $conversation->getIdioma()->getId() ?? 'es';
 
         $baseIntent = [
             'context_type'   => $conversation->getContextType(),
@@ -308,6 +311,9 @@ readonly class WhatsappMetaReceivePersister
      * Si el valor recibido es vacío (''), JSON_MERGE_PATCH recibirá un null y eliminará la clave.
      * * @param array $messageData Datos de la reacción provenientes de Meta.
      * @param array $contactData Datos del remitente para extraer el wa_id.
+     *
+     * @param array<string, mixed> $messageData
+     * @param array<string, mixed> $contactData
      */
     private function handleReaction(array $messageData, array $contactData): void
     {
@@ -368,6 +374,8 @@ readonly class WhatsappMetaReceivePersister
      * * PROTECCIÓN ACTIVA: Usa bloqueo pesimista o merge atómico dependiendo de la implementación.
      * Se apoya en la transacción del FastTrackService.
      * * @param array $statusData Payload JSON proveniente de Meta con los datos de estado
+     *
+     * @param array<string, mixed> $statusData
      */
     public function updateMessageStatus(array $statusData): void
     {
@@ -478,6 +486,9 @@ readonly class WhatsappMetaReceivePersister
      * informativo en la UI para alertar al anfitrión.
      * * @param array $callData Datos de la llamada
      * @param array $contactData Datos del perfil de contacto que emite la llamada
+     *
+     * @param array<string, mixed> $callData
+     * @param array<string, mixed> $contactData
      */
     public function processCall(array $callData, array $contactData): void
     {
@@ -493,7 +504,7 @@ readonly class WhatsappMetaReceivePersister
         $message->setSenderType(Message::SENDER_SYSTEM);
         $message->setStatus(Message::STATUS_RECEIVED);
         $message->setContentExternal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
-        $message->setLanguageCode($conversation->getIdioma()?->getId() ?? 'es');
+        $message->setLanguageCode($conversation->getIdioma()->getId() ?? 'es');
 
         $timestamp = $callData['timestamp'] ?? time();
         $msgDate = new DateTimeImmutable()->setTimestamp((int)$timestamp);

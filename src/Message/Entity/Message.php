@@ -744,16 +744,14 @@ class Message
     {
         $queues = [];
 
-        if ($this->beds24SendQueues !== null) {
-            foreach ($this->beds24SendQueues as $q) {
-                $queues[] = $q;
-            }
+        // Sin guarda de null: las dos colecciones se inicializan en el constructor y Doctrine
+        // las repone al hidratar. Nunca son null, y comprobarlo hacía creer lo contrario.
+        foreach ($this->beds24SendQueues as $q) {
+            $queues[] = $q;
         }
 
-        if ($this->whatsappMetaSendQueues !== null) {
-            foreach ($this->whatsappMetaSendQueues as $q) {
-                $queues[] = $q;
-            }
+        foreach ($this->whatsappMetaSendQueues as $q) {
+            $queues[] = $q;
         }
 
         return $queues;

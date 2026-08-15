@@ -125,6 +125,10 @@ final readonly class WhatsappMetaTemplateSyncService
 
     /**
      * Procesa y persiste una plantilla individual inyectándola en el JSON estructurado `whatsappMetaTmpl`.
+     *
+     * @param array<string, mixed> $data Un registro tal como lo devuelve Meta.
+     * @param array<string, MessageTemplate> $templateCache
+     * @param list<string> $allowedLanguages
      */
     private function processTemplateRecord(array $data, array &$templateCache, array $allowedLanguages): ?bool
     {
@@ -333,6 +337,9 @@ final readonly class WhatsappMetaTemplateSyncService
         return $isNew;
     }
 
+    /**
+     * @return list<string>
+     */
     private function getAllowedLanguages(): array
     {
         $idiomas = $this->em->getRepository(MaestroIdioma::class)
@@ -353,6 +360,9 @@ final readonly class WhatsappMetaTemplateSyncService
         return $allowed;
     }
 
+    /**
+     * @param list<array<string, mixed>> $components
+     */
     private function extractBodyText(array $components): string
     {
         foreach ($components as $component) {
@@ -370,6 +380,9 @@ final readonly class WhatsappMetaTemplateSyncService
      *
      * @param array $components Arreglo de componentes de Meta.
      * @return array<int, array> Lista de botones encontrados en el payload.
+     *
+     * @param list<array<string, mixed>> $components
+     * @return list<array<string, mixed>>
      */
     private function extractButtons(array $components): array
     {
@@ -388,6 +401,8 @@ final readonly class WhatsappMetaTemplateSyncService
      *
      * @param array $components Arreglo de componentes.
      * @return string El texto del footer o cadena vacía si no existe.
+     *
+     * @param list<array<string, mixed>> $components
      */
     private function extractFooterText(array $components): string
     {
@@ -406,6 +421,9 @@ final readonly class WhatsappMetaTemplateSyncService
      *
      * @param array $components Arreglo de componentes.
      * @return array<string, string> Retorna el formato y el contenido del header.
+     *
+     * @param list<array<string, mixed>> $components
+     * @return array<string, mixed>
      */
     private function extractHeaderData(array $components): array
     {

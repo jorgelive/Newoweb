@@ -42,6 +42,9 @@ final readonly class WhatsappMetaTemplatePushService
      *        siete porque uno fue rechazado devuelve a PENDING seis que ya estaban
      *        aprobadas y funcionando, y hasta que Meta los vuelva a mirar no se pueden
      *        usar fuera de la ventana de 24 h. Es un daño real, no una molestia.
+     *
+     * @param list<string> $soloIdiomas
+     * @return array<string, mixed> Resumen de lo empujado, por idioma.
      */
     public function pushTemplateToMeta(MessageTemplate $template, array $soloIdiomas = []): array
     {
@@ -164,6 +167,8 @@ final readonly class WhatsappMetaTemplatePushService
 
     /**
      * Busca el ID de una plantilla existente en el pool de Meta.
+     *
+     * @param list<array<string, mixed>> $metaTemplates Lo que devuelve el listado de plantillas de Meta.
      */
     private function findExistingTemplateId(array $metaTemplates, string $name, string $langCode): ?string
     {
@@ -178,6 +183,10 @@ final readonly class WhatsappMetaTemplatePushService
     /**
      * Construye el payload JSON para un idioma específico.
      * @throws RuntimeException Si un Quick Reply carece de resolver_key.
+     *
+     * @param array<string, mixed> $metaTmpl
+     * @param array<string, mixed> $previewData
+     * @return array<string, mixed> El cuerpo que espera la API de Meta.
      */
     private function buildSingleLanguagePayload(array $metaTmpl, string $localLang, string $metaLangCode, array $previewData): array
     {
@@ -299,6 +308,8 @@ final readonly class WhatsappMetaTemplatePushService
 
     /**
      * Extrae el contenido traducido para un idioma específico desde el array local.
+     *
+     * @param list<array<string, mixed>> $componentList
      */
     private function extractTextByLanguage(array $componentList, string $targetLang): string
     {
@@ -312,6 +323,9 @@ final readonly class WhatsappMetaTemplatePushService
 
     /**
      * Detecta variables {{name}} y genera el array de ejemplos para la validación de Meta.
+     *
+     * @param array<string, mixed> $previewVars
+     * @return array{list<string>, list<string>} Nombres de variable y sus ejemplos, en paralelo.
      */
     private function generateNamedExamples(string $text, array $previewVars): array
     {
@@ -352,6 +366,8 @@ final readonly class WhatsappMetaTemplatePushService
      *
      * Se mide con `mb_strlen`: Meta cuenta caracteres, no bytes, y estos textos van llenos de
      * emojis y tildes. Contar bytes daría un falso positivo en cuanto haya un 🌄.
+     *
+     * @param array<string, mixed> $metaTmpl
      */
     private function medirExcesos(array $metaTmpl, string $idioma): ?string
     {

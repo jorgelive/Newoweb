@@ -73,6 +73,7 @@ class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanabl
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?DateTimeImmutable $readAt = null;
 
+    /** @var list<array<string, mixed>> Un apunte por webhook recibido, en orden de llegada. */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $webhookHistory = [];
 
@@ -111,6 +112,7 @@ class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanabl
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $lastResponseRaw = null;
 
+    /** @var array<string, mixed>|null Volcado de la respuesta del canal; su forma la fija el proveedor. */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $executionResult = null;
 
@@ -195,8 +197,11 @@ class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanabl
     public function setDeliveredAt(?DateTimeImmutable $deliveredAt): self { $this->deliveredAt = $deliveredAt; return $this; }
     public function getReadAt(): ?DateTimeImmutable { return $this->readAt; }
     public function setReadAt(?DateTimeImmutable $readAt): self { $this->readAt = $readAt; return $this; }
+    /** @return list<array<string, mixed>> */
     public function getWebhookHistory(): array { return $this->webhookHistory ?? []; }
+    /** @param list<array<string, mixed>> $webhookHistory */
     public function setWebhookHistory(?array $webhookHistory): self { $this->webhookHistory = $webhookHistory; return $this; }
+    /** @param array<string, mixed> $entry */
     public function addWebhookEntry(array $entry): self {
         if ($this->webhookHistory === null) $this->webhookHistory = [];
         $this->webhookHistory[] = $entry;
@@ -226,7 +231,9 @@ class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanabl
     public function setLastRequestRaw(?string $raw): self { $this->lastRequestRaw = $raw; return $this; }
     public function getLastResponseRaw(): ?string { return $this->lastResponseRaw; }
     public function setLastResponseRaw(?string $raw): self { $this->lastResponseRaw = $raw; return $this; }
+    /** @return array<string, mixed>|null */
     public function getExecutionResult(): ?array { return $this->executionResult; }
+    /** @param array<string, mixed>|null $result */
     public function setExecutionResult(?array $result): self { $this->executionResult = $result; return $this; }
     public function getLastHttpCode(): ?int { return $this->lastHttpCode; }
     public function setLastHttpCode(?int $code): self { $this->lastHttpCode = $code; return $this; }

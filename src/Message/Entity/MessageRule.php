@@ -70,9 +70,11 @@ class MessageRule
     // 3. LOS FILTROS DE SEGMENTACIÓN (Agnósticos)
     // =========================================================================
 
+    /** @var list<string>|null Códigos de canal: `booking`, `airbnb`, `directo`… */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $allowedSources = [];
 
+    /** @var list<string>|null Identificadores de agencia mayorista. */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $allowedAgencies = [];
 
@@ -170,6 +172,7 @@ class MessageRule
     public function getOffsetMinutes(): int { return $this->offsetMinutes; }
     public function setOffsetMinutes(int $offsetMinutes): self { $this->offsetMinutes = $offsetMinutes; return $this; }
 
+    /** @return Collection<int, MessageChannel> */
     public function getTargetCommunicationChannels(): Collection { return $this->targetCommunicationChannels; }
     public function addTargetCommunicationChannel(MessageChannel $channel): self {
         if (!$this->targetCommunicationChannels->contains($channel)) {
@@ -182,9 +185,13 @@ class MessageRule
         return $this;
     }
 
+    /** @return list<string>|null */
     public function getAllowedSources(): array { return $this->allowedSources ?? []; }
+    /** @param list<string>|null $allowedSources */
     public function setAllowedSources(?array $allowedSources): self { $this->allowedSources = $allowedSources; return $this; }
 
+    /** @return list<string>|null */
     public function getAllowedAgencies(): array { return $this->allowedAgencies ?? []; }
+    /** @param list<string>|null $allowedAgencies */
     public function setAllowedAgencies(?array $allowedAgencies): self { $this->allowedAgencies = $allowedAgencies; return $this; }
 }

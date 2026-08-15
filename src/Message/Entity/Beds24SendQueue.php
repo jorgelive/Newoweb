@@ -90,6 +90,7 @@ class Beds24SendQueue implements MessageQueueItemInterface, MemoryCleanableInter
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $lastResponseRaw = null;
 
+    /** @var array<string, mixed>|null Volcado de la respuesta del canal; su forma la fija el proveedor. */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $executionResult = null;
 
@@ -185,7 +186,9 @@ class Beds24SendQueue implements MessageQueueItemInterface, MemoryCleanableInter
     public function setLastRequestRaw(?string $raw): self { $this->lastRequestRaw = $raw; return $this; }
     public function getLastResponseRaw(): ?string { return $this->lastResponseRaw; }
     public function setLastResponseRaw(?string $raw): self { $this->lastResponseRaw = $raw; return $this; }
+    /** @return array<string, mixed>|null */
     public function getExecutionResult(): ?array { return $this->executionResult; }
+    /** @param array<string, mixed>|null $result */
     public function setExecutionResult(?array $result): self { $this->executionResult = $result; return $this; }
     public function getLastHttpCode(): ?int { return $this->lastHttpCode; }
     public function setLastHttpCode(?int $code): self { $this->lastHttpCode = $code; return $this; }

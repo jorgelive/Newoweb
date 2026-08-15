@@ -205,6 +205,7 @@ class MessageConversation
     #[Groups(['conversation:read'])]
     private int $unreadCount = 0;
 
+    /** @var array<string, mixed>|null Espejo del activo: hitos, ítems, financieros. Ver `docs/Mensajeria.md`. */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $contextData = [];
 
@@ -368,7 +369,9 @@ class MessageConversation
     public function incrementUnreadCount(): self { $this->unreadCount++; return $this; }
     public function resetUnreadCount(): self { $this->unreadCount = 0; return $this; }
 
+    /** @return array<string, mixed> */
     public function getContextData(): ?array { return $this->contextData; }
+    /** @param array<string, mixed>|null $contextData */
     public function setContextData(?array $contextData): self { $this->contextData = $contextData; return $this; }
 
     // =========================================================================
@@ -536,7 +539,9 @@ class MessageConversation
     }
 
     #[Groups(['conversation:read'])]
+    /** @return list<array<string, mixed>> */
     public function getContextItems(): array { return $this->contextData['items'] ?? []; }
+    /** @param list<array<string, mixed>> $items */
     public function setContextItems(array $items): self {
         $this->initContextData();
         $this->contextData['items'] = array_values($items);

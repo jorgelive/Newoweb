@@ -31,7 +31,9 @@ class MercureConversationDto implements JsonSerializable
 
     private ?string $contextOrigin;
     private ?string $contextStatusTag;
+    /** @var array<string, string> Hitos ya en texto: {@see \App\Message\Contract\MomentoDeHito}. */
     private array $contextMilestones = [];
+    /** @var list<array<string, mixed>> */
     private array $contextItems = [];
     private ?float $contextFinancialTotal;
     private bool $contextFinancialIsCleared;
@@ -53,7 +55,7 @@ class MercureConversationDto implements JsonSerializable
         $this->status = $conversation->getStatus();
         $this->contextType = $conversation->getContextType();
         $this->contextId = $conversation->getContextId();
-        $this->idioma = $conversation->getIdioma() ? '/platform/public/maestro_idioma/' . $conversation->getIdioma()->getId() : null;
+        $this->idioma = '/platform/maestro/idiomas/' . $conversation->getIdioma()->getId();
         $this->guestName = $conversation->getGuestName();
         $this->guestPhone = $conversation->getGuestPhone();
         $this->idiomaFijado = $conversation->isIdiomaFijado();
@@ -73,6 +75,7 @@ class MercureConversationDto implements JsonSerializable
         $this->contextFinancialIsCleared = $conversation->getContextFinancialIsCleared();
     }
 
+    /** @return array<string, mixed> */
     public function jsonSerialize(): array
     {
         return [
@@ -167,10 +170,14 @@ class MercureConversationDto implements JsonSerializable
     public function getContextStatusTag(): ?string { return $this->contextStatusTag; }
     public function setContextStatusTag(?string $contextStatusTag): self { $this->contextStatusTag = $contextStatusTag; return $this; }
 
+    /** @return array<string, string> */
     public function getContextMilestones(): array { return $this->contextMilestones; }
+    /** @param array<string, string> $contextMilestones */
     public function setContextMilestones(array $contextMilestones): self { $this->contextMilestones = $contextMilestones; return $this; }
 
+    /** @return list<array<string, mixed>> */
     public function getContextItems(): array { return $this->contextItems; }
+    /** @param list<array<string, mixed>> $contextItems */
     public function setContextItems(array $contextItems): self { $this->contextItems = $contextItems; return $this; }
 
     public function getContextFinancialTotal(): ?float { return $this->contextFinancialTotal; }

@@ -30,14 +30,23 @@ class MercureMessageDto implements JsonSerializable
     private ?string $effectiveDateTime;
     private bool $isScheduledForFuture;
     private string $conversation;
+    /** @var array<string, mixed> La bolsa abierta de {@see \App\Message\Entity\Message::getMetadata()}. */
     private array $metadata = [];
+
+    /** @var array{'@type': string, '@id': string, id: string}|null */
     private ?array $channel = null;
+
+    /** @var list<array{'@id': string, '@type': string, id: string, originalName: string|null, mimeType: string|null, fileUrl: string|null}> */
     private array $attachments = [];
+
+    /** @var list<array{status: string|null}> */
     private array $beds24SendQueues = [];
+
+    /** @var list<array{status: string|null, deliveryStatus: string|null}> */
     private array $whatsappMetaSendQueues = [];
 
     /**
-     * @var string|array|null Puede contener el IRI de la plantilla o un array con sus datos.
+     * @var string|array<string, mixed>|null El IRI de la plantilla, o sus datos ya embebidos.
      */
     private string|array|null $template = null;
 
@@ -79,7 +88,9 @@ class MercureMessageDto implements JsonSerializable
         // Asignamos el flag virtual
         $this->isScheduledForFuture = $message->isScheduledForFuture();
 
-        $this->conversation = '/platform/user/util/msg/conversations/' . $message->getConversation()->getId();
+        // Rutas reales, comprobadas con `debug:router`. Las que había —con el prefijo
+        // `/platform/user/util/msg/`— son de un esquema de rutas anterior y ya no resuelven.
+        $this->conversation = '/platform/message/conversations/' . $message->getConversation()->getId();
         $this->metadata = $message->getMetadata();
 
         if ($message->getChannel()) {
@@ -90,9 +101,15 @@ class MercureMessageDto implements JsonSerializable
             ];
         }
 
-        // Mapeo de la plantilla como IRI para mantener compatibilidad con Vue
+        // Mapeo de la plantilla como IRI para mantener compatibilidad con Vue.
+        //
+        // ⚠️ Esto SÍ se comparaba por cadena completa, no por UUID: `ChatView.vue` hace
+        // `store.templates.find(t => (t['@id'] || t.id) === templateData)`, y `@id` viene del
+        // endpoint REST como `/platform/message/templates/{id}`. Con la ruta inventada que había
+        // aquí (`/platform/message_templates/`) la búsqueda NO encontraba nunca la plantilla de
+        // un mensaje llegado por Mercure.
         if ($message->getTemplate()) {
-            $this->template = '/platform/message_templates/' . $message->getTemplate()->getId();
+            $this->template = '/platform/message/templates/' . $message->getTemplate()->getId();
         }
 
         // Definimos el dominio base una sola vez para concatenarlo a las rutas relativas
@@ -108,7 +125,11 @@ class MercureMessageDto implements JsonSerializable
             }
 
             $this->attachments[] = [
-                '@id' => '/platform/user/util/msg/attachments/' . $attachment->getId(),
+                // `MessageAttachment` no es un recurso de API Platform —sólo tiene CRUD de
+                // panel—, así que no hay IRI real que poner. Se deja el identificador de nodo
+                // anónimo, que es lo que corresponde a algo sin URL propia; el front usa `id` y
+                // `fileUrl`, nunca esto.
+                '@id' => '/platform/.well-known/genid/' . uniqid(),
                 '@type' => 'MessageAttachment',
                 'id' => (string) $attachment->getId(),
                 'originalName' => $attachment->getOriginalName(),
@@ -307,51 +328,71 @@ class MercureMessageDto implements JsonSerializable
 
     /**
      * Obtiene los metadatos asociados al mensaje (respuestas de canales, etc).
+     *
+     * @return array<string, mixed>
      */
     public function getMetadata(): array { return $this->metadata; }
 
     /**
      * Define los metadatos del mensaje.
+     *
+     * @param array<string, mixed> $metadata
      */
     public function setMetadata(array $metadata): self { $this->metadata = $metadata; return $this; }
 
     /**
      * Obtiene la estructura del canal por el cual se transmitió el mensaje.
+     *
+     * @return array{'@type': string, '@id': string, id: string}|null
      */
     public function getChannel(): ?array { return $this->channel; }
 
     /**
      * Define la estructura del canal asociado.
+     *
+     * @param array{'@type': string, '@id': string, id: string}|null $channel
      */
     public function setChannel(?array $channel): self { $this->channel = $channel; return $this; }
 
     /**
      * Obtiene la colección de archivos adjuntos del mensaje formateada para Vue.
+     *
+     * @return list<array<string, mixed>>
      */
     public function getAttachments(): array { return $this->attachments; }
 
     /**
      * Define los archivos adjuntos.
+     *
+     * @param list<array<string, mixed>> $attachments
      */
     public function setAttachments(array $attachments): self { $this->attachments = $attachments; return $this; }
 
     /**
      * Obtiene el estado en las colas de envío hacia Beds24.
+     *
+     * @return list<array{status: string|null}>
      */
     public function getBeds24SendQueues(): array { return $this->beds24SendQueues; }
 
     /**
      * Define el estado en las colas de Beds24.
+     *
+     * @param list<array{status: string|null}> $beds24SendQueues
      */
     public function setBeds24SendQueues(array $beds24SendQueues): self { $this->beds24SendQueues = $beds24SendQueues; return $this; }
 
     /**
      * Obtiene el estado en las colas de envío hacia WhatsApp Meta.
+     *
+     * @return list<array{status: string|null, deliveryStatus: string|null}>
      */
     public function getWhatsappMetaSendQueues(): array { return $this->whatsappMetaSendQueues; }
 
     /**
      * Define el estado en las colas de WhatsApp Meta.
+     *
+     * @param list<array{status: string|null, deliveryStatus: string|null}> $whatsappMetaSendQueues
      */
     public function setWhatsappMetaSendQueues(array $whatsappMetaSendQueues): self { $this->whatsappMetaSendQueues = $whatsappMetaSendQueues; return $this; }
 
@@ -359,6 +400,8 @@ class MercureMessageDto implements JsonSerializable
      * Obtiene la plantilla asociada al mensaje, si existe.
      *
      * @return string|array|null
+     *
+     * @return string|array<string, mixed>|null
      */
     public function getTemplate(): string|array|null { return $this->template; }
 
@@ -367,6 +410,8 @@ class MercureMessageDto implements JsonSerializable
      *
      * @param string|array|null $template
      * @return self
+     *
+     * @param string|array<string, mixed>|null $template
      */
     public function setTemplate(string|array|null $template): self { $this->template = $template; return $this; }
 }
