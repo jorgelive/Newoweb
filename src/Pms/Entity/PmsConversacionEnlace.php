@@ -133,10 +133,34 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
      * después —con la guarda que haga falta— si el aviso vuelve. Sin el dato, esa decisión ni
      * siquiera se podía plantear.
      */
-    public function marcarCancelado(?string $cuando = null): self
+    /**
+     * ⚠️ **Acepta objeto de fecha, y por eso normaliza.**
+     *
+     * Quien llama a esto saca el valor de `PmsReservaMessageContext::getMilestones()`, que
+     * devuelve `DateTimeInterface` — no cadenas, pese a lo que sugiere el nombre compartido con
+     * el getter de esta entidad. Son dos mapas distintos: el del contexto es el **vivo**,
+     * calculado, y el de aquí es el **persistido**, de texto plano.
+     *
+     * Con la firma en `?string` esto reventaba con un `TypeError` **antes de entrar al cuerpo**,
+     * en toda reserva cancelada que trajera fecha de modificación de canal —o sea, en casi
+     * todas—. El worker de Beds24 lo capturaba, así que no salía ningún 500: simplemente se
+     * abandonaba la reserva a medio procesar y el hito nunca se grababa. Y sin el hito,
+     * {@see \App\Message\Service\Queue\AgendaDeAsunto::estaCancelada()} no tiene qué leer, con lo
+     * que el aviso de cancelación no podía existir — justo lo que este método venía a habilitar.
+     * Visto en producción el 15/08/2026.
+     *
+     * Es la misma normalización que ya hacen {@see self::setMilestones()} y
+     * {@see \App\Message\Entity\MessageConversation::addContextMilestone()}: **toda puerta que
+     * escriba en este mapa tiene que aceptar las dos formas y guardar texto.**
+     */
+    public function marcarCancelado(string|\DateTimeInterface|null $cuando = null): self
     {
         $plano = $this->milestones ?? [];
-        $plano[ConversationMilestoneInterface::CANCELLED] = $cuando ?: (new DateTimeImmutable())->format('Y-m-d H:i:s');
+        $plano[ConversationMilestoneInterface::CANCELLED] = match (true) {
+            $cuando instanceof \DateTimeInterface => $cuando->format('Y-m-d H:i:s'),
+            is_string($cuando) && '' !== trim($cuando) => $cuando,
+            default => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+        };
         $this->milestones = $plano;
 
         return $this;

@@ -7423,6 +7423,39 @@ el motor lo trata como existente y programa contra una fecha ilegible—.
 Lo ya escrito se repara con `app:pms:reparar-hitos`, que es «volver a guardar por el ORM»: el
 normalizador de la entidad hace el trabajo, sin replicar la lógica en SQL.
 
+#### La misma trampa, por otra puerta (15/08/2026)
+
+Dos días después volvió a pasar, en `PmsConversacionEnlace::marcarCancelado()`. El método nació el
+13/08 —el mismo día, en el commit «Un asunto cancelado se marca, no se borra»— escrito contra el
+contrato **documentado** del mapa persistido (`array<string, string>`) en vez de contra lo que su
+llamador tiene de verdad en la mano.
+
+`PmsSincronizadorDeEnlace` lee dos veces del mismo array y sólo una lo trataba bien:
+
+```
+$enlace->setMilestones($contexto->getMilestones());                  ✅ normaliza
+$enlace->marcarCancelado($contexto->getMilestones()[CANCELLED]);     ❌ TypeError
+```
+
+Con la firma en `?string`, PHP lanzaba **antes de entrar al cuerpo**. Y no era un caso raro: el
+valor es `PmsReserva::getUltimaFechaModificacionCanal()`, declarado `?DateTimeInterface`, así que
+cuando existe es **siempre** un objeto — fallaba en toda reserva cancelada que trajera esa fecha,
+que en una cancelación de Beds24 es lo normal. 23 fallos en menos de cuatro minutos, por las dos
+vías del worker: 2 procesando reservas y 21 procesando mensajes.
+
+Nadie vio un 500 —el `catch` del worker lo registra y sigue—, pero la reserva se abandonaba a
+medio procesar y el hito no llegaba a grabarse. Sin el hito,
+`AgendaDeAsunto::estaCancelada()` no tiene qué leer: **el aviso de cancelación no podía existir**,
+que es exactamente lo que el commit del 13/08 venía a habilitar.
+
+⚠️ **La regla, ahora explícita: toda puerta que escriba en el mapa de hitos acepta
+`string|DateTimeInterface|null` y guarda texto.** Hoy son tres —`setMilestones()`,
+`marcarCancelado()` y `MessageConversation::addContextMilestone()`— y las tres normalizan igual. El
+nombre `getMilestones()` está en dos entidades y **no significa lo mismo**: en
+`PmsReservaMessageContext` es el mapa vivo, con objetos; en `PmsConversacionEnlace` es el
+persistido, de texto. Cualquier método nuevo que cruce esa frontera repetirá el fallo si confía en
+el nombre.
+
 ### 22.17 La procedencia comercial viaja con el ASUNTO, y la redacta el dominio
 
 Varios ítems de guía llevaban dentro condicionales por canal de venta —«a los de Airbnb no», «si
