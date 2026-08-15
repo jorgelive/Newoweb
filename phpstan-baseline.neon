@@ -18,9 +18,10 @@
 # Hecho en `src/Message/`: entidades, DTO de Mercure, servicios de Meta y Exchange, repositorios
 # y CRUD. El módulo va de 236 avisos a 47, y lo que queda ya NO son tipos: son redundancias
 # (`??` sobre lo que nunca es null, comparaciones siempre ciertas) y genéricos de EasyCorp.
-# En `src/Pms/` (287 en solitario → 251): hechas las tres entidades de la guía y el interpolador,
-# más el tipo compartido `ContenidoI18n` y el ayudante `MaestroIdioma::textoEn()`. Siguiente ahí:
-# `Beds24BookingDto` (25) y las estrategias de Exchange.
+# En `src/Pms/` (287 en solitario → ~190): hechas las entidades de la guía, las colas, la
+# auditoría de webhooks, el catálogo, la unidad, el cargo financiero y `Beds24BookingDto`, más el
+# tipo compartido `ContenidoI18n` y el ayudante `MaestroIdioma::textoEn()`. Siguiente ahí: las
+# estrategias de Exchange y los persisters.
 #
 # ⚠️ Lo de las columnas nulables de Doctrine YA NO está aquí: se sacó a una `ignoreErrors` en
 # `phpstan.dist.neon`, acotada a `Entity/`. No era deuda —no se va a «saldar» nunca, porque el
@@ -2541,156 +2542,6 @@ parameters:
 			path: src/Pms/DispatchHandler/ProcessBeds24WebhookDispatchHandler.php
 
 		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$apiReference follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$arrival follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$arrivalTime follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$bookingTime follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$channel follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$comments follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$commission follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$country2 follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$departure follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$email follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$firstName follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$lang follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$lastName follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$mobile follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$modifiedTime follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$notes follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$numAdult follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$numChild follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$phone follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$price follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$rateDescription follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.0\: Required parameter \$subStatus follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Deprecated in PHP 8\.1\: Required parameter \$status follows optional parameter \$bookingGroup\.$#'
-			identifier: parameter.requiredAfterOptional
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Method App\\Pms\\Dto\\Beds24BookingDto\:\:__construct\(\) has parameter \$bookingGroup with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
-			message: '#^Method App\\Pms\\Dto\\Beds24BookingDto\:\:fromArray\(\) has parameter \$booking with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Dto/Beds24BookingDto.php
-
-		-
 			message: '#^Method App\\Pms\\Dto\\Beds24InvoiceItemDto\:\:fromArray\(\) has parameter \$data with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -2709,18 +2560,6 @@ parameters:
 			path: src/Pms/Dto/PmsUnidadDisponibleDto.php
 
 		-
-			message: '#^Method App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:getExecutionResult\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:setExecutionResult\(\) has parameter \$result with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
-
-		-
 			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -2729,12 +2568,6 @@ parameters:
 		-
 			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
 			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$executionResult type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
 
@@ -2751,72 +2584,6 @@ parameters:
 			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
 
 		-
-			message: '#^Method App\\Pms\\Entity\\PmsBeds24WebhookAudit\:\:getHeaders\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBeds24WebhookAudit.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsBeds24WebhookAudit\:\:getPayload\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBeds24WebhookAudit.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsBeds24WebhookAudit\:\:getProcessingMeta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBeds24WebhookAudit.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsBeds24WebhookAudit\:\:setHeaders\(\) has parameter \$headers with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBeds24WebhookAudit.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsBeds24WebhookAudit\:\:setPayload\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBeds24WebhookAudit.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsBeds24WebhookAudit\:\:setProcessingMeta\(\) has parameter \$processingMeta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBeds24WebhookAudit.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsBeds24WebhookAudit\:\:\$headers type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBeds24WebhookAudit.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsBeds24WebhookAudit\:\:\$payload type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBeds24WebhookAudit.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsBeds24WebhookAudit\:\:\$processingMeta type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBeds24WebhookAudit.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsBookingsPullQueue\:\:getExecutionResult\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPullQueue.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsBookingsPullQueue\:\:setExecutionResult\(\) has parameter \$result with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPullQueue.php
-
-		-
 			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -2825,12 +2592,6 @@ parameters:
 		-
 			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
 			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPullQueue.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$executionResult type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Entity/PmsBookingsPullQueue.php
 
@@ -2853,18 +2614,6 @@ parameters:
 			path: src/Pms/Entity/PmsBookingsPullQueue.php
 
 		-
-			message: '#^Method App\\Pms\\Entity\\PmsBookingsPushQueue\:\:getExecutionResult\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPushQueue.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsBookingsPushQueue\:\:setExecutionResult\(\) has parameter \$result with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPushQueue.php
-
-		-
 			message: '#^Property App\\Pms\\Entity\\PmsBookingsPushQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -2877,27 +2626,9 @@ parameters:
 			path: src/Pms/Entity/PmsBookingsPushQueue.php
 
 		-
-			message: '#^Property App\\Pms\\Entity\\PmsBookingsPushQueue\:\:\$executionResult type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPushQueue.php
-
-		-
-			message: '#^Offset ''content'' on array\{content\: string, language\: ''es''\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Pms/Entity/PmsCargoFinanciero.php
-
-		-
-			message: '#^Offset ''content'' on array\{content\: string, language\: string\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Pms/Entity/PmsCargoFinanciero.php
-
-		-
 			message: '#^Offset ''language'' on array\{content\: string, language\: string\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
-			count: 3
+			count: 1
 			path: src/Pms/Entity/PmsCargoFinanciero.php
 
 		-
@@ -2905,30 +2636,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Entity/PmsCargoFinanciero.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsCatalogo\:\:getSubtitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsCatalogo.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsCatalogo\:\:getTitulo\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsCatalogo.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsCatalogo\:\:setSubtitulo\(\) has parameter \$subtitulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsCatalogo.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsCatalogo\:\:setTitulo\(\) has parameter \$titulo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsCatalogo.php
 
 		-
 			message: '#^Property App\\Pms\\Entity\\PmsCatalogo\:\:\$subtitulo type has no value type specified in iterable type array\.$#'
@@ -3039,26 +2746,8 @@ parameters:
 			path: src/Pms/Entity/PmsGuiaItem.php
 
 		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItemGaleria\:\:getDescripcion\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItemGaleria.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsGuiaItemGaleria\:\:setDescripcion\(\) has parameter \$descripcion with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItemGaleria.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaItemGaleria\:\:\$descripcion \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaItemGaleria\:\:\$descripcion \(list\<array\{language\?\: string, content\?\: string\|null\}\>\|null\) is never assigned null so it can be removed from the property type\.$#'
 			identifier: property.unusedType
-			count: 1
-			path: src/Pms/Entity/PmsGuiaItemGaleria.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsGuiaItemGaleria\:\:\$descripcion type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Entity/PmsGuiaItemGaleria.php
 
@@ -3099,18 +2788,6 @@ parameters:
 			path: src/Pms/Entity/PmsInformacionFinanciera.php
 
 		-
-			message: '#^Method App\\Pms\\Entity\\PmsRatesPushQueue\:\:getExecutionResult\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsRatesPushQueue.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsRatesPushQueue\:\:setExecutionResult\(\) has parameter \$result with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsRatesPushQueue.php
-
-		-
 			message: '#^Property App\\Pms\\Entity\\PmsRatesPushQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -3119,12 +2796,6 @@ parameters:
 		-
 			message: '#^Property App\\Pms\\Entity\\PmsRatesPushQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
 			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/PmsRatesPushQueue.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsRatesPushQueue\:\:\$executionResult type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Entity/PmsRatesPushQueue.php
 
@@ -3153,32 +2824,8 @@ parameters:
 			path: src/Pms/Entity/PmsReserva.php
 
 		-
-			message: '#^Method App\\Pms\\Entity\\PmsUnidad\:\:getBeds24Maps\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsUnidad.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsUnidad\:\:getBookingsPullQueues\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsUnidad.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsUnidad\:\:getTarifaQueues\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Entity/PmsUnidad.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsUnidad\:\:getWifiNetworks\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsUnidad.php
-
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsUnidad\:\:setWifiNetworks\(\) has parameter \$wifiNetworks with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Parameter \#1 \$array \(non\-empty\-list\<array\{ssid\?\: string\|null, password\?\: string\|null, ubicacion\?\: list\<array\{language\?\: string, content\?\: string\|null\}\>\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
 			count: 1
 			path: src/Pms/Entity/PmsUnidad.php
 
@@ -3301,6 +2948,12 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/EventListener/Queue/Beds24RatesPushQueueListener.php
+
+		-
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsUnidadBeds24Map and App\\Pms\\Entity\\PmsUnidadBeds24Map will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Pms/Factory/PmsEventoCalendarioFactory.php
 
 		-
 			message: '#^Method App\\Pms\\Factory\\PmsEventoCalendarioFactory\:\:getActiveMaps\(\) return type has no value type specified in iterable type array\.$#'

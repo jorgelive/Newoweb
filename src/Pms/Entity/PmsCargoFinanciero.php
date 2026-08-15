@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use App\Entity\Maestro\MaestroIdioma;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -352,13 +353,7 @@ class PmsCargoFinanciero
     #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
     public function getDescripcionClienteEs(): ?string
     {
-        foreach ($this->getDescripcionCliente() as $contenido) {
-            if (($contenido['language'] ?? null) === 'es') {
-                return $contenido['content'] ?? null;
-            }
-        }
-
-        return null;
+        return MaestroIdioma::textoEn($this->getDescripcionCliente());
     }
 
     #[Groups(['pms_cargo:write', 'pms_cargo:patch'])]
@@ -424,10 +419,10 @@ class PmsCargoFinanciero
         $contenidos = $this->getDescripcionCliente();
 
         foreach ([$idioma, 'en', 'es'] as $preferido) {
-            foreach ($contenidos as $contenido) {
-                if (($contenido['language'] ?? null) === $preferido && trim((string) ($contenido['content'] ?? '')) !== '') {
-                    return trim($contenido['content']);
-                }
+            $texto = MaestroIdioma::textoEn($contenidos, $preferido);
+
+            if (null !== $texto) {
+                return $texto;
             }
         }
 

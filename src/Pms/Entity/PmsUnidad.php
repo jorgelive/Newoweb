@@ -409,6 +409,9 @@ class PmsUnidad
         return $this;
     }
 
+    /**
+     * @return list<array{ssid?: string|null, password?: string|null, ubicacion?: list<array{language?: string, content?: string|null}>}>
+     */
     public function getWifiNetworks(): array
     {
         $networks = $this->wifiNetworks ?? [];
@@ -423,6 +426,9 @@ class PmsUnidad
         return $networks;
     }
 
+    /**
+     * @param list<array{ssid?: string|null, password?: string|null, ubicacion?: list<array{language?: string, content?: string|null}>}>|null $wifiNetworks
+     */
     public function setWifiNetworks(?array $wifiNetworks): self
     {
         // Importante: array_values asegura que se guarde como lista JSON [{},{}]
@@ -673,6 +679,9 @@ class PmsUnidad
     // GESTIÓN DE RELACIONES (Maps, Queues, Guia)
     // ============================================================
 
+    /**
+     * @return Collection<int, PmsUnidadBeds24Map>
+     */
     public function getBeds24Maps(): Collection { return $this->beds24Maps; }
 
     public function addBeds24Map(PmsUnidadBeds24Map $map): self
@@ -694,6 +703,9 @@ class PmsUnidad
         return $this;
     }
 
+    /**
+     * @return Collection<int, PmsRatesPushQueue>
+     */
     public function getTarifaQueues(): Collection { return $this->tarifaQueues; }
 
     public function addTarifaQueue(PmsRatesPushQueue $queue): self
@@ -715,6 +727,9 @@ class PmsUnidad
         return $this;
     }
 
+    /**
+     * @return Collection<int, PmsBookingsPullQueue>
+     */
     public function getBookingsPullQueues(): Collection { return $this->bookingsPullQueues; }
 
     public function addBookingsPullQueue(PmsBookingsPullQueue $job): self

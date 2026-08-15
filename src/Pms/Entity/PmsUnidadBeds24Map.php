@@ -23,7 +23,6 @@ use Symfony\Component\Validator\Constraints as Assert;
     name: 'pms_unidad_beds24_map',
     indexes: [
         new ORM\Index(columns: ['beds24RoomId', 'beds24UnitId'], name: 'idx_beds24_room_unit'),
-        new ORM\Index(columns: ['beds24_config_id'], name: 'idx_beds24_config'),
         new ORM\Index(columns: ['beds24PropertyId'], name: 'idx_beds24_property')
     ],
     uniqueConstraints: [

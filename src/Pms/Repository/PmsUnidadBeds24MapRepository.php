@@ -28,7 +28,6 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
             // ⚠️ El id con tipo `uuid`, no la entidad: ver la nota de `findRoomIdsForPull()`.
             ->setParameter('u', $unidad->getId(), UuidType::NAME)
             ->addOrderBy('m.activo', 'DESC')
-            ->addOrderBy('m.esPrincipal', 'DESC')
             ->addOrderBy('m.id', 'ASC')
             ->setMaxResults(1)
             ->getQuery()
@@ -45,7 +44,6 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
             // ⚠️ El id con tipo `uuid`, no la entidad: ver la nota de `findRoomIdsForPull()`.
             ->setParameter('u', $unidad->getId(), UuidType::NAME)
             ->addOrderBy('m.activo', 'DESC')
-            ->addOrderBy('m.esPrincipal', 'DESC')
             ->addOrderBy('m.id', 'ASC')
             ->getQuery()
             ->getResult();
@@ -70,7 +68,9 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('m')
             ->select('DISTINCT m.beds24RoomId AS roomId')
-            ->andWhere('m.config = :config')
+            ->innerJoin('m.virtualEstablecimiento', 've')
+            ->innerJoin('ve.establecimiento', 'e')
+            ->andWhere('e.beds24Config = :config')
             ->andWhere('m.activo = :activo')
             ->andWhere('m.beds24RoomId IS NOT NULL')
             ->setParameter('config', $config->getId(), UuidType::NAME)
@@ -108,7 +108,9 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('m')
             ->select('DISTINCT m.beds24PropertyId AS propertyId')
-            ->andWhere('m.config = :config')
+            ->innerJoin('m.virtualEstablecimiento', 've')
+            ->innerJoin('ve.establecimiento', 'e')
+            ->andWhere('e.beds24Config = :config')
             ->andWhere('m.activo = :activo')
             ->andWhere('m.beds24PropertyId IS NOT NULL')
             ->setParameter('config', $config->getId(), UuidType::NAME)

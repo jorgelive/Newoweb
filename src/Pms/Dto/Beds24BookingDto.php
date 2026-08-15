@@ -14,8 +14,6 @@ final class Beds24BookingDto
         public readonly ?int $masterId,    // El ID calculado (Padre)
         public readonly ?int $propertyId,
         public readonly ?int $roomId,
-        // ✅ Estructura cruda del grupo para acceso a 'ids' o validaciones futuras
-        public readonly ?array $bookingGroup = null,
         public readonly ?string $status,
         public readonly ?string $subStatus,
         public readonly ?string $arrival,
@@ -41,8 +39,21 @@ final class Beds24BookingDto
         public readonly ?DateTimeInterface $modifiedTime,
         public readonly ?string $custom1 = null,
         public readonly ?string $custom2 = null,
+        /**
+         * Estructura cruda del grupo, para llegar a `master` o a `ids`.
+         *
+         * ⚠️ Estaba declarado ANTES de los obligatorios. PHP marca eso como obsoleto desde la
+         * 8.0 —«optional parameter declared before required parameter»— y además el `= null` no
+         * servía de nada: quien construyera por posición tenía que pasarlo igual. Se mueve al
+         * final, donde el valor por defecto sí significa algo. Es seguro porque el único sitio
+         * que lo construye, `fromArray()`, usa argumentos nombrados.
+         *
+         * @var array<string, mixed>|null
+         */
+        public readonly ?array $bookingGroup = null,
     ) {}
 
+    /** @param array<string, mixed> $booking Una reserva tal como la devuelve la API de Beds24. */
     public static function fromArray(array $booking): self
     {
         // 1. Capturamos el grupo entero (si viene)

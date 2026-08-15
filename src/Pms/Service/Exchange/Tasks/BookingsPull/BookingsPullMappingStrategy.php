@@ -57,8 +57,20 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
         foreach ($job->getUnidades() as $unidad) {
             /** @var PmsUnidad $unidad */
             foreach ($unidad->getBeds24Maps() as $map) {
-                // Validación estricta: El mapa debe pertenecer a la cuenta que estamos consultando
-                if ($map->getConfig()->getId() === $config->getId()) {
+                // Validación estricta: el mapa debe pertenecer a la cuenta que estamos
+                // consultando.
+                //
+                // ⚠️ Aquí había `$map->getConfig()`, un método que NO EXISTE en
+                // `PmsUnidadBeds24Map` —ni la columna—: era un `Error` fatal esperando. No había
+                // saltado nunca porque este bucle sólo corre con jobs acotados a unidades y no
+                // hay ninguno (0 filas en `pms_pull_queue_job_unidad`). El día que se creara el
+                // primero, el pull entero se caía.
+                //
+                // La cuenta se alcanza por la relación que sí está modelada:
+                // mapa → establecimiento virtual → establecimiento → config.
+                $configDelMapa = $map->getVirtualEstablecimiento()?->getEstablecimiento()?->getBeds24Config();
+
+                if (null !== $configDelMapa && $configDelMapa->getId() === $config->getId()) {
                     $roomIds[] = (int)$map->getBeds24RoomId();
                 }
             }

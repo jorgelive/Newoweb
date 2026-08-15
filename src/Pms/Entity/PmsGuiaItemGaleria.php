@@ -39,6 +39,7 @@ class PmsGuiaItemGaleria
     )]
     private ?PmsGuiaItem $item = null;
 
+    /** @var list<array{language?: string, content?: string|null}>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $descripcion = [];
@@ -97,12 +98,18 @@ class PmsGuiaItemGaleria
     public function getImageName(): ?string { return $this->imageName; }
     public function setImageName(?string $imageName): void { $this->imageName = $imageName; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     public function getDescripcion(): array
     {
         return MaestroIdioma::ordenarParaFormulario($this->descripcion ?? []);
     }
 
+    /**
+     * @param list<array{language?: string, content?: string|null}>|null $descripcion
+     */
     public function setDescripcion(?array $descripcion): self
     {
         $this->descripcion = MaestroIdioma::normalizarParaDB($descripcion ?? []);

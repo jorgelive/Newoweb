@@ -140,12 +140,24 @@ class PmsCatalogo
     public function isActivo(): bool { return $this->activo; }
     public function setActivo(bool $activo): self { $this->activo = $activo; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['pax_catalogo:read'])]
     public function getTitulo(): array { return $this->titulo; }
+    /**
+     * @param list<array{language?: string, content?: string|null}> $titulo
+     */
     public function setTitulo(array $titulo): self { $this->titulo = $titulo; return $this; }
 
+    /**
+     * @return list<array{language?: string, content?: string|null}>|null
+     */
     #[Groups(['pax_catalogo:read'])]
     public function getSubtitulo(): ?array { return $this->subtitulo; }
+    /**
+     * @param list<array{language?: string, content?: string|null}>|null $subtitulo
+     */
     public function setSubtitulo(?array $subtitulo): self { $this->subtitulo = $subtitulo; return $this; }
 
     /** @return Collection<int, PmsCatalogoHasItem> */

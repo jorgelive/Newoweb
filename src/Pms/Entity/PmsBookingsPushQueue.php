@@ -85,6 +85,7 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface, MemoryCleanabl
     #[ORM\Column(name: 'last_response_raw', type: 'text', nullable: true)]
     private ?string $lastResponseRaw = null;
 
+    /** @var array<string, mixed>|null Volcado de la respuesta del canal; su forma la fija el proveedor. */
     #[ORM\Column(name: 'execution_result', type: 'json', nullable: true)]
     private ?array $executionResult = null;
 
@@ -245,7 +246,13 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface, MemoryCleanabl
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getExecutionResult(): ?array { return $this->executionResult; }
+    /**
+     * @param array<string, mixed>|null $result
+     */
     public function setExecutionResult(?array $result): self {
         $this->executionResult = $result;
         return $this;

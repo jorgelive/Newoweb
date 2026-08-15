@@ -55,12 +55,14 @@ class PmsBeds24WebhookAudit
     #[ORM\Column(name: 'remote_ip', type: 'string', length: 64, nullable: true)]
     private ?string $remoteIp = null;
 
+    /** @var array<string, mixed>|null Cabeceras HTTP tal cual llegaron. */
     #[ORM\Column(name: 'headers_json', type: 'json', nullable: true)]
     private ?array $headers = null;
 
     #[ORM\Column(name: 'payload_raw', type: 'text')]
     private ?string $payloadRaw = null;
 
+    /** @var array<string, mixed>|null El cuerpo del webhook, sin tocar: es una auditoría. */
     #[ORM\Column(name: 'payload_json', type: 'json', nullable: true)]
     private ?array $payload = null;
 
@@ -70,6 +72,7 @@ class PmsBeds24WebhookAudit
     #[ORM\Column(name: 'error_message', type: 'text', nullable: true)]
     private ?string $errorMessage = null;
 
+    /** @var array<string, mixed>|null Lo que anotó nuestro procesamiento. */
     #[ORM\Column(name: 'processing_meta', type: 'json', nullable: true)]
     private ?array $processingMeta = null;
 
@@ -117,11 +120,17 @@ class PmsBeds24WebhookAudit
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getHeaders(): ?array
     {
         return $this->headers;
     }
 
+    /**
+     * @param array<string, mixed>|null $headers
+     */
     public function setHeaders(?array $headers): self
     {
         $this->headers = $headers;
@@ -139,11 +148,17 @@ class PmsBeds24WebhookAudit
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getPayload(): ?array
     {
         return $this->payload;
     }
 
+    /**
+     * @param array<string, mixed>|null $payload
+     */
     public function setPayload(?array $payload): self
     {
         $this->payload = $payload;
@@ -172,11 +187,17 @@ class PmsBeds24WebhookAudit
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getProcessingMeta(): ?array
     {
         return $this->processingMeta;
     }
 
+    /**
+     * @param array<string, mixed>|null $processingMeta
+     */
     public function setProcessingMeta(?array $processingMeta): self
     {
         $this->processingMeta = $processingMeta;
