@@ -20,6 +20,10 @@ final readonly class Beds24SendHandler implements ExchangeHandlerInterface
         private MessageJsonMerger      $merger
     ) {}
 
+    /**
+     * @param array<string, mixed> $data Respuesta cruda del canal.
+     * @return array<string, mixed>
+     */
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {
         if (!$item instanceof Beds24SendQueue) {

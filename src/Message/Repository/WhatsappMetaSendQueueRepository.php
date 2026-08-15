@@ -12,6 +12,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * Repositorio para la cola de envío de WhatsApp (Meta).
  */
+/** @extends AbstractExchangeRepository<WhatsappMetaSendQueue> */
 final class WhatsappMetaSendQueueRepository extends AbstractExchangeRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -27,6 +28,10 @@ final class WhatsappMetaSendQueueRepository extends AbstractExchangeRepository
 
     /**
      * @param string[] $ids IDs en formato BINARIO (16 bytes)
+     */
+    /**
+     * @param  list<string> $ids IDs en BINARIO de 16 bytes, como los guarda la columna.
+     * @return list<WhatsappMetaSendQueue>
      */
     protected function hydrateItems(array $ids): array
     {

@@ -22,6 +22,9 @@ final readonly class Beds24WebhookMessageFastTrackService
     /**
      * Procesa UN solo mensaje proveniente del webhook.
      * @throws Throwable Si algo falla, el Controller captura y loguea.
+     *
+     * @param array<string, mixed> $messageData
+     * @return array<string, mixed>
      */
     public function process(string $token, array $messageData): array
     {

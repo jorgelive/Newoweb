@@ -59,6 +59,9 @@ final readonly class WhatsappMetaSendQueueProvider implements ExchangeQueueProvi
 
     /**
      * ✅ NUEVO: Método Proxy para obtener metadatos sin exponer el Repositorio completo.
+     *
+     * @param list<string> $ids
+     * @return array<string, mixed> Metadatos de agrupación por lote.
      */
     public function getGroupingMetadata(array $ids): array
     {

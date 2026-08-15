@@ -16,7 +16,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[AsDoctrineListener(event: Events::postFlush, priority: 200)]
 final class MessagerDispatcherSendQueueEventListener
 {
+    /** @var list<string> */
     private array $beds24QueuedIds = [];
+    /** @var list<string> */
     private array $whatsapoMetaQueuedIds = [];
 
     public function __construct(private readonly MessageBusInterface $bus) {}

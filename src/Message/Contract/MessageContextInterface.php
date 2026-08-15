@@ -63,6 +63,9 @@ interface MessageContextInterface
      */
     public function getMilestones(): MapaDeHitos;
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function getItems(): array;
     public function getFinancialTotal(): ?float;
     public function isFinancialCleared(): bool;

@@ -376,6 +376,7 @@ class MessageTemplateCrudController extends BaseCrudController
      *   antesala de las gemelas `*_META` que fabrica el cron.
      *
      * El resultado va en una tabla con scroll propio; la página no crece con el listado.
+     *
      */
     public function executeInventarioMeta(
         AdminContext $context,
@@ -415,6 +416,7 @@ class MessageTemplateCrudController extends BaseCrudController
      * @param WhatsappMetaTemplateSyncService $syncService Orquestador unificado de sincronización de Meta.
      * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs para la redirección post-ejecución.
      * @return Response Redirección al listado principal del CRUD.
+     *
      */
     public function executeMetaSync(
         AdminContext $context,
@@ -459,6 +461,7 @@ class MessageTemplateCrudController extends BaseCrudController
      * @param WhatsappMetaTemplatePushService $pushService Servicio encargado de formatear y subir la plantilla a Meta.
      * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs.
      * @return Response Redirección a la vista previa.
+     *
      */
     public function executePushToMeta(
         AdminContext $context,

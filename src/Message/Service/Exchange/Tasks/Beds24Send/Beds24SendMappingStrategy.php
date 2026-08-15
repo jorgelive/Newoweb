@@ -229,6 +229,9 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
      * @param array $apiResponse
      * @param MappingResult $mapping
      * @return array<string, ItemResult>
+     *
+     * @param array<string, mixed> $apiResponse
+     * @return array<string, mixed>
      */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
@@ -261,6 +264,8 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
      * Soporta dos contextos visuales:
      * - header_options: Para menús mixtos o interactivos.
      * - header_links: Para menús que solo contienen URLs (sin interacción del usuario).
+     *
+     * @return array<string, string> Los textos del menú en el idioma pedido.
      */
     private function getMenuTranslations(string $lang): array
     {

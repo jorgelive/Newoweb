@@ -98,6 +98,7 @@ class Beds24SendQueueCrudController extends BaseCrudController
      * @param FieldCollection  $fields    Campos configurados en el CRUD.
      * @param FilterCollection $filters   Filtros aplicados desde el panel lateral.
      * * @return QueryBuilder
+     *
      */
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
     {

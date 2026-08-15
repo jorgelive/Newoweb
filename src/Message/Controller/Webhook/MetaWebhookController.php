@@ -259,6 +259,9 @@ final class MetaWebhookController extends AbstractController
         $this->persistAudit($audit);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function prettyJson(array $data, int $status = 200): JsonResponse
     {
         return new JsonResponse($data, $status)

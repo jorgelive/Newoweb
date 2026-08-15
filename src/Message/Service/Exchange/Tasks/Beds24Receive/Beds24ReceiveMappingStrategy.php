@@ -54,6 +54,10 @@ final readonly class Beds24ReceiveMappingStrategy implements MappingStrategyInte
         );
     }
 
+    /**
+     * @param array<string, mixed> $apiResponse
+     * @return array<string, mixed>
+     */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
         /** @var array<string, string[]> $correlacion bookingId => ids de cola */

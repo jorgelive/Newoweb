@@ -9,6 +9,7 @@ use App\Message\Entity\Beds24ReceiveQueue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
+/** @extends AbstractExchangeRepository<Beds24ReceiveQueue> */
 final class Beds24ReceiveQueueRepository extends AbstractExchangeRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -23,6 +24,10 @@ final class Beds24ReceiveQueueRepository extends AbstractExchangeRepository
 
     /**
      * @param string[] $ids IDs en formato BINARIO (16 bytes)
+     */
+    /**
+     * @param  list<string> $ids IDs en BINARIO de 16 bytes, como los guarda la columna.
+     * @return list<Beds24ReceiveQueue>
      */
     protected function hydrateItems(array $ids): array
     {

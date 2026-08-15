@@ -35,4 +35,12 @@ interface ChannelConfigInterface
      * Indica si la configuración del canal está operativa.
      */
     public function isActivo(): ?bool;
+
+    /**
+     * Nombre legible de la configuración, para mensajes de error y trazas.
+     *
+     * Está en las dos implementaciones (`Beds24Config` y `MetaConfig`) desde siempre; faltaba
+     * en el contrato.
+     */
+    public function getNombre(): ?string;
 }

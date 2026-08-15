@@ -36,6 +36,8 @@ readonly class MessageDispatcher
      *
      * @param Message $message La entidad mensaje original.
      * @return array Un arreglo con las entidades de cola creadas (ej. Beds24SendQueue).
+     *
+     * @return array<string, mixed> Resultado por canal.
      */
     public function dispatch(Message $message): array
     {

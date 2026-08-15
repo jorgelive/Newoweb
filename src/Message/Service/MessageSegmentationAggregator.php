@@ -18,6 +18,9 @@ class MessageSegmentationAggregator
         private iterable $providers
     ) {}
 
+    /**
+     * @return array<string, string> Etiqueta visible => valor, para los selectores del panel.
+     */
     public function getSourceChoices(): array
     {
         $allChoices = [];
@@ -29,6 +32,9 @@ class MessageSegmentationAggregator
         return $allChoices;
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function getAgencyChoices(): array
     {
         $allChoices = [];

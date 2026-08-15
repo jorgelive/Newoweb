@@ -12,6 +12,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * Repositorio para la cola de envío de mensajes a Beds24.
  */
+/** @extends AbstractExchangeRepository<Beds24SendQueue> */
 final class Beds24SendQueueRepository extends AbstractExchangeRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -28,6 +29,10 @@ final class Beds24SendQueueRepository extends AbstractExchangeRepository
     /**
      * Hidratación optimizada para el Worker.
      * @param string[] $ids IDs en formato BINARIO (16 bytes)
+     */
+    /**
+     * @param  list<string> $ids IDs en BINARIO de 16 bytes, como los guarda la columna.
+     * @return list<Beds24SendQueue>
      */
     protected function hydrateItems(array $ids): array
     {

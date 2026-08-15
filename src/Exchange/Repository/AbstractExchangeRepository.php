@@ -23,7 +23,9 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
 
     /**
      * Hidrata los objetos completos de Doctrine a partir de IDs binarios.
-     * @param string[] $ids Array de IDs en formato BINARIO (16 bytes)
+     *
+     * @param  list<string> $ids IDs en formato BINARIO (16 bytes)
+     * @return list<T>
      */
     abstract protected function hydrateItems(array $ids): array;
 

@@ -17,6 +17,8 @@ readonly class MessageJsonMerger
      * Realiza un UPDATE atómico a nivel de base de datos usando JSON_MERGE_PATCH.
      * Esto ignora por completo la memoria de PHP y las transacciones, garantizando
      * que procesos concurrentes (Webhooks y Workers) nunca sobreescriban sus datos mutuamente.
+     *
+     * @param array<string, mixed> $metaData Lo que se funde dentro de la clave `$metaKey`.
      */
     public function merge(
         Message $message,

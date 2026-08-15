@@ -64,6 +64,10 @@ final readonly class Beds24ReceiveTask implements ExchangeTaskInterface
         return $this->strategy;
     }
 
+    /**
+     * @param list<string> $ids
+     * @return array<string, mixed> Metadatos de agrupación por lote.
+     */
     public function getGroupingMetadata(array $ids): array
     {
         return $this->provider->getGroupingMetadata($ids);

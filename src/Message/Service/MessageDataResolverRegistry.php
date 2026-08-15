@@ -10,9 +10,11 @@ use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 class MessageDataResolverRegistry
 {
     /** @var iterable<MessageDataResolverInterface> */
+    /** @var iterable<MessageDataResolverInterface> */
     private iterable $resolvers;
 
     public function __construct(
+        /** @param iterable<MessageDataResolverInterface> $resolvers */
         #[TaggedIterator('app.message_data_resolver')] iterable $resolvers
     ) {
         $this->resolvers = $resolvers;

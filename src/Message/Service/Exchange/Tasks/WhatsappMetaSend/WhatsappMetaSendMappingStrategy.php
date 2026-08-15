@@ -13,6 +13,7 @@ use App\Message\Entity\MessageAttachment;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\Formato\FormatoDeTexto;
 use App\Message\Service\MessageDataResolverRegistry;
+use App\Exchange\Entity\MetaConfig;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Vich\UploaderBundle\Storage\StorageInterface;
@@ -48,7 +49,18 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
         $config = $batch->getConfig();
         $endpoint = $batch->getEndpoint();
 
-        // 1. Extraemos el Phone ID de la configuración
+        // 1. Extraemos el Phone ID de la configuración.
+        //
+        // El contrato `ChannelConfigInterface` NO declara `getCredential()`, y no puede: sólo lo
+        // tiene `MetaConfig`, no `Beds24Config`. Esta estrategia es de Meta por definición, así
+        // que se comprueba aquí en vez de ensanchar el contrato para todos.
+        if (!$config instanceof MetaConfig) {
+            throw new RuntimeException(sprintf(
+                'La estrategia de envío de WhatsApp Meta necesita una MetaConfig, y recibió %s.',
+                $config::class,
+            ));
+        }
+
         $phoneId = $config->getCredential('phoneId');
 
         if (!$phoneId) {
@@ -415,6 +427,9 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
     /**
      * Analiza la respuesta de la API Cloud de Meta para determinar el éxito del envío o lectura.
+     *
+     * @param array<string, mixed> $apiResponse
+     * @return array<string, mixed>
      */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
@@ -448,6 +463,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
     /**
      * Interpola variables dinámicas en el texto libre usando Regex.
+     *
+     * @param array<string, mixed> $variables
      */
     private function hydrateVariables(string $content, array $variables): string
     {
@@ -484,6 +501,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
      * Soporta dos contextos visuales:
      * - header_options: Para menús mixtos o interactivos.
      * - header_links: Para menús que solo contienen URLs (sin interacción del usuario).
+     *
+     * @return array<string, string> Los textos del menú en el idioma pedido.
      */
     private function getMenuTranslations(string $lang): array
     {

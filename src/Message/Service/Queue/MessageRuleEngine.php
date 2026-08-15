@@ -495,6 +495,8 @@ final readonly class MessageRuleEngine
      * viejas— vive ahora en {@see MomentoDeHito::de()}, que es el único sitio del módulo que
      * convierte. Antes esto era una de cinco copias de la misma decisión, y la que se olvidó de
      * escribir tumbó la sincronización de reservas canceladas (`docs/Mensajeria.md` §22.16).
+     *
+     * @param string|DateTimeInterface|array{date?: string} $raw
      */
     private function parseMilestone(string|DateTimeInterface|array $raw): ?DateTimeImmutable
     {

@@ -69,6 +69,9 @@ readonly class MessageFactory
         return $message;
     }
 
+    /**
+     * @param list<string> $targetChannels Códigos de canal a los que forzar el envío.
+     */
     public function createOutboundProgrammatic(
         MessageConversation $conversation,
         string $content,

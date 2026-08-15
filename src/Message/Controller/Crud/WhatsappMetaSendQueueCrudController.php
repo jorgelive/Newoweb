@@ -96,6 +96,7 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
      * @param FilterCollection $filters   Filtros aplicados desde el panel lateral.
      *
      * @return QueryBuilder
+     *
      */
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
     {

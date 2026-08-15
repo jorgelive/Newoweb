@@ -158,6 +158,7 @@ final class MetaWebhookAuditCrudController extends BaseCrudController
     /**
      * 🔥 LÓGICA DE LA ACCIÓN PERSONALIZADA (Modo Sincrónico FastTrack)
      * Extrae el payload de la base de datos y lo vuelve a pasar por el FastTrackService.
+     *
      */
     public function retryWebhookAction(
         AdminContext $context,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use Symfony\Component\Uid\Uuid;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
@@ -315,6 +316,8 @@ class MessageCrudController extends BaseCrudController
 
     /**
      * Evalúa las plantillas contra los datos en vivo.
+     *
+     * @return list<Uuid>
      */
     private function getValidTemplateIds(MessageConversation $conversation): array
     {

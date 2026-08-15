@@ -15,9 +15,10 @@
 # Escritas de golpe, las tres versiones equivocadas se habrían quedado, y un tipo mentiroso es
 # PEOR que ninguno: el analizador se lo cree y deja de mirar.
 #
-# Hecho en `src/Message/`: todas las ENTIDADES, los dos DTO de Mercure y los servicios de Meta.
-# El módulo va de 236 avisos a 104. Siguiente: las estrategias de Exchange y los CRUD. Después,
-# `src/Pms/` (191).
+# Hecho en `src/Message/`: entidades, DTO de Mercure, servicios de Meta y Exchange, repositorios
+# y CRUD. El módulo va de 236 avisos a 47, y lo que queda ya NO son tipos: son redundancias
+# (`??` sobre lo que nunca es null, comparaciones siempre ciertas) y genéricos de EasyCorp.
+# Siguiente: `src/Pms/` (191).
 #
 # El resto (~250) es REDUNDANCIA heredada del salto de nivel: un `??` sobre algo que nunca es
 # null, comparaciones que siempre dan lo mismo. Quitarlas a ciegas es peligroso —con entidades de
@@ -1807,12 +1808,6 @@ parameters:
 			path: src/Exchange/Repository/AbstractExchangeRepository.php
 
 		-
-			message: '#^Method App\\Exchange\\Repository\\AbstractExchangeRepository\:\:hydrateItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Repository/AbstractExchangeRepository.php
-
-		-
 			message: '#^Method App\\Exchange\\Repository\\AbstractExchangeRepository\:\:lockItems\(\) has parameter \$binaryIds with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -2029,8 +2024,8 @@ parameters:
 			path: src/Finanzas/Service/FinEnlacePagoService.php
 
 		-
-			message: '#^Class App\\Message\\ApiPlatform\\State\\MessageMultipartProcessor implements generic interface ApiPlatform\\State\\ProcessorInterface but does not specify its types\: T1, T2$#'
-			identifier: missingType.generics
+			message: '#^Instanceof between App\\Message\\Entity\\Message and App\\Message\\Entity\\Message will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
 			path: src/Message/ApiPlatform/State/MessageMultipartProcessor.php
 
@@ -2039,12 +2034,6 @@ parameters:
 			identifier: missingType.generics
 			count: 1
 			path: src/Message/ApiPlatform/State/MessageMultipartProcessor.php
-
-		-
-			message: '#^Method App\\Message\\Contract\\MessageContextInterface\:\:getItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Contract/MessageContextInterface.php
 
 		-
 			message: '#^Method App\\Message\\Controller\\Crud\\Beds24SendQueueCrudController\:\:createIndexQueryBuilder\(\) has parameter \$entityDto with generic class EasyCorp\\Bundle\\EasyAdminBundle\\Dto\\EntityDto but does not specify its types\: TEntity$#'
@@ -2067,12 +2056,6 @@ parameters:
 		-
 			message: '#^Call to function method_exists\(\) with \$this\(App\\Message\\Controller\\Crud\\MessageCrudController\) and ''isEmbedded'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Message/Controller/Crud/MessageCrudController.php
-
-		-
-			message: '#^Method App\\Message\\Controller\\Crud\\MessageCrudController\:\:getValidTemplateIds\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Message/Controller/Crud/MessageCrudController.php
 
@@ -2125,18 +2108,6 @@ parameters:
 			path: src/Message/Controller/Crud/WhatsappMetaSendQueueCrudController.php
 
 		-
-			message: '#^Method App\\Message\\Controller\\Webhook\\MetaWebhookController\:\:prettyJson\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Controller/Webhook/MetaWebhookController.php
-
-		-
-			message: '#^Method App\\Message\\Dto\\Beds24MessageDto\:\:fromArray\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Dto/Beds24MessageDto.php
-
-		-
 			message: '#^Property App\\Message\\Entity\\Beds24ReceiveQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -2173,12 +2144,6 @@ parameters:
 			path: src/Message/Entity/MessageConversation.php
 
 		-
-			message: '#^PHPDoc tag @return with type list\<string\>\|null is not subtype of native type array\.$#'
-			identifier: return.phpDocType
-			count: 2
-			path: src/Message/Entity/MessageRule.php
-
-		-
 			message: '#^Call to function is_array\(\) with array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\} will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -2203,18 +2168,6 @@ parameters:
 			path: src/Message/Entity/MessageTemplate.php
 
 		-
-			message: '#^Property App\\Message\\EventListener\\Exchange\\MessagerDispatcherSendQueueEventListener\:\:\$beds24QueuedIds type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/EventListener/Exchange/MessagerDispatcherSendQueueEventListener.php
-
-		-
-			message: '#^Property App\\Message\\EventListener\\Exchange\\MessagerDispatcherSendQueueEventListener\:\:\$whatsapoMetaQueuedIds type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/EventListener/Exchange/MessagerDispatcherSendQueueEventListener.php
-
-		-
 			message: '#^Strict comparison using \!\=\= between 2 and 2 will always evaluate to false\.$#'
 			identifier: notIdentical.alwaysFalse
 			count: 1
@@ -2233,80 +2186,8 @@ parameters:
 			path: src/Message/Factory/MessageConversationFactory.php
 
 		-
-			message: '#^Method App\\Message\\Factory\\MessageFactory\:\:createOutboundProgrammatic\(\) has parameter \$targetChannels with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Factory/MessageFactory.php
-
-		-
-			message: '#^Class App\\Message\\Repository\\Beds24ReceiveQueueRepository extends generic class App\\Exchange\\Repository\\AbstractExchangeRepository but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Message/Repository/Beds24ReceiveQueueRepository.php
-
-		-
-			message: '#^Method App\\Message\\Repository\\Beds24ReceiveQueueRepository\:\:hydrateItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Repository/Beds24ReceiveQueueRepository.php
-
-		-
-			message: '#^Class App\\Message\\Repository\\Beds24SendQueueRepository extends generic class App\\Exchange\\Repository\\AbstractExchangeRepository but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Message/Repository/Beds24SendQueueRepository.php
-
-		-
-			message: '#^Method App\\Message\\Repository\\Beds24SendQueueRepository\:\:hydrateItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Repository/Beds24SendQueueRepository.php
-
-		-
-			message: '#^Class App\\Message\\Repository\\WhatsappMetaSendQueueRepository extends generic class App\\Exchange\\Repository\\AbstractExchangeRepository but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Message/Repository/WhatsappMetaSendQueueRepository.php
-
-		-
-			message: '#^Method App\\Message\\Repository\\WhatsappMetaSendQueueRepository\:\:hydrateItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Repository/WhatsappMetaSendQueueRepository.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Beds24\\Webhook\\Beds24WebhookMessageFastTrackService\:\:process\(\) has parameter \$messageData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Beds24/Webhook/Beds24WebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Beds24\\Webhook\\Beds24WebhookMessageFastTrackService\:\:process\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Beds24/Webhook/Beds24WebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Receive\\Beds24ReceiveHandler\:\:handleSuccess\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveHandler.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Receive\\Beds24ReceiveHandler\:\:handleSuccess\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveHandler.php
-
-		-
 			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:getTargetBookId\(\)\.$#'
 			identifier: method.notFound
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveMappingStrategy.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Receive\\Beds24ReceiveMappingStrategy\:\:parseResponse\(\) has parameter \$apiResponse with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveMappingStrategy.php
 
@@ -2317,58 +2198,10 @@ parameters:
 			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceivePersister.php
 
 		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Receive\\Beds24ReceiveQueueProvider\:\:getGroupingMetadata\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveQueueProvider.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Receive\\Beds24ReceiveQueueProvider\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveQueueProvider.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Receive\\Beds24ReceiveQueueProvider\:\:packItems\(\) has parameter \$items with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveQueueProvider.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Receive\\Beds24ReceiveTask\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveTask.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendHandler\:\:handleSuccess\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendHandler.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendHandler\:\:handleSuccess\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendHandler.php
-
-		-
 			message: '#^Property App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendHandler\:\:\$em is never read, only written\.$#'
 			identifier: property.onlyWritten
 			count: 1
 			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendHandler.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendMappingStrategy\:\:getMenuTranslations\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendMappingStrategy.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendMappingStrategy\:\:parseResponse\(\) has parameter \$apiResponse with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendMappingStrategy.php
 
 		-
 			message: '#^Offset ''content'' on array\{type\?\: string\|null, index\?\: int\|string\|null, resolver_key\?\: string\|null, payload\?\: mixed, button_text\?\: list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\}\>\} on left side of \?\? does not exist\.$#'
@@ -2377,76 +2210,10 @@ parameters:
 			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendMappingStrategy.php
 
 		-
-			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\EndpointInterface\:\:getId\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendQueueProvider.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendQueueProvider\:\:getGroupingMetadata\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendQueueProvider.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendQueueProvider\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendQueueProvider.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendTask\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendTask.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendHandler\:\:handleSuccess\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendHandler.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendHandler\:\:handleSuccess\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendHandler.php
-
-		-
 			message: '#^Property App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendHandler\:\:\$em is never read, only written\.$#'
 			identifier: property.onlyWritten
 			count: 1
 			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendHandler.php
-
-		-
-			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ChannelConfigInterface\:\:getCredential\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
-
-		-
-			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ChannelConfigInterface\:\:getNombre\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendMappingStrategy\:\:getMenuTranslations\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendMappingStrategy\:\:hydrateVariables\(\) has parameter \$variables with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendMappingStrategy\:\:parseResponse\(\) has parameter \$apiResponse with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
 
 		-
 			message: '#^Offset ''content'' on array\{type\?\: string\|null, index\?\: int\|string\|null, resolver_key\?\: string\|null, payload\?\: mixed, button_text\?\: list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\}\>\} on left side of \?\? does not exist\.$#'
@@ -2461,52 +2228,10 @@ parameters:
 			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
 
 		-
-			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\EndpointInterface\:\:getId\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendQueueProvider.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendQueueProvider\:\:getGroupingMetadata\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendQueueProvider.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendQueueProvider\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendQueueProvider.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendTask\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendTask.php
-
-		-
 			message: '#^Method App\\Message\\Service\\MessageDataResolverRegistry\:\:__construct\(\) has parameter \$resolvers with no value type specified in iterable type iterable\.$#'
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Message/Service/MessageDataResolverRegistry.php
-
-		-
-			message: '#^Method App\\Message\\Service\\MessageJsonMerger\:\:merge\(\) has parameter \$metaData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/MessageJsonMerger.php
-
-		-
-			message: '#^Method App\\Message\\Service\\MessageSegmentationAggregator\:\:getAgencyChoices\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/MessageSegmentationAggregator.php
-
-		-
-			message: '#^Method App\\Message\\Service\\MessageSegmentationAggregator\:\:getSourceChoices\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/MessageSegmentationAggregator.php
 
 		-
 			message: '#^Method App\\Message\\Service\\Meta\\Template\\WhatsappMetaTemplatePushService\:\:generateNamedExamples\(\) should return array\{list\<string\>, list\<string\>\} but returns array\{\}\.$#'
@@ -2533,68 +2258,14 @@ parameters:
 			path: src/Message/Service/Meta/Template/WhatsappMetaTemplatePushService.php
 
 		-
-			message: '#^Method App\\Message\\Service\\Meta\\Webhook\\WhatsappMetaWebhookMessageFastTrackService\:\:processCall\(\) has parameter \$callData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Meta/Webhook/WhatsappMetaWebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Meta\\Webhook\\WhatsappMetaWebhookMessageFastTrackService\:\:processCall\(\) has parameter \$contactData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Meta/Webhook/WhatsappMetaWebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Meta\\Webhook\\WhatsappMetaWebhookMessageFastTrackService\:\:processCall\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Meta/Webhook/WhatsappMetaWebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Meta\\Webhook\\WhatsappMetaWebhookMessageFastTrackService\:\:processMessage\(\) has parameter \$contactData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Meta/Webhook/WhatsappMetaWebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Meta\\Webhook\\WhatsappMetaWebhookMessageFastTrackService\:\:processMessage\(\) has parameter \$messageData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Meta/Webhook/WhatsappMetaWebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Meta\\Webhook\\WhatsappMetaWebhookMessageFastTrackService\:\:processMessage\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Meta/Webhook/WhatsappMetaWebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Meta\\Webhook\\WhatsappMetaWebhookMessageFastTrackService\:\:processStatus\(\) has parameter \$statusData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Meta/Webhook/WhatsappMetaWebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Meta\\Webhook\\WhatsappMetaWebhookMessageFastTrackService\:\:processStatus\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/Meta/Webhook/WhatsappMetaWebhookMessageFastTrackService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Queue\\MessageDispatcher\:\:dispatch\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Method App\\Message\\Service\\Queue\\MessageDispatcher\:\:dispatch\(\) should return array\<string, mixed\> but returns list\<App\\Message\\Contract\\MessageQueueItemInterface\>\.$#'
+			identifier: return.type
 			count: 1
 			path: src/Message/Service/Queue/MessageDispatcher.php
 
 		-
 			message: '#^Instanceof between App\\Message\\Contract\\MessageQueueItemInterface and App\\Message\\Contract\\MessageQueueItemInterface will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Message/Service/Queue/MessageRuleEngine.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Queue\\MessageRuleEngine\:\:parseMilestone\(\) has parameter \$raw with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Message/Service/Queue/MessageRuleEngine.php
 
@@ -3883,20 +3554,8 @@ parameters:
 			path: src/Pms/Naming/HuespedNamer.php
 
 		-
-			message: '#^Method App\\Pms\\Repository\\Beds24InvoiceReceiveQueueRepository\:\:hydrateItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Repository/Beds24InvoiceReceiveQueueRepository.php
-
-		-
 			message: '#^Class App\\Pms\\Repository\\PmsBookingsPullQueueRepository extends generic class App\\Exchange\\Repository\\AbstractExchangeRepository but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: src/Pms/Repository/PmsBookingsPullQueueRepository.php
-
-		-
-			message: '#^Method App\\Pms\\Repository\\PmsBookingsPullQueueRepository\:\:hydrateItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Pms/Repository/PmsBookingsPullQueueRepository.php
 
@@ -3907,22 +3566,10 @@ parameters:
 			path: src/Pms/Repository/PmsBookingsPushQueueRepository.php
 
 		-
-			message: '#^Method App\\Pms\\Repository\\PmsBookingsPushQueueRepository\:\:hydrateItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Repository/PmsBookingsPushQueueRepository.php
-
-		-
 			message: '#^Class App\\Pms\\Repository\\PmsGuiaItemGaleriaRepository extends generic class Doctrine\\Bundle\\DoctrineBundle\\Repository\\ServiceEntityRepository but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: src/Pms/Repository/PmsGuiaItemGaleriaRepository.php
-
-		-
-			message: '#^Method App\\Pms\\Repository\\PmsRatesPushQueueRepository\:\:hydrateItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Repository/PmsRatesPushQueueRepository.php
 
 		-
 			message: '#^Class App\\Pms\\Repository\\PmsReservaHuespedRepository has PHPDoc tag @method for method findBy\(\) parameter \#1 \$criteria with no value type specified in iterable type array\.$#'
@@ -4315,8 +3962,8 @@ parameters:
 			path: src/Pms/Service/Message/PmsReservaMessageContext.php
 
 		-
-			message: '#^Method App\\Pms\\Service\\Message\\PmsReservaMessageContext\:\:getItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Method App\\Pms\\Service\\Message\\PmsReservaMessageContext\:\:getItems\(\) should return list\<array\<string, mixed\>\> but returns non\-empty\-list\<string\>\.$#'
+			identifier: return.type
 			count: 1
 			path: src/Pms/Service/Message/PmsReservaMessageContext.php
 

@@ -28,6 +28,11 @@ final readonly class WhatsappMetaWebhookMessageFastTrackService
      * @throws Throwable
      */
 
+    /**
+     * @param array<string, mixed> $messageData
+     * @param array<string, mixed> $contactData
+     * @return array<string, mixed>
+     */
     public function processMessage(array $messageData, array $contactData): array
     {
         $this->validateConfig();
@@ -63,6 +68,9 @@ final readonly class WhatsappMetaWebhookMessageFastTrackService
     /**
      * Procesa UN solo cambio de estado (Enviado, Entregado, Leído, Fallido).
      * @throws Throwable
+     *
+     * @param array<string, mixed> $statusData
+     * @return array<string, mixed>
      */
     public function processStatus(array $statusData): array
     {
@@ -87,6 +95,10 @@ final readonly class WhatsappMetaWebhookMessageFastTrackService
     /**
      * 🔥 NUEVO: Procesa un intento de llamada (Call Event).
      * @throws Throwable
+     *
+     * @param array<string, mixed> $callData
+     * @param array<string, mixed> $contactData
+     * @return array<string, mixed>
      */
     public function processCall(array $callData, array $contactData): array
     {

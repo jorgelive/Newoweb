@@ -24,6 +24,10 @@ final readonly class WhatsappMetaSendHandler implements ExchangeHandlerInterface
         private MessageJsonMerger      $merger
     ) {}
 
+    /**
+     * @param array<string, mixed> $data Respuesta cruda del canal.
+     * @return array<string, mixed>
+     */
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {
         if (!$item instanceof WhatsappMetaSendQueue) {

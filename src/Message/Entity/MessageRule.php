@@ -185,12 +185,12 @@ class MessageRule
         return $this;
     }
 
-    /** @return list<string>|null */
+    /** @return list<string> */
     public function getAllowedSources(): array { return $this->allowedSources ?? []; }
     /** @param list<string>|null $allowedSources */
     public function setAllowedSources(?array $allowedSources): self { $this->allowedSources = $allowedSources; return $this; }
 
-    /** @return list<string>|null */
+    /** @return list<string> */
     public function getAllowedAgencies(): array { return $this->allowedAgencies ?? []; }
     /** @param list<string>|null $allowedAgencies */
     public function setAllowedAgencies(?array $allowedAgencies): self { $this->allowedAgencies = $allowedAgencies; return $this; }
